@@ -5228,6 +5228,11 @@
   bottom: 48px;
   transition: transform 0.33333s cubic-bezier(0, 0, 0.21, 1); }
 
+.node-details-text {
+  display: inline-block;
+  max-width: 320px;
+  vertical-align: baseline; }
+
 .node-details-running .node-details-header {
   background-color: #00d777; }
 
