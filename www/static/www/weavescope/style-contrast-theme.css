@@ -5232,7 +5232,13 @@
   background-color: #00d777; }
 
 .node-details-running a {
-  color: green; }
+  color: #00d777; }
+
+.node-details-undeploy .node-details-header {
+  background-color: #838383; }
+
+.node-details-undeploy a {
+  color: #838383; }
 
 .node-details-closed .node-details-header {
   background-color: #ea583e; }
