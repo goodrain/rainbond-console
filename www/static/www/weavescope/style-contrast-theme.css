@@ -5231,7 +5231,7 @@
 .node-details-text {
   display: inline-block;
   max-width: 320px;
-  vertical-align: baseline; }
+  vertical-align: middle; }
 
 .node-details-running .node-details-header {
   background-color: #00d777; }
@@ -5262,8 +5262,7 @@
 
 .node-details-header a {
   color: #fff;
-  display: inline-block;
-  border-bottom: 2px solid #fff; }
+  display: inline-block; }
 
 .node-details {
   height: 100%;
