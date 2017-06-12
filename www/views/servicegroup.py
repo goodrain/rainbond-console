@@ -43,8 +43,6 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
             tenant_service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
             service_list = TenantServiceInfo.objects.filter(service_id__in=tenant_service_id_list)
-            service_id_list=[x.service_id for x in service_list]
-            service_ids = ",".join(service_id_list)
             # appcation 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
             can_publish_list = [x for x in service_list if
                                 x.category == "application" or (x.category == "app_publish" and x.language is not None)]
@@ -115,6 +113,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
                                 x.category == "application" or (x.category == "app_publish" and x.language is not None)]
             now = datetime.datetime.now()
 
+            share_pk = None
             app_service_group = AppServiceGroup.objects.filter(group_id=groupId).order_by("-ID")
             # 如果有记录
             if app_service_group:
@@ -133,6 +132,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
                     group.installable = installable
                     group.update_time = datetime.datetime.now()
                     group.save()
+                    share_pk = group.ID
                 except AppServiceGroup.DoesNotExist:
                     # 不存在 根据key 和 version 创建新的记录
                     app_service_group = AppServiceGroup(group_share_id=group_share_id,
@@ -149,6 +149,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
                                                         create_time=now,
                                                         update_time=now)
                     app_service_group.save()
+                    share_pk = app_service_group.ID
             else:
                 group_share_id = make_uuid(service_ids)
                 app_service_group = AppServiceGroup(group_share_id=group_share_id,
@@ -165,13 +166,14 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
                                                     create_time=now,
                                                     update_time=now)
                 app_service_group.save()
+                share_pk = app_service_group.ID
 
         except Exception as e:
             logger.error(e)
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
             return JsonResponse(data, status=200)
-
-        data = {"success": True, "code": 200, 'msg': '更新成功!'}
+        next_url = "/apps/{0}/{1}/{2}/second/".format(self.tenantName, groupId, share_pk)
+        data = {"success": True, "code": 200, 'msg': '更新成功!', 'next_url': next_url}
         return JsonResponse(data, status=200)
         # return TemplateResponse(self.request,
         #                         'www/service/groupShare_step_two.html',
@@ -189,8 +191,6 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
         # 跳转到服务关系发布页面
         context = self.get_context()
         try:
-            app_service_group = AppServiceGroup.objects.get(group_share_id=share_pk)
-
             array_ids = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
             # service_ids = app_service_group.service_ids
             # array_ids = json.loads(service_ids)
@@ -319,7 +319,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         # 跳转到服务关系发布页面
         context = self.get_context()
         try:
-            app_service_group = AppServiceGroup.objects.get(group_share_id=share_pk)
+            app_service_group = AppServiceGroup.objects.get(ID=share_pk)
             array_ids = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
             # service_ids = app_service_group.service_ids
             # array_ids = json.loads(service_ids)
@@ -782,9 +782,9 @@ class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
         return context
 
     @perm_required('app_publish')
-    def get(self, request, groupId, shareId, *args, **kwargs):
+    def get(self, request, groupId, share_pk, *args, **kwargs):
         context = self.get_context()
-        app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+        app_service_group = AppServiceGroup.objects.get(ID=share_pk)
         context["app_service_group"] = app_service_group
         context["group_id"] = groupId
         return TemplateResponse(request, 'www/service/groupShare_step_four.html', context)

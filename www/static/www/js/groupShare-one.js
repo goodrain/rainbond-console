@@ -38,7 +38,8 @@ $(function () {
             success: function (msg) {
                 var json_data = eval(msg);
                 if (json_data.code == 200) {
-                    location.href = "/apps/" + params.tenant_name + "/" + params.group_id + "/" + params.share_id + "/second/";
+                    console.log(json_data.next_url);
+                    location.href = json_data.next_url;
                 } else {
                     swal(json_data.msg);
                 }

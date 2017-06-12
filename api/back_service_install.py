@@ -202,8 +202,7 @@ class BackServiceInstall(object):
                 return {"ok": False, "msg": "cannot find app_service_group"}
             group_id = self.__get_group_id(app_service_group.group_share_alias)
             # 查询分享组中的服务ID
-            service_ids = app_service_group.service_ids
-            service_id_list = json.loads(service_ids)
+            service_id_list = ServiceGroupRelation.objects.filter(group_id=app_service_group.group_id).values_list("service_id", flat=True)
             app_service_list = self.get_published_service_info(app_service_group.ID)
             published_service_list = self.getServiceModel(app_service_list, service_id_list)
             sorted_service = self.sort_service(published_service_list)
