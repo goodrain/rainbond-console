@@ -653,7 +653,8 @@ $(function(){
                     swal("应用名称不能为空");
                 }else if (dataObj["status"] == "success") {
                     var id = dataObj["id"];
-                    window.location.href = "/apps/"+tenantName+"/image-params?id="+id;
+                    var params_val = dataObj["params"];
+                    window.location.href = "/apps/"+tenantName+"/image-params?id="+id+"&params="+params_val;
                 }else if (dataObj["status"] == "failure"){
                     swal("创建失败");
                 }else if(dataObj["status"] == "owed"){

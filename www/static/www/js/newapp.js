@@ -445,8 +445,7 @@ $(function(){
             },
             success: function (data) {
 				if(data.ok){
-					alert(data.params);
-					window.location.href = "/apps/"+tenantName+"/image-params?id="+data.id+"&params="+data.params
+					window.location.href = "/apps/"+tenantName+"/image-params?id="+data.id;
 				}
                 
             },
