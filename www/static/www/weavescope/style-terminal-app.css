@@ -5227,10 +5227,10 @@
 
 .node-details-text {
   display: inline-block;
-  width: 318px;
+  max-width: 328px;
   vertical-align: middle;
   line-height: normal;
-  padding-left: 10px; }
+  padding-right: 10px; }
 
 .node-details-running .node-details-header {
   background-color: #00d777; }
