@@ -190,9 +190,9 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     args = ""
                     for mm in list_args[:-1]:
                         if args:
-                            args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
+                            args = "{0}^_^{1}=={2}".format(args, mm[0], mm[1])
                         else:
-                            args = "{0}={1}".format(mm[0], mm[1])
+                            args = "{0}=={1}".format(mm[0], mm[1])
                     logger.debug(args)
                     result["params"] = base64.b64encode(args)
             else:

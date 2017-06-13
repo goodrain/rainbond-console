@@ -172,9 +172,9 @@ if __name__ == '__main__':
     args = ""
     for mm in list_args[:-1]:
         if args:
-            args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
+            args = "{0}^_^{1}=={2}".format(args, mm[0], mm[1])
         else:
-            args = "{0}={1}".format(mm[0], mm[1])
+            args = "{0}=={1}".format(mm[0], mm[1])
 
     import base64
     args64 = base64.b64encode(args)
