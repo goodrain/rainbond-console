@@ -58,7 +58,7 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label">更新说明:</label>
                                 <div class="col-sm-8">
-                                    <textarea class="form-control app_content" name="release_note" rows="3" maxlength="1024" {% if service.category == "app_publish" and published_service.info %}readonly="readonly"{% endif %}>{% if service.category == "app_publish" %}{{published_service.info}}{% else %}{{app_service.info}}{% endif %}</textarea>
+                                    <textarea class="form-control app_content" name="release_note" rows="3" maxlength="1024" {% if service.category == "app_publish" and published_service.info %}readonly="readonly"{% endif %}>{% if service.category == "app_publish" %}{% if published_service.info %}{{published_service.info}}{% else %}更新至版本{{service.version}}{% endif %}{% else %}{{app_service.info}}{% endif %}</textarea>
                                 </div>
                             </div>
                             <div class="form-group">
