@@ -288,6 +288,7 @@ class PublishServiceView(APIView):
             dest_ys = request.data.get('dest_ys', False)
 
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
+            logger.debug("dest_yb ==> {0} dest_ys ==> {1}".format(dest_yb,dest_ys))
             if not app.dest_yb:
                 app.dest_yb = dest_yb
             if not app.dest_ys:
