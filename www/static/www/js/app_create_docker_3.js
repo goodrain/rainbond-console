@@ -104,11 +104,16 @@ $(function () {
     for(var i=0;i<str_url_Arr.length;i++){
         var url_json = {};
         var json_sin_arr =[];
-        json_sin_arr = str_url_Arr[i].split("==");
+        json_sin_arr = str_url_Arr[i].split("=");
         url_json[json_sin_arr[0]] = json_sin_arr[1];
         json_url_Arr.push(url_json);
     }
-    console.log(json_url_Arr);
+    //console.log(json_url_Arr);
+    for(key in json_url_Arr){
+        console.log(key);
+        console.log(json_url_Arr[key]);
+        console.log("/////");
+    }
     //
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
