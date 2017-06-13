@@ -21,7 +21,7 @@ def analystImage(image_url):
     else:
         list_params=rc_split[1].split(" ")[1:]
         opts, args = _getopt(list_params, "p:v:e:", ["expose=", "link=", "volumes-from=", "name="])
-        opts = [(mm[0], (lambda x:x.split(":")[-1])(mm[1])) for mm in opts[:-1] if mm[1]]
+        opts = [(mm[0], (lambda x:x.split(":")[-1])(mm[1])) for mm in opts if mm[1]]
         opts.append(args[-1])
         return IS_DOCKER, opts
 
