@@ -100,6 +100,15 @@ $(function () {
     var str_url = utf8to16(base64decode(base64str)); 
     var str_url_Arr = str_url.split("^_^");
     console.log(str_url_Arr);
+    var json_url_Arr = [];
+    for(var i=0;i<str_url_Arr.length;i++){
+        var url_json = {};
+        var json_sin_arr =[];
+        json_sin_arr = str_url_Arr[i].split("==");
+        url_json[json_sin_arr[0]] = json_sin_arr[1];
+        json_url_Arr.push(url_json);
+    }
+    console.log(json_url_Arr);
     //
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
