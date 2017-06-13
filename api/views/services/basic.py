@@ -346,6 +346,12 @@ class PublishServiceView(APIView):
                 serviceInfo.is_init_accout = app.is_init_accout
                 serviceInfo.creater = app.creater
                 serviceInfo.namespace = app.namespace
+                # 判断是否为组发布
+                key = request.data.get('share_id', None)
+                if key:
+                    serviceInfo.publish_type = "group"
+                else:
+                    serviceInfo.publish_type = "single"
                 serviceInfo.save()
             app.is_ok = isok
             if slug != "":

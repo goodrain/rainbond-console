@@ -381,6 +381,7 @@ class ServiceInfo(BaseModel):
                                     help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
     creater = models.IntegerField(null=True, help_text=u"创建人")
+    publish_type = models.CharField(max_length=10, default="single", help_text=u"判断服务是否属于组")
     
     def is_slug(self):
         return bool(self.image.startswith('goodrain.me/runner'))

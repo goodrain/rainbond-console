@@ -64,7 +64,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             if fr == "local":
                 cacheGroupList = AppServiceGroup.objects.filter(is_success=True)
                 context["cacheGroupList"] = cacheGroupList
-                cacheServiceList = ServiceInfo.objects.filter(status="published")
+                cacheServiceList = ServiceInfo.objects.filter(status="published", publish_type="single")
                 context["cacheServiceList"] = cacheServiceList
                 try:
                     appClient.timeout = 15
