@@ -50,12 +50,12 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                 data = {"success": False, "code": 406, 'msg': '此组中的应用全部来源于云市,无法发布'}
                 return JsonResponse(data, status=200)
             # 判断非云市安装应用是否全部运行中
-            for s in can_publish_list:
-                body = regionClient.check_service_status(self.response_region,s.service_id)
-                status = body["status"]
-                if status != "running":
-                    data = {"success": False, "code": 412, 'msg': '您的应用{0}未运行。'.format(s.service_cname)}
-                    return JsonResponse(data, status=200)
+            # for s in can_publish_list:
+            #     body = regionClient.check_service_status(self.response_region,s.service_id)
+            #     status = body["status"]
+            #     if status != "running":
+            #         data = {"success": False, "code": 412, 'msg': '您的应用{0}未运行。'.format(s.service_cname)}
+            #         return JsonResponse(data, status=200)
             next_url = "/apps/{0}/{1}/first/".format(self.tenantName, groupId)
             data = {"success": False, "code": 200, 'next_url': next_url}
             return JsonResponse(data, status=200)
@@ -669,7 +669,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 for dep_service in dep_service_list:
                     dep_app_service = None
                     # 不为源码构建的应用
-                    if dep_service.service_key != "application":
+                    if dep_service.service_key != "application" and (dep_service.language is None):
                         dep_app_list = AppService.objects.filter(service_key=dep_service.service_key, app_version=dep_service.version).order_by("-ID")
                         if not dep_app_list:
                             dep_app_list = AppService.objects.filter(service_key=dep_service.service_key).order_by("-ID")
