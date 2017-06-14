@@ -36,13 +36,13 @@
                     <div class="fm－box">
                         <div class="show-box">
                             <div class="form-group">
-                                <label class="col-sm-2">应用名称:</label>
+                                <label class="col-sm-2 control-label">应用名称:</label>
                                 <div class="col-sm-8">
                                     <input type="text" class="form-control app_name" placeholder="请输入发布应用名称"
                                            {% if service.category == "app_publish" and published_service.app_alias %}
                                                 readonly="readonly"
                                            {% endif %} maxlength="50"
-                                           value="{% if service.category == "app_publish" %}{% if app_service.app_alias %}{{app_service.app_alias}}{% else %}{{service.cname}}{% endif %}{% else %} {% if app_service.app_alias %}{{app_service.app_alias}}{% else %}{{service.cname}}{% endif %}{% endif %}"/>
+                                           value="{% if service.category == "app_publish" %}{% if app_service.app_alias %}{{app_service.app_alias}}{% else %}{{service.service_cname}}{% endif %}{% else %} {% if app_service.app_alias %}{{app_service.app_alias}}{% else %}{{service.cname}}{% endif %}{% endif %}"/>
                                 </div>
                             </div>
                         </div>
