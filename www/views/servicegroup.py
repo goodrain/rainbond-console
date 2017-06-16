@@ -459,8 +459,8 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                         self.upload_image(app_service, service, share_pk)
 
 
-            # if len(app_share_list) > 0:
-            #     AppServiceShareInfo.objects.bulk_create(app_share_list)
+                        # if len(app_share_list) > 0:
+                        #     AppServiceShareInfo.objects.bulk_create(app_share_list)
         except Exception as e:
             logger.error("service group publish failed")
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
@@ -529,7 +529,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             app_service.is_ok = 0
             if service.is_slug():
                 app_service.slug = '/app_publish/{0}/{1}.tgz'.format(app_service.service_key, app_version)
-            # 更新status、show_app、show_assistant
+                # 更新status、show_app、show_assistant
         app_service.app_alias = app_alias
         app_service.app_version = app_version
         app_service.info = app_content
@@ -636,7 +636,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             volume_list = TenantServiceVolume.objects.filter(service_id=service.service_id)
             volume_path_list = [x.volume_path for x in volume_list]
             AppServiceVolume.objects.filter(service_key=service_key,
-                                            app_version=app_version)\
+                                            app_version=app_version) \
                 .exclude(volume_path__in=volume_path_list).delete()
 
             volume_data = []
@@ -709,9 +709,9 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             logger.exception(e)
             logger.error(
                 "add app relation error service_key {0},app_version {1},app_alias {2}".format(service_key, app_version,
-                                                                                            app_alias))
+                                                                                              app_alias))
 
-    def _create_publish_event(self, service, info):
+    def _create_publish_event(self, info):
         try:
             import datetime
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
@@ -739,12 +739,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(service, u'云帮')
+            event_id = self._create_publish_event(u'云帮')
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
             logger.debug("=========> slug 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(service, u"云市")
+                event_id = self._create_publish_event(u"云市")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
                 logger.debug("=========> slug 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
@@ -768,12 +768,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(service, u"云帮")
+            event_id = self._create_publish_event(u"云帮")
             image_upload_task.update({"dest": "yb", "event_id": event_id})
             logger.debug("=========> image 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(service, u"云市")
+                event_id = self._create_publish_event(u"云市")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
                 logger.debug("=========> image 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
