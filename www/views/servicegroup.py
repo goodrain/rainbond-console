@@ -9,7 +9,7 @@ from django.http.response import HttpResponse, JsonResponse, Http404
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import TenantServicesPort, TenantServiceEnvVar, ServiceInfo, PublishedGroupServiceRelation, \
-    ServiceGroupRelation
+    ServiceGroupRelation, ServiceEvent
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 # from www.servicetype import ServiceType
@@ -712,20 +712,19 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                                                                                             app_alias))
 
     def _create_publish_event(self, service, info):
-        template = {
-            "user_id": self.user.nick_name,
-            "tenant_id": service.tenant_id,
-            "service_id": service.service_id,
-            "type": "publish",
-            "desc": info + u"应用发布中...",
-            "show": True,
-        }
         try:
-            body = regionClient.create_event(service.service_region, json.dumps(template))
-            return body.event_id
+            import datetime
+            event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
+                                 tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
+                                 deploy_version=self.service.deploy_version,
+                                 old_deploy_version=self.service.deploy_version,
+                                 user_name=self.user.nick_name, start_time=datetime.datetime.now())
+            event.save()
+            self.event = event
+            return event.event_id
         except Exception as e:
-            logger.exception("service.publish", e)
-            return None
+            self.event = None
+            raise e
 
     def upload_slug(self, app, service, share_id):
         """ 上传slug包 """
@@ -750,9 +749,13 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 logger.debug("=========> slug 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "service group upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
 
     def upload_image(self, app, service, share_id):
         """ 上传image镜像 """
@@ -775,9 +778,13 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 logger.debug("=========> image 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "service group upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
 
 
 class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
