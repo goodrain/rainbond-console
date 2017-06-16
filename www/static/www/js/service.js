@@ -1305,19 +1305,31 @@ function high_relation(curServiceName, depServiceName, tenantName) {
         success : function(data) {
             console.log(data);
             var servenlayer = data;
+            var domainUrl = servenlayer["domain"];
+            console.log(domainUrl);
             //  展示 弹出层 start
             var oStrH = '<div class="layerbg" id="servenLayer"><div class="servenlayer">'
-			//var domainUrl = servenlayer["domain"];
+
 			//var headArray = servenlayer["header"];
 			//var statistic = servenlayer["statistic"];
 			var cricuit = servenlayer["cricuit"];
             oStrH += '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a><p class="layer-tit">设置</p>';
-			/*
-			if(domainUrl == "off"){
-				oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
-			}else{
-				oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+			if(domainUrl != "close"){
+				if(domainUrl == "off"){
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
+                }else{
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
+                }
 			}
+            oStrH += '</div>';
+             
+			//if(domainUrl == "off"){
+			//	oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+			//}else{
+			//	oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+			//}
+
+			/*
 			for(var i=0;i<headArray.length;i++){
 				oStrH += '<p class="clearfix headerp"><span>&nbsp;</span><input type="text" value="' + headArray[i]["key"] + '" /><input type="text" value="' + headArray[i]["value"] + '" /></p>'
 			}
@@ -1335,13 +1347,13 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
 			oStrH += '</div></div>'
 			$(oStrH).appendTo("body");
-			/*
-			if(domainUrl == "off" && headArray.length == 0){
-				$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
-			}else{
-				$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+			if(domainUrl != "off" && domainUrl != "close"){
+			    if($("#dourl").val() == ""){
+                    $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
+                }else{
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                }
 			}
-			*/
 			$("#fusing option").each(function(){
 				var othis = $(this);
 				var thisval = $(this).attr("value");
@@ -1368,16 +1380,22 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		    	}
 		    });
 			//熔断 end
-			/*
 			//网址输入框改变 start
 			$("#domainurl").change(function(){
 		    	var damainonoff = $("#domainurl").prop("checked");
 		    	if(damainonoff == true){
 		    		$("#headarrbox").show();
+                    if($("#dourl").val() == ""){
+                        $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
+                    }else{
+                        $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                    }
 		    	}else{
 		    		$("#headarrbox").hide();
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
 		    	}
 		    });
+		    /*
 			//网址输入框改变 end
 			//添加 key value  输入框  start
 			var keyvaluenum = $("#headpbox p").length;
@@ -1394,25 +1412,31 @@ function high_relation(curServiceName, depServiceName, tenantName) {
     		});
 			//添加 key value  输入框  end
 			*/
-			/*
+			
 			//网址光标移出 start
 			$("#dourl").blur(function(){
 		    	var ourl = $("#dourl").val();
-		    	var hpnum = 0;
-		    	$("#headpbox p").each(function(){
-		    		var keyVal = $(this).find("input").eq(0).val();
-		    		var valVal = $(this).find("input").eq(1).val();
-		    		if(keyVal != "" && valVal !=""){
-		    			hpnum = 1;
-		    		}
-		    	});
-		    	if(ourl != "" || hpnum == 1){
-		    		$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
-		    	}else{
-		    		$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
-		    	}
+		    	//var hpnum = 0;
+		    	//$("#headpbox p").each(function(){
+		    	//	var keyVal = $(this).find("input").eq(0).val();
+		    	//	var valVal = $(this).find("input").eq(1).val();
+		    	//	if(keyVal != "" && valVal !=""){
+		    	//		hpnum = 1;
+		    	//	}
+		    	//});
+		    	//if(ourl != "" || hpnum == 1){
+		    	//	$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+		    	//}else{
+		    	//	$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
+		    	//}
+                if(ourl != ""){
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                }else{
+                    $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true"); 
+                }
 		    });
 			//网址光标移出 end
+            /*
 			//keyvalue  光标移出  start
 		    $("#headpbox input").blur(function(){
 		    	var ourl = $("#dourl").val();
@@ -1437,13 +1461,16 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			$("#hrelsure").click(function(){
 		   		var obox = {};
 		   		//var headerbox=[];
-		   		//var domainval = $("#dourl").val();
+                var oneonoff = $("#domainurl").prop("checked");
+		   		var domainval = $("#dourl").val();
 		   		var cricuitval = $("#fusing option:selected").attr("value");
 		   		//var statisticval = $("input#statisticsbox").prop("checked");
-		   		//obox["domain"]=domainval;
+                if(oneonoff == true){
+                   obox["domain"]=domainval; 
+                }
 		   		obox["cricuit"] = cricuitval;
 		   		//obox["statistic"] = (statisticval==true) ? "on" : "off";
-		   		//var oneonoff = $("#domainurl").prop("checked");
+		   		
 		   		//var twoonoff = $("input#statisticsbox").prop("checked");
 		   		//var threeonoff = $("#cricuitonoff").prop("checked");
 		   		/*

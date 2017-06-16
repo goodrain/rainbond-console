@@ -288,13 +288,17 @@ class PublishServiceView(APIView):
             dest_ys = request.data.get('dest_ys', False)
 
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
+            logger.debug("dest_yb ==> {0} dest_ys ==> {1}".format(dest_yb,dest_ys))
             if not app.dest_yb:
                 app.dest_yb = dest_yb
             if not app.dest_ys:
                 app.dest_ys = dest_ys
             isok = False
-            if app.is_outer and app.dest_yb and app.dest_ys:
+            # if app.is_outer and app.dest_yb and app.dest_ys:
+            #     isok = True
+            if app.is_outer and app.dest_ys:
                 isok = True
+                app.dest_yb = True
             if not app.is_outer and app.dest_yb:
                 isok = True
             if slug != "" and not slug.startswith("/"):

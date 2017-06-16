@@ -738,10 +738,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         try:
             event_id = self._create_publish_event(service, u'云帮')
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
+            logger.debug("=========> slug 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(service, u"云市")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
+                logger.debug("=========> slug 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
@@ -759,12 +761,14 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(service, u"云帮")
-            image_upload_task.update({"dest": "yb", "event_id": event_id})
-            regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
+            # event_id = self._create_publish_event(service, u"云帮")
+            # image_upload_task.update({"dest": "yb", "event_id": event_id})
+            # logger.debug("=========> image 云帮发布任务 !")
+            # regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(service, u"云市")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
+                logger.debug("=========> image 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
