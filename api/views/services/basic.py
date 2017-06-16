@@ -295,11 +295,11 @@ class PublishServiceView(APIView):
             if not app.dest_ys:
                 app.dest_ys = dest_ys
             isok = False
-            # if app.is_outer and app.dest_yb and app.dest_ys:
-            #     isok = True
-            if app.is_outer and app.dest_ys:
+            if app.is_outer and app.dest_yb and app.dest_ys:
                 isok = True
-                app.dest_yb = True
+            # if app.is_outer and app.dest_ys:
+            #     isok = True
+            #     app.dest_yb = True
             if not app.is_outer and app.dest_yb:
                 isok = True
             if slug != "" and not slug.startswith("/"):

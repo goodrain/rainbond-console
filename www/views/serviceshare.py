@@ -687,9 +687,9 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             "is_outer": app.is_outer,
         }
         try:
-            # event_id = self._create_publish_event("yb")
-            # image_upload_task.update({"dest": "yb", "event_id": event_id})
-            # regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            event_id = self._create_publish_event("yb")
+            image_upload_task.update({"dest": "yb", "event_id": event_id})
+            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event("ys")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
