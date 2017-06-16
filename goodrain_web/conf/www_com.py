@@ -104,7 +104,7 @@ WEBSOCKET_URL = {
 }
 
 EVENT_WEBSOCKET_URL = {
-    'ali-sh': 'wss://event-ali-sh.goodrain.com:6360',
+    'ali-sh': 'wss://event-ali-sh.goodrain.com:6060',
     'xunda-bj': 'wss://event-xunda-bj.goodrain.com:6360',
     'aws-jp-1': 'wss://event-aws-jp-1.goodrain.com:6360',
     "test-ali": "ws://test.goodrain.com:6363"
@@ -203,7 +203,7 @@ DOCKER_WSS_URL = {
     'type': 'wss',
     'ucloud-bj-1': 'ucloud-bj-1-ws.goodrain.com:8088',
     'aws-jp-1': 'aws-jp-1-ws.goodrain.com:8088',
-    'ali-sh': 'ali-sh-ws.goodrain.com:8088',
+    'ali-sh': 'ali-sh-ws.goodrain.com:6060',
     'xunda-bj': 'xunda-bj-ws.goodrain.com:8088',
 }
 
