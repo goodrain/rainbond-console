@@ -21,7 +21,7 @@ def analystImage(image_url):
     else:
         list_params=rc_split[1].split(" ")[1:]
         opts, args = _getopt(list_params, "p:v:e:", ["expose=", "link=", "volumes-from=", "name="])
-        opts = [(mm[0], (lambda x:x.split(":")[-1])(mm[1])) for mm in opts[:-1] if mm[1]]
+        opts = [(mm[0], (lambda x:x.split(":")[-1])(mm[1])) for mm in opts if mm[1]]
         opts.append(args[-1])
         return IS_DOCKER, opts
 
@@ -172,9 +172,9 @@ if __name__ == '__main__':
     args = ""
     for mm in list_args[:-1]:
         if args:
-            args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
+            args = "{0}^_^{1}=={2}".format(args, mm[0], mm[1])
         else:
-            args = "{0}={1}".format(mm[0], mm[1])
+            args = "{0}=={1}".format(mm[0], mm[1])
 
     import base64
     args64 = base64.b64encode(args)
