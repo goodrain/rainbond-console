@@ -711,13 +711,13 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 "add app relation error service_key {0},app_version {1},app_alias {2}".format(service_key, app_version,
                                                                                               app_alias))
 
-    def _create_publish_event(self, info):
+    def _create_publish_event(self,service, info):
         try:
             import datetime
-            event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
+            event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
                                  tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
-                                 deploy_version=self.service.deploy_version,
-                                 old_deploy_version=self.service.deploy_version,
+                                 deploy_version=service.deploy_version,
+                                 old_deploy_version=service.deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
             event.save()
             self.event = event
@@ -739,12 +739,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(u'云帮')
+            event_id = self._create_publish_event(service, u'云帮')
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
             logger.debug("=========> slug 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
+                event_id = self._create_publish_event(service,u"云市")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
                 logger.debug("=========> slug 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
@@ -768,12 +768,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(u"云帮")
+            event_id = self._create_publish_event(service, u"云帮")
             image_upload_task.update({"dest": "yb", "event_id": event_id})
             logger.debug("=========> image 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
+                event_id = self._create_publish_event(service, u"云市")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
                 logger.debug("=========> image 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
