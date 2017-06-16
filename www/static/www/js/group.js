@@ -9,12 +9,12 @@ $(function(){
         $("#batchStart").prop("disabled",true);
         $("#batchEnd").prop("disabled",true);
         $("#newStart").prop("disabled",true);
-        $("#groupShare").prop("disabled",true);
+        //$("#groupShare").prop("disabled",true);
     }else{
         $("#batchStart").removeAttr("disabled",true);
         $("#batchEnd").removeAttr("disabled",true);
         $("#newStart").removeAttr("disabled",true);
-        $("#groupShare").removeAttr("disabled",true);
+        //$("#groupShare").removeAttr("disabled",true);
     }
 	$(".fn-SelectItem input").click(function(){
     	chackboxnums = $(".fn-SelectItem input:checked").length;
@@ -28,12 +28,12 @@ $(function(){
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
-            $("#groupShare").prop("disabled",true);
+            //$("#groupShare").prop("disabled",true);
         }else{
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
-            $("#groupShare").removeAttr("disabled",true);
+           // $("#groupShare").removeAttr("disabled",true);
         }
     });
     $(".fn-SelectAll input").on("click",function(){
@@ -44,14 +44,14 @@ $(function(){
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
-            $("#groupShare").removeAttr("disabled",true);
+            //$("#groupShare").removeAttr("disabled",true);
 		}else{
 			$(".fn-SelectItem input").removeAttr("checked");
     		$("#nums-app p").children("span").html("0");
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
-            $("#groupShare").prop("disabled",true);
+            //$("#groupShare").prop("disabled",true);
 		}
     });
 
@@ -187,7 +187,6 @@ $(function(){
         });
         Arraycheck.sort();
         var data = Arraycheck.join(',');
-        console.log(data);
         var group_id = $("#group_id_input").val();
         $.ajax({
             type : "POST",
