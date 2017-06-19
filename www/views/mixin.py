@@ -99,7 +99,8 @@ class LeftSideBarMixin(object):
             else:
                 if region['name'] == 'aws-jp-1' and self.tenant.pay_level == 'free' and self.tenant.balance == 0:
                     continue
-                arrival_regions.append(region)
+                if region['name'] != 'aws-jp-1':
+                    arrival_regions.append(region)
         # 判断租户是否在998活动中
         if self.tenant is not None:
             ta_num = TenantActivity.objects.filter(tenant_id=self.tenant.tenant_id).count()
