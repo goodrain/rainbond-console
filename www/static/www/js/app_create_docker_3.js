@@ -112,8 +112,15 @@ $(function () {
     console.log(json_url_Arr_key);
     console.log(json_url_Arr_value);
     for(var i=0;i<json_url_Arr_key.length;i++){
-        if(json_url_Arr_key[i] == "-p"){
-            console.log(json_url_Arr_value[i]);
+        if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish"){
+            var portnum = json_url_Arr_value[i];
+            var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+ portnum +'</a></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+ portnum +'inner" /><label class="check-bg" for="'+ portnum +'inner"></label></div></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+ portnum +'outer" /><label class="check-bg" for="'+ portnum +'outer"></label></div></td><td>';
+            oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+ portnum +'http"><option class="changeOption">请打开外部访问</option>';
+            oTr += '<option selected="selected">HTTP</option>';
+            oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(oTr).appendTo(".port");
         }
     }
     
