@@ -5832,7 +5832,8 @@ input.checkhide:checked+label.checkshow{width:56px; height: 28px;  background: u
 
 
 
-
+.dockertips{padding-left: 150px;}
+.dockertips span{display: block;}
 
 
 

@@ -99,21 +99,73 @@ $(function () {
     } 
     var str_url = utf8to16(base64decode(base64str)); 
     var str_url_Arr = str_url.split("^_^");
-    console.log(str_url_Arr);
-    var json_url_Arr = [];
+    var json_url_Arr_key = [];
+    var json_url_Arr_value = [];
     for(var i=0;i<str_url_Arr.length;i++){
-        var url_json = {};
+        //var url_json = {};
         var json_sin_arr =[];
-        json_sin_arr = str_url_Arr[i].split("=");
-        url_json[json_sin_arr[0]] = json_sin_arr[1];
-        json_url_Arr.push(url_json);
+        json_sin_arr = str_url_Arr[i].split("==");
+        //url_json[json_sin_arr[0]] = json_sin_arr[1];
+        json_url_Arr_key.push(json_sin_arr[0]);
+        json_url_Arr_value.push(json_sin_arr[1]);
     }
-    //console.log(json_url_Arr);
-    for(key in json_url_Arr){
-        console.log(key);
-        console.log(json_url_Arr[key]);
-        console.log("/////");
+    console.log(json_url_Arr_key);
+    console.log(json_url_Arr_value);
+    
+    var old_arr_link = [];
+    var old_arr_id=[];
+    $(".cho-text").each(function(){
+        old_arr_link.push($(this).html());
+        old_arr_id.push($(this).attr("for"));
+    });
+    console.log(old_arr_link);
+    console.log(old_arr_id);
+
+    for(var i=0;i<json_url_Arr_key.length;i++){
+        //
+        if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish" ||json_url_Arr_key[i] == "--expose"){
+            var portnum = json_url_Arr_value[i];
+            var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+ portnum +'</a></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+ portnum +'inner" /><label class="check-bg" for="'+ portnum +'inner"></label></div></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+ portnum +'outer" /><label class="check-bg" for="'+ portnum +'outer"></label></div></td><td>';
+            oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+ portnum +'http"><option class="changeOption">请打开外部访问</option>';
+            oTr += '<option>HTTP</option><option>非HTTP</option>';
+            oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(oTr).appendTo(".port");
+        }
+        //
+        if(json_url_Arr_key[i] == "--link"){
+            var linkstr = json_url_Arr_value[i];
+            var num = 0;
+            for(var m=0; m<old_arr_link.length; m++){
+                if(linkstr == old_arr_link[m]){
+                    num += 1;
+                }
+            }
+            for(var k=0;k<old_arr_link.length;k++){
+                if(linkstr == old_arr_link[k] && num == 1){
+                    var str = '';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+ old_arr_id[k]+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+ old_arr_link[k] +'</a>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    $(str).appendTo(".applicationName");
+                }
+            }
+        }
+        //
+        if(json_url_Arr_key[i] == "-e" || json_url_Arr_key[i] == "--env"){
+            var estr = json_url_Arr_value[i];
+            var estr_arr =[];
+            estr_arr = estr.split("=");
+            var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+ estr_arr[0] +'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[0]+'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+estr_arr[1]+'</a></td>';
+            str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(str).appendTo(".enviroment");
+        }
+        //
     }
+    
+    
     //
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
