@@ -122,6 +122,7 @@ $(function () {
     console.log(old_arr_id);
 
     for(var i=0;i<json_url_Arr_key.length;i++){
+        //
         if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish" ||json_url_Arr_key[i] == "--expose"){
             var portnum = json_url_Arr_value[i];
             var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+ portnum +'</a></td>';
@@ -132,6 +133,7 @@ $(function () {
             oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
             $(oTr).appendTo(".port");
         }
+        //
         if(json_url_Arr_key[i] == "--link"){
             var linkstr = json_url_Arr_value[i];
             var num = 0;
@@ -149,6 +151,18 @@ $(function () {
                 }
             }
         }
+        //
+        if(json_url_Arr_key[i] == "-e" || json_url_Arr_key[i] == "--env"){
+            var estr = json_url_Arr_value[i];
+            var estr_arr =[];
+            estr_arr = estr.split("=");
+            var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+ estr_arr[0] +'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[1]+'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+estr_arr[1]+'</a></td>';
+            str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(str).appendTo(".enviroment");
+        }
+        //
     }
     
     
