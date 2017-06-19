@@ -113,11 +113,14 @@ $(function () {
     console.log(json_url_Arr_value);
     
     var old_arr_link = [];
+    var old_arr_id=[];
     $(".cho-text").each(function(){
         old_arr_link.push($(this).html());
+        old_arr_id.push($(this).attr("for"));
     });
     console.log(old_arr_link);
-
+    console.log(old_arr_id);
+    
     for(var i=0;i<json_url_Arr_key.length;i++){
         if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish" ||json_url_Arr_key[i] == "--expose"){
             var portnum = json_url_Arr_value[i];
