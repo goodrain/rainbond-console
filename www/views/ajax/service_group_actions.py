@@ -265,10 +265,10 @@ class TopologicalInternetView(AuthedView):
                 outer_http_service = reduce(lambda x, y: x or y, [t.is_outer_service and t.protocol == 'http' for t in list(port_list)])
             if outer_http_service:
                 outer_http_service_list.append(service)
-        service_region = self.service.service_region
         # 每个对外可访问的服务
         service_domain_result = {}
         for service_info in outer_http_service_list:
+            service_region = service_info.service_region
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
             service_domain_list = ServiceDomain.objects.filter(service_id=service_info.service_id)
             port_map = {}
@@ -304,7 +304,7 @@ class TopologicalInternetView(AuthedView):
                     if outer_service['port'] == '-1':
                         port_info['outer_url'] = 'query error!'
                     else:
-                        if self.service.port_type == "multi_outer":
+                        if service_info.port_type == "multi_outer":
                             if port.protocol == "http":
                                 port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'], outer_service['port'])
                             else:
