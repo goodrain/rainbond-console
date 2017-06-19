@@ -122,6 +122,16 @@ $(function () {
             oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
             $(oTr).appendTo(".port");
         }
+        if(json_url_Arr_key[i] == "--link"){
+            var linkstr = json_url_Arr_value[i];
+            var str = '';
+            str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-serviceId")+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
+            str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+            $(str).appendTo(".applicationName");
+            delLi();
+            tip();
+            appMes();
+        }
     }
     
     
