@@ -106,8 +106,8 @@ $(function () {
         var json_sin_arr =[];
         json_sin_arr = str_url_Arr[i].split("==");
         //url_json[json_sin_arr[0]] = json_sin_arr[1];
-        //json_url_Arr_key.push(json_sin_arr[0]);
-        //json_url_Arr_value.push(json_sin_arr[1]);
+        json_url_Arr_key.push(json_sin_arr[0]);
+        json_url_Arr_value.push(json_sin_arr[1]);
     }
     console.log(json_url_Arr_key);
     console.log(json_url_Arr_value);
