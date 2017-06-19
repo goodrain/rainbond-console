@@ -111,6 +111,13 @@ $(function () {
     }
     console.log(json_url_Arr_key);
     console.log(json_url_Arr_value);
+    
+    var old_arr_link = [];
+    $(".cho-text").each{function(){
+        old_arr_link.push($(this).html());
+    }};
+    console.log(old_arr_link);
+
     for(var i=0;i<json_url_Arr_key.length;i++){
         if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish" ||json_url_Arr_key[i] == "--expose"){
             var portnum = json_url_Arr_value[i];
@@ -124,13 +131,13 @@ $(function () {
         }
         if(json_url_Arr_key[i] == "--link"){
             var linkstr = json_url_Arr_value[i];
+            if(){
+                
+            }
             var str = '';
             str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-serviceId")+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
             str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".applicationName");
-            delLi();
-            tip();
-            appMes();
         }
     }
     
