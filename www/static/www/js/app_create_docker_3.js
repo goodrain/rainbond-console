@@ -104,7 +104,7 @@ $(function () {
     for(var i=0;i<str_url_Arr.length;i++){
         var url_json = {};
         var json_sin_arr =[];
-        json_sin_arr = str_url_Arr[i].split("=");
+        json_sin_arr = str_url_Arr[i].split("==");
         url_json[json_sin_arr[0]] = json_sin_arr[1];
         json_url_Arr.push(url_json);
     }
