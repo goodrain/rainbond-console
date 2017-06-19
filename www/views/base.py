@@ -159,8 +159,8 @@ class AuthedView(BaseView):
                 try:
                     self.service = TenantServiceInfo.objects.get(
                         tenant_id=self.tenant.tenant_id, service_alias=self.serviceAlias)
-                    if self.service.service_region not in ("xunda-bj","ali-sh"):
-                        raise http.HttpResponseForbidden
+                    if self.service.service_region == "aws-jp-1":
+                        return http.HttpResponseForbidden
                 except TenantServiceInfo.DoesNotExist:
                     logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(
                         self.tenantName, self.serviceAlias))
