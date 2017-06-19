@@ -113,9 +113,9 @@ $(function () {
     console.log(json_url_Arr_value);
     
     var old_arr_link = [];
-    $(".cho-text").each{function(){
+    $(".cho-text").each(function(){
         old_arr_link.push($(this).html());
-    }};
+    });
     console.log(old_arr_link);
 
     for(var i=0;i<json_url_Arr_key.length;i++){
