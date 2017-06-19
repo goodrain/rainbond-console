@@ -157,7 +157,7 @@ $(function () {
             var estr_arr =[];
             estr_arr = estr.split("=");
             var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+ estr_arr[0] +'</a></td>';
-            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[1]+'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[0]+'</a></td>';
             str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+estr_arr[1]+'</a></td>';
             str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
             $(str).appendTo(".enviroment");
