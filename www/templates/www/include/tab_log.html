@@ -8,6 +8,12 @@
      <p style="float: right; text-align: right; width: 220px;">
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank" style="color: #28cb75; margin-right: 10px;  line-height: 30px; text-decoration:underline">历史日志下载</a>
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank" style="color: #28cb75;  line-height: 30px; text-decoration:underline">最新1000条日志</a>
+        <div class="btn-group">
+            <button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
+            <ul class="dropdown-menu" role="menu" style="left: -30px;" id="cur_container_content">
+                                        <!--<li><a href="#">节点1</a></li>-->
+            </ul>
+        </div>
     </p>
   </div>
   <input type="hidden" value="{{ monitor_websocket_uri }}" id="web_url_log" />
@@ -29,6 +35,36 @@
     }
 
     var pauseFlag = "start";
+     //
+     function join_container() {
+        $.ajax({
+            type: "GET",
+            url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker",
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (dataObj) {
+                var msg = ""
+                var tindex = 1
+                for (var key in dataObj) {
+                    if (key != "split") {
+                        msg += "<li>";
+                        msg += "<a href='javascript:void(0);'  onclick='join_in(\"" + key + "\",\"" + dataObj[key] + "\")'> 节点" + tindex + "</a></li>"
+                        tindex += 1;
+                    }
+                }
+                if (msg != "") {
+                    $("#cur_container_content").html(msg)
+                }
+            },
+            error: function () {
+                swal("系统异常");
+            }
+        });
+    }
+     //
 
     function getLog() {
         $.ajax({
