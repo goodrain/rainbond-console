@@ -71,10 +71,12 @@
                     <label for="create_app_name">镜像</label><input type="text" id="mirror-address" name="mirror-address" value="{{image_url}}" placeholder="例如 nginx:1.11"  />
                 </div>
                 <p class="fm-tips" id="mirror_address_notice">您还没有输入镜像地址！</p>
-                <p class="dockertips" style="color: #838383;">
-                    <span>镜像名：nginx : 1.11</span>
-                    <span>Docker run 命令：docker run -d imagename</span>
-                </p>
+                <div class="fm-input-text clearfix">
+                    <p class="dockertips" style="color: #838383;">
+                        <span>镜像名：nginx : 1.11</span>
+                        <span>Docker run 命令：docker run -d imagename</span>
+                    </p>
+                </div>
             </div>
             <!-- 基本信息  end -->
             <!-- 配套信息 start -->
