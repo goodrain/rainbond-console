@@ -134,16 +134,20 @@ $(function () {
         }
         if(json_url_Arr_key[i] == "--link"){
             var linkstr = json_url_Arr_value[i];
-            for(var k=0;k<old_arr_link.length;k++){
-                if(linkstr == old_arr_link[k]){
-                    console.log(k);
-                    console.log(old_arr_id[k]);
+            var num = 0;
+            for(var m=0; m<old_arr_link.length; m++){
+                if(linkstr == old_arr_link[m]){
+                    num += 1;
                 }
             }
-           // var str = '';
-           // str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-serviceId")+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
-           // str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-           // $(str).appendTo(".applicationName");
+            for(var k=0;k<old_arr_link.length;k++){
+                if(linkstr == old_arr_link[k] && num == 1){
+                    var str = '';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+ old_arr_id[k]+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+ old_arr_link[k] +'</a>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    $(str).appendTo(".applicationName");
+                }
+            }
         }
     }
     
