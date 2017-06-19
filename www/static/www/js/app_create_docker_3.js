@@ -110,7 +110,7 @@ $(function () {
         json_url_Arr_value.push(json_sin_arr[1]);
     }
     console.log(json_url_Arr_key);
-    cinsole.log(json_url_Arr_value);
+    console.log(json_url_Arr_value);
     //for(var i=0;i<json_url_Arr.length;i++){
 
     //}
