@@ -85,7 +85,12 @@ button{
 .alternative ul a.bgColor{
     display: block;
 }
-
+@media (max-width: 970px){
+    .appOutline ul.outlineTop li{
+        width: 50%; 
+        margin: 10px 0;
+    }
+}
 @media (max-width: 720px){
     .appOutline ul.outlineTop li{
         width: 100%; 
