@@ -9,13 +9,12 @@ from django.views.generic.base import RedirectView
 
 from django.conf import settings
 from goodrain_web.custom_config import custom_config
-
+from django.core.exceptions import PermissionDenied
 if 'django.contrib.staticfiles' in settings.INSTALLED_APPS:
     from django.contrib.staticfiles.templatetags.staticfiles import static
 else:
     from django.templatetags.static import static
 
-from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant
 from www.version import STATIC_VERSION
@@ -159,6 +158,8 @@ class AuthedView(BaseView):
                 try:
                     self.service = TenantServiceInfo.objects.get(
                         tenant_id=self.tenant.tenant_id, service_alias=self.serviceAlias)
+                    if self.service.service_region == "aws-jp-1":
+                        raise PermissionDenied
                 except TenantServiceInfo.DoesNotExist:
                     logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(
                         self.tenantName, self.serviceAlias))

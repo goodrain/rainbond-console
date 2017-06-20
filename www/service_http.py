@@ -22,7 +22,7 @@ class RegionServiceApi(BaseHttpClient):
             if 'proxy' in region_service_info and region_service_info.get('proxy_priority', False) is True:
                 client_info['client'] = self.make_proxy_http(region_service_info)
             else:
-                client_info['client'] = httplib2.Http(timeout=25)
+                client_info['client'] = httplib2.Http(timeout=5)
             self.region_map[region_service_info["region_name"]] = client_info
     
     def make_proxy_http(self, region_service_info):
