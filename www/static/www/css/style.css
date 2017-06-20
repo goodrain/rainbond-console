@@ -2990,6 +2990,7 @@ ul.amounts li {
 .panel-heading .nav > li > a {
     color: #838383;
     font-size: 18px;
+    border-bottom:2px #f0f5f8 solid;
 }
 
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
@@ -5557,6 +5558,7 @@ a.guest-on i {
 
 @media (max-width: 720px){
     header .notify-row{ display: block; margin-left: 20px;}
+    
 }
 
 @media (max-width: 480px){

@@ -86,3 +86,10 @@ button{
     display: block;
 }
 
+@media (max-width: 720px){
+    .appOutline ul.outlineTop li{
+        width: 100%; 
+        margin: 10px 0;
+        float: none;
+    }
+}
