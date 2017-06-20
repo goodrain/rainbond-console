@@ -191,7 +191,7 @@ margin-right: -15px;}
 #keylog .panel div.log p span.log_time{float: left;width: 8%;min-width: 60px;}
 #keylog .panel div.log p span.log_msg{float: left;width: 90%;display: inline-block;}
 #keylog .panel div.user{position: absolute; top: 10px; right: 10px;}
-#keylog .user p:nth-child(2){cursor: pointer;color: #999;}
+#keylog .user p:nth-child(2){cursor: pointer;color: #999; font-size: 14px;}
 #keylog .user .hide_log{cursor: pointer;display: none;color: #999;}
 #keylog .load_more{display: none;}
 #keylog .load_more img{display: inline-block;width: 40px;height: 40px;cursor: pointer;}
