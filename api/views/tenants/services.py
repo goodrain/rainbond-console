@@ -516,19 +516,25 @@ class ServiceStopView(APIView):
 
     def post(self, request, format=None):
         """
-        代码检测
-            ---
-            parameters:
-                - name: service_id
-                  description: 服务ID
-                  required: true
-                  type: string
-                  paramType: form
-                - name: region
-                 description: 所属数据中心
-                  required: true
-                  type: string
-                  paramType: form
+
+        停止服务
+        ---
+        parameters:
+            - name: event_id
+              description: 操作ID
+              required: true
+              type: string
+              paramType: form
+            - name: region
+              description: 数据中心
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 操作
+              required: false
+              type:string
+              paramType: form
         """
         data = {}
         try:
@@ -547,7 +553,7 @@ class ServiceStopView(APIView):
             body["event_id"] = event_id
             regionClient.stop(service_region, service_id, json.dumps(body))
             data["status"] = "success"
-        except TenantRegionInfo.DoesNotExist as ex:
+        except TenantServiceInfo.DoesNotExist as ex:
             logger.exception(ex)
             logger.error("service is not exist")
         except Exception as e:
