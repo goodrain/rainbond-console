@@ -5810,6 +5810,10 @@ input.checkhide{float: left;}
 label.checkshow{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;   display: block; float: left; margin:2px 5px 0 0;}
 input.checkhide:checked+label.checkshow{width:56px; height: 28px;  background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:2px 5px 0 0;}
 
+span.checkshow{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;   display: block; float: left; margin:2px 5px 0 0;}
+input.checkhide:checked+span.checkshow{width:56px; height: 28px;  background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:2px 5px 0 0;}
+
+
 #headpbox{max-height:120px; overflow-y: auto; }
 
 .headarrbox{background: #f5f5f5; padding:10px; margin-bottom: 20px;}
