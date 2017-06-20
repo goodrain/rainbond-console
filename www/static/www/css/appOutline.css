@@ -97,4 +97,6 @@ button{
         margin: 10px 0;
         float: none;
     }
+    .alternative .alterLeft{float: none; margin-bottom: 10px;}
+    .alternative .alterRight{float: none;}
 }
