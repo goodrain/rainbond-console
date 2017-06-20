@@ -155,7 +155,8 @@ margin-right: -15px;}
     border-radius:50px;
     color:#fff;
     box-shadow:inset 0px 0px 0px 2px #fff;}
-.panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 5px;width: 100%;}
+.panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 5px;width: 100%; position: relative;}
+.panel-heading span{width: 70%; display: inline-block; }
 .panel-heading .user{float: right;}
 .panel-heading .user button{background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
@@ -189,7 +190,7 @@ margin-right: -15px;}
 #keylog .panel div.log p{line-height: 20px;}
 #keylog .panel div.log p span.log_time{float: left;width: 8%;min-width: 60px;}
 #keylog .panel div.log p span.log_msg{float: left;width: 90%;display: inline-block;}
-#keylog .panel div.user{float: right;text-align: right;padding-right: 10px;font-size: 14px;margin-top: 2px;}
+#keylog .panel div.user{position: absolute; top: 10px; right: 10px;}
 #keylog .user p:nth-child(2){cursor: pointer;color: #999;}
 #keylog .user .hide_log{cursor: pointer;display: none;color: #999;}
 #keylog .load_more{display: none;}
