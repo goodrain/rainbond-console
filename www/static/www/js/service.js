@@ -200,7 +200,9 @@ function createEvents(name, service, action) {
                     "callback" : "回滚",
                     "create" : "创建",
                     "share-ys" : "分享到云市",
-                    "share-yb" : "分享到云帮"
+                    "share-yb" : "分享到云帮",
+                    "own_money" : "应用欠费关闭" ,
+                    "expired" : "应用过期关闭"
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
@@ -315,6 +317,8 @@ function connectSocket(event_id,action) {
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
         "create" : "创建",
+        "own_money" : "应用欠费关闭" ,
+        "expired" : "应用过期关闭" ,
         "share-ys" : "分享到云市",
         "share-yb" : "分享到云帮"
     }
@@ -787,6 +791,8 @@ function log_page(){
                         "VerticalUpgrade" : "垂直升级",
                         "callback" : "回滚",
                         "create" : "创建",
+                        "own_money" : "应用欠费关闭" ,
+                        "expired" : "应用过期关闭" ,
                         "share-ys" : "分享到云市",
                         "share-yb" : "分享到云帮"
                     }
@@ -1316,9 +1322,9 @@ function high_relation(curServiceName, depServiceName, tenantName) {
             oStrH += '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a><p class="layer-tit">设置</p>';
 			if(domainUrl != "close"){
 				if(domainUrl == "off"){
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" /><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
                 }else{
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
                 }
 			}
             oStrH += '</div>';
