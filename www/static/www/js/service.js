@@ -1316,9 +1316,9 @@ function high_relation(curServiceName, depServiceName, tenantName) {
             oStrH += '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a><p class="layer-tit">设置</p>';
 			if(domainUrl != "close"){
 				if(domainUrl == "off"){
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" style="display:none;"/><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
                 }else{
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><label><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" style="display:none;" checked="true"/><span class="checkshow" for="domainurl"></span></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
                 }
 			}
             oStrH += '</div>';
