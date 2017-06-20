@@ -2990,6 +2990,7 @@ ul.amounts li {
 .panel-heading .nav > li > a {
     color: #838383;
     font-size: 18px;
+    border-bottom:2px transparent solid;
 }
 
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
@@ -5803,11 +5804,15 @@ i{font-style: normal; }
 
 .servenlayer{position: absolute; top: 20%; left: 50%; width:320px; margin: 0 0 0 -160px; z-index: 1050; background: #fff; padding:20px;}
 .onoffbox{margin: 10px 0;}
-.onoffbox span{color: #333; font-size: 16px; float: left; width: 60px; line-height: 30px;}
+.onoffbox span{color: #333; font-size: 16px;  float: left; width: 60px; line-height: 30px; }
 
-input.checkhide{float: left;}
+input.checkhide{float: left; display: none;}
 label.checkshow{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;   display: block; float: left; margin:2px 5px 0 0;}
 input.checkhide:checked+label.checkshow{width:56px; height: 28px;  background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:2px 5px 0 0;}
+
+span.checkshow{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;   display: block; float: left; margin:2px 5px 0 0;}
+input.checkhide:checked+span.checkshow{width:56px; height: 28px;  background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:2px 5px 0 0;}
+
 
 #headpbox{max-height:120px; overflow-y: auto; }
 
