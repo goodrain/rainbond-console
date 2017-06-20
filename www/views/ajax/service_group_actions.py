@@ -266,8 +266,9 @@ class TopologicalInternetView(AuthedView):
             if outer_http_service:
                 outer_http_service_list.append(service)
         # 每个对外可访问的服务
-        service_domain_result = {}
+        result_list = []
         for service_info in outer_http_service_list:
+            service_domain_result = {}
             service_region = service_info.service_region
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
             service_domain_list = ServiceDomain.objects.filter(service_id=service_info.service_id)
@@ -324,5 +325,6 @@ class TopologicalInternetView(AuthedView):
             service_domain_result["service_alias"] = service_info.service_alias
             service_domain_result["service_cname"] = service_info.service_cname
             service_domain_result["port_map"] = port_map
-        result["service_domain_result"] = service_domain_result
+            result_list.append(service_domain_result)
+        result["result_list"] = result_list
         return JsonResponse(result, status=200)
