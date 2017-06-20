@@ -137,7 +137,7 @@ margin-right: -15px;}
 
 #keylog .timeline li{position:relative;margin-top:30px;margin-bottom:30px;}
 
-#keylog .timeline li .panel{margin:0px;display:inline-block;width: 90%;min-width: 700px;}
+#keylog .timeline li .panel{margin:0px;display:inline-block;width: 90%;}
 
 #keylog .timeline li .panel-body:after{clear:none;}
 #keylog .timeline .tl-time{display:inline-block;width:150px;text-align:right;float:left;}
