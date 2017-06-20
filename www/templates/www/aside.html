@@ -18,7 +18,7 @@
             <a class="{{myAppStatus}}" href="javascript:;">
                 <i class="fa fa-laptop"></i>
                 <span>我的应用</span></a>
-            <ul class="sub" style="display: block">
+            <ul class="sub">
                 {% if groupList %}
                  	{% for group in groupList %}
                  		<li {% if group.ID =  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid={{group.ID}}">{{group.group_name}}</a></li>
