@@ -217,5 +217,6 @@ margin-right: -15px;}
     #keylog .timeline li .panel{
         display:block;}
 
-
+    #keylog .timeline .tl-time h4{font-size: 14px; color:#666; text-align: left;}
+    
 }
