@@ -99,5 +99,5 @@ button{
     }
     .alternative .alterLeft{float: none; margin-bottom: 10px;}
     .alternative .alterRight{float: none;}
-    .alternative .alterRight ul li.button{float: left;  margin-right: 20px}
+    .alternative .alterRight ul li.button{float: left;  margin-right: 20px; margin-left: 0;}
 }
