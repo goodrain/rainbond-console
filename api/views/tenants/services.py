@@ -520,7 +520,7 @@ class ServiceStopView(APIView):
         停止服务
         ---
         parameters:
-            - name: event_id
+            - name: service_id
               description: 操作ID
               required: true
               type: string
@@ -533,7 +533,7 @@ class ServiceStopView(APIView):
             - name: action
               description: 操作
               required: false
-              type:string
+              type: string
               paramType: form
         """
         data = {}
@@ -541,11 +541,12 @@ class ServiceStopView(APIView):
             service_id = request.data.get("service_id")
             service_region = request.data.get("region")
             action = request.data.get("action", "own_money")
+            logger.debug("service_id {0} service region {1} action {2}".format(service_id,service_region,action))
             event_id = make_uuid()
-            service = TenantServiceInfo.objects.get(service_id)
+            service = TenantServiceInfo.objects.get(service_id=service_id)
             event = ServiceEvent(event_id=event_id, service_id=service_id,
                                  tenant_id=service.tenant_id, type=action,
-                                 deploy_version=service.deploy_version, old_deploy_version=service.old_deploy_version,
+                                 deploy_version=service.deploy_version, old_deploy_version=service.deploy_version,
                                  user_name="system", start_time=datetime.datetime.now())
             event.save()
             body = {}

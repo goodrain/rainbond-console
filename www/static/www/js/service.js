@@ -200,7 +200,9 @@ function createEvents(name, service, action) {
                     "callback" : "回滚",
                     "create" : "创建",
                     "share-ys" : "分享到云市",
-                    "share-yb" : "分享到云帮"
+                    "share-yb" : "分享到云帮",
+                    "own_money" : "应用欠费关闭" ,
+                    "expired" : "应用过期关闭"
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
@@ -315,6 +317,8 @@ function connectSocket(event_id,action) {
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
         "create" : "创建",
+        "own_money" : "应用欠费关闭" ,
+        "expired" : "应用过期关闭" ,
         "share-ys" : "分享到云市",
         "share-yb" : "分享到云帮"
     }
@@ -787,6 +791,8 @@ function log_page(){
                         "VerticalUpgrade" : "垂直升级",
                         "callback" : "回滚",
                         "create" : "创建",
+                        "own_money" : "应用欠费关闭" ,
+                        "expired" : "应用过期关闭" ,
                         "share-ys" : "分享到云市",
                         "share-yb" : "分享到云帮"
                     }
