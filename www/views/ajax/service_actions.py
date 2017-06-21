@@ -806,7 +806,7 @@ class AllServiceInfo(AuthedView):
                 child = {}
                 child["status"] = "failure"
                 result[sid] = child
-        return JsonResponse(result)
+        return JsonResponse(result, status=200)
 
 
 class AllTenantsUsedResource(AuthedView):
@@ -887,7 +887,7 @@ class ServiceDetail(AuthedView):
             result['status'] = "failure"
             result["service_pay_status"] = "unknown"
             result["tips"] = "服务状态未知"
-        return JsonResponse(result)
+        return JsonResponse(result,status=200)
     
     def get_pay_status(self, service_current_status):
         
