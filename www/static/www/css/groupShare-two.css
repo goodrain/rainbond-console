@@ -35,9 +35,9 @@ input:-moz-placeholder { color:#838383; }  /* 重置提示文字颜色 */
 .fm-input-text input{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
 .fm-select select{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
 
-.fm-input-radio input{float: left; display: none;} /* 单选*/
-.fm-input-radio label.radio-bg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
-.fm-input-radio input:checked + label.radio-bg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
+.fm-radio input{float: left; display: none;} /* 单选*/
+.fm-radio .radio-bg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
+.fm-radio input:checked + .radio-bg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
 .fm-input-radio label.radio-text{text-align: left; width:auto; color: #303030;}
 
 .code-box p{float: left; width: 70%;}
