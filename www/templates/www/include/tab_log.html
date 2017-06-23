@@ -46,7 +46,7 @@
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function (dataObj) {
-                console.log(dataObj);
+                //console.log(dataObj);
                 var msg = "<li><a href='javascript:void(0);'  data-key='0' class='fn-example'> 全部日志</a></li>"
                 var tindex = 1
                 for (var key in dataObj) {
@@ -90,7 +90,7 @@
                         var arrstr = '';
                         arrstr = arrlog[i].substring(0,12);
                         if(keyvalue == arrstr){
-                            datareset += arrlog[i].substr(12) + '</br>';
+                            datareset += arrlog[i].substr(13) + '</br>';
                         }
                    }
                    $("#docker_log").html(datareset);
@@ -168,7 +168,7 @@
                     }else{
                         var strmsg = msg.substring(0,12);
                         if(strmsg == curKey){
-                            str = '<p>'+msg.substr(12)+'</p>';
+                            str = '<p>'+msg.substr(13)+'</p>';
                         }
                     }
                     queue.add(str);
