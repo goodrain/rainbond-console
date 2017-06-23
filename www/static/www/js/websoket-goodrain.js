@@ -13,6 +13,7 @@ function extPushWebSocketClient() {
 }
 
 function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
+
 	var websocket_uri = '';
 	this.requestUrl = websocket_uri.split(","); // 扩充服务器
 	this.socketStore = ''; // web_socket对象存储
@@ -56,6 +57,7 @@ extPushWebSocketConnect.prototype = {
                         self.trytimes = 1;
                     };
                     that.socketStore.onmessage = function (e) {
+                    	//console.log(e);
                         if (e.data) {
                             client.onMessage(e.data)
                         }
