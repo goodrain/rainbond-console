@@ -575,6 +575,11 @@ class ServiceRelation(AuthedView):
             elif action == "cancel":
                 baseService.cancel_service_dependency(tenant_id, service_id, tenantS.service_id,
                                                       self.service.service_region)
+
+                relation_num = TenantServiceRelation.objects.filter(service_id=service_id,tenant_id=tenant_id).count()
+                if relation_num == 0:
+                    baseService.cancel_service_env(tenant_id,service_id,self.service.service_region)
+                    self.cancelAdapterEnv(self.service)
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
@@ -591,6 +596,11 @@ class ServiceRelation(AuthedView):
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
+    def cancelAdapterEnv(self,service):
+        TenantServiceEnvVar.objects.filter(service_id=service.service_id,attr_name="GD_ADAPTER").delete()
+        attr = ["GD_ADAPTER"]
+        data = {"action": "delete", "attr_names": attr}
+        regionClient.createServiceEnv(service.service_region,service.service_id, json.dumps(data))
 
 class NoneParmsError(Exception):
     def __init__(self, value):
