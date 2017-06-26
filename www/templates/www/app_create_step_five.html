@@ -37,7 +37,55 @@
         <!-- 总览 start -->
         <section id="overview" class="fn-app-box" style="display: block;">
             <div class="view-svg" id="view-svg">
-                
+                <!-- weave scope 组件配置 -->
+                      <script type="text/javascript">
+                          window.weavescope  = {
+                             getNodes:function(){
+                                const scopeData = {
+                                    add: [],
+                                    update: null,
+                                    remove: null
+                                };
+                                var boundData = document.querySelector('#compose_relations').value;
+                                try{
+                                    boundData = JSON.parse(boundData);
+                                }catch(e){
+                                    boundData = {};
+                                }
+
+                                for(var key in boundData){
+                                    node = {};
+                                    node.cur_status = 'closed';
+                                    node.service_cname = key;
+                                    node.service_alias = key;
+                                    node.id = key;
+                                    node.label = key;
+                                    node.labelMinor = '';
+                                    //根据状态改变颜色用
+                                    node.rank = 'closed';
+                                    node.shape = 'hexagon';
+                                    node.stack = true;
+                                    node.linkable = true;
+                                    node.adjacency = boundData[key] || [];
+                                    scopeData.add.push(node);
+                                }
+                                return scopeData;
+                             },
+                             onNodeClick:function(nodeInfo){
+                                $(".tablink a").each(function(){
+                                    var oText = $(this).html();
+                                    if(oText == nodeInfo){
+                                        $(this).addClass('sed').show();
+                                        $("section.fn-app-box").hide();
+                                        $("section.fn-app-box").eq($(this).index()).show();
+                                    }else{
+                                        $(this).removeClass('sed');
+                                    }
+                                });
+                             }
+                          }
+                      </script>
+                      <iframe src='{% static "www/weavescope/index.html" %}' style="width:95%;height:600px;" frameborder="no" border="0" marginwidth="0" marginheight="0" ></iframe>
             </div>
         </section>
         <!-- 总览 end -->
@@ -66,14 +114,18 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input  type="checkbox" name="" value="" id="{{outer_port}}inner" />
-                                <label class="check-bg" for="{{outer_port}}inner"></label>
+                                <label>
+                                    <input  type="checkbox" name="" value="" id="{{service.name}}{{outer_port}}inner" />
+                                    <span class="check-bg"></span>
+                                </label>
                             </div>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}outer" />
-                                <label class="check-bg" for="{{outer_port}}outer"></label>
+                                <label>
+                                    <input class="checkDetail" type="checkbox" name="" value="" id="{{service.name}}{{outer_port}}outer" />
+                                    <span class="check-bg"></span>
+                                </label>
                             </div>
                         </td>
                         <td>

@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import os
 
 DEBUG = os.environ.get('DEBUG') or False
@@ -103,7 +104,7 @@ WEBSOCKET_URL = {
 }
 
 EVENT_WEBSOCKET_URL = {
-    'ali-sh': 'wss://event-ali-sh.goodrain.com:6360',
+    'ali-sh': 'wss://event-ali-sh.goodrain.com:6060',
     'xunda-bj': 'wss://event-xunda-bj.goodrain.com:6360',
     'aws-jp-1': 'wss://event-aws-jp-1.goodrain.com:6360',
     "test-ali": "ws://test.goodrain.com:6363"
@@ -202,7 +203,7 @@ DOCKER_WSS_URL = {
     'type': 'wss',
     'ucloud-bj-1': 'ucloud-bj-1-ws.goodrain.com:8088',
     'aws-jp-1': 'aws-jp-1-ws.goodrain.com:8088',
-    'ali-sh': 'ali-sh-ws.goodrain.com:8088',
+    'ali-sh': 'ali-sh-ws.goodrain.com:6060',
     'xunda-bj': 'xunda-bj-ws.goodrain.com:8088',
 }
 
@@ -218,4 +219,14 @@ TENANT_VALID_TIME = 7
 YOUPAI = {
     'ACCESS_TOKEN': 'f67c2c20-e1f6-420a-b7d2-c0bbdef81a5f',
     'URL': 'https://api.upyun.com/'
+}
+
+ALIYUN_MNS = {
+    'ACCOUNTID': '1717643489397966',
+    'ACCESSKEYID': 'nMscVs3CaIXPEDUd',
+    'ACCESSKEYSECRET': 'g4RWmftifuJxqUdqEWc69h0exO2V46',
+    'ENDPOINT': 'http://1717643489397966.mns.cn-hangzhou.aliyuncs.com',
+    'TOPICNAME': 'sms.topic-cn-hangzhou',
+    'SIGNNAME': str('好雨科技'),
+    'TEMPLATECODE': 'SMS_70145489',
 }

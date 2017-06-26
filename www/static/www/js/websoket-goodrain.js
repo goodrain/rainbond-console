@@ -1,39 +1,3 @@
-function MessageQueue(callback){
-    this.isStarted = false;
-    this.datas=[];
-    this.timer=null;
-    this.interval = 100;
-    this.callback = callback ||function(){};
-}
-MessageQueue.prototype = {
-    add:function(msg){
-        this.datas.push(msg);
-        if(!this.isStarted){
-            this.start();
-        }
-    },
-    start:function(){
-        var self = this;
-        this.timer = setInterval(function(){
-            if(self.datas.length){
-                self.execute();
-            }else{
-                self.stop();
-            }
-        }, this.interval)
-    },
-    stop:function(){
-        this.isStarted = false;
-        clearInterval(this.timer);
-    },
-    execute:function(){
-       this.callback(this.datas.shift());
-    }
-}
-var queue = new MessageQueue(function(msg){
-    $(msg).prependTo($("#keylog .log_content").eq(0));
-})
-
 var websocket_uri = "ws://123.59.40.70:6060/websocket";
 var web_url_log = $("#web_url_log").val();
 
@@ -49,6 +13,7 @@ function extPushWebSocketClient() {
 }
 
 function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
+
 	var websocket_uri = '';
 	this.requestUrl = websocket_uri.split(","); // 扩充服务器
 	this.socketStore = ''; // web_socket对象存储
@@ -92,6 +57,7 @@ extPushWebSocketConnect.prototype = {
                         self.trytimes = 1;
                     };
                     that.socketStore.onmessage = function (e) {
+                    	//console.log(e);
                         if (e.data) {
                             client.onMessage(e.data)
                         }

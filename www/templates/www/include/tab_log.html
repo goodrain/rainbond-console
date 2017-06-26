@@ -8,6 +8,12 @@
      <p style="float: right; text-align: right; width: 220px;">
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank" style="color: #28cb75; margin-right: 10px;  line-height: 30px; text-decoration:underline">历史日志下载</a>
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank" style="color: #28cb75;  line-height: 30px; text-decoration:underline">最新1000条日志</a>
+        <div class="btn-group">
+            <button type="button" name="join_container" class="bgColor dropdown-toggle btn-success btn" style="border-radius:6px; padding: 5px 12px; min-width: 94px;" data-toggle="dropdown"  id="join_container" onclick="join_container();" /> 全部日志 <span class="caret"></span></button>
+            <ul class="dropdown-menu" role="menu" style="left: -30px;" id="cur_container_content">
+                                       
+            </ul>
+        </div>
     </p>
   </div>
   <input type="hidden" value="{{ monitor_websocket_uri }}" id="web_url_log" />
@@ -29,8 +35,39 @@
     }
 
     var pauseFlag = "start";
-
-    function getLog() {
+    //
+     function join_container() {
+        $.ajax({
+            type: "GET",
+            url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker",
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (dataObj) {
+                //console.log(dataObj);
+                var msg = "<li><a href='javascript:void(0);'  data-key='0' class='fn-example'> 全部日志</a></li>"
+                var tindex = 1
+                for (var key in dataObj) {
+                    if (key != "split") {
+                        msg += "<li>";
+                        msg += "<a href='javascript:void(0);'  data-key='"+ key +"' class='fn-example'> 实例" + tindex + "</a></li>"
+                        tindex += 1;
+                    }
+                }
+                if (msg != "") {
+                    $("#cur_container_content").html(msg)
+                }
+            },
+            error: function () {
+                swal("系统异常");
+            }
+        });
+    }
+   
+    
+    function getLog(keyvalue) {
         $.ajax({
             type: "GET",
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
@@ -42,7 +79,23 @@
             },
             success: function (msg) {
                 var dataObj = msg;
-                $("#docker_log").html(dataObj["log"])
+                var datalog = dataObj["log"];
+                if(keyvalue == "0"){
+                   $("#docker_log").html(dataObj["log"]) 
+               }else{
+                   var arrlog = [];
+                   arrlog = datalog.split("</br>");
+                   var datareset = "";
+                   for(var i = 0; i<arrlog.length;i++){
+                        var arrstr = '';
+                        arrstr = arrlog[i].substring(0,12);
+                        if(keyvalue == arrstr){
+                            datareset += arrlog[i].substr(13) + '</br>';
+                        }
+                   }
+                   $("#docker_log").html(datareset);
+               }
+                
             },
             error: function () {
                 //swal("系统异常");
@@ -50,47 +103,49 @@
         })
     }
 
-    function MessageQueue(callback){
-        this.isStarted = false;
-        this.datas=[];
-        this.timer=null;
-        this.interval = 100;
-        this.callback = callback ||function(){};
-    }
-    MessageQueue.prototype = {
-        add:function(msg){
-            this.datas.push(msg);
-            if(!this.isStarted){
-                this.start();
-            }
-        },
-        start:function(){
-            var self = this;
-            this.timer = setInterval(function(){
-                if(self.datas.length){
-                    self.execute();
-                }else{
-                    self.stop();
-                }
-            }, this.interval)
-        },
-        stop:function(){
-            this.isStarted = false;
-            clearInterval(this.timer);
-        },
-        execute:function(){
-           this.callback(this.datas.shift());
-        }
-    }
-    var queue = new MessageQueue(function(msg){
-        $(msg).prependTo($("#docker_log"));
-    })
-
     $(document).ready(function () {
-        getLog();
+        //
+        function MessageQueue(callback){
+            this.isStarted = false;
+            this.datas=[];
+            this.timer=null;
+            this.interval = 100;
+            this.callback = callback ||function(){};
+        }
+        MessageQueue.prototype = {
+            add:function(msg){
+                this.datas.push(msg);
+                if(!this.isStarted){
+                    this.start();
+                }
+            },
+            start:function(){
+                var self = this;
+                this.timer = setInterval(function(){
+                    if(self.datas.length){
+                        self.execute();
+                    }else{
+                        self.stop();
+                    }
+                }, this.interval)
+            },
+            stop:function(){
+                this.isStarted = false;
+                clearInterval(this.timer);
+            },
+            execute:function(){
+               this.callback(this.datas.shift());
+            }
+        }
+        var queue = new MessageQueue(function(msg){
+            $(msg).prependTo($("#docker_log"));
+        })
+       
+        //
+        getLog('0');
+        var curKey = "0";
         extPushWebSocketClient.prototype = {
-            onMessage: function (msg) {
-                console.log(msg);
+            onMessage: function (msg,keyvalue) {
                 if (typeof(msg) != "undefined" && msg != "ok") {
 //                    var msgs = msg.split(":")
 //                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
@@ -107,16 +162,47 @@
 //                        finalMsg = msg.substr(14) + "<br/>" + finalMsg
 //                        $("#docker_log").html(finalMsg)
 //                    }
-                    var str = '<p>'+msg+'</p>';
-                    queue.add(str)
+                     var str ;
+                    if(curKey == "0"){
+                         str = '<p>'+msg+'</p>';
+                    }else{
+                        var strmsg = msg.substring(0,12);
+                        if(strmsg == curKey){
+                            str = '<p>'+msg.substr(13)+'</p>';
+                        }
+                    }
+                    queue.add(str);
                     //$(str).prependTo($("#docker_log"));
                 }
             }
         }
         var connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
-        connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}");
+        connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}",'0');
+
+        //
+        $(document).on("click", ".fn-example", function () {
+            var key = $(this).attr("data-key");
+            var strKey = key.substring(0,12);
+            var strBtn = $(this).text() + '<span class="caret"></span>';
+            $("#join_container").html(strBtn);
+            $("#docker_log").empty();
+            curKey = key.substring(0,12);
+            getLog(strKey);
+            
+            /*
+            connect.closeWebSocket();
+            
+            connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
+            
+            connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}",'0');
+            */
+
+        });
+        //
     });
 
+    
+    
     function _pause() {
         if (pauseFlag == "stop") {
             pauseFlag = "start";
@@ -166,8 +252,6 @@
                     var dataArr = [];
                     layerlog("日志输出设置", "指定日志应用", "下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个应用来接受日志数据的输入。目前支持日志的应用类型有：<a href=\"http://app.goodrain.com/detail/31/\">elasticsearch</a>、<a href=\"http://app.goodrain.com/detail/3/\">mongodb</a>、influxdb等，如需安装可直接点击文字去部署。", true);
                     for (var key in dataObj) {
-                        //console.log(key);
-                        //console.log(dataObj[key]);
                         dataArr.push(dataObj[key]);
                     }
 

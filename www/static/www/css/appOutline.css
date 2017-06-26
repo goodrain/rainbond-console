@@ -85,4 +85,19 @@ button{
 .alternative ul a.bgColor{
     display: block;
 }
-
+@media (max-width: 970px){
+    .appOutline ul.outlineTop li{
+        width: 50%; 
+        margin: 10px 0;
+    }
+}
+@media (max-width: 720px){
+    .appOutline ul.outlineTop li{
+        width: 100%; 
+        margin: 10px 0;
+        float: none;
+    }
+    .alternative .alterLeft{float: none; margin-bottom: 10px;}
+    .alternative .alterRight{float: none;}
+    .alternative .alterRight ul li.button{float: left;  margin-right: 20px; margin-left: 0;}
+}

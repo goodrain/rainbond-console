@@ -17,4 +17,5 @@ __all__ = ('ServiceIdentity',
            'ServiceGraph',
            'RemoteServiceMarketAjax',
            'TopologicalGraphView',
-           'TopologicalServiceView',)
+           'TopologicalServiceView',
+           'TopologicalInternetView',)

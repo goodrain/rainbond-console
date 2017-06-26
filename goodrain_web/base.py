@@ -31,7 +31,7 @@ class BaseHttpClient(object):
         pass
 
     def __init__(self, *args, **kwargs):
-        self.timeout = 25
+        self.timeout = 5
         self.apitype = 'Not specified'
         # self.report = Dict({"ok":True})
 

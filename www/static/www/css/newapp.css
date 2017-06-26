@@ -44,8 +44,8 @@ em,cite,span{font-style: normal;}
 .fm-link a{display: block; margin:20px auto; width: 160px;}
 
 .fn-app-box{display: none;}
-.tablink{width: 100%; height: 40px; border-bottom: 1px #ddd solid; margin-top: 10px; padding:0 20px;}
-.tablink a{min-width: 80px; text-align: center; line-height: 38px; display: inline-block; border:1px #ddd solid; color: #666; text-decoration: none; padding:0 10px;}
+.tablink{width: 100%; margin-top: 10px; padding:0 20px;}
+.tablink a{text-align: center; line-height: 30px; display: inline-block;  color: #666; text-decoration: none; padding:0 10px; background: #ececec; margin: 0 5px 10px 0;}
 .tablink a.sed{background: #28cb75; color: #fff;}
 
 /**/

@@ -5,7 +5,7 @@ from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
     Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort, \
-    AppServiceExtend, AppServiceGroup
+    AppServiceExtend, AppServiceGroup, ServiceGroupRelation
 from www.service_http import RegionServiceApi
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService
@@ -14,6 +14,7 @@ from api.views.services.sendapp import AppSendUtil
 from django.conf import settings
 from www.region import RegionInfo
 from api.back_service_install import BackServiceInstall
+from www.utils import sn
 
 import logging
 
@@ -288,6 +289,7 @@ class PublishServiceView(APIView):
             dest_ys = request.data.get('dest_ys', False)
 
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
+            logger.debug("dest_yb ==> {0} dest_ys ==> {1}".format(dest_yb,dest_ys))
             if not app.dest_yb:
                 app.dest_yb = dest_yb
             if not app.dest_ys:
@@ -295,6 +297,9 @@ class PublishServiceView(APIView):
             isok = False
             if app.is_outer and app.dest_yb and app.dest_ys:
                 isok = True
+            # if app.is_outer and app.dest_ys:
+            #     isok = True
+            #     app.dest_yb = True
             if not app.is_outer and app.dest_yb:
                 isok = True
             if slug != "" and not slug.startswith("/"):
@@ -345,6 +350,12 @@ class PublishServiceView(APIView):
                 serviceInfo.is_init_accout = app.is_init_accout
                 serviceInfo.creater = app.creater
                 serviceInfo.namespace = app.namespace
+                # 判断是否为组发布
+                key = request.data.get('share_id', None)
+                if key:
+                    serviceInfo.publish_type = "group"
+                else:
+                    serviceInfo.publish_type = "single"
                 serviceInfo.save()
             app.is_ok = isok
             if slug != "":
@@ -405,7 +416,7 @@ class PublishServiceView(APIView):
                 logger.debug(dest_ys)
                 if share_id is not None and dest_ys:
                     try:
-                        app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
+                        app_service_group = AppServiceGroup.objects.get(ID=share_id)
                     except AppServiceGroup.DoesNotExist as e:
                         logger.exception(e)
                     if app_service_group is not None:
@@ -427,8 +438,9 @@ class PublishServiceView(APIView):
                                           "publish_type": app_service_group.publish_type,
                                           "desc": app_service_group.desc,
                                           "installable": app_service_group.installable}
-                            tmp_ids = app_service_group.service_ids
-                            service_id_list = json.loads(tmp_ids)
+                            # tmp_ids = app_service_group.service_ids
+                            # service_id_list = json.loads(tmp_ids)
+                            service_id_list = ServiceGroupRelation.objects.filter(group_id=app_service_group.group_id).values_list("service_id", flat=True)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
                                 app_service_list = self.get_newest_published_service(service_id_list)
@@ -446,14 +458,16 @@ class PublishServiceView(APIView):
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
-                                # 执行后台安装应用组流程
-                                backServiceInstall = BackServiceInstall()
-                                group_id, grdemo_service_ids, url_map = backServiceInstall.install_services(share_id)
-                                grdemo_console_url = "https://user.goodrain.com/apps/grdemo/myservice/?gid={}".format(
-                                    str(group_id))
+                                # 执行后台安装应用组流程,仅公有云
+                                is_publish = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
+                                if is_publish:
+                                    backServiceInstall = BackServiceInstall()
+                                    group_id, grdemo_service_ids, url_map = backServiceInstall.install_services(share_id)
+                                    grdemo_console_url = "https://user.goodrain.com/apps/grdemo/myservice/?gid={}".format(
+                                        str(group_id))
 
-                                param_data.update({"console_url": grdemo_console_url})
-                                param_data.update({"preview_urls": url_map})
+                                    param_data.update({"console_url": grdemo_console_url})
+                                    param_data.update({"preview_urls": url_map})
                                 # 发送组信息到云市
                                 num = apputil.send_group(param_data)
                                 if num != 0:

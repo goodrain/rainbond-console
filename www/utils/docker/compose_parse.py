@@ -7,7 +7,9 @@ import json
 from www.models.compose import *
 from www.utils.md5Util import get_md5
 import re
+import logging
 
+logger = logging.getLogger('default')
 
 def get_config_path_from_options(options, environment):
     file_option = options.get('--file')
@@ -50,7 +52,7 @@ def compose_list(file_path):
         compose_config = parse_compose(file_dir, file_name=file_name)
     except Exception as e:
         return None,str(e)
-    # 解析docker compose，转化未goodrain平台信息
+    # 解析docker compose，转化为goodrain平台信息
     version = compose_config.version
     yaml_info = DockerComposeYaml(version=version,
                                   file_name=file_path,
@@ -73,6 +75,7 @@ def compose_list(file_path):
             docker_service = DockerService(compose_id=yaml_info.ID)
 
             compose_name = service_info.get("name")
+            logger.debug("composer_name is %s" %compose_name)
             docker_service.name = compose_name
             compose_image = service_info.get("image")
             docker_service.image = compose_image
@@ -114,7 +117,7 @@ def compose_list(file_path):
                     # - "49100:22"
                     # - "127.0.0.1:8001:8001"
                     # - "127.0.0.1:5000-5010:5000-5010"
-                    if info_port.isdigit():
+                    if str(info_port).isdigit():
                         result.append(info_port)
                     else:
                         # 去掉ip

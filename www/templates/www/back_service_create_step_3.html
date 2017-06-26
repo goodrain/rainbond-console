@@ -73,20 +73,20 @@
             {% if dependecy_services %}
             <h4 class="column-tit">服务依赖</h4>
             <div class="infor-fm-box">
+                {% for key, deployed_services in dependecy_services.items %}
                 <div class="fm-select clearfix">
-                        {% for key, deployed_services in dependecy_services.items %}
-                        <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}</label>
-                            <select name="dependency_service" class="dependency_service">
-                                {% if deployed_services %}
-                                {% for d_service in deployed_services %}
-                                <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
-                                {% endfor %}
-                                {% else %}
-                                <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}</option>
-                                {% endif %}
-                            </select>
-                        {% endfor %}
+                    <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}</label>
+                        <select name="dependency_service" class="dependency_service">
+                            {% if deployed_services %}
+                            {% for d_service in deployed_services %}
+                            <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
+                            {% endfor %}
+                            {% else %}
+                            <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}</option>
+                            {% endif %}
+                        </select>
                 </div>
+                {% endfor %}
             </div>
             {% endif %}
 

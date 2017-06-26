@@ -1,6 +1,7 @@
 set -e
 BASE_DIR=$PWD
-git archive community --format tgz -o hack/source.tgz
+CURR_BRANCH=$(git branch | grep ^* | awk '{print $2}')
+git archive $CURR_BRANCH --format tgz -o hack/source.tgz
 
 cd hack/
 
@@ -13,19 +14,27 @@ docker exec $db_container mysql -e "grant all on console.* to build@'%' identifi
 docker exec $db_container mysql -e "flush privileges;"
 db_ip=$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $db_container)
 
-RELEASE_TAG=$(git describe)
-RELEASE_VERSION=${RELEASE_TAG%%-*}
+RELEASE_DESC=$(git describe --tag | sed 's/^v//')
+RELEASE_VER=${RELEASE_DESC%%-*}
 
 sed -e "/^WORKDIR/i ENV MYSQL_HOST $db_ip" \
-    -e "/^WORKDIR/i ENV RELEASE_TAG $RELEASE_TAG" \
   Dockerfile_build_template > Dockerfile_build
 
+echo $RELEASE_DESC > VERSION
 docker build -t console-build -f Dockerfile_build .
 
 rm -rf $PWD/app
 docker run -v $PWD/app:/app -w /app-build/dist console-build rsync -a console_app/ /app
 docker run -v $PWD/app:/app -w /app-build/dist console-build cp -v console_manage/console_manage /app/
 
-docker build -t console-release -f Dockerfile_release .
+RELEASE_IMAGE="hub.goodrain.com/dc-deploy/console:$RELEASE_VER"
+PRE_IMAGE="${RELEASE_IMAGE}.pre"
+
+docker build -t $PRE_IMAGE -f Dockerfile_release .
+docker push $PRE_IMAGE
 docker kill $db_container
 docker rm $db_container
+
+echo "Only pushed pre-release image $PRE_IMAGE"
+echo "If need to push the release image, run these commands"
+echo -e "\n  docker tag $PRE_IMAGE $RELEASE_IMAGE && docker push $RELEASE_IMAGE"

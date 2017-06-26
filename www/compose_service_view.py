@@ -186,6 +186,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["compose_relations"] = json.dumps(compose_relations)
+            # linked去重
+            linked = list(set(linked))
             context["linked_service"] = linked
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
@@ -297,7 +299,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                                   prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                                   cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                                  disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time)
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time,
+                                                  pay_time=create_time)
 
                 service_alias = "gr" + service_id[-6:]
                 service_image = service_attach_info.get("service_image")
@@ -478,7 +481,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     start_cmd = service_config.get("start_cmd")
 
                     depends_services_list = service_config.get("depends_services")
-
+                    # depends_services 去重
+                    depends_services_list = list(set(depends_services_list))
                     newTenantService = None
                     try:
                         newTenantService = TenantServiceInfo.objects.get(service_id=service_id)

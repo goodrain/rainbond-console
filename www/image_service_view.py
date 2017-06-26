@@ -16,6 +16,7 @@ from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService, AppCreateService
 from www.utils.crypt import make_uuid
+from www.utils.imageD import ImageAnalyst
 from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
 from django.conf import settings
@@ -23,6 +24,7 @@ import httplib2
 import datetime
 from dateutil.relativedelta import relativedelta
 from www.utils import sn
+import base64
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -85,8 +87,10 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = request.POST.get("service_id", "")
-            image_url = request.POST.get("image_url", "")
+            image_input = request.POST.get("image_url", "")
             service_cname = request.POST.get("create_app_name", "")
+            _is, list_args = ImageAnalyst.analystImage(image_input)
+            image_url = list_args[-1]
             result["image_url"] = image_url
             if image_url != "":
                 imagesr = None
@@ -170,7 +174,8 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                                   prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                                   cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                                  disk=disk, buy_period=pre_paid_period * 24 * 30, create_time=create_time)
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time,
+                                                  pay_time=create_time)
 
                 result["status"] = "success"
                 result["id"] = service_id
@@ -181,6 +186,15 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     if group_id > 0:
                         ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                             tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+                if _is == "is_docker":
+                    args = ""
+                    for mm in list_args[:-1]:
+                        if args:
+                            args = "{0}^_^{1}=={2}".format(args, mm[0], mm[1])
+                        else:
+                            args = "{0}=={1}".format(mm[0], mm[1])
+                    logger.debug(args)
+                    result["params"] = base64.b64encode(args)
             else:
                 result["status"] = "no_image_url"
                 return JsonResponse(result, status=500)

@@ -1,4 +1,172 @@
 $(function () {
+    var main_url = window.location.href;
+    var new_url = main_url.split('&params=');
+    var base64str = new_url[new_url.length-1];
+    console.log(base64str);
+    //
+    var base64DecodeChars = new Array(  
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,  
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,  
+        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,  
+        -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,  
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1);  
+     
+   
+    function base64decode(str) {  
+        var c1, c2, c3, c4;  
+        var i, len, out;  
+      
+        len = str.length;  
+        i = 0;  
+        out = "";  
+        while(i < len) {  
+        /* c1 */  
+        do {  
+            c1 = base64DecodeChars[str.charCodeAt(i++) & 0xff];  
+        } while(i < len && c1 == -1);  
+        if(c1 == -1)  
+            break;  
+      
+        /* c2 */  
+        do {  
+            c2 = base64DecodeChars[str.charCodeAt(i++) & 0xff];  
+        } while(i < len && c2 == -1);  
+        if(c2 == -1)  
+            break;  
+      
+        out += String.fromCharCode((c1 << 2) | ((c2 & 0x30) >> 4));  
+      
+        /* c3 */  
+        do {  
+            c3 = str.charCodeAt(i++) & 0xff;  
+            if(c3 == 61)  
+            return out;  
+            c3 = base64DecodeChars[c3];  
+        } while(i < len && c3 == -1);  
+        if(c3 == -1)  
+            break;  
+      
+        out += String.fromCharCode(((c2 & 0XF) << 4) | ((c3 & 0x3C) >> 2));  
+      
+        /* c4 */  
+        do {  
+            c4 = str.charCodeAt(i++) & 0xff;  
+            if(c4 == 61)  
+            return out;  
+            c4 = base64DecodeChars[c4];  
+        } while(i < len && c4 == -1);  
+        if(c4 == -1)  
+            break;  
+        out += String.fromCharCode(((c3 & 0x03) << 6) | c4);  
+        }  
+        return out;  
+    }  
+    
+    function utf8to16(str) {  
+        var out, i, len, c;  
+        var char2, char3;  
+      
+        out = "";  
+        len = str.length;  
+        i = 0;  
+        while(i < len) {  
+        c = str.charCodeAt(i++);  
+        switch(c >> 4)  
+        {   
+          case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:  
+            // 0xxxxxxx  
+            out += str.charAt(i-1);  
+            break;  
+          case 12: case 13:  
+            // 110x xxxx   10xx xxxx  
+            char2 = str.charCodeAt(i++);  
+            out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));  
+            break;  
+          case 14:  
+            // 1110 xxxx  10xx xxxx  10xx xxxx  
+            char2 = str.charCodeAt(i++);  
+            char3 = str.charCodeAt(i++);  
+            out += String.fromCharCode(((c & 0x0F) << 12) |  
+                           ((char2 & 0x3F) << 6) |  
+                           ((char3 & 0x3F) << 0));  
+            break;  
+        }  
+        } 
+        return out;  
+    } 
+    var str_url = utf8to16(base64decode(base64str)); 
+    var str_url_Arr = str_url.split("^_^");
+    var json_url_Arr_key = [];
+    var json_url_Arr_value = [];
+    for(var i=0;i<str_url_Arr.length;i++){
+        //var url_json = {};
+        var json_sin_arr =[];
+        json_sin_arr = str_url_Arr[i].split("==");
+        //url_json[json_sin_arr[0]] = json_sin_arr[1];
+        json_url_Arr_key.push(json_sin_arr[0]);
+        json_url_Arr_value.push(json_sin_arr[1]);
+    }
+    console.log(json_url_Arr_key);
+    console.log(json_url_Arr_value);
+    
+    var old_arr_link = [];
+    var old_arr_id=[];
+    $(".cho-text").each(function(){
+        old_arr_link.push($(this).html());
+        old_arr_id.push($(this).attr("for"));
+    });
+    console.log(old_arr_link);
+    console.log(old_arr_id);
+
+    for(var i=0;i<json_url_Arr_key.length;i++){
+        //
+        if(json_url_Arr_key[i] == "-p" || json_url_Arr_key[i] == "--publish" ||json_url_Arr_key[i] == "--expose"){
+            var portnum = json_url_Arr_value[i];
+            var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+ portnum +'</a></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+ portnum +'inner" /><label class="check-bg" for="'+ portnum +'inner"></label></div></td>';
+            oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+ portnum +'outer" /><label class="check-bg" for="'+ portnum +'outer"></label></div></td><td>';
+            oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+ portnum +'http"><option class="changeOption">请打开外部访问</option>';
+            oTr += '<option>HTTP</option><option>非HTTP</option>';
+            oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(oTr).appendTo(".port");
+        }
+        //
+        if(json_url_Arr_key[i] == "--link"){
+            var linkstr = json_url_Arr_value[i];
+            var num = 0;
+            for(var m=0; m<old_arr_link.length; m++){
+                if(linkstr == old_arr_link[m]){
+                    num += 1;
+                }
+            }
+            for(var k=0;k<old_arr_link.length;k++){
+                if(linkstr == old_arr_link[k] && num == 1){
+                    var str = '';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+ old_arr_id[k]+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+ old_arr_link[k] +'</a>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    $(str).appendTo(".applicationName");
+                }
+            }
+        }
+        //
+        if(json_url_Arr_key[i] == "-e" || json_url_Arr_key[i] == "--env"){
+            var estr = json_url_Arr_value[i];
+            var estr_arr =[];
+            estr_arr = estr.split("=");
+            var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+ estr_arr[0] +'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[0]+'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+estr_arr[1]+'</a></td>';
+            str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+            $(str).appendTo(".enviroment");
+        }
+        //
+    }
+    
+    
+    //
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
         if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )

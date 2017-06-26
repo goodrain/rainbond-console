@@ -1,8 +1,6 @@
 # -*- mode: python -*-
 
 block_cipher = None
-                 #('/usr/local/lib/python2.7/dist-packages/crispy_forms/templates', 'crispy_forms/templates'),
-
 
 a = Analysis(['manage.py'],
              pathex=['../'],

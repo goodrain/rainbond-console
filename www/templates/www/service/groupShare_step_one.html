@@ -12,7 +12,6 @@
 {% block main-content %}
 <input type="hidden" id="tenant_name" value="{{tenant_name}}"/>
 <input type="hidden" id="group_id" value="{{group_id}}"/>
-<input type="hidden" id="share_id" value="{{share_id}}"/>
 <section class="wrapper site-min-height">
     <section class="main-box">
         <div class="app-step clearfix three">
@@ -24,11 +23,15 @@
             <!--发布类型隐藏-->
             <div class="fm-input-radio clearfix" style="display: none">
                 <label>发布为</label>
-                <input type="radio" name="publish_type" value="services_group" id="services_group" {% ifnotequal app_service_group.publish_type 'cloud_frame' %}checked="true" {% endifnotequal %} />
-                <label class="radio-bg" for="services_group"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="publish_type" value="services_group" id="services_group" {% ifnotequal app_service_group.publish_type 'cloud_frame' %}checked="true" {% endifnotequal %} />
+                    <span class="radio-bg" for="services_group"></span>
+                </label>
                 <label for="services_group" class="radio-text">应用组</label>
-                <input type="radio" name="publish_type" value="cloud_frame" id="cloud_frame" {% ifequal app_service_group.publish_type 'cloud_frame' %}checked="true" {% endifequal %} />
-                <label class="radio-bg"  for="cloud_frame"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="publish_type" value="cloud_frame" id="cloud_frame" {% ifequal app_service_group.publish_type 'cloud_frame' %}checked="true" {% endifequal %} />
+                    <span class="radio-bg"  for="cloud_frame"></span>
+                </label>
                 <label for="cloud_frame" class="radio-text">云框架</label>
             </div>
 
@@ -40,34 +43,40 @@
 
             <div class="fm-input-text clearfix">
                 <label for="version_no">版本号</label>
-                <input type="text" id="version_no" name="version_no" value="{{app_service_group.group_version}}" placeholder="应用组版本"/>
+                <input type="text" id="version_no" name="version_no" value="{% if app_service_group %}{{app_service_group.group_version}}{% endif %}" placeholder="应用组版本"/>
             </div>
             <p class="fm-tips" id="version_no_notice">请输入应用组版本号！</p>
 
             <div class="fm-input-textarea clearfix">
                 <label for="desc">更新说明</label>
-                <textarea class="textarea" id="desc" name="desc" maxlength="400" value="{{app_service_group.desc}}" ></textarea>
+                <textarea class="textarea" id="desc" name="desc" maxlength="400" value="{% if app_service_group %}{{app_service_group.desc}}{% endif %}" ></textarea>
             </div>
 
             <div class="fm-input-radio clearfix">
                 <label>发布到</label>
-                <input type="radio" name="publish_dest" value="yb_dest" id="yb_dest" {% if not app_service_group.is_market %}checked="true"{% endif %}/>
-                <label class="radio-bg" for="yb_dest"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="publish_dest" value="yb_dest" id="yb_dest" {% if not app_service_group.is_market %}checked="true"{% endif %}/>
+                    <span class="radio-bg" for="yb_dest"></span>
+                </label>
                 <label for="yb_dest" class="radio-text">私有云帮</label>
-
-                <input type="radio" name="publish_dest" value="ys_dest" id="ys_dest" {% if app_service_group.is_market %}checked="true"{% endif %}/>
-                <label class="radio-bg"  for="ys_dest"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="publish_dest" value="ys_dest" id="ys_dest" {% if app_service_group.is_market %}checked="true"{% endif %}/>
+                    <span class="radio-bg"  for="ys_dest"></span>
+                </label>
                 <label for="ys_dest" class="radio-text">云市</label>
             </div>
 
             <div class="fm-input-radio clearfix" id="ys_operation" {% if not app_service_group.is_market %}style="display: none"{% endif %}>
                 <label>是否允许安装</label>
-                <input type="radio" name="installable" value="allow_install" id="allow_install" {% if app_service_group.installable %}checked="true"{% endif %} />
-                <label class="radio-bg" for="allow_install"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="installable" value="allow_install" id="allow_install" {% if app_service_group.installable %}checked="true"{% endif %} />
+                    <span class="radio-bg" for="allow_install"></span>
+                </label>
                 <label for="allow_install" class="radio-text">允许</label>
-
-                <input type="radio" name="installable" value="not_allow_install" id="not_allow_install" {% if not app_service_group.installable %}checked="true"{% endif %} />
-                <label class="radio-bg"  for="not_allow_install"></label>
+                <label class="fm-radio">
+                    <input type="radio" name="installable" value="not_allow_install" id="not_allow_install" {% if not app_service_group.installable %}checked="true"{% endif %} />
+                    <span class="radio-bg"  for="not_allow_install"></span>
+                </label>
                 <label for="not_allow_install" class="radio-text">不允许</label>
             </div>
             <div class="fm-btn clearfix">

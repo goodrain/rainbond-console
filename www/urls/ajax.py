@@ -58,6 +58,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/resource/monitor', ajax.ServiceMonitorQuery.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/topological/(?P<group_id>\d+)', ajax.TopologicalGraphView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/topological', ajax.TopologicalServiceView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<group_id>\d+)/outer-service', ajax.TopologicalInternetView.as_view()),
     # service group
     url(r'^(?P<tenantName>[\w\-]+)/group/add$', AddGroupView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/group/update$', UpdateGroupView.as_view()),

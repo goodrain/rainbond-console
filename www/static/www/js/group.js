@@ -4,16 +4,17 @@ $(function(){
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums = $(".fn-SelectItem input:checked").length;
+    
     if(chackboxnums == 0){
         $("#batchStart").prop("disabled",true);
         $("#batchEnd").prop("disabled",true);
         $("#newStart").prop("disabled",true);
-        $("#groupShare").prop("disabled",true);
+        //$("#groupShare").prop("disabled",true);
     }else{
         $("#batchStart").removeAttr("disabled",true);
         $("#batchEnd").removeAttr("disabled",true);
         $("#newStart").removeAttr("disabled",true);
-        $("#groupShare").removeAttr("disabled",true);
+        //$("#groupShare").removeAttr("disabled",true);
     }
 	$(".fn-SelectItem input").click(function(){
     	chackboxnums = $(".fn-SelectItem input:checked").length;
@@ -27,12 +28,12 @@ $(function(){
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
-            $("#groupShare").prop("disabled",true);
+            //$("#groupShare").prop("disabled",true);
         }else{
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
-            $("#groupShare").removeAttr("disabled",true);
+           // $("#groupShare").removeAttr("disabled",true);
         }
     });
     $(".fn-SelectAll input").on("click",function(){
@@ -43,14 +44,14 @@ $(function(){
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
-            $("#groupShare").removeAttr("disabled",true);
+            //$("#groupShare").removeAttr("disabled",true);
 		}else{
 			$(".fn-SelectItem input").removeAttr("checked");
     		$("#nums-app p").children("span").html("0");
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
-            $("#groupShare").prop("disabled",true);
+            //$("#groupShare").prop("disabled",true);
 		}
     });
 
@@ -180,19 +181,21 @@ $(function(){
 
     //批量分享
     $("#groupShare").click(function(){
-        var Arraycheck = [];
-        $(".fn-SelectItem input:checked").each(function(){
-            Arraycheck.push($(this).val());
-        });
-        Arraycheck.sort();
-        var data = Arraycheck.join(',');
-        console.log(data);
+        // var Arraycheck = [];
+        // $(".fn-SelectItem input:checked").each(function(){
+        //     Arraycheck.push($(this).val());
+        // });
+        // Arraycheck.sort();
+        // var data = Arraycheck.join(',');
+        // console.log(data);
+
         var group_id = $("#group_id_input").val();
         $.ajax({
             type : "POST",
             url : "/apps/" + tenantName + "/" + group_id + "/preview/",
             data : {
-                "service_ids":JSON.stringify(Arraycheck)
+                // "service_ids":JSON.stringify(Arraycheck)
+                "group_id":group_id
             },
             cache : false,
             beforeSend : function(xhr, settings) {
@@ -480,9 +483,9 @@ $(function(){
                 if(oData.status == 200){
                     //console.log(oData.json_svg);
                     //console.log(oData.json_data);
-                    FnSvg(oData.json_svg,oData.json_data);
+                   // FnSvg(oData.json_svg,oData.json_data);
                 }else{
-                     swal(oData.msg);
+                    // swal(oData.msg);
                 }
             },
             error : function() {

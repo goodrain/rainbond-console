@@ -10,7 +10,8 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
-    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent
+    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
+    PublishedGroupServiceRelation
 
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
@@ -283,7 +284,10 @@ class BaseTenantService(object):
         try:
             env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
             if is_inner_service:
-                mapping_port = self.prepare_mapping_port(service, container_port)
+                #mapping_port = self.prepare_mapping_port(service, container_port)
+                #port.mapping_port = mapping_port
+                # 取消mapping端口
+                mapping_port = container_port
                 port.mapping_port = mapping_port
                 if service.language == "docker-compose":
                     self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址",
@@ -443,7 +447,76 @@ class BaseTenantService(object):
                 return None
         except Exception as e:
             logger.exception(e)
-    
+
+    # 下载服务组模板逻辑
+    def download_group_info(self,group_key,group_version,action=None):
+        num = AppServiceGroup.objects.filter(group_share_id=group_key,group_version=group_version).count()
+        if num == 0:
+            dep_code = 500
+            for num in range(0, 3):
+                dep_code, group_info = self.download_remote_group(group_key, group_version)
+                if dep_code in (500, 501,):
+                    logger.error("download group failed! try again! num:{0} ".format(num))
+                    continue
+                else:
+                    break
+            if dep_code in (500, 501,):
+                return 500, None, "download group {0}:{1} failed!".format(group_key, group_version)
+        else:
+            group_list = AppServiceGroup.objects.filter(group_share_id=group_key,group_version=group_version)
+            group_info = list(group_list)[0]
+        return 200, group_info, "success"
+
+    # 云市下载服务数据
+    def download_remote_group(self, group_key, group_version):
+        """获取远程服务信息"""
+        all_data = {
+            'group_key': group_key,
+            'group_version': group_version,
+            'cloud_assistant': instance.cloud_assistant,
+        }
+
+        data = json.dumps(all_data)
+        logger.debug("post group json data={}".format(data))
+        res,resp = appClient.getGroupData(body=data)
+        if res.status == 200:
+            json_data = json.loads(resp.data)
+            group_data = json_data.get("group",None)
+            if not group_data:
+                logger.error("no group data!")
+                return 500, None
+            # 模板信息
+            group_info = None
+            try:
+                group_info = AppServiceGroup.objects.get(group_share_id=group_key,group_version=group_version)
+            except Exception:
+                pass
+            if not group_info:
+                group_info = AppServiceGroup()
+            group_info.tenant_id = group_data.get("publisher_tenant_id")
+            group_info.group_share_alias = group_data.get("group_name")
+            group_info.group_share_id = group_data.get("group_key")
+            group_info.group_id = "0"
+            group_info.service_ids = ""
+            group_info.group_version = group_data.get("group_version")
+            group_info.desc = group_data.get("info")
+            group_info.save()
+
+            PublishedGroupServiceRelation.objects.filter(group_pk=group_info.ID).delete()
+            relation_list = json_data.get("relation_list", None)
+            if relation_list:
+                pgsrs = []
+                for rl in relation_list:
+                    service_key = rl.get("service_key")
+                    version = rl.get("version")
+                    pgsr = PublishedGroupServiceRelation(group_pk=group_info.ID, service_id="", service_key=service_key,
+                                                         version=version)
+                    pgsrs.append(pgsr)
+                PublishedGroupServiceRelation.objects.bulk_create(pgsrs)
+            return 200, group_info
+        else:
+            return 501, None
+
     # 下载服务模版逻辑
     def download_service_info(self, service_key, app_version, action=None):
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()

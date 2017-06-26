@@ -381,6 +381,7 @@ class ServiceInfo(BaseModel):
                                     help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
     creater = models.IntegerField(null=True, help_text=u"创建人")
+    publish_type = models.CharField(max_length=10, default="single", help_text=u"判断服务是否属于组")
     
     def is_slug(self):
         return bool(self.image.startswith('goodrain.me/runner'))
@@ -757,8 +758,9 @@ class PhoneCode(BaseModel):
     phone = models.CharField(max_length=11, help_text=u"手机号码")
     type = models.CharField(max_length=10, help_text=u"类型")
     code = models.CharField(max_length=10, help_text=u"类型")
-    create_time = models.DateTimeField(
-        auto_now_add=True, blank=True, help_text=u"创建时间")
+    message_id = models.CharField(max_length=100, help_text=u"aliyun发送的message_id")
+    status = models.IntegerField(help_text=u'发送状态0已发送1发送成功2发送失败', default=0)
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
 class TenantRegionPayModel(BaseModel):
@@ -1049,8 +1051,8 @@ class ServiceFeeBill(BaseModel):
     node_num = models.IntegerField(help_text=u"节点个数", default=1)
     disk = models.IntegerField(help_text=u'磁盘大小')
     buy_period = models.IntegerField(help_text=u"预付费时长(单位:小时)", default=0)
-    create_time = models.DateTimeField(help_text=u"创建时间")
-    pay_time = models.DateTimeField(help_text=u"付款时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    pay_time = models.DateTimeField(auto_now_add=True, help_text=u"支付时间")
 
 
 class ServiceConsume(BaseModel):
@@ -1111,5 +1113,6 @@ class BackServiceInstallTemp(BaseModel):
     class Meta:
         db_table = "back_service_install_temp"
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    share_pk = models.IntegerField(help_text=u"发布的服务组PK 对应app_service_group中的ID")
     group_pk = models.IntegerField(help_text=u"服务所在组ID")
     success = models.BooleanField(default=True, help_text=u"成功安装")

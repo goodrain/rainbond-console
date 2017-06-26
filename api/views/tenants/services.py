@@ -12,6 +12,8 @@ from www.db import BaseConnection
 
 import logging
 
+from www.utils.crypt import make_uuid
+
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -507,3 +509,55 @@ class ServiceEventCodeVersionUpdate(APIView):
             data["status"] = "failure"
             status = 500
         return Response(data, status=status)
+
+
+class ServiceStopView(APIView):
+    allowed_methods = ('post',)
+
+    def post(self, request, format=None):
+        """
+
+        停止服务
+        ---
+        parameters:
+            - name: service_id
+              description: 操作ID
+              required: true
+              type: string
+              paramType: form
+            - name: region
+              description: 数据中心
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 操作
+              required: false
+              type: string
+              paramType: form
+        """
+        data = {}
+        try:
+            service_id = request.data.get("service_id")
+            service_region = request.data.get("region")
+            action = request.data.get("action", "own_money")
+            logger.debug("service_id {0} service region {1} action {2}".format(service_id,service_region,action))
+            event_id = make_uuid()
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            event = ServiceEvent(event_id=event_id, service_id=service_id,
+                                 tenant_id=service.tenant_id, type=action,
+                                 deploy_version=service.deploy_version, old_deploy_version=service.deploy_version,
+                                 user_name="system", start_time=datetime.datetime.now())
+            event.save()
+            body = {}
+            body["operator"] = str("system")
+            body["event_id"] = event_id
+            regionClient.stop(service_region, service_id, json.dumps(body))
+            data["status"] = "success"
+        except TenantServiceInfo.DoesNotExist as ex:
+            logger.exception(ex)
+            logger.error("service is not exist")
+        except Exception as e:
+            logger.exception(e)
+            data["status"] = "failure"
+        return Response(data, status=200)

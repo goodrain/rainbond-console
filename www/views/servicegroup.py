@@ -8,7 +8,8 @@ from django.http.response import HttpResponse, JsonResponse, Http404
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import TenantServicesPort, TenantServiceEnvVar, ServiceInfo, PublishedGroupServiceRelation
+from www.models import TenantServicesPort, TenantServiceEnvVar, ServiceInfo, PublishedGroupServiceRelation, \
+    ServiceGroupRelation, ServiceEvent
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 # from www.servicetype import ServiceType
@@ -35,81 +36,32 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
     # form提交.
     @perm_required('app_publish')
     def post(self, request, groupId, *args, **kwargs):
-        # 获取要发布的服务id
-        service_ids = request.POST.get("service_ids", None)
-        if service_ids is None:
-            data = {"success": False, "code": 404, 'msg': '请选择发布的服务!'}
-            return JsonResponse(data, status=200)
-        array_ids = json.loads(service_ids)
-        if len(array_ids) == 0:
-            data = {"success": False, "code": 404, 'msg': '请选择发布的服务!'}
-            return JsonResponse(data, status=200)
-        # 检查服务是否安装的镜像服务
-        service_list = TenantServiceInfo.objects.filter(service_id__in=array_ids)
-        category_list = [x.category for x in service_list if x.category == 'application']
-        if len(category_list) == 0:
-            data = {"success": False, "code": 406, 'msg': '您的应用组中没有自研应用,请重新选择。'}
-            return JsonResponse(data, status=200)
-
-        if len(array_ids) < 2:
-            data = {"success": False, "code": 404, "msg": "批量分享的应用数至少为2个"}
-            return JsonResponse(data, status=200)
-        # 检查分析的应用是否运行
-        self_develop_services = [x for x in service_list if x.category == 'application']
-        for s in self_develop_services:
-            body = regionClient.check_service_status(self.response_region,s.service_id)
-            status = body["status"]
-            logger.debug("status ===> {}".format(status))
-            if status != "running":
-                data = {"success": False, "code": 412, 'msg': '您的自研应用未运行。'}
+        try:
+            groupId = int(groupId)
+            if groupId < 1:
+                data = {"success": False, "code": 406, 'msg': '该组应用不可分享'}
                 return JsonResponse(data, status=200)
-
-
-        # 添加服务组分享信息
-        service_ids = service_ids.replace(" ", "")
-        # 检查对应的service_id是否存在
-        group_count = AppServiceGroup.objects.filter(service_ids=service_ids).count()
-        group_share_id = make_uuid(service_ids)
-        if group_count == 1:
-            app_service_group = AppServiceGroup.objects.get(service_ids=service_ids)
-
-            app_service_group.step = len(array_ids)
-            # 重新保存信息
-            app_service_group.save()
-            next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-            data = {"success": True, "code": 201, "next_url": next_url}
-            return JsonResponse(data,status=200)
-            # if app_service_group.is_success:
-            #     data = {"success": False, "code": 405, 'msg': '相同服务组已经发布!'}
-            #     return JsonResponse(data, status=200)
-            # else:
-            #     app_service_group.step = len(array_ids)
-            #     next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-            #     data = {"success": False, "code": 201, 'next_url': next_url}
-            #     return JsonResponse(data, status=200)
-        elif group_count > 1:
-            data = {"success": False, "code": 500, 'msg': '系统异常,请联系管理员!'}
+            tenant_service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
+            service_list = TenantServiceInfo.objects.filter(service_id__in=tenant_service_id_list)
+            # appcation 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
+            can_publish_list = [x for x in service_list if
+                                x.category == "application" or (x.category == "app_publish" and x.language is not None)]
+            if not can_publish_list:
+                data = {"success": False, "code": 406, 'msg': '此组中的应用全部来源于云市,无法发布'}
+                return JsonResponse(data, status=200)
+            # 判断非云市安装应用是否全部运行中
+            # for s in can_publish_list:
+            #     body = regionClient.check_service_status(self.response_region,s.service_id)
+            #     status = body["status"]
+            #     if status != "running":
+            #         data = {"success": False, "code": 412, 'msg': '您的应用{0}未运行。'.format(s.service_cname)}
+            #         return JsonResponse(data, status=200)
+            next_url = "/apps/{0}/{1}/first/".format(self.tenantName, groupId)
+            data = {"success": False, "code": 200, 'next_url': next_url}
             return JsonResponse(data, status=200)
-        else:
-            # 添加发布记录
-            now = datetime.datetime.now()
-            app_service_group = AppServiceGroup(group_share_id=group_share_id,
-                                                group_share_alias=group_share_id,
-                                                service_ids=service_ids,
-                                                is_success=False,
-                                                group_id=groupId,
-                                                step=len(array_ids),
-                                                publish_type="cloud_frame",
-                                                group_version="0.0.1",
-                                                is_market=False,
-                                                desc="",
-                                                installable=True,
-                                                create_time=now,
-                                                update_time=now)
-            app_service_group.save()
-        next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, group_share_id)
-        data = {"success": False, "code": 200, 'next_url': next_url}
-        return JsonResponse(data, status=200)
+
+        except Exception as e:
+            logger.exception(e)
 
 
 class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
@@ -119,28 +71,29 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
         return context
 
     @perm_required('app_publish')
-    def get(self, request, groupId, shareId, *args, **kwargs):
+    def get(self, request, groupId, *args, **kwargs):
         # 跳转到服务发布页面
         context = self.get_context()
         try:
-            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+            # 查询最新的一次记录
+            group_list = AppServiceGroup.objects.filter(group_id=groupId).order_by("-ID")
+            app_service_group = None
+            if group_list:
+                app_service_group = group_list[0]
             service_group = ServiceGroup.objects.get(pk=groupId)
             context.update({"service_group": service_group,
                             "tenant_name": self.tenantName,
                             "group_id": groupId,
-                            "share_id": shareId,
                             "app_service_group": app_service_group})
-        except AppServiceGroup.DoesNotExist:
-            logger.error("service group not exist")
-            raise Http404
-
+        except Exception as e:
+            logger.error(e)
         return TemplateResponse(request,
                                 'www/service/groupShare_step_one.html',
                                 context)
 
     # form提交.
     @perm_required('app_publish')
-    def post(self, request, groupId, shareId, *args, **kwargs):
+    def post(self, request, groupId, *args, **kwargs):
         # todo 添加校验，group_id是否属于当前租户、用户
         logger.debug("service group publish:{0}".format(groupId))
         try:
@@ -150,22 +103,77 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
             desc = request.POST.get("desc", None)
             is_market = request.POST.get("is_market", True)
             installable = request.POST.get("installable", True)
-            if service_share_alias and publish_type:
-                app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
-                app_service_group.group_share_alias = service_share_alias
-                app_service_group.publish_type = publish_type
-                app_service_group.group_version = group_version
-                app_service_group.desc = desc
-                app_service_group.is_market = is_market
-                app_service_group.installable = installable
-                app_service_group.update_time = datetime.datetime.now()
+            # 查找新的应用关系
+            tenant_service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
+            service_list = TenantServiceInfo.objects.filter(service_id__in=tenant_service_id_list)
+            service_id_list = [x.service_id for x in service_list]
+            service_ids = ",".join(service_id_list)
+            # appcation 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
+            can_publish_list = [x for x in service_list if
+                                x.category == "application" or (x.category == "app_publish" and x.language is not None)]
+            now = datetime.datetime.now()
+
+            share_pk = None
+            app_service_group = AppServiceGroup.objects.filter(group_id=groupId).order_by("-ID")
+            # 如果有记录
+            if app_service_group:
+                group_share_id = app_service_group[0].group_share_id
+                try:
+                    # 根据share_id 和 key进行查询,如果存在就进行更新操作
+                    group = AppServiceGroup.objects.get(group_share_id=group_share_id, group_version=group_version)
+                    group.group_share_alias = service_share_alias
+                    group.service_ids = service_ids
+                    group.group_id = groupId
+                    group.step = len(can_publish_list)
+                    group.publish_type = publish_type
+                    group.group_version = group_version
+                    group.desc = desc
+                    group.is_market = is_market
+                    group.installable = installable
+                    group.update_time = datetime.datetime.now()
+                    group.save()
+                    share_pk = group.ID
+                except AppServiceGroup.DoesNotExist:
+                    # 不存在 根据key 和 version 创建新的记录
+                    app_service_group = AppServiceGroup(group_share_id=group_share_id,
+                                                        group_share_alias=service_share_alias,
+                                                        service_ids=service_ids,
+                                                        is_success=False,
+                                                        group_id=groupId,
+                                                        step=len(can_publish_list),
+                                                        publish_type=publish_type,
+                                                        group_version=group_version,
+                                                        is_market=is_market,
+                                                        desc=desc,
+                                                        installable=installable,
+                                                        create_time=now,
+                                                        update_time=now)
+                    app_service_group.save()
+                    share_pk = app_service_group.ID
+            else:
+                group_share_id = make_uuid(service_ids)
+                app_service_group = AppServiceGroup(group_share_id=group_share_id,
+                                                    group_share_alias=service_share_alias,
+                                                    service_ids=service_ids,
+                                                    is_success=False,
+                                                    group_id=groupId,
+                                                    step=len(can_publish_list),
+                                                    publish_type=publish_type,
+                                                    group_version=group_version,
+                                                    is_market=is_market,
+                                                    desc=desc,
+                                                    installable=installable,
+                                                    create_time=now,
+                                                    update_time=now)
                 app_service_group.save()
-        except AppServiceGroup.DoesNotExist:
-            logger.error("service group not exist")
+                share_pk = app_service_group.ID
+
+        except Exception as e:
+            logger.error(e)
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
             return JsonResponse(data, status=200)
-
-        data = {"success": True, "code": 200, 'msg': '更新成功!'}
+        next_url = "/apps/{0}/{1}/{2}/second/".format(self.tenantName, groupId, share_pk)
+        data = {"success": True, "code": 200, 'msg': '更新成功!', 'next_url': next_url}
         return JsonResponse(data, status=200)
         # return TemplateResponse(self.request,
         #                         'www/service/groupShare_step_two.html',
@@ -179,13 +187,13 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
         return context
 
     @perm_required('app_publish')
-    def get(self, request, groupId, shareId, *args, **kwargs):
+    def get(self, request, groupId, share_pk, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
         try:
-            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
-            service_ids = app_service_group.service_ids
-            array_ids = json.loads(service_ids)
+            array_ids = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
+            # service_ids = app_service_group.service_ids
+            # array_ids = json.loads(service_ids)
             # 查询服务信息
             service_list = TenantServiceInfo.objects.filter(service_id__in=array_ids)
             # 查询服务端口信息
@@ -209,9 +217,6 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
                 dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id )[0]
                 tmp_list.append(dep_service_info)
                 dep_service_map[service_id] = tmp_list
-            # relation_id_list = [x.dep_service_id for x in relation_list]
-            # relation_info_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
-            # relation_info_map = {x.service_id: x for x in relation_info_list}
             # 查询服务环境变量(可变、不可变)
             env_list = TenantServiceEnvVar.objects.filter(service_id__in=array_ids, container_port__lte=0)
             env_change_list = [x for x in env_list if x.is_change]
@@ -251,7 +256,7 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
                             "volume_map": service_volume_map})
             context.update({"tenant_name": self.tenantName,
                             "group_id": groupId,
-                            "share_id": shareId})
+                            "share_id": share_pk})
         except Exception as e:
             logger.error("service group not exist")
             logger.exception(e)
@@ -262,9 +267,9 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
 
     # form提交
     @perm_required('app_publish')
-    def post(self, request, groupId, shareId, *args, **kwargs):
+    def post(self, request, groupId, share_pk, *args, **kwargs):
         # todo 添加服务组校验
-        logger.debug("service group publish: {0}-{1}".format(groupId, shareId))
+        logger.debug("service group publish: {0}-{1}".format(groupId, share_pk))
         env_data = request.POST.get("env_data", None)
         data = {}
         try:
@@ -310,13 +315,14 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         return context
 
     @perm_required('app_publish')
-    def get(self, request, groupId, shareId, *args, **kwargs):
+    def get(self, request, groupId, share_pk, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
         try:
-            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
-            service_ids = app_service_group.service_ids
-            array_ids = json.loads(service_ids)
+            app_service_group = AppServiceGroup.objects.get(ID=share_pk)
+            array_ids = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, group_id=groupId,region_name=self.response_region).values_list("service_id", flat=True)
+            # service_ids = app_service_group.service_ids
+            # array_ids = json.loads(service_ids)
             # 查询服务信息
             service_list = TenantServiceInfo.objects.filter(service_id__in=array_ids)
             service_id_list = [x.service_id for x in service_list]
@@ -326,7 +332,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             has_published_map = {}
             for app in service_list:
                 # 非自研应用取出应用已发布的信息
-                if app.category == "app_publish":
+                if app.category == "app_publish" and app.language is None:
                     has_pubilshed = AppService.objects.filter(service_key=app.service_key,app_version=app.version)
                     if has_pubilshed:
                         has_published_map[app.service_id] = has_pubilshed[0]
@@ -342,7 +348,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
             context.update({"tenant_name": self.tenantName,
                             "group_id": groupId,
-                            "share_id": shareId})
+                            "share_id": share_pk})
             context.update({"has_published_map":has_published_map})
         except Exception as e:
             logger.error("service group not exist")
@@ -354,13 +360,12 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
     # form提交
     @perm_required('app_publish')
-    def post(self, request, groupId, shareId, *args, **kwargs):
-        logger.debug("service group publish: {0}-{1}".format(groupId, shareId))
+    def post(self, request, groupId, share_pk, *args, **kwargs):
+        logger.debug("service group publish: {0}-{1}".format(groupId, share_pk))
 
         pro_data = request.POST.get("pro_data", None)
         service_ids = request.POST.get("service_ids", "[]")
         try:
-        # todo 这里需要一个问题，对于依赖的服务如何设置依赖信息
             if pro_data is not None:
                 service_ids = json.loads(service_ids)
                 service_list = TenantServiceInfo.objects.filter(service_id__in=service_ids)
@@ -368,7 +373,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 pro_json = json.loads(pro_data)
 
                 app_service_map = {}
-                app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+                app_service_group = AppServiceGroup.objects.get(ID=share_pk)
                 step = 0
                 for pro_service_id in pro_json:
                     is_published, app = self.is_published(pro_service_id)
@@ -448,14 +453,14 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     # 发送事件
                     if app_service.is_slug():
                         logger.debug("service group publish slug.")
-                        self.upload_slug(app_service, service, shareId)
+                        self.upload_slug(app_service, service, share_pk)
                     elif app_service.is_image():
                         logger.debug("service group publish image.")
-                        self.upload_image(app_service, service, shareId)
+                        self.upload_image(app_service, service, share_pk)
 
 
-            # if len(app_share_list) > 0:
-            #     AppServiceShareInfo.objects.bulk_create(app_share_list)
+                        # if len(app_share_list) > 0:
+                        #     AppServiceShareInfo.objects.bulk_create(app_share_list)
         except Exception as e:
             logger.error("service group publish failed")
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
@@ -524,7 +529,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             app_service.is_ok = 0
             if service.is_slug():
                 app_service.slug = '/app_publish/{0}/{1}.tgz'.format(app_service.service_key, app_version)
-            # 更新status、show_app、show_assistant
+                # 更新status、show_app、show_assistant
         app_service.app_alias = app_alias
         app_service.app_version = app_version
         app_service.info = app_content
@@ -631,7 +636,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             volume_list = TenantServiceVolume.objects.filter(service_id=service.service_id)
             volume_path_list = [x.volume_path for x in volume_list]
             AppServiceVolume.objects.filter(service_key=service_key,
-                                            app_version=app_version)\
+                                            app_version=app_version) \
                 .exclude(volume_path__in=volume_path_list).delete()
 
             volume_data = []
@@ -664,7 +669,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 for dep_service in dep_service_list:
                     dep_app_service = None
                     # 不为源码构建的应用
-                    if dep_service.service_key != "application":
+                    if dep_service.service_key != "application" and (dep_service.language is None):
                         dep_app_list = AppService.objects.filter(service_key=dep_service.service_key, app_version=dep_service.version).order_by("-ID")
                         if not dep_app_list:
                             dep_app_list = AppService.objects.filter(service_key=dep_service.service_key).order_by("-ID")
@@ -704,23 +709,22 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             logger.exception(e)
             logger.error(
                 "add app relation error service_key {0},app_version {1},app_alias {2}".format(service_key, app_version,
-                                                                                            app_alias))
+                                                                                              app_alias))
 
-    def _create_publish_event(self, service, info):
-        template = {
-            "user_id": self.user.nick_name,
-            "tenant_id": service.tenant_id,
-            "service_id": service.service_id,
-            "type": "publish",
-            "desc": info + u"应用发布中...",
-            "show": True,
-        }
+    def _create_publish_event(self,service, info):
         try:
-            body = regionClient.create_event(service.service_region, json.dumps(template))
-            return body.event_id
+            import datetime
+            event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
+                                 tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
+                                 deploy_version=service.deploy_version,
+                                 old_deploy_version=service.deploy_version,
+                                 user_name=self.user.nick_name, start_time=datetime.datetime.now())
+            event.save()
+            self.event = event
+            return event.event_id
         except Exception as e:
-            logger.exception("service.publish", e)
-            return None
+            self.event = None
+            raise e
 
     def upload_slug(self, app, service, share_id):
         """ 上传slug包 """
@@ -735,17 +739,23 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(service, u'云帮')
+            event_id = self._create_publish_event(service, 'yb')
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
+            logger.debug("=========> slug 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(service, u"云市")
+                event_id = self._create_publish_event(service,"ys")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
+                logger.debug("=========> slug 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "service group upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
 
     def upload_image(self, app, service, share_id):
         """ 上传image镜像 """
@@ -758,17 +768,23 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "share_id": share_id,
         }
         try:
-            event_id = self._create_publish_event(service, u"云帮")
+            event_id = self._create_publish_event(service, "yb")
             image_upload_task.update({"dest": "yb", "event_id": event_id})
+            logger.debug("=========> image 云帮发布任务 !")
             regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(service, u"云市")
+                event_id = self._create_publish_event(service, "ys")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
+                logger.debug("=========> image 云市发布任务 !")
                 regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "service group upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
 
 
 class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
@@ -777,9 +793,9 @@ class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
         return context
 
     @perm_required('app_publish')
-    def get(self, request, groupId, shareId, *args, **kwargs):
+    def get(self, request, groupId, share_pk, *args, **kwargs):
         context = self.get_context()
-        app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+        app_service_group = AppServiceGroup.objects.get(ID=share_pk)
         context["app_service_group"] = app_service_group
         context["group_id"] = groupId
         return TemplateResponse(request, 'www/service/groupShare_step_four.html', context)
