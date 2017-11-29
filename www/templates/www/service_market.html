@@ -1,0 +1,276 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+
+{% block main-content %}
+
+<section class="wrapper">
+    <section class="panel">
+        <header class="panel-heading">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li {% if fr = "private" %}class="active"{% endif %}><a href="/apps/{{tenantName}}/service/?fr=private">分享的应用</a></li>
+                <li {% if fr = "local" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=local">本地应用</a></li>
+                <li {% if fr = "remote" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
+                <li {% if fr = "deploy" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=deploy">最近部署应用</a></li>
+                <li {% if fr = "hot" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=hot">热门应用</a></li>
+                <li {% if fr = "new" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=new">最新应用</a></li>
+            </ul>
+        </header>
+
+        <div>
+            <div class="tab-content container" style="width:100%;">
+                {% if fr == "private" %}
+                    <div class="row">
+                    {% if tenant_service_list or tenant_group_list %}
+                        <h4>团队共享</h4>
+                        <!--组应用-->
+                        {% for group in tenant_group_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div class="inbox">
+                                    <h4>{{group.group_share_alias}}</h4>
+                                    <h5>{{group.group_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_alias}}','{{group.group_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <!--单一应用-->
+                        {% for service in tenant_service_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+
+                    <div class="row">
+                    {% if assistant_service_list or assistant_group_list %}
+                        <h4>云帮共享</h4>
+                        <!--组应用-->
+                        {% for group in assistant_group_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div class="inbox">
+                                    <h4>{{group.group_share_alias}}</h4>
+                                    <h5>{{group.group_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_id}}','{{group.group_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <!--单一应用-->
+                        {% for service in assistant_service_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+                    <div class="row">
+                    {% if cloud_service_list or cloud_group_list %}
+                        <h4>云市共享</h4>
+                        <!--组应用-->
+                        {% for group in cloud_group_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div class="inbox">
+                                    <h4>{{group.group_share_alias}}</h4>
+                                    <h5>{{group.group_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_id}}','{{group.group_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <!--单一应用-->
+                        {% for service in cloud_service_list %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div  class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+                {% elif fr == "deploy" %}
+                    <div class="row">
+                        <div class="text-right" style="padding:3px 10px;">
+                            <a href="http://app.goodrain.com">更多应用</a>
+                        </div>
+                        {% for service in service_list %}
+                        <div class="col-lg-4 col-md-6 applistbox">
+                            <div  class="inbox">
+                                <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                <h5>{{service.version}}</h5>
+                                <button type="button" class="btn btn-success greenbtn"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif fr == "hot" %}
+                    <div class="row">
+                        <div class="text-right" style="padding:3px 10px;">
+                            <a href="http://app.goodrain.com/category/0/?order_by=download">更多应用</a>
+                        </div>
+                        {% for service in service_list %}
+                        <div class="col-lg-4 col-md-6 applistbox">
+                            <div  class="inbox">
+                                <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                <h5>{{service.version}}</h5>
+                                <button type="button" class="btn btn-success greenbtn"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif fr == "new" %}
+                <div class="row">
+                    <div class="text-right" style="padding:3px 10px;">
+                        <a href="http://app.goodrain.com/category/0/?order_by=newest">更多应用</a>
+                    </div>
+                    {% for service in service_list %}
+                        {% if service.service_key %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div  class="inbox">
+                                    <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                    <h5>{{service.version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div  class="inbox">
+                                    <h4><a target="_blank" href="">{{service.group_name}}</a></h4>
+                                    <h5>{{service.group_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="group_create('{{tenantName}}','{{service.group_key}}', '{{service.group_version}}')">部署
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    </div>
+                {% elif fr == "local" %}
+
+                    {% if cacheGroupList %}
+                        {% for cache in cacheGroupList %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div  class="inbox">
+                                    <h4>{{cache.group_share_alias}}</h4>
+                                    <h5>{{cache.group_version}}</h5>
+                                    <div style="position:absolute;top:50%;right:20px;">
+                                        <button type="button" class="btn btn-success greenbtn" style="position: static;"
+                                                onclick="group_create('{{tenantName}}','{{cache.group_share_id}}', '{{cache.group_version}}')">部署
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if cacheServiceList %}
+                    {% for cache in cacheServiceList %}
+                    <div class="col-lg-4 col-md-6 applistbox">
+                        <div  class="inbox">
+                            <h4>{{cache.service_name}}</h4>
+                            <h5>{{cache.version}}</h5>
+                            <div style="position:absolute;top:50%;right:20px;">
+                                <button type="button" class="btn btn-success greenbtn" style="position: static;"
+                                        onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
+                                </button>
+                                {% with tkey=cache.service_key|add:"_"|add:cache.version %}
+                                    {% with update_version=appService|mkey:tkey %}
+                                        {% if update_version %}
+                                            {% if update_version = cache.update_version %}
+                                            {% else %}
+                                                <button type="button" class="btn greenbtn" style="position: static;"
+                                                        onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:tkey}}','{{update_version}}')">更新
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% elif fr == "remote" %}
+                <div id="servicepanel">
+                </div>
+                <script>
+
+                    //这里调用ajax请求云市服务数据
+                    function remoteservice(service_key, app_version) {
+                        window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
+                                + service_key + '&app_version=' + app_version;
+                    }
+                    $(document).ready(function(){
+                        $.ajax({
+                            type: "POST",
+                            url: "/ajax/{{tenantName}}/remote/market",
+                            cache: false,
+                            beforeSend : function(xhr, settings) {
+                                var csrftoken = $.cookie('csrftoken');
+                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                            },
+                            success: function (msg) {
+                                if (msg.success) {
+                                    var dataObj = msg.data
+                                    tmpdata = eval(dataObj)
+                                    var msghtml ="";
+                                    for (var i = 0; i < tmpdata.length; i++) {
+                                        msghtml += '<div class="col-lg-4 col-md-6 applistbox">';
+                                        msghtml += '<div class="inbox">'
+                                        msghtml += '<h4>';
+                                        msghtml += tmpdata[i].service_name;
+                                        msghtml += '</h4>';
+                                        msghtml += '<h5>';
+                                        msghtml += tmpdata[i].version;
+                                        msghtml += '</h5>';
+                                        msghtml += '<button type="button" class="btn greenbtn" onclick="remoteservice(\'';
+                                        msghtml += tmpdata[i].service_key;
+                                        msghtml += "','";
+                                        msghtml += tmpdata[i].version;
+                                        msghtml += '\')">部署</button>';
+                                        msghtml += '</div></div>';
+                                    }
+                                    $("#servicepanel").append(msghtml);
+                                }
+
+                            },
+                            error: function () {
+                                // swal("系统异常");
+                                // alert("data error");
+                                console.log("data error");
+                            }
+                        });
+                    });
+                </script>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+</section>
+
+{% endblock %}

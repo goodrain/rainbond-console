@@ -1,0 +1,67 @@
+/*ljh 2016-12-09*/
+/*两个表格部分*/
+table{
+    width: 100%;
+    border-collapse: collapse;
+    color: #838383;
+}
+
+/*表格中的a标签交互样式*/
+table a:link{
+    color: #28cb75;
+   
+}
+table a:hover{
+    cursor: pointer;
+}
+/*表格th的大小与背景色*/
+table th{
+    background-color: #f7f7f7;
+    font-size: 16px;
+    color: #303030;
+    height: 40px;
+    text-align: center;
+    font-weight: 100;
+}
+/*表格td的大小60px与颜色*/
+table td{
+   
+    background-color: #ffffff;
+    color: #838383;
+    font-size: 14px;
+    height: 60px;
+
+}
+.cost{
+    overflow: hidden;
+}
+.cost table tfoot tr{ border-left: 0 none;  border-right: 0 none; }
+.cost table tr td:first-child{padding-left: 20px;}
+/*计费方式表格*/
+.cost-fun{
+    padding:30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+
+.chooseFun,.chooseLarge,.chooseData,.endDate,.chooseDisk{ width: 100%;  position: relative; display: none; }
+
+p.bottom {text-align: center; padding: 20px 0 0 0;}
+p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
+p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
+p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }
+
+.infor-fm-box{ padding: 10px 0; }
+.infor-fm-box label{width: 20%;padding-right: 10px;margin: 0;}
+.fm-input-range{max-width: 90%;}
+.fm-input-range span{width: 20%;}
+.fm-input-range .range-box{width: 60%;}
+.calMoney{margin-top: 20px;text-align: right;padding-right: 20px;}
+#TimeLongMoney{font-size: 20px;color: #28cb75;}
+#LongDiskMoney{font-size: 20px;color: #28cb75;}
+#TimeMoney{font-size: 20px;color: #28cb75;}
+#deployMoney{font-size: 20px;color: #28cb75;}

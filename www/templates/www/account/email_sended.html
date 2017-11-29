@@ -1,0 +1,43 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<div>
+    
+<header class="header white-bg">
+    <!--logo start-->
+    <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
+    <!--logo end-->
+</header>
+</div>
+<div class="container">
+    <div class="Section" style="margin-top: 80px;">
+      <div class="PageHeader">请检查你的邮箱</div>
+
+      <p>
+      我们已经向 <strong>{{ safe_email }}</strong> 发送了一封邮件。点击邮件中的链接以重置你的密码。
+      </p>
+      <p>
+      如果没有看到该邮件，请查看邮箱其他的可能位置，如垃圾箱、垃圾邮件过滤器、社会邮件或其他文件夹。
+      </p>
+      <div class="Section-footer">
+        <a href="{{mail_address}}">
+          去邮箱查看
+        </a>
+      </div>
+    </div>
+</div>
+
+
+{% endblock %}

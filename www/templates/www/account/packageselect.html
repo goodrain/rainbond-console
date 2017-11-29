@@ -1,0 +1,186 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 套餐选择{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<header class="header white-bg">
+    <!--logo start-->
+    <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
+    <!--logo end-->
+</header>
+
+<div class="container">
+  <form class="form-signin form-plans-reg" enctype="multipart/form-data" action="" method="post">
+    <h2 class="form-signin-heading">选择套餐</h2>
+    <div class="rom">
+      <table class="boxed-group-table setup-plans">
+	    <tbody>
+	    <tr>
+	        <th>
+	            <span class="big">社区版</span>
+	        </th>
+	        <th>
+	            <span class="big">付费版</span>
+	        </th>
+	    </tr>
+	    <tr>
+	        <th>
+	            <span class="small">面向极客程序员及初创型企业</span>
+	        </th>
+	        <th>
+	            <span class="small">对性能、稳定性、安全性有更高要求的大中型企业</span>
+	        </th>
+    	</tr>
+    	<tr>
+	        <td>
+	            内存最高1G
+	        </td>
+	        <td>
+				支持社区版的所有特性
+	        </td>
+    	</tr>
+    	<tr>
+	        <td>
+	            最高1M带宽
+	        </td>
+	        <td>
+	            专享高性能服务器
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            最大5G磁盘存储
+	        </td>
+	        <td>
+	            支持多种扩容方式
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            最大100访问并发
+	        </td>
+	        <td>
+	            高级监控
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            共享服务器
+	        </td>
+	        <td>
+	            SLA 99.95%
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            48小时无访问自动休眠
+	        </td>
+	        <td>
+	            支持SSL
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+            通过web管理数据库
+	        </td>
+	        <td>
+	            7x24服务支持
+	        </td>
+   	 	</tr>
+        <tr>
+	        <td>
+            通过在线客服支持
+	        </td>
+	        <td>
+	        </td>
+    	</tr>
+        <tr>
+	        <td></td>
+	        <td></td>
+    	</tr>
+    	<tr>
+	        <td style="text-align: center;font-size: 16px;color:#41cac0;">免费</td>
+	        <td style="text-align: center;font-size: 16px;text-decoration:underline;"><a href="https://www.goodrain.com/pricing.html" target="_black">详细价格</a></td>
+    	</tr>
+        <tr>
+        	<input type="hidden" id="current_select" name="current_select" value="free">
+	        <td>
+	            <button  type="button" class="active"  id="package_free" onclick="_selectme('package_free')">社区版</button>
+	        </td>
+	        <td>
+	            <button  type="button" id="package_company" onclick="_selectme('package_company')">企业版</button>
+	        </td>
+    	</tr>
+    	<tr>
+    		<td></td><td></td>
+    	</tr>
+	</tbody>
+    </table>
+	<div class="form-actions" style="text-align: center;">
+		<!--input type="submit" name="register" value="注册" class="btn btn-primary btn btn-lg btn-success btn-block" id="submit-id-register"-->
+		<button type="button" class="btn btn-lg btn-success" onclick="_selectFinished()">完成</button>
+	</div>
+	</div>
+  </form>
+<script>
+function _selectme(obj){
+	if(obj=="package_free"){
+		$("#package_free").attr("class","active")
+		$("#package_personal").attr("class","")
+		$("#package_company").attr("class","")
+		$("#current_select").val("free")
+	}else if(obj=="package_personal"){
+		$("#package_personal").attr("class","active")
+		$("#package_company").attr("class","")
+		$("#package_free").attr("class","")
+		$("#current_select").val("personal")
+	}else if(obj=="package_company"){
+		$("#package_company").attr("class","active")
+		$("#package_personal").attr("class","")
+		$("#package_free").attr("class","")
+		$("#current_select").val("company")
+	}
+}
+function _selectFinished(){
+	var current_select = $("#current_select").val()
+	$.ajax({
+		type : "POST",
+		url : "/payed/{{tenantName}}/select",
+		data : "current_select="+current_select,
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			var dataObj = msg
+			if (dataObj["status"] == "success") {
+				swal("操作成功")
+				window.location.href = "/apps/{{tenantName}}"
+			} else {
+				swal("操作失败")
+			}
+		},
+		error : function() {
+			// swal("系统异常");
+		}
+	})
+}
+
+jQuery(document).ready(function($) {
+	_selectme("package_{{selected}}")
+});
+</script>
+</div>
+
+{% endblock %}

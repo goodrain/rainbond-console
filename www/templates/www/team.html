@@ -1,0 +1,16 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% block main-content %}
+<section id="team-wrap" class="wrapper site-min-height">
+    
+</section>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/team.js"></script>
+<script type="text/javascript">
+  var controller = new TeamController({
+    $wrap:$('#team-wrap'),
+    tenantName: '{{tenantName}}'
+  })
+  controller.ready();
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 用户登录{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href='{% static "www/css/style.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/style-responsive.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/login.css" %}'>
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="mainbox">
+    <!-- logo start -->
+    <h1 class="yblogo"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}"></h1>
+    <!-- logo end -->
+
+    <form class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
+        <!--<h2 class="form-signin-heading">用户登录</h2>-->
+        {% crispy form %}
+    </form>
+</div>
+
+
+{% endblock %}

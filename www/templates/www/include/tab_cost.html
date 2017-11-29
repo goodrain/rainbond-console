@@ -1,0 +1,13 @@
+<div id="app-pay-wrap" class="cost">
+
+</div>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-pay.js"></script>
+<script type="text/javascript">
+  var controller = new AppPayController({
+    $wrap:$('#app-pay-wrap'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{serviceAlias}}'
+  })
+  controller.ready();
+</script>

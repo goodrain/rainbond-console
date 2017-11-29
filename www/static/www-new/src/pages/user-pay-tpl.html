@@ -1,0 +1,95 @@
+<ul class="nav nav-pills">
+	<li class="active" role="presentation">
+		<a data-toggle="tab" href="#recharge">账户充值</a>
+	</li>
+	<li class="" role="presentation" >
+		<a data-toggle="tab" href="#rechargelog">充值记录</a>
+	</li>
+</ul>
+<section class="panel panel-default">
+	<!-- recharge -->
+	<div id="recharge" class="tab-pane active panel-body">
+		<div id="onlinerecharge" >
+			<form id="rechargeForm" method="POST" action="/apps/{{tenantName}}/recharge/alipay">
+				<div class="money-box clearfix" id="balance">
+					<span>账户余额</span>
+					<span>{{pageData.balance}}元</span>
+				</div>
+				<div class="money-box clearfix">
+					<span>充值金额</span>
+					<input type="text" class="form-control" id="recharge_money" name="recharge_money" value="">
+				</div>
+				<div class="bank-box clearfix">
+					<span>支付方式</span>
+					<ul class="clearfix">
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios01" value="zhifubao" checked="checked" >
+							<label class="zhifubao" for="optionsRadios01">支付宝</label>
+						</li>
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios02" value="BOCB2C" >
+							<label class="zgyh" for="optionsRadios02">中国银行</label>
+						</li>
+						<li class="clearfix">		
+							<input type="radio" name="optionsRadios" id="optionsRadios03"  value="ICBCB2C">
+							<label class="gsyh" for="optionsRadios03">中国工商银行</label>
+						</li>
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios04"  value="CMB">
+							<label class="zsyh" for="optionsRadios04">招商银行</label>
+						</li>
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios05" value="CCB">
+							<label class="jsyh" for="optionsRadios05">中国建设银行</label>
+						</li>
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios06" value="ABC">
+							<label class="nyyh" for="optionsRadios06">中国农业银行</label>
+						</li>
+						<li class="clearfix">
+							<input type="radio" name="optionsRadios" id="optionsRadios07"  value="COMM">
+							<label class="jtyh" for="optionsRadios07">交通银行</label>
+						</li>
+					</ul>
+				</div>
+				<div class="text-center" style="margin-bottom: 20px;">
+					<button type="button" class="btn btn-success paySub">充值</button>
+				</div>
+			</form>
+			<div class="alert alert-warning fade in" style="margin:10px;">
+				<button data-dismiss="alert" class="close close-sm" type="button">
+					<span class="glyphicon glyphicon-remove"></span>
+				</button>
+				<strong>温馨提示：</strong>
+				<p>1、提示：若充值过程中遇到<a href="https://cshall.alipay.com/lab/help_detail.htm?help_id=247928">交易限额</a>问题，请前往相应的网上银行进行调整后再继续。</p>
+				<p>2、如您有欠费账单，充值后会优先补扣欠费账单。</p>
+				<p>3、充值后请及时对支付订单进行结算，以免影响正常服务。</p>
+			</div>
+		</div>
+	</div>
+	<!-- -->
+	<div id="rechargelog" class="tab-pane panel-body">
+		<form role="form">
+			<div class="lit-select text-left">
+				<label>时间范围</label>
+				<select id="datescope">
+					<option selected="selected" value="7">最近7天</option>
+					<option value="30">最近1个月</option>
+					<option value="180">最近6个月</option>
+					<option value="0">所有记录</option>
+				</select>
+			</div>
+		</form>
+		<div class="adv-table" id="rechargeList"></div>
+	</div>
+	<!-- -->
+	<div id="tenantserviceconsume" class="tab-pane panel-body">
+		<form role="form">
+			<div class="lit-select text-left">
+				<label>选择时间</label>
+				<input type="text" readonly="readonly" class="form-control-inline" id="date_selecter">
+			</div>
+		</form>
+		<div class="adv-table" id="region_service_list"></div>
+	</div>
+</section>

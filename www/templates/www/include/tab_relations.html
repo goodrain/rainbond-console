@@ -1,0 +1,15 @@
+
+<div role="tabpanel"  id="relations">
+    
+</div>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-relation.js"></script>
+<script type="text/javascript">
+  var controller = new AppRelationController({
+    $wrap: $('#relations'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}'
+  })
+  controller.ready();
+</script>
+<!-- relations end -->

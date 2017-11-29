@@ -1,0 +1,3 @@
+.monthly-time-select {border-radius:4px;height:30px;line-height: 30px;border:1px solid #4cae4c;border-right:none;display: inline-block;}
+.monthly-time-select span {display: inline-block;height:100%;padding:0 5px;min-width:30px;cursor:pointer;text-align: center;color:#555;background:#fff;border-right: 1px solid #4cae4c;}
+.monthly-time-select span.active {background:#5cb85c;color:#fff;border-right: 1px solid #4cae4c;}

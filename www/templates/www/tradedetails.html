@@ -1,0 +1,37 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+
+<section class="wrapper site-min-height">
+    <section class="panel">
+      <div id="tenantConsumeList">
+            
+      </div>
+      
+      <script>
+       	function _page(page){
+       		var curdatescope= $("#datescope").val()
+       		if(typeof(curdatescope) == "undefined"){
+       			curdatescope=1
+       		}
+       		var curpagesize= $("#pageSizeScope").val()
+    		if(typeof(curpagesize) == "undefined"){
+    			curpagesize=10
+    		}
+       		$("#tenantConsumeList").load('/ajax/{{tenantName}}/consumelist?datescope='+curdatescope+'&page='+page+'&perpage='+curpagesize);
+       	}
+       	
+       	$(document).ready(function(){ 
+       		_page(1);       		
+       		$("body").on("change","#datescope", function () { 
+       			_page(1);
+       		});
+       		$("body").on("change","#pageSizeScope", function () { 
+    			_page(1);
+    		});
+       	})
+       </script>
+    </section>
+</section>
+{% endblock %}

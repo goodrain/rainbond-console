@@ -1,0 +1,42 @@
+cite,em{font-style:normal;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none;}
+a:active{text-decoration: none;}
+
+
+h2.tit{ font-size: 24px; line-height: 40px; text-align: center;}
+
+.setbox{margin:20px; border: 1px #d9dadb solid; padding: 10px;}
+.process{margin:20px; border: 1px #d9dadb solid; padding: 10px;}
+
+.tablebox{width: 100%; padding-bottom: 10px;}
+.tablebox h3{font-size:16px; color: #4b4b4b; margin-top: 10px;}
+.tablebox td{text-align: center;}
+
+.tablebox.textleft td{text-align: left;}
+.zybox{width: 100%; height: 30px;}
+.zybox p{width: 50%; float: left; height: 30px;}
+.zybox p span:nth-child(1){font-size: 14px; line-height: 30px; padding-right: 5px;}
+.zybox p span:nth-child(2){font-size: 14px; line-height: 16px; border: 1px #ccc solid; padding:6px 8px; color: #7fca1e;}
+
+.linkbox{width: 100%; text-align: center;}
+.graybtn{ background: #dddddd; color: #ffffff; font-size: 14px; height: 34px; width: 150px;  margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.graybtn:link,.graybtn:visited,.graybtn:hover,.graybtn:active{color: #ffffff;}
+
+
+a.titlink{width: 100%; text-align: center; font-size: 18px; color: #333; text-align: center; padding:20px 0 10px; display: block; cursor: pointer;}
+a.titlink span{width: 20px; height: 20px; background: #333; border-radius: 50%; display: inline-block; line-height: 16px; margin-left: 5px;}
+a.titlink span em{color: #fff; font-size: 14px;}
+a.titlink span em.glyphicon-triangle-bottom{position: relative; top: 3px;}
+
+.line-dashed{border-bottom: 1px #ddd dashed;  margin:20px; } 
+.appimg{ width: 140px; height: 140px; display: block; float: left;  border:1px #ddd solid; margin-right: 10px;}
+.appimg img{width: 140px; height: 140px; display: block;}
+
+.greenbtn{ background: #28cb75; color: #ffffff; font-size: 14px; height: 34px; width: 150px;  margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.greenbtn:link,.greenbtn:visited,.greenbtn:hover,.greenbtn:active{color: #ffffff;}
+
+
+
+

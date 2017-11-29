@@ -1,0 +1,20 @@
+ <!-- statistic start -->
+ <link href="/static/www/assets/nvd3/nv.d3.css?v=2015122301" type="text/css" media="screen" rel="stylesheet" />
+ <div id="statistic">
+ </div>
+<script type="text/javascript" src="/static/www/assets/nvd3/d3.min.js?v=2015122301"></script>
+<script type="text/javascript" src="/static/www/assets/nvd3/nv.d3.min.js?v=2015122301"></script>
+ <script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-monitor.js"></script>
+<script type="text/javascript">
+  var controller = new AppMonitorController({
+    $wrap: $('#statistic'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}',
+    language: '{{ tenantServiceInfo.language }}',
+    code_from: '{{ port_changeable }}',
+    serviceId: '{{ tenantServiceInfo.service_id }}',
+    servicecName: '{{ tenantServiceInfo.service_cname }}'
+  })
+  controller.ready();
+</script>

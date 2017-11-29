@@ -1,0 +1,17 @@
+{% extends 'www/raster2.html' %} {% load i18n %} {% load goodrain_extras %}
+{% block main-content %}
+
+<section id="user-pay-wrap" class="wrapper site-min-height">
+
+</section>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/user-pay.js"></script>
+<script type="text/javascript">
+	var controller = new UserPayController({
+		$wrap: $('#user-pay-wrap'),
+		tenantName: '{{tenantName}}'
+	})
+	controller.ready();
+</script>
+
+{% endblock %}

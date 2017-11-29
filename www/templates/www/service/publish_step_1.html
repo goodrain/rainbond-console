@@ -1,0 +1,186 @@
+{% extends 'www/raster.html' %}{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/bootstrap-switch.min.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <div class="row">
+        <div class="col-lg-12 m-bot15">
+            <!--div class="container"-->
+            <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
+                  method="post">
+                <h2 class="form-signin-heading">完善发布信息</h2>
+
+                {% if errors %}
+                <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please
+                    correct the errors below.{% endblocktrans %}
+                </div>
+                {{ form.non_field_errors }}
+                {% endif %}
+
+                <div class="login-wrap" style="background: #FFFFFF;">
+                    {% csrf_token %}
+                    <!--隐藏域-->
+                    <input type="hidden" name="tenant_id" value="{{app.tenant_id}}"/>
+                    <input type="hidden" name="service_id" value="{{app.service_id}}"/>
+                    <input type="hidden" name="deploy_version" value="{{app.deploy_version}}"/>
+                    <input type="hidden" name="service_key" value="{{app.service_key}}"/>
+
+                    <div id="div_id_app_name" class="form-group">
+                        <label for="id_app_name" class="control-label col-lg-2 requiredField">应用名称<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <input class="textinput textInput form-control" id="id_app_name"
+                                   name="app_alias"
+                                   required
+                                   maxlength="40"
+                                   type="text" value="{{app.app_alias}}"/>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div id="div_id_app_version" class="form-group">
+                        <label for="id_app_version" class="control-label col-lg-2 requiredField">应用版本<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <input class="textinput textInput form-control"
+                                   id="id_app_version" name="app_version"
+                                   required data-error="不合法"
+                                   pattern="^\d+(\.\d+){1,4}"
+                                   type="text"
+                                   value="{{app.app_version}}"/>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+
+                    <div id="div_id_app_info" class="form-group">
+                        <label for="id_app_info" class="control-label col-lg-2 requiredField">简介<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <textarea class="textarea form-control" cols="20"
+                                      id="id_app_info" maxlength="100"
+                                      name="info" rows="3">{{app.info}}</textarea>
+                             <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div id="div_id_app_desc" class="form-group">
+                        <label for="id_app_desc" class="control-label col-lg-2 requiredField">描述<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <textarea class="textarea form-control" cols="20"
+                                      id="id_app_desc" maxlength="400"
+                                      name="desc" rows="">{{app.desc}}</textarea>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div id="div_id_app_logo" class="form-group">
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">图片<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            {% if app.logo %}
+                                <img src="{{app.logo}}">
+                            {% endif %}
+                            <input type="file" name="logo" id="id_app_logo"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group clearfix">
+                        <label for="app_service_type" class="col-sm-2 col-lg-2 control-label text-right">服务类型</label>
+                        <div class="col-sm-10 col-lg-10">
+                            <select class="col-sm-2 col-lg-3" id="app_service_type" name="app_service_type">
+                                {% for key,value in service_types.items %}
+                                   <option value="{{key}}" {% if app.service_type == key %} selected="selected" {% endif %} >{{value}}</option>   
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="div_id_app_dest" class="form-group">
+                        <label for="id_app_logo"
+                               class="control-label col-lg-2 requiredField">
+                            是否发布到云端<span class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <div class="switch switch-mini">
+                                <input type="checkbox" id="is_outer" data-switch="mini" name="is_outer" {% if app.is_outer %} checked="checked" {% endif %} value="0"/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 04云市展示方式 -->
+                    <div class="form-group" {% if not app.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">云帮展示</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_assistant" type="checkbox" {% if app.show_assistant %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 04云市展示方式 -->
+                    <div class="form-group" {% if not app.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">云市展示</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_app" type="checkbox" {% if app.show_app %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+                    <!--是否发布为私有应用-->
+                    <div class="form-group" {% if app.is_outer %}style="display:none;"{% endif %} data-alias="private_div">
+                        <label class="col-sm-2 control-label">是否发布为私有服务</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="is_private" type="checkbox" {% if app.is_private %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="div_id_app_account" class="form-group">
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">
+                            是否初始化账户<span class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" type="checkbox" id="is_init_accout" name="is_init_accout" {% if app.is_init_accout %} checked="checked" {% endif %} value="0"/>
+                            </div>
+                        </div>
+                    </div>
+                    
+                
+                    <div class="form-actions">
+                        <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
+                               id="submit-id-publish"/>
+                    </div>
+                </div>
+            </form>
+            <!--/div-->
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/bootstrap-switch.js" %}'></script>
+<script type="text/javascript">
+    $('#app_publish_form').validator();
+
+    $(function () {
+        // 分发到云市后显示设置
+        $("#is_outer").parent().parent().on('switch-change', function (e, data) {
+            var $el = $(data.el), value = data.value;
+            // alert(value);
+            if (value) {
+                $("div.form-group[data-alias='show_div']").show();
+                $("div.form-group[data-alias='private_div']").hide();
+            } else {
+                $("div.form-group[data-alias='show_div']").hide();
+                $("div.form-group[data-alias='private_div']").show();
+            }
+        });
+    });
+
+
+</script>
+{% endblock %}

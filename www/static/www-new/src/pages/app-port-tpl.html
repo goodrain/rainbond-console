@@ -1,0 +1,212 @@
+<!-- 多端口修改开始 02 -->
+    <style type="text/css">
+        .port-table {min-width: 200px;}
+        .port-table th:nth-child(1) {width:100px;}
+        .port-table th:nth-child(2) {width:100px;}
+        .port-table th:nth-child(3) {width:60%;}
+        .port-table th:nth-child(4) {width:20%;}
+        .port-table .child-talbe td {padding:5px 0;}
+        .port-table .child-talbe tr td:nth-child(1) {color:#ccc;font-size:13px;}
+        .port-table.table-bordered > thead > tr > th, .port-table.table-bordered > tbody > tr > th, .port-table.table-bordered > tfoot > tr > th, .port-table.table-bordered > thead > tr > td, .port-table.table-bordered > tbody > tr > td, .port-table.table-bordered > tfoot > tr > td{
+            border:1px solid #f7f7f7;
+        }
+        .port-table th {background:#f7f7f7;}
+    </style>
+    <section class="panel panel-default">
+        <!-- title line start -->
+        <div class="panel-heading clearfix">端口开放<small>(配置变化后需重启)</small>
+        </div>
+        <div class="panel-body">
+       
+        <script type="text/template" id="createPortTmp">
+            <div class="port-open">
+                <form class="form-inline createPortForm">
+                    <div class="form-group">
+                        <span>端口号</span>
+                        <input name="port_port" type="text" class="form-control tab-port" />
+                    </div>
+                    <div class="form-group">
+                        <span>协议类型</span>
+                        <select name="port_protocol" class="form-control">
+                            <option value="http">http</option>
+                            <option value="stream">stream</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: none;">
+                        <input name="port_alias" value="" class="tab-alias">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="port-save btn btn-success btn-sm">确定</button>
+                        <button type="button" class="port-cancel btn btn-default btn-sm">取消</button>
+                    </div>
+                </form>
+            </div>
+        </script>
+        <!-- table start -->
+        {{ each pageData.ports || [] }}
+            <table  class="table port-table js-ports table-bordered" js-port="{{ $value.container_port }}" js-protocol="{{ $value.protocol }}" port-alias="{{ $value.port_alias }}">
+                <thead>
+                <tr port="{{ $value.container_port }}" protocol="{{ $value.protocol }}" port-alias="{{ $value.port_alias }}"  class="active">
+                    <th>端口号</th>
+                    <th>协议类型</th>
+                    <th class="hidden-xs">服务信息</th>
+                    <th class="hidden-xs">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="2" style="vertical-align: middle;">
+                            <span>{{ $value.container_port }}</span>
+                            {{if pageData.port_changeable}}
+                            <a href="javascript:;" style="color: #28cb75;" data-title="更改监听端口"
+                               data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ $value.container_port }}"
+                               data-value="{{ $value.container_port }}" 
+                               class="fn-rename glyphicon glyphicon-edit edit-port js-edit-port"></a>
+                            {{/if}}
+                        </td>
+                        <td rowspan="2" style="vertical-align: middle;">
+                            <span id="edit_protocol_{{ $value.container_port }}" data-value="{{ $value.protocol }}">{{ $value.protocol }}</span>
+                            {{if pageData.port_changeable}}
+                                <a href="javascript:;" style="color: #28cb75;" data-title="更改协议类型"
+                                    id="edit_protocol_{{ $value.container_port }}"
+                                    data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ $value.container_port }}"
+                                    data-value="{{ $value.protocol }}"
+                                    class="fn-rename glyphicon glyphicon-edit edit-protocol js-edit-protocol"></a>
+                            {{/if}}
+                        </td>
+                        <td class="hidden-xs">
+                            <table class="child-talbe" style="width:100%">
+                                <tbody>
+                                    <tr>
+                                        <td width="70">对外服务</td>
+                                        <td>
+                                            {{if $value.is_inner_service}}
+                                                <label class="checkbox">
+                                                    <input type="checkbox" class="port-inner-close" checked="true" />
+                                                    <span class="check-bg"></span>
+                                                </label>
+                                            {{else}}
+                                                <label class="checkbox">
+                                                    <input type="checkbox" class="port-inner-open"/>
+                                                    <span class="check-bg"></span>
+                                                </label>
+                                            {{/if}}
+                                            
+                                        </td>
+                                    <tr>
+                                        <td>服务地址</td>
+                                        <td>
+                                             <span class="fn-sever-link" 
+                                            id="sever_show_{{ $value.container_port }}"
+                                             port="{{ $value.container_port }}">
+                                                <span>-</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>使用别名</td>
+                                        <td>
+                                           <span
+                                                class="" data-title=""
+                                                data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ $value.container_port }}"
+                                                data-value="{{ $value.port_alias }}"
+                                            >
+                                                {{ $value.port_alias }}_HOST:{{ $value.port_alias }}_PORT
+                                            </span>
+                                            <a href="javascript:;" style="color: #28cb75;" 
+                                                data-title="更改别名"
+                                                data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ $value.container_port }}"
+                                                data-value="{{ $value.port_alias }}"
+                                                class="glyphicon glyphicon-edit edit-port-alias js-edit-port-alias"
+                                            ></a>
+                                        </td>
+                                </tbody>
+                            </table>
+                        </td>
+                        <td rowspan="2" style="vertical-align: middle;" class="hidden-xs">
+                            <button type="button" class="port-delete btn btn-default btn-sm"
+                                 {{if !pageData.port_changeable}}style="display:none;"{{/if}}
+                            >删除</button>
+                            {{if $value.is_outer_service && $value.protocol == 'http' }}
+                                <button type="button" class="btn btn-default btn-sm fn-bind-domain">新增绑定域名</button>
+                            {{/if}}
+                        </td>
+                    </tr>
+                    <tr class="hidden-xs">
+                        <td>
+                            <table class="child-talbe" style="width:100%">
+                                <tbody>
+                                    <tr> 
+                                        <td width="70">
+                                            外部访问
+                                        </td>
+                                        <td>
+                                            {{if $value.is_outer_service}}
+                                                <label class="checkbox">
+                                                    <input type="checkbox" class="port-outer-close" checked="true"/>
+                                                    <span class="check-bg"></span>
+                                                </label>
+                                            {{else}}
+                                                <label class="checkbox">
+                                                    <input type="checkbox" class="port-outer-open" />
+                                                    <span class="check-bg"></span>
+                                                </label>
+                                            {{/if}}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>访问地址</td>
+                                        <td>
+                                            <span class="fn-sever-link" 
+                                                id="port_show_{{ $value.container_port }}"
+                                                port="{{ $value.container_port }}"
+                                            >
+                                                <a href="" target="_blank">-</a>
+                                             </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>绑定域名</td>
+                                        <td>
+                                           <div id="showLink{{ $value.container_port }}" class="showlink-box">
+                                                {{ if $value.is_outer_service &&  $value.protocol == 'http' }}
+                                                    <div style="display:inline-block;"  port="{{ $value.container_port }}" class="domain-box domain-box" id="domain-box">
+                                                        <!-- 多个域名 展示-->
+                                                        {{if pageData.serviceDomainDict[$value.container_port]}}
+                                                            {{each pageData.serviceDomainDict[$value.container_port] $domain $index}}
+                                                                <div js-data-domain="{{ $domain }}">
+                                                                    <a target="_blank" href="{{$domain}}">{{ $domain }}</span>
+                                                                    <a href="javascript:;" data-domain="{{ $domain }}" class="delDomain">
+                                                                        解绑
+                                                                    </a>
+                                                                </div>
+                                                            {{/each}}
+                                                        {{/if}}
+                                                        <!-- 多个域名 展示-->
+                                                    </div>
+                                                    
+                                                {{/if}}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+                <!-- 表格 内容  结束 -->
+            </table>
+        {{/each}}
+        <!-- table end -->
+         <!-- title line end -->
+        <div id="create-port-wrap">
+            
+        </div>
+        </div>
+        <div class="panel-footer clearfix">
+            <div class="pull-right">
+                <button type="button" class="btn btn-success" id="add_service_port" {{if !pageData.port_changeable}}style="display:none;"{{/if}}>新增服务端口</button>
+            </div>
+        </div>
+    </section>
+    <!-- 多端口修改结束  02 -->

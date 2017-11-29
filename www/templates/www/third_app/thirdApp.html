@@ -1,0 +1,71 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/style.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/cdn.js" %}'></script>
+{% endblock %}
+
+{% block main-content %}
+<style>
+    h3{
+        height: 34px;
+        line-height: 34px;
+        color: #28cb75;
+        font-size: 22px;
+        font-weight: 200;
+    }
+</style>
+<section class="wrapper site-min-height">
+    <section class="panel">
+        <p class="group-tit" style="margin-bottom: 20px;">第三方应用</p>
+        <section class="content-tab">
+            <table>
+                <thead>
+                    <tr>
+                        <th>应用名</th>
+                        <th>类型</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in apps %}
+                        <tr>
+                            <td>
+                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show" style="color: #28cb75;font-size: 16px;">{{app.name}}</a>
+                            </td>
+                            <td>{{app.app_type}}</td>
+                            {% if app.open %}
+                            <td style="color: #28cb75;">正常</td>
+                            {% else %}
+                            <td style="color: red">关闭</td>
+                            {% endif %}
+                            <td>{{app.create_time}}</td>
+                            <td>
+                                <a class="greenbtn" href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </section>
+</section>
+<script>
+    $(document).ready(function(){
+        var o = ($('#sidebar .sub-menu > a').offset());
+        diff = 250 - o.top;
+        if(diff>0)
+            $("#sidebar").scrollTo("-="+Math.abs(diff),500);
+        else
+            $("#sidebar").scrollTo("+="+Math.abs(diff),500);
+    })
+</script>
+{% endblock %}

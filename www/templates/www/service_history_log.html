@@ -1,0 +1,21 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}}历史日志{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="container">
+	{% for line in log_paths %}
+		<li> <a href="{{log_domain}}{{line}}" target="_blank">{{line|slice:"22:40"}}</a> </li>
+	{% endfor %}
+</div>
+{% endblock %}

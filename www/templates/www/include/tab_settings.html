@@ -1,0 +1,23 @@
+<!-- settings start -->
+<style type="text/css">
+    .addPortTable {width:70%;}
+    .port-open {margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f7f7f7};
+    .port-open .form-group {margin-right:25px;}
+</style>
+<div role="tabpanel" id="settings">
+
+</div>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-setting.js"></script>
+<script type="text/javascript">
+  var controller = new AppSettingController({
+    $wrap:$('#settings'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}',
+    language: '{{ tenantServiceInfo.language }}',
+    code_from: '{{ port_changeable }}',
+    serviceId: '{{ tenantServiceInfo.service_id }}',
+    servicecName: '{{ tenantServiceInfo.service_cname }}'
+  })
+  controller.ready();
+</script>

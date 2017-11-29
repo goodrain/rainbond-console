@@ -1,0 +1,144 @@
+<section class="panel panel-default">
+        <div class="panel-heading clearfix" style-"line-height: 34px;">手动伸缩<small>(如当前应用内存已购买包月，扩容超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</small></div>
+        <div class="panel-body">
+            <div class="krfs clearfix">
+                <table style="width:70%">
+                    <tr>
+                        <!--
+                        {{if appInfo.service.category === 'application'}}
+                            <td style="text-align: center;">
+                                <form class="form-inline">
+                                    <div class="form-group">
+                                        <span>扩容方式</span>
+                                        <select style="min-width:100px" name="extend_method" id="extend_method" class="form-control m-bot15">
+                                            {{each pageData['extends_choices'] $value $key}}
+                                                {{if $key == appInfo.service['extend_method']}}
+                                                    <option value="{{$key}}" selected="selected">{{ $value }}</option>
+                                                {{else}}
+                                                    <option value="{{$key}}">{{$value}}</option>
+                                                {{/if}}
+                                            {{/each}}
+                                        </select>
+                                        {{if  pageData.actions['manage_service']}}
+                                        <button type="button" class="btn btn-success appUpgradeType">设置</button>
+                                        {{/if}}
+                                    </div>
+                                </form>
+                            </td>
+                        {{/if}}
+                        -->
+                        <td style="text-align: center;">
+                            <form class="form-inline">
+                                <div class="form-group">
+                                    <span>实例数</span>
+                                    <select style="min-width:100px" name="serviceNods" id="serviceNods" class="form-control m-bot15">
+                                        {{each pageData.nodeList}}
+                                            {{if $value === appInfo.service.min_node}}
+                                            <option value="{{$value}}" selected="selected">{{$value}}</option>
+                                            {{else}}
+                                            <option value="{{$value}}">{{$value}}</option>
+                                            {{/if}}
+                                        {{/each}}
+                                    </select>
+                                    {{if  pageData.actions['manage_service']}}
+                                    <button type="button" class="btn btn-success appUpgradePodNum">设置
+                                    </button>
+                                    {{/if}}
+                                </div>
+                            </form>
+                        </td>
+                        <td style="text-align: center;">
+                            <form class="form-inline">
+                                <div class="form-group">
+                                    <span>内存调整</span>
+                                        <select style="min-width:100px" name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
+                                            {{each pageData.memoryList $value $key}}
+                                                {{if $value == appInfo.service.min_memory }}
+                                                    <option value="{{$value}}"
+                                                                selected="selected">{{pageData.memorydict[$value]}}</option>
+                                                {{else}}
+                                                    <option value="{{$value}}">{{pageData.memorydict[$value]}}</option>
+                                                {{/if}}
+                                            {{/each}}
+                                        </select>
+                                    {{if  pageData.actions['manage_service']}}
+                                    <button type="button" class="btn btn-success appUpgradeMemory">设置</button>
+                                    {{/if}}
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </section>
+    {{if !pageData.is_private}}
+        <section class="panel panel-default" id="autoScaling" style="display: none;">
+            <div class="panel-heading clearfix">自动伸缩<small>(如当前应用内存已购买包月，使用自动伸缩超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</small>
+            </div>
+            <div class="panel-body">
+                <table perm-type="service" class="table">
+                    <thead>
+                    <tr class="active">
+                        <th>编号</th>
+                        <th>状态</th>
+                        <th>触发次数</th>
+                        <th>规则</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="ruleBody">
+
+                    </tbody>
+                </table>
+                <div id="autorole" class="rolebox clearfix" style="display:none;">
+                    <form class="form-inline">
+                        <div class="form-group">
+                            <span>当端口 </span>
+                            <select class="form-control" name="port">
+                                {{each pageData.ports}}
+                                    {{if $value.is_outer_service && $value.protocol == 'http'}}
+                                        <option value="{{$value.container_port}}">{{$value.container_port}}</option>
+                                    {{/if}}
+                                {{/each}}
+                            </select>
+                            <span> 的 </span>
+                        </div>
+                        <div class="form-group">
+                            <select class="form-control" name="item">
+                                <option value="tp">吞吐率</option>
+                                <option value="rt">响应时间</option>
+                                <option value="on">在线人数</option>
+                            </select>
+                            </select>
+                            <span> 大于 </span>
+                            <input type="number" class="form-control" name="minvalue" style="width:60px" />
+                            <span> 小于 </span>
+                            <input type="number" class="form-control" name="maxvalue" style="width:60px" />
+                        </div>
+                        <div class="form-group">
+                            <span> 的时候，设置实例数为 </span>
+                            <select name="nodenum" class="form-control">
+                                {{each pageData.nodeList}}
+                                    {{if $value == appInfo.service.min_node}}
+                                    <option value="{{$value}}" selected="selected">{{$value}}</option>
+                                    {{else}}
+                                    <option value="{{$value}}" selected="selected">{{$value}}</option>
+                                    {{/if}}
+                                {{/each}}
+                            </select>
+                            <button style="margin-left:20px" type="button" class="btn btn-success btn-sm subRule">
+                                确定
+                            </button>
+                            <button  type="button" class="btn btn-default btn-sm hideRuleForm">
+                                取消
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="panel-footer clearfix">
+                <button type="button" class="btn btn-success pull-right" id="add_rule">新增规则</button>
+            </div>
+        </section>
+    {{/if}}

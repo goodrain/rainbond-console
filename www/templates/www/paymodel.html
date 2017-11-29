@@ -1,0 +1,275 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+
+<section class="wrapper site-min-height">
+    <div id="example_wrapper"  role="grid">
+        <div class="content-tab">
+             <div class="infotips tipsbox">
+                购买：购买一个新的保底规则
+                <br/>
+                续费：在上一次保底时间后自动增加保底规则
+            </div>
+            {% if tenant.pay_type != "payed" %}
+                <div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" onclick="_payed_upgrade('{{tenantName}}')">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
+            {% endif %}
+          	<form class="form-inline" role="form">
+          	<input type="hidden" name="fee_rule" id="fee_rule" value="{{REGION_FEE_RULE}}">
+          	<input type="hidden" name="pay_type" id="pay_type" value="{{tenant.pay_type}}">
+          	<table>
+          	    <thead>
+			         <tr>
+			             <th>区域</th>
+			             <th>内存</th>
+			             <th>磁盘</th>
+			             <!--<th>流量</th> -->
+			             <th>周期</th>
+			         </tr>
+			     </thead>
+			     <tbody>
+			     	<tr>
+			     	    <td>
+				            <select class="form-control" id="buy_region">
+					         	 {% for key,value in RegionMap.items %}
+						          <option value="{{key}}" {% if key == region_name %} selected="selected" {% endif %}>{{value}}</option>
+						         {% endfor %}
+				         	</select>
+			             </td>
+			             
+			             <td>
+				             <select class="form-control" id="buy_memory">
+					         	 {% for curNum in memoryList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+				         	</select>
+			             </td>
+			             <td>
+				             <select class="form-control" id="buy_disk">
+					         	 {% for curNum in diskList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			             <!-- 
+			             <td>
+				            <select class="form-control" id="buy_net">
+					         	 {% for curNum in netList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			              -->
+			             <td>
+				             <select class="form-control" id="buy_period">
+					         	 {% for key,value in periodList %}
+						             <option value="{{key}}" {% if key == 12 %} selected="selected" {% endif %}>{{value}}</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			        </tr>
+			        <tr>
+			        	<td>
+			        		总金额：<label style="color:#28cb75;" id="totalmoney"></label>
+			        	</td>
+                        <td>
+                            优惠：<label style="color: #28cb75;" id="freemoney"></label> 
+                        </td>
+                        <td>
+                            应付金额：<label style="color: #28cb75;" id="needmoney"></label>
+                        </td>
+                        <td>
+                            <input type="hidden" id="region_name" name="region_name" value="{{region_name}}">
+                            <button type="button" class="greenbtn" onclick="paymodelSubmit('{{tenantName}}','new')">购买</button>
+                            <button type="button" class="greenbtn" onclick="paymodelSubmit('{{tenantName}}','append')">续费</button>
+                        </td>
+			        </tr>
+			     </tbody> 
+			 </table>
+			 </form>
+ 		</div>
+        <div class="content-tab">
+			 <table>
+			     <thead>
+			         <tr>
+			             <th>购买时间</th>
+			             <th>所属区域</th>
+			             <th>购买内存</th>
+			             <th>购买磁盘</th>
+			             <th>购买流量</th>
+			             <th>购买周期</th>
+			             <th>总金额</th>
+			             <th>开始计算时间</th>
+			             <th>结束计算时间</th>
+			         </tr>
+			     </thead>
+			     <tbody>
+			        {% for tenantBuyPayModel in tenantBuyPayModels %}
+			         <tr>
+			             <td class=" ">{{tenantBuyPayModel.create_time|date:'Y-m-d H:i:s'}}</td>
+			             <td class=" ">{{RegionMap|mkey:tenantBuyPayModel.region_name}}</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_memory}}G</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_disk}}G</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_net}}G</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_period}}({{PeriodMap|mkey:tenantBuyPayModel.pay_model}})</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_money}}元</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_start_time}}</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_end_time}}</td>
+			         </tr>
+			         {% endfor %}
+			     </tbody>
+			 </table>			 
+		 </div>
+
+      </div>
+   
+    <script type="text/javascript">
+    
+        String.prototype.replaceAll = function(s1,s2){
+    	　　return this.replace(new RegExp(s1,"gm"),s2);
+    	}
+    
+    	function paymodelSubmit(tenantName, action){
+    	    var pay_type = $("#pay_type").val();
+    	    if (pay_type != "payed"){
+    	       swal("请先升级成付费用户");
+               return false;
+    	    }
+    		var buy_memory=$("#buy_memory").val();
+    		var buy_disk=$("#buy_disk").val();
+    		var buy_net=$("#buy_net").val();
+    		var buy_period=$("#buy_period").val();
+    		var region_name=$("#buy_region").val();
+    		if (buy_memory <= 0){
+    			swal("购买内存必须大于0");
+    			return false;
+    		}
+    		swal({
+    			title : "确定购买当前服务吗？",
+    			type : "warning",
+    			showCancelButton : true,
+    			confirmButtonColor : "#DD6B55",
+    			confirmButtonText : "确定",
+    			cancelButtonText : "取消",
+    			closeOnConfirm : false,
+    			closeOnCancel : false
+    		}, function(isConfirm) {
+    			if (isConfirm) {
+    				$.ajax({
+    					type : "POST",
+    					url : "/ajax/" + tenantName + "/paymodel",
+    					data : "region_name="+region_name+"&buy_memory="+buy_memory+"&buy_disk="+buy_disk+"&buy_net="+buy_net+"&buy_period="+buy_period+"&action="+action,
+    					cache : false,
+    					beforeSend : function(xhr, settings) {
+    						var csrftoken = $.cookie('csrftoken');
+    						xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    					},
+    					success : function(msg) {
+    						var dataObj = msg
+    						if (dataObj["status"] == "success") {
+    							swal("操作成功");
+    							window.location.href = "/apps/"+tenantName+"/paymodel/"
+    						} else if (dataObj["status"] == "par") {
+    							swal("参数异常")
+    						} else if (dataObj["status"] == "nomoney") {
+    							swal("账户余额不足，不能购买");
+    						} else {
+    							swal("操作失败");
+    						}
+    					},
+    					error : function() {
+    						swal("系统异常");
+    					}
+    				});
+    			} else {
+    				swal.close();
+    			}
+    		});
+    	}
+    	
+    	function calcaulteFee(){
+    		var buy_memory=$("#buy_memory").val()
+    		var buy_disk=$("#buy_disk").val()
+    		var buy_net = 0
+    		var buy_period=$("#buy_period").val()
+    		var region_name=$("#buy_region").val();
+    		
+    		var fee_rule = $("#fee_rule").val()
+    		fee_rule =fee_rule.replaceAll('\'','\"')
+    		var jsonscopeobj = jQuery.parseJSON(fee_rule)
+    		var jsonobj=jsonscopeobj[region_name]
+    		var onehour = jsonobj["memory_money"]*buy_memory + jsonobj["disk_money"]*buy_disk 
+    		var buy_money=0
+    		var total_money= onehour * 24 * buy_period *30 * 4 + jsonobj["net_money"]*buy_net
+    		if(buy_period>=12){
+    			buy_money = onehour * 24 * buy_period *1.5 *30+ jsonobj["net_money"]*buy_net
+    		}else{
+    			buy_money = onehour * 24 * buy_period *2*30+ jsonobj["net_money"]*buy_net
+    		}
+    		var freemoney=total_money-buy_money
+    		$("#totalmoney").html(total_money.toFixed(2)+"元")
+    		$("#freemoney").html("-"+freemoney.toFixed(2)+"元")
+    		$("#needmoney").html(buy_money.toFixed(2)+"元")
+    	}
+    	$(document).ready(function () {    		
+    		$("#buy_region").change(function() {
+    			calcaulteFee()
+      	    });    		
+    		$("#buy_memory").change(function() {
+    			calcaulteFee()
+      	    });
+    		$("#buy_disk").change(function() {
+    			calcaulteFee()
+      	    });
+    		//$("#buy_net").change(function() {
+    		//	calcaulteFee()
+      	    //});
+    		$("#buy_period").change(function() {
+    			calcaulteFee()
+      	    });
+    		calcaulteFee()
+        });
+        
+        function _payed_upgrade(tenantName){
+            var current_select = "company"
+            swal({
+                title:"",
+                text:"升级为付费用户，携手云帮一起迈向云计算的未来！",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定升级",
+                cancelButtonText : "我再想想",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    $.ajax({
+                        type : "POST",
+                        url : "/payed/"+tenantName+"/upgrade",
+                        data : "current_select="+"company",
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            var dataObj = msg
+                            if (dataObj["status"] == "success") {
+                                swal("操作成功")
+                                window.location.href = "/apps/"+tenantName+"/paymodel/"
+                            } else {
+                                swal("操作失败")
+                            }
+                        },
+                        error : function() {
+                            // swal("系统异常");
+                        }
+                    });
+                } else {
+                    swal.close();
+                }
+            });
+        } 	
+    </script>
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+FROM hub.goodrain.com/dc-deploy/pyinstaller:musl.py27
+MAINTAINER qisy@goodrain.com
+
+RUN apk --no-cache add rsync libmemcached-dev openjpeg-dev py2-pillow py-yaml py-mysqldb cyrus-sasl-dev
+
+RUN curl lang.d.goodrain.com/public/alpine/libzmq-alpine-4.0.4.tar.gz | tar zxf - -C /usr/local/
+RUN curl https://bootstrap.pypa.io/get-pip.py | python -
+
+ENV REGION_TAG build
+ENV DJANGO_SETTINGS_MODULE goodrain_web.settings
+ENV WORK_DIR /app-build
+
+COPY source.tgz /tmp
+COPY console_app.spec $WORK_DIR/
+COPY console_app.py $WORK_DIR/
+COPY console_manage.spec $WORK_DIR/
+WORKDIR $WORK_DIR
+RUN tar zxf /tmp/source.tgz
+
+RUN rm -fv requirements.txt
+RUN pip install -r requirements_release.txt 
+RUN pip install pyzmq==16.0.2 --install-option --zmq=/usr/local/libzmq
+RUN python manage.py migrate
+RUN /entrypoint.sh console_app.spec
+RUN /entrypoint.sh console_manage.spec
+
+ENTRYPOINT []

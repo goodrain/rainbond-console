@@ -1,0 +1,86 @@
+{{if pageData.actions['perm_setting']}}
+<section class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">团队成员</h3>
+    </div>
+    <div class="panel-body">
+        <!-- search start -->
+        {{if pageData.team_invite}}
+        <form class="form-inline" style="padding:20px 0">
+            <div class="form-group">
+    		  <input type="text" class="email-invite form-control" id="invite_email" name="invite_email" placeholder="邮件地址">
+            </div>
+            <div class="form-group">
+    			<select class="form-control" id="ivite_perm" name="ivite_perm">
+                    <option value="access">访问</option>
+    				<option value="viewer">观察者</option>
+    				<option value="developer">开发者</option>
+    				<option value="admin">管理员</option>
+    			</select>
+            </div>
+            <button type="button" class="btn btn-success" id="invite_user_btn">邀请</button>
+        </form>
+		{{/if}}
+        <!-- search end -->
+        <!-- table start -->
+        <div role="tabpanel" id="permission">
+            <div id="action_report">
+                <table perm-type="tenant" class="table">
+                    <thead>
+                        <tr class="active">
+                            <th>成员</th>
+                            <th class="text-center">管理员</th>
+                            <th class="text-center">开发者</th>
+                            <th class="text-center">观察者</th>
+                            <th class="text-center">访问</th>
+                            <th class="text-center">移除权限</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{each pageData.team_users || []}}
+                        <tr entry-user="{{$value.name}}">
+                            <td>{{$value.name}} {{$value.selfuser ? '(本人)' : ''}}</td>
+                            <td class="perm-modify-enable text-center">
+                                <input class="js-perm" type="checkbox" identity="admin"
+                                {{$value.adminCheck ? 'checked' : ''}} 
+                                {{$value.selfuser ? 'disabled': ''}}
+                                />
+                            </td>
+                            <td class="perm-modify-enable text-center">
+                                <input class="js-perm" type="checkbox" identity="developer" 
+                                {{$value.developerCheck ? 'checked':''}}
+                                {{($value.developerDisable || $value.selfuser) ? 'disabled' : ''}}
+                            </td>
+                            <td class="perm-modify-enable text-center">
+                                <input class="js-perm" type="checkbox" identity="viewer" 
+                                {{$value.viewerCheck ? 'checked':''}}
+                                {{($value.viewerDisable || $value.selfuser) ? 'disabled' : ''}}
+                            </td>
+                            <td class="text-center">
+                                <input class="js-perm" type="checkbox" identity="access" checked="" disabled="">
+                            </td>
+                            <td class="text-center">
+                                {{if !$value.selfuser}}
+                                    <a class="member-remove"><i class="glyphicon glyphicon-remove"></i></a>
+                                {{/if}}
+                            
+                            </td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-warning">
+                <strong>权限体系:</strong>
+                <p>平台管理员 - 平台所有权限</p>
+                <p>服务管理员 - 服务所有权限，需要关联服务</p>
+                <p>开发者 - 代码上传权限，需要关联服务</p>
+                <p>观察者 - 只读权限，需要关联服务</p>
+            </div>
+        </div>
+        <!-- table end -->
+    </div>
+</section>
+{{else}}
+<p class="alert alert-warning">无权限</p>
+{{/if}}

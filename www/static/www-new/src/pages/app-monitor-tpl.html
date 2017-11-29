@@ -1,0 +1,206 @@
+
+  <ul class="nav nav-pills" role="tablist" id="TabShow" style="position: relative; z-index: 99;">
+        <li style="float:right">
+            <select id="graph-period" class="form-control" style="width:200px">
+              {{if pageData.has_outer_port}}
+              <option value="3m-ago" selected="selected">实时</option>
+              {{/if}}
+              <option value="1h-ago">1小时</option>
+              <option value="8h-ago">8小时</option>
+              <option value="24h-ago">24小时</option>
+              <option value="7d-ago">7天</option>
+          </select>
+        </li>
+    </ul>
+
+    <div class="row js-time-now" style="display: none;padding-left:15px;padding-right:15px;">
+        {{if pageData.has_outer_port}}
+
+              {{if pageData.hasHttpServices}}
+              <div id="status_areas" class="flex-box">
+                  <div class="flex-singe">
+                    <div class="chunkbox">
+                        <p class="hd">平均响应时间</p>
+                        <p id="response-time-stat" class="bd js-realtime-type graph tit-text"><span class="val">0</span><span style="font-size: 12px;color:#ccc"> ms</span></p>
+                    </div>
+                  </div>
+                  <div class="flex-singe">
+                    <div class="chunkbox">
+                      <p class="hd">吞吐率</p>
+                      <p id="throughput-stat" class="bd js-realtime-type graph tit-text"><span class="val">0</span></p>
+                    </div>
+                  </div>
+                  <div class="flex-singe">
+                    <div class="chunkbox">
+                      <p class="hd">在线人数</p>
+                      <p id="online-stat" class="bd js-realtime-type graph tit-text"><span class="val">0</span></p>
+                    </div>
+                  </div>
+              </div>
+
+              <section class="panel panel-default">
+                  <div class="panel-heading">
+                      过去5分钟耗时最多的URl排行<small class="rtm-update-time"></small>
+                  </div>
+                  <div class="panel-body">
+                    <table id="rtm-SumTimeByUrl" class="table">
+                        <thead>
+                          <tr class="active">
+                              <th name="url" style="width: 60%;">Url</th>
+                              <th name="sumtime">累计时间(ms)</th>
+                              <th name="avgtime">平均时间(ms)</th>
+                              <th name="counts" >个数</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                  </div>
+              </section>
+              {{/if}}
+
+              {{if appInfo.service.service_type == 'mysql' }}
+              <div id="status_areas" class="flex-box" style="height:160px">
+                  <div class="flex-singe">
+                    <div class="chunkbox">
+                      <p class="hd">sql平均响应时间</p>
+                      <p id="sqltime-stat" class="bd graph tit-text"><span class="val">0</span><span style="font-size: 12px;color:#ccc"> ms</span></p>
+                    </div>
+                  </div>
+                  <div class="flex-singe">
+                    <div class="chunkbox">
+                      <p class="hd">sql吞吐率</p>
+                      <p id="sql-throughput-stat" class="bd graph tit-text"><span class="val">0</span></p>
+                    </div>
+                  </div>
+              </div>
+              <section class="panel panel-default">
+                      <div class="panel-heading">
+                          过去5分钟耗时最多的SQL排行
+                          <small class=" rtm-update-time"></small>
+                      </div>
+                      <div class="panel-body">
+                        <table id="rtm-SumTimeBySql" class="table">
+                            <thead>
+                                <tr class="active">
+                                    <th name="sql" style="width: 60%;">SQL</th>
+                                    <th name="sumtime" >累计时间(ms)</th>
+                                    <th name="avgtime" >平均时间(ms)</th>
+                                    <th name="counts" >个数</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                      </div>
+              </section>
+              {{/if}}
+        {{/if}}
+    </div>
+
+    <div class="row js-time-history"  style="position: relative;display: none;">
+        {{if pageData.hasHttpServices}}
+        <div class="col-md-4">
+            <section class="panel panel-default">
+                <div class="panel-heading">
+                响应时间 <i class="tit-tips">(5分钟平均值)</i>
+                </div>
+                <div class="panel-body">
+                    <div id="response-time-stat" class="graph">
+                        <svg></svg>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="col-md-4">
+            <section class="panel panel-default">
+               <div class="panel-heading">
+                 吞吐率  <i class="tit-tips">(1分钟总数)</i>
+               </div>
+               <div class="panel-body">
+                 <div id="throughput-stat" class="graph">
+                   <svg></svg>
+                 </div>
+               </div>
+            </section>
+        </div>
+        <div class="col-md-4">
+           <section class="panel panel-default">
+              <div class="panel-heading">
+               在线人数  <i class="tit-tips">(10分钟)</i>
+             </div>
+             <div class="panel-body">
+               <div id="online-stat"  class="graph">
+                 <svg></svg>
+               </div>
+             </div>
+           </section>
+        </div>
+        
+   {{/if}}
+   {{if appInfo.service.service_type == 'mysql'}}
+     <div class="col-md-4">
+       <section class="panel panel-default">
+           <div class="panel-heading">
+            sql响应时间  <i class="tit-tips">(5分钟平均值)</i>
+           </div>
+           <div class="panel-body">
+             <div id="sqltime-stat"  class="graph">
+               <svg></svg>
+             </div>
+           </div>
+       </section>
+     </div>
+     <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading"  class="graph">
+           sql执行次数  <i class="tit-tips">(1分钟总数)</i>
+         </div>
+         <div class="panel-body">
+           <div id="sql-throughput-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+   {{/if}}
+    <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           内存
+         </div>
+         <div class="panel-body">
+           <div id="memory-stat"  class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           磁盘
+         </div>
+         <div class="panel-body">
+           <div id="disk-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           流量
+         </div>
+         <div class="panel-body">
+           <div id="bandwidth-stat" class="graph"  class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+     
+</div>

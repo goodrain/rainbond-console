@@ -1,0 +1,186 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/newapp.js" %}'></script>
+{% endblock %}
+
+{% block main-content%}
+<section class="wrapper site-min-height">
+        <div class="create-app">
+            <div class="create-app-hd">
+                <a {% if ty = "image" %} class="sed" {% endif %} href="/apps/{{tenantName}}/service-entrance/?ty=image">
+                    <div class="hd-inner">
+                        <strong>从镜像 {{tp}}</strong>
+                        <span class="hidden-xs">从镜像开始构建应用，支持多种构建方式</span>
+                    </div>
+                    <div class="bg"></div>
+                </a>
+                <a {% if ty = "code" %} class="sed" {% endif %} href="/apps/{{tenantName}}/service-entrance/?ty=code">
+                    <div class="hd-inner">
+                        <strong>从源码</strong>
+                        <span class="hidden-xs">从源码开始构建应用，支持多种构建方式</span>
+                    </div>
+                    <div class="bg"></div>
+                </a>
+                <a {% if ty = "app" %} class="sed" {% endif %}  href="/apps/{{tenantName}}/service-entrance/?ty=app">
+                    <div class="hd-inner">
+                        <strong>应用市场</strong>
+                        <span class="hidden-xs">上百款企业级应用，即点即用</span>
+                    </div>
+                    <div class="bg"></div>
+                </a>
+               <a {% if ty = "cloud" %} class="sed" {% endif %} href="http://app.goodrain.com/category/319/?order_by=download" target="_blank">
+                    <div class="hd-inner">
+                        <strong>云框架</strong>
+                        <span class="hidden-xs">复杂技术架构，即插即用</span>
+                    </div>
+                    <div class="bg"></div>
+                </a>
+            </div>
+            <div class="create-app-bd">
+                <ul class="newapp-link-box clearfix" {% if ty = "image" %} {% else %} style="display:none;" {% endif %} >
+                    <li class="flex">
+                        <a href="/apps/{{tenantName}}/image-create/?type=demo" class="flex-item-col">
+                            <span>
+                                <em class="demo"></em>
+                                <cite>官方示例</cite>
+                            </span>
+                        </a>
+                        <a href="/apps/{{tenantName}}/image-create/" class="flex-item-col">
+                            <span>
+                                <em class="dockericon"></em>
+                                <cite>指定镜像地址</cite>
+                            </span>
+                        </a>
+                        <a href="/apps/{{tenantName}}/compose-create/" class="flex-item-col">
+                            <span>
+                                <em class="composeicon"></em>
+                                <cite>上传compose文件</cite>
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+
+                 <ul class="newapp-link-box clearfix" {% if ty = "code" %} {% else %} style="display:none;" {% endif %}>
+                    <li class="flex">
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">
+                            <span>
+                                <em class="demo"></em>
+                                <cite>官方示例</cite>
+                            </span>
+                        </a>
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=gitlab_manual">
+                            <span><em class="addressicon"></em>
+                                <cite>公开Git</cite>
+                            </span>
+                        </a>
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=gitlab_self">
+                            <span>
+                                <em class="goodcodeicon"></em>
+                                <cite>私有Git</cite>
+                            </span>
+                        </a>
+                        {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=github">
+                            <span>
+                                <em class="githubicon"></em>
+                                <cite>GitHub</cite>
+                            </span>
+                        </a>
+                        {% endif %}
+                        {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=gitlab_exit">
+                            <span>
+                                <em class="demoicon"></em>
+                                <cite>好雨Git</cite>
+                            </span>
+                        </a>
+                        {% endif %}
+                        <!--2017-04-01 by xujinghua
+                        <a class="flex-item-col" href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">
+                            <span>
+                                <em class="demoicon2"></em>
+                                <cite>Demo</cite>
+                                <cite class="littext">多种语言的示例代码</cite>
+                            </span>
+                        </a>
+                        -->
+                    </li>
+                </ul>
+
+                <section class="app-market-box" {% if ty = "app" %} {% else %} style="display:none;" {% endif %} %}>
+                    <div class="app-market" id="app-market">
+                        <p class="tab-tit" id="tab-tit">
+                            <a href="/apps/{{tenantName}}/service-entrance/?fr=hot&ty=app"{% if fr = "hot" %} class="sed" {% endif %}>热门应用</a>
+                            <a href="/apps/{{tenantName}}/service-entrance/?fr=deploy&ty=app"{% if fr = "deploy" %} class="sed" {% endif %}>最近部署的应用</a>
+                            <a href="/apps/{{tenantName}}/service-entrance/?fr=new&ty=app"{% if fr = "new" %} class="sed" {% endif %}>最新应用</a>
+                            <a href="/apps/{{tenantName}}/service-entrance/?fr=private&ty=app" {% if fr = "private" %}class="sed"{% endif %}>分享的应用</a>
+                            {% if not is_private %}
+                            <a href="/apps/{{tenantName}}/service-entrance/?fr=thirdApp&ty=app"{% if fr = "thirdApp" %}class="sed"{% endif %} style="display: none;">第三方应用</a>
+                            {% endif %}
+                        </p>
+                        <ul>
+                            {% if fr = "thirdApp" %}
+                            <li style="display: block;" class="clearfix">
+                                <p><a href="/apps/{{tenantName}}/third_app/upai_cdn/create">又拍云CDN</a></p>
+                                <p><a href="/apps/{{tenantName}}/third_app/upai_oos/create">又拍云对象存储</a></p>
+                                <p style="display: none"></p>
+                            </li>
+                            {% else %}
+                            <li style="display: block;" class="clearfix">
+                                {% for service in service_list %}
+                                {% if forloop.counter < 12 %}
+                                {% if fr == "private" %}
+                                <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span {% if service.status = "private" %}class="tuanicon" {% else %}class="gongicon"{% endif %}></span><span>{{service.app_alias}}</span>&nbsp;&nbsp;<span>{{service.app_version}}</span></a></p>
+                                {% else %}
+                                <!--特别注意 !!!!! fr 不为private时 对应的service应该为 version 而不是 app_version 否则version会找不到 -->
+                                <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')"><span>{{service.service_name}}</span>&nbsp;&nbsp;<span>{{service.version}}</span></a></p>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                                <!--公有云跳转到云市-->
+                                {% if not is_private and cloud_assistant == 'goodrain' %}
+                                {% if fr = "hot" %}
+                                <p><a href="{{domain}}/category/0/?order_by=download" target="_blank">更多应用</a></p>
+                                {% endif %}
+                                {% if fr = "deploy" %}
+                                <p><a href="{{domain}}/category/0/?order_by=download" target="_blank">更多应用</a></p>
+                                {% endif %}
+                                {% if fr = "new" %}
+                                <p><a href="{{domain}}/category/0/?order_by=newest" target="_blank">更多应用</a></p>
+                                {% endif %}
+                                {% if fr = "private" %}
+                                <p id="no-show-list" style="display: none;">还没分享过应用，<a href="http://www.kancloud.cn/good-rain/share2market/198574" target="_blank">点击这里查看如何分享。</a></p>
+                                {% endif %}
+                                {% else %}
+                                <!--社区版和企业版调到原有的应用市场-->
+                                <p><a href="/apps/{{tenantName}}/service/?fr={{fr}}">更多应用</a></p>
+                                {% endif %}
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </section>
+            </div>
+        </div>
+<script>
+    $(function(){
+        if($("#no-show-list")){
+            var oP = $("#app-market ul li p");
+            var oLength = oP.length;
+            if(oLength == 1){
+                $("#no-show-list").show();
+            }else{
+                $("#no-show-list").hide();
+            } 
+        }
+
+    });
+</script>
+</section>
+{% endblock %}

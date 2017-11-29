@@ -1,0 +1,136 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+    {{ block.super }}
+    <link rel="stylesheet" href='{% static "www/css/process.css" %}'/>
+{% endblock %}
+
+{% block main-content %}
+
+<section class="wrapper site-min-height">
+    <div>
+        <h2 class="main-tit">分享{{tenantServiceInfo.service_cname}}至云市</h2>
+        <h3>应用运行参数总览</h3>
+        <!-- 01 -->
+        <div class="content-tab">
+            <h3 class="tit-two">应用端口</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>容器端口</th>
+                    <th>协议类型</th>
+                    <th>默认开启对外服务</th>
+                    <th>默认开启外部访问</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for port in port_list %}
+                <tr>
+                    <td>{{port.port_alias}}</td>
+                    <td>{{port.container_port}}</td>
+                    <td>{{port.protocol}}</td>
+                    <td><input type="checkbox" {% if port.is_inner_service %}checked="checked"{% endif %} disabled="disabled"></td>
+                    <td><input type="radio" {% if port.is_outer_service %}checked="checked"{% endif %} disabled="disabled"></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- 02-->
+        <div class="content-tab">
+            <h3 class="tit-two">环境变量</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>变量名</th>
+                    <th>值</th>
+                    <th>对内变量</th>
+                    <th>对外变量</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for env in env_list %}
+                <tr>
+                    <td>{{env.name}}</td>
+                    <td>{{env.attr_name}}</td>
+                    <td>{{env.attr_value}}</td>
+                    <td><input type="checkbox" {% if env.scope = "inner" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
+                    <td><input type="radio" {% if env.scope = "outer" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- 03-->
+        <div class="content-tab">
+            <h3 class="tit-two">持久化目录</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>持久化目录</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for volume in volume_list %}
+                    <tr>
+                        <td>{{volume.volume_path}}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- 04 -->
+        <div class="content-tab">
+            <h3 class="tit-two">依赖应用</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>应用名称</th>
+                    <th>应用类型</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for dep_service in dep_service_list %}
+                <tr>
+                    <td>{{dep_service.service_cname}}</td>
+                    <td>{{dep_service.service_type}}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!--  计算资源 -->
+        <div class="content-tab">
+            <h3 class="tit-two">计算资源</h3>
+            <div class="zybox">
+                <p><span>运行内存</span><span>{{memory}}MB</span></p>
+                <p><span>运行节点</span><span>{{node}}</span></p>
+            </div>
+        </div>
+        <div class="linkbox">
+            {% if dep_status %}
+            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">下一步</a>
+                <!--{% if have_outer %}-->
+                    <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">下一步</a>-->
+                <!--{% else %}-->
+                    <!--服务没有打开对外端口，无法提供对外服务-->
+                <!--{% endif %}-->
+            {% else %}
+                依赖服务{{dep_service_name}}未发布, 请先发布该服务
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
+{% endblock %}
+

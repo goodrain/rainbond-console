@@ -1,0 +1,92 @@
+body {
+	background-color: #fff;
+	font: 16px Helvetica, Arial;
+	color: #000;
+}
+
+.boxed-group-table {
+	width: 100%;
+	text-align: left;
+}
+
+.boxed-group-table tr:last-child td {
+	border-bottom: 0
+}
+
+.boxed-group-table th {
+	padding: 9px;
+	border-bottom: 1px solid #eee;
+	border-right: 1px solid #eee;
+	background-color: #fafafa;
+	width: 33.3%;
+}
+
+.boxed-group-table td {
+	padding: 9px;
+	border-right: 1px solid #eee;
+	vertical-align: top;
+	width: 33.3%;
+}
+
+.setup-plans {
+	margin-bottom: 20px;
+	border: solid 1px #ccc;
+	border-collapse: separate;
+	border-radius: 3px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.075);
+	overflow: hidden;
+}
+
+.selected {
+	background-color: #f0f7fd;
+}
+
+.small {
+	font-size: 14px;
+	font-weight: normal;
+	display: block;
+	color: #9A9A9A;
+	text-align: left;
+	margin: 5px;
+}
+
+.big {
+	font-size: 24px;
+	font-weight: bolder;
+	display: block;
+	text-align: center;
+	/* margin-bottom: 15px; */
+	margin: 10px;
+}
+
+.rom {
+	padding: 25px 25px 20px 25px;
+}
+
+.form-plans-reg {
+	max-width: 700px;
+}
+
+td {
+	font-size: 15px;
+	color: #2D2C2C
+}
+
+button {
+	display: block;
+	width: 100%;
+	padding: .75em;
+	max-width: 320px;
+	border: 0;
+	background: white;
+	border: 1px solid #41CAC0;
+	border-radius: 4px;
+	color: #298079;
+	font-size: 15px;
+}
+
+button.active {
+	color: #298079;
+	background-color: #D6FFFC;
+	border-color: #41CAC0;
+}

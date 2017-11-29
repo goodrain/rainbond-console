@@ -1,0 +1,34 @@
+{% extends 'www/base.html' %}
+{% load i18n %}{% load staticfiles %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block body %}
+    <div id="mytags" tenant="{% if tenantName %}{{ tenantName }}{% endif %}" service="{% if serviceAlias %}{{ serviceAlias }}{% endif %}" ws-topic="{% if ws_topic %}{{ ws_topic }}{% endif %}"></div>
+    <section id="container">
+        <header class="header white-bg">
+            {% block header %}
+            {% include 'www/header.html' %}
+            {% endblock %}
+        </header>
+
+        <aside>
+            {% block aside %}
+            {% include 'www/aside.html' %}
+            {% endblock %}
+        </aside>
+
+        <section id="main-content" class="{{curType}}">
+            {% block main-content %}
+            {% endblock %}
+        </section>
+
+        <footer>
+            {% include 'www/footer.html' %}
+        </footer>
+    </section>
+
+{% endblock %}

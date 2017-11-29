@@ -1,0 +1,110 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/jquery-ui.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/jquery-ui.js" %}'></script>
+<script src='{% static "www/js/jquery.cookie.js" %}'></script>
+{% endblock %}
+{% block main-content %}
+<section class="wrapper site-min-height">
+	<section class="panel panel-default">
+		<div class="panel-body">
+			<div id="tenantserviceconsume">
+				<form role="form" class="form-inline" style="margin-bottom: 20px;">
+					<label  class="sr-only">选择时间</label>
+					<input type="text" readonly="readonly" class="form-control" id="date_selecter">
+				</form>
+				<div class="adv-table" id="region_service_list">
+					
+				</div>
+			</div>
+		</div>
+	</section>
+</section>
+
+<script>
+
+	Date.prototype.Format = function (fmt) {
+		var o = {
+			"M+": this.getMonth() + 1, //月份
+			"d+": this.getDate(), //日
+			"h+": this.getHours(), //小时
+			"m+": this.getMinutes(), //分
+			"s+": this.getSeconds(), //秒
+			"q+": Math.floor((this.getMonth() + 3) / 3), //季度
+			"S": this.getMilliseconds() //毫秒
+		};
+		if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+		for (var k in o)
+			if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+		return fmt;
+	}
+
+	$(document).ready(function(){
+		var current_time = new Date().Format("yyyy-MM-dd");
+		$( "#date_selecter" ).val(current_time);
+		getConsumeDetail(current_time);
+		$( "#date_selecter" ).datepicker({
+			onSelect: function(dateText,inst){
+				getConsumeDetail(dateText);
+			}
+		});
+	})
+	function getConsumeDetail(query_day){
+		$("#region_service_list").load('/ajax/{{tenantName}}/regionServiceList?query_day='+query_day+'&r='+Math.random())
+	}
+
+	function showMore(current_td,time){
+		var a_tag = current_td.find("a")
+		var show_switch = a_tag.attr("data-action");
+		if (show_switch == "close"){
+			$(".self_"+time.substr(11,2)).hide(500);
+			a_tag.attr("data-action","open");
+			a_tag.html("+");
+		}else{
+			$.ajax({
+				type : "get",
+				url : "/ajax/{{tenantName}}/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
+				cache : false,
+				beforeSend : function(xhr, settings) {
+					var csrftoken = $.cookie('csrftoken');
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				},
+				success : function(msg) {
+					if(msg.ok){
+						var cur_tr = current_td.parent();
+						var data = msg.data;
+						var new_tr = "";
+						for(elem in data){
+							var time_str = data[elem][2];
+							var class_id = time_str.substr(11,2);
+							new_tr += "<tr style='display: none' class='self_"+class_id+"'><td></td><td><a style='color: #00d777' target='_blank' href='/apps/{{tenantName}}/"+elem+"/detail/?fr=cost'>"+data[elem][0]+"</a></td><td>"+data[elem][1]+"</td></tr>"
+						}
+						if(show_switch == "open") {
+							$(".self_"+time.substr(11,2)).remove();
+							cur_tr.after(new_tr);
+							$(".self_"+time.substr(11,2)).show(500);
+							a_tag.attr("data-action","close");
+							a_tag.html("-");
+						}
+
+					}else{
+						console.log("can not get detail data!")
+					}
+				},
+				error : function() {
+					swal("系统异常,请重试");
+				}
+			});
+		}
+
+	}
+</script>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/style.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/cdn.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/cdn.js" %}'></script>
+{% endblock %}
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="app_id" value="{{app_id}}">
+        <p>
+            <span id="cdn_name">{{app_info.name}}</span>
+            <a class="changeName">更名</a>
+        </p>
+        <p class="cdn_name">
+            <input type="text" placeholder="请输入名称">
+            <button class="btn btn-primary name_sure">确认</button>
+            <button class="btn btn-danger name_cancel">取消</button>
+        </p>
+
+        <header class="panel-heading ">
+            <ul class="nav nav-pills" id="nav-tabs">
+                <li>
+                    <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
+                </li>
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
+                </li>
+            </ul>
+        </header>
+
+        <section class="panel">
+            <div id="tenantConsumeList">
+
+            </div>
+
+            <script>
+                function _page(page){
+                    var curpagesize= $("#pageSizeScope").val()
+                    if(typeof(curpagesize) == "undefined"){
+                        curpagesize=10
+                    }
+                    $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
+                }
+                $(document).ready(function(){
+                    _page(1);
+                    $("body").on("change","#pageSizeScope", function () {
+                        _page(1);
+                    });
+                })
+            </script>
+        </section>
+    </section>
+</section>
+{% endblock %}

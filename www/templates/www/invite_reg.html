@@ -1,0 +1,23 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block body %}
+<div id="invite-user" class="user-form">
+    <p>Welcome, {{ email }}</p>
+    <form class="exform" enctype="multipart/form-data" action="" method="post">
+        {% if errors %}
+        <div class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+        </div>
+        {{ form.non_field_errors }}
+        {% endif %} 
+        <div class="input-group">
+            <span class="input-group-addon">{{ tenant_name }}.myapps.com</span>
+        </div>
+        {% crispy form %}
+    </form>
+</div>
+
+{% endblock %}

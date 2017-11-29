@@ -1,0 +1,21 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block body %}
+<div id="invite-user" class="user-form">
+    <form class="exform" enctype="multipart/form-data" action="" method="post">
+        {% if errors %}
+        <div class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+        </div>
+        {{ form.non_field_errors }}
+        {% endif %} 
+
+        {% crispy form %}
+    </form>
+</div>
+
+
+{% endblock %}

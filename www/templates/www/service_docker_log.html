@@ -1,0 +1,21 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}}最新日志{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="container">
+	{% for line in lines %}
+		<li style="list-style-type:none;">{{line}}</li>
+	{% endfor %}
+</div>
+{% endblock %}

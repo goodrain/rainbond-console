@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+{% load url from future %}
+{% load i18n %}
+{% load staticfiles %}
+<html lang="{{ LANGUAGE_CODE|default:'zh-cn'}}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="robots" content="NONE,NOARCHIVE" />
+
+    <title>安装成功</title>
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
+    <link rel="stylesheet" href="{% static 'www/css/bootstrap.min.css' %}">
+
+    <!--[if lt IE 9]>
+    <script src="/static/www/js/html5shiv.js"></script>
+    <script src="/static/www/js/respond.min.js"></script>
+    <![endif]-->
+
+    <script src="{% static 'www/js/jquery.min.js' %}"></script>
+    <script src="{% static 'www/js/bootstrap.min.js' %}"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand pull-left" href="/">
+                <img style="height: 38px;" src='{% static "www/images/yunbanglogo.png" %}'>
+            </a>
+            <span class="hidden-xs pull-left" style="padding-top:30px; ">云帮</span>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="text-center">
+            <div style="padding-top: 8%;">
+                <h1>恭喜, 您的云帮安装成功！</h1>
+            </div>
+
+            <div style="padding-top: 20px;">
+                <a class="btn btn-primary" href="/wizard/index/">创建管理员账号</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

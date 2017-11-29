@@ -1,0 +1,78 @@
+{% extends 'share/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+    {% if not region_name_list%}
+        <h2>您还没有注册任何数据中心,请先完成数据中心认证</h2>
+    {% else %}
+        <h3><span>数据中心:</span>
+        {% for region_name in region_name_list %}
+            <span><a href="/share/region/price/?region={{ region_name }}">{{ region_name }}</a></span>
+        {% endfor %}
+        </h3>
+        <div class="panel-body">
+            <h3>数据中心[{{ region|mkey:"region" }}]价格一览</h3>
+            <form action="/share/region/price/" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="region" value="{{ region.region }}">
+                <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;">
+                    <thead>
+                        <tr>
+                            <th>数据中心</th>
+                            <th>内存基价(G)</th>
+                            <th>磁盘基价(G)</th>
+                            <th>流量基价(G)</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ region.region }}</td>
+                            <td><input type="text" name="memory_price" value="{{ region.memory_price }}"></td>
+                            <td><input type="text" name="disk_price" value="{{ region.disk_price }}"></td>
+                            <td><input type="text" name="net_price" value="{{ region.net_price }}"></td>
+                            <td>已生效</td>
+                            <td><input type="submit" name="action" value="修改"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </form>
+            <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;">
+                <thead>
+                    <tr>
+                        <th>资源/定价</th>
+                        <th>基础定价(G)</th>
+                        <th>按需定价(G)</th>
+                        <th>包月定价(G)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>内存消耗</td>
+                        <td>{{ region|mkey:'memory_price' }}</td>
+                        <td>{{ region|mkey:'trial_memory_price' }}</td>
+                        <td>{{ region|mkey:'trial_package_memory_price' }}</td>
+                    </tr>
+                    <tr>
+                        <td>磁盘存储</td>
+                        <td>{{ region|mkey:'disk_price' }}</td>
+                        <td>{{ region|mkey:'trial_disk_price' }}</td>
+                        <td>{{ region|mkey:'trial_package_disk_price' }}</td>
+                    </tr>
+                    <tr>
+                        <td>网络流量</td>
+                        <td>{{ region|mkey:'net_price' }}</td>
+                        <td>{{ region|mkey:'trial_net_price' }}</td>
+                        <td>{{ region|mkey:'trial_package_net_price' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    </section>
+</div>
+{% endblock %}

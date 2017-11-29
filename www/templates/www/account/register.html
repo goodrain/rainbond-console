@@ -1,0 +1,134 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 用户注册{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href='{% static "www/css/style.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/style-responsive.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/login.css" %}'>
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="mainbox">
+	<input type="hidden" id="a_flag" value="clickable"/>
+    <h1 class="yblogo">
+		<img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" />
+    </h1>
+
+    <form id="reg_form" class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
+    
+    {% if errors %}
+    <div class="alert alert-danger alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+    </div>
+    {{ form.non_field_errors }}
+    {% endif %}
+    {% crispy form %}
+    </form>
+  
+  <script>
+   var InterValObj; //timer变量，控制时间
+   var count = 90; //间隔函数，1秒执行
+   var curCount;//当前剩余秒数
+  
+  	function getPhoneCode(){
+		var clickable = $("#a_flag").val();
+		if ("clickable" != clickable){
+			return false;
+		}
+
+  		curCount = count;
+  		var phone = $("#id_phone").val()
+  		if(phone==""){
+  			swal("手机号不能为空")
+  			return false;
+  		}
+  		var captcha_code = $("#id_captcha_code").val()
+  		if(captcha_code==""){
+  			swal("请输入图形验证码")
+  			return false;
+  		}
+
+  		$("#PhoneCodeBtn").attr("disabled", "true");
+		$("#a_flag").val("unclickable");
+  		$.ajax({
+    		type : "POST",
+    		url : "/phone_code",
+    		data : "phone="+phone+"&captcha_code="+captcha_code,
+    		cache : false,
+    		beforeSend : function(xhr, settings) {
+    			var csrftoken = $.cookie('csrftoken');
+    			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    		},
+    		success : function(msg) {
+    			var dataObj = msg;
+    			if (dataObj["status"] == "success") {
+    				swal("发送成功,手机验证码5分钟内有效")
+    				InterValObj = window.setInterval(SetRemainTime, 1000);
+    			} else if(dataObj["status"] == "often"){
+    				swal("请稍后发送")
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
+    			}else if(dataObj["status"] == "errorcaptchacode"){
+    				swal("图片验证码异常")
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
+    			}else if(dataObj["status"] == "errorphone"){
+    				swal("错误的手机号")
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
+    			}else if(dataObj["status"] == "limited"){
+    				swal("超过发送次数")
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
+    			} else {
+    				swal("发送失败")
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
+    			}
+    		},
+    		error : function() {
+    			// swal("系统异常");
+    		}
+    	})
+    	return false;
+  	}
+  	function SetRemainTime() {
+        if (curCount == 0) {                
+            window.clearInterval(InterValObj);//停止计时器
+//            $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
+			$("#a_flag").val("clickable");
+            $("#PhoneCodeBtn").html("重新发送验证码");
+        }
+        else {
+            curCount--;
+            if(curCount==0){
+            	$("#PhoneCodeBtn").html("重新发送验证码");
+				$("#a_flag").val("clickable");
+            }else{
+            	$("#PhoneCodeBtn").html("" + curCount + "秒后可重新发送");
+            }
+        }
+    }
+  	
+  	function refresh(){
+  		var img = document.getElementById("captcha_code");  
+        img.src = "/captcha?rnd=" + Math.random();  
+  	}
+  	
+  </script>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+  <!--script type="text/javascript">
+    $('#reg_form').validator();
+  </script-->
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% block extracss %}
+{{ block.super }}
+<style>
+    code {
+        text-indent:0;
+        border-color:#000;
+        border-style:dashed;
+        border-width:1px;
+        display:block;
+        font-size:12px;
+        font-family:Courier, Calibri,"宋体";
+        margin:10px 0 0 0;
+        padding:10px 0 10px 5px;
+        -moz-border-radius:5px;
+        background:#f5f5f5;
+        color:#000;
+        word-wrap: break-word;
+        word-break: break-all;
+    }
+</style>
+{% endblock %}
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <!-- page start-->
+    <section class="panel">
+        <div class="panel-body">
+            <div class=" form">
+                <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action=""
+                      novalidate="novalidate">
+                    <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}"/>
+                    <input type="hidden" id="service_code_from" name="service_code_from" value="gitlab_manual">
+                    <input type="hidden" id="service_code_id" name="service_code_id" value="0">
+                    <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
+                    <input type="hidden" id="service_code_version" name="service_code_version" value="">
+                    <div class="form-group">
+                        <div class="col-lg-12 text-center">
+                            <img src="/static/www/img/step-1.png" width="80%"
+                                 style="padding-bottom: 50px;padding-top: 30px;"/>
+                        </div>
+                    </div>
+                    <div class="form-group ">
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">名称</label>
+                        <div class="col-lg-8">
+                            <input class="form-control valid" id="create_app_name" name="create_app_name" minlength="2"
+                                   type="text" required="" placeholder="给应用起个名字" value="{{app_an}}">
+                            <div id="create_appname_notice" class="alert alert-danger" role="alert"
+                                 style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">请输入应用名！
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label col-lg-2">代码仓库</label>
+                        <div id="sel_code_store" class="col-lg-10">
+                            <label style="font-size:14px" class="checkbox-inline"></label>
+                            <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4" checked> 用户自定义
+                            <label style="font-size:14px" class="checkbox-inline"></label>
+                            <input input="" type="radio" value="option5" name="optionsRadios" id="optionsRadios5"> Demo
+                            <label style="font-size:14px" class="checkbox-inline"></label>
+                        </div>
+                    </div>
+
+
+                    <!--用户自定义git路径-->
+                    <div class="form-group" data-action="manual">
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
+                        <div class="col-lg-8">
+                            <input class="form-control valid" id="service_code_clone_url_manual"
+                                   minlength="2" type="text" placeholder="代码仓库地址" value="">
+                            <div id="create_git_notice" class="alert alert-danger" role="alert"
+                                 style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码仓库地址不能为空</div>
+                        </div>
+                    </div>
+                    <div class="form-group" data-action="manual">
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
+                        <div class="col-lg-8">
+                            <input class="form-control valid" id="service_code_version_manual"
+                                   minlength="2" type="text" placeholder="代码版本" value="master">
+                            <div id="create_version_notice" class="alert alert-danger" role="alert"
+                                 style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
+                        </div>
+                    </div>
+                    <div class="form-group" data-action="manual">
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">使用提示：</label>
+                        <div class="col-lg-8">
+                            {% if is_private %}
+                            <div style="line-height:35px;">
+                                <a href="http://doc.goodrain.com/cloudbang-community-install/218460"
+                                   target="_blank">请查看云帮对接代码仓库方案</a>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-danger" role="alert">
+                                代码仓库为公有仓库，可以忽略该设置。
+                                <br/>
+                                私有代码仓库，需将下列添加到git用户的ssh列表中：
+                                <br/>
+                                <code>ssh-rsa
+                                    AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1
+                                    builder</code>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- demo -->
+                    <div class="form-group" data-action="demobox" style="display:none;">
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
+                        <div class="col-lg-8">
+                            <select name="" class="form-control" id="service_code_demo_url">
+                                <option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
+                                <option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
+                                <option value="http://code.goodrain.com/demo/php-hello.git">http://code.goodrain.com/demo/php-hello.git</option>
+                                <option value="http://code.goodrain.com/demo/python-hello.git">http://code.goodrain.com/demo/python-hello.git</option>
+                                <option value="http://code.goodrain.com/demo/nodejs-hello.git">http://code.goodrain.com/demo/nodejs-hello.git</option>
+                                <option value="http://code.goodrain.com/demo/go-hello.git">http://code.goodrain.com/demo/go-hello.git</option>
+                                <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" data-action="demobox" style="display:none;" >
+                        <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
+                        <div class="col-lg-8">
+                            <input id="service_code_demo_manual" class="form-control valid" disabled
+                                   minlength="2" type="text" placeholder="代码版本" value="master">
+                            <div id="create_demo_notice" class="alert alert-danger" role="alert"
+                                 style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
+                        </div>
+                    </div>
+
+
+                    <div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
+                        <button id="first_step" type="button" class="btn btn-lg btn-info btn-block">下一步</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</section>
+{% endblock %}
+

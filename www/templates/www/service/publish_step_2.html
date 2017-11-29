@@ -1,0 +1,283 @@
+{% extends 'www/raster.html' %}{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <div class="row">
+        <div class="col-lg-12 m-bot15">
+            <!--div class="container"-->
+            <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
+                  method="post">
+                <input type="hidden" name="service_key" value="{{fields.service_key}}"/>
+                <input type="hidden" name="app_version" value="{{fields.app_version}}"/>
+                <h2 class="form-signin-heading"> 发布应用</h2>
+
+                {% if errors %}
+                <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please
+                    correct the errors below.{% endblocktrans %}
+                </div>
+                {{ form.non_field_errors }}
+                {% endif %}
+
+                <div class="login-wrap" style="background: #FFFFFF;">
+                    {% csrf_token %}
+
+                    <selection>
+                        <h4>扩容信息</h4><hr/>
+                        <div id="div_id_app_node" class="form-group">
+                            <label class="control-label col-lg-2 requiredField">服务节点<span
+                                    class="asteriskField">*</span></label>
+                            <div class="controls col-lg-8">
+                                <div class="controls col-lg-3">
+                                    最小节点:
+                                    <select name="min_node" id="min_app_node" class="control-label">
+                                        {% for curNum in nodeList %}
+                                        {% if curNum == fields.min_node %}
+                                        <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                                        {% else %}
+                                        <option value="{{forloop.counter}}">{{curNum}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-3">
+                                    最大节点:
+                                    <select name="max_node" id="max_app_node" class="control-label">
+                                        {% for curNum in nodeList %}
+                                        {% if curNum == fields.min_node %}
+                                        <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                                        {% else %}
+                                        <option value="{{forloop.counter}}">{{curNum}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-3">
+                                    步长：
+                                    <select name="step_node" id="step_app_node" class="control-label">
+                                        <option value="1"  selected="selected">1</option>\
+                                        <option value="2">2</option>
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-3">
+                                    节点变化重启：
+                                    <select name="node_is_restart" id="node_is_restart" class="control-label">
+                                        <option value="0"  selected="selected">否</option>\
+                                        <option value="1">是</option>
+                                    </select>
+                                </div>
+                                
+                                <span class="help-block with-errors"></span>
+                            </div>
+                        </div>
+
+                        <div id="div_id_app_memory" class="form-group">
+                            <label class="control-label col-lg-2 requiredField">内存调整<span
+                                    class="asteriskField">*</span></label>
+                            <div class="controls col-lg-8">
+                               <div class="controls col-lg-4">
+                                    最小内存：
+                                    <select name="min_memory" id="min_app_memory" class="control-label">
+                                        {% for cuMemory in memoryList %}
+                                        {% if cuMemory.value == fields.min_memory %}
+                                        <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
+                                        {% else %}
+                                        <option value="{{cuMemory.value}}">{{cuMemory.label}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                               </div>
+                               <div class="controls col-lg-4">
+                                最大内存：
+                                <select name="max_memory" id="max_app_memory" class="control-label">
+                                    {% for cuMemory in memoryList %}
+                                    {% if cuMemory.value == fields.min_memory %}
+                                    <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
+                                    {% else %}
+                                    <option value="{{cuMemory.value}}">{{cuMemory.label}}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                               </div>
+                               <div class="controls col-lg-4" style="display: none;">
+                                步长：
+                                <select name="step_memory" id="step_app_memory" class="control-label">
+                                    <option value="128"  selected="selected">128M</option>\
+                                    <option value="256">256M</option>
+                                    <option value="512">512M</option>
+                                </select>
+                               </div>
+                                <span class="help-block with-errors"></span>
+                            </div>
+                        </div>
+                    </selection>
+
+                    <!--环境变量-->
+                    <selection>
+                        <h4>环境变量</h4><hr/>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <table class="table table-hover" id="env_table">
+                                        <thead>
+                                        <tr>
+                                            <th>名称</th>
+                                            <th>变量名(^[A-Z][A-Z0-9_])</th>
+                                            <th>变量值</th>
+                                            <th>作用域</th>
+                                            <th>是否可修改</th>
+                                            <th>操作</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="env_body">
+                                        <input type="hidden" id="env_list_len" value="{{env_list|length}}"/>
+                                        {% if env_list %}
+                                        {% for env in env_list %}
+                                        <tr>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_name" value="{{env.name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_name" value="{{env.attr_name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_value" value="{{env.attr_value}}"/></td>
+                                            <td>
+                                                <select id="env_list_{{forloop.counter}}_scope">
+                                                    {% if env.scope == 'inner' %}
+                                                        <option value="inner" selected>对内</option>
+                                                        <option value="outer">对外</option>
+                                                        <option value="both">内外</option>
+                                                    {% elif env.scope == 'outer' %}
+                                                        <option value="outer" selected>对外</option>
+                                                        <option value="inner">对内</option>
+                                                        <option value="both">内外</option>
+                                                    {% elif env.scope == 'both' %}
+                                                        <option value="both" selected>内外</option>
+                                                        <option value="inner">对内</option>
+                                                        <option value="both">对外</option>
+                                                    {% endif %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" id="env_list_{{forloop.counter}}_change"
+                                                       {% if env.is_change %}checked{% endif %}
+                                                />
+                                            </td>
+                                            <td><button onclick="javascript:removetr(this);">X</button></td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn btn-success btn-xs" id="add_service_attr">新增环境变量</button>
+                                </div>
+                            </div>
+                        </div>
+                    </selection>
+
+                    <!--外部服务变量-->
+                    <selection>
+                        <h4>端口变量</h4><hr/>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <table class="table table-hover" id="port_table">
+                                        <thead>
+                                        <tr>
+                                            <th>容器端口([0-9])</th>
+                                            <th>协议类型</th>
+                                            <th>别名(^[A-Z][A-Z0-9_])</th>
+                                            <th>内部端口</th>
+                                            <th>外部端口</th>
+                                            <th>操作</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="port_body">
+                                        <input type="hidden" id="port_list_len" value="{{port_list|length}}"/>
+                                        {% if port_list %}
+                                        {% for port in port_list %}
+                                        <tr>
+                                            <td>
+                                                <input type="text" id="port_list_{{forloop.counter}}_container_port" value="{{port.container_port}}"/>
+                                            </td>
+                                            <td>
+                                                <select id="port_list_{{forloop.counter}}_protocol">
+                                                    {% ifequal port.protocol 'http' %}
+                                                    <option value="http" selected>HTTP</option>
+                                                    {% else %}
+                                                    <option value="http">HTTP</option>
+                                                    {% endifequal %}
+                                                    {% ifequal port.protocol 'stream' %}
+                                                    <option value="stream" selected>STREAM</option>
+                                                    {% else %}
+                                                    <option value="stream">STREAM</option>
+                                                    {% endifequal %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input id="port_list_{{forloop.counter}}_port_alias"
+                                                       value="{{port.port_alias}}"/>
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" {% if port.is_inner_service %}checked{% endif %}
+                                                       id="port_list_{{forloop.counter}}_is_inner_service"/>
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" {% if port.is_outer_service %}checked{% endif %}
+                                                       id="port_list_{{forloop.counter}}_is_outer_service"/>
+                                            </td>
+                                            <td><button onclick="javascript:removetr(this);">X</button></td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增端口变量</button>
+                                </div>
+                            </div>
+                        </div>
+                    </selection>
+
+                    <!--持久化设置-->
+                    <selection>
+                        <h4>应用的持久化设置</h4>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <table class="table table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>挂载路径</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for volume in volume_list %}
+                                        <tr>
+                                            <td>
+                                                {{volume.volume_path}}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </selection>
+
+                    <div class="form-actions">
+                        <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
+                               onclick="return checkdata();"
+                               id="submit-id-publish"/>
+                    </div>
+                </div>
+            </form>
+            <!--/div-->
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script type="text/javascript">
+    $('#app_publish_form').validator();
+</script>
+{% endblock %}

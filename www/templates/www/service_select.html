@@ -1,0 +1,19 @@
+{% extends 'www/raster_1.html' %}
+{% load i18n %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <div class="createbox text-center">
+        <a href="/apps/{{tenantName}}/service-entrance" class="createbox-item panel create">
+          <span class="fa fa-file-o"></span>
+          <h5>新建应用</h5>
+        </a>
+        <a href="/apps/{{tenantName}}/service" class="createbox-item panel look">
+          <span class="fa  fa-cloud"></span>
+          <h5>浏览服务</h5>
+        </a>
+    </div>
+</section>
+
+{% endblock %}

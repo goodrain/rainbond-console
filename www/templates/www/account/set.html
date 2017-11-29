@@ -1,0 +1,51 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 用户设置{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/login.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="mainbox">
+  <h1 class="yblogo"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}"></h1>
+
+  <form enctype="multipart/form-data" action="" method="post">
+    <div class="form-group">
+      <input type="text" class="form-control" id="" placeholder="请设置新用户名">
+    </div>
+    <div class="form-group">
+      <input type="password" class="form-control" id="" placeholder="请设置密码，至少包含8位字符">
+    </div>
+    <div class="form-group">
+      <input type="password" class="form-control" id="" placeholder="再次输入登录密码">
+    </div>
+    <div class="form-group">
+      <input type="email" class="form-control" id="" placeholder="请输入邮箱(选填)">
+    </div>
+    <div class="form-group">
+      <input type="tel" class="form-control" id="" placeholder="请输入手机号(选填)">
+    </div>
+    <div class="clearfix littlebtn">
+      <button type="submit" class="btn btn-success pull-left">保&nbsp;&nbsp;存</button>
+      <button type="submit" class="btn  pull-right">取&nbsp;&nbsp;消</button>
+    </div>
+    <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+  <!--script type="text/javascript">
+    $('#reg_form').validator();
+  </script-->
+{% endblock %}

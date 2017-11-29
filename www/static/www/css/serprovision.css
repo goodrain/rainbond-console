@@ -1,0 +1,14 @@
+cite,em{font-style:normal;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none;}
+a:active{text-decoration: none;}
+.service a:hover{text-decoration: underline; color: #337ab7;}
+
+.service{width: 90%; margin:0 auto 0; padding-top:150px; }
+.service p:first-child{font-size: 20px; line-height: 40px;}
+.service p{font-size: 16px; line-height: 30px;}
+.service p span{color: #5cb85c;}
+.service a{font-size: 14px;}
+
+

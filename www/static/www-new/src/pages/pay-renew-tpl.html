@@ -1,0 +1,83 @@
+<div class="nav nav-pills">
+	<li class="top-level" menu-type="1">
+		<a href="javascript:;">全部应用</a>
+	</li>
+	<li class="top-level" menu-type="2">
+		<a href="javascript:;">批量续费</a>
+	</li>
+	<li role="presentation" class="dropdown  top-level">
+		<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">
+			批量内存包月
+			<span class="memory-selected-text selected-text"></span>
+			<span class="caret"></span>
+		</a>
+		<ul class="dropdown-menu">
+	      	<li menu-type="3"><a href="javascript:;">选择时长</a></li>
+	      	<li menu-type="4"><a href="javascript:;">不选择时长</a></li>
+	    </ul>
+	</li>
+	<li role="presentation" class="dropdown top-level">
+		<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">
+			批量硬盘包月
+			<span class="disk-selected-text selected-text"></span>
+			<span class="caret"></span>
+		</a>
+		<ul class="dropdown-menu">
+	      	<li menu-type="5"><a href="javascript:;">选择时长</a></li>
+	      	<li menu-type="6"><a href="javascript:;">不选择时长</a></li>
+	    </ul>
+	</li>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-body">
+		<div class="list-wrap"></div>
+		<p class="bg-info empty-info" style="text-align: center;display: none;">暂无记录</p>
+	</div>
+
+	<div class="panel-footer pay-renew-form" style="display: none;">
+
+		<form class="form-horizontal">
+			<div class="form-group  money-row">
+				<span class="control-label col-sm-2">
+					费用总计:
+				</span>
+				<div class="col-sm-10 total-money-wrap form-control-static">
+					<span style="font-size:">0.00</span> 元
+				</div>
+			</div>
+
+			<div class="form-group  dateRange-row">
+				<span class="control-label col-sm-2">
+					选择时长:
+				</span>
+				<div class="col-sm-10 date-select">
+					
+				</div>
+			</div>
+
+			<div class="form-group  diskRange-row">
+				<span class="control-label col-sm-2">
+					磁盘额度:
+				</span>
+				<div class="col-sm-10 form-control-static">
+					<input name="disk-range" style="display:inline-block;width:300px" type="range" min="1" max="200" value="1" />
+					<span class="disk-result">1</span> G
+				</div>
+			</div>
+
+			<div class="form-group btns-row">
+				<span class="control-label col-sm-2">
+					
+				</span>
+				<div class="col-sm-10">
+					<span class="btn btn-success submit-memory-month">确认包月</span>
+					<span class="btn btn-success submit-disk-month">确认包月</span>
+					<span class="btn btn-success submit-renew">确认续费</span>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+	
+	

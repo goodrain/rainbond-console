@@ -1,0 +1,62 @@
+{% load goodrain_extras %}
+<div id="example_wrapper" role="grid">
+	<div id="example_length" class="lit-select text-right" style="margin:-50px 0 30px 0">
+		<label>每页显示</label>
+		<select name="example_length" aria-controls="example" id="pageSizeScope">
+			<option {% if per_page == "10" %} selected="selected" {% endif %} value="10">10</option>
+			<option {% if per_page == "25" %} selected="selected" {% endif %} value="25">25</option>
+			<option {% if per_page == "50" %} selected="selected" {% endif %} value="50">50</option>
+			<option {% if per_page == "100" %} selected="selected" {% endif %} value="100">100</option>
+		</select>
+		<label>行</label>
+	</div>
+	<table id="example" aria-describedby="example_info" class="table">
+		<thead>
+			<tr role="row" class="active">
+				<th>充值金额(元)</th>
+				<th>类型</th>
+				<th>操作人</th>
+				<th>时间</th>
+				<th>充值状态</th>
+			</tr>
+		</thead>
+		<tbody role="alert" aria-live="polite" aria-relevant="all">
+			{% for tenantRecharge in tenantRecharges %}
+			<tr>
+				<td class=" ">{{tenantRecharge.money}}</td>
+				<td class=" ">{{rechargeTypeMap|mkey:tenantRecharge.recharge_type}}</td>
+				<td class=" ">{{tenantRecharge.user_name}}</td>
+				<td>{{tenantRecharge.time}}</td>
+				<td>
+					{% if tenantRecharge.status == "TRADE_UNFINISHED" %}   
+						未完成
+					{% elif tenantRecharge.status == "TRADE_SUCCESS" %}
+						已成功
+					{% elif tenantRecharge.status == "TRADE_FINISHED" %}
+						已成功
+					{% else %}
+						充值失败
+					{% endif %}
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	<div class="pages">
+					{% if tenantRecharges.has_previous %}
+					<a href="javascript:;" data-page="{{tenantRecharges.previous_page_number}}"   class="prev page-btn">&lt;</a></li> 
+					{% endif %} 
+					
+					{% for page in tenantRecharges.paginator.page_range %} 
+						{% if page = tenantRecharges.number %}
+						<a href="javascript:;" class="active">{{ page }}</a>
+						{% else %}
+						<a href="javascript:;" class="page-btn" data-page="{{page}}">{{page}}</a>
+						{% endif %} 
+					{% endfor %} 
+					{% if tenantRecharges.has_next %}
+					<a href="javascript:;" class="next page-btn" data-page="{{tenantRecharges.next_page_number}}">&gt;</a>
+					{% endif %}
+	</div>
+	
+</div>

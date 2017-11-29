@@ -1,0 +1,135 @@
+/* ww - 2017-09-21  newapp */
+.fn-app-box{display: none;}
+.tablink{width: 100%; margin-top: 10px; padding:0 20px;}
+.tablink a{text-align: center; line-height: 30px; display: inline-block;  color: #666; text-decoration: none; padding:0 10px; background: #ececec; margin: 0 5px 10px 0;}
+.tablink a.sed{background: #28cb75; color: #fff;}
+
+.flex {
+	display:flex;
+}
+
+.flex-item-col {width:1%;flex-grow:1;flex-shrink:0;}
+
+/**/
+
+.newapp-link-box li p{width: 100%;}
+.newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
+.newapp-link-box li  a{display: block;}
+.newapp-link-box li  a span{border:1px solid #e0e2e7;background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; text-align: center; padding: 25px 5px;}
+.newapp-link-box li  a em{width: 88px; height: 72px; margin:0 auto; display: block; background: url('../images/newappicon.png?20170619') no-repeat; background-size: 704px 144px;}
+.addressicon{}
+.newapp-link-box li  a em.goodcodeicon{background-position: -88px 0;}
+.newapp-link-box li  a em.githubicon{background-position: -176px 0;}
+.newapp-link-box li a em.demoicon{background-position: -264px 0;}
+.newapp-link-box li  a em.demoicon2{background-position: -352px 0;}
+.newapp-link-box li  a em.dockericon{background-position: -440px 0;}
+.newapp-link-box li a em.composeicon{background-position: -528px 0;}
+
+.newapp-link-box li  a em.addressicon:hover{ background-position: 0 -72px;}
+.newapp-link-box li  a em.goodcodeicon:hover{background-position: -88px -72px;}
+.newapp-link-box li  a em.githubicon:hover{background-position: -176px -72px;}
+.newapp-link-box li  a em.demoicon:hover{background-position: -264px -72px;}
+.newapp-link-box li  a em.demoicon2:hover{background-position: -352px -72px;}
+.newapp-link-box li  a em.dockericon:hover{background-position: -440px -72px;}
+.newapp-link-box li  a em.composeicon:hover{background-position: -528px -72px;}
+
+.newapp-link-box li a em.demo{background-position: -610px 0;}
+.newapp-link-box li a em.demo:hover{background-position: -610px -71px;}
+
+.newapp-link-box li a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px; display: inline-block; width: 100%;}
+.newapp-link-box li a cite.littext{font-size: 12px; color: #838383;}
+.newapp-link-box .flex-item-col{margin-right:46px;}
+.newapp-link-box .flex-item-col:last-child {margin-right:0;}
+
+
+/* 应用构建新样式 */
+.create-app-hd {
+	display: flex;
+	text-align:center;
+}
+
+.create-app-hd a {
+	flex-grow: 1;
+	margin-right:20px;
+	border-radius: 10px;
+	height:140px;
+	background:#fff;
+	width:1%;
+	display: flex;
+    justify-content: center;
+    align-items: center;
+    color:#838383;
+    position:relative;
+}
+.create-app-hd a.sed {
+	box-shadow: 0 0 10px rgba(0,215,118, 0.5);
+    z-index: 2;
+}
+
+.create-app-hd a .bg {
+	position:absolute;width:120%;height:30px;bottom:-22px;background:#fff;
+	display:none;
+}
+.create-app-hd a:nth-child(1) .bg {
+	left:0;
+}
+.create-app-hd a:nth-child(2) .bg {
+	left:-5px;
+}
+.create-app-hd a:nth-child(3) .bg {
+	right:0;
+}
+
+.create-app-hd a.sed .bg {display:block;}
+
+.create-app-hd a strong {display: block;color:#303030;font-size:16px;margin-bottom:5px;}
+.create-app-hd a span {font-size:12px;}
+.create-app-hd a:last-child  {
+	margin-right:0;
+}
+
+.create-app-bd {
+	position:relative;
+	top: -8px;
+	border-radius: 10px;
+	background:#fff;
+	padding:36px;
+	box-shadow: 0 0 10px rgba(0,215,118, 0.5);
+}
+
+
+
+/**/
+.newapp-link-box.showlink li:nth-child(1){width:48%;}
+.newapp-link-box.showlink li:nth-child(2){width:48%;}
+.newapp-link-box.showlink li:nth-child(1) .newapp-link a{width: 50%;}
+
+.app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px;}
+.tab-tit{font-size: 14px; padding:5px 10px 10px 15px; margin-bottom: 0;}
+.tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
+.tab-tit a:hover{color: #28cb75;}
+.tab-tit a.sed{color: #28cb75;}
+
+.app-market ul{ padding: 0 10px; }
+.app-market ul li{width: 100%; display: none;}
+.app-market ul li p{width: 33.33%; float: left; margin:0;}
+.app-market ul li p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
+.app-market ul li p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
+.app-market ul li p:last-child a{color: #28cb75;}
+.tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
+.gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
+
+
+.app-market ul li p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
+.app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
+.app-market ul li p#no-show-list a:hover{background-image: none;}
+
+
+
+@media (max-width: 640px){
+    .flex{flex-direction: column;  margin: 0;}
+    .newapp-link-box .flex-item-col {margin:0 0 20px 0; width: 100%;}
+    .app-market ul li p{width: 100%;}
+}
+
+

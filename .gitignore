@@ -1,0 +1,21 @@
+*.pyc
+/.settings/
+/.project
+/.pydevproject
+/doc/
+migrations/
+/.DS_Store
+.idea/*
+dist/
+build/
+env/
+node_modules
+.pyenv/
+.python-version
+
+# vscode
+.vscode/
+
+
+# local config
+goodrain_web/conf/test_ali.py

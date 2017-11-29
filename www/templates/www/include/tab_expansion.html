@@ -1,0 +1,17 @@
+<div role="tabpanel" id="app-expansion">
+    
+</div>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-expansion.js"></script>
+<script type="text/javascript">
+  var controller = new AppExpansionController({
+    $wrap: $('#app-expansion'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}',
+    language: '{{ tenantServiceInfo.language }}',
+    code_from: '{{ port_changeable }}',
+    serviceId: '{{ tenantServiceInfo.service_id }}',
+    servicecName: '{{ tenantServiceInfo.service_cname }}'
+  })
+  controller.ready();
+</script>

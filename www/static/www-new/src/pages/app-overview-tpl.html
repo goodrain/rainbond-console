@@ -1,0 +1,221 @@
+    <!-- 01 -->
+    <div class="flex-box" id="status_areas">
+        <div class="flex-singe">
+            <div class="chunkbox">
+                <p class="hd">状态</p>
+                <p class="bd">
+                    <img id="service_status-img" src="/static/www/img/appOutline/appOutline1.png"/>
+                </p>
+                <div name="service_status" class="ft">
+                    <div class="ft-bd">
+                        <span  id="service_status" class="sub-tit-text">未知</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-singe">
+            <div class="chunkbox">
+                <p class="hd">内存</p>
+                <p name="service_memory" class="bd">
+                    <span  id="service_memory" class="tit-text">
+                        <span class="show-memory">{{ pageData.totalMemory }}</span>M
+                    </span>
+                </p>
+                <div class="ft" id="MemoryCost">
+                    <div class="ft-bd">
+                        <p class="desc-text memory-monthly-info"></p>
+                        <p class="desc-text">上一个小时费用<span class="last_hour_memory_cost">0</span>元</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-singe" id="DiskBox">
+            <div class="chunkbox">
+                <p class="hd">磁盘</p>
+                <p class="bd">
+                    <span id="service_disk"  name="service_disk" class="tit-text">
+                        <span class="show-disk">{{pageData.last_hour_disk || 0}}</span>M
+                    </span>
+                </p>
+                <div class="ft">
+                    <div class="ft-bd">
+                    <p class="desc-text disk-monthly-info"></p>
+                    <p class="desc-text">上一个小时费用<span class="last-hour-disk-cost">{{pageData.last_hour_disk_cost}}</span>元</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-singe" id="FlowBox">
+            <div class="chunkbox">
+                <p class="hd">上一小时流量</p>
+                <p class="bd">
+                    <span id="service_net" class="tit-text">
+                        <span class="last_hour_net">{{pageData.last_hour_net || 0}}</span>M
+                    </span>
+                </p>
+                <div class="ft">
+                    <div class="ft-bd">
+                        <p class="desc-text">上一个小时费用<span class="last-hour-net-cost">0</span>元</p>
+                    </div>
+
+                </div>
+                   
+            </div>
+        </div>
+        {{if !pageData.community}}
+        <div class="fn-tips layer_pay flex-singe" data-toggle="tooltip" data-placement="top" title="应用状态未知" id="CostBox">
+            <div class="chunkbox">
+                <p class="hd">上一小时费用</p>
+                <p class="bd">
+                    <span class="tit-text last_hour_fee">
+                        <span class="last_hour_cost">{{pageData.last_hour_net || 0}}</span>元
+                    </span>
+                </p>
+                <div class="ft">
+                    <div class="ft-bd">
+                    <p class="desc-text">
+                        累计费用<span class="total-money">0</span>元
+                    </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+    <!-- 01 -->
+    <!-- 02 -->
+    <section class="clearfix" style="min-height: 54px;">
+        <!-- 02 left -->
+        <div class="pull-left">
+            <ul class="clearfix handle-box-left">
+                <!--  left-001  -->
+                {{if pageData.hasHttpServices}}
+                <li>
+                    <div class="btn-group fn-tips" action="visit" data-toggle="tooltip" data-placement="top" title="跳转到应用对外访问端口对应的域名地址">
+
+                        {{if pageData.domain_list.length > 0}}
+
+                            {{if pageData.domain_list.length == 1}}
+                                <button data-domain="{{pageData.domain_list[0]}}" type="button" class="btn btn-success dropdown-toggle visit-domain" data-toggle="dropdown">访问</button>
+                            {{else}}
+                                 <button type="button" class="btn btn-success" data-toggle="dropdown">访问<span class="caret"></span></button>
+                                    <ul class="dropdown-menu" role="menu">
+                                    {{each pageData.domain_list}}
+                                        <li class="visit-domain"  data-domain={{$value}}><a href="javascript:void(0)">{{$value}}</a></li>
+                                    {{/each}}
+                                    </ul>
+                            {{/if}}
+
+                        {{else}}
+                            {{if pageData.visit_port_type == "multi_outer" }}
+                                {{if pageData.http_outer_service_ports.length == 1}}
+                                    {{each pageData.http_outer_service_ports}}
+                                    <button class="btn btn-success" data-port="{{ $value.container_port }}" type="button" data-toggle="dropdown" id="service_visitor">访问</button>
+                                    {{/each}}
+                                {{else}}
+                                <button type="button" class="btn btn-success" data-toggle="dropdown">访问<span class="caret"></span></button>
+                                <ul class="dropdown-menu" role="menu">
+                                    {{each pageData.http_outer_service_ports}}
+                                        <li><a class="visit-btn" data-port="{{ $value.container_port }}" href="javascript:void(0)">{{ $value.container_port }}端口</a></li>
+                                    {{/each}}
+                                 {{/if}}
+                            {{else}}
+                                <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" id="service_visitor">访问</button>
+                            {{/if}}
+                        {{/if}}
+                    </div>
+                </li>
+                {{/if}}
+                <!--  left-001  -->
+                <!--  left-002  -->
+                <li>
+                    {{if appInfo.service.service_type == 'mysql'}}
+                        {{if pageData.service_manager.deployed}}
+                            {{if pageData.actions['manage_service']}}
+                                <button type="button" class="btn btn-success manageApp">管理
+                                </button>
+                            {{/if}}
+                        {{else}}
+                            {{if pageData.actions['manage_service']}}
+                                <button type="button" class="btn btn-success manageApp">添加管理服务
+                                </button>
+                            {{/if}}
+                        {{/if}}
+                    {{/if}}
+                    {{if pageData.updateService}}
+                        <button type="button" class="btn btn-success" id="service_image_operate">
+                            服务更新
+                        </button>
+                    {{/if}}
+                </li>
+            </ul>
+        </div>
+        <!-- 02 left -->
+        <!-- 02 right -->
+        <div class="pull-right">
+            <ul class="clearfix handle-box-right">
+                {{if pageData.is_sys_admin || pageData.docker_console || tenantName == 'gooood' || tenantName == 'gooood0' || tenantName == 'baoxianjie' || tenantName == 'showmac' || tenantName == 'jamesocy' || tenantName == 'summersoft'}}
+                <li action="manage_container">
+                    <div class="btn-group fn-tips" data-toggle="tooltip" data-placement="top" title="选择实例进入WEB控制台，可以进行容器内部shell管理操作。">
+                        <button type="button" name="join_container" class="btn btn-success dropdown-toggle" data-toggle="dropdown"  id="join_container"> 管理容器 <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right" role="menu" id="cur_container_content">
+                            
+                        </ul>
+                    </div>
+                </li>
+                {{/if}}
+                <!-- right-002 -->
+                <!-- right-003 -->
+                {{if pageData.actions['manage_service']}}
+                <li class="button">
+                    <input type="hidden" id="service_status_value" name="service_status_value" value="" />
+                    <button action="stop" style="display:none;" type="button" class="btn btn-danger" id="service_status_close"><font id="font{{appInfo.service.service_id}}">关闭</font></button>
+                    <button action="restart"style="display:none;" type="button" class="btn btn-success" id="service_status_open"><font id="font{{appInfo.service.service_id}}">开启</font></button>
+                </li>
+                {{/if}}
+                <!-- right-003 -->
+                <!-- right-004 -->
+               
+                    
+                    {{if pageData.actions['code_deploy']}}
+                    <li class="button">
+                        <button action="deploy" type="button" class="btn btn-success fn-tips" id="onekey_deploy" data-toggle="tooltip" data-placement="top" title="基于最新代码或镜像构建云帮应用，并滚动更新实例。">重新部署</button>
+                    </li>
+                    {{/if}}
+               
+                <!-- right-004 -->
+                <!--  -->
+                {{if pageData.actions['code_deploy']}}
+                <li class="button">
+                    <button action="reboot" type="button" style="display:none;" class="btn btn-success fn-tips" id="onekey_reboot" data-toggle="tooltip" data-placement="top" title="关闭应用并使用最新的配置重新启动应用。">重启</button>
+                </li>
+                {{/if}}
+                <!-- -->
+            </ul>
+        </div>
+        <!-- 02 right -->
+    </section>
+    <!-- log start -->
+    <section class="panel panel-default">
+        <div class="panel-heading">操作记录</div>
+        <div class="panel-body">
+            <input type="hidden" name="service_name" id="service_name" value="{{appInfo.service.service_alias}}"/>
+            <div id="keylog">
+                <ul class="timeline list-unstyled">
+                </ul>
+                <p style="text-align: center;">
+                    <span data-num="0" class="load_more_new" style="display:none;">
+                        <img src="/static/www/img/load_more_log.png">
+                    </span>
+                </p>
+            </div>
+        </div>
+    </section>
+    <!-- log end -->
+    <!-- deployed end-->
+    <script type="text/template" id="payDialogTmp">
+        <div style="text-align: left;">
+        <p>将从您的账户中扣除<span class="text-success" id="need_to_pay"></span>元，用于购买当前应用的包月项目，其余费用仍按小时结算。</p>
+        <p>当前应用将于<span class="text-success" id="start_time"></span>开始计费，逾期未成功支付，应用所有项目将会按需支付。</p>
+        </div>
+    </script>

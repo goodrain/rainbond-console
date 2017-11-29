@@ -1,0 +1,345 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/process.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/bootstrap-switch.min.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <h2 class="main-tit ">分享{{tenantServiceInfo.service_cname}}至云市</h2>
+    <h3>设置应用分享信息</h3>
+    <div class="content-tab">
+    <form class="form-horizontal" method="post" id="share_form"
+          enctype="multipart/form-data" action="">
+        {% csrf_token %}
+        <input type="hidden" name="service_id" value="{{data.service_id}}"/>
+        <input type="hidden" id="image_url" value="/apps/{{tenant_name}}/{{service_alias}}/share/images"/>
+        <input type="hidden" name="service_key" value="{{data.service_key}}"/>
+
+        <!--  一开始  -->
+        <div class="fm－box">
+            <div class="form-group">
+                {% if state %}
+                <label class="control-label" style="color: red">数据表单错误,请查询信息是否填写完整</label>
+                {% endif %}
+            </div>
+            <a href="javascript:;" class="titlink" id="infor" style="display: none;">
+                基本信息
+                <span>
+                    <em class="glyphicon glyphicon-triangle-top"></em>
+                </span>
+            </a>
+            <div class="show-box">
+                <!-- 01 -->
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">应用名称:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" name="app_alias"
+                               placeholder="请输入发布应用名称" value="{{data.app_cname}}"
+                               maxlength="50" id="app_alias">
+                    </div>
+                </div>
+                <!-- 02 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">应用图标:</label>
+                    <div class="col-sm-8">
+                        <div id="logodiv" class="appimg">
+                            <img id="imgShow" width="140" height="140" src="{{data.logo}}" >
+                        </div>
+                        <input type="file" id="logo" name="logo"/>
+                    </div>
+                </div>
+                <!-- 03 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">一句话介绍:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="info"
+                               placeholder="请简单介绍应用情况" name="info" maxlength="50" value="{{data.info}}">
+                    </div>
+                </div>
+                <!-- 04 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">应用类别:</label>
+                    <input type="hidden" id="category_first_bak" value="{{data.category_first}}">
+                    <input type="hidden" id="category_second_bak" value="{{data.category_second}}">
+                    <input type="hidden" id="category_third_bak" value="{{data.category_third}}">
+                    <div class="col-sm-2">
+                        <select class="form-control" name="category_first" id="category_first"></select>
+                    </div>
+                    <div class="col-sm-2">
+                        <select class="form-control" name="category_second" id="category_second"></select>
+                    </div>
+                    <div class="col-sm-2">
+                        <select class="form-control" name="category_third" id="category_third"></select>
+                    </div>
+                </div>
+                <!-- 05 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">应用简介:</label>
+                    <div class="col-sm-8">
+                        <textarea class="form-control" name="desc" id="desc"
+                                  rows="3" maxlength="200">{{data.desc}}</textarea>
+                    </div>
+                </div>
+                <div class="line-dashed" style="display: none;"></div>
+                <!-- 06 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">官方网站:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="url_site"
+                               placeholder="" name="url_site" value="{{data.url_site}}">
+                    </div>
+                </div>
+                <!-- 07 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">源码:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="url_source"
+                               name="url_source" value="{{data.url_source}}" placeholder="">
+                    </div>
+                </div>
+                <!-- 08 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">Demo:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="url_demo"
+                               name="url_demo" value="{{data.url_demo}}" placeholder="">
+                    </div>
+                </div>
+                <!-- 09 -->
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-2 control-label">意见反馈:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="url_feedback"
+                               name="url_feedback" value="{{data.url_feedback}}" placeholder="">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 一 结束 -->
+        <!-- 二 开始 -->
+        <div class="fm-box">
+            <a href="javascript:;" class="titlink" id="renew" style="display: none;">更新信息<span><em class="glyphicon glyphicon-triangle-top"></em></span></a>
+            <div class="show-box">
+                <!-- 01 -->
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">版本号:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="app_version"
+                               name="app_version" value="{{data.app_version}}" placeholder="">
+                    </div>
+                </div>
+                <!-- 02 -->
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">更新说明:</label>
+                    <div class="col-sm-8">
+                        <textarea class="form-control" name="release_note"
+                                  id="release_note" rows="3" maxlength="100">{{data.release_note}}</textarea>
+                    </div>
+                </div>
+                <!-- 03 -->
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">分发到云市</label>
+                    <div class="col-sm-2">
+                        <div class="switch switch-mini">
+                            <input id="is_outer" data-switch="mini" name="is_outer" type="checkbox" {% if data.is_outer %}checked{% endif %} />
+                        </div>
+                    </div>
+
+                    <div class="market" {% if not data.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">允许其他用户安装</label>
+                        <div class="col-sm-4">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_assistant" type="checkbox" {% if data.show_assistant %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+               
+                <!-- 04云市展示方式 -->
+                <div class="form-group market" {% if not data.is_outer %}style="display:none;"{% endif %} data-alias="" style="display: none;">
+                    <label class="col-sm-2 control-label">云市展示</label>
+                    <div class="col-sm-8">
+                        <div class="switch switch-mini">
+                            <input data-switch="mini" name="show_app" type="checkbox" {% if data.show_app %}{% endif %}/>
+                        </div>
+                    </div>
+                </div>
+                <!-- 05是否私有市场 -->
+                <div class="form-group market" {% if data.is_outer %}style="display:none;"{% endif %} data-alias="private_div">
+                    <label class="col-sm-2 control-label">发布为私有应用</label>
+                    <div class="col-sm-8">
+                        <div class="switch switch-mini">
+                            <input data-switch="mini" name="is_private" type="checkbox" {% if data.is_private %}checked{% endif %}/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 二 结束 -->
+        <div class="linkbox">
+
+            <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">上一步</a>-->
+
+            <a href="#" onclick="check_data();" class="greenbtn">下一步</a>
+        </div>
+    </form>
+    </div>
+</section>
+
+{% endblock %}
+
+
+{% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
+<script src='{% static "www/js/process.js" %}'></script>
+<script src='{% static "www/js/bootstrap-switch.js" %}'></script>
+<script type="text/javascript">
+    $(function () {
+        // init category
+        var category_first = $("#category_first_bak").val();
+        var category_second = $("#category_second_bak").val();
+        var category_third = $("#category_third_bak").val();
+        // init root category
+        getCategoryList(0, 'category_first', category_first);
+        if (category_first == "") {
+            // category_first = $("#category_first").val();
+            category_first = 1;
+        }
+        getCategoryList(category_first, 'category_second', category_second);
+        if (category_second == "") {
+            // category_second = $("#category_second").val();
+            category_second = 2;
+        }
+        getCategoryList(category_second, 'category_third', category_third);
+        // category changed
+        $('#category_first').change(function(){
+            var cateId = $(this).val();
+            getCategoryList(cateId, 'category_second', 0);
+            if (cateId == 1) {
+                cateId = 2;
+            }
+            if (cateId == 4) {
+                cateId = 5;
+            }
+            getCategoryList(cateId, 'category_third', 0);
+        });
+        $('#category_second').change(function(){
+            var cateId = $(this).val();
+            getCategoryList(cateId, 'category_third', 0);
+        });
+
+        // 分发到云市后显示设置
+        $("#is_outer").parent().parent().on('switch-change', function (e, data) {
+            var $el = $(data.el)
+                    , value = data.value;
+            // alert(value);
+            if (value) {
+                $("div.market[data-alias='show_div']").show();
+                $("div.market[data-alias='private_div']").hide();
+            } else {
+                $("div.market[data-alias='show_div']").hide();
+                $("div.market[data-alias='private_div']").show();
+            }
+        });
+    });
+    // get remote category
+    function getCategoryList(cateId, contId, value_id){
+        if (String(cateId) == "") {
+            return;
+        }
+        $.get('https://app.goodrain.com/ajax/category_list/' + cateId + '?callback=?', {flag: 'cross'},
+                function(res){
+                    if(res.length) {
+                        $('#' + contId).empty();
+                        for (var i = 0, len = res.length; i < len; i++) {
+                            var opt = $("<option />").val(res[i].id).text(res[i].display_name)
+                            if (res[i].id == value_id) {
+                                opt.prop("selected", true);
+                            }
+                            $('#' + contId).append(opt);
+                        }
+                    }
+                }, 'json');
+        if (value_id == 0 && contId == 'category_second') {
+            $("#category_third").empty();
+        }
+    }
+    // check form data
+    function check_data(){
+        var app_alias = $("#app_alias").val();
+        if (app_alias == "") {
+            swal("应用名称不能为空!");
+            return;
+        }
+        var regex = /^[a-zA-Z0-9]*$/;
+        if(! regex.test(app_alias)) {
+            swal("应用名称只能是字母、数字!");
+            return;
+        }
+//        var category_first = $("#category_first").val();
+//        var category_second = $("#category_second").val();
+//        var category_third = $("#category_third").val();
+//        if (category_third == "" ||
+//                category_third == null ||
+//                category_third == undefined) {
+//            alert("应用类型不能为空!");
+//            return;
+//        }
+//        var app_version = $("#app_version").val();
+//        if (app_version == "") {
+//            alert("版本不能为空!");
+//            return;
+//        }
+        // submit
+        $("#share_form").submit();
+    }
+
+    function progressHandlingFunction(e) {
+        var percentComplete = Math.round(e.loaded * 100 / e.total);
+        console.log(percentComplete)
+    }
+    $("#logo").change(function(){
+        var file = this.files[0];
+        if(file.size > 1000000) {
+            alert("The file is too big");
+        } else if(file.type != 'image/png' &&
+                file.type != 'image/jpg' &&
+                file.type != 'image/gif' &&
+                file.type != 'image/jpeg' ) {
+            alert("The file does not match png, jpg or gif");
+        } else {
+            var formData = new FormData($("#share_form")[0]);
+            $.ajax({
+                url: $("#image_url").val(),
+                type: 'POST',
+                xhr: function() {
+                    myXhr = $.ajaxSettings.xhr();
+                    if(myXhr.upload){
+                        myXhr.upload.addEventListener('progress', progressHandlingFunction, false);
+                    }
+                    return myXhr;
+                },
+                success: completeHandler = function(data) {
+                    var res_data = eval(data);
+                    $("#imgShow").attr("src", res_data.pic);
+                },
+                error: errorHandler = function() {
+                    alert("upload error!");
+                },
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false
+            }, 'json');
+        }
+    });
+</script>
+{% endblock %}

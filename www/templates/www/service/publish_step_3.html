@@ -1,0 +1,101 @@
+{% extends 'www/raster.html' %}{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <div class="row">
+        <div class="col-lg-12 m-bot15">
+            <!--div class="container"-->
+            <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
+                  method="post">
+                <input type="hidden" name="service_key" value="{{app.service_key}}"/>
+                <input type="hidden" name="app_version" value="{{app.app_version}}"/>
+                <h2 class="form-signin-heading">设置服务依赖</h2>
+
+                {% if errors %}
+                <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please
+                    correct the errors below.{% endblocktrans %}
+                </div>
+                {{ form.non_field_errors }}
+                {% endif %}
+
+                <div class="login-wrap" style="background: #FFFFFF;">
+                    {% csrf_token %}
+
+                    <selection>
+                        <div class="col-lg-6 row">
+                            <label>依赖服务</label>
+                            <input type="hidden" name="suffix"/>
+                            <div class="controls" id="app_suffix" style="height: 300px">
+                                {% if suffix %}
+                                {% for x in suffix %}
+                                    <div data-key="{{x.dep_service_key}}" data-version="{{x.dep_app_version}}"
+                                         class="controls controls-row" data-alias="{{x.dep_app_alias}}">
+                                        {{x.dep_app_alias}}-{{x.dep_app_version}}
+                                        <button onclick="javascript:removelabel(this);">X</button>
+                                    </div>
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <label>被依赖服务</label>
+                            <input type="hidden" name="prefix"/>
+                            <div id="app_prefix" id="app_prefix" style="height: 300px">
+                                {% if prefix %}
+                                {% for x in prefix %}
+                                <div data-key="{{x.service_key}}" data-version="{{x.app_version}}"
+                                     class="controls controls-row" data-alias="{{x.app_alias}}">
+                                    {{x.app_alias}}-{{x.app_version}}
+                                    <button onclick="javascript:removelabel(this);">X</button>
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </selection>
+
+                    <div id="div_app_relation" class="form-group col-lg-12">
+                        <label for="id_app_relation" class="control-label col-lg-2 requiredField">服务节点<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-4">
+                            <select id="id_app_relation" class="form-control">
+                                {% for service in relationlist %}
+                                <option value="{{service.service_key}}" data-version="{{service.app_version}}"
+                                        data-alias="{{service.app_alias}}">{{service.app_alias}}-{{service.app_version}}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                        <div class="col-lg-4">
+                            <input type="radio" value="suffix" name="relationRadio" checked/>依赖服务
+                            <input type="radio" value="prefix" name="relationRadio" />被依赖服务
+                        </div>
+                        <div class="col-lg-2">
+                            <input type="button" id="addRelation" value="添加"/>
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-actions">
+                        <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block"
+                               onclick="return relationdata();"
+                               id="submit-id-publish"/>
+                    </div>
+                </div>
+            </form>
+            <!--/div-->
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script type="text/javascript">
+    $('#app_publish_form').validator();
+</script>
+{% endblock %}

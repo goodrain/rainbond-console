@@ -1,0 +1,16 @@
+<!-- log start -->
+<div id="log-wrap" role="tabpanel">
+
+</div>
+<!-- log end-->
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-log.js"></script>
+<script type="text/javascript">
+  var controller = new AppLogController({
+    $wrap: $('#log-wrap'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}',
+    serviceId: '{{tenantServiceInfo.service_id}}'
+  })
+  controller.ready();
+</script>

@@ -1,0 +1,135 @@
+{{if pageData.actions['manage_service']}}
+{{ set curServiceEnvVarList = pageData.currentEnvMap[appInfo.service.service_id]}}
+  
+  <section class="panel panel-default">
+      <div class="panel-heading">连接信息</div>
+      <div class="panel-body">
+          <table class="table">
+            <thead>
+                <tr class="active tooltipTr">
+                  <th>
+                    <div data-toggle="tooltip" data-placement="top" title="其他应用依赖当前应用时，所需要的连接信息。" class="fn-tips">
+                      说明
+                    </div>
+                  </th>
+                  <th>
+                    <div data-toggle="tooltip" data-placement="top" title="指明依赖当前应用的其他应用，在编码中可以使用变量名来连接当前应用。" class="fn-tips">
+                       变量名
+                    </div>
+                  </th>
+                  <th>
+                    <div data-toggle="tooltip" data-placement="top" title="指明依赖当前应用的其他应用，在编码中可以使用变量值来连接当前应用。某些变量值也用于用户通过外部网络访问当前应用。" class="fn-tips">
+                      变量值
+                    </div>
+                  </th>
+                </tr>
+            </thead>
+            <tbody>
+            {{each curServiceEnvVarList || []}}
+                {{if $value.name != ""}}
+                    {{if (pageData.containerPortList.indexOf($value.container_port) >=0) || ($value.container_port < 1)}}
+                        <tr>
+                            <td>{{$value.name}}</td>
+                            <td>{{$value.attr_name}}</td>
+                            <td>{{$value.attr_value}}</td>
+                        </tr>
+                    {{/if}}
+                {{/if}}
+            {{/each}}
+            </tbody>
+          </table>
+      </div>
+  </section>
+{{/if}}
+
+
+{{if !pageData.is_private &&  pageData.cloud_assistant == 'goodrain' }}
+    {{if appInfo.service.service_key == '0000' || appInfo.service.category == "app_publish"}}
+    <section class="panel panel-default" style="display: none;">
+        <div class="panel-heading">应用特性增强</div>
+        <div class="panel-body">
+          <p class="onoffbox clearfix">
+          <button style="display: none;" class="btn btn-success  btn-sm openHightraly pull-right">开启</button>
+          <button style="display: none;" class="btn btn-danger  btn-sm closeHightraly pull-right">关闭</button>
+          <span style="color: #838383; line-height: 30px; padding-left: 10px; font-size: 12px;">打开此开关则启动反向代理、负载均衡、熔断器等功能。熔断阀值需在依赖中对应的应用里设置。</span></p>
+        </div>
+    </section>
+   {{/if}}
+{{/if}}
+ 
+
+ {{if appInfo.service.category == "application" || appInfo.service.category == "manager" || appInfo.service.category == "app_publish" || appInfo.service.category == "app_sys_publish" }}
+ <section class="panel panel-default">
+      <div class="panel-heading">应用连接<small>(指定依赖其他应用后需重启)</small></div>
+      <div class="panel-body">
+          <table class="table">
+              <thead>
+              <tr class="active">
+                  <th>应用类型</th>
+                  <th>应用名称</th>
+                  <th>操作</th>
+              </tr>
+              </thead>
+              <tbody>
+              {{ if pageData.serviceIds }}
+                  {{each pageData.serviceIds}}
+                      {{if pageData.serviceMap[$value] && pageData.envMap[$value]}}
+                      <tr  data-dest-service-alias="{{pageData.serviceMap[$value].service_alias}}">
+                          <td>{{pageData.serviceMap[$value].service_type}}</td>
+                          <td>{{pageData.serviceMap[$value].service_cname}}</td>
+                          <td class="text-right">
+                              <div class="pull-right">
+                                {{if pageData.actions['manage_service']}}
+                                <button type="button" class="btn btn-default btn-sm cancelAppRelation">取消</button>
+                                {{/if}}
+                                {{if pageData.actions['manage_service'] || pageData.is_sys_admin}}
+                                <button class="btn btn-default btn-sm viewConnectInfo">连接信息</button>
+                                <script type="text/template" class="connectInfoTmp">
+                                  <table class="table">
+                                    <thead>
+                                      <tr class="active">
+                                        <th>说明</th>
+                                        <th>变量名</th>
+                                        <th>变量值</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                     {{each pageData.envMap[$value] $curServiceEnvVar $index}}
+                                     <tr>
+                                       <td>{{$curServiceEnvVar.name}}</td>
+                                       <td>{{$curServiceEnvVar.attr_name}}</td>
+                                       <td>{{$curServiceEnvVar.attr_value}}</td>
+                                     </tr>
+                                     {{/each}}
+                                    </tbody>
+                                  </table>
+                                </script>
+                                {{/if}}
+                                <a class="btn btn-success btn-sm fn-high-relation setting-app-relation"  style="color: #fff;display: none;" href="javascript:void(0)">设置</a>
+                            </div>
+                          </td>
+                      </tr>
+                      {{/if}}
+                  {{/each}}
+              {{/if}}
+
+              {{if pageData.serviceMap}}
+                {{if pageData.actions['manage_service'] || pageData.is_sys_admin}}
+                    {{each pageData.serviceMap $value $key}}
+                        {{if (pageData.serviceIds || []).indexOf($key) < 0}}
+                           <tr data-dest-service-alias="{{$value.service_alias}}">
+                                <td>{{$value.service_type}}</td>
+                                <td>{{$value.service_cname}}</td>
+                                <td class="text-right">
+                                    <button type="button" class="btn btn-success btn-sm createAppRelation">关联</button>
+                                </td>
+                            </tr>
+                        {{/if}}
+                    {{/each}}
+                {{/if}}
+              {{/if}}
+             </tbody>
+          </table>
+      </div>
+  </section>
+{{/if}}

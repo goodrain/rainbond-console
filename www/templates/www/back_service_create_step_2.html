@@ -1,0 +1,58 @@
+{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+
+<section class="wrapper site-min-height">
+    <!-- page start-->
+    <section class="panel">
+        <div class="panel-body">
+            <div class=" form">
+                <form class="cmxform form-horizontal tasi-form" id="commentForm"
+                    method="post" action="" novalidate="novalidate">
+                    <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+                    <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+                    <!--input type="hidden" id="service_dependecy" name="service_dependecy" value="{{service.dependecy}}" /-->
+                    
+                    <div class="form-group">
+                        <div class="col-lg-12 ">
+                            <div
+                                class="col-lg-offset-3 col-lg-6 alert text-center alert-default fade in">
+                                <h2>{{service_key.upper}}完善配置</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group ">
+                        <label for="create_app_name"
+                            class="control-label col-lg-2 app_name">环境变量</label>
+                        <div class="col-lg-8">
+                            <table class="table table-striped table-advance">
+                              <thead>
+                                <tr>
+                                  <th>变量名称</th>
+                                  <th>变量值</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for env in envs %}
+                                <tr>
+                                    <td name="attr_name">{{env.attr_name}}</td>
+                                    {% if 'direct_copy' in env.options %}<td name="attr_value">{{env.attr_value}}</td>
+                                    {% else %}<td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                                
+                              </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-offset-3 col-lg-6 ">
+                        <button type="button" id="back_service_finished"
+                            class="btn btn-lg btn-success btn-block">完成</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    <!-- page end-->
+</section>
+{% endblock %}

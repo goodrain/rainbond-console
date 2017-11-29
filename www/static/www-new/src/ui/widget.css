@@ -1,0 +1,9 @@
+/* table */
+.table-list thead {background: #f5f5f5;}
+.allSelect_wrap input {margin-left:3px;}
+.table .btn {margin-right:5px;}
+.table > thead > tr > td.active, .table > tbody > tr > td.active, .table > tfoot > tr > td.active, .table > thead > tr > th.active, .table > tbody > tr > th.active, .table > tfoot > tr > th.active, .table > thead > tr.active > td, .table > tbody > tr.active > td, .table > tfoot > tr.active > td, .table > thead > tr.active > th, .table > tbody > tr.active > th, .table > tfoot > tr.active > th {background:rgba(245, 245, 245, 0.2);}
+
+
+/*confirm*/
+.widget-confirm .dialog-msg {font-size:16px;}

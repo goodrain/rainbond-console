@@ -1,0 +1,27 @@
+{% load goodrain_extras %}
+<div id="example_wrapper" class="content-tab" role="grid">
+	<form role="form">
+		<table id="consumeDetail" aria-describedby="example_info" class="table">
+			<thead>
+				<tr role="row" class="active">
+					<th>日期</th>
+					<th>时间</th>
+					<th>消费</th>
+				</tr>
+			</thead>
+			<tbody role="alert" aria-live="polite" aria-relevant="all">
+				{% for time,money in result_map %}
+					<tr>
+						<td>{{time|date:"Y-m-d"}}</td>
+						<td>{{time|difftime:-3600|date:"m-d H:00"}} - {{time|date:"m-d H:00"}}</td>
+						<td style="cursor: pointer" onclick="showMore($(this),'{{time|date:"Y-m-d H:i:s"}}')">￥ <span>{{money}} </span><span>&nbsp;&nbsp;&nbsp;&nbsp;<a id="show_switch" data-action="open" style="color:green" >+</a></span></td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</form>
+	<p class="text-right">
+		当前日期日总消费:<span id="total_cost"> ¥ {% if total_money %}{{ total_money }}{% else %}0.00{% endif %}</span>
+	</p>
+
+</div>

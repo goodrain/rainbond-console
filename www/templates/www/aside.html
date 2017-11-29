@@ -1,0 +1,198 @@
+<style type="text/css">
+#sidebar {z-index: 10}
+.sider-sub-menu {
+        padding-top: 1px;
+    z-index: 10;
+    display: none;
+    position: fixed;
+    min-width: 150px;
+    max-width: 460px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    background: #fff;
+    border-top: 1px solid #cccccc;
+    text-indent: 0;
+    font-size: 0;
+    box-shadow: 0 0 8px 1px rgba(0, 0, 0, .15);
+    border-bottom: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+  }
+.sider-sub-menu .line {font-size: 12px;color:#ececec;vertical-align: middle;}
+.sider-sub-menu .line:last-child {display: none;}
+
+.sider-sub-menu .sider-sub-menu-item {
+    vertical-align: middle;
+    display: inline-block;
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    /* margin-right: -1px; */
+    /* border-radius: 4px; */
+    /* background: #ececec; */
+    padding-top: 5px;
+    font-size: 14px;
+    padding-bottom: 5px;
+    font-size: 12px;
+  }
+.sider-sub-menu .sider-sub-menu-item:last-child {margin-right:0;}
+.sider-sub-menu .sider-sub-menu-item  a {padding:0 10px;color:#28cb75;display: inline;background: none;height:26px;line-height: 26px;vertical-align: middle;}
+.sider-sub-menu .sider-sub-menu-item  a:hover {background: none;text-decoration: underline;display: inline;}
+
+#myappbox > li.hover .sider-sub-menu{display: block;}
+#myappbox > li.hover > a {background:#28cb75;color:#fff;}
+
+</style>
+<div id="sidebar" class="nav-collapse " tabindex="5000" style="outline: none;">
+    <!-- sidebar menu start-->
+    <ul class="sidebar-menu" id="nav-accordion">
+    	<li>
+             <a class="{{totalAppStatus}}" href="/apps/{{tenantName}}/">
+                 <i class="fa fa-dashboard"></i>
+                 <span>总览</span>
+             </a>
+         </li>
+         <li>
+              <!--<a href="/apps/{{tenantName}}/app-create/" class="{{createApp}}" >-->
+              <a href="/apps/{{tenantName}}/service-entrance/" class="{{createApp}}" >
+              	<i class="fa fa-plus"></i>
+              	<span>新增应用</span>
+              </a>
+         </li>
+        <li class="sub-menu">
+            <a class="fn-app-list {{myAppStatus}}" href="javascript:;">
+                <i class="fa fa-laptop"></i>
+                <span>我的应用</span></a>
+            <ul class="sub" id="myappbox">
+                {% if groupList %}
+                 	{% for group in groupList %}
+                 		<li  groupid="{{group.ID}}" {% if group.ID == group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid={{group.ID}}">{{group.group_name}}</a></li>
+                 	{% endfor %}
+                {% endif %}
+                {% if not is_private %}
+                <li class="third_app" style="display: none;"><a href="/apps/{{tenantName}}/third_app/list">第三方应用</a></li>
+                {% endif %}
+                <li groupid="-1" {% if -1 ==  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid=-1">未分组</a></li>
+            </ul>
+            <!--<a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">-->
+                <!--<i class="fa fa-laptop"></i>-->
+                <!--<span>我的应用</span></a>-->
+        </li>
+
+        {% if not is_private and cloud_assistant == 'goodrain' %}
+        <!--公有云去掉了-->
+        {% else %}
+        <li>
+            <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service/">
+                <i class="fa fa-th"></i>
+                <span>应用市场</span>
+            </a>
+        </li>
+        {% endif %}
+
+        <li > 
+        	<a class="{{teamStatus}}" href="/apps/{{tenantName}}/team/" >
+        		<i class="fa fa-group"></i>
+                <span>团队</span>
+            </a>
+        </li>
+        {% if MODULES.Finance_Center %}        
+        <li class="sub-menu">
+        	<a href="javascript:;" class="{{myFinanceStatus}}">
+            <i class="fa fa-jpy"></i>
+            <span>财务中心</span></a>            
+            <ul class="sub">
+                <!--<li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>-->
+                <li class="{{myFinanceRecharge}}"><a href="/apps/{{tenantName}}/recharge/">账户充值</a></li>
+                <li class="{{myServiceCost}}"><a href="/apps/{{tenantName}}/service-cost/">应用扣费</a></li>
+                <li class="{{batchRenew}}"><a href="/apps/{{tenantName}}/batch-renew/">批量续费</a></li>
+                <!--<li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                -->
+            </ul>
+        </li>
+        {% endif %}
+    </ul>
+    <!-- sidebar menu end-->
+</div>
+<script type="text/javascript">
+  $(function() {
+    $('#nav-accordion').dcAccordion({
+        eventType: 'click',
+        autoClose: true,
+        saveState: true,
+        disableLink: true,
+        speed: 'slow',
+        showCount: false,
+        autoExpand: true,
+//        cookie: 'dcjq-accordion-1',
+        classExpand: 'dcjq-current-parent'
+    });
+    $("#myappbox").show();
+    $("#sidebar").niceScroll({styler:"fb",cursorcolor:"#e8403f", cursorwidth: '3', cursorborderradius: '10px', background: '#404040', spacebarenabled:false, cursorborder: ''});
+
+    //创建2级菜单
+    $.ajax({
+      url: '/ajax/{{tenantName}}/groupServices',
+      type:'get',
+    }).done(function(data){
+       var subMenus = data || {};
+       for(var k in subMenus){
+          if(subMenus[k].length){
+            var html = [];
+            html.push('<div class="sider-sub-menu" subgroupid="'+k+'" style="display:none;">')
+              for(var i=0;i<subMenus[k].length;i++){
+                 html.push('<span class="sider-sub-menu-item"><a title="'+ subMenus[k][i].service_cname +'" href="/apps/{{tenantName}}/'+subMenus[k][i].service_alias+'/detail">'+ subMenus[k][i].service_cname +'</a></span>')
+              }
+            html.push('</div>')
+            $('body').append(html.join(''));
+          }
+       }
+
+    })
+
+    $('#myappbox a').on('click', function(e){
+        e.stopPropagation();
+    })
+    var timer = null;
+    $('#myappbox > li').on('mouseenter', function(e){
+       clearTimeout(timer);
+       var groupid = $(this).attr('groupid');
+       $('.sider-sub-menu').hide();
+       $('#myappbox > li').removeClass('hover');
+       $(this).addClass('hover');
+       var $subMenu = $('[subgroupid='+groupid+']');
+       $subMenu.show();
+       var offset = $(this).offset();
+       var top = offset.top - $(document).scrollTop() + $(this).outerHeight()/2;
+       $subMenu.css({top:top, left:$('#sidebar').width(),marginTop: -$subMenu.outerHeight() / 2})
+    })
+
+
+    $('body').delegate('.sider-sub-menu', 'mouseenter', function(e){
+        clearTimeout(timer);
+    })
+
+    $('body').delegate('.sider-sub-menu', 'mouseleave', function(e){
+        var groupid = $(this).attr('subgroupid');
+        var $this = $(this);
+        timer = setTimeout(function(){
+          $('[groupid='+groupid+']').removeClass('hover');
+          $this.hide();
+        },500)
+    })
+
+
+    $('#myappbox > li').on('mouseleave', function(e){
+        var $this = $(this);
+        var groupid = $(this).attr('groupid');
+        var $subMenu = $('[subgroupid='+groupid+']');
+        timer = setTimeout(function(){
+          $this.removeClass('hover');
+          $subMenu.hide();
+        },500)
+        
+    })
+
+
+});
+</script>

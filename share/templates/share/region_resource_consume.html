@@ -1,0 +1,75 @@
+{% extends 'share/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+        {% if report %}
+        <div class="panel-body">
+            <div class="addformbox">
+                <form action="/share/region/report/consume/" method="get">
+                    <input type="text" name="date" value="{{ query_month }}" placeholder="输入查询日期,例:2016-10"/>
+                    <select name="region">
+                        {% for region in regions %}
+                            <option value="{{ region.name }}">{{ region.show_name}}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="submit" value="查询">
+                </form>
+            </div>
+            <div class="table-box">
+                <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;">
+                    <thead>
+                    <tr>
+                        <td>统计维度</td>
+                        <td>租户数</td>
+                        <td>总消耗内存</td>
+                        <td>总消耗磁盘</td>
+                        <td>总消耗流量</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>按需消费</td>
+                            <td>{{ total_used_tenant }}</td>
+                            <td>{{ total_tenant_memory }}</td>
+                            <td>{{ total_tenant_disk }}</td>
+                            <td>{{ total_tenant_net }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+             <div class="table-box">
+                <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;">
+                    <thead>
+                    <tr>
+                        <td>统计维度</td>
+                        <td>租户数</td>
+                        <td>计费天数</td>
+                        <td>超量消费内存</td>
+                        <td>超量消费磁盘</td>
+                        <td>超量消费流量</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>包月消费</td>
+                            <td>{{ total_package_tenant }}</td>
+                            <td>{{ total_package_day }}</td>
+                            <td>{{ total_over_memory }}</td>
+                            <td>{{ total_over_disk }}</td>
+                            <td>{{ total_over_net }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="panel-body">
+            <h3> {{ query_month }} 消费报表未出, 请月底再尝试查询 </h3>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

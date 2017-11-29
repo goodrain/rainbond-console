@@ -1,0 +1,192 @@
+<div class="sidebar-toggle-box">
+    <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
+</div>
+<!--logo start-->
+<a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
+<!--logo end-->
+<!--tenant switch-->
+{% if tenant_list|length > 1 %}
+<div class="nav notify-row  hidden-xs" id="tenant_switch">
+    <div class="btn-group">
+        <button class="btn btn-white" type="button">{{current_tenant}}</button>
+        <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
+        <ul id="tenant_select" role="menu" class="dropdown-menu">
+            {% for tenant in tenant_list %}
+            <li><a href="/apps/{{tenant}}/">{{tenant.tenant_name}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+<!--tenant switch-->
+{% block region_zone %}
+<div class="nav notify-row" id="top_menu">
+    <div class="btn-group">
+        <button class="btn btn-white" type="button">{{current_region.label}}</button>
+        <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
+        <ul id="region_select" role="menu" class="dropdown-menu">
+            {% for region in arrival_regions %}
+                <li><a href="/apps/{{tenantName}}/?region={{region.name}}">{{region.label}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
+<div class="top-nav ">
+    <!--search & user info start-->
+    <ul class="nav top-menu">
+        <!--<li>
+            <button type="button" class="btn btn-round btn-primary" onclick="window.open('https://goodrain.kf5.com/request/new/')">提交工单</button>
+        </li>
+         -->
+         <!--li class="hidden-xs">
+           <a href="https://t.goodrain.com/" target="_blank">
+             <i class="fa fa-comment"></i>
+             <span>社区</span>
+           </a>
+         </li-->
+
+
+        <!-- user login dropdown start-->
+        <li class="dropdown">
+            <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                <!--img alt="" src="/static/www/img/avatar1_small.jpg"-->
+                <i class="glyphicon glyphicon-user"></i>
+                <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
+                <b class="caret"></b>
+            </a>
+
+            <ul class="dropdown-menu">
+                <div class="log-arrow-up"></div>
+                {% if MODULES.WeChat_Module %}
+                    {% if user.status == 0 %}
+                        <!--# 0:普通注册,未绑定微信-->
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="wxicon"></i> 绑定微信</a></li>
+                    {% endif %}
+                    {% if user.status == 1 %}
+                        <!--# 1:普通注册,绑定微信-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i> 解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 2 %}
+                        <!--# 2:微信注册,绑定微信,未补充信息-->
+                        <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i> 设置用户信息</a></li>
+                    {% endif %}
+                    {% if user.status == 3 %}
+                        <!--# 3:微信注册,绑定微信,已补充信息-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i> 解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 4 %}
+                        <!--# 4:微信注册,解除微信绑定,已补充信息-->
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i> 绑定微信</a></li>
+                    {% endif %}
+                {% endif %}
+
+                {% if MODULES.Finance_Center %}
+                    <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
+                    <!--
+                    <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
+                    {% if tenant_pay_type != "payed" %}
+                        <li><a onclick="payed_upgrade('{{tenantName}}','')"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
+                    {% endif %}
+                    -->
+                {% endif %}
+
+                <li><a href="/account/changepwd"><i class="fa fa-lock"></i> 修改密码</a></li>
+                <li class="divider"></li>
+
+                <li><a href="http://doc.goodrain.com/usage/180993" target="_blank"><i class="fa fa-file-text"></i> 新手指南</a></li>
+
+                <!--{% if is_private %}-->
+                    <!--<li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>-->
+                    <!--<li class="divider"></li>-->
+                <!--{% endif %}-->
+
+                <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
+            </ul>
+        </li>
+        <!-- user login dropdown end -->
+    </ul>
+    <!--search & user info end-->
+</div>
+<script type="text/javascript">
+    function unbindwechat() {
+        $.ajax({
+            type : "POST",
+            url : "/wechat/unbind",
+            dataType: "json",
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                console.log(msg);
+                var jsondata = eval(msg);
+                if (!jsondata.success) {
+                    showMessage(jsondata.msg);
+                    if (jsondata.code == 201) {
+                        location.href='/wechat/reset'
+                    }
+                } else {
+                    showMessage("解绑成功");
+                    // 清理页面逻辑
+                    $("li[name=wechat_li]").empty();
+                    $("<a/>").attr("href", "/wechat/bind")
+                            .attr("target", "_blank")
+                            .append($("<i/>").addClass("fa fa-usd"))
+                            .append("绑定微信").appendTo($("li[name=wechat_li]"));
+                }
+            },
+            error : function(err) {
+                console.log(err);
+                showMessage("解绑失败");
+            }
+        });
+    }
+
+    function bindwechat() {
+        var next_url = location.href;
+        location.href = "/wechat/bind?next_url" + next_url;
+    }
+
+    function payed_upgrade(tenantName,url){
+        var current_select = "company"
+        swal({
+            title:"",
+            text:"升级为付费用户，携手云帮一起迈向云计算的未来！",
+            showCancelButton : true,
+            confirmButtonColor : "#DD6B55",
+            confirmButtonText : "确定升级",
+            cancelButtonText : "我再想想",
+            closeOnConfirm : false,
+            closeOnCancel : false
+        }, function(isConfirm) {
+            if (isConfirm) {
+                $.ajax({
+                    type : "POST",
+                    url : "/payed/"+tenantName+"/upgrade",
+                    data : "current_select="+"company",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        var dataObj = msg
+                        if (dataObj["status"] == "success") {
+                            swal("操作成功")
+                            window.location.href = "/apps/"+tenantName
+                        } else {
+                            swal("操作失败")
+                        }
+                    },
+                    error : function() {
+                        // swal("系统异常");
+                    }
+                });
+            } else {
+                swal.close();
+            }
+        });
+    }
+</script>

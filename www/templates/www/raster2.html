@@ -1,0 +1,26 @@
+{% extends 'www/base2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block body %}
+    <div id="mytags" tenant="{% if tenantName %}{{ tenantName }}{% endif %}" service="{% if serviceAlias %}{{ serviceAlias }}{% endif %}" ws-topic="{% if ws_topic %}{{ ws_topic }}{% endif %}"></div>
+    <section id="container">
+        <header class="header">
+            {% block header %}
+            {% include 'www/header2.html' %}
+            {% endblock %}
+        </header>
+        <aside>
+            {% block aside %}
+            {% include 'www/aside2.html' %}
+            {% endblock %}
+        </aside>
+        <section id="main-content" class="{{curType}}">
+            {% block main-content %}
+            {% endblock %}
+        </section>
+        <footer>
+            {% include 'www/footer.html' %}
+        </footer>
+    </section>
+
+{% endblock %}

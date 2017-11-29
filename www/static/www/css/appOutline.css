@@ -1,0 +1,103 @@
+button{
+    border:none;
+}
+.appOutline{
+   
+}
+.appOutline ul.outlineTop{
+  margin: 0 -10px;
+}
+.appOutline ul.outlineTop li{
+    width: 20%;
+    float: left;
+}
+.appOutline ul.outlineTop li div{
+    margin:0 10px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    padding: 20px 0;
+}
+
+.outlineTop div p{color: #303030;} 
+.outlineTop div p:nth-child(1){
+    font-size: 16px; text-indent: 20px; text-align: left; line-height: 20px; color: #838383;
+
+}
+.outlineTop div p:nth-child(3){
+    font-size: 24px;  text-align: center; line-height: 30px; color: #303030;
+}
+.outlineTop div p.pImg{
+    width: 100%; text-align: center; height: 60px; margin: 20px 0;
+} 
+.outlineTop div p:nth-child(2) img{
+    width: 60px; height: 60px; display: block; margin: 0 auto;
+}
+.alternative{
+    padding: 20px 0 30px;
+}
+.alternative .alterLeft{
+    float: left;
+}
+.alternative .alterRight{
+    float: right;
+}
+.alternative button{
+    color: #28cb75;
+}
+.alternative .alterRight ul li.button{
+    float: right;
+    margin-left: 20px;
+}
+.alternative .alterLeft ul li.button{
+    float: left;
+}
+.alternative .alterLeft ul li.button button,select,a.bgColor{
+    margin-right: 20px;
+}
+.alternative ul button.bgColor,a.bgColor{
+    text-align: center;
+    vertical-align: middle;
+    background-color: #28cb75;
+    color: #ffffff;
+    padding:0 30px;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    line-height: 36px;
+}
+.alternative ul button.bgColorred{
+    text-align: center;
+    vertical-align: middle;
+    background-color: #f63a47;
+    color: #ffffff;
+    padding:0 30px;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    line-height: 36px;
+}
+.alternative ul a.bgColor{
+    display: block;
+}
+@media (max-width: 970px){
+    .appOutline ul.outlineTop li{
+        width: 50%; 
+        margin: 10px 0;
+    }
+}
+@media (max-width: 720px){
+    .appOutline ul.outlineTop li{
+        width: 100%; 
+        margin: 10px 0;
+        float: none;
+    }
+    .alternative .alterLeft{float: none; margin-bottom: 10px;}
+    .alternative .alterRight{float: none;}
+    .alternative .alterRight ul li.button{float: left;  margin-right: 20px; margin-left: 0;}
+}

@@ -1,0 +1,88 @@
+{% load url from future %}{% load i18n %}{% load staticfiles %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"zh-cn" }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+  {% block extrameta %}
+  <meta name="description" content="">
+  <meta name="author" content="">
+  {% endblock %}
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+  {% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE" />{% endblock %}
+  <title>{% block title %}{{CUSTOM_CONFIG.TITLE}} | 应用一键部署{% endblock %}</title>
+
+  <link rel="stylesheet" href="{% static "www/css/bootstrap.min.css" %}">
+  <link rel="stylesheet" href="{% static "www/css/bootstrap-reset.css" %}">
+  <link rel="stylesheet" href="{% static "www/assets/font-awesome/css/font-awesome.css" %}">
+  <link rel="stylesheet" href="{% static "www/css/sweetalert.css" %}">
+  <link rel="stylesheet" href="{% static "www/css/gallery.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/serprovision.css" %}">
+
+  {% block extracss %}{% endblock %}
+
+  {{ media.css }}
+
+    <!--[if lt IE 9]>
+      <script src="/static/www/js/html5shiv.js"></script>
+      <script src="/static/www/js/respond.min.js"></script>
+    <![endif]-->
+
+  {% block extrastyle %}{% endblock %}
+  <script src="{% static "www/js/jquery.min.js" %}"></script>
+  <script src="{% static "www/js/bootstrap.min.js" %}"></script>
+  <script src="{% static "www/js/sweetalert.min.js" %}"></script>
+  <script src="{% static "www/js/jquery.nicescroll.js" %}"></script>
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?1c1f39fceda87fde7543db370010af4d";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  {% block extrahead %}{% endblock %}
+
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+  {% block body %}{% endblock body %}
+  <div class="modal fade" id="modal_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+   <div class="modal-dialog">
+      <div class="modal-content">
+         <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h4 class="modal-title" id="myModalLabel">提示</h4>
+         </div>
+         <div id="modal_body" class="modal-body"></div>
+         <div id="modal_btn_list" class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+         </div>
+      </div>
+   </div>
+  </div>
+  <script type="text/javascript">
+    function showMessage(msg){
+        $('#modal_body').html(msg);
+        $('#modal_dialog').modal();
+    }
+  </script>
+  {{ media.js }}
+  {% block extrajs %}{% endblock %}
+  <!--script src="//meiqia.com/js/mechat.js?unitid=557f9c184eae356304000003" charset="UTF-8" async="async"></script-->
+  <script type='text/javascript'>
+    (function(m, ei, q, i, a, j, s) {
+        m[a] = m[a] || function() {
+            (m[a].a = m[a].a || []).push(arguments)
+        };
+        j = ei.createElement(q),
+            s = ei.getElementsByTagName(q)[0];
+        j.async = true;
+        j.charset = 'UTF-8';
+        j.src = i;
+        s.parentNode.insertBefore(j, s)
+    })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
+    _MEIQIA('entId', 5732);
+  </script>
+</body>
+
+</html>

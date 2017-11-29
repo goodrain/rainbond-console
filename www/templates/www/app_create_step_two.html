@@ -1,0 +1,383 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <!-- new start -->
+    <section class="main-box">
+        <h3 class="main-tit">从镜像创建应用</h3>
+        <div class="app-step clearfix two">
+            <p class="sed"><span>1</span><cite>创建应用</cite></p>
+            <p><span>2</span><cite>应用设置</cite></p>
+        </div>
+        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+            <input type="hidden" id="service_id" value="{{service_id}}">
+            <!-- -->
+            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+            <!-- -->
+            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- 基本信息  start-->
+            <div class="infor-fm-box">
+                <h4 class="step-tit" style="display: none;">基本信息</h4>
+                <div class="fm-input-text clearfix">
+                    <label for="create_app_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder="请输入应用名，支持中英文"  />
+                </div>
+                <p class="fm-tips" id="create_name_notice">请输入应用名！</p>
+                <div class="fm-select clearfix">
+                    <label>选择分组</label>
+                    <select id="group-name" name="select_group_id">
+                        <option value="-1">不分组</option>
+                        {% for group in groupList %}
+                        <option value="{{group.ID}}" >{{group.group_name}}</option>
+                        {% endfor %}
+                        <option value="-2">新建组</option>
+                    </select>
+                </div>
+                <div class="fm-input-text clearfix">
+                    <label for="create_app_name">镜像</label><input type="text" id="mirror-address" name="mirror-address" value="{{image_url}}" placeholder="可以输入镜像名称或者Docker run命令"  />
+                </div>
+                <p class="fm-tips" id="mirror_address_notice">请输入镜像名称或者Docker run命令</p>
+                <div class="fm-input-text clearfix" id="dockertips">
+                    <p class="dockertips" style="color: #838383;">
+                        <span>镜像名：nginx : 1.11</span>
+                        <span>Docker run 命令：docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat</span>
+                    </p>
+                </div>
+            </div>
+            <!-- 基本信息  end -->
+			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+				<a href="javascript:void(0)" class="greenbtn btn" id="mirror_first" >免费创建</a>
+			</div>			
+        </form>
+    </section>
+    <!-- new end -->
+</section>
+<script>
+$(function(){
+
+    //处理官方实例的逻辑 start
+    function getSearchQuery(){
+        var map = {};
+        var searchString = location.search.replace('?', '');
+        if(searchString.length){
+            var searchArr = searchString.split('&');
+            for(var i=0;i<searchArr.length;i++){
+                var key = decodeURIComponent(searchArr[i].split('=')[0]);
+                var val = decodeURIComponent(searchArr[i].split('=')[1]);
+                map[key] = val;
+            }
+        }
+        return map;
+    }
+    var image_url = '{{image_url}}';
+    var type = getSearchQuery().type;
+    var imageName = 'tomcat';
+    //处理官方实例的逻辑 end
+    if(type==='demo' && !image_url){
+        var html = [];
+        html.push('<select name="mirror-address" id="mirror-address">');
+            html.push('<option value="docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat">tomcat</option>');
+            html.push('<option value="docker run -d -p 2368:2368 -e PWD=1qa2ws --name=ghost_demo ghost">ghost</option>');
+            html.push('<option value="docker run -d -p 3000:3000 -e PWD=1qa2ws --name=redmine_demo redmine">redmine</option>');
+        html.push('</select>')
+
+
+        $('#mirror-address').replaceWith($(html.join('')));
+        $('#mirror-address').parent().addClass('fm-select');
+        $("#dockertips").hide();
+    }else{
+        $("#dockertips").show();
+    }
+    //处理官方实例的逻辑 end
+
+
+
+    //// ww-2016-12-6 选择 groupname start
+    //弹出层
+    function FnLayer(textTit){
+        var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
+        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
+        var oTit = '<p class="layer-tit">'+ textTit +'</p>';
+        var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
+        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+        $("body").append(oDiv);
+        $("div.layermain").append(oCloseBtn,oTit);
+        $("div.layermain").append(oInput);
+        $("div.layermain").append(oLink);
+        $(".fn-close").click(function(){
+             $("div.layerbg").remove();
+             $(".input-css input").prop("value","");
+             $("#group-name").find("option[value='-1']").prop("selected",true);
+        });
+        $(".fn-sure").click(function(){
+            if(inputText == ""){
+                swal("您还没有输入组名！")
+                return false;
+            }else{
+                var inputText = $(".input-css input").val();
+                var tenant_name = $("#tenantName").val();
+                ///ajax start
+
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/" + tenant_name  + "/group/add",
+                    data : {
+                        group_name : inputText
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if(msg.ok){
+                            var  group_id = msg.group_id;
+                            var  group_name = msg.group_name;
+                            var  Option = "<option value=" +  group_id + ">" + group_name + "</option>";
+                            $("div.layerbg").remove();
+                            $(".input-css input").prop("value","");
+                            $("#group-name option").eq(0).after(Option);
+                            $("#group-name option").each(function(){
+                                var oVal = $(this).prop("value");
+                                if(oVal == group_id){
+                                    $(this).prop("selected",true);
+                                }
+                            });
+                        }else{
+                            swal(msg.info);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+                
+                ///ajax end
+            }
+              
+        });   
+    }
+    //  弹出层
+    $("#group-name").change(function(){
+     var groupName=$("#group-name option:selected").val();
+        //console.log(groupName);
+        if(groupName == -2) {
+            FnLayer("请输入新增组名");  
+        }
+    });
+    //// ww-2016-12-6 选择 groupname end 
+    
+    // 01 输入用户名
+    $('#create_name').blur(function(){
+        var appName = $(this).val();
+        //var checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/;
+        //var result = true;
+        if(appName == ""){
+            $('#create_name_notice').slideDown();
+            return;
+        }else{
+            $('#create_name_notice').slideUp();
+        }
+    });
+    // 01 end 
+    //  镜像地址 start
+    $('#mirror-address').blur(function(){
+        var mirrorName = $(this).val();
+        if(mirrorName == ""){
+            $('#mirror_address_notice').slideDown();
+            return;
+        }else{
+            $('#mirror_address_notice').slideUp();
+        }
+    });
+    // 镜像地址  end
+
+    /// 从镜像地址提交 
+    $("#mirror_first").click(function(){
+        $(this).attr("disable",true);
+        var appname = $("#create_name").val();
+        var groupname = $("#group-name option:selected").html();
+        var groupid = $("#group-name option:selected").attr("value");
+        var service_code_from = "gitlab_new";
+        var myWay = $(".fn-way").attr("data-action");
+        var code_url;
+        var code_id;
+        var code_branch;
+        var code_branch_id;
+        if(appname == ""){
+            $("#create_name_notice").show();
+            return;
+        }else{
+            $("#create_name_notice").hide();
+        }
+        var image_url = $('#mirror-address').val();
+        if(image_url == ""){
+            $('#mirror_address_notice').slideDown();
+            return;
+        }else{
+            $('#mirror_address_notice').slideUp();
+        }
+
+//        $('#mirror-address').blur(function(){
+//            var mirrorName = $(this).val();
+//            if(mirrorName == ""){
+//                $('#mirror_address_notice').slideDown();
+//                return;
+//            }else{
+//                $('#mirror_address_notice').slideUp();
+//            }
+//        });
+        ///
+        $("#mirror_first").attr('disabled', true);
+        var tenantName= $('#tenantName').val();
+        $.ajax({
+            type : "post",
+            url : "/apps/" + tenantName + "/image-create/",
+            data : {
+                "create_app_name" : appname,
+                "groupname" : groupname,
+                "select_group_id" : groupid,
+                "image_url" : image_url
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "over_memory") {
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
+                } else if (dataObj["status"] == "over_money") {
+                    swal("余额不足，不能创建");
+                } else if (dataObj["status"] == "empty") {
+                    swal("应用名称不能为空");
+                }else if (dataObj["status"] == "success") {
+                    var id = dataObj["id"];
+                    var params_val = dataObj["params"];
+                    window.location.href = "/apps/"+tenantName+"/image-params?id="+id+"&params="+params_val;
+                }else if (dataObj["status"] == "failure"){
+                    swal("创建失败");
+                }else if(dataObj["status"] == "owed"){
+                    swal("您已欠费,请及时充值");
+                }else if(dataObj["status"] == "no_image_url"){
+                    swal("请填写镜像路径")
+                }
+                else {
+                    swal("创建失败");
+                }
+                $("#mirror_first").attr('disabled', false);
+            },
+            error : function() {
+                swal("系统异常,请重试");
+                $("#mirror_first").attr('disabled', false);
+            }
+        });
+        ///
+
+    }); 
+    /// 从镜像地址提交
+    
+
+    ////tips
+    $(".fn-tips").mouseover(function(){
+        var tips = $(this).attr("data-tips");
+        var pos = $(this).attr("data-position");
+        var x = $(this).offset().left;
+        var y = $(this).offset().top;
+        var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+        $("body").append(oDiv);
+        var oDivheight = $(".tips-box").height();
+        var oDivwidth = $(".tips-box").width();
+        var othiswid = $(this).width();
+        var othisheight = $(this).height();
+        if(pos){
+            if(pos == "top"){
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }else if(pos == "bottom"){
+                //
+                $(".tips-box").css({"top":y + othisheight + 25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                $(".tips-box").find("cite").addClass("bottom");
+                //
+            }else if(pos == "left"){
+                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                 $(".tips-box").find("cite").addClass("left");
+            }else if(pos == "right"){
+                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                 $(".tips-box").find("cite").addClass("right");
+            }else{
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }         
+        }else{
+            //
+            $(".tips-box").css({"top":y-oDivheight -25});
+            if(oDivwidth > othiswid){
+                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+            }else if(oDivwidth < othiswid){
+                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+            }else{
+                $(".tips-box").css({"left":x});
+            }
+            $(".tips-box").find("cite").addClass("top");
+            //
+        }
+        
+    });
+    $(".fn-tips").mouseout(function(){
+        $(".tips-box").remove();
+    });
+    ////tips end
+
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice();
+    });
+    /* ljh 2017-03-07 */
+});
+</script>
+{% endblock %}

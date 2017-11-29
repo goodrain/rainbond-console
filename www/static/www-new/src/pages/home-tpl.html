@@ -1,0 +1,135 @@
+<!-- 公告 start -->
+<div class="alert alert-info news">
+	<span class="glyphicon glyphicon-chevron-down news-icon news-down"></span>
+	<span class="glyphicon glyphicon-chevron-up news-icon news-up"></span>
+	<div class="news-list">
+		<div class="table-row">
+			<div class="news-item">
+				尊敬的用户，您对当前版本的控制台有哪些意见或建议？<a href="http://goodrain123.mikecrm.com/IaIsFX9" target="_blank" style="cursor:pointer;">请点击这里进行反馈。</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- 免费使用阶段 -->
+<!--
+{{ if pageData.pay_type == "free" }}
+<div class="alert alert-info"><a href="/apps/{{tenantName}}/recharge/" target="_blank">现在去充值</a>升级为付费用户，获得更多的资源支持及更好的服务支持。</div>
+{{/if}}
+-->
+<!-- 付费使用阶段 -->
+<!--
+{{ if pageData.pay_type == "payed" &&  pageData.tenant_balance < 20 && pageData.tenant_balance > 0 }}
+<div class="alert alert-warning">您的账户余额偏低，为保证应用的持续稳定运行，<a href="/apps/{{tenantName}}/recharge/" target="_blank">请点击此处充值</a>。</div>
+{{/if}}
+{{if pageData.pay_type == "payed" && pageData.tenant_balance < 0 }}
+<div class="alert alert-danger">您需要<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a>才能重新开启欠费应用。</div>
+{{/if}}
+-->
+
+<div class="flex-box">
+		<div class="flex-singe">
+			<div class="chunkbox">
+  			<p class="top">内存</p>
+			<p class="mid mainbg01"></p>
+			<p class="bot" id="service_total_memory">-</p>
+		</div>
+		</div>
+		<div class="flex-singe">
+  		<div class="chunkbox">
+  			<p class="top">{{pageData.tenant_balance > -1 ? '余额' : '已欠费'}}</p>
+			<p class="mainbg02 mid"></p>
+			<p class="bot">{{pageData.tenant_balance}}元</p>
+		</div>
+		</div>
+		<div class="flex-singe">
+			<div class="chunkbox">
+  			<p class="top">应用</p>
+			<p class="mainbg03 mid"></p>
+			<p class="bot">{{pageData.total_app_number}}个</p>
+		</div>
+		</div>
+		<div class="flex-singe">
+  		<div class="chunkbox">
+  			<p class="top">团队</p>
+			<p class="mainbg04 mid"></p>
+			<p class="bot">{{pageData.totalNum}}人</p>
+		</div>
+		</div>
+</div>
+<!-- -->
+<!-- -->
+<section class="panel panel-default">
+	<div class="panel-heading clearfix">
+		全部应用
+    </div>
+    <div class="panel-body">
+    	<form id="search-app-form" class="form-inline" style="text-align: right;margin-bottom: 20px;">
+    		<button onclick="window.location.href='/apps/{{tenantName}}/service-entrance/'" class="btn btn-success pull-left" type="button">新建应用</button>
+      		<div class="form-group hidden-xs" style="position: relative;">
+      			<i class="fa fa-search" style="position: absolute;left:6px;top:10px;"></i>
+	        	<input type="text" class="form-control" id="search-key" placeholder="请输入应用名称" style="padding-left: 25px;min-width: 200px;">
+      		</div>
+      		<button type="submit" id="search-app" class="btn btn-success hidden-xs"> 搜索</button>
+    	</form>
+		<table id="table" class="table" style="border-top:1px solid #f5f5f5;">
+			<thead>
+				<tr class="active">
+					<th>名称</th>
+					<th class="hidden-xs">内存</th>
+					<th>状态</th>
+					<th class="hidden-xs">组</th>
+					<th class="hidden-xs">类型</th>
+					<th class="hidden-xs">版本</th>
+					<!--
+					<th>操作</th>
+					-->
+				</tr>
+			</thead>
+			<tbody>
+				{{each apps.sorted_service_list || []}}
+				<tr class="app-table-row" data-name="{{$value.service_cname}}">
+					<td>
+						<a href="/apps/{{tenantName}}/{{$value.service_alias}}/detail/">{{$value.service_cname}}</a>	
+					</td>
+					<td id="service_memory_{{$value.service_id}}" class="hidden-xs">-</td>
+					<td id="service_status_{{$value.service_id}}"><span class="pading5">-</span></td>
+					<td class="hidden-xs">
+						{{$value.group_name}}
+					</td>
+					<td class="hidden-xs">{{$value.service_type}}</td> 
+					<td class="hidden-xs">
+
+						{{if $value.category == "application" }}
+							{{$value.deploy_version}}
+						{{else}}
+							{{$value.version}}					
+						{{/if}}
+					</td>
+				</tr>
+				{{/each}}
+
+				{{each apps.unsorted_service_list || []}}
+				<tr class="app-table-row" data-name="{{$value.service_cname}}">
+					<td>
+						<a href="/apps/{{tenantName}}/{{$value.service_alias}}/detail/">{{$value.service_cname}}</a>
+					</td>
+					<td id="service_memory_{{$value.service_id}}" class="hidden-xs">-</td>
+					<td id="service_status_{{$value.service_id}}"><span class="pading5">-</span></td>
+					<td class="hidden-xs">
+						{{$value.group_name}}
+					</td>
+					<td class="hidden-xs">{{$value.service_type}}</td>
+					<td class="hidden-xs">
+						{{if $value.category == "application" }}
+							{{$value.deploy_version}}
+						{{else}}
+							{{$value.version}}					
+						{{/if}}
+					</td>
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+	</div>
+</section>

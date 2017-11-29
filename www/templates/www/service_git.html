@@ -1,0 +1,233 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <div class="col-lg-6">
+      <section class="panel">
+        <header class="panel-heading">代码仓库</header>
+        <div class="panel-body">
+          <div class="row">
+            <label class="col-xs-2 control-label">仓库地址</label>
+            <label class="col-xs-10 control-label">{{httpUrl}}</label>
+          </div>
+          <div class="row">
+            <label class="col-xs-2"></label>
+            <label class="col-xs-10 text-danger">代码仓库的账号是您注册的邮箱，密码与平台登陆密码一致</label>
+          </div>
+        </div>
+
+        <header class="panel-heading">如果已经提交代码，可以   <button type="button" class="btn btn-info" id="onekey_deploy" onclick="service_oneKeyDeploy('application','{{serviceAlias}}','{{tenantName}}','yes');">一键部署</button></header>
+        <header class="panel-heading">如果不知道如何提交代码，请 <a href="http://doc.goodrain.com/usage/181959" target="_black">参阅文档</a></header>
+    </section>
+  </div>
+  <div class="col-lg-6">
+    <section class="panel">
+    <header class="panel-heading">各开发语言关于 “一键部署” 的说明</header>
+    <div class="panel-body">
+    <div class="tab-content">
+      <div class="tab-pane active" id="tab_1">
+        <div class="panel-group" id="accordion1">
+
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h4 class="panel-title"><a href="#accordion1_1" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">PHP &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_1" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>源代码目录需要有<font color="red">index.php</font>或<font color="red">composer.json</font>文件</p>
+                <h4>运行</h4>
+                <p>目前支持 Apache 和 Nginx 两种 Web 服务器，如果源代码根目录没有 <font color="red">Procfile</font> 文件来定义启动命令，系统默认会使用 Apache。如果用Nginx可以将Procfile写成如下格式：</p><pre>web:&nbsp;vendor/bin/heroku-php-nginx</pre>
+                <p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181942">php文档</a> ]</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h4 class="panel-title"><a href="#accordion1_2" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">Java &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_2" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>java应用程序使用Maven进行构建，源代码根目录需要有<font color="red">pom.xml</font>文件</p>
+                <h5>&nbsp;- 基于jetty的webapp</h5><p class="text-info"> 将下面的内容添加到pom.xml文件中</p>
+<pre>&lt;build&gt;
+  &lt;plugins&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
+      &lt;version&gt;2.3&lt;/version&gt;
+      &lt;executions&gt;
+        &lt;execution&gt;
+          &lt;phase&gt;package&lt;/phase&gt;
+          &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
+          &lt;configuration&gt;
+            &lt;artifactItems&gt;
+              &lt;artifactItem&gt;
+                &lt;groupId&gt;org.mortbay.jetty&lt;/groupId&gt;
+                &lt;artifactId&gt;jetty-runner&lt;/artifactId&gt;
+                &lt;version&gt;7.5.4.v20111024&lt;/version&gt;
+                &lt;destFileName&gt;jetty-runner.jar&lt;/destFileName&gt;
+              &lt;/artifactItem&gt;
+            &lt;/artifactItems&gt;
+          &lt;/configuration&gt;
+        &lt;/execution&gt;
+      &lt;/executions&gt;
+    &lt;/plugin&gt;
+  &lt;/plugins&gt;
+&lt;/build&gt;
+</pre>
+
+                  <h5> - 基于tomcat的webapp</h5>
+                  <p class="text-info"> 将下面的内容添加到pom.xml文件中</p>
+<pre>&lt;build&gt;
+  &lt;plugins&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
+      &lt;version&gt;2.3&lt;/version&gt;
+      &lt;executions&gt;
+        &lt;execution&gt;
+          &lt;phase&gt;package&lt;/phase&gt;
+          &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
+          &lt;configuration&gt;
+            &lt;artifactItems&gt;
+              &lt;artifactItem&gt;
+                &lt;groupId&gt;com.github.jsimone&lt;/groupId&gt;
+                &lt;artifactId&gt;webapp-runner&lt;/artifactId&gt;
+                &lt;version&gt;7.0.57.2&lt;/version&gt;
+               &lt;destFileName&gt;webapp-runner.jar&lt;/destFileName&gt;
+              &lt;/artifactItem&gt;
+            &lt;/artifactItems&gt;
+          &lt;/configuration&gt;
+        &lt;/execution&gt;
+      &lt;/executions&gt;
+    &lt;/plugin&gt;
+  &lt;/plugins&gt;
+&lt;/build&gt;
+</pre>
+
+                  <h4>运行</h4>
+                  <p>源码跟目录需要有<font color="red">Procfile</font> 文件来定义启动命令，下面根据jetty和tomcat定义不同的启动命令：</p>
+                  <table class="table table-striped">
+                    <tbody>
+                    <tr><td>jetty</td>
+                        <td>web: java $JAVA_OPTS -jar target/dependency/jetty-runner.jar --port $PORT target/*.war</td>
+                    </tr>
+                    <tr>
+                        <td>tomcat</td>
+                        <td>web: java $JAVA_OPTS -jar target/dependency/webapp-runner.jar --port $PORT target/*.war</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <p class="text-right">更多文档参见 </p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181925">java支持文档</a> ]</p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181928">部署基于jetty的java应用程序</a> ]</p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181927">部署基于tomcat的java应用程序</a> ]</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h4 class="panel-title">
+              <a href="#accordion1_3" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">Python &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_3" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>源代码根目录需要有<font color="red">requirements.txt</font>或<font color="red">setup.py</font>文件</p>
+                <h4>运行</h4>
+                <p>需要用户在代码根目录创建&nbsp;<font color="red">Procfile</font>&nbsp;文件来指定启动应用的命令，该文件是普通的文本文件，类似的内容如下：</p><pre>web: gunicorn APP_MODULE --log-file - --access-logfile - --error-logfile -</pre>
+                <p class="text-warning">注意:</p><br>
+                <font color="blue">APP_MODULE</font> 指定 wsgi 应用程序文件,书写格式&nbsp;<font color="green">$(MODULE_NAME):$(VARIABLE_NAME)</font><br><br>
+
+                <font color="blue">MODULE_NAME</font> 用来指定将要运行的 wsgi 应用程序文件。如当前目录 myapp 目录下有个 Python 包  gunicorn_app, gunicorn_app包下有一个wsgi 应用程序文件 test.py 则MODULE_NAME可以直接写成 gunicorn_app.test。
+
+                <br><br>
+                <font color="blue">VIRIABLE_NAME</font>表示在 MODULE_NAME 文件中要调用的对象(是一个WSGI callable, 可以是一个函数,类详情参看<a href="http://www.cnblogs.com/ArtsCrafts/p/wsgi.html"> WSGI规格说明书 </a>)名。</p>
+                <p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181940">python文档</a> ]</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h4 class="panel-title"><a href="#accordion1_4" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">Ruby&nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_4" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>源代码根目录需要有<font color="red">Gemfile</font>文件，即便没有任何gem依赖也需要有一个空的Gemfile文件</p>
+                <h4>运行</h4>
+                <p>代码跟目录中的<font color="red">Procfile</font> 文件定义应用的启动命令，Rails或Rack应用如果没有该文件会<font color="red">默认</font>使用如下的命令启动：</p>
+                <table class="table table-striped">
+                  <tbody>
+                  <tr><td>Rails 4.x</td><td>web: bundle exec bin/rails server -p $PORT -e $RAILS_ENV</td></tr>
+                  <tr><td>Rails 3.x</td><td>web: bundle exec rails server -p $PORT</td></tr>
+                  <tr><td>Rails 2.x</td><td>web: bundle exec ruby script/server -p $PORT</td></tr>
+                  <tr><td>Rack</td><td>web: bundle exec rackup config.ru -p $PORT</td></tr>
+                  </tbody>
+                </table>
+                <p class="text-warning">注意：</p>
+                <p>生产环境建议使用<a href="http://puma.io">puma</a>做为ruby应用的web server，Procfile的写法参见 [<a href="http://code.goodrain.com/demo/ruby-sinatra/tree/master" target="_blank">ruby-sinatra</a>] 或 [<a href="http://code.goodrain.com/demo/ruby-rails/tree/master" target="_blank"> ruby-rails</a>] 代码示例。</p><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181932">ruby文档</a> ]</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h4 class="panel-title"><a href="#accordion1_5" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">NodeJS &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_5" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>源代码目录需要有<font color="red">package.json&nbsp;</font>文件，如果不存在请使用 npm init 命令创建并配置需要的依赖和其它信息。</p>
+                <h4>运行</h4>
+                <p>Procfile 文件不是必须的，系统会检查 package.json 里的 scripts.start 项，如果存在，系统会自动创建 Procfile 。点击查看 <a href="http://doc.goodrain.com/usage/181950" target="_blank">package.json 文件</a>中的 scripts.start 示例。否则，用户需要自行创建 Procfile 来指定应用启动命令，如：</p>
+                <pre>web: node app.js</pre><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181949">Node.js文档</a> ]</p>
+              </div>
+            </div>
+          </div>
+          <!--
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h4 class="panel-title"><a href="#accordion1_6" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">Golang &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_6" style="height: 0px;">
+              <div class="panel-body">
+                <h4>语言识别</h4>
+                <p>源代码目录需要有<font color="red">&nbsp;.go&nbsp;</font>文件，这样平台才能识别出 Go 语言应用</p>
+                <h4>运行</h4>
+                <p>通过 Procfile 文件来指定应用启动方式：</p>
+                <pre>$ echo 'web: demoapp' &gt; Procfile</pre>
+                <p>早期的 go 语言支持要求在项目根目录下创建一个 .godir 文件来指定编译后的二进制文件名：</p>
+                <pre>$ echo 'go-hello' &gt; .godir</pre><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181947">Go文档</a> ]</p>
+              </div>
+            </div>
+          </div> -->
+
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h4 class="panel-title">
+              <a href="#accordion1_7" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">其他 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</a></h4>
+            </div>
+            <div class="panel-collapse collapse" id="accordion1_7" style="height: auto;">
+              <div class="panel-body"><a href="http://doc.goodrain.com/usage/181923" target="_blank"> 更多语言支持文档... </a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</div>
+
+</section>
+
+
+{% endblock %}

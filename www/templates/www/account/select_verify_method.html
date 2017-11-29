@@ -1,0 +1,39 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<header class="header white-bg">
+    <!--logo start-->
+    <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
+    <!--logo end-->
+</header>
+<div class="container">
+    <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="{{ form_action }}" method="post">{% csrf_token %}
+        <h2 class="form-signin-heading">{{title}}</h2>
+        <div class="login-wrap">
+            <div class="controls form-group">
+                <select class="select form-control" id="id_machine_region" name="verify_method">
+                    {% for method in methods %}
+                    <option value="{{ method.value }}">{{method.desc}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-actions"><input type="submit" name="send_reset_password" value="下一步" class="btn btn-success  btn-lg btn-block"> </div>
+        </div>
+        
+    </form>
+</div>
+
+
+{% endblock %}

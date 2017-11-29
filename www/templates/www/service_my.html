@@ -1,0 +1,38 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load goodrain_extras %}
+{% block extracss %}
+{{ block.super }}
+{% endblock %}
+{% block main-content %}
+<style type="text/css">
+	.news {padding-top:0;padding-bottom:0;position: relative;overflow:hidden;height:40px;}
+	.news-list {position:absolute;left:0;top:0;right:15px;visibility:hidden;}
+	.news-item {padding-left:10px;min-height: 40px;display: table-cell;width:100%;vertical-align: middle;}
+	.table-row {display: table-row;}
+	.news .news-icon{    
+		position: absolute;
+    right: 10px;
+    top: 50%;
+    margin-top: -8px;
+    cursor: pointer;
+    display: none;
+    z-index: 9;
+	}
+</style>
+<section id="home-wrap" class="wrapper site-min-height">
+	
+	
+</section>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/home.js"></script>
+<script type="text/javascript">
+  var controller = new HomeController({
+  	$wrap: $('#home-wrap'),
+    tenantName: '{{tenantName}}'
+  })
+  controller.ready();
+</script>
+
+{% endblock %}

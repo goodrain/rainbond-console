@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load staticfiles %}
+<html lang="{{ LANGUAGE_CODE|default:'zh-cn'}}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="robots" content="NONE,NOARCHIVE" />
+
+    <title>云帮企业版·创建管理员账号</title>
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
+    <link rel="stylesheet" href="{% static 'www/css/bootstrap.min.css' %}">
+
+    <!--[if lt IE 9]>
+    <script src="{% static 'www/js/html5shiv.js' %}"></script>
+    <script src="{% static 'www/js/respond.min.js' %}"></script>
+    <![endif]-->
+
+    <script src="{% static 'www/js/jquery.min.js' %}"></script>
+    <script src="{% static 'www/js/bootstrap.min.js' %}"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="navbar-header">
+        <a class="navbar-brand pull-left" href="/">
+            <img style="height: 38px;" src='{% static "www/images/yunbanglogo.png" %}'>
+        </a>
+        <span class="hidden-xs pull-left" style="padding-top:30px; ">云帮·企业版</span>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="text-center row">
+        <div style="padding-top: 30px;">
+            <h1>创建管理员账号</h1>
+        </div>
+    </div>
+    <div class="row">
+        <form class="form-signin-w form-signin-reg-w center-block"
+              enctype="multipart/form-data"
+              action=""
+              style="width: 50%;text-align: center;"
+              method="post">
+            {% crispy form %}
+        </form>
+    </div>
+</div>
+</body>
+</html>

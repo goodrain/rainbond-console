@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proxy</title>
+    <script type="text/javascript" src="/static/www/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/www/js/jquery.cookie.js"></script>
+    <script type="text/javascript">
+        document.domain = 'goodrain.com';
+        function remote_submit(email, password, next_url) {
+            $.ajax({
+                type : "POST",
+                url : "/app_login",
+                data : {
+                    "email": email,
+                    "password": password,
+                    "next_url": next_url
+                },
+                dataType: "json",
+                cache : false,
+                success : function(msg) {
+                    var jsondata = eval(msg);
+                    if (jsondata.success) {
+//                        alert(jsondata.ticket);
+                        window.top.login_success(jsondata.ticket);
+                    } else {
+//                        alert(jsondata.msg);
+                        window.top.login_failed(jsondata.msg);
+                    }
+                },
+                error : function(err) {
+//                    alert("请求异常!");
+                    window.top.login_failed("请求异常,请刷新界面后重新登录!");
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>

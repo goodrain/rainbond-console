@@ -1,0 +1,180 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content %}
+
+<div class="tab-content">
+	<div class="container-fluid" id="container-fluid">
+		<div class="col-md-10"
+			style="border-right: thin; border-right-color: #eee; border-right-style: solid; margin-top: 5px; padding: 0 40px;">
+			<h4>服务管理</h4>
+		    <form class="exform" enctype="multipart/form-data" action="" method="post">
+		        {% csrf_token %}
+		    	<div class="form-group">
+					<label for="business" class="col-sm-5 control-label">服务key</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="service_key" name="service_key" placeholder="服务key">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">名称</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="service_name" name="service_name" placeholder="服务名">
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">图片</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="pic" name="pic" placeholder="图片">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">简介</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="info" name="info" placeholder="简介"></textarea>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">描述</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="desc" name="desc" placeholder="描述"></textarea>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">状态</label>
+					<div class="col-sm-7">
+						<select class="form-control" id="status" name="status" >
+							<option value="published" selected="selected">published</option>
+						</select>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">分类</label>
+					<div class="col-sm-7">
+						<select class="form-control" id="category" name="category" >
+							<option value="application" selected="selected">application</option>
+							<option value="cache">cache</option>
+							<option value="cache">store</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">是否服务</label>
+					<div class="col-sm-7">
+						<select class="form-control" id="is_service" name="is_service" >
+							<option value="0" selected="selected">false</option>
+							<option value="1">true</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">是否web服务</label>
+					<div class="col-sm-7">
+						<select class="form-control" id="is_web_service" name="is_web_service" >
+							<option value="0" selected="selected">false</option>
+							<option value="1">true</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">镜像</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="image" name="image" placeholder="镜像">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">伸缩方式</label>
+					<div class="col-sm-7">
+						<select class="form-control" id="extend_method" name="extend_method" >
+							<option value="stateless" selected="selected">stateless</option>
+							<option value="vertical">vertical</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">启动参数</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="cmd" name="cmd" placeholder="启动参数"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">设置</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="setting" name="setting" placeholder="设置"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">环境变量</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="env" name="env" placeholder="环境变量"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">依赖服务</label>
+					<div class="col-sm-7">
+						<textarea rows="3" cols="30" class="form-control" id="dependecy" name="dependecy" placeholder="依赖服务"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">启动个数</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="min_node" name="min_node" placeholder="启动个数">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">cpu数</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="min_cpu" name="min_cpu" placeholder="cpu数">
+					</div>
+				</div>				
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">内存</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="min_memory" name="min_memory" placeholder="内存大小单位(M)">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="desc" class="col-sm-5 control-label">内部端口</label>
+					<div class="col-sm-7">
+						<input type="text" class="form-control" id="inner_port" name="inner_port" placeholder="内部端口">
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-offset-2 col-sm-9">
+						 <input type="button" id="submit1" class="btn btn-primary" onclick=createService('{{tenantName}}') value="完成" />
+					</div>
+				</div>
+		    </form>
+		</div>
+	</div>
+</div>
+
+
+<script type="text/javascript">
+
+function createService(tenantName){
+	var service_name = $("#service_name").val();
+	var serviceAlias = $('#mytags').attr('service');
+	var desc =$("#desc").val();	
+	var _data = $("form").serialize(); 
+   	$.ajax({
+     	  type: "post",  
+		  url: "/apps/"+tenantName+'/' + serviceAlias + "/manage/", 		  
+		  data: _data,
+		  cache: false,
+	  	  success: function(msg) {
+	  		swal(msg)
+		  },
+		  error: function(){
+			swal("系统异常");
+    	  	}
+     })
+}
+
+</script>
+
+{% endblock %}

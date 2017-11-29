@@ -1,0 +1,14 @@
+.pay-renew-form {display: none;}
+.pay-renew-form .control-label {width:105px!important;}
+
+/* 已包月提示图标样式 */
+.status-tip{
+	border: 1px solid #e16e3c;
+    color: #e16e3c;
+    border-radius: 2px;
+    display: inline-block;
+    padding: 2px;
+    font-size: 12px;
+    line-height: 1em;
+    vertical-align: middle;
+}

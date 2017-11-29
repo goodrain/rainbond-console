@@ -1,0 +1,26 @@
+{% extends 'www/raster2.html' %} 
+{% load i18n %} 
+{% load goodrain_extras %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+{% endblock %}
+{% block extrajs %}
+{% endblock %}
+{% block main-content %}
+
+<section id="batch-renewal-wrap" class="wrapper site-min-height pay-renew">
+
+
+</section>
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/pay-renew.js"></script>
+<script type="text/javascript">
+  var controller = new PayController({
+  	$wrap: $('#batch-renewal-wrap'),
+    tenantName: '{{tenantName}}'
+  })
+  controller.ready();
+</script>
+
+{% endblock %}

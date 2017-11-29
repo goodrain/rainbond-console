@@ -1,0 +1,82 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+    {{ block.super }}
+    <link rel="stylesheet" href='{% static "www/css/process.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <div>
+    <h2 class="main-tit ">分享{{tenantServiceInfo.service_cname}}至云市</h2>
+    <h3>设置应用部署变量</h3>
+    <!-- 01 -->
+    <div class="content-tab">
+        <h3 class="tit-two">环境变量设置</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>可修改</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for env in env_list %}
+            <tr>
+                <td>{{env.attr_name}}</td>
+                <td><input type="checkbox" data-id="{{env.ID}}"
+                           {% if env.is_change %}checked="checked"{% endif %}
+                           onclick="change_checked(this);"></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="linkbox">
+
+        <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step1" class="greenbtn">上一步</a>-->
+        <a href="#" onclick="submit_button()" class="greenbtn">下一步</a>
+
+    </div>
+    <form method="POST" id="env_form">
+        {% csrf_token %}
+        <input type="hidden" name="env_ids" value="{{env_ids}}">
+        {% for env in env_list %}
+        <input type="hidden" name="{{env.ID}}" value="{% if env.is_change %}1{% else %}0{% endif %}" />
+        {% endfor %}
+    </form>
+</div>
+</section>
+
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
+<script type="text/javascript">
+    //    $(function () {});
+    function change_checked(obj){
+        var env_id = $(obj).attr("data-id");
+        var result = $(obj).is(':checked');
+        if (result){
+            $("#env_form > input[name=" + env_id + "]").val(1);
+        }
+        else {
+            $("#env_form > input[name=" + env_id + "]").val(0);
+        }
+
+    }
+    function submit_button() {
+        $("#env_form").submit();
+    }
+</script>
+{% endblock %}
+
+
+
+
+

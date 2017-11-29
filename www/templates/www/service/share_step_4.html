@@ -1,0 +1,140 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load goodrain_extras %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/setbox.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <p><span style="font-size: 22px; font-weight: 200; line-height: 30px; color: #28cb75; padding-top: 15px;" id="appname">{{tenantServiceInfo.service_cname}}</span></p>
+     <header class="panel-heading "style="display: none">
+            <ul class="nav nav-pills" id="nav-tabs">
+                <li {% if fr = "deployed" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
+                </li>
+                 <!--
+                {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
+                -->
+                <li {% if fr = "relations" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a>
+                </li>
+                 <!--
+                {% endif %}
+                -->
+                {% if MODULES.Monitor_Control %}
+                <li class="dropdown {% if fr == 'statistic' %} active {% endif %}">
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">监控</a>
+                    <!--
+                    {% if hasHttpServices or tenantServiceInfo.service_type == 'mysql' %}
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic"
+                       class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
+                        <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">历史走势</a></li>
+                    </ul>
+                    {% else %}
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
+                    {% endif %}
+                    -->
+                </li>
+                {% endif %}
+                <li {% if fr = "log" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a>
+                </li>
+                <li {% if fr = "settings" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a>
+                </li>
+                {% if tenantServiceInfo.category = "application" %}
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1">分享</a>
+                </li>
+                {% endif %}
+            </ul>
+        </header>
+    
+    <!-- -->
+    
+    <h2 class="main-tit ">设置应用套餐</h2>
+    <div class="content-tab">
+        <form class="form-horizontal" action="" method="post" id="package_form">
+            {% csrf_token %}
+            <input type="hidden" id="tenant_name" name="tenant_name" value="{{tenant_name}}"/>
+            <input type="hidden" id="service_alias" name="service_alias" value="{{service_alias}}"/>
+            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}"/>
+            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}"/>
+            <input type="hidden" id="dep_service_model" name="dep_service_model" value="{{dep_service_model}}"/>
+            <!--  已有列表-->
+            <ul class="oldlist" id="oldlistbox">
+                {% for package in service_package %}
+                <li id="01" data-id="{{package.ID}}">
+                    <div class="textlist">
+                        <p><span>套餐名称:</span>
+                            <cite data-value="{{package.name}}">{{package.name}}</cite>
+                        </p>
+                        <p><span>内存需求:</span>
+                            <cite data-value="{{package.memory}}">{{package.memory}}M</cite></p>
+                        <p><span>节点要求:</span>
+                            <cite data-value="{{package.node}}">{{package.node}}个</cite></p>
+                        <p><span>试用时长:</span>
+                            <cite data-value="{{package.trial}}">{{package.trial}}天</cite></p>
+                        <p><span>订价:</span>
+                            <cite data-value="{{package.price}}">{{package.price}}元／月</cite></p>
+
+                        {% with service_package_map|mkey:package.ID as dep_service_list %}
+                            {% for dep_service in dep_service_list %}
+                            <p><span>依赖服务{{dep_service.service_cname}}:</span>
+                                <cite data-memory="{{dep_service.memory}}"
+                                      data-node="{{dep_service.node}}"
+                                      data-version="{{dep_service.app_version}}"
+                                      data-alias="{{dep_service.service_alias}}"
+                                      data-key="{{dep_service.service_key}}"
+                                      data-dep="dep">
+                                    内存: {{dep_service.memory}}M,
+                                    节点: {{dep_service.node}}个</cite>
+                            </p>
+                            {% endfor %}
+                        {% endwith %}
+
+                        <div class="total">
+                            本套餐在云市的最终价格为
+                            <span data-value="{{package.total_price}}">{{package.total_price}}元／月</span>
+                        </div>
+                        <div class="litlinkbtn">
+                            <a href="javascript:;" class="litbluebtn resivebtn">修改</a>
+                            <a href="javascript:;" class="litredbtn removebtn">删除</a>
+                        </div>
+                    </div>
+                    <div class="refmbox"></div>
+                </li>
+                {% endfor %}
+            </ul>
+            <!-- 新增套餐  表单 -->
+            <div id="addbox"></div>
+            <!-- 新增套餐  按钮 -->
+            <a href="javascript:;" class="greenbtn" id="addbtn">新增套餐</a>
+            <!-- 提交 表单-->
+            <div class="linkbox">
+                <!--<a href="javascript:;" class="greenbtn">上一步</a> -->
+                <a href="javascript:;" class="greenbtn" id="subbtn">发布</a>
+            </div>
+        </form>
+    </div>
+    
+</section>
+{% endblock %}
+
+
+{% block extrajs %}
+<script type="text/javascript" src='{% static "www/js/serviceshare/package.js" %}'></script>
+<script type="text/javascript" src='{% static "www/js/jquery.cookie.js" %}'></script>
+<script type="text/javascript">
+    $(function () {
+
+    });
+</script>
+{% endblock %}

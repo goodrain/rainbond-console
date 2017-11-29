@@ -1,0 +1,73 @@
+.healthCheck-dialog .modal-content {border-radius: 6px;}
+.healthCheck-dialog{background:transparent;text-align:left;}
+.healthCheck-dialog .form-control-static {text-align:left;}
+.healthCheck-dialog .modal-body {text-align:left;overflow:auto;}
+.healthCheck-dialog .form-horizontal .form-inline .form-group {margin:0;}
+.healthCheck-dialog .js-header-row {margin-bottom:10px;}
+.healthCheck-dialog .dialog-footer {border-top:1px solid #f7f7f7;}
+.healthCheck-dialog .dialog-footer .btn {margin: 0 10px;}
+.healthCheck-dialog .fm-radio input:checked + .radio-bg,.fm-radio .radio-bg {
+margin:2px 5px 0 0px;}
+.healthCheck-dialog  .modal-title {color:#303030;}
+
+.healthCheck-dialog .form-horizontal .form-group {margin-top:0;padding-top:0;margin-bottom:5px;}
+.content-tab-hd-left {float:left;}
+.content-tab-hd-right {float:right;}
+
+.content-tab-title {
+	color: #303030;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0 0 30px 0;
+    font-weight: 100;
+    text-align: left;
+}
+.content-tab-sub-title {
+	color: #838383;
+    font-size: 14px;
+    padding-left: 20px;
+}
+
+.content-tab-hd .btn {border-radius: 6px;}
+.content-tab-hd .btn-default {
+	color: #333;
+    background-color: #fff;
+    border:1px solid #ccc;
+}
+.content-tab-hd .btn-default:hover {
+	color:#333;background-color:#e6e6e6;border-color:#adadad
+}
+
+
+.page_message {min-width:300px;max-width: 800px;text-align:center;}
+.page_message .alert{
+	padding: 5px 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.page_message .alert-danger{
+	color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+
+.page_message .alert-warning{
+	color: #8a6d3b;
+    background-color: #fcf8e3;
+    border-color: #faebcc;
+}
+
+.page_message .alert-success{
+	color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+
+
+.page_message .alert-info{
+	color: #31708f;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+}

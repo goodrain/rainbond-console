@@ -1,0 +1,270 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css2/app.css" %}' />
+{% endblock %}
+{% block extrajs %}
+{% endblock %}
+
+{% block main-content %}
+<input type="hidden" id="group_id_input" value="{{group_id}}"/>
+{% for group in groupList %}
+<input type="hidden" name="grouplist" value="{{group.ID}}" data-group-name="{{group.group_name}}" />
+{% endfor %}
+<input type="hidden" name="grouplist" value="-1" data-group-name="未分组" />
+<section class="wrapper site-min-height">
+	<section>
+	<!-- main start  -->
+		<!-- top 分组 -->
+		<div class="clearfix" id="app-group"   data-tenantName="{{tenantName}}">
+			<h3 data-group="{{group_id}}" class="tit-color pull-left" id="group-tit">{{group_name}}</h3>
+			<!--
+			<select>
+				<option value="0">全部应用</option>
+				{% for group in groups %}
+				<option value="{{group.ID}}">{{group.group_name}}</option>
+				{% endfor %}
+				<option value="-1">未分组</option>
+			</select>
+			-->
+			
+			<!--
+			<p class="pull-right search-icon"><input type="text" name="" value="" id="search"></p>
+			-->
+			<!--
+			<div class="group-btn-box">
+				<p class="group-btn">
+					<a href="javascript:;" id="imgbtn" class="imgbtn sed"></a>
+					<a href="javascript:;" id="tabbtn" class="tabbtn"></a>
+					<a href="javascript:;" id="setbtn" class="setbtn"></a>
+				</p>
+				<p class="group-set-box">
+					{% if group_id != -1  %}
+					<a href="javascript:;" id="revise-groupname">修改组名</a>
+					<a href="javascript:;" id="reomve-groupname">删除当前组</a>
+					{% endif %}
+					<a href="javascript:;" id="add-groupname">新增组</a>
+				</p>
+			</div>
+			-->
+			{% if group_id != -1  %}
+			<div class="pull-right clearfix" style="margin-top:15px;">
+				
+					<div class="btn-group" style="margin-right:10px">
+						{% if tenantServiceList|length > 0 %}
+						<button type="button" id="groupShare" class="btn btn-default">分享</button>
+						{% endif %}
+						<div class="btn-group">
+						  <button data-toggle="dropdown"  id="setbtn" class="btn btn-default dropdown-toggle">管理组<span class="caret"></span></button>
+						  <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+						    <li><a href="javascript:;" id="revise-groupname">修改组名</a></li>
+						    <li><a href="javascript:;" id="reomve-groupname">删除当前组</a></li>
+						    <li><a href="javascript:;" id="add-groupname">新增组</a></li>
+						  </ul>
+						</div>
+					</div>
+					
+
+					<div class="btn-group">
+						<button type="button" id="imgbtn" class="btn btn-default btn-success" title="拓扑图"><span class="glyphicon glyphicon-th" aria-hidden="true"></span></button>
+						<button type="button" id="tabbtn" class="btn btn-default" title="列表"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span></button>
+					</div>
+				
+			</div>
+			{% else %}
+			<button id="add-groupname" class="pull-right btn btn-success" type="button">新增组</button>
+			{% endif %}
+			<!-- -->
+		</div>
+		<!-- top 结束 -->
+		<!-- biaoge start -->
+		<section id="tabBox" style="display: none;" class="panel panel-default">
+			<div class="panel-body">
+			<!-- tab start -->
+			<table class="table">
+				<thead>
+					<tr class="active">
+						<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>
+						<th>应用名</th>
+						<th class="hidden-xs">版本</th>
+						<th class="hidden-xs">类型 </th>
+						<th class="hidden-xs">分组</th>
+						<th class="hidden-xs">内存</th>
+						<th class="hidden-xs">状态</th>
+						<th class="hidden-xs">操作</th>
+					</tr>
+				</thead>
+				<tbody id="tab-box">
+					{% for item in tenantServiceList %}
+					<tr data-category="{{item.category}}" data-service-alias="{{item.service_alias}}" id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}" data-service-cname="{{item.service_cname}}">
+						<!-- 复选框 -->
+						<td class="bs-checkbox fn-SelectItem" style="line-height: 30px;">
+							<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" service_alias="{{item.service_alias}}"/>
+						</td>
+						<!-- 应用名  -->
+						<td style="line-height: 30px;">
+							<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/" style="color:#28cb75; font-size: 16px;">{{item.service_cname}}</a>
+						</td>
+						<!-- 版本 -->
+						<td style="line-height: 30px;" class="hidden-xs">
+							{% if item.category == "application" %}
+								{{item.deploy_version}}
+							{% else %}
+								{{item.version}}					
+							{% endif %}
+						</td>
+						<!-- 类型 -->
+						<td style="line-height: 30px;" class="hidden-xs">{{item.service_type}}</td> 
+						<!-- 分组 -->
+						{% with cur_group=serviceGroupIdMap|mkey:item.service_id %}
+						<td class="choose-group-box fn-choose-group hidden-xs" style="line-height: 30px;">
+							{% with groupName=serviceGroupNameMap|mkey:cur_group %}
+								{% if groupName %}
+									<a href="javascript:;" class="fn-name">{{groupName}}</a>
+								{% else %}
+									<a href="javascript:;" class="fn-name">未分组</a>
+								{% endif %}
+							{% endwith %}
+
+
+							<div class="fn-show-select  choose-layer hidden-xs" style="display: none;">
+								<select>
+
+									{% for group in groupList %}
+
+										<option value="{{group.ID}}" >{{group.group_name}}</option>
+
+									{% endfor %}
+
+									<option value="-1">未分组</option>
+								</select>
+								<button class="fn-groupname-sure btn btn-success" data-id="{{item.service_id}}" style="padding: 0 2px;"><i class="glyphicon glyphicon-ok"></i></button>
+								<button class="fn-groupname-close btn btn-danger" style="padding: 0 4px;"><i class="glyphicon glyphicon-remove"></i></button>
+							</div>
+						</td>
+						{% endwith %}
+						<!-- 内存  -->
+						<td id="service_memory_{{item.service_id}}" class="hidden-xs" style="line-height: 30px;">0M</td>
+						<!-- 状态 -->
+						<td style="line-height: 30px;" class="hidden-xs" >
+							<span class="bg-red pading5" id="service_status_{{item.service_id}}">未知</span>
+						</td>
+						<!-- 操作 -->
+						<td class="hidden-xs" >
+							{% if item.category == "application" %}
+							<button data-action="deploy" type="button" class="btn btn-success btn-sm"
+								id="button_{{item.service_id}}">
+								部署
+							</button>
+							{% endif %}
+							<button data-action="restart" class="btn btn-success btn-sm" data{{item.service_id}}="0">
+								<span id="operate_inner_{{item.service_id}}">启动</span>
+							</button>
+							<button data-action="stop" class="btn btn-default btn-sm" data{{item.service_id}}="0">
+								<span id="operate_inner_{{item.service_id}}">关闭</span>
+							</button>
+							<!--
+							<button class="btn  greenbtn" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">设置</button>
+							-->
+						</td>
+					 </tr>
+					{% endfor %}
+				</tbody>
+			</table>
+			<!-- tab end -->
+			<!-- Mass deployment Start -->
+			<div class="clearfix numbers-box" id="nums-app">
+				<p id="app-numbers">已选择<span>0</span>个应用</p>
+				<button style="display:none;" data-action="betch-restart" id="batchStart" class="btn btn-success">批量启动</button>
+				<button style="display:none;" data-action="betch-deploy" id="newStart" class="btn btn-success">批量重新部署</button>
+				<button style="display:none;" data-action="betch-stop" id="batchEnd" class="btn btn-default">批量关闭</button>
+				<!--<button id="groupShare" class="btn greenbtn">分享</button> -->
+			</div>
+			<!-- Mass deployment End-->
+			</div>
+		</section>
+		<!-- biaoge end-->
+		<!-- tu start -->
+		<section id="imgBox" style="position:relative;" class="panel panel-default">
+			<div class="panel-body">
+				<div id="svg-box">
+					<span class="glyphicon glyphicon-fullscreen toFullScreen"></span>
+					<span class="exitFullScreen">[ 退出全屏 ]</span>
+					<iframe src='{% static "www/weavescope/index.html" %}' style="position:absolute;left:20px;top:20px;width:95%;height:95%;" frameborder="no" border="0" marginwidth="0" marginheight="0" ></iframe>
+				</div>
+			</div>
+		</section>
+		<!-- tu end -->
+	<!-- main end -->
+	</section>
+	<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/group-index.js"></script>
+<script>
+
+	var groupList = [];
+	$('[name=grouplist]').each(function(){
+		groupList.push({
+			value: $(this).val(),
+			text: $(this).attr('data-group-name')
+		})
+	})
+
+    var controller = new GroupIndexController({
+        tenantName: '{{tenantName}}',
+		//应用群组id
+		groupId:'{{group_id}}',
+		//群组名称
+		groupName: '{{group_name}}',
+		allGroups: groupList
+    })
+    controller.ready();
+</script>
+
+    <!-- weave scope 资源设置  -->
+    <script type="text/javascript">
+        try{
+
+        	window.iframeGetNodeUrl = function(){
+        		return '/ajax/{{tenantName}}/topological/{{group_id}}';
+        	}
+
+        	window.iframeGetTenantName = function(){
+        		return '{{tenantName}}';
+        	}
+
+        	window.iframeGetGroupId = function(){
+        		return '{{group_id}}';
+        	}
+
+        	//拓扑图点击服务事件
+        	window.handleClickService = function(nodeDetails){
+        		var url = "/apps/{{tenantName}}/"+nodeDetails.service_alias+"/detail/";
+        		location.href=url;
+        		
+        	}
+
+        	//拓扑图点击依赖服务事件
+        	window.handleClickRelation = function(relation){
+        		var url = "/apps/{{tenantName}}/"+relation.service_alias+"/detail/";
+        		location.href=url;
+        	}
+
+        	//拓扑图点击续费事件
+        	window.handleClickGiveMoney = function(nodeDetails){
+        		location.href='/apps/{{tenantName}}/recharge/';
+        	}
+
+        	// 当拓扑图没有数据时调用
+        	window.onNodesEmpty = function(){
+        		controller.changeToListView();
+        	}
+
+        }catch(e){
+
+        }
+    </script>
+</section>
+{% endblock %}

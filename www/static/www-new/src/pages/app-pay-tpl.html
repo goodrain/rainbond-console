@@ -1,0 +1,132 @@
+    <div class="panel panel-default">
+        <div class="panel-heading">计费方式</div>
+        <div class="panel-body">
+        <table class="table">
+            <tbody>
+            <tr>
+                <td>
+                    内存：
+                    {{if pageData.service_attach_info.memory_pay_method == 'prepaid'}}
+                        <span class="memoryFun" data-currentway="prepaid">
+                            包&nbsp;{{pageData.total_buy_memory}}MB 至
+                        </span>
+                        <span>
+                            {{pageData.service_attach_info.buy_end_time}}
+                        </span>
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="monthlyAddTime">增加时长</a>
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="memoryExpansion">增加额度</a>
+                    {{else}}
+                        <span class="memoryFun" data-currentway="postpaid">按小时扣费</span>
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="memoryMonthly">购买包月</a>
+                    {{/if}}
+                </td>
+                <td>
+                    当前使用：<span>{{appInfo.service.min_memory}} MB×{{appInfo.service.min_node}}</span>
+                </td>
+                <td>
+                    累计费用：
+                    <span>{{pageData.service_total_memory_fee || 0}} 元</span>
+
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    磁盘：
+                    {{if pageData.service_attach_info.disk_pay_method == 'prepaid'}}
+                        <span class="diskFun" data-currentway="prepaid">
+                            包&nbsp;{{ pageData.service_attach_info.disk / 1024 }} GB 至
+                        </span>
+                        <span>
+                            {{pageData.service_attach_info.buy_end_time}}
+                        </span>
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="monthlyAddTime">增加时长</a>
+                    {{else}}
+                        <span class="diskFun" data-currentway="postpaid">按小时扣费</span>
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="diskMonthly">购买包月</a>
+                    {{/if}}
+                </td>
+                <td>
+                    当前使用：<span>{{(pageData.last_hour_consume  && pageData.last_hour_consume.disk) || 0}} MB</span>
+                </td>
+                <td>
+                    累计费用：<span>{{pageData.service_total_disk_fee || 0}}元</span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    流量：<span>按小时扣费</span>
+                </td>
+                <td>
+                    上一小时使用：<span>{{(pageData.last_hour_consume  && pageData.last_hour_consume.net) || 0}} MB</span>
+                </td>
+                <td>
+                    累计费用：<span>{{pageData.service_total_net_fee}} 元</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
+   
+    <div class="panel panel-default">
+        <div class="panel-heading">最近24小时计费明细</div>
+        <div class="panel-body">
+        <table class="table">
+            <thead>
+                <tr class="active">
+                    <th>时段</th>
+                    <th class="hidden-xs">内存<br />(MB)</th>
+                    <th class="hidden-xs">费用<br />(元)</th>
+                    <th class="hidden-xs">实扣<br />(元)</th>
+                    <th class="hidden-xs">磁盘<br />(MB)</th>
+                    <th class="hidden-xs">费用<br />(元)</th>
+                    <th class="hidden-xs">实扣<br />(元)</th>
+                    <th class="hidden-xs">流量<br />(MB)</th>
+                    <th class="hidden-xs">费用<br />(元)</th>
+                    <th class="hidden-xs">实扣<br />(元)</th>
+                    <th>总扣费<br />(元)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{each pageData.service_consume_list}}
+                <tr>
+                    <td>
+                        {{(new $imports.Date($value.time)-(1000*60*60)) | dateFormat "MM-dd hh:mm"}}
+                        ~
+                        {{new $imports.Date($value.time) | dateFormat "hh:mm"}}
+                    </td>
+                    <td class="hidden-xs">{{$value.memory}}</td>
+                    <td class="hidden-xs">{{$value.real_memory_money }}</td>
+                    <td class="hidden-xs">
+                        <span class="fn-tips" data-toggle="tooltip" data-placement="top" title="{{if $value.memory_pay_method == 'prepaid'}}超出包月额度的费用{{else}}按小时扣除的费用{{/if}}">
+                            {{$value.memory_money}}
+                        </span>
+                    </td>
+                    <td class="hidden-xs">{{$value.disk}}</td>
+                    <td class="hidden-xs">{{$value.real_disk_money}}</td>
+                    <td class="hidden-xs">
+                        <span class="fn-tips" data-toggle="tooltip" data-placement="top" title="{{if $value.disk_pay_method == 'prepaid'}}超出包月额度的费用{{else}}按小时扣除的费用{{/if}}">
+                            {{$value.disk_money}}
+                        </span>
+                    </td>
+                    <td class="hidden-xs">{{$value.net}}</td>
+                    <td class="hidden-xs">{{$value.net_money}}</td>
+                    <td class="hidden-xs">
+                        <span class="fn-tips" data-toggle="tooltip" data-placement="top" title="按小时扣除的费用">
+                            {{$value.net_money}}
+                        </span>
+                    </td>
+                    <td>{{$value.pay_money}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+            <tfoot>
+            </tfoot>
+        </table>
+        </div>
+    </div>
