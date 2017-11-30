@@ -33,6 +33,7 @@ function release(){
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile > Dockerfile.release
 
   docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.release .
+  rm -r ./Dockerfile.release
   docker push rainbond/${image_name}:${VERSION}
 }
 
