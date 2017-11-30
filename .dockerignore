@@ -1,0 +1,4 @@
+*.pyc
+Procfile
+*.md
+LICENSE
