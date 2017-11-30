@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xe
 
-image_name="rbd--app-ui"
+image_name="rbd-app-ui"
 
 gitDescribe=$(git describe --tag|sed 's/^v//')
 describe_items=($(echo $gitDescribe | tr '-' ' '))
@@ -33,7 +33,7 @@ function release(){
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile > Dockerfile.release
 
   docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.release .
-  docker push rainbond/${image_name}:${release_version}
+  docker push rainbond/${image_name}:${VERSION}
 }
 
 case $1 in
