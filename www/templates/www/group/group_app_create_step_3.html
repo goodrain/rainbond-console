@@ -8,6 +8,7 @@
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
 <link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/bootstrap-editable.css" %}' />
 {% endblock %}
 
 {% block main-content%}
@@ -33,7 +34,7 @@
         {% for service in service_list %}
         <section class="app-box fn-app-box" data-key="{{service.service_key}}" data-version="{{service.version}}" data-id="{{service.ID}}">
             <!-- 部署方式 start-->
-            <div class="modulebox clearfix">
+            <div class="modulebox clearfix" style="display: none;">
                 <div class="form-group clearfix" id="{{service.ID}}_extend_method">
                     <label class="col-sm-3 control-label">应用类型</label>
                     <div class="col-sm-8 clearfix">

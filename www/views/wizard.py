@@ -13,6 +13,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.auth import authenticate, login
 from www.services import enterprise_svc
+from www.utils.conf_tool import regionConfig
 
 logger = logging.getLogger("default")
 monitorhook = MonitorHook()
@@ -68,6 +69,16 @@ class WizardView(BaseView):
                                         'www/wizard/admin.html',
                                         context)
                 # Tenants.objects.all().delete()
+
+            regions = regionConfig.regions()
+            if region not in [r['name'] for r in regions]:
+                logger.error("account.register", "配置文件中未找到待初始化的数据中心配置信息!")
+                context = self.get_context()
+                admin_form.add_error("", "配置文件中未找到待初始化的数据中心配置信息!")
+                context["form"] = admin_form
+                return TemplateResponse(request,
+                                        'www/wizard/admin.html',
+                                        context)
 
             # 添加本地企业信息
             enterprise = enterprise_svc.create_enterprise(enterprise_alias=enter_alias)

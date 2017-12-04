@@ -236,22 +236,21 @@ class BaseTenantService(object):
                     if stream_outer_num > 0:
                         logger.error("stream协议外部访问只能开启一个")
                         continue
-                    else:
-                        try:
-                            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
-                                                                service.service_alias,
-                                                                port.container_port,
-                                                                {"operation": "open",
-                                                                 "enterprise_id": tenant.enterprise_id})
-                            logger.debug("open outer port body {}".format(body))
-                            mapping_port = body["bean"]["port"]
-                            port.mapping_port = port.container_port
-                            port.lb_mapping_port = mapping_port
-                            port.save()
-                        except Exception as e:
-                            logger.exception(e)
-                            port.is_outer_service = False
-                            port.save()
+                try:
+                    body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
+                                                        service.service_alias,
+                                                        port.container_port,
+                                                        {"operation": "open",
+                                                         "enterprise_id": tenant.enterprise_id})
+                    logger.debug("open outer port body {}".format(body))
+                    mapping_port = body["bean"]["port"]
+                    port.mapping_port = port.container_port
+                    port.lb_mapping_port = mapping_port
+                    port.save()
+                except Exception as e:
+                    logger.exception(e)
+                    port.is_outer_service = False
+                    port.save()
             # 打开对内服务
             if port.is_inner_service:
                 mapping_port = port.container_port

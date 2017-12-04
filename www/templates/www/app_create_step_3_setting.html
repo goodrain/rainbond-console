@@ -8,6 +8,7 @@
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
 <link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/bootstrap-editable.css" %}' />
 {% endblock %}
 
 {% block extrajs %}
@@ -124,7 +125,8 @@
                                             </label>
                                         </td>
                                         <td>
-                                            <select data-port-http="5000Http" class="fn-tips" data-original-title="请设定用户的访问协议。" {% if port.is_outer_service %} {% else %} style="color: #838383;" disabled=true {% endif %}>
+                                            <select data-port-http="5000Http" class="fn-tips" data-original-title="请设定用户的访问协议。">
+                                                <!-- 
                                                 {% if port.is_outer_service %}
                                                     <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
                                                     <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
@@ -133,6 +135,9 @@
                                                     <option>HTTP</option>
                                                     <option>非HTTP</option>
                                                 {% endif %}
+                                                -->
+                                                <option selected = "selected">HTTP</option>
+                                                <option>非HTTP</option>
                                             </select>
                                         </td>
                                         <td>

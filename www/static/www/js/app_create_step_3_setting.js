@@ -28,16 +28,16 @@ $(function () {
     
     //打开新增端口号窗口
     $(".fn-openAdd").on("click",function(){
-        if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
-        {
-            $(this).parents('tfoot').find("option.changeOption").remove();
-            $("select.add_http").val("HTTP");
-        }
-        else{
-            var $option = $("<option class='changeOption'>请打开外部访问</option>");
-            $("select.add_http").prepend($option);
-            $("select.add_http").val("请打开外部访问");
-        }
+        // if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
+        // {
+        //     $(this).parents('tfoot').find("option.changeOption").remove();
+        //     $("select.add_http").val("HTTP");
+        // }
+        // else{
+        //     var $option = $("<option class='changeOption'>请打开外部访问</option>");
+        //     $("select.add_http").prepend($option);
+        //     $("select.add_http").val("请打开外部访问");
+        // }
         //$(this).parents(".fn-showblock").find(".fn-tabtit").show();
         $(".checkTip").css({"display":"none"});
         $(".addPort").css({"display":"table-row"});
@@ -102,7 +102,7 @@ $(function () {
                 }
                 else{
                     oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><span class="check-bg" for="'+$(".add_port").val()+'outer"></span></label></td><td>';
-                    oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
+                    oTr += '<select class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http">';
                 }
                 for( var i = 0; i < 2; i++ )
                 {
@@ -736,7 +736,7 @@ $(function () {
 
 
     //外部访问开关
-    checkDetail();
+    //checkDetail();
     function checkDetail(){
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){

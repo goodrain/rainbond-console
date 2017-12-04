@@ -57,10 +57,10 @@ $(function () {
 
 function FnLayer(textTit){
     var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-    var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
+    var oCloseBtn = '<a href="javascript:;" class="btn btn-danger fn-close"><i class="fa fa-times"></i></a>';
     var oTit = '<p class="layer-tit">'+ textTit +'</p>';
     var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-    var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+    var oLink = '<p class="layerlink text-center"><button type="button" class="fn-sure btn btn-success" style="margin:0 5px;">确定</button><button type="button" class="fn-close btn btn-danger" style="margin:0 5px;">取消</button></p>';
     $("body").append(oDiv);
     $("div.layermain").append(oCloseBtn,oTit);
     $("div.layermain").append(oInput);

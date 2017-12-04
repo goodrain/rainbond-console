@@ -169,7 +169,7 @@ export const createOrCancelAppRelation = (tenantName, sourceServiceAlias, destSe
         if (data["status"] == "success") {
            dfd.resolve(data);
         } else {
-            Msg.warning(data.info || '操作失败，请稍后重试');
+            Msg.warning(data.msg || '操作失败，请稍后重试');
             dfd.reject(data);
         }
     }).fail(function(data){

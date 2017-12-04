@@ -809,6 +809,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             "app_version": app.app_version,
             "action": "create_new_version",
             "image": service.image,
+            "service_id": service.service_id,
             "is_outer": app.is_outer,
             "share_id": share_id,
         }

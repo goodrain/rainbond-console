@@ -10,11 +10,11 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils import sn
+from www.utils.conf_tool import regionConfig
+
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()
-
-notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com']
 
 
 class EnterpriseService(object):
@@ -83,18 +83,23 @@ class EnterpriseService(object):
         expire_time = dt.datetime.now() + dt.timedelta(days=expired_day)
 
         # 计算此团队需要初始化的数据中心
+        region_configs = {r.get('name'): r for r in regionConfig.regions()}
+
+        if not region_configs:
+            raise Exception('please config one region at least.')
+
         prepare_init_regions = []
         if region_names:
-            region_configs = RegionConfig.objects.filter(region_name__in=region_names, status="1")
-            prepare_init_regions.extend(region_configs)
+            for region_name in region_names:
+                if region_name in region_configs:
+                    prepare_init_regions.append(region_configs.get(region_name))
         else:
-            region_configs = RegionConfig.objects.filter(status="1")
-            prepare_init_regions.extend(region_configs)
+            prepare_init_regions.extend(region_configs.values())
 
         if not prepare_init_regions:
             raise Exception('please init one region at least.')
 
-        logger.info('prepared init region: {}'.format([r.region_name for r in prepare_init_regions]))
+        logger.info('prepared init region: {}'.format([r.get('name') for r in prepare_init_regions]))
         # 团队管理的默认数据中心
         default_region = prepare_init_regions[0]
 
@@ -106,7 +111,7 @@ class EnterpriseService(object):
                 tenant_alias = u'{0}的团队'.format(enterprise.enterprise_alias)
             # 创建团队
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
-                                            creater=user_id, region=default_region.region_name,
+                                            creater=user_id, region=default_region.get('name'),
                                             expired_time=expire_time, tenant_alias=tenant_alias,
                                             enterprise_id=enterprise.enterprise_id)
             logger.info('create tenant:{}'.format(tenant.to_dict()))
@@ -119,7 +124,7 @@ class EnterpriseService(object):
 
             # 创建团队
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
-                                            creater=user_id, region=default_region.region_name,
+                                            creater=user_id, region=default_region.get('name'),
                                             expired_time=expire_time, tenant_alias=tenant_alias)
             logger.info('create tenant:{}'.format(tenant.to_dict()))
 
@@ -148,10 +153,10 @@ class EnterpriseService(object):
         api = RegionInvokeApi()
         for region in prepare_init_regions:
             tenant_region = TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
-                                                            region_name=region.region_name,
+                                                            region_name=region.get('name'),
                                                             enterprise_id=enterprise.enterprise_id)
             try:
-                res, body = api.create_tenant(region.region_name, tenant.tenant_name, tenant.tenant_id, enterprise.enterprise_id)
+                res, body = api.create_tenant(region.get('name'), tenant.tenant_name, tenant.tenant_id, enterprise.enterprise_id)
                 logger.debug(res)
                 logger.debug(body)
                 tenant_region.is_active = True

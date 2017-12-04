@@ -466,6 +466,7 @@ class PublishServiceView(APIView):
                                           "installable": app_service_group.installable}
                             # tmp_ids = app_service_group.service_ids
                             # service_id_list = json.loads(tmp_ids)
+                            logger.debug("group.publish", "===> group_id {0}".format(app_service_group.group_id))
                             service_id_list = ServiceGroupRelation.objects.filter(group_id=app_service_group.group_id).values_list("service_id", flat=True)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
@@ -535,6 +536,7 @@ class PublishServiceView(APIView):
 
     def get_newest_published_service(self, service_id_list):
         result = []
+        logger.debug("group.publish", "===> service_id_list {0}".format(service_id_list))
         for service_id in service_id_list:
             is_pubilsh, app = self.is_published(service_id)
             if is_pubilsh:

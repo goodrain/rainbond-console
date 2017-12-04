@@ -295,6 +295,7 @@ select{background: #fff; height: 26px;}
 .editableform-loading  .form-horizontal .editable-buttons{margin-top: 5px; text-align: right;}
 .editableform-loading  .form-horizontal .editable-buttons button{margin-left:5px; }
 
+.popover-content{margin:0 10px;}
 /* 新建组弹出层*/
 .layerbg{width: 100%; height: 100%;  background: rgba(0,0,0,.5); position: fixed;  top: 0; left: 0; z-index: 99;}
 .layermain{width: 300px;  background: #fff; position: absolute; top: 20%; left: 50%; margin:0 0 0 -110px; padding:20px;}

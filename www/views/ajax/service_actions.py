@@ -1,39 +1,35 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+import logging
 import re
 
+from django.conf import settings
+from django.db import transaction
+from django.forms import model_to_dict
 from django.http import JsonResponse
-from django.db.models import Sum
 
+from goodrain_web.decorator import method_perf_time
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep, ServiceFeeBill, ServiceConsume, \
-    ServiceDomainCertificate, ServicePaymentNotify, TenantServiceStatics
-from www.views import AuthedView
 from www.decorator import perm_required
-
+from www.forms.services import EnvCheckForm
 from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
                         TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent,
-                        TenantServiceL7Info, ServiceProbe)
-
+                        ServiceProbe)
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep, ServiceFeeBill, ServiceConsume, \
+    ServiceDomainCertificate, ServicePaymentNotify, TenantServiceStatics
+from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
-from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     CodeRepositoriesService
-from goodrain_web.decorator import method_perf_time
-from www.monitorservice.monitorhook import MonitorHook
-from www.utils.giturlparse import parse as git_url_parse
-from www.forms.services import EnvCheckForm
-
-import logging
 from www.utils.crypt import make_uuid
-from django.db import transaction
+from www.utils.giturlparse import parse as git_url_parse
 from www.utils.status_translate import get_status_info_map
-from django.forms import model_to_dict
-
+from www.views import AuthedView
+from django.db.models import Q
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -583,12 +579,18 @@ class ServiceRelation(AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
-            tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
+            dep_service = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
             if action == "add":
-                baseService.create_service_dependency(self.tenant, self.service, tenantS.service_id,
+                is_env_duplicate = self.is_env_duplicate(self.service, dep_service)
+                if is_env_duplicate:
+                    logger.debug("------------------>>>>>")
+                    result["status"] = "failure"
+                    result["msg"] = "要关联的应用的变量与已关联的应用变量重复，请修改后再试"
+                    return JsonResponse(result)
+                baseService.create_service_dependency(self.tenant, self.service, dep_service.service_id,
                                                       self.service.service_region)
             elif action == "cancel":
-                baseService.cancel_service_dependency(self.tenant, self.service, tenantS.service_id,
+                baseService.cancel_service_dependency(self.tenant, self.service, dep_service.service_id,
                                                       self.service.service_region)
 
                 relation_num = TenantServiceRelation.objects.filter(service_id=service_id, tenant_id=tenant_id).count()
@@ -604,6 +606,23 @@ class ServiceRelation(AuthedView):
         TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").delete()
         region_api.delete_service_env(service.service_region, self.tenantName, self.service.service_alias,
                                       {"env_name": "GD_ADAPTER", "enterprise_id": self.tenant.enterprise_id})
+
+    def is_env_duplicate(self, service, dep_service):
+        """ 判断要关联的应用和已有的依赖的别名是否重复"""
+        dep_services_ids = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                service_id=service.service_id).values_list(
+            "dep_service_id", flat=True)
+        dep_service_env = TenantServiceEnvVar.objects.filter(tenant_id=dep_service.tenant_id,
+                                                             service_id=dep_service.service_id,
+                                                             ).exclude(container_port__lt=0).values_list("attr_name",
+                                                                                                         flat=True)
+        dep_services_envs = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                               service_id__in=list(dep_services_ids),
+                                                               attr_name__in=list(dep_service_env))
+        if len(dep_services_envs) > 0:
+            return True
+        return False
+
 
 
 class NoneParmsError(Exception):

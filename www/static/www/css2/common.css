@@ -561,4 +561,35 @@ label{font-weight: 100;}
 .ellipsis-table {table-layout:fixed;}
 
 
+.alertbig {
+    padding: 15px 30px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 16px; 
+    line-height: 40px;
+}
 
+.alertbig .alert-success{border-color:#3c763d; }
+.alertbig .alert-info{border-color: #31708f; }
+.alertbig .alert-danger{border-color: #a94442; }
+.alertbig .alert-warning{border-color: #8a6d3b; }
+
+.alertbig .alert-success .close{
+    top: -20px;
+    right: -30px;
+}
+.alertbig .alert-info .close{
+    top: -20px;
+    right: -30px;
+}
+.alertbig .alert-danger .close{
+    top: -20px;
+    right: -30px;
+}
+.alertbig .alert-warning .close{
+    top: -20px;
+    right: -30px;
+}
+
+.alertbig  .glyphicon{font-size: 20px; padding: 0 10px 0 0;  display: inline-block; line-height: 1; position: relative; top:4px;}

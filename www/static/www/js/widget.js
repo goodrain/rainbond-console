@@ -1148,12 +1148,20 @@ widget.define('button', {
         }
     })
     
+    var icontype ={
+        "success": "glyphicon-ok-sign",
+        "danger": "glyphicon-remove-sign",
+        "info": "glyphicon-info-sign",
+        "warning": "glyphicon-exclamation-sign"
+    }
+
     widget.define('message', {
         _defaultOption : {
             top:20,
             zIndex: 9999999,
             interval:3000,
             message: ''
+
         },
         _init:function(option){
             this.callParent(option);
@@ -1161,12 +1169,12 @@ widget.define('button', {
             this.bind();
         },
         _create:function(){
-            this.$element = $('<div style="display:none;position:fixed;z-index:'+this.option.zIndex+';top:'+this.option.top+'px;left:50%; transform: translateX(-50%)"></div>');
+            this.$element = $('<div style="display:none;position:fixed;z-index:'+this.option.zIndex+';top:50%;left:50%; transform: translateX(-50%),translateY(-50%)"></div>');
             $('body').append(this.$element);
         },
         show:function(type, message){
             clearTimeout(this.timer);
-            var tmp = '<div class="alert alert-'+type+' alert-dismissible fade in" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>'+(message || '')+'</div>'
+            var tmp = '<div class="alertbig alert-'+type+' alert-dismissible fade in" role="alert"><span class="glyphicon '+ icontype[type] +'"></span><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>'+(message || '')+'</div>'
             this.$element.html(tmp);
             this.$element.show();
             var self = this;
