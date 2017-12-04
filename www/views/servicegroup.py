@@ -19,6 +19,7 @@ from www.models import AppService, AppServiceShareInfo, AppServicePort, \
 
 import logging
 import datetime
+from www.services import tenant_svc
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -54,7 +55,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
             # 判断非云市安装应用是否全部运行中
             for s in can_publish_list:
-                body = region_api.check_service_status(s["service_region"], self.tenantName, s["service_alias"])
+                body = region_api.check_service_status(s["service_region"], self.tenantName, s["service_alias"],self.tenant.enterprise_id)
                 status = body["bean"]["cur_status"]
                 if status != "running":
                     data = {"success": False, "code": 412, 'msg': '您的应用{0}未运行。'.format(s["service_cname"])}
@@ -779,17 +780,19 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
             body = {}
             body["kind"] = "app_slug"
+            tenant_region = tenant_svc.get_tenant_region_info(self.tenant,service.service_region)
+            oss_upload_task["tenant_id"] = tenant_region.region_tenant_id
             body["slug"] = oss_upload_task
+            body["enterprise_id"] = self.tenant.enterprise_id
             logger.debug("group.publish", u"=========> slug 云帮发布任务 !")
-            # regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
-            region_api.share_clound_service(self.response_region, self.tenant.tenant_name, json.dumps(body))
+            region_api.share_clound_service(self.response_region, self.tenant.tenant_name, body)
 
             if app.is_outer:
                 event_id = self._create_publish_event(service, "ys")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
+                body["slug"] = oss_upload_task
                 logger.debug("group.publish", u"=========> slug 云市发布任务 !")
-                # regionClient.send_task(service.service_region, 'app_slug', json.dumps(oss_upload_task))
-                region_api.share_clound_service(self.response_region, self.tenant.tenant_name, json.dumps(body))
+                region_api.share_clound_service(self.response_region, self.tenant.tenant_name, body)
         except Exception as e:
             if self.event:
                 self.event.message = u"生成发布事件错误，" + e.message
@@ -815,15 +818,17 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             image_upload_task.update({"dest": "yb", "event_id": event_id})
             body["kind"] = "app_image"
             body["image"] = image_upload_task
+            body["enterprise_id"] = self.tenant.enterprise_id
             logger.debug("group.publish", u"=========> image 云帮发布任务 !")
             # regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
-            region_api.share_clound_service(self.response_region, self.tenant.tenant_name, json.dumps(body))
+            region_api.share_clound_service(self.response_region, self.tenant.tenant_name, body)
             if app.is_outer:
                 event_id = self._create_publish_event(service, "ys")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
+                body["image"] = image_upload_task
                 logger.debug("group.publish", u"=========> image 云市发布任务 !")
                 # regionClient.send_task(service.service_region, 'app_image', json.dumps(image_upload_task))
-                region_api.share_clound_service(self.response_region, self.tenant.tenant_name, json.dumps(body))
+                region_api.share_clound_service(self.response_region, self.tenant.tenant_name, body)
         except Exception as e:
             if self.event:
                 self.event.message = u"生成发布事件错误，" + e.message

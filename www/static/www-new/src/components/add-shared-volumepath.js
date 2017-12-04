@@ -14,9 +14,9 @@ widget.define('addSharedVolumepath', {
 		onSuccess: noop,
 		onFail: noop,
 		onCancel: noop,
-        width: '650px',
-        height: '400px',
-        title: '请选择要挂载的目录',
+        width: '900px',
+        height: '500px',
+        title: '挂载共享目录',
         tenantName:'',
         serviceAlias:'',
         //应用列表
@@ -42,6 +42,7 @@ widget.define('addSharedVolumepath', {
     },
     _create: function(){
     	this.callParent();
+        var self = this;
         var datas = [];
         for(var i=0;i<this.option.serviceList.length;i++){
             if(this.option.serviceList[i].service_alias != this.otpion.serviceAlias &&
@@ -55,23 +56,61 @@ widget.define('addSharedVolumepath', {
             pageSize:8,
             url:'/ajax/'+this.option.tenantName + '/' +this.option.serviceAlias  +'/dep-mnts',
             columns:[{
+                name: 'source_path',
+                text: '本地持久化目录',
+                width: 120
+            },{
+                name: 'tips',
+                text: '',
+                width: 80
+            },{
                 name: 'dep_vol_name',
-                text: '持久化名称',
+                text: '目标持久化名称',
                 width: 150
             },{
                 name: 'dep_vol_path',
-                text: '持久化目录'
+                text: '目标持久化目录',
+                width: 150
             },{
                 name: 'dep_vol_type',
-                text: '持久化类型'
+                text: '目标持久化类型',
+                width: 130
             },{
                 name: 'dep_app_name',
-                text: '所属应用'
+                text: '目标所属应用',
+                width: 100
             },{
                 name: 'dep_app_group',
-                text: '所属群组'
+                text: '目标所属群组',
+                width: 100
             }],
+            event:{
+                onSelectedChange: function(){
+                   if(self.table){
+                        var datas = self.table.getData(true);
+                       for(var i=0;i<datas.length;i++){
+                            var data = datas[i];
+                            var uid = data.uuid;
+                            var isSelect = data.selected;
+                            var $tr = self.element.find('[uid='+uid+']');
+                            if(isSelect){
+                                $tr.find('[name=source-path]').prop('disabled', false)
+                            }else{
+                                $tr.find('[name=source-path]').prop('disabled', true)
+                            }
+
+                       }
+                   }
+                   
+                }
+            },
             render: {
+                source_path: function(text, data){
+                    return '<input disabled type="text" class="form-control" name="source-path" />'
+                },
+                tips: function(text, data){
+                    return '<div style="text-align:center;font-size:18px"><span class="glyphicon glyphicon-resize-horizontal"></span></div>'
+                },
                 dep_vol_type: function(text,data){
                     return volumeUtil.getTypeCN(text);
                 }
@@ -81,15 +120,34 @@ widget.define('addSharedVolumepath', {
     	this.setContent(this.table.getElement());
     },
     onOk: function(){
-        var volumeIds = this.table.getSelectedArrayByKey('dep_vol_id');
-        if(!volumeIds.length){
+        var selecteds = this.table.getSelected(true);
+        var sendData = [];
+        if(!selecteds.length){
             Msg.warning("请选择要挂载的持久化目录");
             return;
         }
+
+        var isAllSelected = true;
+        for(var i=0;i<selecteds.length;i++){
+            var $tr = this.element.find('[uid='+selecteds[i].uuid+']');
+            var source_path = $.trim($tr.find('[name=source-path]').val());
+            if(!source_path){
+                Msg.warning("请填写本地持久化目录");
+                $tr.find('[name=source-path]').focus();
+                return;
+            }
+
+            sendData.push({
+                id: selecteds[i].data.dep_vol_id, 
+                path: source_path,
+                app_name: selecteds[i].dep_app_name
+            });
+        }
+
         connectAppDisk(
             this.option.tenantName,
             this.option.serviceAlias,
-            volumeIds
+            sendData
         ).done((data) => {
             this.option.onOk && this.option.onOk();
             this.destroy();

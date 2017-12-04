@@ -1,13 +1,14 @@
 # -*- coding: utf8 -*-
 import json
 from django.conf import settings
-
+from django import http
 import httplib2
 
 import logging
 
 from www.apiclient.baseclient import HttpClient
 from www.utils.conf_tool import regionConfig
+from www.models.main import TenantRegionInfo,Tenants
 
 logger = logging.getLogger('default')
 
@@ -65,6 +66,20 @@ class RegionInvokeApi(HttpClient):
                     "Authorization": token
                 })
 
+    def __get_tenant_region_info(self, tenant_name, region):
+
+        tenants = Tenants.objects.filter(tenant_name=tenant_name)
+        if tenants:
+            tenant = tenants[0]
+            tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name=region)
+            if not tenant_regions:
+                logger.error("tenant {0} is not init in region {1}".format(tenant_name, region))
+                raise http.Http404
+        else:
+            logger.error("tenant {0} is not found!".format(tenant_name))
+            raise http.Http404
+        return tenant_regions[0]
+
     def get_all_tenant_resources(self, region):
         """获取所有租户的资源使用情况"""
         region_map = self.get_region_map(region)
@@ -74,38 +89,48 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_tenant_resources(self, region, tenant_name):
+    def get_tenant_resources(self, region, tenant_name, enterprise_id):
         """获取指定租户的资源使用情况"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
-        url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/resources"
+        tenant_region = self.__get_tenant_region_info(tenant_name,region)
+        tenant_name = tenant_region.region_tenant_name
+        url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/resources?enterprise_id="+enterprise_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def create_tenant(self, region, tenant_name, tenant_id):
+    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id):
         """创建租户"""
         region_map = self.get_region_map(region)
+        # TODO add enterprise id
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name}
         token = region_map[region]['token']
         url = region_map[region]['url'] + "/v2/tenants"
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
-        return body
+        return res, body
 
     def create_service(self, region, tenant_name, body):
         """创建应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
+
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def get_service_info(self, region, tenant_name, service_alias):
         """获取应用信息"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -115,16 +140,20 @@ class RegionInvokeApi(HttpClient):
         """更新应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region, body=body)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def delete_service(self, region, tenant_name, service_alias):
+    def delete_service(self, region, tenant_name, service_alias, enterprise_id):
         """删除应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
-        url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias+"?enterprise_id="+enterprise_id
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region)
         return body
@@ -133,107 +162,139 @@ class RegionInvokeApi(HttpClient):
         """应用构建"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/build"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def code_check(self, region, tenant_name, body):
         """代码检测"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/code-check"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def add_service_dependency(self, region, tenant_name, service_alias, body):
         """增加服务依赖"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/dependency"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def delete_service_dependency(self, region, tenant_name, service_alias, body):
         """取消服务依赖"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/dependency"
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region, body=body)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def add_service_env(self, region, tenant_name, service_alias, body):
         """添加环境变量"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/env"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def delete_service_env(self, region, tenant_name, service_alias, body):
         """删除环境变量"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/env"
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region, body=body)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def horizontal_upgrade(self, region, tenant_name, service_alias, body):
         """服务水平伸缩"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/horizontal"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region, body=body)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def vertical_upgrade(self, region, tenant_name, service_alias, body):
         """服务垂直伸缩"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/vertical"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region, body=body)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def change_memory(self, region, tenant_name, service_alias, body):
         """根据应用语言设置内存"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/language"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def addServiceNodeLabel(self, region, tenant_name, service_alias, body):
         """添加应用对应的节点标签"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/node-label"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def deleteServiceNodeLabel(self, region, tenant_name, service_alias, body):
         """删除应用对应的节点标签"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/node-label"
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, body, region=region)
+        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def add_service_state_label(self, region, tenant_name, service_alias, body):
         """添加应用有无状态标签"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/service-label"
         self._set_headers(token)
@@ -244,48 +305,65 @@ class RegionInvokeApi(HttpClient):
         """修改应用有无状态标签"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/service-label"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body, region=region)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def get_service_pods(self, region, tenant_name, service_alias, body):
+    def get_service_pods(self, region, tenant_name, service_alias, enterprise_id):
         """获取应用pod信息"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/pods"
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/pods?enterprise_id="+enterprise_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, body, region=region)
+        res, body = self._get(url, self.default_headers, None, region=region)
         return body
 
     def add_service_port(self, region, tenant_name, service_alias, body):
         """添加服务端口"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        port_list = body["port"]
+        for port in port_list:
+            port["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def update_service_port(self, region, tenant_name, service_alias, body):
-        """添加服务端口"""
+        """更新服务端口"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        port_list = body["port"]
+        for port in port_list:
+            port["tenant_id"] = tenant_region.region_tenant_id
+
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body, region=region)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def delete_service_port(self, region, tenant_name, service_alias, port):
+    def delete_service_port(self, region, tenant_name, service_alias, port,enterprise_id):
         """删除服务端口"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports/" + str(port)
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports/" + str(port) +"?enterprise_id="+enterprise_id
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region)
         return body
@@ -294,44 +372,56 @@ class RegionInvokeApi(HttpClient):
         """打开关闭对内端口"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports/" + str(port) + "/inner"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body, region=region)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def manage_outer_port(self, region, tenant_name, service_alias, port, body):
         """打开关闭对外端口"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/ports/" + str(port) + "/outer"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body, region=region)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def update_service_probe(self, region, tenant_name, service_alias, body):
         """更新应用探针信息"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/probe"
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body, region=region)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
     def add_service_probe(self, region, tenant_name, service_alias, body):
         """添加应用探针信息"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/probe"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
     def delete_service_probe(self, region, tenant_name, service_alias, body):
         """删除应用探针信息"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/probe"
         self._set_headers(token)
@@ -342,84 +432,104 @@ class RegionInvokeApi(HttpClient):
         """重启应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/restart"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def rollback(self, region, tenant_name, service_alias, body):
         """应用版本回滚"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/rollback"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def start_service(self, region, tenant_name, service_alias, body):
         """启动应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/start"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def stop_service(self, region, tenant_name, service_alias, body):
         """关闭应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/stop"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def upgrade_service(self, region, tenant_name, service_alias, body):
         """升级应用"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/upgrade"
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
-    def check_service_status(self, region, tenant_name, service_alias):
+    def check_service_status(self, region, tenant_name, service_alias, enterprise_id):
         """获取单个应用状态"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/status"
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/status?enterprise_id="+ enterprise_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_service_volumes(self, region, tenant_name, service_alias):
+    def get_service_volumes(self, region, tenant_name, service_alias,enterprise_id):
         token, uri_prefix = self._get_region_request_info(region)
-        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes".format(tenant_name, service_alias)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes?enterprise_id={2}".format(tenant_name, service_alias,enterprise_id)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers)
         return res, body
 
     def add_service_volumes(self, region, tenant_name, service_alias, body):
         token, uri_prefix = self._get_region_request_info(region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes".format(tenant_name, service_alias)
         self._set_headers(token)
-        return self._post(url, self.default_headers, body)
+        return self._post(url, self.default_headers, json.dumps(body))
 
-    def delete_service_volumes(self, region, tenant_name, service_alias, volume_name):
+    def delete_service_volumes(self, region, tenant_name, service_alias, volume_name, enterprise_id):
         token, uri_prefix = self._get_region_request_info(region)
-        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes/{2}".format(tenant_name, service_alias, volume_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes/{2}?enterprise_id={3}".format(tenant_name, service_alias, volume_name, enterprise_id)
         self._set_headers(token)
         return self._delete(url, self.default_headers)
 
-    def get_service_dep_volumes(self, region, tenant_name, service_alias):
+    def get_service_dep_volumes(self, region, tenant_name, service_alias, enterprise_id):
         token, uri_prefix = self._get_region_request_info(region)
-        url = uri_prefix + "/v2/tenants/{0}/services/{1}/depvolumes".format(tenant_name, service_alias)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/depvolumes?enterprise_id={2}".format(tenant_name, service_alias,enterprise_id)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers)
         return res, body
@@ -427,73 +537,91 @@ class RegionInvokeApi(HttpClient):
     def add_service_dep_volumes(self, region, tenant_name, service_alias, body):
         """ Add dependent volumes """
         token, uri_prefix = self._get_region_request_info(region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/tenants/{0}/services/{1}/depvolumes".format(tenant_name, service_alias)
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
 
     def delete_service_dep_volumes(self, region, tenant_name, service_alias, body):
         """ Delete dependent volume"""
         token, uri_prefix = self._get_region_request_info(region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/tenants/{0}/services/{1}/depvolumes".format(tenant_name, service_alias)
         self._set_headers(token)
-        return self._delete(url, self.default_headers, body)
+        return self._delete(url, self.default_headers, json.dumps(body))
 
     def add_service_volume(self, region, tenant_name, service_alias, body):
         """添加应用持久化目录"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/volume"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
     def delete_service_volume(self, region, tenant_name, service_alias, body):
         """删除应用持久化目录"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/volume"
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, body, region=region)
+        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
     def add_service_volume_dependency(self, region, tenant_name, service_alias, body):
         """添加服务持久化挂载依赖"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/volume-dependency"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def delete_service_volume_dependency(self, region, tenant_name, service_alias, body):
         """删除服务持久化挂载依赖"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        body["tenant_id"] = tenant_region.tenant_id
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/volume-dependency"
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, body, region=region)
+        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def service_status(self, region, tenant_name, body):
         """获取多个应用的状态"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services_status"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def get_docker_log_instance(self, region, tenant_name, service_alias):
+    def get_docker_log_instance(self, region, tenant_name, service_alias,enterprise_id):
         """获取日志实体"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/log-instance"
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/log-instance?enterprise_id="+enterprise_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
@@ -502,18 +630,22 @@ class RegionInvokeApi(HttpClient):
         """获取应用日志"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/log"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def get_service_log_files(self, region, tenant_name, service_alias):
+    def get_service_log_files(self, region, tenant_name, service_alias, enterprise_id):
         """获取应用日志文件列表"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/log-file"
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/log-file?enterprise_id="+enterprise_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
@@ -522,10 +654,12 @@ class RegionInvokeApi(HttpClient):
         """获取事件日志"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
                   'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/event-log"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
     def get_api_version(self, url, token, region):
@@ -542,7 +676,7 @@ class RegionInvokeApi(HttpClient):
         url = region_map[region][
                   'url'] + "/v2/opentsdb/query"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         try:
             bean = body["bean"]
             body_list = bean["body"]
@@ -563,50 +697,39 @@ class RegionInvokeApi(HttpClient):
         url = region_map[region][
                   'url'] + "/v2/resources/tenants"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def share_clound_service(self, region, tenant_name, body):
         """分享应用到云市"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/cloud-share"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
-
-    # old api
-    def getRegionResource(self, region, body):
-        region_map = self.get_region_map(region)
-        token = region_map[region]['token']
-        url = region_map[region]['url'] + "/v1/statistic/region-memory"
-        self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=body)
-        return body
-
-    def getTenantsResource(self, region, body):
-        region_map = self.get_region_map(region)
-        token = region_map[region]['token']
-        url = region_map[region]['url'] + "/v1/statistic/tenants-memory"
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=body)
-        return body
 
     def bindDomain(self, region, tenant_name, service_alias, body):
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        body["tenant_id"] = tenant_region.region_tenant_id
         url = region_map[region]['url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/domains"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def unbindDomain(self, region, tenant_name, service_alias, body):
-        data = json.loads(body)
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
         url = region_map[region][
-                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/domains/" + data[
+                  'url'] + "/v2/tenants/" + tenant_name + "/services/" + service_alias + "/domains/" + body[
                   "domain"]
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, body, region=region)
+        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body

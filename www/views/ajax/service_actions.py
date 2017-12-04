@@ -44,6 +44,7 @@ tenantAccountService = TenantAccountService()
 codeRepositoriesService = CodeRepositoriesService()
 region_api = RegionInvokeApi()
 
+
 class AppDeploy(AuthedView):
     def update_event(self, event, message, status):
         event.status = status
@@ -53,7 +54,6 @@ class AppDeploy(AuthedView):
         if event.status == "failure" and event.type == "callback":
             event.deploy_version = event.old_deploy_version
         event.save()
-
 
     @method_perf_time
     @perm_required('code_deploy')
@@ -90,7 +90,6 @@ class AppDeploy(AuthedView):
 
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
-
 
             # calculate resource
             rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
@@ -141,8 +140,9 @@ class AppDeploy(AuthedView):
                 body["repo_url"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["service_alias"] = self.service.service_alias
             body["tenant_name"] = self.tenant.tenant_name
+            body["enterprise_id"] = self.tenant.enterprise_id
             # 新版api构建完成后没有进行启动操作
-            region_api.build_service(self.service.service_region, self.tenantName, self.serviceAlias, json.dumps(body))
+            region_api.build_service(self.service.service_region, self.tenantName, self.serviceAlias, body)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', True)
 
             data["status"] = "success"
@@ -192,10 +192,11 @@ class ServiceManage(AuthedView):
                 body = {}
                 body["operator"] = str(self.user.nick_name)
                 body["event_id"] = event_id
+                body["enterprise_id"] = self.tenant.enterprise_id
                 region_api.stop_service(self.service.service_region,
                                         self.tenantName,
                                         self.service.service_alias,
-                                        json.dumps(body))
+                                        body)
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
             except Exception, e:
@@ -224,8 +225,9 @@ class ServiceManage(AuthedView):
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
                 body["event_id"] = event_id
+                body["enterprise_id"] = self.tenant.enterprise_id
                 region_api.start_service(self.service.service_region, self.tenantName, self.service.service_alias,
-                                         json.dumps(body))
+                                         body)
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
             except Exception, e:
@@ -252,10 +254,11 @@ class ServiceManage(AuthedView):
                 body = {}
                 body["operator"] = str(self.user.nick_name)
                 body["event_id"] = event_id
+                body["enterprise_id"] = self.tenant.enterprise_id
                 region_api.restart_service(self.service.service_region,
                                            self.tenantName,
                                            self.service.service_alias,
-                                           json.dumps(body))
+                                           body)
 
                 result["status"] = "success"
             except Exception, e:
@@ -289,7 +292,7 @@ class ServiceManage(AuthedView):
                 # 判断状态
                 try:
                     status_info = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
-                                                                  self.service.service_alias)
+                                                                  self.service.service_alias, self.tenant.enterprise_id)
                     status = status_info["bean"]["cur_status"]
                     if status in ("running", "starting", "stopping", "failure", "unKnow"):
                         result["status"] = "service running"
@@ -342,10 +345,10 @@ class ServiceManage(AuthedView):
                         self.update_event(event, "被依赖, 不可删除", "failure")
                         return JsonResponse(result)
 
-
                 # 集群删除
                 try:
-                    region_api.delete_service(self.service.service_region, self.tenantName, self.service.service_alias)
+                    region_api.delete_service(self.service.service_region, self.tenantName, self.service.service_alias,
+                                              self.tenant.enterprise_id)
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         logger.exception(e)
@@ -399,6 +402,10 @@ class ServiceManage(AuthedView):
         elif action == "rollback":
             try:
                 deploy_version = request.POST["deploy_version"]
+                if deploy_version == self.service.deploy_version:
+                    result["status"] = "failure"
+                    result["message"] = "当前版本与所需回滚版本一致，无需回滚"
+                    return JsonResponse(result)
                 if event_id != "":
                     # calculate resource
                     rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
@@ -414,8 +421,9 @@ class ServiceManage(AuthedView):
                     body["event_id"] = event_id
                     body["operator"] = str(self.user.nick_name)
                     body["deploy_version"] = deploy_version
+                    body["enterprise_id"] = self.tenant.enterprise_id
                     region_api.rollback(self.service.service_region, self.tenantName, self.service.service_alias,
-                                        json.dumps(body))
+                                        body)
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
                 result["status"] = "success"
                 event.deploy_version = deploy_version
@@ -494,10 +502,11 @@ class ServiceUpgrade(AuthedView):
                         body["container_cpu"] = upgrade_container_cpu
                         body["operator"] = str(self.user.nick_name)
                         body["event_id"] = event_id
+                        body["enterprise_id"] = self.tenant.enterprise_id
                         region_api.vertical_upgrade(self.service.service_region,
                                                     self.tenantName,
                                                     self.service.service_alias,
-                                                    json.dumps(body))
+                                                    body)
 
                         self.service.min_cpu = upgrade_container_cpu
                         self.service.min_memory = upgrade_container_memory
@@ -531,8 +540,9 @@ class ServiceUpgrade(AuthedView):
                     body["deploy_version"] = self.service.deploy_version
                     body["operator"] = str(self.user.nick_name)
                     body["event_id"] = event_id
+                    body["enterprise_id"] = self.tenant.enterprise_id
                     region_api.horizontal_upgrade(self.service.service_region, self.tenantName,
-                                                  self.service.service_alias, json.dumps(body))
+                                                  self.service.service_alias, body)
 
                     self.service.min_node = new_node_num
                     self.service.save()
@@ -548,7 +558,8 @@ class ServiceUpgrade(AuthedView):
                     region_api.update_service(self.service.service_region,
                                               self.tenantName,
                                               self.service.service_alias,
-                                              json.dumps({"image_name": baseservice.image}))
+                                              {"image_name": baseservice.image,
+                                               "enterprise_id": self.tenant.enterprise_id})
                     self.service.image = baseservice.image
                     self.service.update_version = baseservice.update_version
                     self.service.save()
@@ -589,10 +600,11 @@ class ServiceRelation(AuthedView):
             result["status"] = "failure"
         return JsonResponse(result)
 
-    def cancelAdapterEnv(self,service):
-        TenantServiceEnvVar.objects.filter(service_id=service.service_id,attr_name="GD_ADAPTER").delete()
+    def cancelAdapterEnv(self, service):
+        TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").delete()
         region_api.delete_service_env(service.service_region, self.tenantName, self.service.service_alias,
-                                      json.dumps({"env_name": "GD_ADAPTER"}))
+                                      {"env_name": "GD_ADAPTER", "enterprise_id": self.tenant.enterprise_id})
+
 
 class NoneParmsError(Exception):
     def __init__(self, value):
@@ -641,9 +653,9 @@ class UseMidRain(AuthedView):
                     "attr_name": "SEVEN_LEVEL", "attr_value": "true", "is_change": 0, "scope": "inner",
                     "container_port": -1}
             TenantServiceEnvVar.objects.create(**attr)
-            attr.update({"env_name": "SEVEN_LEVEL", "env_value": "true"})
+            attr.update({"env_name": "SEVEN_LEVEL", "env_value": "true", "enterprise_id": self.tenant.enterprise_id})
             region_api.add_service_env(service.service_region, self.tenantName, self.service.service_alias,
-                                       json.dumps(attr))
+                                       attr)
 
     def addIsHttpEnv(self, service):
         # add domposer-compose
@@ -659,9 +671,9 @@ class UseMidRain(AuthedView):
                         "attr_name": "IS_HTTP", "attr_value": "true", "is_change": 0, "scope": "inner",
                         "container_port": -1}
                 TenantServiceEnvVar.objects.create(**attr)
-                attr.update({"env_name": "IS_HTTP", "env_value": "true"})
+                attr.update({"env_name": "IS_HTTP", "env_value": "true", "enterprise_id": self.tenant.enterprise_id})
                 region_api.add_service_env(service.service_region, self.tenantName, self.service.service_alias,
-                                           json.dumps(attr))
+                                           attr)
         else:
             pass
 
@@ -670,7 +682,7 @@ class UseMidRain(AuthedView):
         if num > 0:
             TenantServiceEnvVar.objects.get(service_id=service.service_id, attr_name="SEVEN_LEVEL").delete()
             region_api.delete_service_env(service.service_region, self.tenantName, self.service.service_alias,
-                                          json.dumps({"env_name": "SEVEN_LEVEL"}))
+                                          {"env_name": "SEVEN_LEVEL", "enterprise_id": self.tenant.enterprise_id})
 
 
 class AllServiceInfo(AuthedView):
@@ -678,6 +690,7 @@ class AllServiceInfo(AuthedView):
         self.cookie_region = self.request.COOKIES.get('region')
         self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                           region_name=self.cookie_region)
+
     @method_perf_time
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
@@ -723,7 +736,8 @@ class AllServiceInfo(AuthedView):
                         result[sid] = child
                 else:
                     service_status_list = region_api.service_status(self.cookie_region, self.tenantName,
-                                                                    json.dumps({"service_ids":service_ids}))
+                                                                    {"service_ids": service_ids,
+                                                                     "enterprise_id": self.tenant.enterprise_id})
                     service_status_list = service_status_list["list"]
                     rt_service_ids = [rt["service_id"] for rt in service_status_list]
                     difference = list(set(service_ids).difference(set(rt_service_ids)))
@@ -815,10 +829,12 @@ class ServiceDetail(AuthedView):
                     result["service_pay_status"] = "debugging"
                     result["tips"] = "应用尚未运行"
                 else:
-                    body = region_api.check_service_status(self.service.service_region,self.tenantName,self.service.service_alias)
+                    body = region_api.check_service_status(self.service.service_region, self.tenantName,
+                                                           self.service.service_alias, self.tenant.enterprise_id)
                     bean = body["bean"]
                     status = bean["cur_status"]
-                    service_pay_status, tips, cost_money, need_pay_money, start_time_str,total_cost = self.get_pay_status(status)
+                    service_pay_status, tips, cost_money, need_pay_money, start_time_str, total_cost = self.get_pay_status(
+                        status)
                     result["service_pay_status"] = service_pay_status
                     result["tips"] = tips
                     result["cost_money"] = cost_money
@@ -829,7 +845,7 @@ class ServiceDetail(AuthedView):
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
                         result["totalMemory"] = 0
-                    status_cn = bean.get("status_cn",None)
+                    status_cn = bean.get("status_cn", None)
                     status_info_map = get_status_info_map(status)
                     result.update(status_info_map)
                     if status_cn:
@@ -1039,7 +1055,9 @@ class ServiceLog(AuthedView):
                     data = {}
                     data["tenant_id"] = tenant_id
                     data['lines'] = 50
-                    body = region_api.get_service_logs(self.service.service_region, self.tenantName,self.service.service_alias, json.dumps(data))
+                    data["enterprise_id"] = self.tenant.enterprise_id
+                    body = region_api.get_service_logs(self.service.service_region, self.tenantName,
+                                                       self.service.service_alias, data)
                     return JsonResponse(body)
                 elif action == "compile":
                     event_id = request.GET.get("event_id", "")
@@ -1123,6 +1141,7 @@ class ServiceDomainManager(AuthedView):
                 data["protocol"] = protocol
                 data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 data["add_user"] = self.user.nick_name
+                data["enterprise_id"] = self.tenant.enterprise_id
                 if certificate_info:
                     data["certificate"] = certificate_info.certificate
                     data["private_key"] = certificate_info.private_key
@@ -1132,7 +1151,7 @@ class ServiceDomainManager(AuthedView):
                     data["private_key"] = ""
                     data["certificate_name"] = ""
 
-                region_api.bindDomain(self.service.service_region, self.tenantName, self.serviceAlias, json.dumps(data))
+                region_api.bindDomain(self.service.service_region, self.tenantName, self.serviceAlias, data)
 
                 domain = {}
                 domain["service_id"] = self.service.service_id
@@ -1154,8 +1173,9 @@ class ServiceDomainManager(AuthedView):
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
+                data["enterprise_id"] = self.tenant.enterprise_id
                 try:
-                    region_api.unbindDomain(self.service.service_region, self.tenantName, self.serviceAlias,json.dumps(data))
+                    region_api.unbindDomain(self.service.service_region, self.tenantName, self.serviceAlias, data)
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         raise e
@@ -1360,15 +1380,15 @@ class ServicePort(AuthedView):
         return True, port_alias
 
     def check_port(self, port):
-        if not re.match(r'^\d{2,5}$', str(port)):
-            return False, u"格式不符合要求^\d{2,5}"
+        # if not re.match(r'^\d{2,5}$', str(port)):
+        #     return False, u"格式不符合要求^\d{2,5}"
 
-        if self.service.code_from == "image_manual":
-            if port > 65535 or port < 1:
-                return False, u"端口号必须在1~65535之间！"
-        else:
+        if self.service.language and "docker" not in self.service.language:
             if port > 65535 or port < 1025:
                 return False, u"端口号必须在1025~65535之间！"
+        else:
+            if port > 65535 or port < 1:
+                return False, u"端口号必须在1~65535之间！"
 
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"
@@ -1379,7 +1399,7 @@ class ServicePort(AuthedView):
         """打开关闭端口"""
         # 标识操作是否成功
         is_success = True
-        data = {"success": True, "info": u"更改成功","code":200}
+        data = {"success": True, "info": u"更改成功", "code": 200}
         if action == "open_outer":
             if deal_port.protocol == "stream":
                 stream_outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
@@ -1391,19 +1411,22 @@ class ServicePort(AuthedView):
             deal_port.is_outer_service = True
             body = region_api.manage_outer_port(self.service.service_region, self.tenantName,
                                                 self.service.service_alias,
-                                                deal_port.container_port, json.dumps({"operation": "open"}))
+                                                deal_port.container_port,
+                                                {"operation": "open", "enterprise_id": self.tenant.enterprise_id})
             logger.debug("open outer port body {}".format(body))
-            mapping_port = body["bean"]["port"]
+            lb_mapping_port = body["bean"]["port"]
 
-            deal_port.mapping_port = mapping_port
+            deal_port.lb_mapping_port = lb_mapping_port
         elif action == "close_outer":
             deal_port.is_outer_service = False
             region_api.manage_outer_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                         deal_port.container_port, json.dumps({"operation": "close"}))
+                                         deal_port.container_port,
+                                         {"operation": "close", "enterprise_id": self.tenant.enterprise_id})
         elif action == "close_inner":
             deal_port.is_inner_service = False
             region_api.manage_inner_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                         deal_port.container_port, json.dumps({"operation": "close"}))
+                                         deal_port.container_port,
+                                         {"operation": "close", "enterprise_id": self.tenant.enterprise_id})
         elif action == "open_inner":
             if not deal_port.port_alias:
                 is_success = False
@@ -1441,15 +1464,18 @@ class ServicePort(AuthedView):
                 region_api.delete_service_env(self.service.service_region,
                                               self.tenantName,
                                               self.service.service_alias,
-                                              json.dumps({"env_name": env.attr_name}))
+                                              {"env_name": env.attr_name,
+                                               "enterprise_id": self.tenant.enterprise_id})
                 add_attr = {"container_port": env.container_port, "env_name": env.attr_name,
-                            "env_value": env.attr_value, "is_change": env.is_change, "name":env.name,"scope":env.scope}
+                            "env_value": env.attr_value, "is_change": env.is_change, "name": env.name,
+                            "scope": env.scope, "enterprise_id": self.tenant.enterprise_id}
                 region_api.add_service_env(self.service.service_region,
                                            self.tenantName,
                                            self.service.service_alias,
-                                           json.dumps(add_attr))
-            region_api.manage_inner_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                         deal_port.container_port, json.dumps({"operation": "open"}))
+                                           add_attr)
+            res = region_api.manage_inner_port(self.service.service_region, self.tenantName, self.service.service_alias,
+                                         deal_port.container_port,
+                                         {"operation": "open", "enterprise_id": self.tenant.enterprise_id})
 
         if action == 'close_outer' or action == 'open_outer':
             if self.service.port_type == "one_outer":
@@ -1467,7 +1493,7 @@ class ServicePort(AuthedView):
     def change_port_info(self, action, deal_port, request):
         """修改端口信息"""
         is_success = True
-        data = {"success": True, "info": u"更改成功","code":200}
+        data = {"success": True, "info": u"更改成功", "code": 200}
         body = {"container_port": deal_port.container_port, "is_inner_service": deal_port.is_inner_service,
                 "is_outer_service": deal_port.is_outer_service, "mapping_port": deal_port.mapping_port,
                 "port_alias": deal_port.port_alias, "protocol": deal_port.protocol,
@@ -1476,6 +1502,11 @@ class ServicePort(AuthedView):
             protocol = request.POST.get("value")
             deal_port.protocol = protocol
             if protocol == "stream":
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                     container_port=deal_port.container_port,
+                                                     is_outer_service=True).count() > 0:
+                    return False, {"success": False, "code": 400, "info": u"请关闭外部访问"}
+
                 stream_outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                                      protocol="stream", is_outer_service=True).count()
                 if stream_outer_num > 0 and deal_port.is_outer_service:
@@ -1484,15 +1515,13 @@ class ServicePort(AuthedView):
                     return is_success, data
             body["protocol"] = protocol
             region_api.update_service_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                           json.dumps({"port": [body]}))
+                                           {"port": [body], "enterprise_id": self.tenant.enterprise_id})
             deal_port.save()
         elif action == "change_port_alias":
             new_port_alias = request.POST.get("value")
             success, reason = self.check_port_alias(new_port_alias)
             tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id,
                                                                  port_alias=new_port_alias).count()
-            if tenant_alias_num > 0:
-                return False, {"success": False, "info": "同一租户下别名不能重复", "code": 400}
             if not success:
                 return False, {"success": False, "info": reason, "code": 400}
             else:
@@ -1509,20 +1538,21 @@ class ServicePort(AuthedView):
                     region_api.delete_service_env(self.service.service_region,
                                                   self.tenantName,
                                                   self.service.service_alias,
-                                                  json.dumps({"env_name": old_env_attr_name}))
+                                                  {"env_name": old_env_attr_name,
+                                                   "enterprise_id": self.tenant.enterprise_id})
                     # step 2 添加新的
                     add_env = {"container_port": env.container_port, "env_name": env.attr_name,
                                "env_value": env.attr_value, "is_change": env.is_change, "name": env.name,
-                               "scope": env.scope}
+                               "scope": env.scope, "enterprise_id": self.tenant.enterprise_id}
                     region_api.add_service_env(self.service.service_region,
                                                self.tenantName,
                                                self.service.service_alias,
-                                               json.dumps(add_env))
+                                               add_env)
                     env.save()
                 # 更新region的端口信息
                 body["port_alias"] = new_port_alias
                 region_api.update_service_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                               json.dumps({"port": [body]}))
+                                               {"port": [body], "enterprise_id": self.tenant.enterprise_id})
                 deal_port.save()
         elif action == "change_port":
             new_port = int(request.POST.get("value"))
@@ -1542,7 +1572,7 @@ class ServicePort(AuthedView):
 
             old_port = deal_port.container_port
             deal_port.container_port = new_port
-            envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,container_port=old_port)
+            envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=old_port)
             for env in envs:
                 # 更新region 环境变量
                 # step 1 先删除原有的
@@ -1550,20 +1580,21 @@ class ServicePort(AuthedView):
                 region_api.delete_service_env(self.service.service_region,
                                               self.tenantName,
                                               self.service.service_alias,
-                                              json.dumps({"env_name": deal_port.port_alias}))
+                                              {"env_name": deal_port.port_alias,
+                                               "enterprise_id": self.tenant.enterprise_id})
                 # step 2 添加新的
                 add_env = {"container_port": env.container_port, "env_name": env.attr_name,
                            "env_value": env.attr_value, "is_change": env.is_change, "name": env.name,
-                           "scope": env.scope}
+                           "scope": env.scope, "enterprise_id": self.tenant.enterprise_id}
                 region_api.add_service_env(self.service.service_region,
                                            self.tenantName,
                                            self.service.service_alias,
-                                           json.dumps(add_env))
+                                           add_env)
                 env.save()
             # 更新region端口信息
             body["container_port"] = new_port
             region_api.update_service_port(self.service.service_region, self.tenantName, self.service.service_alias,
-                                           json.dumps({"port": [body]}))
+                                           {"port": [body], "enterprise_id": self.tenant.enterprise_id})
             deal_port.save()
 
         return is_success, data
@@ -1614,6 +1645,8 @@ class ServicePort(AuthedView):
                     "domain": domain,
                     "port": deal_port.mapping_port,
                 }
+                if deal_port.lb_mapping_port != 0:
+                    data["outer_service"]["port"] = deal_port.lb_mapping_port
             elif deal_port.protocol == 'http':
                 data["outer_service"] = {
                     "domain": "{0}.{1}{2}".format(self.service.service_alias, self.tenant.tenant_name,
@@ -1649,9 +1682,10 @@ class ServiceEnv(AuthedView):
                     "attr_name": attr_name, "attr_value": attr_value, "is_change": True, "scope": scope
                 }
                 env = TenantServiceEnvVar.objects.create(**attr)
-                attr.update({"env_name": attr_name, "env_value": attr_value})
+                attr.update(
+                    {"env_name": attr_name, "env_value": attr_value, "enterprise_id": self.tenant.enterprise_id})
                 region_api.add_service_env(self.service.service_region, self.tenant.tenant_name,
-                                           self.service.service_alias, json.dumps(attr))
+                                           self.service.service_alias, attr)
                 return JsonResponse(
                     {"success": True, "info": u"创建成功", "pk": env.pk, "attr_name": attr_name, "attr_value": attr_value,
                      "name": name})
@@ -1660,7 +1694,8 @@ class ServiceEnv(AuthedView):
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).delete()
 
             region_api.delete_service_env(self.service.service_region, self.tenant.tenant_name,
-                                          self.service.service_alias, json.dumps({"env_name": attr_name}))
+                                          self.service.service_alias, {"env_name": attr_name,
+                                                                       "enterprise_id": self.tenant.enterprise_id})
             return JsonResponse({"success": True, "info": u"删除成功"})
 
 
@@ -1669,18 +1704,24 @@ class ServiceMnt(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         action = request.POST.get('action')
-        dep_vol_ids = request.POST.getlist('dep_vol_ids[]')
         try:
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
             if action == 'add':
-                ret, message = baseService.batch_add_dep_volume_v2(self.tenantName, self.service, dep_vol_ids)
-                if len(ret) > 0:
-                    return JsonResponse(data={'status': 'failure', 'msg': '挂载目录{0}与当前应用已存在关联'.format(ret)})
+                dep_vol_ids = json.loads(request.POST.get('dep_vol_ids', '[]'))
+                logger.debug('dep_vols {0}'.format(dep_vol_ids))
+
+                ret, vol_names, message = baseService.batch_add_dep_volume_v2(
+                    self.tenant, self.service, dep_vol_ids)
+                if not ret and not vol_names:
+                    return JsonResponse(data={'status': 'failure', 'msg': message})
+                if not ret and vol_names:
+                    return JsonResponse(data={
+                        'status': 'failure', 'msg': '挂载目录{0}与当前应用已存在关联'.format(vol_names)})
                 return JsonResponse(data={'status': 'success'})
             elif action == 'cancel':
                 dep_vol_id = request.POST.get("dep_vol_id")
-                ret = baseService.delete_dep_volume_v2(self.tenantName, self.service, dep_vol_id)
+                ret = baseService.delete_dep_volume_v2(self.tenant, self.service, dep_vol_id)
                 if not ret:
                     return JsonResponse(data={'status': 'failure'})
                 return JsonResponse(data={'status': 'success'})
@@ -1716,9 +1757,6 @@ class ServiceNewPort(AuthedView):
             # todo 判断端口别名是否重复
             tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id,
                                                                  port_alias=port_alias).count()
-            if tenant_alias_num > 0:
-                return JsonResponse({"success": False, "code": 400, "info": u"同一租户下别名不能重复"})
-
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
             mapping_port = 0
@@ -1732,11 +1770,10 @@ class ServiceNewPort(AuthedView):
             }
             TenantServicesPort.objects.create(**port)
             region_api.add_service_port(self.service.service_region, self.tenant.tenant_name,
-                                        self.service.service_alias, json.dumps({"port": [port]}))
+                                        self.service.service_alias,
+                                        {"port": [port], "enterprise_id": self.tenant.enterprise_id})
             return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_port':
-            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count() == 1:
-                return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
 
             port_port = request.POST.get("port_port")
             num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).count()
@@ -1754,7 +1791,8 @@ class ServiceNewPort(AuthedView):
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
-            region_api.delete_service_port(self.service.service_region, self.tenantName, self.service.service_alias,port_port)
+            region_api.delete_service_port(self.service.service_region, self.tenantName, self.service.service_alias,
+                                           port_port, self.tenant.enterprise_id)
             return JsonResponse({"success": True, "info": u"删除成功"})
 
 
@@ -1764,7 +1802,7 @@ class ServiceDockerContainer(AuthedView):
         data = {}
         try:
             data = region_api.get_service_pods(self.service.service_region, self.tenantName, self.service.service_alias,
-                                               None)
+                                               self.tenant.enterprise_id)
             result = {}
             for d in data["list"]:
                 result[d["PodName"]] = "manager"
@@ -1849,7 +1887,7 @@ class ServiceVolumeView(AuthedView):
                             return JsonResponse(result)
 
                 volume, body = baseService.add_volume_v2(
-                    self.tenantName, self.service, volume_name, volume_path, volume_type
+                    self.tenant, self.service, volume_name, volume_path, volume_type
                 )
                 if not volume:
                     return JsonResponse(data={"status": "failure", "code": "500", "msg": json.dumps(body)})
@@ -1866,7 +1904,7 @@ class ServiceVolumeView(AuthedView):
                 return JsonResponse(result, status=200)
             elif action == 'cancel':
                 volume_id = request.POST["volume_id"]
-                ret, msg = baseService.delete_volume_v2(self.tenantName, self.service, int(volume_id))
+                ret, msg = baseService.delete_volume_v2(self.tenant, self.service, int(volume_id))
                 if ret:
                     return JsonResponse(data={"status": "success", "code": "200", "msg": msg}, status=200)
                 return JsonResponse(data={"status": "failure", "code": "500", "msg": msg})
@@ -1934,7 +1972,7 @@ class DockerLogInstanceView(AuthedView):
         ws_url = self.make_event_ws_uri(settings.EVENT_WEBSOCKET_URL[self.service.service_region])
         try:
             re = region_api.get_docker_log_instance(self.service.service_region, self.tenantName,
-                                                    self.service.service_alias)
+                                                    self.service.service_alias, self.tenant.enterprise_id)
             bean = re["bean"]
 
             result["ok"] = True

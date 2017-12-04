@@ -162,8 +162,9 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                     body["event_id"] = event.event_id
                     body["deploy_version"] = current_service.deploy_version
                     body["operator"] = str(self.user.nick_name)
+                    body["enterprise_id"] = self.tenant.enterprise_id
                     # 启动
-                    region_api.start_service(current_service.service_region,self.tenantName,current_service.service_alias,json.dumps(body))
+                    region_api.start_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
 
                     monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_start', True)
                 result = {"ok": True, "info": "启动成功"}
@@ -218,11 +219,11 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                         buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
                         for benv in buildEnvs:
                             envs[benv.attr_name] = benv.attr_value
-                        body["envs"] = json.dumps(envs)
+                        body["envs"] = envs
                         body["service_alias"] = self.service.service_alias
-                        body["tenant_name"] = self.tenant.tenant_name
+                        body["enterprise_id"] = self.tenant.enterprise_id
 
-                        region_api.build_service(current_service.service_region,self.tenantName,current_service.service_alias,json.dumps(body))
+                        region_api.build_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
                         monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', True)
                 result = {"ok": True, "info": "部署成功"}
             except Exception, e:
@@ -240,7 +241,8 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                     body = {}
                     body["event_id"] = event.event_id
                     body["operator"] = str(self.user.nick_name)
-                    region_api.stop_service(current_service.service_region,self.tenantName,current_service.service_alias,json.dumps(body))
+                    body["enterprise_id"] = self.tenant.enterprise_id
+                    region_api.stop_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
                     monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_stop', True)

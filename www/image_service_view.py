@@ -15,16 +15,16 @@ from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
     TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
-from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
+from www.tenantservice.baseservice import TenantAccountService, TenantUsedResource, \
     BaseTenantService, AppCreateService, ServiceAttachInfoManage
 from www.utils import sn
 from www.utils.crypt import make_uuid
 from www.utils.imageD import ImageAnalyst
 from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
+from www.services import tenant_svc
 
 logger = logging.getLogger('default')
-tenantRegionService = TenantRegionService()
 tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
@@ -33,7 +33,6 @@ rpmManager = RegionProviderManager()
 appCreateService = AppCreateService()
 region_api = RegionInvokeApi()
 attach_info_mamage = ServiceAttachInfoManage()
-
 
 
 class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
@@ -119,12 +118,11 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 # min_node = int(request.POST.get("service_min_node", 1))
 
                 # judge region tenant is init
-                success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id,
-                                                              self.user)
+                success = tenant_svc.init_for_region(self.response_region, self.tenantName, tenant_id,
+                                                     self.user)
                 if not success:
                     result["status"] = "failure"
                     return JsonResponse(result, status=200)
-
 
                 result["status"] = "success"
                 result["id"] = service_id
@@ -134,7 +132,8 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     group_id = int(group_id)
                     if group_id > 0:
                         ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
-                                                            tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+                                                            tenant_id=self.tenant.tenant_id,
+                                                            region_name=self.response_region)
                 if _is == "is_docker":
                     args = ""
                     for mm in list_args[:-1]:
@@ -213,7 +212,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             for ten in tenantServiceList:
                 vols = baseService.get_volumes_by_type(TenantServiceVolume.SHARE, ten.service_id)
                 for vol in vols:
-                    svc_group_rel = svc_grop_repo.get_rel_region(vol.service_id, self.tenant.tenant_id, self.response_region)
+                    svc_group_rel = svc_grop_repo.get_rel_region(vol.service_id, self.tenant.tenant_id,
+                                                                 self.response_region)
                     svc_group = None
                     if svc_group_rel:
                         svc_group = svc_grop_repo.get_by_pk(svc_group_rel.group_id)
@@ -252,7 +252,6 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         service_alias = "gr" + service_id[-6:]
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
 
             # 从url中分析出来service_cname 和 version
 
@@ -277,7 +276,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             # 依赖服务id
             depIds = json.loads(request.POST.get("depend_list", "[]"))
             # 挂载其他服务目录
-            service_alias_list = request.POST.getlist('mnt_list[]')
+            service_alias_list = json.loads(request.POST.get('mnt_list', '[]'))
             # 服务内存
             image_service_memory = int(request.POST.get("service_min_memory", 512))
             # 服务扩展方式
@@ -369,11 +368,14 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             baseService.create_region_service(
                 newTenantService, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps([])
             )
-            baseService.batch_add_dep_volume_v2(self.tenantName, self.service, service_alias_list)
-            
+
+            baseService.batch_add_dep_volume_v2(self.tenant, self.service, service_alias_list)
+
             data = {}
             data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-            region_api.update_service_state_label(self.response_region, self.tenantName, self.service.service_alias, json.dumps(data))
+            data["enterprise_id"] = self.tenant.enterprise_id
+            region_api.update_service_state_label(self.response_region, self.tenantName, self.service.service_alias,
+                                                  data)
             self.service.extend_method = service_status
             self.service.save()
 
@@ -386,7 +388,17 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             body["operator"] = self.user.nick_name
             body["action"] = "upgrade"
             body["kind"] = kind
-            region_api.build_service(newTenantService.service_region, self.tenantName, newTenantService.service_alias, json.dumps(body))
+
+            envs = {}
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
+                "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
+            for benv in buildEnvs:
+                envs[benv.attr_name] = benv.attr_value
+            body["envs"] = envs
+
+            body["enterprise_id"] = self.tenant.enterprise_id
+            region_api.build_service(
+                newTenantService.service_region, self.tenantName, newTenantService.service_alias, body)
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
 
@@ -426,10 +438,11 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                           env["name"], env["attr_name"], env["attr_value"], True, "inner")
 
         for volume in volumes:
-            baseService.add_volume_with_type(tenant_serivce,volume['volume_path'], volume['volume_type'], volume['volume_name'])
+            baseService.add_volume_with_type(tenant_serivce, volume['volume_path'], volume['volume_type'],
+                                             volume['volume_name'])
 
         if len(volumes) > 0:
             temp_service = TenantServiceInfo.objects.get(service_id=tenant_serivce.service_id)
             if temp_service.host_path is None or temp_service.host_path == "":
-                    temp_service.host_path = "/grdata/tenant/" + temp_service.tenant_id + "/service/" + temp_service.service_id
-                    temp_service.save()
+                temp_service.host_path = "/grdata/tenant/" + temp_service.tenant_id + "/service/" + temp_service.service_id
+                temp_service.save()

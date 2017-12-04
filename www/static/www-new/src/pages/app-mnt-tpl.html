@@ -53,17 +53,21 @@
     <table class="table">
         <thead>
         <tr class="active">
-            <th>持久化名称</th>
-            <th class="hidden-xs">持久化目录</th>
-            <th>持久化类型</th>
-            <th>所属应用</th>
-            <th class="hidden-xs">所属分组</th>
-            <th >操作</th>
+            <th>本地持久化目录</th>
+            <th></th>
+            <th>目标持久化名称</th>
+            <th class="hidden-xs">目标持久化目录</th>
+            <th>目标持久化类型</th>
+            <th>目标所属应用</th>
+            <th class="hidden-xs">目标所属分组</th>
+            <th>操作</th>
         </tr>
         </thead>
         <tbody>
         {{each pageData.mounted_apps}}
             <tr data-dest-service-alias="{{$value.service_alias}}">
+                <td>{{$value.local_vol_path}}</td>
+                <td><div style="text-align:center;font-size:18px"><span class="glyphicon glyphicon-resize-horizontal"></span></div></td>
                 <td>{{$value.dep_vol_name}}</td>
                 <td>{{$value.dep_vol_path}}</td>
                 <td>{{$value.dep_vol_type_cn}}</td>
@@ -78,7 +82,7 @@
         {{/each}}
         {{if pageData.mounted_apps.length == 0}}
              <tr>
-                <td colspan="6" style="text-align: center">暂无数据</td>
+                <td colspan="8" style="text-align: center">暂无数据</td>
             </tr>
         {{/if}}
        </tbody>

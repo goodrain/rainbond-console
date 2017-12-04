@@ -1,5 +1,19 @@
 $(function(){
 
+     $(".fn-showlink").click(function(){
+        var htmlstr = $(this).find("cite").html();
+        var parents = $(this).parents(".fn-modulebox");
+        if(htmlstr == "展开"){
+            $(this).find("cite").html("收起");
+            $(this).find("span").removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-up");
+            $(parents).find(".fn-showblock").show();
+        }else{
+            $(this).find("cite").html("展开");
+            $(this).find("span").removeClass("glyphicon-chevron-up").addClass("glyphicon-chevron-down");
+            $(parents).find(".fn-showblock").hide();
+        }
+    })
+
     $(".tablink a").eq(0).addClass("sed");
     $("section.app-box").eq(0).show();
     $(".tablink a").click(function () {
@@ -12,67 +26,48 @@ $(function(){
    /*ww-2017-11-7*/
     $(".fn-app-box").each(function(){
         var this_id= $(this).attr("data-id");
-        var minMeVal = $("#"+ this_id + "_MemoryRange").attr("min");
-        if(Number(minMeVal)>1000){
-            var Memory = parseInt(minMeVal/1024);
-            if(Memory>=1 && Memory<2){
-                    minMeVal = 1
-            }else if(Memory>=2 && Memory<4){
-                        minMeVal = 2
-            }else if(Memory>=4 && Memory<6){
-                        minMeVal = 4
-            }else if(Memory>=6 && Memory<8){
-                        minMeVal = 6
-            }else{
-                        minMeVal = 8 
-            }
-        }else{
-            if(minMeVal >=128 &&  minMeVal < 256){
-                minMeVal = 128
-            }else if(minMeVal >= 256 &&  minMeVal < 512){
-                minMeVal = 256
-            }else{
-                minMeVal = 512
-            }
-        }
-        $("#"+ this_id + "_MemoryText").html(minMeVal>10 ? minMeVal + "M" : minMeVal + "G");
-        //
-        $("#"+ this_id + "_MemoryRange").bind('input propertychange',function(){
-            var memoryVal = $(this).val();
-            if(Number(memoryVal)>1000){
-                var Memory = parseInt(memoryVal/1024);
-                if(Memory>=1 && Memory<2){
-                    memoryVal = 1
-                }else if(Memory>=2 && Memory<4){
-                    memoryVal = 2
-                }else if(Memory>=4 && Memory<6){
-                    memoryVal = 4
-                }else if(Memory>=6 && Memory<8){
-                    memoryVal = 6
+        var minMemoryval = $("#"+ this_id + "_MemoryRange").attr("data-min");
+        var Memeryonoff = $("#"+ this_id + "_MemoryRange").attr("data-money");
+        var memoryStr = "";
+            if(Memeryonoff == "free"){
+                if(minMemoryval == "128"){
+                    memoryStr = '<a href="javascript:;" class="sed">128M</a><a href="javascript:;">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "256"){
+                    memoryStr = '<a href="javascript:;" class="sed">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "512"){
+                    memoryStr = '<a href="javascript:;" class="sed">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "1024"){
+                    memoryStr = '<a href="javascript:;" class="sed">1G</a>';
                 }else{
-                    memoryVal = 8 
+                    memoryStr = '此应用所需内存超过能使用的最大内存！';
                 }
             }else{
-                if(memoryVal >=128 &&  memoryVal < 256){
-                    memoryVal = 128
-                }else if(memoryVal >= 256 &&  memoryVal < 512){
-                    memoryVal = 256
+                if(minMemoryval == "128"){
+                    memoryStr = '<a href="javascript:;" class="sed">128M</a><a href="javascript:;">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "256"){
+                    memoryStr = '<a href="javascript:;" class="sed">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "512"){
+                    memoryStr = '<a href="javascript:;" class="sed">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "1024"){
+                    memoryStr = '<a href="javascript:;" class="sed">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "2048"){
+                    memoryStr = '<a href="javascript:;" class="sed">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "4096"){
+                    memoryStr = '<a href="javascript:;" class="sed">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "8192"){
+                    memoryStr = '<a href="javascript:;" class="sed">8G</a>';
                 }else{
-                     memoryVal = 512
+                    memoryStr = '此应用所需内存超过能使用的最大内存！';
                 }
             }
-            $("#"+ this_id + "_MemoryText").html(memoryVal>10 ? memoryVal + "M" : memoryVal + "G");
-        });
-        $("#"+ this_id + "_extend_method").change(function(){
-            var oval= $("#"+ this_id + "_extend_method option:selected") .val();
-            if(oval == "stateless"){
-                $("#"+ this_id + "_fn_stateless").show();
-                $("#"+ this_id + "_fn_state").hide();
-            }else{
-                $("#"+ this_id + "_fn_stateless").hide();
-                $("#"+ this_id + "_fn_state").show();
-            }
-        });
+            $("#"+ this_id + "_MemoryRange").html(memoryStr);
+            $("#"+ this_id + "_MemoryText").html(minMemoryval<1000 ? minMemoryval + "M" : parseInt(minMemoryval/1024) + "G");
+            $("#"+ this_id + "_MemoryRange a").click(function(){
+                $("#"+ this_id + "_MemoryRange a").removeClass("sed");
+                $(this).addClass("sed");
+                var memoryVal = $(this).html();
+                $("#"+ this_id + "_MemoryText").html(memoryVal);
+            }); 
     });
 
     
@@ -89,7 +84,7 @@ $(function(){
         $(".app-box").each(function () {
             var service_key = $(this).attr("data-key");
             var appid = $(this).attr("data-id");
-            var  methodval= $("#"+ appid + "_extend_method option:selected").val();
+            var  methodval= $('input[name="'+ appid +'_extend_method"]:checked').val();
             var  memory_num = parseInt($("#"+ appid + "_MemoryText").html());
             var env_tr = $(this).find("tbody.environment").children("tr");
             var envList = [];
@@ -118,7 +113,7 @@ $(function(){
             "methodval": JSON.stringify(keyMethodval),
             "service_min_memory" : JSON.stringify(keyMemoryNum)
         };
-
+        console.log(data);
         $.ajax({
             type : "post",
             url : "/apps/" + tenantName + "/group-deploy/" + share_group_id+"/step3/",

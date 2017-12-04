@@ -19,11 +19,12 @@ from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, Tenan
 from www.models.main import ServiceAttachInfo, ServiceFeeBill, TenantServiceEnvVar, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService, \
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService,  \
     AppCreateService, ServiceAttachInfoManage
 from www.utils import sn
 from www.utils.crypt import make_uuid
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
+from www.services import tenant_svc
 
 logger = logging.getLogger('default')
 
@@ -32,7 +33,6 @@ tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
 tenantAccountService = TenantAccountService()
 appClient = AppServiceApi()
-tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
 appCreateService = AppCreateService()
 region_api = RegionInvokeApi()
@@ -256,7 +256,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         service_alias = "gr" + service_id[-6:]
         result = {}
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
+            success = tenant_svc.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
@@ -440,7 +440,7 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
                     "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": False, "scope": "inner", "container_port": -1}
             TenantServiceEnvVar.objects.create(**attr)
             attr.update({"env_name": "GD_ADAPTER", "env_value": "true"})
-            region_api.add_service_env(service.service_region,self.tenantName,service.service_alias,json.dumps(attr))
+            region_api.add_service_env(service.service_region,self.tenantName,service.service_alias,attr)
 
     def create_service_event(self, service, tenant, action):
         event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
@@ -522,10 +522,6 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
 
         result = {}
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id, self.user)
-            if not success:
-                result["status"] = "failure"
-                return JsonResponse(result, status=200)
 
             exist_t_services = []
             for str in dependency_services:
@@ -564,7 +560,8 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
 
             data = {}
             data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-            region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, json.dumps(data))
+            data["enterprise_id"] = self.tenant.enterprise_id
+            region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, data)
             self.service.extend_method = service_status
             self.service.save()
             body = {}
@@ -574,8 +571,17 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
             body["deploy_version"] = self.service.deploy_version
             body["operator"] = self.user.nick_name
             body["action"] = "upgrade"
+
+            envs = {}
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name__in=(
+                "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
+            for benv in buildEnvs:
+                envs[benv.attr_name] = benv.attr_value
+            body["envs"] = envs
+
             body["kind"] = kind
-            region_api.build_service(self.service.service_region, self.tenantName, self.serviceAlias, json.dumps(body))
+            body["enterprise_id"] = self.tenant.enterprise_id
+            region_api.build_service(self.service.service_region, self.tenantName, self.serviceAlias, body)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
 
             result["status"] = "success"

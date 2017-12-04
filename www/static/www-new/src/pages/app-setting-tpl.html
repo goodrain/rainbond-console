@@ -67,7 +67,16 @@
                         </div>
                     </div>
                 {{else}}
-                    <div class="col-xs-4 text-left">{{ appInfo.service.code_version }}</div>
+                    <div class="col-xs-4 hidden-xs">
+                        <div class="col-xs-12 text-right">
+                            <input value="{{ appInfo.service.code_version }}" name="branch" id="git_branch" class="form-control git-branch-change inline-block" style="display:inline-block;width:auto;max-width:180px;">
+                            </input>
+                            <button type="button"
+                                    class="btn btn-success changeAppBranch">修改分支
+                            </button>
+                        </div>
+                    </div>
+
                 {{/if}}
             </div>
             {{/if}}

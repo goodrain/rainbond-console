@@ -1,27 +1,29 @@
-{% extends 'www/raster.html' %}
+{% extends 'www/raster2.html' %}
 {% load i18n %}
 {% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
-<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
-<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/newappstep.js" %}'></script>
+<script src='{% static "www/js/sweetalert.min.js" %}'></script>
 {% endblock %}
 
 {% block main-content%}
 <section class="wrapper site-min-height">
-    <!-- new app build start -->
-	<section class="main-box">
-		<h3 class="main-tit">从源码创建应用</h3>
+	<section class="panel panel-default">
+        <div class="panel-body">
+        <!-- new app build start -->
+		<p class="main-tit">从源码创建应用</p>
         <div class="app-step clearfix">
             <p class="sed"><span>1</span><cite>创建应用</cite></p>
             <p><span>2</span><cite>代码同步</cite></p>
             <p><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <form id="commentForm" method="post" action="" novalidate="novalidate">{% csrf_token %}
+        <form id="commentForm" method="post" action="" novalidate="novalidate" class="form-horizontal">{% csrf_token %}
             <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
             <input type="hidden" id="service_code_from" name="service_code_from" value="{{cur_type}}">
             <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
@@ -37,52 +39,93 @@
             <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
             <!-- 基本信息  start-->
 			<div class="infor-fm-box">
-				<h4 class="step-tit" style="display: none;">基本信息</h4>
-				<div class="fm-input-text clearfix">
-                    <label for="create_app_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder="给应用取个名字，支持中英文。"  />
+				<div class="form-group">
+                    <label for="create_app_name" class="col-sm-3 control-label">应用名</label>
+                    <div class="col-sm-6">
+                        <input type="text" id="create_name" name="create_name" class="form-control" value="" placeholder="给应用取个名字，支持中英文。"  />
+                    </div>
                 </div>
-                <p class="fm-tips" id="create_name_notice">请输入应用名！</p>
-                <div class="fm-select clearfix">
-                    <label>选择分组</label>
-                    <select id="group-name" name="select_group_id">
-                        <option value="-1">不分组</option>
-                        {% for group in groupList %}
-                        <option value="{{group.ID}}" >{{group.group_name}}</option>
-                        {% endfor %}
-                        <option value="-2">新建组</option>
-                    </select>
+                <div class="row fm-tips" id="create_name_notice">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">请输入应用名！</div>
+                </div> 
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">选择分组</label>
+                    <div class="col-sm-6">
+                        <select id="group-name" name="select_group_id" class="form-control">
+                            <option value="-1">不分组</option>
+                            {% for group in groupList %}
+                            <option value="{{group.ID}}" >{{group.group_name}}</option>
+                            {% endfor %}
+                            <option value="-2">新建组</option>
+                        </select>
+                    </div>
                 </div>
                 <!-- 01 公开项目 -->
                 {% if cur_type == "gitlab_manual" %}
                 <span style="display: none"; data-action="gitlab_manual" class="fn-way"></span>
-                <div class="fm-input-text clearfix">
-                    <label>代码源</label><input type="text" name="" value="" placeholder="请输入一个公开项目的 Git 地址。"  id="service_code_url" />
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">代码源</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="" value="" placeholder="请输入一个公开项目的 Git 地址。"  class="form-control" id="service_code_url" />
+                    </div>
                 </div>
-                <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！或者试一试我们提供的<a href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">示例Demo</a>。</p>
-                <div class="fm-input-text clearfix">
-                    <label>代码版本</label><input type="text" name="" value="master" placeholder="" class="fn-code-branch" />
+                <div class="row fm-tips" id="service_code_url_tips">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">
+                        代码仓库地址不能为空！或者试一试我们提供的<a href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">示例Demo</a>
+                    </div>
                 </div>
-                <p class="fm-tips fn-code-tips">代码版本不能为空！</p>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">代码版本</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="" value="master" placeholder="" class="fn-code-branch form-control" />
+                    </div>
+                </div>
+                <div class="row fm-tips fn-code-tips">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">
+                        代码版本不能为空！
+                    </div>
+                </div>
                 {% endif %}
                 <!-- 01 -->
                 <!--  02 自建Git start-->
                 {% if cur_type == "gitlab_self" %}
                 <span style="display: none"; data-action="gitlab_self" class="fn-way"></span>
-                <div class="fm-input-text clearfix">
-                    <label>私有Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
-                    &nbsp;<a href="http://doc.goodrain.com/usage/303490" target="_blank">如何获得仓库地址?</a>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">私有Git</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips  form-control" data-original-title="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
+                    </div>
+                    <div class="col-sm-3">
+                        <a href="http://doc.goodrain.com/usage/303490" target="_blank" class="fm-tipshow">如何获得仓库地址?</a>
+                    </div>
                 </div>
-                <p class="fm-tips" id="my_git_url_tips" class="fn-code-branch">代码仓库地址不能为空！</p>
-                <div class="fm-input-text clearfix">
-                    <label>代码版本</label><input type="text" name="" value="master" placeholder="" class="fn-code-branch"  />
+                <div class="row fm-tips" id="my_git_url_tips">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">
+                        代码仓库地址不能为空！
+                    </div>
                 </div>
-                <p class="fm-tips fn-code-tips" >代码版本不能为空！</p>
-                <div class="code-box clearfix">
-                     <label> </label>
-                     <p>
-                        <span>授权key：</span>
-                        <cite>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</cite>
-                     </p>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">代码版本</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="" value="master" placeholder="" class="fn-code-branch form-control"  />
+                    </div>
+                </div>
+                <div class="row fm-tips fn-code-tips">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">
+                        代码版本不能为空！
+                    </div>
+                </div>
+                <div class="form-group">
+                     <label class="col-sm-3 control-label"></label>
+                     <div class="col-sm-6">
+                        <span class="keytit">授权key：</span>
+                        <cite class="keytext">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</cite>
+                     </div>
                 </div>
                 {% endif %}
                 <!-- 02 自建Git end -->
@@ -90,19 +133,23 @@
                 {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
                 {% if cur_type == "github" %}
                 <span style="display: none"; data-action="github" class="fn-way"></span>
-                <p id="waiting">仓库连接中，请稍候......</p>
-                <section id="Githubbox">
-                    <div class="fm-select clearfix">
-                        <label>Github 项目</label>
-                        <select id="code_github_list">
-                            <option value="-1" data="-1">请选择一个项目</option>
-                        </Select>
+                <p id="waiting" class="text-center">仓库连接中，请稍候......</p>
+                <section id="Githubbox" style="display: none;">
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">Github 项目</label>
+                        <div class="col-sm-6">
+                            <select id="code_github_list" class="form-control">
+                                <option value="-1" data="-1">请选择一个项目</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="fm-select clearfix">
-                        <label>版本</label>
-                        <select id="gh_branch">
-                            <option value="-1" data="-1">请先选择项目</option>
-                        </Select>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">版本</label>
+                        <div class="col-sm-6">
+                            <select id="gh_branch" class="form-control">
+                                <option value="-1" data="-1">请先选择项目</option>
+                            </select>
+                        </div>
                     </div>
                 </section>
                 {% endif %}
@@ -112,19 +159,23 @@
                 {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                 	{% if cur_type == "gitlab_exit" %}
                 <span style="display: none"; data-action="gitlab_exit" class="fn-way"></span>
-                <p id="waiting">仓库连接中，请稍候......</p>
-                <section id="gitlabbox">
-                    <div class="fm-select clearfix">
-                        <label>好雨 Git 项目</label>
-                        <select id="code_gr_list">
-                            <option value="-1" data="-1">请选择一个项目</option>
-                        </Select>
+                <p id="waiting" class="text-center">仓库连接中，请稍候......</p>
+                <section id="gitlabbox" style="display: none;">
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">好雨 Git 项目</label>
+                        <div class="col-sm-6">
+                            <select id="code_gr_list" class="form-control">
+                                <option value="-1" data="-1">请选择一个项目</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="fm-select clearfix" id="gr_branchbox">
-                        <label>版本</label>
-                        <select id="gr_branch">
-                            <option value="-1" data="-1">请先选择项目</option>
-                        </Select>
+                    <div class="form-group" id="gr_branchbox" style="display: none;">
+                        <label class="col-sm-3 control-label">版本</label>
+                        <div class="col-sm-6" >
+                            <select id="gr_branch" class="form-control">
+                                <option value="-1" data="-1">请先选择项目</option>
+                            </select>
+                        </div>
                     </div>
                 </section>
                 	{% endif %}
@@ -133,32 +184,38 @@
                 <!--  05 Demo start-->
                 {% if cur_type == "gitlab_demo" %}
                 <span style="display: none"; data-action="gitlab_demo" class="fn-way"></span>
-                <div class="fm-select clearfix">
-                    <label>Demo</label>
-                    <select id="Democode">
-                        <option value="http://code.goodrain.com/demo/2048.git">2048小游戏</option>
-                        <option value="http://code.goodrain.com/demo/static-hello.git">静态Web：hello world !</option>
-                        <option value="http://code.goodrain.com/demo/php-hello.git">PHP：hello world !</option>
-                        <option value="http://code.goodrain.com/demo/python-hello.git">Python：hello world !</option>
-                        <option value="http://code.goodrain.com/demo/nodejs-hello.git">node.js：hello world !</option>
-                        <option value="http://code.goodrain.com/demo/go-hello.git">Golang：hello world !</option>
-                        <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">java-spring-boot-demo</option>
-                    </Select>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Demo</label>
+                    <div class="col-sm-6" >
+                        <select id="Democode" class="form-control">
+                            <option value="http://code.goodrain.com/demo/2048.git">2048小游戏</option>
+                            <option value="http://code.goodrain.com/demo/static-hello.git">静态Web：hello world !</option>
+                            <option value="http://code.goodrain.com/demo/php-hello.git">PHP：hello world !</option>
+                            <option value="http://code.goodrain.com/demo/python-hello.git">Python：hello world !</option>
+                            <option value="http://code.goodrain.com/demo/nodejs-hello.git">node.js：hello world !</option>
+                            <option value="http://code.goodrain.com/demo/go-hello.git">Golang：hello world !</option>
+                            <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">java-spring-boot-demo</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="fm-select clearfix" style="display: none;">
-                    <label>版本</label>
-                    <select id="Demobranch">
-                        <option value="master">master</option>
-                    </Select>
+                <div class="form-group" style="display: none;">
+                    <label class="col-sm-3 control-label">版本</label>
+                    <div class="col-sm-6" >
+                        <select id="Demobranch" class="form-control">
+                            <option value="master">master</option>
+                        </select>
+                    </div>
                 </div>
                 {% endif %}
                 <!--  05 Demo end -->
 			</div>
-			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
-                    <button class="greenbtn btn" id="BtnFirst" type="button">免费创建</button>
+			<!-- 基本信息 end -->
+			<div class="text-center clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin: 30px 0 50px;" data-original-title="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+                    <button class="btn btn-success" id="BtnFirst" type="button">免费创建</button>
             </div>			
         </form>
+        <!-- new app build end -->
+        </div>
 	</section>
-    <!-- new app build end -->
 </section>
 {% endblock %}

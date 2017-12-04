@@ -123,6 +123,13 @@ export const connectOrCutAppDisk = (tenantName, sourceServiceAlias, data) => {
     挂载其他应用共享的持久化目录
 */
 export const connectAppDisk = (tenantName, sourceServiceAlias, ids=[]) => {
+
+    try{
+        ids = JSON.stringify(ids);
+    }catch(e){
+        
+    }
+
     return connectOrCutAppDisk(
         tenantName, 
         sourceServiceAlias, 

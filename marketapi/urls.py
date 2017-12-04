@@ -9,6 +9,7 @@ urlpatterns = patterns(
     # user operator
     url(r'^v1/sso-users/(?P<sso_user_id>[\w\-]+)/$', MarketSSOUserAPIView.as_view()),
     url(r'^v1/sso-users/(?P<sso_user_id>[\w\-]+)/init/$', MarketSSOUserInitAPIView.as_view()),
+    url(r'^v1/enterprises/(?P<enterprise_id>[\w\-]+)/bind/$', MarketEnterpriseBindAPIView.as_view()),
 
     # group app operator
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/groupsvcs/$', MarketGroupServiceListAPIView.as_view()),

@@ -248,7 +248,7 @@ class Login(BaseView):
 
                     # add by tanm
                     regions = [region]
-                    enterprise_svc.create_and_init_tenant(self.user.pk, tenant_name, regions)
+                    enterprise_svc.create_and_init_tenant(self.user.pk, tenant_name, regions,self.user.enterprise_id)
 
                     return self.redirect_to('/apps/{0}/'.format(tenant_name))
             return self.redirect_view()
@@ -616,7 +616,7 @@ class Registation(BaseView):
                                                    nick_name, nick_name)
 
             region_names = [region]
-            tenant = enterprise_svc.create_and_init_tenant(user.user_id, tenant_name, region_names)
+            tenant = enterprise_svc.create_and_init_tenant(user.user_id, tenant_name, region_names, user.enterprise_id)
 
             # wei xin user need to add 100
             if rf == "wx":
@@ -1199,6 +1199,7 @@ class GoorainSSOCallBack(BaseView):
                 enterprise.enterprise_name = sso_user.company
                 enterprise.enterprise_alias = sso_user.company
                 enterprise.enterprise_token = sso_user_token
+                enterprise.is_active = 1
                 enterprise.save()
                 logger.info(
                     'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,

@@ -126,15 +126,13 @@ const AppPort = createPageController({
 				domEvents:{
 					'.btn-success click': function(){
 						var newPort = form.getValue('port');
-
-
 						if(newPort == port){
 							form.destroy();
 							dialog.destroy();
 							form = dialog = null;
 							return;
 						}
-						if(self.checkPort(port)){
+						if(self.checkPort(newPort)){
 							editPort(
 								self.tenantName,
 								self.serviceAlias,
@@ -259,19 +257,25 @@ const AppPort = createPageController({
 			dialog.setContent(form.getElement());
 		},
 		checkPort: function(value){
-			if (this.code_from=="image_manual"){
-                if(value>=1 && value<=65535){
-                }else{
-                  Msg.warning("端口号必须在1~65535之间！");
+			value = value || '';
+			if(!(/^[0-9]+$/.test(value))){
+				Msg.warning("端口必须为数字!");
+				return;
+			}
+
+			if(this.language === 'docker' || this.language === 'docker-image' || this.language === 'docker-compose'){
+
+				if(!(value>=1 && value<=65535)){
+				  Msg.warning("端口号必须在0~65535之间！");
                   return false;
                 }
-            }else{
-                if((value>=1025 && value<=65535) || (this.language == "docker")){
-                }else{
-                  Msg.warning("端口号必须在1025~65535之间！");
-                  return false;
+
+			}else{
+				if(!(value>=1025 && value<=65535)){
+				   Msg.warning("端口号必须在1025~65535之间！");
+                   return false;
                 }
-            }
+			}
             return true;
 		},
 		handleDelDomain: function(port, doMain){

@@ -15,7 +15,7 @@ from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, Tenan
     TenantServiceAuth
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
-    CodeRepositoriesService, TenantRegionService
+    CodeRepositoriesService
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
@@ -32,7 +32,6 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
-tenantRegionService = TenantRegionService()
 appClient = AppServiceApi()
 
 

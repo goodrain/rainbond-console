@@ -157,7 +157,7 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
 
             # init tenant
             region_names = ['ucloud-bj-1']
-            enterprise_svc.create_and_init_tenant(user.pk, tenant_name, region_names)
+            enterprise_svc.create_and_init_tenant(user.pk, tenant_name, region_names, user.enterprise_id)
 
             # create gitlab user
             if user.email is not None and user.email != "":

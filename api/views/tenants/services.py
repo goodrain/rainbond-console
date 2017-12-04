@@ -437,8 +437,9 @@ class GitCheckCodeView(APIView):
                                     tenant = Tenants.objects.get(tenant_id=tenantService.tenant_id)
                                     event_id = self.create_service_event(tenant,tenantService)
                                     data["event_id"] = event_id
+                                    data["enterprise_id"] = tenant.enterprise_id
                                     region_api.change_memory(tenantService.service_region, tenant.tenant_name, tenantService.service_alias,
-                                                             json.dumps(data))
+                                                             data)
 
                                 tenantService.language = language
                                 tenantService.save()
@@ -641,7 +642,7 @@ class ServiceStopView(APIView):
             logger.debug("service_id {0} service region {1} action {2}".format(service_id,service_region,action))
             service = TenantServiceInfo.objects.get(service_region=service_region,service_id=service_id)
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-            body = region_api.check_service_status(service_region, tenant.tenant_name, service.service_alias)
+            body = region_api.check_service_status(service_region, tenant.tenant_name, service.service_alias,tenant.enterprise_id)
             bean = body["bean"]
 
             status = bean["cur_status"]
@@ -656,11 +657,12 @@ class ServiceStopView(APIView):
                 body = {}
                 body["operator"] = str("system")
                 body["event_id"] = event_id
+                body["enterprise_id"] = tenant.enterprise_id
 
                 region_api.stop_service(service.service_region,
                                         tenant.tenant_name,
                                         service.service_alias,
-                                        json.dumps(body))
+                                        body)
             data["status"] = "success"
         except TenantServiceInfo.DoesNotExist as ex:
             logger.exception(ex)
@@ -842,7 +844,7 @@ class DeleteServiceView(APIView):
 
             # 删除region服务
             try:
-                region_api.delete_service(service.service_region,tenant.tenant_name,service.service_alias)
+                region_api.delete_service(service.service_region,tenant.tenant_name,service.service_alias,tenant.enterprise_id)
             except region_api.CallApiError as e:
                 if e.status != 404:
                     logger.exception("api.services", e)

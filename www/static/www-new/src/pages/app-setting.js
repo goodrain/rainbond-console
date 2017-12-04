@@ -607,6 +607,7 @@ const AppSetting = createPageController({
 			this.handleChangeAppBranch(branch);
 		},
 
+
 		//邀请成员
 		'#invite_user_btn click': function(e) {
 			var email = $('#invite_email').val();

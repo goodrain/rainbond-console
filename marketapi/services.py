@@ -180,3 +180,8 @@ class MarketServiceAPIManager(object):
         }
         return result
 
+    def get_enterprise_by_id(self, enterprise_id):
+        return enterprise_svc.get_enterprise_by_id(enterprise_id)
+
+    def active_enterprise(self, user, enterprise, enterprise_token):
+        return enterprise_svc.active(enterprise, enterprise_token)

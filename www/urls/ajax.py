@@ -18,6 +18,8 @@ from www.views.ajax.third_app import *
 from www.views.ajax.services import *
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.vol_sync import VolSyncApiView, TenantVolsView, TenantDepVolsView, DepVolSyncApiView
+from www.views.ajax.code_actions import UserGoodrainGitLabRegisterView
+
 
 urlpatterns = patterns(
     '',
@@ -206,4 +208,6 @@ urlpatterns = patterns(
     url(r'^vols$', TenantVolsView.as_view()),
     url(r'^dep-mnt$', DepVolSyncApiView.as_view()),
     url(r'^dep-vols$', TenantDepVolsView.as_view()),
+
+    url(r'^(?P<tenantName>[\w\-]+)/git-register$', UserGoodrainGitLabRegisterView.as_view()),
 )

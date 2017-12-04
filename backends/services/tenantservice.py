@@ -5,7 +5,7 @@ from django.db.models import F, Q, Sum
 from fuzzyfinder.main import fuzzyfinder
 
 from backends.services.exceptions import *
-from www.models.main import Tenants, PermRelTenant, Users, TenantRegionInfo, TenantServiceInfo
+from www.models.main import Tenants, PermRelTenant, Users, TenantRegionInfo, TenantServiceInfo, TenantEnterprise
 from www.services import enterprise_svc
 
 logger = logging.getLogger("default")
@@ -87,7 +87,60 @@ class TenantService(object):
         if not user:
             user = Users.objects.get(user_id=1)
         creater = user.pk
-        tenant = enterprise_svc.create_and_init_tenant(creater, tenant_name, regions)
+        enterprise_id = user.enterprise_id
+        tenants_num = Tenants.objects.count()
+        allow_num = LICENSE.get_authorization_tenant_number()
+        if tenants_num >= allow_num:
+            raise TenantOverFlowError("租户数已超最大配额")
+        if Tenants.objects.filter(
+                tenant_name=tenant_name).exists():
+            raise TenantExistError("租户{}已存在".format(tenant_name))
+        expired_day = 7
+        if hasattr(settings, "TENANT_VALID_TIME"):
+            expired_day = int(settings.TENANT_VALID_TIME)
+        expire_time = datetime.datetime.now() + datetime.timedelta(
+            days=expired_day)
+        # 计算此团队需要初始化的数据中心
+        prepare_init_regions = []
+        if regions:
+            region_configs = RegionConfig.objects.filter(region_name__in=regions, status="1")
+            prepare_init_regions.extend(region_configs)
+        else:
+            region_configs = RegionConfig.objects.filter(status="1")
+            prepare_init_regions.extend(region_configs)
+
+        if not prepare_init_regions:
+            raise Exception('please init one region at least.')
+        enterprise = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        # 团队管理的默认数据中心
+        default_region = prepare_init_regions[0]
+        tenant_alias = u'{0}的团队'.format(enterprise.enterprise_alias)
+        is_private = sn.instance.is_private()
+        if is_private:
+            pay_type = 'payed'
+            pay_level = 'company'
+        else:
+            pay_type = 'free'
+            pay_level = 'company'
+        tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
+                                        creater=creater, region=default_region.region_name,
+                                        expired_time=expire_time, tenant_alias=tenant_alias,
+                                        enterprise_id=enterprise.enterprise_id)
+        logger.info('create tenant:{}'.format(tenant.to_dict()))
+        PermRelTenant.objects.create(user_id=creater, tenant_id=tenant.pk, identity='admin',
+                                     enterprise_id=enterprise.pk)
+        if regions:
+            for r in regions:
+                TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
+                                                region_name=r,
+                                                enterprise_id=enterprise.enterprise_id,
+                                                is_active=True,
+                                                is_init=False,
+                                                region_tenant_id=tenant.tenant_id,
+                                                region_tenant_name=tenant.tenant_name,
+                                                region_scope='public')
+
+        # tenant = enterprise_svc.create_and_init_tenant(creater, tenant_name, regions, user.enterprise_id)
         return tenant
 
     def add_user_to_tenant(self, tenant, user):

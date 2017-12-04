@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
+from www.services import tenant_svc
 
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
@@ -11,7 +12,7 @@ from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
     TenantServiceVolume, ServiceFeeBill, ServiceEvent
 from www.models.main import ServiceGroup, ServiceGroupRelation, ServiceAttachInfo
-from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
+from www.tenantservice.baseservice import  TenantAccountService, TenantUsedResource, \
     BaseTenantService, AppCreateService, ServiceAttachInfoManage
 from www.utils.docker.compose_parse import compose_list
 from www.utils.crypt import make_uuid
@@ -25,7 +26,6 @@ from dateutil.relativedelta import relativedelta
 from www.utils import sn
 
 logger = logging.getLogger('default')
-tenantRegionService = TenantRegionService()
 tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
@@ -217,7 +217,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
         group_id = request.POST.get("group_id", "")
         try:
             # judge region tenant is init
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
+            success = tenant_svc.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
@@ -441,11 +441,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
         result = {}
         tenant_id = self.tenant.tenant_id
         try:
-            # judge region tenant is init
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
-            if not success:
-                result["status"] = "failure"
-                return JsonResponse(result, status=200)
 
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
@@ -498,7 +493,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
 
                     data = {}
                     data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-                    region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, json.dumps(data))
+                    data["enterprise_id"] = self.tenant.enterprise_id
+                    region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, data)
                     newTenantService.extend_method = service_status
                     newTenantService.save()
                     # 发送build请求
@@ -510,7 +506,16 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     body["operator"] = self.user.nick_name
                     body["action"] = "upgrade"
                     body["kind"] = kind
-                    region_api.build_service(newTenantService.service_region, self.tenantName, newTenantService.service_alias, json.dumps(body))
+
+                    envs = {}
+                    buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
+                        "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
+                    for benv in buildEnvs:
+                        envs[benv.attr_name] = benv.attr_value
+                    body["envs"] = envs
+
+                    body["enterprise_id"] = self.tenant.enterprise_id
+                    region_api.build_service(newTenantService.service_region, self.tenantName, newTenantService.service_alias, body)
 
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
                     for dep_service in depends_services_list:

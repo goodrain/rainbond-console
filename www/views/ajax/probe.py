@@ -75,9 +75,10 @@ class ServiceProbeManager(AuthedView):
                 json_data = model_to_dict(service_probe)
                 is_used = 1 if json_data["is_used"] else 0
                 json_data.update({"is_used": is_used})
+                json_data["enterprise_id"] = self.tenant.enterprise_id
                 res, body = region_api.add_service_probe(self.service.service_region, self.tenantName,
                                                          self.service.service_alias,
-                                                         json.dumps(json_data))
+                                                         json_data)
 
 
                 if 400 <= res.status <= 600:
@@ -128,9 +129,10 @@ class ServiceProbeUsedUpdateManager(AuthedView):
                 probe.is_used = 0
             else:
                 probe.is_used = 1
-
+            data = model_to_dict(probe)
+            data["enterprise_id"] = self.tenant.enterprise_id
             res, body = region_api.update_service_probe(self.service.service_region, self.tenantName,
-                                                        self.service.service_alias, json.dumps(model_to_dict(probe)))
+                                                        self.service.service_alias, data)
 
             if 400 <= res.status <= 600:
                 return errResponseJson("region error.", "数据中心操作失败", 500)
@@ -187,8 +189,9 @@ class ServiceProbeInfoUpdateManager(AuthedView):
             json_data = model_to_dict(probe)
             is_used = 1 if json_data["is_used"] else 0
             json_data.update({"is_used": is_used})
+            json_data["enterprise_id"] = self.tenant.enterprise_id
             res, body = region_api.update_service_probe(self.service.service_region, self.tenantName,
-                                                        self.service.service_alias, json.dumps(json_data))
+                                                        self.service.service_alias, json_data)
             if 400 <= res.status <= 600:
                 return errResponseJson("region error.", "数据中心操作失败", 500)
             probe.delete()

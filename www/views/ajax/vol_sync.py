@@ -65,7 +65,7 @@ class DepVolSyncApiView(AuthedView):
             ))
             try:
                 res, body = region_api.get_service_dep_volumes(
-                    service.service_region, tenant.tenant_name, service.service_alias
+                    service.service_region, tenant.tenant_name, service.service_alias,tenant.enterprise_id
                 )
                 if not res:
                     logger.debug('get region dep volumes failed,tenant id:{0},service id:{1}'.format(
@@ -92,7 +92,7 @@ class DepVolSyncApiView(AuthedView):
                         )
 
                         dep_vol, msg = base_service.add_volume_v2(
-                            tenant.tenant_name, dep_service, make_uuid()[:7], dep_vol_path, TenantServiceVolume.SHARE
+                            tenant, dep_service, make_uuid()[:7], dep_vol_path, TenantServiceVolume.SHARE
                         )
                         if not dep_vol:
                             logger.debug('add volume failed,msg:{0},tenant name:{1},path:{2}'.format(
@@ -175,7 +175,7 @@ class VolSyncApiView(AuthedView):
                 ))
                 try:
                     res, body = region_api.get_service_volumes(
-                        tenant_service.service_region, tenant.tenant_name, tenant_service.service_alias
+                        tenant_service.service_region, tenant.tenant_name, tenant_service.service_alias,tenant.enterprise_id
                     )
                     if not res:
                         logger.debug(
@@ -236,7 +236,7 @@ class TenantVolsView(AuthedView):
             logger.debug('get tenant vols, name:{0},alias:{1}'.format(tenant_name, service_alias))
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_alias)
-            res, body = region_api.get_service_volumes(tenant_service.service_region, tenant.tenant_name, service_alias)
+            res, body = region_api.get_service_volumes(tenant_service.service_region, tenant.tenant_name, service_alias,tenant.enterprise_id)
             return JsonResponse(data={'vols': body['list']}, status=200)
         except Exception as e:
             return JsonResponse(data={'msg': e.message}, status=500)
@@ -250,7 +250,7 @@ class TenantDepVolsView(AuthedView):
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_alias)
-            res, body = region_api.get_service_dep_volumes(tenant_service.service_region, tenant_name, service_alias)
+            res, body = region_api.get_service_dep_volumes(tenant_service.service_region, tenant_name, service_alias, tenant.enterprise_id)
             return JsonResponse(data={'dep_vols': body['list']}, status=200)
         except Exception as e:
             return JsonResponse(data={'msg': e.message}, status=500)

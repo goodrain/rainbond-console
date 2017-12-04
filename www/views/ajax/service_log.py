@@ -60,11 +60,11 @@ class ServiceLogMatch(AuthedView):
                     "container_port" : 0
                 }
                 TenantServiceEnvVar.objects.create(**attr)
-                attr.update({"env_name": "LOG_MATCH", "env_value": dep_service_type})
+                attr.update({"env_name": "LOG_MATCH", "env_value": dep_service_type,"enterprise_id":self.tenant.enterprise_id})
             region_api.add_service_env(self.service.service_region,
                                        self.tenantName,
                                        self.service.service_alias,
-                                       json.dumps(attr))
+                                       attr)
             result["status"] = "success"
             result["message"] = "对接日志应用成功。"
         except Exception, e:
@@ -99,11 +99,11 @@ class ServiceLogMatchDelete(AuthedView):
         try:
             oldenv = TenantServiceEnvVar.objects.filter(attr_name="LOG_MATCH",
                                                         service_id=self.service.service_id).delete()
-            data = {"env_name": "LOG_MATCH"}
+            data = {"env_name": "LOG_MATCH","enterprise_id":self.tenant.enterprise_id}
             region_api.delete_service_env(self.service.service_region,
                                           self.tenantName,
                                           self.service.service_alias,
-                                          json.dumps(data))
+                                          data)
             return JsonResponse({"status": "success", "message": u"删除成功"})
         except Exception, e:
             logger.exception(e)

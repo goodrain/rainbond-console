@@ -18,8 +18,8 @@ from www.region import RegionInfo
 from www.utils import sn
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
-from www.tenantservice.baseservice import TenantRegionService, BaseTenantService
-from www.services import enterprise_svc
+from www.tenantservice.baseservice import  BaseTenantService
+from www.services import enterprise_svc,tenant_svc
 
 import logging
 
@@ -30,7 +30,6 @@ logger = logging.getLogger('default')
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
 region_api = RegionInvokeApi()
-tenantRegionService = TenantRegionService()
 appClient = AppServiceApi()
 baseService = BaseTenantService()
 
@@ -158,7 +157,8 @@ class OpenTenantServiceManager(object):
         data["event_id"] = event.event_id
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         tenant = Tenants.objects.get(tenant_id=newTenantService.tenant_id)
-        region_api.create_service(region, tenant.tenant_name, json.dumps(data))
+        data["enterprise_id"] = tenant.enterprise_id
+        region_api.create_service(region, tenant.tenant_name, data)
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
 
     def delete_service(self, tenant, service, username):
@@ -205,7 +205,7 @@ class OpenTenantServiceManager(object):
             tenant_service_info_delete.save()
             # 删除region服务
             try:
-                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias)
+                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,tenant.enterprise_id)
             except Exception as e:
                 logger.exception("openapi.services", e)
             # 删除console服务
@@ -248,7 +248,7 @@ class OpenTenantServiceManager(object):
                 dep_service_list = TenantServiceInfo.objects.filter(service_id__in=list(dep_service_ids))
                 for dep_service in list(dep_service_list):
                     try:
-                        region_api.delete_service(dep_service.service_region, tenant.tenant_name, dep_service.service_alias)
+                        region_api.delete_service(dep_service.service_region, tenant.tenant_name, dep_service.service_alias,tenant.enterprise_id)
                         TenantServiceInfo.objects.filter(pk=dep_service.ID).delete()
                         TenantServiceEnv.objects.filter(service_id=dep_service.service_id).delete()
                         TenantServiceAuth.objects.filter(service_id=dep_service.service_id).delete()
@@ -283,7 +283,7 @@ class OpenTenantServiceManager(object):
             logger.debug("openapi.services", "add delete record!")
             # 删除region服务
             try:
-                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias)
+                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,tenant.enterprise_id)
             except Exception as e:
                 logger.exception("openapi.services", e)
             logger.debug("openapi.services", "delete region service!")
@@ -380,10 +380,11 @@ class OpenTenantServiceManager(object):
             body["operator"] = str(username)
             body["event_id"] = event.event_id
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+            body["enterprise_id"] = tenant.enterprise_id
             region_api.stop_service(service.service_region,
                                     tenant.tenant_name,
                                     service.service_alias,
-                                    json.dumps(body))
+                                    body)
 
             monitorhook.serviceMonitor(username, service, 'app_stop', True)
             return 200, True, "success"
@@ -414,8 +415,9 @@ class OpenTenantServiceManager(object):
             body["deploy_version"] = service.deploy_version
             body["operator"] = str(username)
             body["event_id"] = event.event_id
+            body["enterprise_id"] = tenant.enterprise_id
             region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                     json.dumps(body))
+                                     body)
             monitorhook.serviceMonitor(username, service, 'app_start', True)
             return 200, True, "success"
         except Exception as e:
@@ -432,7 +434,7 @@ class OpenTenantServiceManager(object):
                 return 200, True, result
             else:
                 tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-                body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias)
+                body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
                 bean = body["bean"]
                 status = bean["cur_status"]
                 if status == "running":
@@ -524,7 +526,7 @@ class OpenTenantServiceManager(object):
         memory = 0
         try:
             tenant = Tenants.objects.get(tenant_id=cur_service.tenant_id)
-            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias)
+            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias,tenant.enterprise_id)
             status = body[cur_service.service_id]
             if status != "running":
                 memory = cur_service.min_node * cur_service.min_memory
@@ -539,13 +541,13 @@ class OpenTenantServiceManager(object):
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
             if tenant_region.region_name in RegionInfo.valid_regions():
-                res = region_api.get_tenant_resources(tenant_region.region_name,tenant.tenant_name)
+                res = region_api.get_tenant_resources(tenant_region.region_name,tenant.tenant_name,tenant.enterprise_id)
                 bean = res["bean"]
                 memory = int(bean["memory"])
                 totalMemory += memory
         return totalMemory
 
-    def create_tenant(self, tenant_name, region, user_id, nick_name):
+    def create_tenant(self, tenant_name, region, user_id, nick_name,enterprise_id):
         """创建租户"""
         regions = [region] if region else []
         tenant = enterprise_svc.create_and_init_tenant(user_id, tenant_name, regions)
@@ -845,12 +847,13 @@ class OpenTenantServiceManager(object):
                     "deploy_version": service.deploy_version,
                     "container_cpu": cpu,
                     "operator": username,
-                    "event_id":event.event_id
+                    "event_id":event.event_id,
+                    "enterprise_id":tenant.enterprise_id
                 }
                 region_api.vertical_upgrade(service.service_region,
                                             tenant.tenant_name,
                                             service.service_alias,
-                                            json.dumps(body))
+                                            body)
                 # 更新console记录
                 service.min_cpu = cpu
                 service.min_memory = memory
@@ -881,10 +884,11 @@ class OpenTenantServiceManager(object):
                 "node_num": new_node_num,
                 "deploy_version": service.deploy_version,
                 "operator": username,
-                "event_id":event.event_id
+                "event_id":event.event_id,
+                "enterprise_id":tenant.enterprise_id
             }
             region_api.horizontal_upgrade(service.service_region, tenant.tenant_name,
-                                          service.service_alias, json.dumps(body))
+                                          service.service_alias, body)
             service.min_node = new_node_num
             service.save()
             monitorhook.serviceMonitor(username, service, 'app_horizontal', True)
@@ -899,7 +903,7 @@ class OpenTenantServiceManager(object):
             region_api.update_service(service.service_region,
                                       tenant.tenant_name,
                                       service.service_alias,
-                                      json.dumps({"image_name": base_service.image}))
+                                      {"image_name": base_service.image,"enterprise_id":tenant.enterprise_id})
             service.image = base_service.image
             service.update_version = base_service.update_version
             service.save()
@@ -940,8 +944,9 @@ class OpenTenantServiceManager(object):
         task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["dep_service_type"] = dependS.service_type
+        task["enterprise_id"] = tenant.enterprise_id
 
-        region_api.add_service_dependency(region, tenant.tenant_name, service.service_alias, json.dumps(task))
+        region_api.add_service_dependency(region, tenant.tenant_name, service.service_alias, task)
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
@@ -953,7 +958,7 @@ class OpenTenantServiceManager(object):
     def init_region_tenant(self, region, tenant_name, tenant_id, nick_name):
         user = Users(nick_name=nick_name)
         for num in range(0, 3):
-            result = tenantRegionService.init_for_region(region,
+            result = tenant_svc.init_for_region(region,
                                                          tenant_name,
                                                          tenant_id,
                                                          user)

@@ -5,8 +5,6 @@ import logging
 import random
 import string
 
-from django.core.mail import send_mail
-
 from backends.models.main import *
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import *
@@ -153,7 +151,7 @@ class EnterpriseService(object):
                                                             region_name=region.region_name,
                                                             enterprise_id=enterprise.enterprise_id)
             try:
-                res, body = api.create_tenant(region.region_name, tenant.tenant_name, tenant.tenant_id)
+                res, body = api.create_tenant(region.region_name, tenant.tenant_name, tenant.tenant_id, enterprise.enterprise_id)
                 logger.debug(res)
                 logger.debug(body)
                 tenant_region.is_active = True
@@ -184,9 +182,6 @@ class EnterpriseService(object):
         user.is_active = True
         user.save()
 
-        content = '新用户: {0}, 手机号: {1}, 租户: {2}, 邮箱: {3}'.format(user.nick_name, user.phone, tenant.tenant_name,
-                                                                user.email)
-        send_mail("new user active tenant", content, 'no-reply@goodrain.com', notify_mail_list)
         return tenant
 
     def random_tenant_name(self, enterprise=None, length=8):
@@ -241,7 +236,7 @@ class EnterpriseService(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
-        enterprise.id = make_uuid(enter_name)
+        enterprise.enterprise_id = make_uuid(enter_name)
 
         # 处理企业别名
         if not enterprise_alias:
@@ -250,5 +245,22 @@ class EnterpriseService(object):
             enterprise.enterprise_alias = enterprise_alias
 
         enterprise.save()
-        logger.info('new enterprise: {}'.format(enterprise))
         return enterprise
+
+    def get_enterprise_by_id(self, enterprise_id):
+        try:
+            return TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        except TenantEnterprise.DoesNotExist:
+            return None
+
+    def active(self, enterprise, enterprise_token):
+        """
+        绑定企业与云市的访问的api token
+        :param enterprise: 
+        :param enterprise_token: 
+        :return: 
+        """
+        enterprise.enterprise_token = enterprise_token
+        enterprise.is_active = 1
+        enterprise.save()
+        return True

@@ -785,11 +785,12 @@ class ServiceLatestLog(AuthedView):
 
     @never_cache
     def get(self, request, *args, **kwargs):
+        context = self.get_context()
         try:
-            context = self.get_context()
             data = {}
             data['lines'] = 1000
-            result = region_api.get_service_logs(self.service.service_region, self.tenantName,self.service.service_alias, json.dumps(data))
+            data["enterprise"] = self.tenant.enterprise_id
+            result = region_api.get_service_logs(self.service.service_region, self.tenantName, self.service.service_alias, data)
             context["lines"] = result["list"]
         except Exception as e:
             logger.exception(e)
@@ -818,7 +819,7 @@ class ServiceHistoryLog(AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            body = region_api.get_service_log_files(self.service.service_region,self.tenantName,self.service.service_alias)
+            body = region_api.get_service_log_files(self.service.service_region,self.tenantName,self.service.service_alias, self.tenant.enterprise_id)
             file_list = body["list"]
             context["log_paths"] = file_list
             # context["log_paths"] = body["log_path"]

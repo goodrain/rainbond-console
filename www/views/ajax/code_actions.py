@@ -123,3 +123,34 @@ class CodeAction(AuthedView):
             logger.exception(e)
         return JsonResponse(data, status=200)
     
+
+class UserGoodrainGitLabRegisterView(AuthedView):
+    def post(self, request, *args, **kwargs):
+        # 获取用户信息
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+
+        # 校验邮箱
+        if not email:
+            return JsonResponse(data={'ok': False, 'msg': '邮件地址不能为空'})
+
+        count = Users.objects.filter(email=email).count()
+        if count > 0:
+            return JsonResponse(data={'ok': False, 'msg': '邮件地址已经存在'})
+
+        # 检查用户密码合法
+        if len(password) < 8:
+            return JsonResponse(data={'ok': False, 'msg': '密码长度不合法'})
+
+        if not self.user.check_password(password):
+            return JsonResponse(data={'ok': False, 'msg': '密码错误'})
+
+        # 创建git用户
+        code_repo_svc = CodeRepositoriesService()
+        code_repo_svc.createUser(self.user, email, password, self.user.nick_name, self.user.nick_name)
+
+        # 将git账号记录入email字段
+        self.user.email = email
+        self.user.save()
+
+        return JsonResponse(data={'ok': True})

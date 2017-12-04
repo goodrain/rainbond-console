@@ -1,31 +1,30 @@
 # -*- coding: utf8 -*-
-import logging
+import datetime
 import json
-from decimal import Decimal
+import logging
 
-from dateutil.relativedelta import relativedelta
-from django.views.decorators.cache import never_cache
-from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
 from django.http import JsonResponse
+from django.http.response import HttpResponse
+from django.template.response import TemplateResponse
+from django.views.decorators.cache import never_cache
 
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db import svc_grop_repo
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceCreateStep, ServiceFeeBill, Tenants
-from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService, \
-    AppCreateService, ServiceAttachInfoManage
-from www.utils.language import is_redirect
+from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, \
+    TenantServiceAuth
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
+    TenantServiceVolume, ServiceCreateStep, ServiceFeeBill
 from www.monitorservice.monitorhook import MonitorHook
-from www.utils.crypt import make_uuid
-from django.conf import settings
-from www.servicetype import ServiceType
+from www.services import tenant_svc
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
+    CodeRepositoriesService, \
+    AppCreateService, ServiceAttachInfoManage
 from www.utils import sn
-import datetime
+from www.utils.crypt import make_uuid
+from www.utils.language import is_redirect
+from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 
 logger = logging.getLogger('default')
 
@@ -34,7 +33,6 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
-tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
 appCreateService = AppCreateService()
 region_api = RegionInvokeApi()
@@ -110,7 +108,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         service_id = make_uuid(tenant_id)
         data = {}
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
+            success = tenant_svc.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
@@ -136,7 +134,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             # service.min_memory = min_memory
             # service.min_node = min_node
             service.min_cpu = baseService.calculate_service_cpu(self.response_region, service.min_memory)
-            service_alias = "gr"+service_id[-6:]
+            service_alias = "gr" + service_id[-6:]
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = service.min_memory
@@ -164,7 +162,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service_cname, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='',
+            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias=service_alias.upper()+str(5000),
                                        is_inner_service=False, is_outer_service=True)
 
             sai = attach_info_mamage.create_service_attach_info(newTenantService,
@@ -184,7 +182,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 service_code_from = "gitlab_manual"
 
             if service_code_from == "gitlab_new":
-                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from,
+                                                         "", "", "")
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
@@ -193,7 +192,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
-                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from,
+                                                         code_clone_url, code_id, code_version)
             elif service_code_from == "gitlab_manual":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_version = request.POST.get("service_code_version", "master")
@@ -202,7 +202,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
-                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from,
+                                                         code_clone_url, code_id, code_version)
             elif service_code_from == "github":
                 code_id = request.POST.get("service_code_id", "")
                 code_clone_url = request.POST.get("service_code_clone_url", "")
@@ -211,7 +212,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
-                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from,
+                                                         code_clone_url, code_id, code_version)
 
             group_id = request.POST.get("select_group_id", "")
             # 创建关系
@@ -219,7 +221,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 group_id = int(group_id)
                 if group_id > 0:
                     ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
-                                                        tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+                                                        tenant_id=self.tenant.tenant_id,
+                                                        region_name=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
 
             data["status"] = "success"
@@ -294,7 +297,8 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                                           env["name"], env["attr_name"], env["attr_value"], True, "inner")
 
         for volume in volumes:
-            baseService.add_volume_with_type(tenant_serivce, volume['volume_path'], volume['volume_type'], volume['volume_name'])
+            baseService.add_volume_with_type(tenant_serivce, volume['volume_path'], volume['volume_type'],
+                                             volume['volume_name'])
 
     @never_cache
     @perm_required('create_service')
@@ -315,7 +319,9 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     openInnerServices.append(dts)
 
             context["openInnerServices"] = openInnerServices
-            context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port=-1)
+            context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
+                                                                         scope__in=("inner", "both")).exclude(
+                container_port=-1)
             port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
             context["service_ports"] = list(port_list)
             dpsids = []
@@ -328,12 +334,14 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["env_map"] = env_map
 
             # 除当前服务外的所有的服务
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id,
+                                                             region=self.response_region)
             shared_vols = []
             for tenant in tenantServiceList:
                 vols = baseService.get_volumes_by_type(TenantServiceVolume.SHARE, tenant.service_id)
                 for vol in vols:
-                    svc_group_rel = svc_grop_repo.get_rel_region(vol.service_id, self.tenant.tenant_id, self.response_region)
+                    svc_group_rel = svc_grop_repo.get_rel_region(vol.service_id, self.tenant.tenant_id,
+                                                                 self.response_region)
                     svc_group = None
                     if svc_group_rel:
                         svc_group = svc_grop_repo.get_by_pk(svc_group_rel.group_id)
@@ -355,7 +363,8 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["mntsids"] = mntsids
             # 当前服务的类型;docker/docker-image/docker-compose
             context['language'] = self.service.language
-            ServiceCreateStep.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id).update(app_step=3)
+            ServiceCreateStep.objects.filter(service_id=self.service.service_id,
+                                             tenant_id=self.tenant.tenant_id).update(app_step=3)
 
         except Exception as e:
             logger.exception(e)
@@ -381,7 +390,7 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             # 依赖服务id
             depIds = json.loads(request.POST.get("depend_list", "[]"))
             # 挂载其他服务目录
-            service_alias_list = request.POST.getlist("mnt_list[]")
+            service_alias_list = json.loads(request.POST.get("mnt_list", "[]"))
             # 服务扩展方式
             service_status = request.POST.get("methodval", "stateless")
             # 将刚开始创建的5000端口删除
@@ -412,7 +421,7 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                                                              service_id=self.service.service_id)
 
             newTenantService.min_memory = min_memory
-            cpu = baseService.calculate_service_cpu(self.response_region,min_memory)
+            cpu = baseService.calculate_service_cpu(self.response_region, min_memory)
             newTenantService.min_cpu = cpu
 
             diffMemory = newTenantService.min_node * newTenantService.min_memory
@@ -432,17 +441,18 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                                               self.user.nick_name)
 
             # 创建挂载目录
-            failed, msg = baseService.batch_add_dep_volume_v2(self.tenantName, self.service, service_alias_list)
-            if msg:
-                result = {'result':'failure', 'msg':message}
-                return JsonResponse(data=result, status=200) 
-            # for dep_service_alias in service_alias_list:
-            #     baseService.create_service_mnt(self.tenant, self.service, dep_service_alias["otherName"],
-            #                                    self.service.service_region)
+            baseService.batch_add_dep_volume_v2(self.tenant, self.service, service_alias_list)
+
+            # failed, msg = baseService.batch_add_dep_volume_v2(self.tenantName, self.service, service_alias_list)
+            # if msg:
+            #     result = {'result':'failure', 'msg':msg}
+            #     return JsonResponse(data=result, status=200)
+
 
             body = {}
             body["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-            region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, json.dumps(body))
+            data["enterprise_id"] = self.tenant.enterprise_id
+            region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, body)
             newTenantService.extend_method = service_status
             newTenantService.save()
 
@@ -463,11 +473,12 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
             TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
             if len(service_alias_list) > 0:
-                for dep_id in service_alias_list:
-                    baseService.delete_dep_volume_v2(self.tenant_name, dep_id)
+                for vol in service_alias_list:
+                    baseService.delete_dep_volume_v2(self.tenant, self.service, vol['id'])
                     # baseService.cancel_service_mnt(self.tenant, self.service, dep_service_alias, self.service.service_region)
             if init_region:
-                region_api.delete_service(self.service.service_region, self.tenantName, self.service.service_alias)
+                region_api.delete_service(self.service.service_region, self.tenantName, self.service.service_alias,
+                                          self.tenant.enterprise_id)
             logger.exception(e)
             logger.error("AppSettingsView create service error!")
             data["status"] = "failure"
@@ -489,11 +500,13 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             if self.service.language == "" or self.service.language is None:
-                return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                return self.redirect_to(
+                    '/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
-                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
+                return self.redirect_to(
+                    '/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
@@ -512,11 +525,14 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             self.service.save()
             body = {}
             body["container_cmd"] = ""
+            body["enterprise_id"] = self.tenant.enterprise_id
             region_api.update_service(self.response_region, self.tenantName, self.service.service_alias,
-                                      json.dumps(body))
+                                      body)
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
-        ServiceCreateStep.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id).update(app_step=4)
-        return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
+        ServiceCreateStep.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id).update(
+            app_step=4)
+        return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html",
+                                context)
 
     def memory_choices(self, free=False):
         memory_dict = {}
@@ -587,10 +603,11 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
                         self.service.save()
                         body = {}
                         body["container_memory"] = service_memory
+                        body["enterprise_id"] = self.tenant.enterprise_id
                         region_api.update_service(self.response_region,
                                                   self.tenantName,
                                                   self.service.service_alias,
-                                                  json.dumps(body))
+                                                  body)
                 except Exception as e:
                     logger.error("docker build memory config failed")
                     logger.exception(e)
@@ -598,7 +615,8 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             data["status"] = "success"
             attach_info_mamage.update_attach_info_by_tenant(self.tenant, self.service)
 
-            ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).delete()
+            ServiceCreateStep.objects.filter(service_id=self.service.service_id,
+                                             tenant_id=self.tenant.tenant_id).delete()
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"

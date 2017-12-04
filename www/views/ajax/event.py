@@ -119,9 +119,9 @@ class EventLogManager(AuthedView):
             body = {}
             body["event_id"] = event_id
             body["level"] = level
-
+            body["enterprise_id"] = self.tenant.enterprise_id
             res, rt_data = region_api.get_event_log(self.service.service_region, self.tenantName, self.service.service_alias,
-                                              json.dumps(body))
+                                              body)
             if int(res.status) == 200:
                 msg_list = rt_data["list"]
                 result["status"] = "success"

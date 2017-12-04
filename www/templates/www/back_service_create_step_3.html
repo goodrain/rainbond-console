@@ -1,24 +1,28 @@
-{% extends 'www/raster.html' %}
+{% extends 'www/raster2.html' %}
 {% load i18n %}
 {% load goodrain_extras %}
 {% load staticfiles %}
 {% block extracss %}
-    {{ block.super }}
-    <link rel="stylesheet" href='{% static "www/css/base.css" %}'/>
-    <link rel="stylesheet" href='{% static "www/css/newappstep.css" %}'/>
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/sweetalert.min.js" %}'></script>
 {% endblock %}
 
 
 {% block main-content %}
 
 <section class="wrapper site-min-height">
-    <section class="main-box">
+<section class="panel panel-default">
+    <div class="panel-body">
         <h3 class="main-tit">创建{{service.service_name}}</h3>
         <div class="app-step two clearfix">
-            <p class="sed"><span>1</span><cite>创建应用</cite></p>
-            <p class="sed"><span>2</span><cite>应用设置</cite></p>
+            <p class="sed" style="width: 50%;"><span>1</span><cite>创建应用</cite></p>
+            <p class="sed" style="width: 50%;"><span>2</span><cite>应用设置</cite></p>
         </div>
-        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+        <form class=" form-horizontal" id="commentForm" method="post" action="" novalidate="novalidate">
             {% csrf_token %}
             <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
             <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
@@ -32,132 +36,175 @@
             <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
             <!-- -->
             <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- ww - 2017 - 11 - 06-->
+            <div class="modulebox clearfix">
+                <div class="form-group clearfix" id="extend_method">
+                    <label class="col-sm-3 control-label">应用类型</label>
+                    <div class="col-sm-8 clearfix">
+                        <label class="fm-radio" style="display: block; height: 30px;">
+                            <input type="radio" name="extend_method" value="stateless" id="stateless" checked="true" />
+                            <span class="radio-bg" for="stateless"></span>
+                            <cite>无状态应用（包括Web类，API类）</cite>
+                        </label>
+                        <label class="fm-radio" style="display: block; height: 30px;">
+                            <input type="radio" name="extend_method" value="state" id="state" />
+                            <span class="radio-bg" for="state"></span>
+                            <cite>有状态应用（包括DB类，集群类，消息中间件类，数据类）</cite>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="line"></div>
+            <!----  -->
+            <!-- 内存选项 start  -->
+            <div class="modulebox clearfix">
+                <div class="form-group clearfix">
+                    <label class="col-sm-3 control-label">内存选项</label>
+                    <div class="col-sm-8 clearfix">
+                        {% if is_tenant_free %}
+                        <p class="range-box fn-tips" data-original-title="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户无限制。(单节点内存)" id="MemoryRange" data-min="{{service_min_memory}}" data-money="free">
+                            <a href="javascript:;" class="sed">512M</a>
+                            <a href="javascript:;">1G</a>
+                        </p>
+                        {% else %}
+                        <p class="range-box fn-tips" data-original-title="单应用内存最大8G，总内存无限。如需使用更多，请联系客服申请。(单节点内存)" id="MemoryRange" data-min="{{service_min_memory}}" data-money="pay">
+                           
+                        </p>
+                        <!-- no user -->
+                        {% endif %}
+                        <span id="MemoryText" class="fm-text" style="display: none;">{{service_min_memory}}M</span>
+                    </div>
+                </div>
+            </div>
+            <div class="line"></div>
             <!-- -->
             {% if outer_port|length > 0 %}
-            <h4 class="column-tit">端口管理</h4>
-            <table class="tab-box">
-                <thead>
-                    <tr>
-                        <th>端口</th>
-                        <th>对外服务</th>
-                        <th>外部访问</th>
-                        <th>访问方式</th>
-                    </tr>
-                </thead>
-                <tbody class="port">
+            <div class="modulebox clearfix fn-modulebox">
+                 <div class="form-group clearfix">
+                    <label class="col-sm-3 control-label">端口管理</label>
+                    <div class="col-sm-8 text-right">
+                        <a href="javascript:;" class="showlink fn-showlink"><cite>展开</cite><span class="glyphicon glyphicon-chevron-down"></span></a>
+                     </div>
+                </div>
+                <div class="form-group clearfix fn-showblock">
+                    <label class="col-sm-3 control-label"></label>
+                    <div class="col-sm-8">
+                        <table class="table">
+                            <thead>
+                                <tr class="active">
+                                    <th>端口</th>
+                                    <th>对外服务</th>
+                                    <th>外部访问</th>
+                                    <th>访问方式</th>
+                                </tr>
+                            </thead>
+                            <tbody class="port">
 
-                {% for port in outer_port %}
-                    <tr>
-                        <td><span class="fn-tips" data-tips="当前应用提供服务的端口号。">{{port.container_port}}</span></td>
-                        <td>
-                            <div class="checkbox fn-tips" data-tips="当前应用是否允许其他应用访问。">
-                                <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true"{% endif %} disabled="true" />
-                                <label class="check-bg" for="5000inner"></label>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="checkbox fn-tips" data-tips="当前应用是否允许用户通过网络访问。">
-                                <input type="checkbox" name="" value="" id="5000outer" {% if port.is_outer_service %}checked="true"{% endif %} disabled="true"  />
-                                <label class="check-bg" for="5000outer"></label>
-                            </div>
-                        </td>
-                        <td><span class="fn-tips" data-tips="用户访问协议。">{{port.protocol}}</span></td>
-                    </tr>
-                {% endfor %}
+                            {% for port in outer_port %}
+                                <tr>
+                                    <td><span class="fn-tips" data-original-title="当前应用提供服务的端口号。">{{port.container_port}}</span></td>
+                                    <td>
+                                        <label class="checkbox fn-tips" data-original-title="当前应用是否允许其他应用访问。">
+                                            <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true"{% endif %} disabled="true" />
+                                            <span for="5000inner">关闭</span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <label class="checkbox fn-tips" data-original-title="当前应用是否允许用户通过网络访问。">
+                                            <input type="checkbox" name="" value="" id="5000outer" {% if port.is_outer_service %}checked="true"{% endif %} disabled="true"  />
+                                            <span for="5000outer">开启</span>
+                                        </label>
+                                    </td>
+                                    <td><span class="fn-tips" data-original-title="用户访问协议。">{{port.protocol}}</span></td>
+                                </tr>
+                            {% endfor %}
 
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="line"></div>
             {% endif %}
             <!-- -->
-            <!-- ww - 2017 - 11 - 06-->
-            <h4 class="column-tit">部署方式</h4>
-            <div class="contentBlock">
-                <div class="form-group">
-                    <select style="min-width:100px; max-width: 300px;" name="extend_method" id="extend_method" class="form-control m-bot15">
-                        <option value="stateless" selected="selected">无状态</option>
-                        <option value="state" >有状态</option>
-                     </select>
-                     <p class="state-tips fn-stateless">无状态应用具有以下特点：应用实例共享存储（或无需持久化存储），实例可无序水平伸缩。  <span>状态设置后不可修改，请谨慎选择！</span></p>
-                     <p class="state-tips fn-state" style="display: none;">有状态应用具有以下特点：应用每个实例具有自己的存储（并可使用本地存储类型），实例顺序启动和关闭，每个实例具有确定且唯一的主机名。如果你的应用属于数据型，集群型，有状态服务是你的首选。<span>状态设置后不可修改，请谨慎选择！</span></p>
-                </div>
-            </div>
-            <h4 class="column-tit">内存选项<span style="font-size: 14px;">(单节点内存)</span></h4>
-            <div class="contentBlock">
-                <div class="fm-range clearfix">
-                    <!--
-                    <label class="labeltext">单节点内存</label>
-                    -->
-                    {% if is_tenant_free %}
-                    <p class="range-box fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户无限制。">
-                        <input type="range" min="{{service_min_memory}}" max="1024"  step="128" id="MemoryRange" value="{{service_min_memory}}"／>
-                    </p>
-                    
-                    {% else %}
-                    <p class="range-box fn-tips" data-tips="单应用内存最大8G，总内存无限。如需使用更多，请联系客服申请。">
-                        <input type="range" min="{{service_min_memory}}" max="8192"  step="128" id="MemoryRange" value="{{service_min_memory}}"／>
-                    </p>
-                    <!-- no user -->
-                    {% endif %}
-                    <span id="MemoryText" class="fm-text">{{service_min_memory}}M</span>
-                </div>
-            </div>
+            
             <!-- ww - 2017 - 11 - 06-->
             {% if dependecy_services %}
-            <h4 class="column-tit">服务依赖</h4>
-            <div class="infor-fm-box">
-                {% for key, deployed_services in dependecy_services.items %}
-                <div class="fm-select clearfix">
-                    <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}</label>
-                        <select name="dependency_service" class="dependency_service">
-                            {% if deployed_services %}
-                            {% for d_service in deployed_services %}
-                            <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
-                            {% endfor %}
-                            {% else %}
-                            <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}</option>
-                            {% endif %}
-                        </select>
+            <div class="modulebox clearfix fn-modulebox">
+                <div class="form-group clearfix">
+                    <label class="col-sm-3 control-label">服务依赖</label>
+                    <div class="col-sm-8 text-right">
+                        <a href="javascript:;" class="showlink fn-showlink"><cite>展开</cite><span class="glyphicon glyphicon-chevron-down"></span></a>
+                    </div>
                 </div>
-                {% endfor %}
+                <div class="form-group clearfix fn-showblock">
+                    <label class="col-sm-3 control-label"></label>
+                    {% for key, deployed_services in dependecy_services.items %}
+                    <div class="col-sm-2">
+                        <select name="dependency_service" class="dependency_service form-control">
+                                {% if deployed_services %}
+                                {% for d_service in deployed_services %}
+                            <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
+                                {% endfor %}
+                                {% else %}
+                            <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}</option>
+                                {% endif %}
+                        </select>
+                    </div>
+                    <span for="inputSuccess" class="col-sm-2 text-left" style="line-height: 34px;">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}</span>
+                    {% endfor %}
+                </div>
             </div>
+            <div class="line"></div>
             {% endif %}
 
             {% if envs|length > 0 %}
-            <h4 class="column-tit">环境变量</h4>
-            <table class="tab-box ">
-                <thead>
-                    <tr>
-                        <th>变量名称</th>
-                        <th>变量值</th>
-                    </tr>
-                </thead>
-                <tbody class="tb">
-                   {% for env in envs %}
-                    <tr>
-                        <td name="attr_name">{{env.attr_name}}</td>
-                        {% if 'direct_copy' in env.options %}
-                            <td name="attr_value">{{env.attr_value}}</td>
-                        {% else %}
-                            <td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-
-        </form>
-        <div class="infor-fm-box">
-            <div class="fm-btn clearfix">
-                <button class="redbtn" id="back_service_cancel_create" style="cursor: pointer;" onclick="back_service_create_delete();">停止创建</button>
-                <button class="greenbtn" id="back_service_step_two" style="cursor: pointer;">下一步</button>
+            <div class="modulebox clearfix fn-modulebox">
+                <div class="form-group clearfix">
+                    <label class="col-sm-3 control-label">环境变量</label>
+                    <div class="col-sm-8 text-right">
+                        <a href="javascript:;" class="showlink fn-showlink"><cite>展开</cite><span class="glyphicon glyphicon-chevron-down"></span></a>
+                    </div>
+                </div>
+                <div class="form-group clearfix fn-showblock">
+                    <label class="col-sm-3 control-label"></label>
+                    <div class="col-sm-8">
+                        <table class="table">
+                            <thead>
+                                <tr class="active">
+                                    <th>变量名称</th>
+                                    <th>变量值</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tb">
+                               {% for env in envs %}
+                                <tr>
+                                    <td name="attr_name">{{env.attr_name}}</td>
+                                    {% if 'direct_copy' in env.options %}
+                                        <td name="attr_value">{{env.attr_value}}</td>
+                                    {% else %}
+                                        <td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+            {% endif %}
+            <div class="text-center clearfix" style="margin: 50px 0;">
+            <button class="btn btn-danger" type="button" id="back_service_cancel_create" style="cursor: pointer; margin:0 5px;" onclick="back_service_create_delete();" >停止创建</button>
+            <button   type="button" class="btn btn-success" id="back_service_step_two" style="cursor: pointer; margin:0 5px;">下一步</button>
         </div>
-    </section>
+    </form>
+</div>      
+</section>
 </section>
 
  <script type="text/javascript">
         $(document).ready(function () {
+            $('.fn-tips').tooltip();
             //取消回车事件
             $("#create_service_name").keydown(function (e) {
                 var curKey = e.which;
@@ -165,71 +212,65 @@
                     return false;
                 }
             });
+            $(".fn-showlink").click(function(){
+                var htmlstr = $(this).find("cite").html();
+                var parents = $(this).parents(".fn-modulebox");
+                if(htmlstr == "展开"){
+                    $(this).find("cite").html("收起");
+                    $(this).find("span").removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-up");
+                    $(parents).find(".fn-showblock").show();
+                }else{
+                    $(this).find("cite").html("展开");
+                    $(this).find("span").removeClass("glyphicon-chevron-up").addClass("glyphicon-chevron-down");
+                    $(parents).find(".fn-showblock").hide();
+                }
+            })
+            
             //
-            var minMemoryval = $("#MemoryRange").attr("min");
-            if(Number(minMemoryval)>1000){
-                    var Memory = parseInt(minMemoryval/1024);
-                    if(Memory>=1 && Memory<2){
-                        minMemoryval = 1
-                    }else if(Memory>=2 && Memory<4){
-                        minMemoryval = 2
-                    }else if(Memory>=4 && Memory<6){
-                        minMemoryval = 4
-                    }else if(Memory>=6 && Memory<8){
-                        minMemoryval = 6
-                    }else{
-                        minMemoryval = 8 
-                    }
+            var minMemoryval = $("#MemoryRange").attr("data-min");
+            var Memeryonoff = $("#MemoryRange").attr("data-money");
+            var memoryStr = "";
+            if(Memeryonoff == "free"){
+                if(minMemoryval == "128"){
+                    memoryStr = '<a href="javascript:;" class="sed">128M</a><a href="javascript:;">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "256"){
+                    memoryStr = '<a href="javascript:;" class="sed">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "512"){
+                    memoryStr = '<a href="javascript:;" class="sed">512M</a><a href="javascript:;">1G</a>';
+                }else if(minMemoryval == "1024"){
+                    memoryStr = '<a href="javascript:;" class="sed">1G</a>';
                 }else{
-                    if(minMemoryval >=128 &&  minMemoryval < 256){
-                        minMemoryval = 128
-                    }else if(minMemoryval >= 256 &&  minMemoryval < 512){
-                        minMemoryval = 256
-                    }else{
-                         minMemoryval = 512
-                    }
+                    memoryStr = '此应用所需内存超过能使用的最大内存！';
                 }
-                $("#MemoryText").html(minMemoryval>10 ? minMemoryval + "M" : minMemoryval + "G");
-             //
-            //
-            $("#MemoryRange").bind('input propertychange',function(){
-                var memoryVal = $(this).val();
-                if(Number(memoryVal)>1000){
-                    var Memory = parseInt(memoryVal/1024);
-                    if(Memory>=1 && Memory<2){
-                        memoryVal = 1
-                    }else if(Memory>=2 && Memory<4){
-                        memoryVal = 2
-                    }else if(Memory>=4 && Memory<6){
-                        memoryVal = 4
-                    }else if(Memory>=6 && Memory<8){
-                        memoryVal = 6
-                    }else{
-                        memoryVal = 8 
-                    }
+            }else{
+                if(minMemoryval == "128"){
+                    memoryStr = '<a href="javascript:;" class="sed">128M</a><a href="javascript:;">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "256"){
+                    memoryStr = '<a href="javascript:;" class="sed">256M</a><a href="javascript:;">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "512"){
+                    memoryStr = '<a href="javascript:;" class="sed">512M</a><a href="javascript:;">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "1024"){
+                    memoryStr = '<a href="javascript:;" class="sed">1G</a><a href="javascript:;">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "2048"){
+                    memoryStr = '<a href="javascript:;" class="sed">2G</a><a href="javascript:;">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "4096"){
+                    memoryStr = '<a href="javascript:;" class="sed">4G</a><a href="javascript:;">8G</a>';
+                }else if(minMemoryval == "8192"){
+                    memoryStr = '<a href="javascript:;" class="sed">8G</a>';
                 }else{
-                    if(memoryVal >=128 &&  memoryVal < 256){
-                        memoryVal = 128
-                    }else if(memoryVal >= 256 &&  memoryVal < 512){
-                        memoryVal = 256
-                    }else{
-                         memoryVal = 512
-                    }
+                    memoryStr = '此应用所需内存超过能使用的最大内存！';
                 }
-                $("#MemoryText").html(memoryVal>10 ? memoryVal + "M" : memoryVal + "G");
-            });
-
-            $('#extend_method').change(function(){
-                var oval= $('#extend_method option:selected') .val();
-                if(oval == "stateless"){
-                    $(".fn-stateless").show();
-                    $(".fn-state").hide();
-                }else{
-                    $(".fn-stateless").hide();
-                    $(".fn-state").show();
-                }
+            }
+            $("#MemoryRange").html(memoryStr);
+            $("#MemoryText").html(minMemoryval<1000 ? minMemoryval + "M" : parseInt(minMemoryval/1024) + "G");
+            $("#MemoryRange a").click(function(){
+                $("#MemoryRange a").removeClass("sed");
+                $(this).addClass("sed");
+                var memoryVal = $(this).html();
+                $("#MemoryText").html(memoryVal);
             });
             //
+            
 
             $("#back_service_step_two").click(function () {
                 var arr = $(".dependency_service");
@@ -266,7 +307,7 @@
                 var tenantName = $('#tenantName').val();
                 var service_alias = $("#service_alias").val();
                 ////////
-                var  methodval= $('#extend_method option:selected') .val();
+                var  methodval= $('input[name="extend_method"]:checked').val();
                 var memory_num = parseInt($("#MemoryText").html());
                 /////////
                 $.ajax({
@@ -306,80 +347,6 @@
                 ///
             });
             ///
-            ////
-            $(".fn-tips").mouseover(function () {
-                var tips = $(this).attr("data-tips");
-                var pos = $(this).attr("data-position");
-                var x = $(this).offset().left;
-                var y = $(this).offset().top;
-                var oDiv = '<div class="tips-box"><p><span>' + tips + '</span><cite></cite></p></div>';
-                $("body").append(oDiv);
-                var oDivheight = $(".tips-box").height();
-                var oDivwidth = $(".tips-box").width();
-                var othiswid = $(this).width();
-                var othisheight = $(this).height();
-                if (pos) {
-                    if (pos == "top") {
-                        //
-                        $(".tips-box").css({"top": y - oDivheight - 25});
-                        if (oDivwidth > othiswid) {
-                            $(".tips-box").css({"left": x - (oDivwidth - othiswid) / 2});
-                        } else if (oDivwidth < othiswid) {
-                            $(".tips-box").css({"left": x + (othiswid - oDivwidth) / 2});
-                        } else {
-                            $(".tips-box").css({"left": x});
-                        }
-                        $(".tips-box").find("cite").addClass("top");
-                        //
-                    } else if (pos == "bottom") {
-                        //
-                        $(".tips-box").css({"top": y + othisheight + 25});
-                        if (oDivwidth > othiswid) {
-                            $(".tips-box").css({"left": x - (oDivwidth - othiswid) / 2});
-                        } else if (oDivwidth < othiswid) {
-                            $(".tips-box").css({"left": x + (othiswid - oDivwidth) / 2});
-                        } else {
-                            $(".tips-box").css({"left": x});
-                        }
-                        $(".tips-box").find("cite").addClass("bottom");
-                        //
-                    } else if (pos == "left") {
-                        $(".tips-box").css({"top": y + 5, "left": x - othiswid - 5});
-                        $(".tips-box").find("cite").addClass("left");
-                    } else if (pos == "right") {
-                        $(".tips-box").css({"top": y + 5, "left": x + othiswid + 5});
-                        $(".tips-box").find("cite").addClass("right");
-                    } else {
-                        //
-                        $(".tips-box").css({"top": y - oDivheight - 25});
-                        if (oDivwidth > othiswid) {
-                            $(".tips-box").css({"left": x - (oDivwidth - othiswid) / 2});
-                        } else if (oDivwidth < othiswid) {
-                            $(".tips-box").css({"left": x + (othiswid - oDivwidth) / 2});
-                        } else {
-                            $(".tips-box").css({"left": x});
-                        }
-                        $(".tips-box").find("cite").addClass("top");
-                        //
-                    }
-                } else {
-                    //
-                    $(".tips-box").css({"top": y - oDivheight - 25});
-                    if (oDivwidth > othiswid) {
-                        $(".tips-box").css({"left": x - (oDivwidth - othiswid) / 2});
-                    } else if (oDivwidth < othiswid) {
-                        $(".tips-box").css({"left": x + (othiswid - oDivwidth) / 2});
-                    } else {
-                        $(".tips-box").css({"left": x});
-                    }
-                    $(".tips-box").find("cite").addClass("top");
-                    //
-                }
-
-            });
-            $(".fn-tips").mouseout(function () {
-                $(".tips-box").remove();
-            });
 
         });
         function createEvents(name, service, action) {
@@ -476,6 +443,7 @@
                 }
             });
         }
+
     </script>
 
 {% endblock %}

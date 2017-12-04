@@ -4,8 +4,10 @@ import logging
 
 from django.conf import settings
 
-from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, ServiceFeeBill
+from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, ServiceFeeBill, \
+    TenantRegionInfo
 from www.models.main import ServiceGroup, ServiceGroupRelation
+from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import TenantAccountService
 
 from www.apiclient.regionapi import RegionInvokeApi
@@ -14,6 +16,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 logger = logging.getLogger('default')
 tenantAccountService = TenantAccountService()
 region_api = RegionInvokeApi()
+monitorhook = MonitorHook()
 
 
 class TenantService(object):
@@ -148,7 +151,7 @@ class TenantService(object):
             return result
 
         try:
-            body = region_api.check_service_status(service.service_region,tenant.tenant_name,service.service_alias)
+            body = region_api.check_service_status(service.service_region,tenant.tenant_name,service.service_alias,tenant.enterprise_id)
             bean = body["bean"]
 
         except Exception, e:
@@ -177,3 +180,65 @@ class TenantService(object):
         result["start_time_str"] = start_time_str
 
         return result
+
+    def init_region_tenant(self, tenant, region):
+        """
+        为团队初始化所在数据中心数据，如果tenant_region存在记录，且未初始化，将记录更新
+        :param tenant:
+        :param region:
+        :return: 成功返回True,失败返回False
+        """
+        logger.debug("init region tenant...")
+        success = True
+        tenant_region = self.get_tenant_region_info(tenant, region)
+        if not tenant_region:
+            tenant_region = TenantRegionInfo()
+            tenant_region.tenant_id = tenant.tenant_id
+            tenant_region.region_name = region
+            tenant_region.save()
+        if not tenant_region.is_init:
+            api = RegionInvokeApi()
+            logger.debug(
+                "create tenant {0} with tenant_id {1} on region {2}".format(tenant.tenant_name,
+                                                                            tenant.tenant_id,
+                                                                            region))
+            logger.info("start invoking api to init region tenant !")
+            try:
+                res, body = api.create_tenant(region, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
+                logger.debug(res, body)
+                tenant_region.is_active = True
+                tenant_region.is_init = True
+                # todo 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充
+                tenant_region.region_tenant_id = tenant.tenant_id
+                tenant_region.region_tenant_name = tenant.tenant_name
+                tenant_region.region_scope = 'public'
+                tenant_region.enterprise_id = tenant.enterprise_id
+
+                tenant_region.save()
+            except api.CallApiError, e:
+                logger.error("create tenant {0} failed".format(tenant.tenant_name))
+                logger.exception(e)
+                success = False
+        # 部分初始化但是
+        else:
+            if (not tenant_region.region_tenant_id) or \
+                    (not tenant_region.region_tenant_name) or \
+                    (not tenant_region.enterprise_id):
+                tenant_region.region_tenant_id = tenant.tenant_id
+                tenant_region.region_tenant_name = tenant.tenant_name
+                tenant_region.region_scope = 'public'
+                tenant_region.enterprise_id = tenant.enterprise_id
+                tenant_region.save()
+        return success
+
+    def get_tenant_region_info(self, tenant, region):
+        try:
+            return TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region)
+        except TenantRegionInfo.DoesNotExist:
+            return None
+
+    def init_for_region(self, region, tenant_name, tenant_id, user):
+        tenant = Tenants.objects.get(tenant_id=tenant_id)
+        is_init_success = self.init_region_tenant(tenant,region)
+        monitorhook.tenantMonitor(tenant, user, "init_tenant", is_init_success)
+        return is_init_success

@@ -449,6 +449,82 @@ widget.define('drag', {
 })
 
 
+
+widget.define('loadingbar', {
+    _defaultOption:{
+        tpl:'<div class="loadingbar" style="background:#5ef298;height:3px;position:fixed;left:0;top:0;width:0;"></div>',
+        renderTo : $('body'),
+        zIndex: 99999,
+        interval: 300
+    },
+    _init:function(option){
+        this.total = 0;
+        this.loaded = 0;
+        this.timer = null;
+        this.width=0;
+        this.callParent(option);
+        if(this.ClassName == 'loadingbar'){
+            this._create();
+            //this.bind();
+        }
+    },
+    _create:function(){
+        this.callParent();
+        if(this.option.renderTo && this.ClassName == 'loadingbar'){
+            this.element.appendTo(this.option.renderTo);
+        }
+    },
+    getCurrentWidth(){
+        var totalWidth = 100, pWidth = 0;
+        this.width += (totalWidth - this.width) * 0.4;
+        if(this.loaded > 0){
+           pWidth = (this.loaded / this.total) * 100;
+        }
+        this.width = Math.max(this.width, pWidth);
+        return this.width;
+    },
+    start(){
+        this.width = 0;
+        this.element.stop().show();
+        this.computedWidth();
+        this.timer = setInterval(() => {
+            this.computedWidth();
+        }, this.option.interval);
+    },
+    computedWidth(){
+        var width = this.getCurrentWidth();
+        this.element.stop().animate({width:width + '%'});
+    },
+    addRequest(){
+        this.total ++;
+        if(!this.timer){
+            this.start();
+        }else{
+            this.computedWidth();
+        }
+    },
+    removeRequest(){
+        this.loaded ++;
+        if(this.total == this.loaded){
+            this.completed();
+        }else{
+            this.computedWidth();
+        }
+    },
+    completed(){
+        var self = this;
+        this.total = this.loaded = 0;
+        this.element.animate({width:'100%'}, function(){
+                setTimeout(function(){
+                    self.element.width(0).hide();
+                })
+                
+        });
+        clearInterval(this.timer);
+        this.timer = null;
+    }
+})
+
 //按钮组件
 widget.define('button', {
     _defaultOption : {
@@ -867,7 +943,6 @@ widget.define('button', {
                 }
             }
             
-            this.setBodyHeight();
             //阻止后退键
             $(window).bind('keydown.dialog'+this.randomId, function(e){
                 if(this.status != 'show'){
@@ -898,9 +973,12 @@ widget.define('button', {
             var self = this;
             var headHeigth = self.header.outerHeight();
             var footerHeight = self.option.hideFooter ? 0 : self.footer.outerHeight();
-            self.body.height(self.element.height() - headHeigth - footerHeight);  
+            var allHeight = self.element.height();
+            var bodyPaddingTop = parseInt(self.body.css('padding-top')) || 0;
+            var bodyPaddingBottom = parseInt(self.body.css('padding-bottom')) || 0;
+            var bodyHeight = allHeight - headHeigth - footerHeight - bodyPaddingTop - bodyPaddingBottom;
+            self.body.height(bodyHeight); 
         },
-
         appendContent:function(cont){
             this.callParent(cont);
             this.center();
@@ -911,6 +989,8 @@ widget.define('button', {
             var thisRect = this.getRect();
             if(this.option.full){
                 this.setPos({left: 0, top: 0});
+            }else if(this.option.height == 'auto'){
+                this.setPos({left: (w - thisRect.width)/2, top: 100});
             }else{
                 this.setPos({left: (w - thisRect.width)/2, top: (h-thisRect.height)/2});
             }
@@ -940,7 +1020,7 @@ widget.define('button', {
             this.element.addClass('in');
 
             this.element.show();
-            $('body').css('overflow','hidden');
+            this.setBodyHeight();
         },
         hide : function(){
             
@@ -4136,20 +4216,20 @@ widget.define('baseField', {
     
     widget.Message = {
         success: function(msg){
-            var msg = widget.create('message',{});
-            msg.show('success', msg);
+            var msgObj = widget.create('message',{});
+            msgObj.show('success', msg);
         },
         warning: function(msg){
-            var msg = widget.create('message',{});
-            msg.show('warning', msg);
+            var msgObj = widget.create('message',{});
+            msgObj.show('warning', msg);
         },
         danger: function(msg){
-            var msg = widget.create('message',{});
-            msg.show('danger', msg);
+            var msgObj = widget.create('message',{});
+            msgObj.show('danger', msg);
         },
         info: function(msg){
-            var msg = widget.create('message',{});
-            msg.show('info', msg);
+            var msgObj = widget.create('message',{});
+            msgObj.show('info', msg);
         }
     }
     

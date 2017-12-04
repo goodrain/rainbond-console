@@ -53,17 +53,20 @@ i{
 .table-vertical > tbody > tr > td{
     vertical-align: middle;
 }
+em,cite,span,i{font-style: normal;}
 /* table */
 .table > thead > tr > th {
 	border: 0 none; 
 	color: #303030; 
 	font-size: 14px;
     font-weight: 100;
+    word-break: keep-all;
 }
 .table > tbody > tr > td{
 	border-top:0; 
 	border-bottom: 1px #f7f7f7 solid; 
 	padding: 15px 10px; 
+    word-break:break-all;
 }
 .panel-default > .panel-heading{
     font-size: 16px;
@@ -275,7 +278,7 @@ a.member-remove:link,a.member-remove:visited,a.member-remove:hover,a.member-remo
     text-indent: -9999px;
     background-size: 140px 30px;
 }
-
+.table > tfoot > tr > td{border: 0  none; }
 
 /* form  range */
 .tit-renewal{
@@ -427,6 +430,31 @@ input[type=range]::-webkit-slider-thumb {
     -webkit-animation-delay: 0.5s;
     animation-delay: 0.5s;  
     }
+
+/* 单选  */
+.fm-radio input{float: left; display: none; line-height: 23px;} /* 单选*/
+.fm-radio .radio-bg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:8px 5px 0 0;}
+.fm-radio input:checked + .radio-bg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
+.fm-radio cite{float: left; padding:6px 10px 0 0; color: #333;}
+/* 单选  */
+
+
+/*
+二级模块
+*/
+.modulebox{padding:25px 0 10px;}
+.moduletit{font-size: 20px; color: #333; line-height: 30px; margin-bottom: 0;}
+.modulemain{padding:10px 10px 0; border:1px #ddd solid; margin-bottom:40px;}
+.modulemain .table{margin-bottom: 0;}
+.line{width: 83%; height: 1px; background: #ddd; margin:0 auto;}
+
+
+/*
+二级模块
+*/
+
+label{font-weight: 100;}
+
 @-webkit-keyframes object_one {
     75% { 
         -webkit-transform: scale(0); 
@@ -516,7 +544,13 @@ input[type=range]::-webkit-slider-thumb {
 
 .labelcheck{padding:5px;}
 .labelcheck input{float: left; margin:4px 2px 0 0;}
-.table > thead:first-child > tr:first-child > th{white-space:nowrap; }
+
+
+.form-horizontal .checkbox{padding-top: 0;}
+
+.input80gray{width: 80px; background: #f9f9f9;}
+.input80{width: 80px; background: #fff;}
+
 
 @media (max-width: 640px){
     .flex-box{flex-direction: column;  margin: 0;}
@@ -524,6 +558,7 @@ input[type=range]::-webkit-slider-thumb {
     .bank-box ul li{width: 100%;}
 }
 
+.ellipsis-table {table-layout:fixed;}
 
 
 

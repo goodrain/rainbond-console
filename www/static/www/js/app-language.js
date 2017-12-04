@@ -44,7 +44,11 @@ $(function () {
                 }
             })
         })
+
+    $('.fn-tips').tooltip();
 });
+
+
 
 function createEvents(name, service, action) {
     var currentEventID = ""

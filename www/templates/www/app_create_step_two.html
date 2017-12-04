@@ -1,70 +1,87 @@
-{% extends 'www/raster.html' %}
+{% extends 'www/raster2.html' %}
 {% load i18n %}
 {% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
-<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
-<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/sweetalert.min.js" %}'></script>
 {% endblock %}
 
 {% block main-content%}
 
 <section class="wrapper site-min-height">
-    <!-- new start -->
-    <section class="main-box">
-        <h3 class="main-tit">从镜像创建应用</h3>
-        <div class="app-step clearfix two">
-            <p class="sed"><span>1</span><cite>创建应用</cite></p>
-            <p><span>2</span><cite>应用设置</cite></p>
-        </div>
-        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
-            <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
-            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
-            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
-            <input type="hidden" id="service_id" value="{{service_id}}">
-            <!-- -->
-            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
-            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
-            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
-            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
-            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
-            <!-- -->
-            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
-            <!-- 基本信息  start-->
-            <div class="infor-fm-box">
-                <h4 class="step-tit" style="display: none;">基本信息</h4>
-                <div class="fm-input-text clearfix">
-                    <label for="create_app_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder="请输入应用名，支持中英文"  />
-                </div>
-                <p class="fm-tips" id="create_name_notice">请输入应用名！</p>
-                <div class="fm-select clearfix">
-                    <label>选择分组</label>
-                    <select id="group-name" name="select_group_id">
-                        <option value="-1">不分组</option>
-                        {% for group in groupList %}
-                        <option value="{{group.ID}}" >{{group.group_name}}</option>
-                        {% endfor %}
-                        <option value="-2">新建组</option>
-                    </select>
-                </div>
-                <div class="fm-input-text clearfix">
-                    <label for="create_app_name">镜像</label><input type="text" id="mirror-address" name="mirror-address" value="{{image_url}}" placeholder="可以输入镜像名称或者Docker run命令"  />
-                </div>
-                <p class="fm-tips" id="mirror_address_notice">请输入镜像名称或者Docker run命令</p>
-                <div class="fm-input-text clearfix" id="dockertips">
-                    <p class="dockertips" style="color: #838383;">
-                        <span>镜像名：nginx : 1.11</span>
-                        <span>Docker run 命令：docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat</span>
-                    </p>
-                </div>
+    <section class="panel panel-default">
+        <div class="panel-body">
+            <p class="main-tit">从镜像创建应用</p>
+            <div class="app-step clearfix two">
+                <p class="sed" style="width: 50%;"><span>1</span><cite>创建应用</cite></p>
+                <p style="width: 50%;"><span>2</span><cite>应用设置</cite></p>
             </div>
-            <!-- 基本信息  end -->
-			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
-				<a href="javascript:void(0)" class="greenbtn btn" id="mirror_first" >免费创建</a>
-			</div>			
-        </form>
+            <form class="form-horizontal" id="commentForm" method="post" action="" novalidate="novalidate">
+                <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+                <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+                <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+                <input type="hidden" id="service_id" value="{{service_id}}">
+                <!-- -->
+                <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+                <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+                <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+                <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+                <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+                <!-- -->
+                <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+                <!-- 基本信息  start-->
+                <div class="infor-fm-box">
+                    <div class="form-group">
+                        <label for="create_app_name" class="col-sm-3 control-label">应用名</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="create_name" name="create_name" value=""  class="form-control" placeholder="请输入应用名，支持中英文"  />
+                        </div>
+                    </div>
+                    <div class="row fm-tips" id="create_name_notice">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">请输入应用名！</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">选择分组</label>
+                        <div class="col-sm-6">
+                            <select id="group-name" name="select_group_id" class="form-control">
+                                <option value="-1">不分组</option>
+                                {% for group in groupList %}
+                                <option value="{{group.ID}}" >{{group.group_name}}</option>
+                                {% endfor %}
+                                <option value="-2">新建组</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="create_app_name" class="col-sm-3 control-label">镜像</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="mirror-address" name="mirror-address" value="{{image_url}}" placeholder="可以输入镜像名称或者Docker run命令"  class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row fm-tips" id="mirror_address_notice">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">请输入镜像名称或者Docker run命令</div>
+                    </div>
+                    <div class="form-group" id="dockertips">
+                        <label class="col-sm-3 control-label"></label>
+                        <div class="col-sm-6">
+                            <span class="keytit">镜像名：nginx : 1.11</span>
+                            <span class="keytit">Docker run 命令：docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 基本信息  end -->
+    			<div class="text-center clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin: 50px 0;" data-original-title="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+    				<button type="button" class="btn btn-success" id="mirror_first" >免费创建</button>
+    			</div>			
+            </form>
+        </div>
     </section>
-    <!-- new end -->
 </section>
 <script>
 $(function(){
@@ -89,7 +106,7 @@ $(function(){
     //处理官方实例的逻辑 end
     if(type==='demo' && !image_url){
         var html = [];
-        html.push('<select name="mirror-address" id="mirror-address">');
+        html.push('<select name="mirror-address" id="mirror-address" class="form-control">');
             html.push('<option value="docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat">tomcat</option>');
             html.push('<option value="docker run -d -p 2368:2368 -e PWD=1qa2ws --name=ghost_demo ghost">ghost</option>');
             html.push('<option value="docker run -d -p 3000:3000 -e PWD=1qa2ws --name=redmine_demo redmine">redmine</option>');
@@ -110,10 +127,10 @@ $(function(){
     //弹出层
     function FnLayer(textTit){
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
+        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close" style="color:#fff"><i class="fa fa-times"></i></a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
         var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+        var oLink = '<p class="layerlink"><button type="button" class="fn-sure btn btn-success" style="margin:0 5px;">确定</button><button type="button" class="fn-close btn btn-danger" style="margin:0 5px;">取消</button></p>';
         $("body").append(oDiv);
         $("div.layermain").append(oCloseBtn,oTit);
         $("div.layermain").append(oInput);
@@ -174,7 +191,6 @@ $(function(){
     //  弹出层
     $("#group-name").change(function(){
      var groupName=$("#group-name option:selected").val();
-        //console.log(groupName);
         if(groupName == -2) {
             FnLayer("请输入新增组名");  
         }
@@ -213,11 +229,6 @@ $(function(){
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
         var service_code_from = "gitlab_new";
-        var myWay = $(".fn-way").attr("data-action");
-        var code_url;
-        var code_id;
-        var code_branch;
-        var code_branch_id;
         if(appname == ""){
             $("#create_name_notice").show();
             return;
@@ -231,16 +242,6 @@ $(function(){
         }else{
             $('#mirror_address_notice').slideUp();
         }
-
-//        $('#mirror-address').blur(function(){
-//            var mirrorName = $(this).val();
-//            if(mirrorName == ""){
-//                $('#mirror_address_notice').slideDown();
-//                return;
-//            }else{
-//                $('#mirror_address_notice').slideUp();
-//            }
-//        });
         ///
         $("#mirror_first").attr('disabled', true);
         var tenantName= $('#tenantName').val();
@@ -296,81 +297,7 @@ $(function(){
     /// 从镜像地址提交
     
 
-    ////tips
-    $(".fn-tips").mouseover(function(){
-        var tips = $(this).attr("data-tips");
-        var pos = $(this).attr("data-position");
-        var x = $(this).offset().left;
-        var y = $(this).offset().top;
-        var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-        $("body").append(oDiv);
-        var oDivheight = $(".tips-box").height();
-        var oDivwidth = $(".tips-box").width();
-        var othiswid = $(this).width();
-        var othisheight = $(this).height();
-        if(pos){
-            if(pos == "top"){
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                 $(".tips-box").find("cite").addClass("top");
-                //
-            }else if(pos == "bottom"){
-                //
-                $(".tips-box").css({"top":y + othisheight + 25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                $(".tips-box").find("cite").addClass("bottom");
-                //
-            }else if(pos == "left"){
-                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-                 $(".tips-box").find("cite").addClass("left");
-            }else if(pos == "right"){
-                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-                 $(".tips-box").find("cite").addClass("right");
-            }else{
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                 $(".tips-box").find("cite").addClass("top");
-                //
-            }         
-        }else{
-            //
-            $(".tips-box").css({"top":y-oDivheight -25});
-            if(oDivwidth > othiswid){
-                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-            }else if(oDivwidth < othiswid){
-                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-            }else{
-                $(".tips-box").css({"left":x});
-            }
-            $(".tips-box").find("cite").addClass("top");
-            //
-        }
-        
-    });
-    $(".fn-tips").mouseout(function(){
-        $(".tips-box").remove();
-    });
-    ////tips end
+    $('.fn-tips').tooltip();
 
     /* ljh 2017-03-07 */
     $(".buy_month li").click(function(){

@@ -54,7 +54,8 @@ class MarketAPIAuthentication(authentication.BaseAuthentication):
                 enterprise = TenantEnterprise.objects.create(enterprise_id=sso_user.eid,
                                                              enterprise_name=sso_user.company,
                                                              enterprise_alias=sso_user.company,
-                                                             enterprise_token=sso_user_token)
+                                                             enterprise_token=sso_user_token,
+                                                             is_active=1)
                 logger.info(
                     'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
                                                                   enterprise.enterprise_name))

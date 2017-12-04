@@ -146,10 +146,10 @@ def notify_url(request, tenantName):
                                     '%Y%m%d%H%M%S')
                                 tenantService.save()
                                 body = {
-                                    "deploy_version": tenantService.deploy_version}
+                                    "deploy_version": tenantService.deploy_version,"enterprise_id":tenant.enterprise_id}
 
                                 region_api.start_service(tenantService.service_region, tenantNew.tenant_name,
-                                                         tenantService.service_alias, json.dumps(body))
+                                                         tenantService.service_alias, body)
                             tenant_region.service_status = 1
                             tenant_region.save()
                             # update notify

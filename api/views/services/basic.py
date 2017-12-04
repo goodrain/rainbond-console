@@ -77,7 +77,7 @@ class SelectedServiceView(APIView):
             region_api.update_service(service.service_region,
                                       tenant.tenant_name,
                                       service.service_alias,
-                                      json.dumps({"image_name": image}))
+                                      {"image_name": image,"enterprise_id":tenant.enterprise_id})
         except Exception as e:
             logger.exception("api.service", e)
             logger.error("api.service", "update region service image failed!")
@@ -90,9 +90,10 @@ class SelectedServiceView(APIView):
                 "deploy_version": service.deploy_version,
                 "operator": user.nick_name,
                 "event_id": event_id,
+                "enterprise_id": tenant.enterprise_id
             }
             region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                     json.dumps(body))
+                                     body)
             monitorhook.serviceMonitor(user.nick_name, service, 'app_start', True)
         except Exception as e:
             logger.exception("api.service", e)
@@ -122,7 +123,7 @@ class SelectedServiceView(APIView):
             service = TenantServiceInfo.objects.get(service_id=serviceId)
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
             region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                      json.dumps({"image_name" : data.get("image")}))
+                                      {"image_name" : data.get("image"),"enterprise_id":tenant.enterprise_id})
 
             # 添加端口
             default_port_del = True
@@ -160,7 +161,8 @@ class SelectedServiceView(APIView):
                 region_api.delete_service_port(service.service_region,
                                                tenant.tenant_name,
                                                service.service_alias,
-                                               5000)
+                                               5000,
+                                               tenant.enterprise_id)
                 #                                service.service_id,
                 #                                json.dumps(data))
                 # 删除console的5000
@@ -172,7 +174,7 @@ class SelectedServiceView(APIView):
                 region_api.add_service_port(service.service_region,
                                             tenant.tenant_name,
                                             service.service_alias,
-                                            json.dumps({"port": region_port_list}))
+                                            {"port": region_port_list,"enterprise_id":tenant.enterprise_id})
             # 添加持久化记录
             if volume_list:
                 for volume_path in volume_list:
@@ -184,12 +186,13 @@ class SelectedServiceView(APIView):
                             "service_id": service.service_id,
                             "category": service.category,
                             "host_path": host_path,
-                            "volume_path": volume_path
+                            "volume_path": volume_path,
+                            "enterprise_id":tenant.enterprise_id
                         }
                         region_api.add_service_volume(service.service_region,
                                                       tenant.tenant_name,
                                                       service.service_alias,
-                                                      json.dumps(json_data))
+                                                      json_data)
 
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist as e:

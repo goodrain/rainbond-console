@@ -259,7 +259,7 @@ Base.prototype = {
     bind : noop,
     destroy : function(){
         if(this.fire('beforeDestroy') !== false){
-            this.events = [];
+            this.events = this.event = [];
             this.unbind();
             this.element.off();
             this.off();
@@ -757,7 +757,6 @@ widget.define('dialog', {
     _init : function(option){
         this.callParent(option);
         this.id = this.option.id || 'ui_dialog_'+this.getUUID();
-
         if(this.ClassName == 'dialog'){
             this.randomId = Math.random();
             this._create();
@@ -905,7 +904,7 @@ widget.define('dialog', {
         var bodyPaddingTop = parseInt(self.body.css('padding-top')) || 0;
         var bodyPaddingBottom = parseInt(self.body.css('padding-bottom')) || 0;
         var bodyHeight = allHeight - headHeigth - footerHeight - bodyPaddingTop - bodyPaddingBottom;
-        self.body.height(bodyHeight);  
+        self.body.height(bodyHeight);
     },
     setSize: function(size) {
         this.callParent(size.width, size.height);
@@ -4058,12 +4057,12 @@ widget.define('tableList', {
         })
         this._onSelectedChange();
     },
-    getSelected:function(){
+    getSelected:function(allData=false){
          var res = [];
          tool.eachData(this.cache, function(item,i){
             if(item.selected){ 
-                res.push(item.data)
-                };
+                res.push(allData ? item : item.data)
+            };
          }, this);
          return res;
     },
@@ -4125,10 +4124,10 @@ widget.define('tableList', {
         return this.data[index];
     },
     //获取全部数据
-    getData:function(){
+    getData:function(allData=false){
         var res = [];
         for(var i=0;i<this.cache.length;i++){
-            res.push(this.cache[i].data);
+            res.push(allData ? this.cache[i] : this.cache[i].data);
         }
         return res;
     },

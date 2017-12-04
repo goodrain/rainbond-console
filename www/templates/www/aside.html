@@ -99,7 +99,7 @@
         </li>
         {% if MODULES.Finance_Center %}        
         <li class="sub-menu">
-        	<a href="javascript:;" class="{{myFinanceStatus}}">
+        	<a href="javascript:;" class="fn-app-list {{myFinanceStatus}}">
             <i class="fa fa-jpy"></i>
             <span>财务中心</span></a>            
             <ul class="sub">
@@ -114,6 +114,7 @@
     </ul>
     <!-- sidebar menu end-->
 </div>
+<script type="text/javascript" src="/static/www/js/jquery.dcjqaccordion.2.7.js?v=2015122301"></script>
 <script type="text/javascript">
   $(function() {
     $('#nav-accordion').dcAccordion({
@@ -127,6 +128,7 @@
 //        cookie: 'dcjq-accordion-1',
         classExpand: 'dcjq-current-parent'
     });
+
     $("#myappbox").show();
     $("#sidebar").niceScroll({styler:"fb",cursorcolor:"#e8403f", cursorwidth: '3', cursorborderradius: '10px', background: '#404040', spacebarenabled:false, cursorborder: ''});
 

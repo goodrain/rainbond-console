@@ -1,25 +1,21 @@
 # -*- coding: utf8 -*-
 import datetime
-import json
-from datetime import date
+import logging
 from decimal import Decimal
-from dateutil.relativedelta import relativedelta
 
-from django.views.decorators.cache import never_cache
-from django.template.response import TemplateResponse
-from django.http import JsonResponse
-from www.views import AuthedView
-from www.decorator import perm_required
-from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants, \
-    ServiceConsume, TenantServiceInfo
-from www.region import RegionInfo
+from dateutil.relativedelta import relativedelta
 from django.conf import settings
-from www.monitorservice.monitorhook import MonitorHook
+from django.http import JsonResponse
+from django.template.response import TemplateResponse
 
 from goodrain_web.tools import JuncheePaginator
+from www.decorator import perm_required
+from www.models import TenantFeeBill, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants, \
+    ServiceConsume, TenantServiceInfo
+from www.monitorservice.monitorhook import MonitorHook
+from www.region import RegionInfo
+from www.views import AuthedView
 
-import logging
-from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 monitorhook = MonitorHook()
 

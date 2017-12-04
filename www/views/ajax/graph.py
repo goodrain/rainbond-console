@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.views import AuthedView
-
+from www.services import tenant_svc
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
 
@@ -67,7 +67,8 @@ class ServiceGraph(AuthedView):
                 queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
 
             if graph_key in ('memory', 'sqltime', 'sql-throughput'):
-                queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id,
+                tenant_region = tenant_svc.get_tenant_region_info(self.tenant, self.service.service_region)
+                queries += '{' + 'tenant_id={0},service_id={1}'.format(tenant_region.region_tenant_id,
                                                                        self.service.service_id) + '}'
             else:
                 # temp deal
@@ -89,7 +90,8 @@ class ServiceGraph(AuthedView):
             body = {}
             body["start"] = start
             body["queries"] = queries
-            query_data = region_api.get_opentsdb_data(self.service.service_region,json.dumps(body))
+            body["enterprise_id"] = self.tenant.enterprise_id
+            query_data = region_api.get_opentsdb_data(self.service.service_region,body)
             # query_data = result["bean"]
             if query_data is None:
                 return None

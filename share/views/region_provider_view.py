@@ -683,6 +683,7 @@ class TeamDataFix(ShareBaseView):
                 enterprise.enterprise_id = tenant.tenant_id
                 enterprise.enterprise_name = tenant.tenant_name
                 enterprise.enterprise_alias = tenant.tenant_name
+                enterprise.is_active = 1
                 enterprise.save()
                 logger.info('create enterprise: %s' % enterprise.ID)
 

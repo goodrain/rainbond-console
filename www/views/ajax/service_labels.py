@@ -96,8 +96,8 @@ class ServiceLabelsView(LeftSideBarMixin, AuthedView):
                     label_name_list.append(label_name)
 
             body["label_values"] = label_name_list
-
-            region_api.addServiceNodeLabel(self.response_region, self.tenantName, self.serviceAlias, json.dumps(body))
+            body["enterprise_id"] = self.tenant.enterprise_id
+            region_api.addServiceNodeLabel(self.response_region, self.tenantName, self.serviceAlias, body)
             result["ok"] = True
             result["msg"] = "添加标签成功"
         except Exception as e:
@@ -120,8 +120,9 @@ class ServiceLabelsManageView(LeftSideBarMixin, AuthedView):
             body["event_id"] = event_id
             # 服务标签删除
             body["label_values"] = [label.label_name]
+            body["enterprise_id"] = self.tenant.enterprise_id
             region_api.deleteServiceNodeLabel(self.response_region, self.tenantName, self.serviceAlias,
-                                              json.dumps(body))
+                                              body)
             ServiceLabels.objects.filter(service_id=self.service.service_id, label_id=label_id).delete()
             result["ok"] = True
             result["msg"] = "删除成功"

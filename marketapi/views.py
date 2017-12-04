@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from marketapi.auth import MarketAPIAuthentication
 from marketapi.services import MarketServiceAPIManager
-
+from www.services import tenant_svc
 logger = logging.getLogger('marketapi')
 LOGGER_TAG = 'marketapi'
 market_api = MarketServiceAPIManager()
@@ -80,6 +80,49 @@ class MarketSSOUserInitAPIView(BaseMarketAPIView):
                   'tenant_id': tenant.tenant_id,
                   'tenant_name': tenant.tenant_name,
                   'enterprise_id': tenant.enterprise_id})
+
+
+class MarketEnterpriseBindAPIView(BaseMarketAPIView):
+    allowed_methods = ('POST',)
+
+    def get(self, request, enterprise_id):
+        """
+        云市企业信息绑定接口
+        ---
+        parameters:
+            - name: enterprise_id
+              description: 需要绑定的企业ID
+              required: true
+              type: string
+              paramType: path
+            - name: enterprise_token
+              description: 云市授予的企业访问的token
+              required: true
+              type: string
+              paramType: form
+            - name: echostr
+              description: 云市随机生成的字符串, 绑定成功后需要原路返回
+              required: true
+              type: string
+              paramType: form
+        """
+        user = request.user
+
+        if not enterprise_id:
+            return self.error_response(status.HTTP_400_BAD_REQUEST, 'enterprise_id can not be null', '参数不合法')
+
+        enterprise = market_api.get_enterprise_by_id(enterprise_id)
+        if not enterprise:
+            return self.error_response(status.HTTP_404_NOT_FOUND, 'enterprise not fond on this console!', '待认证企业信息不存在')
+
+        enterprise_token = request.POST.get('enterprise_token')
+        echostr = request.POST.get('echostr')
+        result = market_api.active_enterprise(user, enterprise, enterprise_token)
+        if result:
+            return self.success_response(data={'echostr': echostr})
+        else:
+            return self.error_response(status.HTTP_500_INTERNAL_SERVER_ERROR, 'enterprise bind failed',
+                                       '服务器错误,企业认证绑定失败')
 
 
 class MarketSSOUserAPIView(BaseMarketAPIView):
@@ -690,7 +733,8 @@ class MarketServiceMonitorGraphAPIView(BaseMarketAPIView):
                 queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
 
             if graph_key in ('memory', 'sqltime', 'sql-throughput'):
-                queries += '{' + 'tenant_id={0},service_id={1}'.format(tenant.tenant_id,
+                tenant_region = tenant_svc.get_tenant_region_info(tenant,service.service_region)
+                queries += '{' + 'tenant_id={0},service_id={1}'.format(tenant_region.region_tenant_id,
                                                                        service.service_id) + '}'
             else:
                 # temp deal
@@ -712,7 +756,7 @@ class MarketServiceMonitorGraphAPIView(BaseMarketAPIView):
                 body = {}
                 body["start"] = start
                 body["queries"] = queries
-                result = region_api.get_opentsdb_data(self.service.service_region,json.dumps(body))
+                result = region_api.get_opentsdb_data(service.service_region,body)
                 query_data = result["bean"]
                 if not query_data:
                     return None

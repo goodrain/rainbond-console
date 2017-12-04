@@ -331,7 +331,7 @@ class RegionService(object):
         statics_list = []
         tenant_name_list = Tenants.objects.filter(tenant_id__in=tenant_ids).values_list("tenant_name", flat=True)
         try:
-            result = region_api.get_region_tenants_resources(region, json.dumps({"tenant_name": list(tenant_name_list)}))
+            result = region_api.get_region_tenants_resources(region, {"tenant_name": list(tenant_name_list)})
             tenant_memory_map = result.get("list")
             if tenant_memory_map:
                 for res in tenant_memory_map:

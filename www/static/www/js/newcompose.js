@@ -1,4 +1,18 @@
 $(function(){
+	$(".fn-showlink").click(function(){
+        var htmlstr = $(this).find("cite").html();
+        var parents = $(this).parents(".fn-modulebox");
+        if(htmlstr == "展开"){
+            $(this).find("cite").html("收起");
+            $(this).find("span").removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-up");
+            $(parents).find(".fn-showblock").show();
+        }else{
+            $(this).find("cite").html("展开");
+            $(this).find("span").removeClass("glyphicon-chevron-up").addClass("glyphicon-chevron-down");
+            $(parents).find(".fn-showblock").hide();
+        }
+    })
+
 	//打开新增端口号窗口
 	$(".openAdd").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
@@ -18,7 +32,7 @@ $(function(){
 	$(".add_port").blur(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		var portNum = parseInt($("#"+appid+" .add_port").val());
-		if( portNum>1024 && portNum<65536 )
+		if( portNum>0 && portNum<65536 )
 		{
 			$(this).parents('tr').find('p.checkTip').css({"display":"none"});
 		}
@@ -30,7 +44,7 @@ $(function(){
 	$(".add").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		var portNum = parseInt($("#"+appid+" .add_port").val());
-		if( portNum>1024 && portNum<65536 )
+		if( portNum>0 && portNum<65536 )
 		{
 			var addOnoff = true;
 			var portLen = $("#"+appid+" .portNum").length;
@@ -45,22 +59,22 @@ $(function(){
 			if( addOnoff )
 			{
 				var arr = ['HTTP','非HTTP'];
-				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+$("#"+appid+" .add_port").val()+'</a></td>';
+				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-original-title="当前应用提供服务的端口号。">'+$("#"+appid+" .add_port").val()+'</a></td>';
 				if( $("#addInner"+appid+"").prop("checked") == true )
 				{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner'+appid+'" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner'+appid+'"></label></div></td>';
+					oTr += '<td><label class="checkbox fn-tips" data-original-title="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner'+appid+'" checked="true" /><span class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner'+appid+'"></span></label></td>';
 				}
 				else{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner'+appid+'" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner'+appid+'"></label></div></td>';
+					oTr += '<td><label class="checkbox fn-tips" data-original-title="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner'+appid+'" /><span class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner'+appid+'"></span></label></td>';
 				}
 				if( $("#addOuter"+appid+"").prop("checked") == true )
 				{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
-					oTr += '<select style="" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
+					oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" checked="true" /><span class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></span></label></td><td>';
+					oTr += '<select style="" class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
 				}
 				else{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
-					oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+$("#"+appid+" .add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
+					oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" /><span class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></span></label></td><td>';
+					oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$("#"+appid+" .add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
 				}
 				for( var i = 0; i < 2; i++ )
 				{
@@ -77,7 +91,7 @@ $(function(){
 				$("#"+appid+" .addPort").css({"display":"none"});
 				delPort();
 				editPort();
-				tip();
+				$('.fn-tips').tooltip();
 				checkDetail();
 				selectChange();
 			}
@@ -187,6 +201,12 @@ $(function(){
 				},
 			},
 			validate: function (value) {
+
+
+				if( !(value>0 && value<65536) ){
+					return '端口范围为1~65535'
+				}
+
 				if (!$.trim(value)) {
 					return '不能为空';
 				}
@@ -271,13 +291,13 @@ $(function(){
 	function delLi(){
 		$("img.delLi").off("click");
 		$("img.delLi").on("click",function(){
-			$(this).parents("li").remove();
+			$(this).parents("tr").remove();
 		})
 	}
 	//新设持久化目录
 	$(".addCata").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		$("#"+appid+" p.catalogue").css({"display":"block"});
+		$("#"+appid+" .catalogue").css({"display":"table-row"});
 	})
 	$(".catalogueContent").blur(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
@@ -314,16 +334,17 @@ $(function(){
 				if( str == $("#"+appid+" .add_pathName").eq(i).parent().find("em").html() )
 				{
 					result = false;
-					$(this).parent().find(".checkTip").html("目录冲突，请重新输入");
+					swal("目录冲突，请重新输入");
 					$("#"+appid+" .catalogueContent").val('');
 					$(this).parent().find(".checkTip").css({"display":"inline-block"});
 					break;
 				}
 			}
 		}else{
-			$(this).parent().find(".checkTip").html("请输入目录");
+			swal("请输入目录");
 			$("#"+appid+" .catalogueContent").val('');
 			$(this).parent().find(".checkTip").css({"display":"inline-block"});
+			result = false;
 		}
 
 		if( $("#"+appid+" .catalogueName").val() )
@@ -336,34 +357,35 @@ $(function(){
 				if( str == $("#"+appid+" .add_pathName").eq(i).html() )
 				{
 					result = false;
-					$(this).parent().find(".checkTip").html("名称冲突，请重新输入");
+					swal("名称冲突，请重新输入");
 					$("#"+appid+" .catalogueName").val('');
 					$(this).parent().find(".checkTip").css({"display":"inline-block"});
 					break;
 				}
 			}
 		}else{
-			$(this).parent().find(".checkTip").html("请输入名称");
+			swal("请输入名称");
 			$("#"+appid+" .catalogueName").val("");
 			$(this).parent().find(".checkTip").css({"display":"inline-block"});
+			result = false;
 		}
 		if( result )
 		{
-				var str = '<li><em class="fn-tips" data-tips="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
-				str += '<cite>挂载自</cite><span class="path_name add_pathName">'+ $("#"+appid+" .catalogueName").val() +'</span>';
-                str +='<cite>持久化类型</cite><span data-value="'+$(".catalogue").find($("#"+appid+" option:selected")).attr("value")+'" class="stateVal">'+ $(".catalogue").find('select option:selected').html() +'</span>'
-				str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-				$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
-				$("#"+appid+" p.catalogue").css({"display":"none"});
+				var str = '<tr><td><em class="fn-tips" data-original-title="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">/app/'+$("#"+appid+" .catalogueContent").val()+'</em></td>';
+				str += '<td><span class="path_name add_pathName">'+ $("#"+appid+" .catalogueName").val() +'</span></td>';
+                str +='<td><span data-value="'+$(".catalogue").find($("#"+appid+" option:selected")).attr("value")+'" class="stateVal">'+ $(".catalogue").find('select option:selected').html() +'</span></td>'
+				str += '<td><img src="/static/www/images/rubbish.png" class="delLi"/></li></td>';
+				$(str).appendTo("#"+appid+" .contentBlock");
+				$("#"+appid+" .catalogue").css({"display":"none"});
 				$("#"+appid+" .catalogueContent").val("");
 				$("#"+appid+" .catalogueName").val("");
 				delLi();
-				tip();
+				$('.fn-tips').tooltip();
 		}
 	});
 	$(".noAddCatalogue").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		$("#"+appid+" p.catalogue").css({"display":"none"});
+		$("#"+appid+" .catalogue").css({"display":"none"});
 	});
 
 	//挂载其他应用持久化目录
@@ -404,14 +426,14 @@ $(function(){
 				}
 				if( onOff )
 				{
-					var str = '<li><em class="fn-tips" data-tips="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">'+$("#"+appid+" input.addOther").eq(i).attr("data-path")+'</em>';
+					var str = '<li><em class="fn-tips" data-original-title="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">'+$("#"+appid+" input.addOther").eq(i).attr("data-path")+'</em>';
 					str = '<span class="path_name otherAppName" data-otherName="'+$("#"+appid+" input.addOther").eq(i).attr("data-otherName")+'">挂载自'+$("#"+appid+" input.addOther").eq(i).attr("data-name")+'</span>';
 					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 					$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
 					$("#"+appid+" .otherApp").css({"display":"none"});
 					$("#"+appid+" .layer-body-bg").css({"display":"none"});
 					delLi();
-					tip();
+					$('.fn-tips').tooltip();
 				}
 			}
 		}
@@ -429,441 +451,10 @@ $(function(){
 	});
 
 
-	tip();
-	function tip(){
-		$(".fn-tips").mouseover(function(){
-			var tips = $(this).attr("data-tips");
-			var pos = $(this).attr("data-position");
-			var x = $(this).offset().left;
-			var y = $(this).offset().top;
-			var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-			$("body").append(oDiv);
-			var oDivheight = $(".tips-box").height();
-			var oDivwidth = $(".tips-box").width();
-			var othiswid = $(this).width();
-			var othisheight = $(this).height();
-			if(pos){
-				if(pos == "top"){
-					//
-					$(".tips-box").css({"top":y-oDivheight -25});
-					if(oDivwidth > othiswid){
-						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-					}else if(oDivwidth < othiswid){
-						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-					}else{
-						$(".tips-box").css({"left":x});
-					}
-					$(".tips-box").find("cite").addClass("top");
-					//
-				}else if(pos == "bottom"){
-					//
-					$(".tips-box").css({"top":y + othisheight + 25});
-					if(oDivwidth > othiswid){
-						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-					}else if(oDivwidth < othiswid){
-						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-					}else{
-						$(".tips-box").css({"left":x});
-					}
-					$(".tips-box").find("cite").addClass("bottom");
-					//
-				}else if(pos == "left"){
-					$(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-					$(".tips-box").find("cite").addClass("left");
-				}else if(pos == "right"){
-					$(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-					$(".tips-box").find("cite").addClass("right");
-				}else{
-					//
-					$(".tips-box").css({"top":y-oDivheight -25});
-					if(oDivwidth > othiswid){
-						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-					}else if(oDivwidth < othiswid){
-						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-					}else{
-						$(".tips-box").css({"left":x});
-					}
-					$(".tips-box").find("cite").addClass("top");
-					//
-				}
-			}else{
-				//
-				$(".tips-box").css({"top":y-oDivheight -25});
-				if(oDivwidth > othiswid){
-					$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-				}else if(oDivwidth < othiswid){
-					$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-				}else{
-					$(".tips-box").css({"left":x});
-				}
-				$(".tips-box").find("cite").addClass("top");
-				//
-			}
-
-		});
-		$(".fn-tips").mouseout(function(){
-			$(".tips-box").remove();
-		});
-		////tips end
-	}
+	$('.fn-tips').tooltip();
 
 
-	// 名称 compose 
-	//var oldname = $("#com-name").val();
-	/*$("#com-name").focus(function(){
-	  	$(this).attr("value","");
-	});
-	$("#com-name").change(function(){
-		if($(this).val()== ""){
-			$(this).attr("value",oldname);
-		}
-	});
-	$("#com-name").blur(function(){
-		if($(this).val()== ""){
-			$(this).attr("value",oldname);
-		}
-	});*/
-	// 图
-	/*
-	var json_svg_ = $("#compose_relations").attr("value");
-	var json_svg = JSON.parse(json_svg_);
-	//console.log(json_svg_);
-	//console.log(json_svg);
-	
-
-	/// svg
-	var AppBot =[];        // 下部
-    var AppTop = [];      //   上部
-    var AppMid = [];     // 中部，即依赖别的
-    var key_svg = [];    // key
-    var val_svg_arr =[]; // 数组
-    var val_svg = [];    //值
-    var my_svg =[];      // 依赖自己
-    var val_svg_single =[]; // 值数组去重
-
-    Array.prototype.indexOf = function(val) {
-        for (var i = 0; i < this.length; i++) {
-            if (this[i] == val) return i;
-        }
-        return -1;
-    };
-    Array.prototype.remove = function(val) {
-        var index = this.indexOf(val);
-        if (index > -1) {
-            this.splice(index, 1);
-        }
-    };
     
-   for(var key in json_svg){
-        key_svg.push(key);
-        val_svg_arr.push(json_svg[key]);
-        val_svg = val_svg.concat(json_svg[key]);
-   }
-   //console.log(key_svg.length);
-   //console.log(key_svg); 
-   //console.log(val_svg);
-   //console.log(val_svg_arr);
-
-   //
-   if(key_svg.length == 0){
-        console.log("没有依赖关系");
-        $("#imgbtn").hide().removeClass("sed");
-        $("#imgBox").hide();
-        $("#tabBox").show();
-        $("#tabbtn").addClass("sed");
-   }else{
-        for(var key in json_svg){
-            if(json_svg[key].length == 0){
-                AppBot.push(key);
-                key_svg.remove(key);
-                val_svg.remove(key);
-            }else{
-                for(var i=0;i<json_svg[key].length; i++){
-                   if(json_svg[key][i] == key){
-                        my_svg.push(key);
-                        val_svg.remove(key);
-                   } 
-                }
-            }
-        }
-    }
-    //console.log(key_svg); 
-    //console.log(val_svg);
-   
-    //数组去重
-    for(i=0;i<val_svg.length;i++){
-        if(val_svg_single.indexOf(val_svg[i])<0){
-            val_svg_single.push(val_svg[i])
-        }
-    }    
-    //console.log(val_svg_single);
-
-    for(var i=0;i<val_svg_single.length;i++){
-        if(key_svg.indexOf(val_svg_single[i]) == -1){
-            AppBot.push(val_svg_single[i]);
-        }else{
-            AppMid.push(val_svg_single[i]);
-        }
-    }
-    for(var i=0;i<key_svg.length;i++){
-        if(val_svg_single.indexOf(key_svg[i]) == -1){
-            AppTop.push(key_svg[i]);
-        }
-    }
-    //console.log(my_svg);
-    //console.log(AppTop);
-    //console.log(AppMid);
-    //console.log(AppBot);
-
-    var AppBot_B = [];
-    for(i=0;i<AppBot.length;i++){
-        if(AppBot_B.indexOf(AppBot[i])<0){
-            AppBot_B.push(AppBot[i])
-        }
-    }   
-    
-    //绘图
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var svgLink="http://www.w3.org/1999/xlink";
-    var oSvgDiv = document.getElementById("view-svg");
-    var divWidth = oSvgDiv.offsetWidth;
-    var axisXY  = {};  //坐标
-    // 创建函数
-    function createTag(tag,objAttr){
-        var oTag = document.createElementNS(svgNS , tag);
-        for(var attr in objAttr){
-            oTag.setAttribute(attr,objAttr[attr]);
-        }
-        return oTag;
-    }
-    var oSvg = createTag('svg',{'xmlns':svgNS,'xmlns:xlink':svgLink,'width':'100%','height':'600'});
-    var oDefs = createTag('defs',{});
-    var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'35','refY':'6','orient':'auto'});
-    var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#ccc'});
-    oSvg.appendChild(oDefs);
-    oDefs.appendChild(oMarker);
-    oMarker.appendChild(oPath);
-
-
-    // 添加图片
-    function FnSvgIcon(wid,hei,num,txt,txtWid){
-        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei});
-        var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
-        oText.innerHTML = txt;
-        oImg.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
-        var oA= createTag('a',{'href':"javascript:;"});
-        var oG = createTag('g',{'style':'cursor:pointer'});
-        oA.appendChild(oText);
-        oA.appendChild(oImg);
-        oG.appendChild(oA);
-        oSvg.appendChild(oG);
-    }
-    if(AppTop.length != 0){
-        for(var i=0; i<AppTop.length;i++){
-            var top_width = divWidth/AppTop.length;
-            var top_w = top_width - 20;
-            //FnSvgIcon(top_width,30,i,AppTop[i],top_w); 
-            axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
-        }
-    }
-    if(AppMid.length != 0){
-        for(var i=0; i<AppMid.length;i++){
-            var mid_width = divWidth/AppMid.length;
-            var mid_w = mid_width - 20;
-            //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
-            axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
-        }
-    }
-    if(AppBot_B.length != 0){
-        for(var i=0; i<AppBot_B.length;i++){
-            var bot_width = divWidth/AppBot_B.length;
-            var bot_w = bot_width - 20;
-            //FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
-            axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
-        }
-    }
-    //
-    for(var key in json_svg){
-        if(json_svg[key].length != 0){
-            //console.log(key);
-            //console.log(axisXY[key]);
-            //console.log(json_svg[key]);
-            for(var i=0; i<json_svg[key].length; i++){
-                //console.log(axisXY[json_svg[key][i]]);
-                var startX = axisXY[key][0];
-                //console.log(startX);
-                var startY = axisXY[key][1];
-                //console.log(startY);
-                var endX = axisXY[json_svg[key][i]][0];
-                //console.log(endX);
-                var endY = axisXY[json_svg[key][i]][1];
-                //console.log(endY);
-                var oLine = createTag('line',{'x1':startX,'y1':startY,'x2':endX,'y2':endY,'stroke':'#ccc','marker-end':'url(#markerArrow)'});
-                //console.log(oLine);
-                oSvg.appendChild(oLine);
-            }
-        }
-    }
-    //
-    if(AppTop.length != 0){
-        for(var i=0; i<AppTop.length;i++){
-            var top_width = divWidth/AppTop.length;
-            var top_w = top_width - 20;
-            FnSvgIcon(top_width,30,i,AppTop[i],top_w); 
-            //axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
-        }
-    }
-    if(AppMid.length != 0){
-        for(var i=0; i<AppMid.length;i++){
-            var mid_width = divWidth/AppMid.length;
-            var mid_w = mid_width - 20;
-            FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
-            //axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
-        }
-    }
-    if(AppBot_B.length != 0){
-        for(var i=0; i<AppBot_B.length;i++){
-            var bot_width = divWidth/AppBot_B.length;
-            var bot_w = bot_width - 20;
-            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
-            //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
-        }
-    }
-    //
-
-    oSvgDiv.appendChild(oSvg);
-	/// svg
-	*/
-	//图
-
-	///// 提交
-    //$("#build-app").click(function(){
-	//	$(this).attr('disabled',true);
-    	//var secbox= $(".app-box");
-    	//var secdate = [];
-    	//$(secbox).each(function(){
-    	//	var appid = $(this).attr("id");
-	//		var service_cname = $(this).attr("service_cname")
-	//		var service_image = $(this).attr("service_image")
-	//
-    	//	//console.log(appid);
-    	//	//
-    	//	var port_tr = $(this).find(".new-port tbody").children("tr");
-    	//	var port_nums = [];
-	//        $(port_tr).each(function(i){
-	//	    	var json_port = {};
-	//		    var my_name = $(this).children("td").eq(0).children("span").html();
-	//		    var my_port = $(this).children("td").eq(1).children("span").html();
-	//		    var my_agreement = $(this).children("td").eq(2).children("span").html();
-	//		    var my_inner = $(this).children("td").eq(3).children("input").prop("checked")? 1 : 0;
-	//		    var my_outer = $(this).children("td").eq(4).children("input").prop("checked")? 1 : 0;
-	//		    json_port["port_alias"] = my_name;
-	//		    json_port["container_port"] = my_port;
-	//		    json_port["protocol"] = my_agreement;
-	//		    json_port["is_inner_service"] = my_inner;
-	//		    json_port["is_outer_service"] = my_outer;
-	//		    port_nums[i] = json_port;
-	//		});
-	//        //console.log(port_nums);
-	//        //
-	//        var env_tr = $(this).find(".new-environment tbody").children("tr");
-    	//	var env_nums = [];
-	//    	$(env_tr).each(function(i){
-	//    		var json_environment = {};
-	//    		var my_name = $(this).children("td").eq(0).children("span").html();
-	//    		var my_engname = $(this).children("td").eq(1).children("span").html();
-	//    		var my_value = $(this).children("td").eq(2).children("span").html();
-	//    		json_environment["name"] = my_name;
-	//    		json_environment["attr_name"] = my_engname;
-	//    		json_environment["attr_value"] = my_value;
-	//    		env_nums[i] = json_environment;
-	//    	});
-	//    	//console.log(env_nums);
-	//    	//
-	//    	var dir_tr = $(this).find(".new-directory tbody").children("tr");
-	//    	var dir_nums = [];
-	//	    $(dir_tr).each(function(i){
-	//	    	var json_directory = {};
-	//	    	var my_name = $(this).children("td").eq(0).children("span").html();
-	//	    	json_directory["volume_path"] = my_name;
-	//	    	dir_nums[i] = json_directory;
-	//	    });
-    //
-	//		var deps = $(this).find("#depends_service ").children("span");
-	//		var depends_services = []
-	//		$(deps).each(function (i) {
-	//			var depends_service = {}
-	//			var dps_service_name = $(this).html()
-	//			depends_service["depends_service"] = dps_service_name
-	//			depends_services[i]=dps_service_name
-	//		});
-	//	    //console.log(dir_nums);
-	//    	//
-	//    	var resources = $(this).find(".resources option:selected").val();
-	//    	//console.log(resources);
-	//    	//
-	//    	var order = $(this).find(".order").val();
-	//    	var this_json={
-	//			"service_image":service_image,
-	//			"service_cname":service_cname,
-	//    		"service_id" : appid,
-	//    		"port_list" : port_nums,
-	//    		"env_list" : env_nums,
-	//    		"volume_list" : dir_nums,
-	//			"depends_services":depends_services,
-	//    		"compose_service_memory" : resources,
-	//    		"start_cmd" : order
-	//    	}
-	//    	console.log(this_json);
-	//    	secdate.push(this_json);
-    	//});
-    	//console.log(secdate);
-    	////
-	//	var tenantName = $("#tenantNameValue").val();
-	//	var compose_group_name = $("#com-name").val();
-	//
-    	/////
-    	////$.ajax({
-     //    //   type: "post",
-     //    //   url: "/apps/"+tenantName+"/compose-params/",
-     //    //   dataType: "json",
-	//		//data: {
-	//		//		"service_configs":JSON.stringify(secdate),
-	//		//		"compose_group_name":compose_group_name
-	//		//		},
-	//		//beforeSend : function(xhr, settings) {
-	//		//	var csrftoken = $.cookie('csrftoken');
-	//		//	xhr.setRequestHeader("X-CSRFToken", csrftoken);
-	//		//},
-	//		//success:function(data){
-	//		//	status = data.status;
-	//		//	if (status == 'success'){
-	//		//		window.location.href="/apps/"+tenantName +"/"
-	//		//	}else if (status == "failure"){
-	//		//		swal("数据中心初始化失败");
-	//		//	}else if (status == "owed"){
-	//		//		swal("余额不足请及时充值");
-	//		//	}else if (status =="expired"){
-	//		//		swal("试用期已过");
-	//		//	}else if(status =="over_memory"){
-	//		//		swal("资源已达上限,无法创建");
-	//		//	}else if(status == "over_money"){
-	//		//		swal("余额不足无法创建");
-	//		//	}else{
-	//		//		swal("创建失败")
-	//		//	}
-	//		//},
-	//		//error: function() {
-	//		//	$(this).attr('disabled',false);
-     //    //   },
-     //    //   cache: false
-     //    //   // processData: false
-     //   //});
-	//
-    	/////
-    //});
-	///////
-
 	/////切换
 	$(".tablink a").click(function(){
 		var num = $(this).index();
@@ -899,44 +490,31 @@ $(function(){
 	/*ww-2017-11-6*/
 	$(".fn-app-box").each(function(){
         var this_id= $(this).attr("id");
-		$("#"+ this_id + "_MemoryRange").bind('input propertychange',function(){
-	        var memoryVal = $(this).val();
-	        if(Number(memoryVal)>1000){
-                var Memory = parseInt(memoryVal/1024);
-                if(Memory>=1 && Memory<2){
-                    memoryVal = 1
-                }else if(Memory>=2 && Memory<4){
-                    memoryVal = 2
-                }else if(Memory>=4 && Memory<6){
-                    memoryVal = 4
-                }else if(Memory>=6 && Memory<8){
-                    memoryVal = 6
-                }else{
-                    memoryVal = 8 
-                }
-        	}else{
-                if(memoryVal >=128 &&  memoryVal < 256){
-                    memoryVal = 128
-                }else if(memoryVal >= 256 &&  memoryVal < 512){
-                    memoryVal = 256
-                }else{
-                     memoryVal = 512
-                }
-        	}
-        	$("#"+ this_id + "_MemoryText").html(memoryVal>10 ? memoryVal + "M" : memoryVal + "G");
-   	 	});
-   	 	$("#"+ this_id + "_extend_method").change(function(){
-	        var oval= $("#"+ this_id + "_extend_method option:selected") .val();
-	        if(oval == "stateless"){
-	            $("#"+ this_id + "_fn_stateless").show();
-	            $("#"+ this_id + "_fn_state").hide();
+		$("#"+ this_id + "_MemoryRange a").click(function(){
+	        $("#"+ this_id + "_MemoryRange a").removeClass("sed");
+	        $(this).addClass("sed");
+	        var memoryVal = $(this).html();
+	        $("#"+ this_id + "_MemoryText").html(memoryVal);
+	    });
+   	 	$("#"+ this_id + "_stateless").click(function(){
+	        var oval= $("#"+ this_id + "_stateless").attr("checked");
+	        if(oval == true){
 	            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="memoryfs">内存文件存储</option>';
 	        }else{
-	            $("#"+ this_id + "_fn_stateless").hide();
-	            $("#"+ this_id + "_fn_state").show();
 	            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="local">本地存储</option><option value="memoryfs">内存文件存储</option>';
 	        }
-	        var selectbox = $("#"+ this_id + "_state");
+	        var selectbox = $("#"+ this_id + "_statebox");
+        	$(selectbox).empty();
+        	$(optionbox).appendTo($(selectbox));
+	    });
+	    $("#"+ this_id + "_state").click(function(){
+	        var oval= $("#"+ this_id + "_stateless").attr("checked");
+	        if(oval == false){
+	            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="memoryfs">内存文件存储</option>';
+	        }else{
+	            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="local">本地存储</option><option value="memoryfs">内存文件存储</option>';
+	        }
+	        var selectbox = $("#"+ this_id + "_statebox");
         	$(selectbox).empty();
         	$(optionbox).appendTo($(selectbox));
 	    });
@@ -1008,8 +586,8 @@ $(function(){
 				$(dir_tr).each(function(i){
 					var json_directory = {};
 					var my_name = $(this).html();
-					var my_path = $(this).parent().find('em').html();
-					var my_type= $(this).parent().find("span.stateVal").attr("data-value");
+					var my_path = $(this).parents().find('em').html();
+					var my_type= $(this).parents().find("span.stateVal").attr("data-value");
 					json_directory["volume_pathName"] = my_name;
 					json_directory["volume_path"] = my_path;
 					json_directory["volume_type"] = my_type;
@@ -1025,9 +603,10 @@ $(function(){
 					json_directory["volume_pathName"] = my_name;
 					json_directory["volume_path"] = my_path;
 					dir_otherArr[i] = json_directory;
+					console.log(json_directory);
 				});
 
-				var deps = $(this).find(".depends_service ").children("li");
+				var deps = $(this).find(".depends_service ").find("td");
 				var depends_services = []
 				$(deps).each(function (i) {
 					// var depends_service = {}
@@ -1038,11 +617,11 @@ $(function(){
 				
 				//
 				var resources = $(this).find(".resources option:selected").val();
-				//console.log(resources);
+				console.log(resources);
 				//
 				var order = $(this).find(".order").val();
 				//
-				var  methodval= $("#"+ appid + "_extend_method option:selected") .val();
+				var  methodval=	$('input[name="'+ appid +'_extend_method"]:checked').val();
         		var  memory_num = parseInt($("#"+ appid + "_MemoryText").html());
         		//
 				var this_json={
@@ -1059,6 +638,7 @@ $(function(){
             		"service_min_memory" : memory_num
 				}
 				secdate.push(this_json);
+				console.log(this_json)
 			});
 			console.log(secdate);
 			//

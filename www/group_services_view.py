@@ -20,8 +20,8 @@ from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceEnvVar, 
     TenantServicesPort, TenantServiceVolume, ServiceDomain, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
+from www.services import tenant_svc
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
-    TenantRegionService, \
     AppCreateService
 from www.utils.crypt import make_uuid
 from www.views import AuthedView, LeftSideBarMixin
@@ -34,7 +34,6 @@ tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
 tenantAccountService = TenantAccountService()
 appClient = AppServiceApi()
-tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
 appCreateService = AppCreateService()
 
@@ -317,7 +316,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             service_group_id = request.POST.get("service_group_id", None)
             services_json = request.POST.get("services")
             services = json.loads(services_json)
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id,
+            success = tenant_svc.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id,
                                                           self.user)
             if not success:
                 data["status"] = "failure"
@@ -537,11 +536,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         current_service_ids = []
         sorted_service = None
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id,
-                                                          self.user)
-            if not success:
-                data["status"] = "failure"
-                return JsonResponse(data, status=200)
 
             service_group_id = request.POST.get("group_id", None)
             envs = request.POST.get("envs", "")
@@ -628,7 +622,8 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 service_status = label_map.get(service_info.service_key, "stateless")
                 label_data = {}
                 label_data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-                region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, json.dumps(label_data))
+                label_data["enterprise_id"] = self.tenant.enterprise_id
+                region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, label_data)
                 newTenantService.extend_method = service_status
                 newTenantService.save()
 
@@ -644,8 +639,17 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 body["operator"] = self.user.nick_name
                 body["action"] = "upgrade"
                 body["kind"] = kind
+                body["enterprise_id"] = self.tenant.enterprise_id
+
+                envs = {}
+                buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
+                    "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
+                for benv in buildEnvs:
+                    envs[benv.attr_name] = benv.attr_value
+                body["envs"] = envs
+
                 region_api.build_service(newTenantService.service_region, self.tenantName,
-                                         newTenantService.service_alias, json.dumps(body))
+                                         newTenantService.service_alias, body)
 
                 monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # 创建成功,删除临时数据
@@ -658,7 +662,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             try:
                 if sorted_service:
                     for service in sorted_service:
-                        region_api.delete_service(self.response_region, self.tenantName, service.service_alias)
+                        region_api.delete_service(self.response_region, self.tenantName, service.service_alias,self.tenant.enterprise_id)
                         data = service.toJSON()
                         newTenantServiceDelete = TenantServiceInfoDelete(**data)
                         newTenantServiceDelete.save()

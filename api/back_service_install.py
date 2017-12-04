@@ -262,7 +262,7 @@ class BackServiceInstall(object):
             try:
                 for service_alias in service_alias_list:
 
-                    region_api.delete_service(self.region_name, self.tenant_name, service_alias)
+                    region_api.delete_service(self.region_name, self.tenant_name, service_alias,self.tenant.enterprise_id)
             except Exception as e:
                 logger.exception(e)
                 pass
@@ -349,7 +349,7 @@ class BackServiceInstall(object):
         try:
             logger.debug("service_id - {0} - service_name {1} ".format(service.service_id,service.service_cname))
             try:
-                region_api.delete_service(self.region_name, self.tenant_name, service.service_alias)
+                region_api.delete_service(self.region_name, self.tenant_name, service.service_alias,self.tenant.enterprise_id)
             except Exception as e:
                 success = False
                 logger.error("region delete service error! ")

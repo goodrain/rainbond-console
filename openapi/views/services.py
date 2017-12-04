@@ -779,9 +779,10 @@ class UpgradeView(BaseAPIView):
             region_api.update_service(tenant_service.service_region,
                                       tenant_name,
                                       tenant_service.service_alias,
-                                      json.dumps({"container_memory": service_memory,
+                                      {"container_memory": service_memory,
                                                   "node": service_node,
-                                                  "image_name": service.image})
+                                                  "image_name": service.image,
+                                                  "enterprise_id":tenant.enterprise_id}
                                       )
 
 

@@ -135,10 +135,10 @@ $(function(){
     //弹出层
     function FnLayer(textTit){
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
+        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close" style="color:#fff;"><i class="fa fa-times"></i></a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
         var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+        var oLink = '<p class="layerlink text-center"><button type="button" class="fn-sure btn btn-success" style="margin:0 5px;">确定</button><button type="button" class="fn-close btn btn-danger" style="margin:0 5px;">取消</button></p>';
         $("body").append(oDiv);
         $("div.layermain").append(oCloseBtn,oTit);
         $("div.layermain").append(oInput);
@@ -571,82 +571,7 @@ $(function(){
         ///
 
     }); 
-
-     ////tips
-    $(".fn-tips").mouseover(function(){
-        var tips = $(this).attr("data-tips");
-         var pos = $(this).attr("data-position");
-         var x = $(this).offset().left;
-         var y = $(this).offset().top;
-         var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-         $("body").append(oDiv);
-         var oDivheight = $(".tips-box").height();
-         var oDivwidth = $(".tips-box").width();
-         var othiswid = $(this).width();
-         var othisheight = $(this).height();
-         if(pos){
-             if(pos == "top"){
-                 //
-                 $(".tips-box").css({"top":y-oDivheight -25});
-                 if(oDivwidth > othiswid){
-                     $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                 }else if(oDivwidth < othiswid){
-                     $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                 }else{
-                     $(".tips-box").css({"left":x});
-                 }
-                 $(".tips-box").find("cite").addClass("top");
-                 //
-             }else if(pos == "bottom"){
-                 //
-                 $(".tips-box").css({"top":y + othisheight + 25});
-                 if(oDivwidth > othiswid){
-                     $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                 }else if(oDivwidth < othiswid){
-                     $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                 }else{
-                     $(".tips-box").css({"left":x});
-                 }
-                 $(".tips-box").find("cite").addClass("bottom");
-                 //
-             }else if(pos == "left"){
-                 $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-                 $(".tips-box").find("cite").addClass("left");
-             }else if(pos == "right"){
-                 $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-                  $(".tips-box").find("cite").addClass("right");
-             }else{
-                 //
-                 $(".tips-box").css({"top":y-oDivheight -25});
-                 if(oDivwidth > othiswid){
-                     $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                 }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                 }else{
-                     $(".tips-box").css({"left":x});
-                 }
-                  $(".tips-box").find("cite").addClass("top");
-                 //
-             }         
-         }else{
-             //
-             $(".tips-box").css({"top":y-oDivheight -25});
-             if(oDivwidth > othiswid){
-                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-             }else if(oDivwidth < othiswid){
-                 $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-             }else{
-                 $(".tips-box").css({"left":x});
-             }
-             $(".tips-box").find("cite").addClass("top");
-             //
-         }
-        
-     });
-     $(".fn-tips").mouseout(function(){
-         $(".tips-box").remove();
-     });
-    ////tips end
+    $('.fn-tips').tooltip();
 
 
 

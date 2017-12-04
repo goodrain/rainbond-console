@@ -346,6 +346,7 @@ class ServiceDetailView(AuthedView):
                 logger.debug("dep mnt volume is none: {0}".format('Yes' if dep_volume is None else 'No'))
                 if dep_volume:
                     mounted_dependencies.append({
+                        "local_vol_path": mount.mnt_dir,
                         "dep_vol_name": dep_volume.volume_name,
                         "dep_vol_path": dep_volume.volume_path,
                         "dep_vol_type": dep_volume.volume_type,
@@ -357,8 +358,6 @@ class ServiceDetailView(AuthedView):
         context["is_sys_admin"] = self.user.is_sys_admin
         volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
         context["volume_list"] = [model_to_dict(volume) for volume in volume_list]
-        res, body = region_api.get_service_dep_volumes(self.response_region, self.tenantName, self.serviceAlias)
-        context['dep_volumes'] = body['list']
 
     def get_expansion_details(self, context):
         nodeList = []
@@ -599,8 +598,6 @@ class ServiceDetailView(AuthedView):
         except Exception as e:
             logger.exception(e)
             return JsonResponse(data={'message': e.message, 'success': False}, status=500)
-
-
 
 
 class AppServiceInfo(AuthedView):

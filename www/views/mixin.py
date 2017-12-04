@@ -17,16 +17,18 @@ logger = logging.getLogger('default')
 
 class RegionOperateMixin(object):
     def init_for_region(self, region, tenant_name, tenant_id):
-        api = RegionInvokeApi()
-
-        logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
-        try:
-            body = api.create_tenant(region, tenant_name, tenant_id)
-            return True
-        except api.CallApiError, e:
-            logger.error("account.register", "create tenant {0} failed".format(tenant_name))
-            logger.exception("account.register", e)
-            return False
+        pass
+        # api = RegionInvokeApi()
+        #
+        # logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
+        # try:
+        #     tenant = Tenants.objects.get(tenant_id=tenant_id)
+        #     body = api.create_tenant(region, tenant_name, tenant_id, tenant.enterprise_id)
+        #     return True
+        # except api.CallApiError, e:
+        #     logger.error("account.register", "create tenant {0} failed".format(tenant_name))
+        #     logger.exception("account.register", e)
+        #     return False
 
 
 class LoginRedirectMixin(object):

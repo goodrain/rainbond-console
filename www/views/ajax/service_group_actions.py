@@ -58,7 +58,7 @@ class TopologicalGraphView(AuthedView):
                 id_string = ','.join(service_map.keys())
                 try:
                     service_status_list = region_api.service_status(service_region, self.tenantName,
-                                                                    json.dumps({"service_ids":service_map.keys()}))
+                                                                    {"service_ids":service_map.keys(),"enterprise_id":self.tenant.enterprise_id})
                     service_status_list = service_status_list["list"]
                     service_status_map = {status_map["service_id"]:status_map for status_map in service_status_list}
                 except Exception as e:
@@ -214,7 +214,7 @@ class TopologicalServiceView(AuthedView):
         result["port_list"] = port_map
         # pod节点信息
         try:
-            status_data = region_api.check_service_status(service_region, self.tenantName, self.service.service_alias)
+            status_data = region_api.check_service_status(service_region, self.tenantName, self.service.service_alias,self.tenant.enterprise_id)
             region_data = status_data["bean"]
         except Exception as e:
             logger.exception(e)

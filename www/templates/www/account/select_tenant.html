@@ -1,12 +1,12 @@
-{% extends 'www/base.html' %}
+{% extends 'www/base2.html' %}
 {% load i18n %}
 {% load staticfiles %}
 
 {% block title %}{{CUSTOM_CONFIG.TITLE}} | 团队选择{% endblock %}
 
 {% block extracss %}
-    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
-    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+    <link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
+    <link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
 {% endblock %}
 
 {% block bodyclass %}{% endblock %}
@@ -18,14 +18,16 @@
         {% endblock %}
     </header>
     <div class="container wrapper">
-        <div class="col-sm-2"></div>
-        <div class="col-sm-8">
+        <section class="panel panel-default">
+        <div class="panel-body site-min-height">
+        <!-- -->
+       
             <form class="form-horizontal" enctype="multipart/form-data" action="" method="post">
                 {% csrf_token %}
                 <h3 class="text-center">请选择所在团队和数据中心</h3>
-                <div id="div_id_tenant_name" class="form-group clearfix">
-                    <label for="tenant_name" class="control-label col-lg-2 requiredField" style="text-align: right;">所在团队</label>
-                    <div class="controls col-lg-8">
+                <div id="div_id_tenant_name" class="form-group">
+                    <label for="tenant_name" class="control-label col-sm-3 requiredField" style="text-align: right;">所在团队</label>
+                    <div class="controls col-sm-6">
                       <select class="select form-control" id="tenant_name" name="tenant" onchange="select_change(this.value);">
                         {% for name in tenant_names %}
                         <option value="{{name}}">{{name}}</option>
@@ -34,21 +36,23 @@
                     </div>
                 </div>
                 <div id="div_id_region" class="form-group clearfix">
-                    <label for="region" class="control-label col-lg-2 requiredField" style="text-align: right;">数据中心</label>
-                    <div class="controls col-lg-8">
+                    <label for="region" class="control-label col-sm-3 requiredField" style="text-align: right;">数据中心</label>
+                    <div class="controls col-sm-6">
                       <select class="select form-control" id="region" name="region">
 
                       </select>
                     </div>
                 </div>
-                <div class="form-group clearfix">
-                    <div class="col-sm-offset-2 col-sm-3 clearfix">
-                        <button type="submit" class="btn btn-lg btn-success col-sm-8">下一步</button>
+                
+                    <div class="text-center clearfix">
+                        <button type="submit" class="btn btn-success">下一步</button>
                     </div>
-                </div>
+                
             </form>
+       
+        <!-- -->
         </div>
-        <div class="col-sm-2"></div>
+        </section>
     </div>
 
 <script type="text/javascript">

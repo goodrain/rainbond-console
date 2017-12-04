@@ -60,7 +60,8 @@ class BaseTenantService(object):
                     services = dsn.query(query_sql)
             except PermRelTenant.DoesNotExist:
                 if tenant_pk == 5073:
-                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
+                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
+                        'service_alias')
 
         return services
 
@@ -214,7 +215,8 @@ class BaseTenantService(object):
         try:
             tenant = Tenants.objects.get(tenant_id=newTenantService.tenant_id)
             logger.debug("----- create service {0}".format(json.dumps(data)))
-            region_api.create_service(region, tenant.tenant_name, json.dumps(data))
+            data["enterprise_id"] = tenant.enterprise_id
+            region_api.create_service(region, tenant.tenant_name, data)
             temp_port_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id)
             self.handle_service_port(tenant, newTenantService, temp_port_info)
         except Exception as e:
@@ -234,18 +236,22 @@ class BaseTenantService(object):
                     if stream_outer_num > 0:
                         logger.error("stream协议外部访问只能开启一个")
                         continue
-            try:
-                body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
-                                                    service.service_alias,
-                                                    port.container_port, json.dumps({"operation": "open"}))
-                logger.debug("open outer port body {}".format(body))
-                mapping_port = body["bean"]["port"]
-                port.mapping_port = mapping_port
-                port.save()
-            except Exception as e:
-                logger.exception(e)
-                port.is_outer_service = False
-                port.save()
+                    else:
+                        try:
+                            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
+                                                                service.service_alias,
+                                                                port.container_port,
+                                                                {"operation": "open",
+                                                                 "enterprise_id": tenant.enterprise_id})
+                            logger.debug("open outer port body {}".format(body))
+                            mapping_port = body["bean"]["port"]
+                            port.mapping_port = port.container_port
+                            port.lb_mapping_port = mapping_port
+                            port.save()
+                        except Exception as e:
+                            logger.exception(e)
+                            port.is_outer_service = False
+                            port.save()
             # 打开对内服务
             if port.is_inner_service:
                 mapping_port = port.container_port
@@ -265,19 +271,22 @@ class BaseTenantService(object):
                         region_api.delete_service_env(service.service_region,
                                                       tenant.tenant_name,
                                                       service.service_alias,
-                                                      json.dumps({"env_name": env.attr_name}))
+                                                      {"env_name": env.attr_name,
+                                                       "enterprise_id": tenant.enterprise_id})
                         add_attr = {"container_port": env.container_port, "env_name": env.attr_name,
-                                    "env_value": env.attr_value, "is_change": env.is_change, "name":env.name,"scope":env.scope}
+                                    "env_value": env.attr_value, "is_change": env.is_change, "name": env.name,
+                                    "scope": env.scope, "enterprise_id": tenant.enterprise_id}
                         region_api.add_service_env(service.service_region,
                                                    tenant.tenant_name,
                                                    service.service_alias,
-                                                   json.dumps(add_attr))
+                                                   add_attr)
                     region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                                 port.container_port, json.dumps({"operation": "open"}))
+                                                 port.container_port,
+                                                 {"operation": "open", "enterprise_id": tenant.enterprise_id})
                     port.save()
                 except Exception as e:
                     logger.exception(e)
-                    port.is_outer_service = False
+                    port.is_inner_service = False
                     port.save()
 
     def create_service_dependency(self, tenant, service, dep_service_id, region):
@@ -287,7 +296,8 @@ class BaseTenantService(object):
         task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant.tenant_id
         task["dep_service_type"] = dependS.service_type
-        region_api.add_service_dependency(region,tenant.tenant_name,service.service_alias,json.dumps(task))
+        task["enterprise_id"] = tenant.enterprise_id
+        region_api.add_service_dependency(region, tenant.tenant_name, service.service_alias, task)
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant.tenant_id
         tsr.service_id = service.service_id
@@ -301,7 +311,9 @@ class BaseTenantService(object):
         task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant.tenant_id
         task["dep_service_type"] = "v"
-        region_api.delete_service_dependency(region,tenant.tenant_name,service.service_alias, json.dumps(task))
+        task["enterprise_id"] = tenant.enterprise_id
+
+        region_api.delete_service_dependency(region, tenant.tenant_name, service.service_alias, task)
         TenantServiceRelation.objects.get(service_id=service.service_id, dep_service_id=dep_service_id).delete()
 
     def create_service_env(self, tenant, service_id, region):
@@ -311,8 +323,9 @@ class BaseTenantService(object):
             service = TenantServiceInfo.objects.get(service_id=service_id)
             attr = {"tenant_id": tenant.tenant_id, "name": tenantServiceEnv.attr_name,
                     "env_name": tenantServiceEnv.attr_name, "env_value": tenantServiceEnv.attr_value,
-                    "is_change": False, "scope": "outer", "container_port": service.inner_port}
-            region_api.add_service_env(region, tenant.tenant_name, service.service_alias, json.dumps(attr))
+                    "is_change": False, "scope": "outer", "container_port": service.inner_port,
+                    "enterprise_id": tenant.enterprise_id}
+            region_api.add_service_env(region, tenant.tenant_name, service.service_alias, attr)
 
     def cancel_service_env(self, tenant_id, service_id, region):
         task = {}
@@ -405,9 +418,6 @@ class BaseTenantService(object):
     def get_volumes_by_type(self, volume_type, service_id):
         return TenantServiceVolume.objects.filter(volume_type=volume_type, service_id=service_id)
 
-    def create_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
-        dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
-
     def create_service_mnt(self, tenant, service, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -415,7 +425,8 @@ class BaseTenantService(object):
         task["tenant_id"] = tenant.tenant_id
         task["mnt_name"] = "/mnt/" + dependS.service_alias
         task["mnt_dir"] = dependS.host_path
-        region_api.add_service_volume_dependency(region,tenant.tenant_name,service.service_alias,json.dumps(task))
+        task["enterprise_id"] = tenant.enterprise_id
+        region_api.add_service_volume_dependency(region, tenant.tenant_name, service.service_alias, task)
         tsr = TenantServiceMountRelation()
         tsr.tenant_id = tenant.tenant_id
         tsr.service_id = service.service_id
@@ -432,9 +443,11 @@ class BaseTenantService(object):
         task["tenant_id"] = tenant.tenant_id
         task["mnt_name"] = "v"
         task["mnt_dir"] = "v"
-        region_api.delete_service_volume_dependency(region,tenant.tenant_name,service.service_alias,json.dumps(task))
-        TenantServiceMountRelation.objects.get(service_id=service.service_id, dep_service_id=dependS.service_id).delete()
-    
+        task["enterprise_id"] = tenant.enterprise_id
+        region_api.delete_service_volume_dependency(region, tenant.tenant_name, service.service_alias, task)
+        TenantServiceMountRelation.objects.get(service_id=service.service_id,
+                                               dep_service_id=dependS.service_id).delete()
+
     def create_service_volume(self, service, volume_path):
         category = service.category
         region = service.service_region
@@ -444,18 +457,19 @@ class BaseTenantService(object):
             logger.error("add volume error!")
             return None
         # 发送到region进行处理
+        tenant = Tenants.objects.get(tenant_id=service.tenant_id)
         json_data = {
             "service_id": service_id,
             "category": category,
             "host_path": host_path,
-            "volume_path": volume_path
+            "volume_path": volume_path,
+            "enterprise_id": tenant.enterprise_id
         }
-        tenant = Tenants.objects.get(tenant_id=service.tenant_id)
 
-        res,body = region_api.add_service_volume(service.service_region,
-                                      tenant.tenant_name,
-                                      service.service_alias,
-                                      json.dumps(json_data))
+        res, body = region_api.add_service_volume(service.service_region,
+                                                  tenant.tenant_name,
+                                                  service.service_alias,
+                                                  json_data)
         if res.status == 200:
             return volume_id
         else:
@@ -475,32 +489,53 @@ class BaseTenantService(object):
             "service_id": service_id,
             "category": volume.category,
             "host_path": volume.host_path,
-            "volume_path": volume.volume_path
+            "volume_path": volume.volume_path,
+            "enterprise_id": tenant.enterprise_id
         }
         res, body = region_api.delete_service_volume(region, tenant.tenant_name, service.service_alias,
-                                                     json.dumps(json_data))
+                                                     json_data)
         if res.status == 200:
             TenantServiceVolume.objects.filter(pk=volume_id).delete()
             return True
         else:
             return False
 
-    def batch_add_dep_volume_v2(self, tenant_name, service, dep_vol_ids):
+    def check_app_vol_path(self, service, dep_vols):
+        logger.debug('check vol path')
+        existed = []
+        for vol in dep_vols:
+            path = vol['path']
+            path = path if path.startswith('/') else '/' + path
+            logger.debug('path {0}'.format(path))
+            if TenantServiceVolume.objects.filter(
+                    service_id=service.service_id, volume_path=path).count() > 0:
+                existed.append(path)
+        return existed
+
+    def batch_add_dep_volume_v2(self, tenant, service, dep_vol_ids):
+        existed = self.check_app_vol_path(service, dep_vol_ids)
+        if existed:
+            return False, None, '存储路径:{0}已存在'.format(existed)
+
         failed = []
         message = []
-        for dep_vol_id in dep_vol_ids:
+        for vol in dep_vol_ids:
+            dep_vol_id = vol['id']
+            source_path = vol['path']
+            source_path = source_path if source_path.startswith('/') else '/' + source_path
             dep_volume = self.get_volume_by_id(int(dep_vol_id))
             data = {
                 "depend_service_id": dep_volume.service_id,
                 "volume_name": dep_volume.volume_name,
-                "volume_path": dep_volume.volume_path
+                "volume_path": source_path,
+                "enterprise_id": tenant.enterprise_id
             }
             try:
                 logger.debug('send add dep volume with region:{0},tenant:{1},service:{2},data:{3}'.format(
-                    service.service_region, tenant_name, service.service_alias, json.dumps(data)
+                    service.service_region, tenant.tenant_name, service.service_alias, json.dumps(data)
                 ))
                 res, body = region_api.add_service_dep_volumes(
-                    service.service_region, tenant_name, service.service_alias, json.dumps(data)
+                    service.service_region, tenant.tenant_name, service.service_alias, data
                 )
                 if res.status == 200:
                     tsr = TenantServiceMountRelation(
@@ -508,7 +543,7 @@ class BaseTenantService(object):
                         service_id=service.service_id,
                         dep_service_id=dep_volume.service_id,
                         mnt_name=dep_volume.volume_name,
-                        mnt_dir=dep_volume.volume_path,
+                        mnt_dir=source_path  # this dir is source app's volume path
                     )
                     tsr.save()
                 else:
@@ -519,17 +554,21 @@ class BaseTenantService(object):
                 logger.error(e)
                 failed.append(dep_volume.volume_name)
                 message.append(e.message)
-        return failed, message
+        if not failed:
+            return True, None, None
+        logger.debug('service {0} volume path existed {1}'.format(service.service_id, failed))
+        return False, failed, message
 
-    def delete_dep_volume_v2(self, tenant_name, service, dep_vol_id):
+    def delete_dep_volume_v2(self, tenant, service, dep_vol_id):
         dep_volume = self.get_volume_by_id(dep_vol_id)
         data = {
             "depend_service_id": dep_volume.service_id,
             "volume_name": dep_volume.volume_name,
+            "enterprise_id": tenant.tenant_name
         }
         try:
             res, body = region_api.delete_service_dep_volumes(
-                service.service_region, tenant_name, service.service_alias, json.dumps(data)
+                service.service_region, tenant.tenant_name, service.service_alias, data
             )
             if res.status == 200:
                 TenantServiceMountRelation.objects.get(
@@ -546,7 +585,7 @@ class BaseTenantService(object):
                 return True
             return False
 
-    def add_volume_v2(self, tenant_name, service, volume_name, volume_path, volume_type):
+    def add_volume_v2(self, tenant, service, volume_name, volume_path, volume_type):
         volume = self.add_volume_with_type(service, volume_path, volume_type, volume_name)
         if not volume:
             logger.error("add volume error")
@@ -555,11 +594,12 @@ class BaseTenantService(object):
             "category": service.category,
             "volume_name": volume_name,
             "volume_path": volume_path,
-            "volume_type": volume_type
+            "volume_type": volume_type,
+            "enterprise_id": tenant.enterprise_id
         }
         try:
             res, body = region_api.add_service_volumes(
-                service.service_region, tenant_name, service.service_alias, json.dumps(data)
+                service.service_region, tenant.tenant_name, service.service_alias, data
             )
             if res.status == 200:
                 return volume, None
@@ -570,7 +610,7 @@ class BaseTenantService(object):
             volume.delete()
             return None, e.message
 
-    def delete_volume_v2(self, tenant_name, service, volume_id):
+    def delete_volume_v2(self, tenant, service, volume_id):
         try:
             volume = TenantServiceVolume.objects.get(ID=volume_id)
             if volume.volume_type == TenantServiceVolume.SHARE:
@@ -579,7 +619,8 @@ class BaseTenantService(object):
                     return False, '有依赖的应用'
             try:
                 res, body = region_api.delete_service_volumes(
-                    service.service_region, tenant_name, service.service_alias, volume.volume_name
+                    service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
+                    tenant.enterprise_id
                 )
                 if res.status == 200:
                     volume.delete()
@@ -957,7 +998,8 @@ class TenantUsedResource(object):
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
             if tenant_region.region_name in RegionInfo.valid_regions():
-                res = region_api.get_tenant_resources(tenant_region.region_name, tenant.tenant_name)
+                res = region_api.get_tenant_resources(tenant_region.region_name, tenant.tenant_name,
+                                                      tenant.enterprise_id)
                 bean = res["bean"]
                 memory = int(bean["memory"])
                 totalMemory += memory
@@ -982,7 +1024,7 @@ class TenantUsedResource(object):
         if self.MODULES["Memory_Limit"]:
             result = False
             if ischeckStatus:
-                newAddMemory = newAddMemory + self.curServiceMemory(tenant.tenant_name, cur_service)
+                newAddMemory = newAddMemory + self.curServiceMemory(tenant, cur_service)
             if tenant.pay_type == "free":
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -1010,10 +1052,11 @@ class TenantUsedResource(object):
                 result = True
         return rt_type, result
 
-    def curServiceMemory(self, tenant_name, cur_service):
+    def curServiceMemory(self, tenant, cur_service):
         memory = 0
         try:
-            body = region_api.check_service_status(cur_service.service_region, tenant_name, cur_service.service_alias)
+            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name,
+                                                   cur_service.service_alias, tenant.enterprise_id)
             status = body["bean"]["cur_status"]
             if status != "running":
                 memory = cur_service.min_node * cur_service.min_memory
@@ -1075,50 +1118,6 @@ class TenantAccountService(object):
                 flag = 2
 
         return flag
-
-        # def isCloseToMonthlyExpired(self, tenant, region_name):
-        #     tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
-        #     if len(tenant_region_pay_list) == 0:
-        #         return False
-        #     tag = 1
-        #     for pay_model in tenant_region_pay_list:
-        #         if pay_model.buy_end_time > datetime.datetime.now():
-        #             timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
-        #             if timedelta > 0 and timedelta < 3:
-        #                 return True
-        #     return False
-
-
-class TenantRegionService(object):
-    def init_for_region(self, region, tenant_name, tenant_id, user):
-        success = True
-        try:
-            tenantRegion = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
-        except Exception:
-            tenantRegion = TenantRegionInfo()
-            tenantRegion.tenant_id = tenant_id
-            tenantRegion.region_name = region
-            tenantRegion.save()
-
-        if not tenantRegion.is_init:
-            api = RegionInvokeApi()
-            logger.info("account.register",
-                        "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
-            try:
-                body = api.create_tenant(region, tenant_name, tenant_id)
-            except api.CallApiError, e:
-                logger.error("account.register", "create tenant {0} failed".format(tenant_name))
-                logger.exception("account.register", e)
-                success = False
-            if success:
-                tenantRegion.is_active = True
-                tenantRegion.is_init = True
-                tenantRegion.save()
-            tenant = Tenants()
-            tenant.tenant_id = tenant_id
-            tenant.tenant_name = tenant_name
-            monitorhook.tenantMonitor(tenant, user, "init_tenant", success)
-        return success
 
 
 class TenantServiceExec(object):
@@ -1242,7 +1241,8 @@ class CodeRepositoriesService(object):
         task.update(data)
         logger.debug(json.dumps(task))
         tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-        region_api.code_check(service.service_region, tenant.tenant_name, json.dumps(task))
+        task["enterprise_id"] = tenant.enterprise_id
+        region_api.code_check(service.service_region, tenant.tenant_name, task)
 
     def showGitUrl(self, service):
         httpGitUrl = service.git_url

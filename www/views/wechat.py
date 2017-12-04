@@ -368,7 +368,7 @@ class WeChatCallBack(BaseView):
 
             # add by tanm
             regions = [region]
-            enterprise_svc.create_and_init_tenant(user.user_id, tenant_name, regions)
+            enterprise_svc.create_and_init_tenant(user.user_id, tenant_name, regions,user.enterprise_id)
 
             # create gitlab user
             if user.email is not None and user.email != "":

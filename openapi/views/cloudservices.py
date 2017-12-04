@@ -414,7 +414,7 @@ class CloudServiceInstallView(BaseAPIView):
             attr.update({"env_name": "GD_ADAPTER", "env_value": "true"})
             # data = {"action": "add", "attrs": attr}
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-            region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, json.dumps(attr))
+            region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
 
 class CloudServiceDomainView(BaseAPIView):
     """域名管理模块"""

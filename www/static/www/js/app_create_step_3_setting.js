@@ -1,6 +1,33 @@
 $(function () {
+
+    $(".fn-showlink").click(function(){
+        var htmlstr = $(this).find("cite").html();
+        var parents = $(this).parents(".fn-modulebox");
+        if(htmlstr == "展开"){
+            $(this).find("cite").html("收起");
+            $(this).find("span").removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-up");
+            $(parents).find(".fn-showblock").show();
+        }else{
+            $(this).find("cite").html("展开");
+            $(this).find("span").removeClass("glyphicon-chevron-up").addClass("glyphicon-chevron-down");
+            $(parents).find(".fn-showblock").hide();
+        }
+    })
+
+    //fntabtit();
+    function fntabtit(){
+        $(".fn-tabcenter").each(function(){
+            var thislength = $(this).find("tr").length;
+            if(thislength == 0){
+                $(this).parent(".fn-tabbox").find(".fn-tabtit").hide();
+            }else{
+                 $(this).parent(".fn-tabbox").find(".fn-tabtit").show();
+            }
+        })
+    }
+    
     //打开新增端口号窗口
-    $(".openAdd").on("click",function(){
+    $(".fn-openAdd").on("click",function(){
         if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
         {
             $(this).parents('tfoot').find("option.changeOption").remove();
@@ -11,12 +38,32 @@ $(function () {
             $("select.add_http").prepend($option);
             $("select.add_http").val("请打开外部访问");
         }
+        //$(this).parents(".fn-showblock").find(".fn-tabtit").show();
         $(".checkTip").css({"display":"none"});
         $(".addPort").css({"display":"table-row"});
     });
+
+    function checkPort(portNum){
+        // dockerfile类型服务端口处理
+        var language = $("#language").val();
+        if(language == 'docker' || language == 'docker-image' || language == 'docker-compose' ){
+            if(!(portNum>0 && portNum<65536)){
+                return "端口范围为1~65535";
+            }
+        }else{
+            if(!(portNum>1024 && portNum<65536)){
+                return "端口范围为1025~65535";
+            }
+        }
+        return ''
+    }
+
     $(".add_port").blur(function(){
+
+        
+
         var portNum = parseInt($(".add_port").val());
-        if( portNum>1024 && portNum<65536 )
+        if( checkPort(portNum) == '' )
         {
             $(this).parents('tr').find('p.checkTip').css({"display":"none"});
         }
@@ -30,32 +77,32 @@ $(function () {
         }
     })
     //确定添加端口号
-    $(".add").on("click",function(){
+    $(".fn-add").on("click",function(){
         var portNum = parseInt($(".add_port").val());
         var language = $("#language").val();
         // dockerfile应用或者端口号在1024-65535之间
-        if((portNum>1024 && portNum<65536) || language == "docker" )
+        if(checkPort(portNum) == '')
         {
             var addOnoff = matchArr(portNum,$(".portNum"));
             if( addOnoff )
             {
                 var arr = ['HTTP','非HTTP'];
-                var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+$(".add_port").val()+'</a></td>';
+                var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-original-title="当前应用提供服务的端口号。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><label class="checkbox fn-tips" data-original-title="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><span class="check-bg" for="'+$(".add_port").val()+'inner"></span></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><label class="checkbox fn-tips" data-original-title="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><span class="check-bg" for="'+$(".add_port").val()+'inner"></span></label></td>';
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
-                    oTr += '<select style="" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http">';
+                    oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><span class="check-bg" for="'+$(".add_port").val()+'outer"></span></label></td><td>';
+                    oTr += '<select style="" class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http">';
                 }
                 else{
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
-                    oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
+                    oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><span class="check-bg" for="'+$(".add_port").val()+'outer"></span></label></td><td>';
+                    oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
                 }
                 for( var i = 0; i < 2; i++ )
                 {
@@ -72,7 +119,7 @@ $(function () {
                 $(".addPort").css({"display":"none"});
                 delPort();
                 editPort();
-                tip();
+                $('.fn-tips').tooltip();
                 checkDetail();
                 selectChange();
             }
@@ -83,10 +130,11 @@ $(function () {
         else{
             $(this).parents('tr').find('p.checkTip').css({"display":"block"});
         }
+        //fntabtit();
         $(".add_port").val("");
     });
     //取消端口号的添加
-    $(".noAdd").on("click",function(){
+    $(".fn-noAdd").on("click",function(){
         $(".addPort").css({"display":"none"});
     });
     delPort();
@@ -95,14 +143,23 @@ $(function () {
         $("img.rubbish").off("click");
         $("img.rubbish").on("click",function(){
             $(this).parents("tr").remove();
+            //fntabtit();
         })
     }
+    
+    $("#MemoryRange a").click(function(){
+        $("#MemoryRange a").removeClass("sed");
+        $(this).addClass("sed");
+        var memoryVal = $(this).html();
+        $("#MemoryText").html(memoryVal);
+    });
     delLi();
     //删除依赖与目录
     function delLi(){
         $("img.delLi").off("click");
         $("img.delLi").on("click",function(){
-            $(this).parents("li").remove();
+            $(this).parents("tr").remove();
+            //fntabtit();
         })
     }
     //修改端口号
@@ -126,6 +183,13 @@ $(function () {
                 },
             },
             validate: function (value) {
+
+                var msg = checkPort(value);
+                if(msg){
+                    return msg;
+                }
+
+
                 if (!$.trim(value)) {
                     return '不能为空';
                 }
@@ -143,6 +207,7 @@ $(function () {
     //显示添加环境变量内容
     $(".openAddEnviroment").on("click",function(){
         $(".addContent").css({"display":"table-row"});
+        //$(this).parents(".fn-showblock").find(".fn-tabtit").show();
     });
     $(".enviroKey").blur(function(){
         var variableReg = /^[A-Z][A-Z0-9_]*$/;
@@ -186,11 +251,13 @@ $(function () {
         else{
             swal("请输入环境变量");
         }
+        //fntabtit();
     });
     $(".noAddEnviroment").on("click",function(){
         $(".addContent").css({"display":"none"});
         $(".enviroKey").val('');
         $(".enviroValue").val('');
+        //fntabtit();
     });
 
     //关闭弹出层
@@ -219,40 +286,62 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-id")+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
-                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    str += '<tr><td><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-id")+'" class="appName fn-tips" data-original-title="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a></td>';
+                    str += '<td><img src="/static/www/images/rubbish.png" class="delLi"/></td></tr>';
                     $(str).appendTo(".applicationName");
                     delLi();
                     appMes();
-                    tip();
+                    $('.fn-tips').tooltip();
                 }
             }
         }
+        //fntabtit();
         $(".layer-body-bg").css({"display":"none"});
     });
 
     //新设持久化目录
     $(".addCata").on("click",function(){
-        $("p.catalogue").css({"display":"block"});
+        $(".catalogue").show();
+        //$(this).parents(".fn-showblock").find(".fn-tabtit").show();
     })
     $(".catalogueContent").blur(function(){
         if( $(".catalogueContent").val() )
         {
-            $(this).parent().find(".checkTip").css({"display":"none"});
+            var len = $(".add_pathName").length;
+            for( var i = 0; i<len; i++ )
+            {
+                var str =  $(".catalogueContent").val();
+                if( str == $(".add_pathName").eq(i).parent().find(".pathval").find("span").html() )
+                {
+                    swal("目录冲突，请重新输入");
+                    $(".catalogueContent").val('');
+                    break;
+                }
+            }
         }
         else{
-            $(this).parent().find(".checkTip").html("请输入持久化目录");
-            $(this).parent().find(".checkTip").css({"display":"inline-block"});
+            swal("请输入持久化目录");
+            
         }
     })
     $(".catalogueName").blur(function(){
         if( $(".catalogueName").val() )
         {
-            $(this).parent().find(".checkTip").css({"display":"none"});
+            var len = $(".add_pathName").length;
+            for( var i = 0; i<len; i++ )
+            {
+                var str =  $(".catalogueName").val();
+                if( str == $(".add_pathName").eq(i).html() )
+                {
+                    swal("名称冲突，请重新输入");
+                    $(".catalogueName").val('');
+                    break;
+                }
+            }
         }
         else{
-            $(this).parent().find(".checkTip").html("请输入持久化名称");
-            $(this).parent().find(".checkTip").css({"display":"inline-block"});
+            swal("请输入持久化名称");
+           
         }
     })
     $(".addCatalogue").on("click",function(){
@@ -263,19 +352,17 @@ $(function () {
             for( var i = 0; i<len; i++ )
             {
                 var str =  $(".catalogueContent").val();
-                if( str == $(".add_pathName").eq(i).parent().find("em").html() )
+                if( str == $(".add_pathName").eq(i).parent().find(".pathval").find("span").html() )
                 {
                     result = false;
-                    $(this).parent().find(".checkTip").html("目录冲突，请重新输入");
+                    swal("目录冲突，请重新输入");
                     $(".catalogueContent").val('');
-                    $(this).parent().find(".checkTip").css({"display":"inline-block"});
                     break;
                 }
             }
         }else{
             result = false;
-            $(this).parent().find(".checkTip").html("请输入目录");
-            $(this).parent().find(".checkTip").css({"display":"inline-block"});
+            swal("请输入目录");
         }
         if( $(".catalogueName").val() )
         {
@@ -286,40 +373,37 @@ $(function () {
                 if( str == $(".add_pathName").eq(i).html() )
                 {
                     result = false;
-                    $(this).parent().find(".checkTip").html("名称冲突，请重新输入");
+                    swal("名称冲突，请重新输入");
                     $(".catalogueName").val('');
-                    $(this).parent().find(".checkTip").css({"display":"inline-block"});
                     break;
                 }
             }
-        }else
-        {
+        }else{
             result = false;
-            $(this).parent().find(".checkTip").html("请输入目录");
-            $(this).parent().find(".checkTip").css({"display":"inline-block"});
+            swal("请输入目录");
         }
-        if( result )
-        {
+        if( result ){
             var service_name = $("#service_name").val();
-            var str = '<li><em class="fn-tips" data-tips="使用持久化目录请注意路径关系。">'+$(".catalogueContent").val()+'</em>';
-            str += '<cite>挂载自</cite><span class="path_name add_pathName">'+$(".catalogueName").val()+'</span>';
-            str +='<cite>持久化类型</cite><span data-value="'+$(".catalogue").find("select option:selected").attr("value")+'" class="stateVal">'+ $(".catalogue").find('select option:selected').html() +'</span>'
-            str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-            $(str).appendTo(".fileBlock ul.clearfix");
-            $("p.catalogue").css({"display":"none"});
+            var str = '<tr><td class="pathval"><span class="fn-tips " data-original-title="使用持久化目录请注意路径关系。">'+$(".catalogueContent").val()+'</span></td>';
+            str += '<td class="path_name add_pathName">'+ $(".catalogueName").val() +'</td>';
+            str += '<td class="stateVal" data-value="'+ $(".catalogue").find("select option:selected").attr("value") +'">'+ $(".catalogue").find('select option:selected').html() +'</td>';
+            str += '<td><img src="/static/www/images/rubbish.png" class="delLi"/></td></tr>';
+            $(str).appendTo(".fileBlock");
+            $(".catalogue").hide();
             $(".catalogueContent").val("");
             $(".catalogueName").val('');
             delLi();
-            tip();
-        }  
+            $('.fn-tips').tooltip();
+        }
     });
     $(".noAddCatalogue").on("click",function(){
-        $("p.catalogue").css({"display":"none"});
+        $(".catalogue").hide();
+        //fntabtit();
     });
-
-    $('#extend_method').change(function(){
-        var oval= $('#extend_method option:selected') .val();
-        if(oval == "stateless"){
+    
+    $('#stateless').click(function(){
+        var oval= $('#stateless').prop("checked");
+        if(oval == true){
             $(".fn-stateless").show();
             $(".fn-state").hide();
             var optionbox = '<option value="share-file">共享存储(文件)</option><option value="memoryfs">内存文件存储</option>';
@@ -331,44 +415,25 @@ $(function () {
         var selectbox = $(".catalogue").find('select');
         $(".catalogue").find('select').empty();
         $(optionbox).appendTo($(selectbox));
-        /*
-        $(".fn-selsect").each(function(){
-            $(this).find('select').empty();
-            $(optionbox).appendTo($(this).find('select'));
-        })
-        */
     });
 
-    //ww-2017-10-31 new 内存start 
-    $("#MemoryRange").bind('input propertychange',function(){
-        var memoryVal = $(this).val();
-        if(Number(memoryVal)>1000){
-            var Memory = parseInt(memoryVal/1024);
-            if(Memory>=1 && Memory<2){
-                memoryVal = 1
-            }else if(Memory>=2 && Memory<4){
-                memoryVal = 2
-            }else if(Memory>=4 && Memory<6){
-                memoryVal = 4
-            }else if(Memory>=6 && Memory<8){
-                memoryVal = 6
-            }else{
-                memoryVal = 8 
-            }
+    $('#state').click(function(){
+        var oval= $('#state').prop("checked");
+        if(oval == false){
+            $(".fn-stateless").show();
+            $(".fn-state").hide();
+            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="memoryfs">内存文件存储</option>';
         }else{
-            if(memoryVal >=128 &&  memoryVal < 256){
-                memoryVal = 128
-            }else if(memoryVal >= 256 &&  memoryVal < 512){
-                memoryVal = 256
-            }else{
-                 memoryVal = 512
-            }
+            $(".fn-stateless").hide();
+            $(".fn-state").show();
+            var optionbox = '<option value="share-file">共享存储(文件)</option><option value="local">本地存储</option><option value="memoryfs">内存文件存储</option>';
         }
-        $("#MemoryText").html(memoryVal>10 ? memoryVal + "M" : memoryVal + "G");
+        var selectbox = $(".catalogue").find('select');
+        $(".catalogue").find('select').empty();
+        $(optionbox).appendTo($(selectbox));
+        
     });
-    //ww-2017-10-31 new 内存start 
-
-
+    
     $(".submit").on("click",function(){
         var portLen = $("tbody.port tr").length;
         var portArr = [];
@@ -410,8 +475,8 @@ $(function () {
         {
             var app_json = {};
             app_json["volume_name"] = $(".add_pathName").eq(j).html();
-            app_json["volume_path"] = $(".add_pathName").eq(j).parent().children("em").html();
-            app_json["volume_type"] = $(".add_pathName").eq(j).parent().find("span.stateVal").attr("data-value");
+            app_json["volume_path"] = $(".add_pathName").eq(j).parent().children(".pathval").find('span').html();
+            app_json["volume_type"] = $(".add_pathName").eq(j).parent().find(".stateVal").attr("data-value");
             appArr[j] = app_json;
         }
         //console.log(JSON.stringify(appArr));
@@ -430,27 +495,26 @@ $(function () {
 
         var otherAppNameLen = $(".otherAppName").length;
         var otherAppNameArr = [];
-        var otherAppidArr =[];
         for( var m = 0; m<otherAppNameLen; m++ )
         {
-            //var otherAppName_json = {};
-            //otherAppName_json["name"] = $(".otherAppName").eq(m).html();
-            //otherAppName_json["path"] = $(".otherAppName").eq(m).parent().children("em").html();
-            //otherAppName_json["otherName"] = $(".otherAppName").eq(m).attr("data-otherName");
-            //otherAppName_json["volume_type"] = $(".otherAppName").eq(m).parent().children("span.stateVal").attr("data-val");
-            var dataid = $(".otherAppName").eq(m).attr("data-id");
-            otherAppidArr[m] = dataid;
-            //otherAppNameArr[m] = otherAppName_json;
+            var otherAppName_json = {};
+            otherAppName_json["path"] = $(".localdirectoryval").eq(m).html();
+            otherAppName_json["id"] = $(".otherAppName").eq(m).attr("data-id");
+            console.log(m);
+            console.log($(".otherAppName").eq(m).attr("data-id"))
+            otherAppNameArr[m] = otherAppName_json;
+            console.log(otherAppName_json);
         }
-        
-        var  methodval= $('#extend_method option:selected') .val();
+
+
+        var  methodval= $('input[name="extend_method"]:checked').val();
         var memory_num = parseInt($("#MemoryText").html());
     
         var service_config = {
             "port_list" : JSON.stringify(portArr),
             "env_list" : JSON.stringify(enviromentArr),
             "volume_list" : JSON.stringify(appArr),
-            "mnt_list" : otherAppidArr,
+            "mnt_list" : JSON.stringify(otherAppNameArr),
             "depend_list" : JSON.stringify(appNameArr),
             "methodval": methodval,
             "service_min_memory" : memory_num
@@ -485,7 +549,7 @@ $(function () {
     });
 
     //打开弹出层，选择服务依赖
-    $(".addDepend").on("click",function(){
+    $(".fn-addDepend").on("click",function(){
         var marleft = $("#main-content").attr("style");
         if(marleft){
             var arrleft = marleft.split(":");
@@ -550,8 +614,8 @@ $(function () {
                         var envs = env_map[port];
                         if( port != -1 )
                         {
-                            info_div += '<p class="layer-tit-lit">'+service_name+'&nbsp;'+port+'&nbsp;端口对外服务环境变量</p>';
-                            info_div += '<table class="tab-box lit"><thead><tr><th>说明</th><th>变量名</th><th>变量值</th></tr></thead><tbody>';
+                            info_div += '<p class="layer-tit">'+service_name+'&nbsp;'+port+'&nbsp;端口对外服务环境变量</p>';
+                            info_div += '<table class="table"><thead><tr><th>说明</th><th>变量名</th><th>变量值</th></tr></thead><tbody>';
                             var len = envs.length;
                             for( var i = 0; i<len; i++ ){
                                 info_div += '<tr><td>'+envs[i].name+'</td>';
@@ -604,6 +668,14 @@ $(function () {
         $(".layer-body-bg").css({"display":"block"});
     });
 
+    $("input.addOther").change(function(){
+        var onoff = $(this).prop("checked");
+        if(onoff == true){
+            $(this).parents("tr").find(".fn-localdirectory").removeClass("input80gray").addClass("input80").removeAttr("disabled");
+        }else{
+            $(this).parents("tr").find(".fn-localdirectory").removeClass("input80").addClass("input80gray").attr({"disabled":"true"}).val("");
+        }
+    })
     //挂载其他应用服务
     $(".sureAddOther").on("click",function(){
         var len = $("input.addOther").length;
@@ -621,12 +693,30 @@ $(function () {
                         break;
                     }
                 }
+
+                if($("input.fn-localdirectory").eq(i).val() == ""){
+                    swal("选择的服务,本地持久化目录不能为空！");
+                    onOff = false;
+                    return false;
+                }
+                
+                if( onOff )
+                {
+                    var str = '<tr><td class=" otherAppval" ><em class="localdirectoryval fn-tips" data-original-title="本地目录">'+ $("input.fn-localdirectory").eq(i).val() +'</em>&nbsp;&nbsp;&nbsp;&nbsp; d<span class="fn-tips" data-original-title="使用持久化目录请注意路径关系。">'+$("input.addOther").eq(i).attr("data-path")+'</span></td>';
+                    str += '<td class="path_name otherAppName" data-id="'+$("input.addOther").eq(i).attr("id")+'">挂载自'+$("input.addOther").eq(i).attr("data-name")+'</td>';
+                    str += '<td>共享存储(文件)</td>';
+                    str += '<td><img src="/static/www/images/rubbish.png" class="delLi"/></td></tr>';
+                    $(str).appendTo(".fileBlock");
+                    $(".applicationMes").css({"display":"none"});
+                    $(".layer-body-bg").css({"display":"none"});
+                    delLi();
+                    $('.fn-tips').tooltip();
+                }
                 /*
                 if( onOff )
                 {
-                    var str = '<li><em class="fn-tips" data-tips="使用持久化目录请注意路径关系。">'+$("input.addOther").eq(i).attr("data-path")+'</em>';
-                    str += '<span class="path_name otherAppName" data-id="'+ $("input.addOther").eq(i).attr("id") +'" data-name="'+$("input.addOther").eq(i).attr("data-name")+'"><cite>挂载自</cite>'+$("input.addOther").eq(i).attr("data-name")+'</span>';
-                    //str += '<span class="stateVal" data-val="'+ $(".fn-selsect").eq(i).find("select option:selected").attr("value") + ' ">'+ $(".fn-selsect").eq(i).find("select option:selected").html() +'</span>';
+                    var str = '<li>本地目录<em class="localdirectoryval">'+ $("input.fn-localdirectory").eq(i).val() +'</em>&nbsp;&nbsp;持久化目录<em class="fn-tips" data-original-title="使用持久化目录请注意路径关系。">'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+                    str += '<span class="path_name otherAppName" data-id="'+$("input.addOther").eq(i).attr("id")+'">挂载自<cite>'+$("input.addOther").eq(i).attr("data-name")+'</cite></span>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".fileBlock ul.clearfix");
                     $(".applicationMes").css({"display":"none"});
@@ -635,101 +725,15 @@ $(function () {
                     tip();
                 }
                 */
-                if( onOff )
-                {
-                    var str = '<li><em class="fn-tips" data-tips="使用持久化目录请注意路径关系。">'+$("input.addOther").eq(i).attr("data-path")+'</em>';
-                    str += '<span class="path_name otherAppName" data-id="'+$("input.addOther").eq(i).attr("id")+'"><cite>挂载自</cite>'+$("input.addOther").eq(i).attr("data-name")+'</span>';
-                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-                    $(str).appendTo(".fileBlock ul.clearfix");
-                    $(".applicationMes").css({"display":"none"});
-                    $(".layer-body-bg").css({"display":"none"});
-                    delLi();
-                    tip();
-                }
             }
         }
+        //fntabtit();
         $(".applicationMes").css({"display":"none"});
         $(".layer-body-bg").css({"display":"none"});
     });
 
-       ////tips
-    tip();
-    function tip(){
-        $(".fn-tips").mouseover(function(){
-            var tips = $(this).attr("data-tips");
-            var pos = $(this).attr("data-position");
-            var x = $(this).offset().left;
-            var y = $(this).offset().top;
-            var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-            $("body").append(oDiv);
-            var oDivheight = $(".tips-box").height();
-            var oDivwidth = $(".tips-box").width();
-            var othiswid = $(this).width();
-            var othisheight = $(this).height();
-            if(pos){
-                if(pos == "top"){
-                    //
-                    $(".tips-box").css({"top":y-oDivheight -25});
-                    if(oDivwidth > othiswid){
-                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                    }else if(oDivwidth < othiswid){
-                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                    }else{
-                        $(".tips-box").css({"left":x});
-                    }
-                    $(".tips-box").find("cite").addClass("top");
-                    //
-                }else if(pos == "bottom"){
-                    //
-                    $(".tips-box").css({"top":y + othisheight + 25});
-                    if(oDivwidth > othiswid){
-                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                    }else if(oDivwidth < othiswid){
-                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                    }else{
-                        $(".tips-box").css({"left":x});
-                    }
-                    $(".tips-box").find("cite").addClass("bottom");
-                    //
-                }else if(pos == "left"){
-                    $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-                    $(".tips-box").find("cite").addClass("left");
-                }else if(pos == "right"){
-                    $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-                    $(".tips-box").find("cite").addClass("right");
-                }else{
-                    //
-                    $(".tips-box").css({"top":y-oDivheight -25});
-                    if(oDivwidth > othiswid){
-                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                    }else if(oDivwidth < othiswid){
-                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                    }else{
-                        $(".tips-box").css({"left":x});
-                    }
-                    $(".tips-box").find("cite").addClass("top");
-                    //
-                }
-            }else{
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                $(".tips-box").find("cite").addClass("top");
-                //
-            }
+   
 
-        });
-        $(".fn-tips").mouseout(function(){
-            $(".tips-box").remove();
-        });
-        ////tips end
-    }
 
     //外部访问开关
     checkDetail();
@@ -792,7 +796,7 @@ $(function () {
             })
         }
     }
-
+    $('.fn-tips').tooltip();
     //检测是否存在
     function matchArr( str,arr ){
         var len = arr.length;
