@@ -1169,7 +1169,7 @@ widget.define('button', {
             this.bind();
         },
         _create:function(){
-            this.$element = $('<div style="display:none;position:fixed;z-index:'+this.option.zIndex+';top:50%;left:50%; transform: translateX(-50%),translateY(-50%)"></div>');
+            this.$element = $('<div style="display:none;position:fixed;z-index:'+this.option.zIndex+';top:20%;left:50%; transform: translateX(-50%)"></div>');
             $('body').append(this.$element);
         },
         show:function(type, message){
@@ -1180,7 +1180,7 @@ widget.define('button', {
             var self = this;
             this.timer = setTimeout(function(){
                 self.destroy();
-            },3000)
+            },5000)
         },
         hide:function(){
             clearTimeout(this.timer);

@@ -308,14 +308,14 @@ class PublishServiceView(APIView):
         try:
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
-            logger.debug("invoke publish service method  service_key:" + service_key + " service_version" + app_version)
+            logger.debug("group.publish", "invoke publish service method  service_key:" + service_key + " service_version" + app_version)
             image = request.data.get('image', "")
             slug = request.data.get('slug', "")
             dest_yb = request.data.get('dest_yb', False)
             dest_ys = request.data.get('dest_ys', False)
 
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
-            logger.debug("dest_yb ==> {0} dest_ys ==> {1}".format(dest_yb,dest_ys))
+            logger.debug("group.publish", "dest_yb ==> {0} dest_ys ==> {1}".format(dest_yb,dest_ys))
             if not app.dest_yb:
                 app.dest_yb = dest_yb
             if not app.dest_ys:
@@ -394,13 +394,13 @@ class PublishServiceView(APIView):
             logger.exception(e)
             return Response({"ok": False}, status=500)
 
-        logger.debug(" ==> isok:{0}".format(isok))
-        logger.debug(" ==> isys:{0}".format(isys))
-        logger.debug(" ==> Publish_YunShi:{0}".format(settings.MODULES["Publish_YunShi"]))
+        logger.debug("group.publish"," ==> isok:{0}".format(isok))
+        logger.debug("group.publish"," ==> isys:{0}".format(isys))
+        logger.debug("group.publish"," ==> Publish_YunShi:{0}".format(settings.MODULES["Publish_YunShi"]))
 
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
-            logger.debug(" =====> publish to app market!")
+            logger.debug("group.publish"," =====> publish to app market!")
             data = self.init_data(app, slug, image)
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
@@ -412,7 +412,7 @@ class PublishServiceView(APIView):
                 tenant = Tenants.objects.get(tenant_id=data["tenant_id"])
                 data["tenant_name"] = tenant.tenant_name
             except Tenants.DoesNotExist:
-                logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
+                logger.error("group.publish", "tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             # 添加发布类型信息: publish or share
             # AppServiceExtend存在信息
             num = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
@@ -422,7 +422,7 @@ class PublishServiceView(APIView):
             share_id = None
             try:
                 share_id = request.data.get('share_id', None)
-                logger.debug("====> share id is " + share_id)
+                logger.debug("group.publish", "====> share id is " + share_id)
             except Exception as e:
                 logger.exception(e)
             data["share_id"] = share_id
@@ -430,13 +430,13 @@ class PublishServiceView(APIView):
             # 发送图片
             if str(app.logo) is not None and str(app.logo) != "":
                 image_url = str(app.logo)
-                logger.debug('send service logo:{}'.format(image_url))
+                logger.debug("group.publish",'send service logo:{}'.format(image_url))
                 apputil.send_image('app_logo', image_url)
             # 发送请求到所有的数据中心进行数据同步
             # self.downloadImage(serviceInfo)
 
             # 判断是否服务组发布,发布是否成功
-            logger.debug("========> before send app group !")
+            logger.debug("group.publish","========> before send app group !")
             app_service_group = None
             try:
                 logger.debug(dest_ys)
@@ -448,14 +448,14 @@ class PublishServiceView(APIView):
                     if app_service_group is not None:
                         curr_step = app_service_group.step
                         if curr_step > 0:
-                            logger.debug("before remove one app from app_group ! step {}".format(curr_step))
+                            logger.debug("group.publish", "before remove one app from app_group ! step {}".format(curr_step))
                             curr_step -= 1
-                            logger.debug("after remove one app from app_group ! step {}".format(curr_step))
+                            logger.debug("group.publish","after remove one app from app_group ! step {}".format(curr_step))
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
                         if curr_step == 0 and app_service_group.is_market:
-                            logger.info("send group publish info to app_market")
+                            logger.info("group.publish","send group publish info to app_market")
                             # 将服务组信息发送到云市
                             tenant_id = data["tenant_id"]
                             param_data = {"group_name": app_service_group.group_share_alias,
@@ -475,7 +475,7 @@ class PublishServiceView(APIView):
                                                                                        tenant_id=tenant_id)
                                 service_category_map = {x.service_id: "self" if x.category == "application" else "other"
                                                         for x in tenant_service_list}
-                                logger.debug("===> service_category_map {}".format(service_category_map))
+                                logger.debug("group.publish", "===> service_category_map {}".format(service_category_map))
                                 service_data = []
                                 for app in app_service_list:
                                     owner = service_category_map.get(app.service_id,"other")
@@ -505,8 +505,8 @@ class PublishServiceView(APIView):
             except Exception as e:
                 app_service_group.is_success = False
                 app_service_group.save()
-                logger.exception(e)
-                logger.error("publish service group failed!")
+                logger.exception("group.publish", e)
+                logger.error("group.publish", "publish service group failed!")
 
         return Response({"ok": True}, status=200)
 

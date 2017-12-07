@@ -8,7 +8,7 @@ from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAt
     TenantRegionInfo
 from www.models.main import ServiceGroup, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
-from www.tenantservice.baseservice import TenantAccountService
+from www.tenantservice.baseservice import TenantAccountService, ServiceAttachInfoManage
 
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -17,6 +17,7 @@ logger = logging.getLogger('default')
 tenantAccountService = TenantAccountService()
 region_api = RegionInvokeApi()
 monitorhook = MonitorHook()
+attach_manager = ServiceAttachInfoManage()
 
 
 class TenantService(object):
@@ -137,11 +138,14 @@ class TenantService(object):
     def get_tenant_service_status(self, tenant, service):
         result = {}
         if tenantAccountService.isOwnedMoney(tenant, service.service_region):
-            result["totalMemory"] = 0
-            result["status"] = "Owed"
-            result["service_pay_status"] = "no_money"
-            result["tips"] = "请为账户充值,然后重启应用"
-            return result
+            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id,service_id=service.service_id)
+            is_prepaid = attach_manager.is_during_monthly_payment(service_attach_info)
+            if not is_prepaid:
+                result["totalMemory"] = 0
+                result["status"] = "Owed"
+                result["service_pay_status"] = "no_money"
+                result["tips"] = "请为账户充值,然后重启应用"
+                return result
 
         if service.deploy_version is None or service.deploy_version == "":
             result["totalMemory"] = 0

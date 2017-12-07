@@ -302,7 +302,7 @@ $(function () {
     });
     //取消端口号的添加
     $(".fn-noAdd").on("click",function(){
-        $(".fn-addPort").css({"display":"none"});
+        $(".addPort").css({"display":"none"});
         // fntabtit();
     });
     delPort();

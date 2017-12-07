@@ -24,7 +24,7 @@ from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCrea
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
-    CodeRepositoriesService
+    CodeRepositoriesService, ServiceAttachInfoManage
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 from www.utils.status_translate import get_status_info_map
@@ -39,7 +39,7 @@ monitorhook = MonitorHook()
 tenantAccountService = TenantAccountService()
 codeRepositoriesService = CodeRepositoriesService()
 region_api = RegionInvokeApi()
-
+attach_manager = ServiceAttachInfoManage()
 
 class AppDeploy(AuthedView):
     def update_event(self, event, message, status):
@@ -832,7 +832,10 @@ class ServiceDetail(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
+            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                service_id=self.service.service_id)
+            is_prepaid = attach_manager.is_during_monthly_payment(service_attach_info)
+            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region) and not is_prepaid:
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
                 status_info_map = get_status_info_map(result["status"])
@@ -1453,29 +1456,22 @@ class ServicePort(AuthedView):
                 return is_success, data
             deal_port.is_inner_service = True
             baseService = BaseTenantService()
-            if deal_port.mapping_port <= 1:
-                mapping_port = deal_port.container_port
-                deal_port.mapping_port = mapping_port
-                logger.debug("mapping port less than 1 , mapping port is %s" % str(mapping_port))
-                deal_port.save(update_fields=['mapping_port'])
-                TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
-                                                   container_port=deal_port.container_port).delete()
-                baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port,
-                                              u"连接地址",
-                                              deal_port.port_alias + "_HOST", "127.0.0.1", False, scope="outer")
-                baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port,
-                                              u"端口",
-                                              deal_port.port_alias + "_PORT", mapping_port, False, scope="outer")
-            else:
-                # 兼容旧的非对内服务, mapping_port有正常值
-                unique = TenantServicesPort.objects.filter(tenant_id=deal_port.tenant_id,
-                                                           mapping_port=deal_port.mapping_port).count()
-                logger.debug("debug", "unique count is {}".format(unique))
-                if unique > 1:
-                    new_mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
-                    logger.debug("debug", "new_mapping_port is {}".format(new_mapping_port))
-                    deal_port.mapping_port = new_mapping_port
-                    deal_port.save(update_fields=['mapping_port'])
+
+            # mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+            # logger.debug("generate new mapping port {0}".format(mapping_port))
+            mapping_port = deal_port.container_port
+            deal_port.mapping_port = mapping_port
+            deal_port.save(update_fields=['mapping_port'])
+            # 删除跟此端口有关的环境变量
+            TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
+                                               container_port=deal_port.container_port).delete()
+            baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port,
+                                          u"连接地址",
+                                          deal_port.port_alias + "_HOST", "127.0.0.1", False, scope="outer")
+            baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port,
+                                          u"端口",
+                                          deal_port.port_alias + "_PORT", mapping_port, False, scope="outer")
+
             port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
                                                            container_port=deal_port.container_port)
             # 原有reigon_api是先删除原有的端口相关的env,然后添加
@@ -1818,11 +1814,10 @@ class ServiceNewPort(AuthedView):
 class ServiceDockerContainer(AuthedView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
-        data = {}
+        result = {}
         try:
             data = region_api.get_service_pods(self.service.service_region, self.tenantName, self.service.service_alias,
                                                self.tenant.enterprise_id)
-            result = {}
             for d in data["list"]:
                 result[d["PodName"]] = "manager"
             logger.info(result)
