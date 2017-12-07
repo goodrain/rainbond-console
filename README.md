@@ -22,12 +22,15 @@ This repository includes core components of Rainbond Data Center, you can build 
 ##### Python
 
 ```
+# python 2.7.8
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+##### Docker 
 
 ```
-##### Docker
-
-```
-
+./release.sh 
 ```
 ##### BUG Fix
 
