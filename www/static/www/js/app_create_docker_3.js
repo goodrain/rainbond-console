@@ -563,7 +563,7 @@ $(function () {
         {
                 var service_name = $("#service_name").val();
                 var str = '<tr><td class="fn-tips pathval" data-original-title="使用持久化目录请注意路径关系。">'+$(".catalogueContent").val()+'</td>';
-                str += '<td class="path_name add_pathName">当前应用'+service_name+'自有</td>';
+                str += '<td class="path_name add_pathName">'+ $(".catalogueName").val() +'</td>';
                 str += '<td data-value="'+$(".catalogue").find("select option:selected").attr("value")+'" class="stateVal">'+ $(".catalogue").find('select option:selected').html() +'</td>';
                 str += '<td><img src="/static/www/images/rubbish.png" class="delLi"/></td></tr>';
                 $(str).appendTo(".fileBlock");
@@ -668,7 +668,7 @@ $(function () {
         {
             var app_json = {};
             app_json["volume_name"] = $(".add_pathName").eq(j).html();
-            app_json["volume_path"] = $(".add_pathName").eq(j).parent().children(".pathval").find('span').html();
+            app_json["volume_path"] = $(".add_pathName").eq(j).parent().children(".pathval").html();
             app_json["volume_type"] = $(".add_pathName").eq(j).parent().find(".stateVal").attr("data-value");
             appArr[j] = app_json;
         }
