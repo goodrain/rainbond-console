@@ -79,16 +79,12 @@
                 <!--<span>我的应用</span></a>-->
         </li>
 
-        {% if not is_private and cloud_assistant == 'goodrain' %}
-        <!--公有云去掉了-->
-        {% else %}
         <li>
             <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service/">
                 <i class="fa fa-th"></i>
                 <span>应用市场</span>
             </a>
         </li>
-        {% endif %}
 
         <li > 
         	<a class="{{teamStatus}}" href="/apps/{{tenantName}}/team/" >
