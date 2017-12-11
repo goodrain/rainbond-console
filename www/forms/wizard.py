@@ -89,6 +89,12 @@ class AdminForm(forms.Form):
         # pattern=standard_regex_string, ajax_check=True,
         # widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
     )
+    enter_alias = forms.CharField(
+        required=True, max_length=32, label="",
+        validators=[is_sensitive],
+        # pattern=standard_regex_string, ajax_check=True,
+        # widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
+    )
     password = forms.CharField(
         required=True,
         label='',
@@ -125,9 +131,9 @@ class AdminForm(forms.Form):
 
         self.helper.layout = Layout(
             Div(
+                Field('enter_alias', css_class="form-control", placeholder=u"企业名称"),
                 Field('nick_name', css_class="form-control", placeholder=u"用户名(英文)"),
                 Field('email', css_class="form-control", placeholder=u"管理员邮箱"),
-                Field('enter_alias', css_class="form-control", placeholder=u"企业名称"),
                 Hidden('machine_region', value=init_region),
                 Field('password', css_class="form-control", placeholder=u"请输入至少8位数密码"),
                 Field('password_repeat', css_class="form-control", placeholder=u"请再输入一次密码"),

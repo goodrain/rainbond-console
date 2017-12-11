@@ -216,6 +216,9 @@ class TopologicalServiceView(AuthedView):
         try:
             status_data = region_api.check_service_status(service_region, self.tenantName, self.service.service_alias,self.tenant.enterprise_id)
             region_data = status_data["bean"]
+
+            pod_list = region_api.get_service_pods(service_region,self.tenantName,self.service.service_alias,self.tenant.enterprise_id)
+            region_data["pod_list"] = pod_list["list"]
         except Exception as e:
             logger.exception(e)
             region_data = {}
