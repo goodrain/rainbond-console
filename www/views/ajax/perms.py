@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
 from django.http import JsonResponse
+from django.conf import settings
+from www.services.sso import SSO_BASE_URL
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.utils.crypt import AuthCode
@@ -186,9 +188,15 @@ class InviteServiceUser(AuthedView):
         pass
 
     def invite_content(self, email, tenant_name, service_alias, identity):
-        domain = self.request.META.get('HTTP_HOST')
-        mail_body = AuthCode.encode(','.join([email, tenant_name, service_alias, identity]), 'goodrain')
-        link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
+        if settings.MODULES.get('SSO_LOGIN'):
+            domain = SSO_BASE_URL
+            mail_body = AuthCode.encode(','.join(['invite_service', email, tenant_name, service_alias, identity]), 'goodrain')
+            link_url = '{0}/api/invite?key={1}'.format(domain, mail_body)
+        else:
+            domain = self.request.META.get('HTTP_HOST')
+            mail_body = AuthCode.encode(','.join([email, tenant_name, service_alias, identity]), 'goodrain')
+            link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
+
         content = u"尊敬的用户您好，"
         content = content + "<br/>"
         content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"
@@ -260,9 +268,14 @@ class InviteTenantUser(AuthedView):
         pass
 
     def invite_content(self, email, tenant_name, identity):
-        domain = self.request.META.get('HTTP_HOST')
-        mail_body = AuthCode.encode(','.join([email, tenant_name, identity]), 'goodrain')
-        link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
+        if settings.MODULES.get('SSO_LOGIN'):
+            domain = SSO_BASE_URL
+            mail_body = AuthCode.encode(','.join(['invite_tenant', email, tenant_name, identity]), 'goodrain')
+            link_url = '{0}/api/invite?key={1}'.format(domain, mail_body)
+        else:
+            domain = self.request.META.get('HTTP_HOST')
+            mail_body = AuthCode.encode(','.join([email, tenant_name, identity]), 'goodrain')
+            link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
         content = u"尊敬的用户您好，"
         content = content + "<br/>"
         content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"

@@ -556,13 +556,12 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
                     except Exception as e:
                         logger.exception(e)
 
-            service_status = request.POST.get("methodval", "stateless")
+            service_status = "stateless" if self.service.extend_method == "stateless" else "state"
 
             data = {}
             data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
             data["enterprise_id"] = self.tenant.enterprise_id
             region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, data)
-            self.service.extend_method = service_status
             self.service.save()
             body = {}
             event = self.create_service_event(self.service, self.tenant, "deploy")

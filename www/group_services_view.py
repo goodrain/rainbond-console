@@ -619,12 +619,11 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                                   self.user.nick_name, dep_sids=json.dumps(dep_sids))
                 
-                service_status = label_map.get(service_info.service_key, "stateless")
+                service_status = "stateless" if newTenantService.extend_method == "stateless" else "state"
                 label_data = {}
                 label_data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
                 label_data["enterprise_id"] = self.tenant.enterprise_id
                 region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, label_data)
-                newTenantService.extend_method = service_status
                 newTenantService.save()
 
                 # 创建服务依赖

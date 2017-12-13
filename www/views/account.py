@@ -1239,4 +1239,109 @@ class GoorainSSOCallBack(BaseView):
         return self.redirect_to('/apps/{0}/'.format(tenant.tenant_name))
 
 
+class GoodrainSSONotify(BaseView):
+    def post(self, request, *args, **kwargs):
+        # 获取sso的user_id
+        sso_user_id = request.POST.get('uid')
+        sso_user_token = request.POST.get('token')
+        sso_enterprise_id = request.POST.get('eid')
 
+        logger.debug('request.sso_user_id:{}'.format(sso_user_id))
+        logger.debug('request.sso_user_token:{}'.format(sso_user_token))
+        logger.debug('request.sso_enterprise_id:{}'.format(sso_enterprise_id))
+
+        if not sso_user_id or not sso_user_token or not sso_enterprise_id:
+            logger.error('post params [uid] or [token] or [eid] not specified!')
+            return JsonResponse({'success': False, 'msg': 'post params [uid] or [token] or [eid] not specified!'})
+
+        if sso_user_id == 'null' or sso_user_token == 'null':
+            logger.error('bad uid or token, value is null!')
+            return JsonResponse({"success": False, 'msg': 'bad uid or token, value is null!'})
+
+        api = GoodRainSSOApi(sso_user_id, sso_user_token)
+        if not api.auth_sso_user_token():
+            logger.error('Illegal user token!')
+            return JsonResponse({"success": False, 'msg': 'auth from sso failed!'})
+
+        sso_user = api.get_sso_user_info()
+        logger.debug(sso_user)
+        # 同步sso_id所代表的用户与企业信息，没有则创建
+        try:
+            enterprise = TenantEnterprise.objects.get(enterprise_id=sso_user.eid)
+            # 同步更新企业token
+            if enterprise.enterprise_token != sso_user_token:
+                enterprise.enterprise_token = sso_user_token
+                enterprise.save()
+
+            logger.debug('query enterprise does existed, updated!')
+        except TenantEnterprise.DoesNotExist:
+            logger.debug('query enterprise does not existed, created!')
+            enterprise = TenantEnterprise()
+            enterprise.enterprise_id = sso_user.eid
+            enterprise.enterprise_name = sso_user.company
+            enterprise.enterprise_alias = sso_user.company
+            enterprise.enterprise_token = sso_user_token
+            enterprise.is_active = 1
+            enterprise.save()
+            logger.info(
+                'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
+                                                              enterprise.enterprise_name))
+
+        try:
+            user = Users.objects.get(sso_user_id=sso_user_id)
+            user.sso_user_token = sso_user_token
+            user.password = sso_user.pwd or ''
+            user.phone = sso_user.mobile or ''
+            user.email = sso_user.email or ''
+            user.nick_name = sso_user.username
+            user.enterprise_id = sso_user.eid
+            user.save()
+
+            logger.debug('query user with sso_user_id existed, updated!')
+        except Users.DoesNotExist:
+            logger.debug('query user with sso_user_id does not existed, created!')
+            user = Users.objects.create(nick_name=sso_user.username,
+                                        email=sso_user.email or '',
+                                        phone=sso_user.mobile or '',
+                                        password=sso_user.pwd or '',
+                                        sso_user_id=sso_user.uid,
+                                        enterprise_id=sso_user.eid,
+                                        sso_user_token=sso_user_token,
+                                        is_active=False,
+                                        rf='sso')
+            logger.info(
+                'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(user.user_id, user.nick_name,
+                                                                                      user.rf,
+                                                                                      user.sso_user_id))
+            monitorhook.registerMonitor(user, 'register')
+
+        if not user.is_active:
+            tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id)
+        else:
+            tenant = user_svc.get_default_tenant_by_user(user.user_id)
+        logger.info(tenant.to_dict())
+
+        # create gitlab user
+        if user.email is not None and user.email != "":
+            codeRepositoriesService.createUser(user, user.email, user.password, user.nick_name, user.nick_name)
+
+        key = request.POST.get('key')
+        if key:
+            data = AuthCode.decode(str(key), 'goodrain').split(',')
+            action = data[0]
+            if action == 'invite_tenant':
+                email, tenant_name, identity = data[1], data[2], data[3]
+                tenant = Tenants.objects.get(tenant_name=tenant_name)
+                invite_enter = TenantEnterprise.objects.get(enterprise_id=tenant.enterprise_id)
+                PermRelTenant.objects.create(user_id=user.user_id, tenant_id=tenant.pk, identity=identity,
+                                             enterprise_id=invite_enter.pk)
+                user.email = email
+                user.save()
+            elif action == 'invite_service':
+                email, tenant_name, service_alias, identity = data[1], data[2], data[3], data[4]
+                tenant = Tenants.objects.get(tenant_name=tenant_name)
+                PermRelService.objects.create(user_id=user.user_id, service_id=tenant.pk, identity=identity)
+
+                user.email = email
+                user.save()
+        return JsonResponse({"success": True})
