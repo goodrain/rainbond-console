@@ -444,12 +444,12 @@ class RegisterForm(forms.Form):
         # 对于社区版注册表单进行处理
         is_private = sn.instance.is_private()
         tenant_name = None
-        if is_private:
-            tenant_num = Tenants.objects.count()
-            if tenant_num == 1:
-                tenant_list = Tenants.objects.all()
-                tenant = tenant_list[0]
-                tenant_name = tenant.tenant_name
+        # if is_private:
+        #     tenant_num = Tenants.objects.count()
+        #     if tenant_num == 1:
+        #         tenant_list = Tenants.objects.all()
+        #         tenant = tenant_list[0]
+        #         tenant_name = tenant.tenant_name
 
         # if settings.MODULES["Sms_Check"]:
         if settings.MODULES["WeChat_Module"]:

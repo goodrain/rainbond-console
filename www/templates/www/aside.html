@@ -115,9 +115,9 @@
     <!-- sidebar menu end-->
 </div>
 <script type="text/javascript" src="/static/www/js/jquery.dcjqaccordion.2.7.js?v=2015122301"></script>
+<script type="text/javascript" src="/static/www/js/jquery.nicescroll.js"></script>
 <script type="text/javascript">
-  $(function() {
-    $('#nav-accordion').dcAccordion({
+   $('#nav-accordion').dcAccordion({
         eventType: 'click',
         autoClose: true,
         saveState: true,
@@ -128,6 +128,9 @@
 //        cookie: 'dcjq-accordion-1',
         classExpand: 'dcjq-current-parent'
     });
+
+
+   
 
     $("#myappbox").show();
     $("#sidebar").niceScroll({styler:"fb",cursorcolor:"#e8403f", cursorwidth: '3', cursorborderradius: '10px', background: '#404040', spacebarenabled:false, cursorborder: ''});
@@ -195,6 +198,4 @@
         
     })
 
-
-});
 </script>

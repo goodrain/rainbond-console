@@ -53,6 +53,11 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         context["createApp"] = "active"
         context["is_private"] = sn.instance.is_private()
         context["cloud_assistant"] = sn.instance.cloud_assistant
+        if self.user.phone:
+            git_name = self.user.phone
+        else:
+            git_name = self.user.nick_name
+        context["gitName"] = git_name
         fr = request.GET.get("fr", None)
         if fr is None or fr not in ("private", "deploy", "hot", "new", "thirdApp"):
             fr = "hot"

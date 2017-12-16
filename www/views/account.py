@@ -1098,6 +1098,11 @@ class ChangeLoginPassword(BaseView):
     """修改用户登陆密码"""
 
     def get(self, request, *args, **kwargs):
+        if settings.MODULES.get('SSO_LOGIN'):
+            domain = os.getenv('GOODRAIN_DOMAIN', 'https://user.goodrain.com')
+            redirect_url = '{0}/sso_callback'.format(domain)
+            return redirect('https://sso.goodrain.com/#/backpassword/{0}'.format(urllib.quote_plus(redirect_url)))
+
         return TemplateResponse(request, "www/account/change_password.html",
                                 self.get_context())
 
@@ -1292,7 +1297,6 @@ class GoodrainSSONotify(BaseView):
             user.sso_user_token = sso_user_token
             user.password = sso_user.pwd or ''
             user.phone = sso_user.mobile or ''
-            user.email = sso_user.email or ''
             user.nick_name = sso_user.username
             user.enterprise_id = sso_user.eid
             user.save()
@@ -1315,33 +1319,32 @@ class GoodrainSSONotify(BaseView):
                                                                                       user.sso_user_id))
             monitorhook.registerMonitor(user, 'register')
 
+        logger.debug('user.is_active:{}'.format(user.is_active))
         if not user.is_active:
             tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id)
         else:
             tenant = user_svc.get_default_tenant_by_user(user.user_id)
         logger.info(tenant.to_dict())
 
-        # create gitlab user
-        if user.email is not None and user.email != "":
-            codeRepositoriesService.createUser(user, user.email, user.password, user.nick_name, user.nick_name)
-
         key = request.POST.get('key')
+        logger.debug(key)
         if key:
             data = AuthCode.decode(str(key), 'goodrain').split(',')
+            logger.debug(data)
             action = data[0]
             if action == 'invite_tenant':
                 email, tenant_name, identity = data[1], data[2], data[3]
                 tenant = Tenants.objects.get(tenant_name=tenant_name)
-                invite_enter = TenantEnterprise.objects.get(enterprise_id=tenant.enterprise_id)
-                PermRelTenant.objects.create(user_id=user.user_id, tenant_id=tenant.pk, identity=identity,
-                                             enterprise_id=invite_enter.pk)
-                user.email = email
-                user.save()
+                if PermRelTenant.objects.filter(user_id=user.user_id, tenant_id=tenant.pk).count() == 0:
+                    invite_enter = TenantEnterprise.objects.get(enterprise_id=tenant.enterprise_id)
+                    PermRelTenant.objects.create(user_id=user.user_id, tenant_id=tenant.pk, identity=identity,
+                                                 enterprise_id=invite_enter.pk)
+
             elif action == 'invite_service':
                 email, tenant_name, service_alias, identity = data[1], data[2], data[3], data[4]
-                tenant = Tenants.objects.get(tenant_name=tenant_name)
-                PermRelService.objects.create(user_id=user.user_id, service_id=tenant.pk, identity=identity)
+                tenant_service = TenantServiceInfo.objects.get(service_alias=service_alias)
+                if PermRelService.objects.filter(user_id=user.user_id, service_id=tenant_service.pk).count() == 0:
+                    PermRelService.objects.create(user_id=user.user_id, service_id=tenant_service.pk, identity=identity)
 
-                user.email = email
-                user.save()
+            logger.debug('user invite sucess')
         return JsonResponse({"success": True})

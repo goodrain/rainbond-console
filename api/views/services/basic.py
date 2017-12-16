@@ -181,18 +181,19 @@ class SelectedServiceView(APIView):
                     num = TenantServiceVolume.objects.filter(service_id=service.service_id,
                                                              volume_path=volume_path).count()
                     if num == 0:
-                        host_path, volume_id = baseService.add_volume_list(service, volume_path)
-                        json_data = {
-                            "service_id": service.service_id,
-                            "category": service.category,
-                            "host_path": host_path,
-                            "volume_path": volume_path,
-                            "enterprise_id":tenant.enterprise_id
-                        }
-                        region_api.add_service_volume(service.service_region,
-                                                      tenant.tenant_name,
-                                                      service.service_alias,
-                                                      json_data)
+                        baseService.add_volume_v2(tenant, service, "dockerfile_volume", volume_path, "share-file")
+                        # host_path, volume_id = baseService.add_volume_list(service, volume_path)
+                        # json_data = {
+                        #     "service_id": service.service_id,
+                        #     "category": service.category,
+                        #     "host_path": host_path,
+                        #     "volume_path": volume_path,
+                        #     "enterprise_id":tenant.enterprise_id
+                        # }
+                        # region_api.add_service_volume(service.service_region,
+                        #                               tenant.tenant_name,
+                        #                               service.service_alias,
+                        #                               json_data)
 
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist as e:

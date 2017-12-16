@@ -723,4 +723,10 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
                                                   app_version=source_service.version)
         for volume in volumes:
-            baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7])
+            baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE,
+                                             make_uuid()[:7])
+
+        if tenant_service.volume_mount_path:
+            if not volumes.exclude(volume_path=tenant_service.volume_mount_path).exists():
+                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
+                                                 TenantServiceVolume.SHARE, make_uuid()[:7])

@@ -147,7 +147,11 @@ class UserGoodrainGitLabRegisterView(AuthedView):
 
         # 创建git用户
         code_repo_svc = CodeRepositoriesService()
-        code_repo_svc.createUser(self.user, email, password, self.user.nick_name, self.user.nick_name)
+        if self.user.phone:
+            git_name = self.user.phone
+        else:
+            git_name = self.user.nick_name
+        code_repo_svc.createUser(self.user, email, password, git_name, git_name)
 
         # 将git账号记录入email字段
         self.user.email = email

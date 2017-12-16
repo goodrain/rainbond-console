@@ -98,7 +98,7 @@
                         <a class="flex-item-col code-goodrain-git" href="/apps/{{tenantName}}/app-create/?type=gitlab_exit">
                             <span>
                                 <em class="demoicon"></em>
-                                <cite  data-email="{{user.email}}">好雨Git</cite>
+                                <cite  data-email="{{user.email}}" data-gitName="{{gitName}}">好雨Git</cite>
                             </span>
                         </a>
                         {% endif %}
@@ -170,7 +170,7 @@
             </div>
         </div>
 <script type="text/javascript" src="/static/www/js/widget.js"></script>
-<script type="text/javascript" src="/static/www/js/setGoodrainGitUser.js"></script>
+<script type="text/javascript" src="/static/www/js/setGoodrainGitUser.js?20171215"></script>
 <script>
 
 
@@ -179,13 +179,15 @@
 
         $('.code-goodrain-git').click(function(e){
 
-            var  $this =  $(this);
+            var $this =  $(this);
             var isHaveGit = $(this).find("cite").attr('data-email');
+            var gitName = $(this).find("cite").attr('data-gitName');
             if(!isHaveGit){
 
                 var dialog = gWidget.create('setGoodrainGitUser', {
                       height:'auto',
                       tenantName: tenantName,
+                      gitName: gitName,
                       onSuccess: function(data){
                          location.href = $this.attr('href');
                       }

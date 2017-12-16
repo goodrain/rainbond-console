@@ -11,19 +11,18 @@ class UserService(object):
             return None
 
     def get_default_tenant_by_user(self, user_id):
-        try:
-            return Tenants.objects.get(creater=user_id)
-        except Tenants.DoesNotExist:
-            tenants = self.list_user_tenants(user_id)
-            return tenants[0] if tenants else None
+        tenants = self.list_user_tenants(user_id)
+        return tenants[0] if tenants else None
 
     def list_user_tenants(self, user_id):
         if not user_id:
             return []
 
         perms = PermRelTenant.objects.filter(user_id=user_id)
-        tenant_ids = [t.tenant_id for t in perms]
+        if not perms:
+            return []
 
+        tenant_ids = [t.tenant_id for t in perms]
         return Tenants.objects.filter(ID__in=tenant_ids)
 
     def delete_tenant(self, user_id):

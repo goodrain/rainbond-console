@@ -359,7 +359,11 @@ window.AppOverviewController = createPageController({
                 if(firstLog && firstLog["final_status"] == ""){
                 	$("#keylog .log_type").eq(0).hide();
 		            $("#keylog .hide_log").eq(0).html("查看详情");
-		            self.createLogSocket(firstLog["event_id"],firstLog["type"]);
+		            var eventId = $("#keylog .ajax_log_new").eq(0).attr('data-log');
+		            self.getAndRenderEventLog(firstLog["event_id"]).always(() => {
+		            	self.createLogSocket(firstLog["event_id"],firstLog["type"]);
+		            })
+		            
                 }
 			})
 		},
@@ -739,12 +743,13 @@ window.AppOverviewController = createPageController({
 		},
 		//显示某个事件的日志信息, type: info/debug/error
 		getAndRenderEventLog: function(eventId, type) {
-			getEventlogByType(this.tenantName, this.serviceAlias, eventId, type||'info')
+			return getEventlogByType(this.tenantName, this.serviceAlias, eventId, type||'info')
 			.done(function(data){
+
 				$(".log_" + eventId + "").html('');
 	            var dataObj = data;
 	            var html=[];
-	            var newLog = dataObj["data"];
+	            var newLog = dataObj["data"] || [];
 	            for (var i = 0; i < newLog.length; i++) {
 	                var time = newLog[i]["time"].split('.')[0];
 	                var time1 = time.split('T')[0];

@@ -392,6 +392,12 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
         for volume in volumes:
             baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7])
+        if tenant_service.volume_mount_path:
+            if not AppServiceVolume.objects.filter(service_key=source_service.service_key,
+                                                   app_version=source_service.version).exclude(
+                    volume_path=tenant_service.volume_mount_path).exists():
+                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
+                                                 TenantServiceVolume.SHARE, make_uuid()[:7])
 
     def find_dependecy_services(self, serviceObj):
         asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)

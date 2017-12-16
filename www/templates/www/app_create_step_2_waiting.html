@@ -42,6 +42,7 @@
 			        	<p class="second-tips-loading">
 			        		<span>代码源：<cite>{{httpGitUrl}}</cite></span>
 			        	</p>
+
 		        	</div>
 		        	<div class="clearfix text-center" style="display: none; margin-bottom:50px;" id="git_btn">
 		        		<button class="btn btn-danger" id="Btndelete" type="button" style="cursor: pointer; margin:0 10px;" onclick="app_create_delete();">停止创建</button>
@@ -83,9 +84,43 @@ function getGitCodeCheck() {
 					$("#second-loading").hide();
 					$("#git-success").show();
 					$("#git_btn").show();
-					$("#git_code_upload").html(
-							"代码已同步，语言识别为 " + dataObj["language"]);
-					//$("#BtnSecond").removeAttr('disabled')
+					$("#git_code_upload").html("代码已同步，语言识别为 " + dataObj["language"]);
+					var languageurl ;
+					var tipsatr;
+					if(dataObj["language"] == "Java-maven"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/java/lang-java-maven.html';
+					}
+					if(dataObj["language"] == "Java-jar" || dataObj["language"] == "Java-war"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/java/lang-java-warandjar.html';
+					}
+					if(dataObj["language"] == "Scala"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/scala/lang-scala-overview.html';
+					}
+					if(dataObj["language"] == "Ruby"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/ruby/lang-ruby-overview.html';
+					}
+					if(dataObj["language"] == "Python"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/python/lang-python-overview.html';
+					}
+					if(dataObj["language"] == "PHP"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/php/lang-php-overview.html';
+					}
+					if(dataObj["language"] == "Go"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/go/lang-go-overview.html';
+					}
+					if(dataObj["language"] == "Node.js" ){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/ndjs/lang-ndjs-overview.html';
+					}
+					if(dataObj["language"] == "static"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/html/lang-html-overview.html';
+					}
+					if(dataObj["language"] == "docker"){
+						languageurl = 'http://www.rainbond.com/docs/stable/user-lang-docs/dockerfile/lang-dockerfile-overview.html';
+					}
+					tipsatr='<p style="color:#d9534f; text-align:center; font-size:14px; line-height:40px;">请确认是否符合'+ dataObj["language"] +'  [<a href="'+ languageurl +'" target="_blank" style="color:#d9534f; text-decoration:underline;">代码标准</a>]</p>';
+					if(dataObj["language"] == "Java-maven" || dataObj["language"] == "Java-jar" || dataObj["language"] == "Java-war" || dataObj["language"] == "Scala" || dataObj["language"] == "Ruby" || dataObj["language"] == "Python" || dataObj["language"] == "PHP" || dataObj["language"] == "Go" || dataObj["language"] == "Node.js" || dataObj["language"] == "static" || dataObj["language"] == "docker"){
+						$(tipsatr).appendTo($("#git-success"));
+					}
 					$("#BtnSecond").show();
 				} else if (dataObj["status"] == "check_error") {
 					$("#second-loading").hide();

@@ -434,6 +434,7 @@ class ServiceDetailView(AuthedView):
         context["team_invite"] = settings.MODULES["Team_Invite"]
         port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
         context["ports"] = [model_to_dict(p) for p in port_list]
+        context["serviceCreateTime"] = self.service.create_time
 
     def get_cost_details(self, context, service_attach_info):
         context["service_attach_info"] = model_to_dict(service_attach_info)
