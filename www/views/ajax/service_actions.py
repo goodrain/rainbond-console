@@ -720,8 +720,7 @@ class AllServiceInfo(AuthedView):
             if hasattr(tmp, 'service_origin'):
                 service_list = TenantServiceInfo.objects.filter(
                     tenant_id=self.tenant.tenant_id,
-                    service_region=self.cookie_region,
-                    service_origin='assistant').values('ID', 'service_id', 'deploy_version')
+                    service_region=self.cookie_region).values('ID', 'service_id', 'deploy_version')
             else:
                 service_list = TenantServiceInfo.objects.filter(
                     tenant_id=self.tenant.tenant_id,

@@ -813,7 +813,7 @@ class ServiceHistoryLog(AuthedView):
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
             # return '{}:8083'.format(host)
-            return '{}:6363'.format(host)
+            return '{}:6060'.format(host)
 
     @never_cache
     def get(self, request, *args, **kwargs):

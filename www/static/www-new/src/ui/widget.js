@@ -3770,7 +3770,7 @@ widget.define('tableList', {
         }
     },
     renderEmpty: function(){
-        this.body.html('<tr><td style="text-align:center;" colspan="'+this.setting.columns.length + (this.setting.selectable ? 1 : 0) +'">'+this.setting.emptyMsg+'</td></tr>')
+        this.body.html('<tr><td style="text-align:center;" colspan="'+(this.setting.columns.length + (this.setting.selectable ? 1 : 0))+'">'+this.setting.emptyMsg+'</td></tr>')
     },
     load : function(setting, type){
         this.completed = false;

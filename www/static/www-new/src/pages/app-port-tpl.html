@@ -57,12 +57,7 @@
                     <tr>
                         <td rowspan="2" style="vertical-align: middle;">
                             <span>{{ $value.container_port }}</span>
-                            {{if pageData.port_changeable}}
-                            <a href="javascript:;" style="color: #28cb75;" data-title="更改监听端口"
-                               data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ $value.container_port }}"
-                               data-value="{{ $value.container_port }}" 
-                               class="fn-rename glyphicon glyphicon-edit edit-port js-edit-port"></a>
-                            {{/if}}
+                           
                         </td>
                         <td rowspan="2" style="vertical-align: middle;">
                             <span id="edit_protocol_{{ $value.container_port }}" data-value="{{ $value.protocol }}">{{ $value.protocol }}</span>
