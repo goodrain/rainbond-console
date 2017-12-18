@@ -727,6 +727,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                              make_uuid()[:7])
 
         if tenant_service.volume_mount_path:
-            if not volumes.exclude(volume_path=tenant_service.volume_mount_path).exists():
+            if not volumes.filter(volume_path=tenant_service.volume_mount_path).exists():
                 baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
                                                  TenantServiceVolume.SHARE, make_uuid()[:7])

@@ -394,8 +394,8 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
             baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7])
         if tenant_service.volume_mount_path:
             if not AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                   app_version=source_service.version).exclude(
-                    volume_path=tenant_service.volume_mount_path).exists():
+                                                   app_version=source_service.version,
+                                                   volume_path=tenant_service.volume_mount_path):
                 baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
                                                  TenantServiceVolume.SHARE, make_uuid()[:7])
 
