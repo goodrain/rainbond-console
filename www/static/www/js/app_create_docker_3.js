@@ -197,7 +197,7 @@ $(function () {
         //文件存储
         if(json_url_Arr_key[i] == "-v" || json_url_Arr_key[i] == "--volume"){
             var filestr =  json_url_Arr_value[i];
-            var fstr = '<tr><td class="fn-tips" data-original-title="使用持久化目录请注意路径关系。">'+ filestr +'</td><td class="path_name add_pathName">当前应用'+  service_name +'自有</td><td>共享存储(文件)</td><td><img src="/static/www/images/rubbish.png" class="delLi"></td></tr>';
+            var fstr = '<tr><td class="fn-tips pathval" data-original-title="使用持久化目录请注意路径关系。">'+ filestr +'</td><td class="path_name add_pathName">当前应用'+  service_name +'自有</td><td class="stateVal" data-value="share-file">共享存储(文件)</td><td><img src="/static/www/images/rubbish.png" class="delLi"></td></tr>';
             $(fstr).appendTo(".fileBlock");
         }
         //镜像地址
@@ -209,7 +209,7 @@ $(function () {
         //容器运行命令
         if(json_url_Arr_key[i] == "run_exec"){
             var runstr = json_url_Arr_value[i];
-            var rstr = '<textarea rows="4" style="width:80%;s">'+ runstr +'</textarea>'; 
+            var rstr = '<textarea rows="4" style="width:80%;">'+ runstr +'</textarea>'; 
             $(rstr).appendTo(".fn-run-command div");
         }
     }
