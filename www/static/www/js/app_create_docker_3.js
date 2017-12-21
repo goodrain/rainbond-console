@@ -188,9 +188,9 @@ $(function () {
             var estr = json_url_Arr_value[i];
             var estr_arr =[];
             estr_arr = estr.split("=");
-            var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+ estr_arr[0] +'</a></td>';
-            str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+estr_arr[0]+'</a></td>';
-            str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+estr_arr[1]+'</a></td>';
+            var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-env-name">'+ estr_arr[0] +'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-env-key enviromentKey">'+estr_arr[0]+'</a></td>';
+            str += '<td><a href="javascript:void(0);" class="edit-env-val enviromentValue">'+estr_arr[1]+'</a></td>';
             str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
             $(str).appendTo(".enviroment");
         }
@@ -203,7 +203,7 @@ $(function () {
         //镜像地址
         if(json_url_Arr_key[i] == "image"){
             var imgstr = json_url_Arr_value[i];
-            var istr = '<a href="javascript:void(0);" class="portNum edit-port">'+ imgstr +'</a>'; 
+            var istr = '<a href="javascript:void(0);" class="portNum edit-mirroraddress">'+ imgstr +'</a>'; 
             $(istr).appendTo(".fn-mirroraddress div");
         }
         //容器运行命令
@@ -284,7 +284,16 @@ $(function () {
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
                 delPort();
-                editPort();
+                //修改端口号
+                editCom('.edit-port', function(value){
+                     if( !(value>0 && value<65536) ){
+                        return "端口范围为1-65535";
+                     }
+
+                     if (!$.trim(value)) {
+                        return '不能为空';
+                     }
+                });
                 // fntabtit();
                 $('.fn-tips').tooltip();
                 checkDetail();
@@ -324,9 +333,36 @@ $(function () {
         })
     }
     //修改端口号
-    editPort();
-    function editPort(){
-        $('.edit-port').editable({
+    editCom('.edit-port', function(value){
+         if( !(value>0 && value<65536) ){
+            return "端口范围为1-65535";
+         }
+
+         if (!$.trim(value)) {
+            return '不能为空';
+         }
+    });
+    //修改变量name
+    editCom('.edit-env-name')
+    //修改变量key
+    editCom('.edit-env-key', function(value){
+        var variableReg = /^[A-Z][A-Z0-9_]*$/;
+        if( !variableReg.test(value||'') )
+        {
+            return '变量名由大写字母与数字组成且大写字母开头';
+        }
+    })
+    //修改变量值
+    editCom('.edit-env-val');
+    //修改镜像地址
+    editCom('.edit-mirroraddress', function(value){
+        if(!$.trim(value)){
+            return "请输入镜像地址";
+        }
+    })
+
+    function editCom(selector, validate){
+        $(selector).editable({
             type: 'text',
             pk: 1,
             success: function (data) {
@@ -345,21 +381,12 @@ $(function () {
             },
             validate: function (value) {
 
-
-                if( !(value>0 && value<65536) ){
-                    return "端口范围为1-65535";
-                }
-
                 if (!$.trim(value)) {
                     return '不能为空';
                 }
-                else if($(this).hasClass("enviromentKey"))
-                {
-                    var variableReg = /^[A-Z][A-Z0-9_]*$/;
-                    if( !variableReg.test($(".editable-input").find("input").val()) )
-                    {
-                        return '变量名由大写字母与数字组成且大写字母开头';
-                    }
+                
+                if(validate){
+                    return validate(value)
                 }
             }
         });
@@ -398,9 +425,9 @@ $(function () {
                 var variableReg = /^[A-Z][A-Z0-9_]*$/;
                 if( variableReg.test($(".enviroKey").val()) )
                 {
-                    var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+$(".enviroName").val()+'</a></td>';
-                    str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+$(".enviroKey").val()+'</a></td>';
-                    str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+$(".enviroValue").val()+'</a></td>';
+                    var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-env-name">'+$(".enviroName").val()+'</a></td>';
+                    str += '<td><a href="javascript:void(0);" class="edit-env-key enviromentKey">'+$(".enviroKey").val()+'</a></td>';
+                    str += '<td><a href="javascript:void(0);" class="edit-env-val enviromentValue">'+$(".enviroValue").val()+'</a></td>';
                     str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                     $(str).appendTo(".enviroment");
                     $(".enviroName").val('');
@@ -408,7 +435,18 @@ $(function () {
                     $(".enviroValue").val('');
                     $(".addContent").css({"display":"none"});
                     delPort();
-                    editPort();
+                    //修改变量name
+                    editCom('.edit-env-name')
+                    //修改变量key
+                    editCom('.edit-env-key', function(value){
+                        var variableReg = /^[A-Z][A-Z0-9_]*$/;
+                        if( !variableReg.test(value||'') )
+                        {
+                            return '变量名由大写字母与数字组成且大写字母开头';
+                        }
+                    })
+                    //修改变量值
+                    editCom('.edit-env-val');
                 }
                 else{
                     swal("变量名由大写字母开头，可以加入数字～～");

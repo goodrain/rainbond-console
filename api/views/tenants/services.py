@@ -639,7 +639,6 @@ class ServiceStopView(APIView):
             service_id = request.data.get("service_id")
             service_region = request.data.get("region")
             action = request.data.get("action", "own_money")
-            logger.debug("service_id {0} service region {1} action {2}".format(service_id,service_region,action))
             service = TenantServiceInfo.objects.get(service_region=service_region,service_id=service_id)
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
             body = region_api.check_service_status(service_region, tenant.tenant_name, service.service_alias,tenant.enterprise_id)
