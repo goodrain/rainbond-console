@@ -43,6 +43,8 @@ DATABASES = {
     },
 }
 
+export REGION_TAG=cloudbang
+
 python manage.py migrate
 python manage.py runserver
 ```
