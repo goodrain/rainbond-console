@@ -385,7 +385,11 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
         AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version)
         baseService = BaseTenantService()
         for port in AppPorts:
-            baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
+            if not port.port_alias:
+                port_alias = self.service.service_alias.upper() + str(port.container_port)
+            else:
+                port_alias = port.port_alias
+            baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
     def copy_volumes(self, tenant_service, source_service):

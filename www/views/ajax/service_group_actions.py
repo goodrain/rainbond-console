@@ -136,7 +136,7 @@ class TopologicalServiceView(AuthedView):
         service_cname = self.service.service_cname
         service_region = self.service.service_region
         deploy_version = self.service.deploy_version
-        total_memory = self.service.total_memory
+        total_memory = self.service.min_memory * self.service.min_node
         # 服务名称
         result['tenant_id'] = tenant_id
         result['service_alias'] = service_alias

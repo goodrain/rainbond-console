@@ -114,6 +114,7 @@ class SelectedServiceView(APIView):
         try:
             data = request.data
             # 判断是否有 "port_list、"volume_list"、"env_list"
+            logger.debug("api.basic", data)
             port_list = data.pop("port_list", None)
             volume_list = data.pop("volume_list", None)
             logger.debug(port_list)
@@ -177,11 +178,13 @@ class SelectedServiceView(APIView):
                                             {"port": region_port_list,"enterprise_id":tenant.enterprise_id})
             # 添加持久化记录
             if volume_list:
+                v_number = 1
                 for volume_path in volume_list:
                     num = TenantServiceVolume.objects.filter(service_id=service.service_id,
                                                              volume_path=volume_path).count()
                     if num == 0:
-                        baseService.add_volume_v2(tenant, service, "dockerfile_volume", volume_path, "share-file")
+                        baseService.add_volume_v2(tenant, service, "dockerfile_volume"+str(v_number), volume_path, "share-file")
+                        v_number += 1
                         # host_path, volume_id = baseService.add_volume_list(service, volume_path)
                         # json_data = {
                         #     "service_id": service.service_id,
