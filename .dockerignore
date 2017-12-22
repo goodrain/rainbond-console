@@ -1,4 +1,6 @@
 *.pyc
 Procfile
 *.md
+console.py
+docker-compose.yaml
 LICENSE
