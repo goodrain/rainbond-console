@@ -104,6 +104,11 @@ class WizardView(BaseView):
             region_names = [region]
             enterprise_svc.create_and_init_tenant(user.user_id, tenant_name, region_names, enterprise.enterprise_id)
 
+            # 第一个用户默认作为云帮管理员
+            superadmin = SuperAdminUser()
+            superadmin.email = email
+            superadmin.save()
+
             # create gitlab user
             if user.email is not None and user.email != "":
                 codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)

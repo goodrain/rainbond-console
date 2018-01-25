@@ -1,5 +1,6 @@
 import widget from '../ui/widget';
 import http from '../utils/http';
+import http2 from '../utils/http2';
 import { getHealthCheckInfo } from '../comms/app-apiCenter';
 
 const Msg = widget.Message;
@@ -148,6 +149,7 @@ widget.define('HealthCheckInfo', {
 
   },
   setValue:function(data) {
+    
 
      this.data = $.extend(true, {}, this.data||{}, data || {});
      this.$status.html(healthCheckUtil.getStatusCN(this.data.is_used));
@@ -733,7 +735,7 @@ widget.define('HealthCheckForm', {
      var data = this.healthCheckForm.getValue();
      var url = '/ajax/'+this.option.tenantName+'/'+this.option.serviceAlias+'/probe/'+data.id;
      delete data.id;
-     http({
+     http2({
         url:url,
         type:'post',
         data:data
@@ -755,7 +757,7 @@ widget.define('HealthCheckForm', {
       var data = this.healthCheckForm.getValue();
       var url = '/ajax/'+this.option.tenantName+'/'+this.option.serviceAlias+'/probe';
 
-      http({
+      http2({
           url:url,
           type:'post',
           data:data

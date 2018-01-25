@@ -61,5 +61,6 @@ urlpatterns = patterns(
     # url(r'^backend/account/', include('backends.accounturls')),
     url(r'^marketapi/', include('marketapi.urls')),
     url(r'^sso_callback$', csrf_exempt(views.GoorainSSOCallBack.as_view())),
+    url(r'^plugins/(?P<tenantName>[\w\-]+)', include('www.urls.plugin')),
     url(r'^sso_notify$', csrf_exempt(views.GoodrainSSONotify.as_view())),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()

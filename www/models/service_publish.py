@@ -66,7 +66,8 @@ class AppService(BaseModel):
 
     show_app = models.BooleanField(default=False, blank=True, help_text=u"发布到公有市场后是否在云市展示")
     show_assistant = models.BooleanField(default=False, blank=True, help_text=u"发布到公有市场后是否在云帮展示")
-    
+    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
+
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
@@ -77,16 +78,6 @@ class AppService(BaseModel):
     def __unicode__(self):
         return u"{0}({1})".format(self.service_id, self.service_key)
     
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
-
 
 class AppServiceEnv(BaseModel):
     """ 服务环境配置 """
@@ -130,15 +121,6 @@ class AppServicePort(BaseModel):
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
 
 
 class AppServiceRelation(BaseModel):
@@ -214,6 +196,8 @@ class AppServiceVolume(BaseModel):
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
+    volume_type = models.CharField(max_length=30, blank=True, null=True)
+    volume_name = models.CharField(max_length=100, blank=True, null=True)
 
     def to_dict(self):
         opts = self._meta
@@ -286,11 +270,12 @@ class AppServiceGroup(BaseModel):
 
     class Meta:
         db_table = "app_service_group"
+        unique_together = ('group_share_id', 'group_version')
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
     group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
-    group_id = models.CharField(max_length=100, help_text=u"对应的服务组")
+    group_id = models.CharField(max_length=100, help_text=u"对应的服务分类ID,为0表示不是导入或者同步的数据")
     service_ids = models.CharField(max_length=200, null=False, help_text=u"对应的服务id")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
@@ -301,6 +286,12 @@ class AppServiceGroup(BaseModel):
     installable = models.BooleanField(default=True, blank=True, help_text=u"发布到云市后是否允许安装")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
+    deploy_time = models.DateTimeField(auto_now_add=True, help_text=u"最后一次被部署的时间")
+    installed_count = models.IntegerField(default=0, help_text=u"部署次数")
+    source = models.CharField(max_length=32, default='local', null=False, blank=True, help_text=u"应用组数据来源")
+    enterprise_id = models.IntegerField(default=0, help_text=u"应用组的企业id")
+    share_scope = models.CharField(max_length=20, null=False, help_text=u"分享范围")
+    is_publish_to_market = models.BooleanField(default=False, blank=True, help_text=u"判断该版本应用组是否之前发布过公有市场")
 
 
 class PublishedGroupServiceRelation(BaseModel):

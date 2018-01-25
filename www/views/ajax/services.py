@@ -16,14 +16,17 @@ from www.db import svc_grop_repo
 from www.decorator import perm_required
 from www.models import *
 from www.region import RegionInfo
-from www.tenantservice.baseservice import BaseTenantService, CodeRepositoriesService, TenantAccountService
+from www.tenantservice.baseservice import BaseTenantService, CodeRepositoriesService, TenantAccountService, \
+    ServicePluginResource
 from www.views import AuthedView, LeftSideBarMixin, Http404
 from www.views.ajax import RechargeTypeMap, RegionInvokeApi
+from www.services import plugin_svc
 
 rpmManager = RegionProviderManager()
 codeRepositoriesService = CodeRepositoriesService()
 baseService = BaseTenantService()
 tenantAccountService = TenantAccountService()
+servicePluginResource = ServicePluginResource()
 
 import logging
 
@@ -365,9 +368,14 @@ class ServiceDetailView(AuthedView):
         port_changeable = self.service.code_from
         context["port_changeable"] = port_changeable
         try:
-            sem = ServiceExtendMethod.objects.get(
-                service_key=self.service.service_key, app_version=self.service.version
-            )
+            if self.service.service_key == "0000":
+                sem = ServiceExtendMethod.objects.get(
+                    service_key=self.service.service_key
+                )
+            else:
+                sem = ServiceExtendMethod.objects.get(
+                    service_key=self.service.service_key, app_version=self.service.version
+                )
             nodeList.append(sem.min_node)
             next_node = sem.min_node + sem.step_node
             while (next_node <= sem.max_node):
@@ -397,6 +405,51 @@ class ServiceDetailView(AuthedView):
         context["is_private"] = sn.instance.is_private()
         port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
         context["ports"] = [model_to_dict(p) for p in port_list]
+
+    def get_service_plugins(self, context):
+        try:
+            pluginList = [plugin_info.plugin_id
+                          for plugin_info in plugin_svc.get_tenant_plugins(region=self.response_region, tenant=self.tenant)]
+            relations = plugin_svc.get_tenant_service_plugin_relation(service_id=self.service.service_id)
+            relationList = [relation_info.plugin_id for relation_info in relations]
+            pluginList = list(set(pluginList).difference(set(relationList)))
+            unRelationDict = []
+            relationDict = []
+            if pluginList > 0:
+                for plugin_id in pluginList:
+                    plugin_version = plugin_svc.get_tenant_plugin_newest_versions(self.response_region, self.tenant, plugin_id)
+                    if len(plugin_version)  == 0:
+                        continue
+                    plugin_info = plugin_svc.get_tenant_plugin_by_plugin_id(self.tenant, plugin_id)
+                    pi = {}
+                    pi["plugin_id"] = plugin_id
+                    pi["is_switch"] = False
+                    pi["plugin_info"] = model_to_dict(plugin_info)
+                    pi["version_info"]= model_to_dict(plugin_version[0])
+                    unRelationDict.append(pi)
+            if relationList > 0:
+                for r in relationList:
+                    _plugin_version = plugin_svc.get_tenant_service_plugin_relation_by_plugin(self.service.service_id, r)
+                    if len(_plugin_version) == 0:
+                        continue
+                    _plugin_info = plugin_svc.get_tenant_plugin_by_plugin_id(self.tenant, r)
+                    _pi = {}
+                    _pi["plugin_id"] = r
+                    _pi["is_switch"] = _plugin_version[0].plugin_status
+                    _pi["plugin_info"] = model_to_dict(_plugin_info)
+                    _pi["version_info"] = model_to_dict(_plugin_version[0])
+                    _plugin_newest_version = plugin_svc.get_tenant_plugin_newest_versions(self.response_region, self.tenant, r)
+                    if len(_plugin_newest_version) != 0:
+                        if _plugin_version[0].build_version != _plugin_newest_version[0].build_version:
+                            _pi["version_new"] = "has_newest"
+                    relationDict.append(_pi)
+            logger.debug("plugin.relation", "relationList is {0}, unrelationList is {1}".format(relationDict, unRelationDict))
+            context["un_relations"] = unRelationDict
+            context["relations"] = relationDict
+        except Exception, e:
+            logger.error("plugin.relation", e)
+            context["un_relations"] = []
+            context["relations"] = []
 
     def get_advanced_setting_details(self, context):
         context["git_tag"] = True if custom_config.GITLAB_SERVICE_API else False
@@ -521,15 +574,24 @@ class ServiceDetailView(AuthedView):
             context["tenantServiceInfo"] = model_to_dict(self.service) if self.service else ''
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
-            context["totalMemory"] = self.service.min_node * self.service.min_memory
+            plugin_memory = servicePluginResource.get_service_plugin_resource(self.service.service_id)
+            context["totalMemory"] = self.service.min_node * (self.service.min_memory+plugin_memory)
             context["tenant"] = model_to_dict(self.tenant)
             context["region_name"] = self.service.service_region
             context["event_websocket_uri"] = self.get_ws_url(
                 settings.EVENT_WEBSOCKET_URL[self.service.service_region], "event_log"
             )
+            ws_type = "monitor_message"
+            tenant_service_relations = plugin_svc.get_tenant_service_plugin_relation(self.service.service_id)
+            for re in tenant_service_relations:
+                plugin = plugin_svc.get_tenant_plugin_by_plugin_id(self.tenant, re.plugin_id)
+                if plugin.category == "analyst-plugin:perf" or plugin.category == "performance_analysis":
+                    ws_type = "new_monitor_message"
+
             context["monitor_websocket_uri"] = self.get_ws_url(
-                settings.EVENT_WEBSOCKET_URL[self.service.service_region], "monitor_message"
+                settings.EVENT_WEBSOCKET_URL[self.service.service_region], ws_type
             )
+
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
                 gid = ServiceGroupRelation.objects.get(service_id=self.service.service_id).group_id
@@ -593,7 +655,8 @@ class ServiceDetailView(AuthedView):
                 self.get_cost_details(context, service_attach_info)
             elif fr == "log":
                 context["is_private"] = sn.instance.is_private()
-
+            elif fr == "plugin":
+                self.get_service_plugins(context)
             context['success'] = True
             return JsonResponse(data=context, status=200, safe=False)
         except Exception as e:

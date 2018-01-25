@@ -19,15 +19,15 @@
             <small><a href="javascript:;" class="fn-rename">更名</a></small>
             -->
         </h3>
-        <ul class="nav nav-pills pull-left" id="nav-tabs">
+        <ul class="nav nav-pills pull-right service-detail-nav" id="nav-tabs">
             <li {% if fr = "deployed" %} class="active" {% endif %}>
                 <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
             </li>
-            {% if MODULES.Monitor_Control %}
+            
             <li class="dropdown {% if fr == 'statistic' %} active {% endif %}">
                 <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">监控</a>
             </li>
-            {% endif %}
+   
             <li {% if fr = "log" %} class="active" {% endif %}>
                 <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a>
             </li>
@@ -48,19 +48,27 @@
             <li {% if fr = "ports" %} class="active" {% endif %}>
                 <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=ports">端口</a>
             </li>
+            <li {% if fr = "plugin" %} class="active" {% endif %}>
+                <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=plugin">插件</a>
+            </li>
             <li {% if fr = "settings" %} class="active" {% endif %}>
                 <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">设置</a>
             </li>
+            
         </ul>
     </div>
-    
+
     <section>
                 {% if fr == "deployed" %}
                 {% include 'www/include/tab_deployed.html' %}
                 {% elif fr == "relations" %}
                 {% include 'www/include/tab_relations.html' %}
                 {% elif fr == "statistic" %}
-                {% include 'www/include/tab_statistic.html' %}
+                    {% if has_analyis_plugin == "no" %}
+                        {% include 'www/include/tab_statistic.html' %}
+                    {% else %}
+                        {% include 'www/include/tab_monitor.html' %}
+                    {% endif %}
                 {% elif fr == "log" %}
                 {% include 'www/include/tab_log.html' %}
                 {% elif fr == "settings" %}
@@ -75,6 +83,8 @@
                 {% include 'www/include/tab_mnt.html' %}
                 {% elif fr == "ports" %}
                 {% include 'www/include/tab_ports.html' %}
+                {% elif fr == "plugin" %}
+                {% include 'www/include/tab_plugin.html' %}
                 {% endif %}
         </section>
 </section>

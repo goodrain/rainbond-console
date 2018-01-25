@@ -126,25 +126,26 @@
 .newapp-link-box.showlink li:nth-child(1) .newapp-link a{width: 50%;}
 
 .app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px;}
-.tab-tit{font-size: 14px; padding:5px 10px 10px 15px; margin-bottom: 0;}
+.tab-tit{font-size: 14px; padding:5px 10px 20px 15px; margin-bottom: 20px;overflow: hidden;border-bottom: 1px solid #ececec;}
 .tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
 .tab-tit a:hover{color: #28cb75;}
 .tab-tit a.sed{color: #28cb75;}
 
-.app-market ul{ padding: 0 10px; }
-.app-market ul li{width: 100%; display: none;}
-.app-market ul li p{width: 33.33%; float: left; margin:0;}
-.app-market ul li p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
-.app-market ul li p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
-.app-market ul li p:last-child a{color: #28cb75;}
+.app-market  .market-main { padding: 20px 10px; }
+.app-market  .market-main  .market-main-inner{width: 100%; display: none;}
+.app-market  .market-main  .market-main-inner p{width: 33.33%; float: left; margin:0;}
+.app-market  .market-main  .market-main-inner p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
+.app-market  .market-main  .market-main-inner p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
+.app-market  .market-main  .market-main-inner p:last-child a{}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
 
-.app-market ul li p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
-.app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
-.app-market ul li p#no-show-list a:hover{background-image: none;}
+.app-market  .market-main  .market-main-inner p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
+.app-market  .market-main  .market-main-inner p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
+.app-market  .market-main  .market-main-inner p#no-show-list a:hover{background-image: none;}
 
+.app-market .pagination-wrap {text-align: center;}
 
 .form-horizontal .radio, .form-horizontal .checkbox{padding-top: 0;}
 .linkbox{color: #28cb75; cursor: pointer; width: 190px;}
@@ -325,7 +326,7 @@ a.file:hover{color: #303030;}
 @media (max-width: 640px){
     .flex{flex-direction: column;  margin: 0;}
     .newapp-link-box .flex-item-col {margin:0 0 20px 0; width: 100%;}
-    .app-market ul li p{width: 100%;}
+    .app-market  .market-main  .market-main-inner p{width: 100%;}
 }
 
 

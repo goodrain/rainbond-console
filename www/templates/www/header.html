@@ -8,11 +8,11 @@
 {% if tenant_list|length > 1 %}
 <div class="nav notify-row  hidden-xs" id="tenant_switch">
     <div class="btn-group">
-        <button class="btn btn-white" type="button">{{current_tenant}}</button>
+        <button class="btn btn-white" type="button">{{current_tenant_alias}}</button>
         <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
         <ul id="tenant_select" role="menu" class="dropdown-menu">
             {% for tenant in tenant_list %}
-            <li><a href="/apps/{{tenant}}/">{{tenant.tenant_name}}</a></li>
+            <li><a href="/apps/{{tenant}}/">{{tenant.tenant_alias}}</a></li>
             {% endfor %}
         </ul>
     </div>

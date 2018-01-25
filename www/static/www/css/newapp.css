@@ -155,19 +155,19 @@ em,cite,span{font-style: normal;}
 .tab-tit a:hover{color: #28cb75;}
 .tab-tit a.sed{color: #28cb75;}
 
-.app-market ul{ padding: 0 10px; }
-.app-market ul li{width: 100%; display: none;}
-.app-market ul li p{width: 33.33%; float: left; margin:0;}
-.app-market ul li p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
-.app-market ul li p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
-.app-market ul li p:last-child a{color: #28cb75;}
+.app-market .market-main{ padding: 0 10px; }
+.app-market .market-main  .market-main-inner{width: 100%; display: none;}
+.app-market .market-main  .market-main-inner p{width: 33.33%; float: left; margin:0;}
+.app-market .market-main  .market-main-inner p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
+.app-market .market-main .market-main-inner p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
+.app-market .market-main  .market-main-inner p:last-child a{color: #28cb75;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
 
-.app-market ul li p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
-.app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
-.app-market ul li p#no-show-list a:hover{background-image: none;}
+.app-market .market-main  .market-main-inner p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
+.app-market .market-main  .market-main-inner p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
+.app-market .market-main  .market-main-inner p#no-show-list a:hover{background-image: none;}
 
 
 

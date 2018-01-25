@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 import logging
-
+import os
 from django.http import Http404
 
 from www.apiclient.regionapi import RegionInvokeApi
@@ -101,8 +101,10 @@ class LeftSideBarMixin(object):
         context["groupList"] = self.get_group_list()
         context["tenant_list"] = self.get_user_tenant(self.user.pk)
         context["current_tenant"] = self.tenant.tenant_name
+        context["current_tenant_alias"] = self.tenant.tenant_alias or self.tenant.tenant_name
         context["is_private"] = sn.instance.is_private()
         context["cloud_assistant"] = sn.instance.cloud_assistant
+        context["app_domain"] = os.getenv('GOODRAIN_APP_DOMAIN', 'https://app.goodrain.com')
         context = self.set_region_info(context)
         return context
 

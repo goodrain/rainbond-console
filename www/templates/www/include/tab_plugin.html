@@ -1,0 +1,96 @@
+{% verbatim myblock %}
+<style type="text/css">
+.relation-plugin[data-status=closed] .after-open, .relation-plugin[data-status=closed] .to-close {display: none;}
+.relation-plugin[data-status=opened] .before-open, .relation-plugin[data-status=opened] .to-open {display: none;}
+.relation-plugin[data-status=closed] .to-open {display: block;}
+.relation-plugin[data-status=opened] .to-close {display: block;}
+
+.plugin_group_item_fields .form-group {
+	display:inline-block;text-align:left;margin-right: 5px;
+    margin-left: 5px;
+    width: 30%;
+    vertical-align: top;
+}
+.plugin_group_item_fields .form-group label {float: left;width:100px;padding-top:5px;overflow:hidden;}
+.plugin_group_item_fields .form-group .form-input {overflow:hidden;}
+.form-horizontal .radio, .form-horizontal .checkbox, .form-horizontal .radio-inline, .form-horizontal .checkbox-inline {padding-top: 0}
+#plugin-list-empty {
+	width: 60%;
+    background: rgba(250, 250, 250, 0.8);
+    margin: 100px auto;
+    border: 1px #ddd solid;
+    border-radius: 4px;
+    padding: 30px 20px;
+}
+.plugin_group_item_tpl dt {border-bottom: 1px solid rgba(0,0,0,0.05);border-top: 1px solid rgba(0,0,0,0.05);font-weight:normal;line-height: 42px;color:#ccc;}
+.plugin_group_item_tpl .item-label {display: inline-block;margin-right:20px;width:150px;}
+.plugin_group_item_tpl .item-label span {color:#333;}
+.plugin_group_item_tpl dd {padding:20px 0;color:#333;}
+.plugin_base {line-height: 3em}
+.version-history-table th {background-color: #f5f5f5}
+
+</style>
+<!-- log start -->
+<div id="plugin-wrap" role="tabpanel">
+
+ 	<form class="form-horizontal" id="plugin-list">
+ 		<div id="plugin-list-empty" class="text-center" style="display: none;">
+ 			<h2>暂无可用插件，<a href="javascript:;" class="to-create">去创建</a></h2>
+ 		</div>
+	    <div id="relation-plugin"></div>
+	    <div id="unrelation-plugin"></div>
+	</form>
+	<script type="text/template" id="relation-plugin-tpl">
+	     <!--  插件四 start -->
+	    <section class="panel panel-default relation-plugin" data-status="closed" data-plugin-id="{{plugin_id}}" data-plugin-version="{{version_info.build_version}}">
+	        <div class="panel-heading clearfix">
+	        	<a href="javascript:;" class="to-open pull-right">查看详情</a>
+	        	<a href="javascript:;" class="to-close pull-right">收起</a>
+	            {{plugin_info.plugin_alias}}（{{plugin_info.desc || '暂无介绍'}}）
+	        </div>
+	        <div class="panel-body after-open">
+	        	<div class="row plugin_base">
+	        		<div class="col-sm-3">版本：<span class="plugin_version"></span></div>
+	        		<div class="col-sm-3">版本说明：<span class="plugin_version_info"></span></div>
+	        		<div class="col-sm-3">所需内存：<span class="plugin_version_memory"></span> MB</div>
+	        		<div class="col-sm-3">安装时间：<span class="plugin_create_time"></span></div>
+	        	</div>
+	        	<div class="config-body">
+	        		
+	        	</div>
+	        </div>
+	        <div class="panel-footer text-right  after-open">
+	           <span type="btton" class="btn btn-success update-config">更新配置</span>
+	           {{if version_new}}
+	           <span type="btton" class="btn btn-success update-to-newversion">更新到最新版本</span>
+	           {{/if}}
+	           <span type="btton" class="btn btn-default disablePlugin"  style="display: {{is_switch === true ? '' : 'none'}}">停用</span>
+	           <span type="btton" class="btn btn-default activePlugin" style="display: {{is_switch === false ? '' : 'none'}}">启用</span>
+	           <span type="btton" class="btn btn-default uninstall">卸载</span>
+	        </div>
+	    </section>
+	</script>
+	<script type="text/template" id="unrelation-plugin-tpl">
+	    <section class="panel unrelation-plugin" data-plugin-id="{{plugin_id}}" data-plugin-version="{{version_info.build_version}}">
+	        <div class="panel-heading clearfix">
+	            {{plugin_info.plugin_alias}}（{{plugin_info.desc || '暂无介绍'}}）
+	            <a href="javascript:;" class="pull-right install-plugin">安装</a>
+	        </div>
+	    </section>
+	</script>
+</div>
+{% endverbatim myblock %}
+<!-- log end-->
+<script type="text/javascript" src="/static/www-new/dists/common.js"></script>
+<script type="text/javascript" src="/static/www-new/dists/app-plugin.js"></script>
+<script type="text/javascript">
+  var controller = new AppLogController({
+    $wrap: $('#plugin-wrap'),
+    tenantName: '{{tenantName}}',
+    serviceAlias: '{{tenantServiceInfo.service_alias}}',
+    serviceId: '{{tenantServiceInfo.service_id}}'
+  })
+  controller.ready();
+</script>
+
+

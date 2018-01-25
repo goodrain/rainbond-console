@@ -1,26 +1,21 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
-import re
+import logging
 
+from django.db.models import Sum, F
 from django.http import JsonResponse
 
 from www.apiclient.regionapi import RegionInvokeApi
+from www.app_http import AppServiceApi
+from www.decorator import perm_required
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, TenantServiceEnvVar, Users, \
+    ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.views import AuthedView
-from www.decorator import perm_required
-
-from www.service_http import RegionServiceApi
-from django.conf import settings
-from goodrain_web.decorator import method_perf_time
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, TenantServiceEnvVar, Users, \
-    ServiceEvent
-import logging
-
 from www.views.mixin import LeftSideBarMixin
-from django.db.models import Sum,F
 
 logger = logging.getLogger('default')
 
@@ -28,6 +23,7 @@ monitorhook = MonitorHook()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 region_api = RegionInvokeApi()
+appClient = AppServiceApi()
 
 
 class AddGroupView(LeftSideBarMixin, AuthedView):
@@ -43,8 +39,9 @@ class AddGroupView(LeftSideBarMixin, AuthedView):
                                            group_name=group_name).exists():
                 return JsonResponse({"ok": False, "info": "组名已存在"})
             group_info = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
-                                        group_name=group_name)
-            return JsonResponse({'ok': True, "info": "修改成功","group_id":group_info.ID,"group_name":group_info.group_name})
+                                                     group_name=group_name)
+            return JsonResponse(
+                {'ok': True, "info": "修改成功", "group_id": group_info.ID, "group_name": group_info.group_name})
         except Exception as e:
             logger.exception(e)
 
@@ -104,14 +101,14 @@ class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
 class BatchActionView(LeftSideBarMixin, AuthedView):
     """批量操作(批量启动,批量停止,批量部署)"""
 
-    def generate_event(self,service,action):
+    def generate_event(self, service, action):
         old_deploy_version = ""
         events = ServiceEvent.objects.filter(service_id=service.service_id).order_by("-start_time")
         if events:
             last_event = events[0]
             if last_event.final_status == "":
                 if not baseService.checkEventTimeOut(last_event):
-                    return "often",None
+                    return "often", None
             old_deploy_version = last_event.deploy_version
         event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
                              tenant_id=self.tenant.tenant_id, type=action,
@@ -128,7 +125,6 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 event.save()
         return "success", event
 
-
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action", None)
@@ -141,21 +137,22 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
         if action == 'start':
             try:
                 # 已用内存
-                tm = tenantUsedResource.calculate_real_used_resource(self.tenant)
+                tm = tenantUsedResource.calculate_real_used_resource(self.tenant, self.response_region)
                 res = TenantServiceInfo.objects.filter(service_id__in=service_ids).aggregate(
                     memory=Sum(F('min_node') * F('min_memory')))
                 memory = res["memory"]
 
                 if self.tenant.pay_type == "free":
-                    total = memory+tm
-                    if total > self.tenant.limit_memory:
-                        result = {"ok":False,"info":"资源超限,无法批量启动"}
-                        return JsonResponse(result,status=200)
+                    total = memory + tm
+                    # if total > self.tenant.limit_memory:
+                    if total > tenantUsedResource.get_limit_memory(self.tenant, self.response_region):
+                        result = {"ok": False, "info": "资源超限,无法批量启动"}
+                        return JsonResponse(result, status=200)
 
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
-                    status, event = self.generate_event(current_service,"restart")
+                    status, event = self.generate_event(current_service, "restart")
                     if status == "often":
                         continue
                     body = {}
@@ -164,7 +161,8 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                     body["operator"] = str(self.user.nick_name)
                     body["enterprise_id"] = self.tenant.enterprise_id
                     # 启动
-                    region_api.start_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
+                    region_api.start_service(current_service.service_region, self.tenantName,
+                                             current_service.service_alias, body)
 
                     monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_start', True)
                 result = {"ok": True, "info": "启动成功"}
@@ -176,22 +174,23 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
         elif action == "deploy":
             try:
                 # 已用内存
-                tm = tenantUsedResource.calculate_real_used_resource(self.tenant)
+                tm = tenantUsedResource.calculate_real_used_resource(self.tenant, self.response_region)
 
                 res = TenantServiceInfo.objects.filter(service_id__in=service_ids).aggregate(
                     memory=Sum(F('min_node') * F('min_memory')))
                 memory = res["memory"]
 
                 if self.tenant.pay_type == "free":
-                    total = memory+tm
-                    if total > self.tenant.limit_memory:
-                        result = {"ok":False,"info":"资源超限,无法批量部署"}
-                        return JsonResponse(result,status=200)
+                    total = memory + tm
+                    # if total > self.tenant.limit_memory:
+                    if total > tenantUsedResource.get_limit_memory(self.tenant, self.response_region):
+                        result = {"ok": False, "info": "资源超限,无法批量部署"}
+                        return JsonResponse(result, status=200)
 
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
-                    status, event = self.generate_event(current_service,action)
+                    status, event = self.generate_event(current_service, action)
                     if status == "often":
                         continue
                     gitUrl = current_service.git_url
@@ -216,14 +215,16 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                         kind = baseService.get_service_kind(self.service)
                         body["kind"] = kind
                         envs = {}
-                        buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
+                        buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
+                            "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
                         for benv in buildEnvs:
                             envs[benv.attr_name] = benv.attr_value
                         body["envs"] = envs
                         body["service_alias"] = self.service.service_alias
                         body["enterprise_id"] = self.tenant.enterprise_id
 
-                        region_api.build_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
+                        region_api.build_service(current_service.service_region, self.tenantName,
+                                                 current_service.service_alias, body)
                         monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', True)
                 result = {"ok": True, "info": "部署成功"}
             except Exception, e:
@@ -235,14 +236,15 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
-                    status, event = self.generate_event(current_service,action)
+                    status, event = self.generate_event(current_service, action)
                     if status == "often":
                         continue
                     body = {}
                     body["event_id"] = event.event_id
                     body["operator"] = str(self.user.nick_name)
                     body["enterprise_id"] = self.tenant.enterprise_id
-                    region_api.stop_service(current_service.service_region,self.tenantName,current_service.service_alias,body)
+                    region_api.stop_service(current_service.service_region, self.tenantName,
+                                            current_service.service_alias, body)
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
                     monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_stop', True)
@@ -252,4 +254,3 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 result = {"ok": False, "info": "停止失败"}
                 monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_stop', False)
         return JsonResponse(result, status=200)
-

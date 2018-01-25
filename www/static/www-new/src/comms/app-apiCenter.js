@@ -4,6 +4,7 @@ import widget from '../ui/widget';
 import lang from '../utils/lang';
 import { getEventId } from './apiCenter';
 import http from '../utils/http';
+import http2 from '../utils/http2';
 const Msg = widget.Message;
 const csrftoken = $.cookie('csrftoken');
 
@@ -726,7 +727,7 @@ export const appUpgradeType = (tenantName, serviceAlias, extend_method) => {
             Msg.success("设置成功");
             dfd.resolve(data);
         }  else {
-            Msg.warning(lang.get(data['stauts'] || '操作失败'));
+            Msg.warning(lang.get(data['status'] || '操作失败'));
             dfd.reject(data);
         }
     }).fail(function(data){
@@ -760,7 +761,7 @@ export const appUpgradePodNum = (tenantName, serviceAlias, podNum) => {
                 Msg.success("设置成功");
                 dfd.resolve(data);
             } else {
-                Msg.warning(lang.get(data['stauts'] || '操作失败'));
+                Msg.warning(lang.get(data['status'] || '操作失败'));
                 dfd.reject(data);
             }
         }).fail(function(data){
@@ -801,7 +802,7 @@ export const appUpgradeMemory = (tenantName, serviceAlias, memory) => {
                 Msg.success("设置成功");
                 dfd.resolve(data);
             } else {
-                Msg.warning(lang.get(data['stauts'] || '操作失败'));
+                Msg.warning(lang.get(data['status'] || '操作失败'));
                 dfd.reject(data);
             }
         }).fail(function(data){
@@ -2202,7 +2203,7 @@ export const postMemoryMonthlyExpansion = (tenantName, serviceAlias, memory, nod
 */
 export const getHealthCheckInfo = (tenantName, serviceAlias, mode) => {
     var dfd = $.Deferred();
-    http({
+    http2({
       url:'/ajax/'+tenantName+'/'+serviceAlias+'/probe?mode='+mode,
       type:'get',
       isTipError: false
@@ -2359,9 +2360,106 @@ export const appBatchDiskWithTime = (tenantName, serviceIdsArr = [], disk, month
         action: 'batch-disk',
         type: 'postpaid_memory'
     }
-    return appBatchMonthly(tenantName, data)
+    return appBatchMonthly(tenantName, data);
 }
 
 /*
-    获取可以被挂载的共享目录
+    获取未安装的插件
 */
+export const getNotInstalledPlugin = (tenantName, serviceAlias) => {
+    var url = '/ajax/'+tenantName+'/'+serviceAlias+'/appdetails/?fr=plugin';
+    return http({
+       url:url,
+       type:'get'
+    })
+}
+
+
+
+/*
+ 获取应用平均响应时间监控数据
+ start没有值代表请求的瞬时数据
+*/
+export const getAppRequestTime = (data={tenantName, serviceAlias, serviceId, start, end, step:7}) => {
+    if(data.start){
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query_range',
+            type:'get',
+             showLoading: false,
+            data:{
+                query:'sum(app_requesttime{service_id="'+data.serviceId+'",mode="avg"})',
+                start: data.start,
+                end: data.end || (new Date().getTime()/1000),
+                step: data.step
+            }
+        })
+    }else{
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query',
+            type:'get',
+             showLoading: false,
+            data:{
+                query:'sum(app_requesttime{service_id="'+data.serviceId+'",mode="avg"})'
+            }
+        })
+    }
+}
+
+/*
+ 获取应用吞吐率监控数据
+*/
+export const getAppRequest = (data={tenantName, serviceAlias, serviceId, start, end, step:7}) => {
+     if(data.start){
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query_range',
+            type:'get',
+            showLoading: false,
+            data:{
+                query:'sum(rate(app_request{method="total",service_id="'+data.serviceId+'"}[30s]))',
+                start: data.start,
+                end: data.end || (new Date().getTime()/1000),
+                step: data.step
+            }
+        })
+    }else{
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query',
+             showLoading: false,
+            type:'get',
+            data:{
+                query:'sum(rate(app_request{service_id="'+data.serviceId+'"}[15s]))'
+            }
+        })
+    }
+}
+
+/*
+ 获取应用在线人数监控数据
+*/
+export const getAppOnlineNumber = (data={tenantName, serviceAlias, serviceId, start, end, step:7}) => {
+    if(data.start){
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query_range',
+            type:'get',
+             showLoading: false,
+            data:{
+                query:'sum(app_requestclient{service_id="'+data.serviceId+'"})',
+                start: data.start,
+                end: data.end || (new Date().getTime()/1000),
+                step: data.step
+            }
+        })
+    }else{
+        return http({
+            url: '/ajax/' + data.tenantName + '/' + data.serviceAlias + '/query',
+            type:'get',
+             showLoading: false,
+            data:{
+                query:'sum(app_requestclient{service_id="'+data.serviceId+'"})'
+            }
+        })
+    }
+}
+
+
+

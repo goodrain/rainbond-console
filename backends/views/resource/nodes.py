@@ -31,31 +31,31 @@ class NodesView(BaseAPIView):
             result = generate_error_result()
         return Response(result)
 
-    def post(self, request, region_id, cluster_id, *args, **kwargs):
-        """
-
-        添加节点
-        ---
-        serializer: NodeSerilizer
-        """
-        try:
-            data = request.data
-            serializer = NodeSerilizer(data=request.data)
-            if not serializer.is_valid():
-                result = generate_result(
-                    "1003", "params error", "参数错误")
-                return Response(result)
-            code, res = node_service.add_node(region_id, cluster_id, **serializer.data)
-            if code != 200 and code != 201:
-                result = generate_result(
-                    "3001", res.get("msg"), res.get("msgcn"))
-            else:
-                result = generate_result(
-                    "0000", "success", "添加成功")
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
+    # def post(self, request, region_id, cluster_id, *args, **kwargs):
+    #     """
+    #
+    #     添加节点
+    #     ---
+    #     serializer: NodeSerilizer
+    #     """
+    #     try:
+    #         data = request.data
+    #         serializer = NodeSerilizer(data=request.data)
+    #         if not serializer.is_valid():
+    #             result = generate_result(
+    #                 "1003", "params error", "参数错误")
+    #             return Response(result)
+    #         code, res = node_service.add_node(region_id, cluster_id, **serializer.data)
+    #         if code != 200 and code != 201:
+    #             result = generate_result(
+    #                 "3001", res.get("msg"), res.get("msgcn"))
+    #         else:
+    #             result = generate_result(
+    #                 "0000", "success", "添加成功")
+    #     except Exception as e:
+    #         logger.exception(e)
+    #         result = generate_error_result()
+    #     return Response(result)
 
 
 class NodeInfoView(BaseAPIView):
@@ -229,181 +229,181 @@ class RegionNodesView(BaseAPIView):
         return Response(result)
 
 
-class NodeInstallCheckView(BaseAPIView):
-    """检测节点是否可安装"""
-
-    def post(self, request,region_id, *args, **kwargs):
-        """
-        检测节点是否可用
-        ---
-        parameters:
-            - name: region_id
-              description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: host
-              description: 节点IP
-              required: true
-              type: string
-              paramType: form
-            - name: port
-              description: 连接节点的端口
-              required: true
-              type: string
-              paramType: form
-            - name: node_type
-              description: 节点类型(tree 或 rain)
-              required: true
-              type: string
-              paramType: form
-            - name: login_type
-              description: 登录类型(ssh 或 root)
-              required: true
-              type: string
-              paramType: form
-            - name: root_pwd
-              description: root登录密码
-              required: false
-              type: string
-              paramType: form
-        """
-        try:
-            data = request.data
-            status, body = node_service.node_check(region_id, data)
-            if status == 200:
-                bean = body
-                bean["region_id"] = region_id
-                bean["host"] = data.get("host")
-                bean["port"] = data.get("port", 22)
-                result = generate_result(
-                    "0000", "success", "操作成功", bean=body)
-            elif status == 400:
-                result = generate_result("3005", msg=body, msg_show="服务器已在使用中")
-            else:
-                result = generate_result("3004", msg=body, msg_show="无法连接服务器")
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
-
-
-class NodeInitStatusView(BaseAPIView):
-    """节点初始化状态"""
-
-    def get(self, request, region_id, *args, **kwargs):
-        """
-        查询节点初始化状态
-        ---
-        parameters:
-            - name: region_id
-              description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: node_ip
-              description: 节点ip
-              required: true
-              type: string
-              paramType: query
-        """
-        try:
-            node_ip = request.GET.get("node_ip")
-            rt_body = node_service.check_init_status(region_id, node_ip)
-            region = RegionConfig.objects.get(region_id=region_id)
-            bean = {}
-            web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
-                                                     "event_log")
-            bean["web_socket_url"] = web_socket_url
-            bean.update(rt_body)
-            result = generate_result("0000", "success", "操作成功",bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
-
-
-class NodeInstallStatusView(BaseAPIView):
-    """节点安装状态"""
-
-    def get(self, request, region_id, *args, **kwargs):
-        """
-        节点组件安装状态
-        ---
-        parameters:
-            - name: region_id
-              description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: node_ip
-              description: 节点ip
-              required: true
-              type: string
-              paramType: query
-
-        """
-        try:
-            node_ip = request.GET.get("node_ip")
-            status, body = node_service.node_install_status(region_id, node_ip)
-            if status == 200:
-                task_list = body["List"]
-                all_complete = body["Result"]
-                status = body["Status"]
-                region = RegionConfig.objects.get(region_id=region_id)
-                bean = {}
-                web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
-                                                         "event_log")
-                bean["web_socket_url"] = web_socket_url
-                result = generate_result(
-                    "0000", "success", "操作成功", bean=bean, list=task_list, all_complete=all_complete,status=status)
-            else:
-                result = generate_result("3004", msg=body, msg_show=body["msg_show"])
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
-
-
-class NodeInstallView(BaseAPIView):
-    """节点组件安装"""
-
-    def post(self, request, region_id, *args, **kwargs):
-        """
-        节点组件安装
-        ---
-        parameters:
-            - name: region_id
-              description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: node_ip
-              description: 节点ip
-              required: true
-              type: string
-              paramType: form
-
-        """
-        try:
-            node_ip = request.data.get("node_ip")
-            status, body = node_service.node_install(region_id, node_ip)
-            if status == 200:
-                task_list = body["List"]
-                all_complete = body["Result"]
-                region = RegionConfig.objects.get(region_id=region_id)
-                bean = {}
-                web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
-                                                         "event_log")
-                bean["web_socket_url"] = web_socket_url
-                result = generate_result(
-                    "0000", "success", "操作成功",bean=bean, list=task_list, all_complete=all_complete)
-            else:
-                result = generate_result("3004", msg=body, msg_show=body)
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
+# class NodeInstallCheckView(BaseAPIView):
+#     """检测节点是否可安装"""
+#
+#     def post(self, request,region_id, *args, **kwargs):
+#         """
+#         检测节点是否可用
+#         ---
+#         parameters:
+#             - name: region_id
+#               description: 数据中心ID
+#               required: true
+#               type: string
+#               paramType: path
+#             - name: host
+#               description: 节点IP
+#               required: true
+#               type: string
+#               paramType: form
+#             - name: port
+#               description: 连接节点的端口
+#               required: true
+#               type: string
+#               paramType: form
+#             - name: node_type
+#               description: 节点类型(tree 或 rain)
+#               required: true
+#               type: string
+#               paramType: form
+#             - name: login_type
+#               description: 登录类型(ssh 或 root)
+#               required: true
+#               type: string
+#               paramType: form
+#             - name: root_pwd
+#               description: root登录密码
+#               required: false
+#               type: string
+#               paramType: form
+#         """
+#         try:
+#             data = request.data
+#             status, body = node_service.node_check(region_id, data)
+#             if status == 200:
+#                 bean = body
+#                 bean["region_id"] = region_id
+#                 bean["host"] = data.get("host")
+#                 bean["port"] = data.get("port", 22)
+#                 result = generate_result(
+#                     "0000", "success", "操作成功", bean=body)
+#             elif status == 400:
+#                 result = generate_result("3005", msg=body, msg_show="服务器已在使用中")
+#             else:
+#                 result = generate_result("3004", msg=body, msg_show="无法连接服务器")
+#         except Exception as e:
+#             logger.exception(e)
+#             result = generate_error_result()
+#         return Response(result)
+#
+#
+# class NodeInitStatusView(BaseAPIView):
+#     """节点初始化状态"""
+#
+#     def get(self, request, region_id, *args, **kwargs):
+#         """
+#         查询节点初始化状态
+#         ---
+#         parameters:
+#             - name: region_id
+#               description: 数据中心ID
+#               required: true
+#               type: string
+#               paramType: path
+#             - name: node_ip
+#               description: 节点ip
+#               required: true
+#               type: string
+#               paramType: query
+#         """
+#         try:
+#             node_ip = request.GET.get("node_ip")
+#             rt_body = node_service.check_init_status(region_id, node_ip)
+#             region = RegionConfig.objects.get(region_id=region_id)
+#             bean = {}
+#             web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
+#                                                      "event_log")
+#             bean["web_socket_url"] = web_socket_url
+#             bean.update(rt_body)
+#             result = generate_result("0000", "success", "操作成功",bean=bean)
+#         except Exception as e:
+#             logger.exception(e)
+#             result = generate_error_result()
+#         return Response(result)
+#
+#
+# class NodeInstallStatusView(BaseAPIView):
+#     """节点安装状态"""
+#
+#     def get(self, request, region_id, *args, **kwargs):
+#         """
+#         节点组件安装状态
+#         ---
+#         parameters:
+#             - name: region_id
+#               description: 数据中心ID
+#               required: true
+#               type: string
+#               paramType: path
+#             - name: node_ip
+#               description: 节点ip
+#               required: true
+#               type: string
+#               paramType: query
+#
+#         """
+#         try:
+#             node_ip = request.GET.get("node_ip")
+#             status, body = node_service.node_install_status(region_id, node_ip)
+#             if status == 200:
+#                 task_list = body["List"]
+#                 all_complete = body["Result"]
+#                 status = body["Status"]
+#                 region = RegionConfig.objects.get(region_id=region_id)
+#                 bean = {}
+#                 web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
+#                                                          "event_log")
+#                 bean["web_socket_url"] = web_socket_url
+#                 result = generate_result(
+#                     "0000", "success", "操作成功", bean=bean, list=task_list, all_complete=all_complete,status=status)
+#             else:
+#                 result = generate_result("3004", msg=body, msg_show=body["msg_show"])
+#         except Exception as e:
+#             logger.exception(e)
+#             result = generate_error_result()
+#         return Response(result)
+#
+#
+# class NodeInstallView(BaseAPIView):
+#     """节点组件安装"""
+#
+#     def post(self, request, region_id, *args, **kwargs):
+#         """
+#         节点组件安装
+#         ---
+#         parameters:
+#             - name: region_id
+#               description: 数据中心ID
+#               required: true
+#               type: string
+#               paramType: path
+#             - name: node_ip
+#               description: 节点ip
+#               required: true
+#               type: string
+#               paramType: form
+#
+#         """
+#         try:
+#             node_ip = request.data.get("node_ip")
+#             status, body = node_service.node_install(region_id, node_ip)
+#             if status == 200:
+#                 task_list = body["List"]
+#                 all_complete = body["Result"]
+#                 region = RegionConfig.objects.get(region_id=region_id)
+#                 bean = {}
+#                 web_socket_url = node_service.get_ws_url(request, settings.EVENT_WEBSOCKET_URL[region.region_name],
+#                                                          "event_log")
+#                 bean["web_socket_url"] = web_socket_url
+#                 result = generate_result(
+#                     "0000", "success", "操作成功",bean=bean, list=task_list, all_complete=all_complete)
+#             else:
+#                 result = generate_result("3004", msg=body, msg_show=body)
+#         except Exception as e:
+#             logger.exception(e)
+#             result = generate_error_result()
+#         return Response(result)
 
 
 class NodeLabelsView(BaseAPIView):
@@ -438,15 +438,11 @@ class NodeLabelsView(BaseAPIView):
         """
         try:
             labels = request.data.get("labels")
-            status, body = node_service.add_node_labels(region_id, cluster_id, node_uuid, labels)
-            if status == 200:
-                task_list = body["List"]
-                all_complete = body["Result"]
+            logger.debug("===========> labels {0}".format(labels))
+            node_service.update_node_labels(region_id, cluster_id, node_uuid, labels)
 
-                result = generate_result(
-                    "0000", "success", "操作成功", list=task_list, all_complete=all_complete)
-            else:
-                result = generate_result("3004", msg=body, msg_show=body)
+            result = generate_result(
+                "0000", "success", "节点标签更新成功")
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

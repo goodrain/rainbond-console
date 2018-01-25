@@ -5,7 +5,11 @@ from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
 from django.db.models.fields import DateTimeField
 from datetime import datetime
+from django.db.models.fields.files import FileField
 from django.conf import settings
+import logging
+
+logger = logging.getLogger("default")
 
 # Create your models here.
 
@@ -282,6 +286,8 @@ class BaseModel(models.Model):
             value = f.value_from_object(self)
             if isinstance(value, datetime):
                 value = value.strftime('%Y-%m-%d %H:%M:%S')
+            elif isinstance(f, FileField):
+                value = value.url if value else None
             data[f.name] = value
         return data
 
@@ -336,6 +342,23 @@ class TenantRegionInfo(BaseModel):
     region_scope = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心类型 private/public")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"企业id")
 
+
+class TenantRegionResource(BaseModel):
+    class Meta:
+        db_table = 'tenant_region_resource'
+        unique_together = (('tenant_id', 'region_name'),)
+
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
+    tenant_id = models.CharField(max_length=33, help_text=u"租户id")
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    memory_limit = models.IntegerField(help_text=u"内存使用上限(M)", default=0)
+    memory_expire_date = models.DateTimeField(null=True, blank=True, help_text=u"内存有效期时间")
+    disk_limit = models.IntegerField(help_text=u"磁盘使用上限(M)", default=0)
+    disk_expire_date = models.DateTimeField(null=True, blank=True, help_text=u"磁盘有效期时间")
+    net_limit = models.IntegerField(help_text=u"磁盘使用上限(M)", default=0)
+    net_stock = models.IntegerField(help_text=u"磁盘使用余量(M)", default=0)
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
 service_status = ((u"已发布", 'published'), (u"测试中", "test"),)
 
@@ -508,6 +531,7 @@ class TenantServiceInfo(BaseModel):
         default='assistant',
         help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
+    tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
 
     def __unicode__(self):
         return self.service_alias
@@ -620,6 +644,7 @@ class TenantServiceInfoDelete(BaseModel):
         default='assistant',
         help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
+    tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
 
 
 class TenantServiceLog(BaseModel):
@@ -1355,3 +1380,36 @@ class ConsoleSysConfig(BaseModel):
     desc = models.CharField(max_length=40, help_text=u"描述")
     enable = models.BooleanField(default=True, help_text=u"是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+class TenantEnterpriseToken(BaseModel):
+    class Meta:
+        db_table = 'tenant_enterprise_token'
+        unique_together = ('enterprise_id', 'access_target')
+
+    enterprise_id = models.IntegerField(default=0, help_text=u"企业id")
+    access_target = models.CharField(max_length=32, blank=True, null=True, default='', help_text=u"要访问的目标服务名称")
+    access_url = models.CharField(max_length=255, unique=True, help_text=u"需要访问的api地址")
+    access_id = models.CharField(max_length=32, unique=True, help_text=u"target分配给客户端的ID")
+    access_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"客户端token")
+    crt = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书")
+    key = models.TextField(default='',  blank=True, null=True, help_text=u"客户端证书key")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class TenantServiceGroup(BaseModel):
+    """应用组实体"""
+
+    class Meta:
+        db_table = 'tenant_service_group'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    group_name = models.CharField(max_length=64, help_text=u"服务组名")
+    group_alias = models.CharField(max_length=64, help_text=u"服务组名")
+    group_key = models.CharField(max_length=32, unique=True, help_text=u"服务组id")
+    group_version = models.CharField(max_length=32, help_text=u"服务组版本")
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    service_group_id = models.IntegerField(default=0, help_text=u"ServiceGroup主键, 应用分类ID")
+

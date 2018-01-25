@@ -223,5 +223,36 @@
         <!-- new app build end -->
         </div>
 	</section>
+    <script type="text/javascript">
+        //处理官方实例的逻辑 start
+        function getSearchQuery(){
+            var map = {};
+            var searchString = location.search.replace('?', '');
+            if(searchString.length){
+                var searchArr = searchString.split('&');
+                for(var i=0;i<searchArr.length;i++){
+                    var key = decodeURIComponent(searchArr[i].split('=')[0]);
+                    var val = decodeURIComponent(searchArr[i].split('=')[1]);
+                    map[key] = val;
+                }
+            }
+            return map;
+        }
+    
+        $(function(){
+            var git = getSearchQuery().git;
+            if(git){
+                git = decodeURIComponent(git);
+                $('#Democode').find('option').each(function(){
+                    if(git === $(this).attr('value')){
+                        $(this).prop('selected', true)
+                    }else{
+                        $(this).prop('selected', false)
+                    }
+                })
+
+            }
+        })
+    </script>
 </section>
 {% endblock %}

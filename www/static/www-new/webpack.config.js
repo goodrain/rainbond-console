@@ -17,9 +17,11 @@ module.exports = {
        'app-overview': ['./src/pages/app-overview.js'],
        'app-expansion': ['./src/pages/app-expansion.js'],
        'app-monitor': ['./src/pages/app-monitor.js'],
+       'app-monitor-new': ['./src/pages/app-monitor-new.js'],
        'app-pay': ['./src/pages/app-pay.js'],
        'app-port': ['./src/pages/app-port.js'],
        'app-mnt': ['./src/pages/app-mnt.js'],
+       'app-plugin': ['./src/pages/app-plugin.js'],
        'pay-renew': ['./src/pages/pay-renew.js']
     },
     output: {

@@ -4,6 +4,8 @@ import json
 import time
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+from django.forms import model_to_dict
+
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db import BaseConnection
@@ -12,9 +14,9 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
     AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
-    PublishedGroupServiceRelation, ServiceExec
+    PublishedGroupServiceRelation, ServiceExec, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
 
-from www.models.main import TenantRegionPayModel, TenantServiceEnv
+from www.models.main import TenantRegionPayModel, TenantServiceEnv, ServiceProbe
 from django.conf import settings
 from goodrain_web.custom_config import custom_config
 from www.monitorservice.monitorhook import MonitorHook
@@ -107,7 +109,8 @@ class BaseTenantService(object):
             min_cpu = min_cpu * 2
         return min_cpu
 
-    def create_service(self, service_id, tenant_id, service_alias, service_cname, service, creater, region):
+    def create_service(self, service_id, tenant_id, service_alias, service_cname, service, creater, region,
+                       tenant_service_group_id=0, service_origin='assistant'):
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
         tenantServiceInfo["tenant_id"] = tenant_id
@@ -119,7 +122,7 @@ class BaseTenantService(object):
         tenantServiceInfo["category"] = service.category
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
-        tenantServiceInfo["setting"] = service.setting
+        tenantServiceInfo["setting"] = ""
         tenantServiceInfo["extend_method"] = service.extend_method
         tenantServiceInfo["env"] = service.env
         tenantServiceInfo["min_node"] = service.min_node
@@ -150,6 +153,8 @@ class BaseTenantService(object):
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
+        tenantServiceInfo["tenant_service_group_id"] = tenant_service_group_id or 0
+        tenantServiceInfo["service_origin"] = service_origin
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
@@ -187,6 +192,16 @@ class BaseTenantService(object):
         data["ports_info"] = []
         data["envs_info"] = []
         data["volumes_info"] = []
+        data["service_label"] = "StatefulServiceType " if newTenantService.extend_method == "state" else "StatelessServiceType"
+
+        depend_ids = [{
+            "dep_order": dep.dep_order,
+            "dep_service_type": dep.dep_service_type,
+            "depend_service_id": dep.dep_service_id,
+            "service_id": dep.service_id,
+            "tenant_id": dep.tenant_id
+        } for dep in TenantServiceRelation.objects.filter(service_id=newTenantService.service_id)]
+        data["depend_ids"] = depend_ids
 
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
@@ -228,13 +243,12 @@ class BaseTenantService(object):
         for port in ports_info:
             # 如果对外访问为打开,则调用api 打开数据
             if port.is_outer_service:
-                if port.protocol == "stream":
+                if port.protocol != "http":
                     stream_outer_num = TenantServicesPort.objects.filter(service_id=port.service_id,
-                                                                         protocol="stream",
                                                                          is_outer_service=True).exclude(
-                        container_port=port.container_port).count()
+                        container_port=port.container_port, protocol="http").count()
                     if stream_outer_num > 0:
-                        logger.error("stream协议外部访问只能开启一个")
+                        logger.error("stream协议族外部访问只能开启一个")
                         continue
                 try:
                     body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
@@ -961,13 +975,18 @@ class BaseTenantService(object):
 
     # 获取服务类型
     def get_service_kind(self, service):
+        # 自定义镜像
         kind = "image"
         if service.category == "application":
+            # 源码构建
             kind = "source"
         if service.category == "app_publish":
+            # 镜像分享到云市
             kind = "market"
             if service.is_slug():
+                # 源码分享到云市
                 kind = "slug"
+            # 自定义镜像
             if service.service_key == "0000":
                 kind = "image"
         return kind
@@ -984,15 +1003,84 @@ class BaseTenantService(object):
         except Exception as e:
             raise e
 
+    def add_service_default_probe(self, tenant, service):
+        ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id)
+        port_length = len(ports)
+        if port_length >= 1:
+            try:
+                container_port = ports[0].container_port
+                for p in ports:
+                    if p.is_outer_service:
+                        container_port = p.container_port
+                service_probe = ServiceProbe(
+                    service_id=service.service_id,
+                    scheme="tcp",
+                    path="",
+                    port=container_port,
+                    cmd="",
+                    http_header="",
+                    initial_delay_second=2,
+                    period_second=3,
+                    timeout_second=30,
+                    failure_threshold=3,
+                    success_threshold=1,
+                    is_used=True,
+                    probe_id=make_uuid(),
+                    mode="readiness")
+                json_data = model_to_dict(service_probe)
+                is_used = 1 if json_data["is_used"] else 0
+                json_data.update({"is_used": is_used})
+                json_data["enterprise_id"] = tenant.enterprise_id
+                res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
+                                                         service.service_alias,
+                                                         json_data)
+                service_probe.save()
+            except Exception as e:
+                logger.error("add service probe error !")
+                logger.exception(e)
+
+
+class ServicePluginResource(object):
+    def get_service_plugin_resource(self, service_id):
+        tprs = TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_status=True)
+        memory = 0
+        for tpr in tprs:
+            try:
+                pbv = PluginBuildVersion.objects.get(plugin_id=tpr.plugin_id, build_version=tpr.build_version)
+                memory += pbv.min_memory
+            except Exception as e:
+                pass
+        return memory
+
+    def get_services_plugin_resource_map(self, service_ids):
+        tprs = TenantServicePluginRelation.objects.filter(service_id__in=service_ids, plugin_status=True)
+        service_plugin_map = {}
+        for tpr in tprs:
+            pbv = PluginBuildVersion.objects.filter(plugin_id=tpr.plugin_id, build_version=tpr.build_version).values(
+                "min_memory")
+            if pbv:
+                p = pbv[0]
+                if service_plugin_map.get(tpr.service_id, None):
+                    service_plugin_map[tpr.service_id] += p["min_memory"]
+                else:
+                    service_plugin_map[tpr.service_id] = p["min_memory"]
+        return service_plugin_map
 
 class TenantUsedResource(object):
     def __init__(self):
         self.feerule = settings.REGION_RULE
         self.MODULES = settings.MODULES
 
-    def calculate_real_used_resource(self, tenant):
+    def calculate_real_used_resource(self, tenant, region=None):
         totalMemory = 0
-        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True, is_init=True)
+        if region:
+            tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id,
+                                                                 is_active=True, is_init=True)
+        else:
+            tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name=region,
+                                                                 is_active=True,
+                                                                 is_init=True)
+
         running_data = {}
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
@@ -1025,12 +1113,13 @@ class TenantUsedResource(object):
             if ischeckStatus:
                 newAddMemory = newAddMemory + self.curServiceMemory(tenant, cur_service)
             if tenant.pay_type == "free":
-                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                tm = self.calculate_real_used_resource(tenant, cur_service.service_region) + newAddMemory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
-                if tm <= tenant.limit_memory:
+                # if tm <= tenant.limit_memory:
+                if tm <= self.get_limit_memory(tenant, cur_service.service_region):
                     result = True
             elif tenant.pay_type == "payed":
-                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                tm = self.calculate_real_used_resource(tenant, cur_service.service_region) + newAddMemory
                 guarantee_memory = self.calculate_guarantee_resource(tenant)
                 logger.debug(
                     tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
@@ -1063,14 +1152,15 @@ class TenantUsedResource(object):
             pass
         return memory
 
-    def predict_batch_services_memory(self, tenant, services):
-        used_memory = self.calculate_real_used_resource(tenant)
+    def predict_batch_services_memory(self, tenant, services, region):
         total_memory = 0
         for service in services:
             total_memory += service.min_memory * service.min_node
         if tenant.pay_type == "free":
+            used_memory = self.calculate_real_used_resource(tenant, region)
             tm = used_memory + total_memory
-            if tm <= tenant.limit_memory:
+            # if tm <= tenant.limit_memory:
+            if tm <= self.get_limit_memory(tenant, region):
                 result = True
             else:
                 result = False
@@ -1078,6 +1168,33 @@ class TenantUsedResource(object):
             result = True
         return result
 
+    def get_limit_memory(self, tenant, region):
+        res = TenantRegionResource.objects.filter(tenant_id=tenant.tenant_id, region_name=region)
+        if res:
+            pkg_tag = True
+            expire = False
+            if datetime.datetime.now() < res[0].memory_expire_date:
+                memory = res[0].memory_limit
+            else:
+                expire = True
+                memory = 0
+        else:
+            pkg_tag = False
+            expire = False
+            if tenant.pay_type == 'free':
+                if datetime.datetime.now() < tenant.expired_time:
+                    memory = tenant.memory_limit
+                else:
+                    expire = True
+                    memory = 0
+            elif tenant.pay_type == 'payed':
+                memory = 1024 * 1024
+            else:
+                memory = 9999 * 1024
+
+        logger.debug('[{}:{}-{}] package:{}, expire:{}, memory:{}'.format(tenant.tenant_name, tenant.pay_type, region,
+                                                                          pkg_tag, expire, memory))
+        return memory
 
 class TenantAccountService(object):
     def __init__(self):
@@ -1187,6 +1304,7 @@ class CodeRepositoriesService(object):
                     ts.code_from = service_code_from
                     ts.code_version = "master"
                     ts.save()
+                    self.codeCheck(ts)
         elif service_code_from == "gitlab_exit" or service_code_from == "gitlab_manual":
             ts = TenantServiceInfo.objects.get(service_id=service.service_id)
             ts.git_project_id = code_id
@@ -1396,7 +1514,10 @@ class ServiceAttachInfoManage(object):
             startTime = datetime.datetime.now() + datetime.timedelta(days=7) + datetime.timedelta(hours=1)
             startTime = startTime.strftime("%Y-%m-%d %H:00:00")
             startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
+
             service.expired_time = startTime
+            # 临时将应用的过期时间保持跟租户的过期时间一致
+            # service.expired_time = tenant.expired_time
             service.save()
             endTime = startTime + relativedelta(months=int(pre_paid_period))
             attach_info.buy_start_time = startTime

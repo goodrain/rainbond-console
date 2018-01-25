@@ -7,6 +7,7 @@ from backends.services.clusterservice import cluster_service
 from backends.services.exceptions import *
 from backends.services.httpclient import HttpInvokeApi
 from backends.services.regionservice import region_service
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models import Tenants, TenantServiceInfo
 from www.models.label import *
 from www.utils.crypt import make_uuid
@@ -28,6 +29,7 @@ class NodeService(object):
         'Content-Type': 'application/json'
     }
     http_client = HttpInvokeApi()
+    region_api = RegionInvokeApi()
 
     def wapper_node_info(self, node_list, region, cluster):
         for node in node_list:
@@ -58,36 +60,36 @@ class NodeService(object):
         node_list = self.wapper_node_info(list, region, cluster)
         return 200, node_list
 
-    def add_node(self, region_id, cluster_id, **kwargs):
-        # 此方法已废弃
-        region = RegionConfig.objects.get(region_id=region_id)
-        cluster = RegionClusterInfo.objects.get(ID=cluster_id)
-        self.http_client.update_client(region)
-
-        body = kwargs
-        labels = json.loads(body["labels"])
-        body["labels"] = labels
-        uuid = make_uuid()
-        body["uuid"] = uuid
-        res, body = self.http_client.add_node(json.dumps(body))
-        # 为节点记录标签
-        if 200 <= body["code"] < 300:
-            all_labels = Labels.objects.all()
-            # 标签ID和标签英文名称字符串
-            label_map = {l.label_name: l.label_id for l in all_labels}
-            node_labels = []
-            for label_name in labels.keys():
-                label_id = label_map.get(label_name, None)
-                if label_id:
-                    node_label = NodeLabels(
-                        region_id=region_id,
-                        cluster_id=cluster_id,
-                        node_uuid=uuid,
-                        label_id=label_id,
-                    )
-                    node_labels.append(node_label)
-            NodeLabels.objects.bulk_create(node_labels)
-        return body["code"], body["body"]
+    # def add_node(self, region_id, cluster_id, **kwargs):
+    #     # 此方法已废弃
+    #     region = RegionConfig.objects.get(region_id=region_id)
+    #     cluster = RegionClusterInfo.objects.get(ID=cluster_id)
+    #     self.http_client.update_client(region)
+    #
+    #     body = kwargs
+    #     labels = json.loads(body["labels"])
+    #     body["labels"] = labels
+    #     uuid = make_uuid()
+    #     body["uuid"] = uuid
+    #     res, body = self.http_client.add_node(json.dumps(body))
+    #     # 为节点记录标签
+    #     if 200 <= body["code"] < 300:
+    #         all_labels = Labels.objects.all()
+    #         # 标签ID和标签英文名称字符串
+    #         label_map = {l.label_name: l.label_id for l in all_labels}
+    #         node_labels = []
+    #         for label_name in labels.keys():
+    #             label_id = label_map.get(label_name, None)
+    #             if label_id:
+    #                 node_label = NodeLabels(
+    #                     region_id=region_id,
+    #                     cluster_id=cluster_id,
+    #                     node_uuid=uuid,
+    #                     label_id=label_id,
+    #                 )
+    #                 node_labels.append(node_label)
+    #         NodeLabels.objects.bulk_create(node_labels)
+    #     return body["code"], body["body"]
 
     def get_node_brief_info(self, region_id, cluster_id, node_uuid):
         region = RegionConfig.objects.get(region_id=region_id)
@@ -362,37 +364,28 @@ class NodeService(object):
         else:
             return int(res.status), body["msg"] if body["msg"] else "安装状态查询异常"
 
-    def add_node_labels(self, region_id, cluster_id, node_uuid, labels):
+    def update_node_labels(self, region_id, cluster_id, node_uuid, labels_map):
         """添加节点的标签"""
-        labels = json.loads(labels)
         region = RegionConfig.objects.get(region_id=region_id)
-        cluster = RegionClusterInfo.objects.get(ID=cluster_id)
-        self.http_client.update_client(region)
-        logger.debug("-------> labels {}:".format(labels))
-        res, body = self.http_client.add_node_labels(node_uuid, json.dumps(labels))
-        if 200 <= res.status < 400:
-            # 添加本地节点标签
-            all_labels = Labels.objects.all()
-            # 标签ID和标签英文名称字符串
-            label_map = {l.label_name: l.label_id for l in all_labels}
-            node_labels = []
-            for label_name in labels:
-                label_id = label_map.get(label_name, None)
+        labels_map = json.loads(labels_map)
+        all_labels = Labels.objects.all()
+        label_id_map = {l.label_name: l.label_id for l in all_labels}
+        node_labels = []
+        for k, v in labels_map.iteritems():
+            # 对于用户自定义的标签进行操作
+            if v == "selfdefine":
+                label_id = label_id_map.get(k, None)
                 if label_id:
-                    node_label = NodeLabels(
-                        region_id=region_id,
-                        cluster_id=cluster_id,
-                        node_uuid=node_uuid,
-                        label_id=label_id,
-                    )
+                    node_label = NodeLabels(region_id=region_id,
+                                            cluster_id=cluster_id,
+                                            node_uuid=node_uuid,
+                                            label_id=label_id)
                     node_labels.append(node_label)
-            # delete old node labels
-            NodeLabels.objects.filter(region_id=region_id, node_uuid=node_uuid).delete()
-            NodeLabels.objects.bulk_create(node_labels)
 
-            return 200, body["bean"]
-        else:
-            return int(res.status), body["msg"]
+        res, body = self.http_client.update_node_labels(region, node_uuid, json.dumps(labels_map))
+        NodeLabels.objects.filter(region_id=region_id, node_uuid=node_uuid).delete()
+        NodeLabels.objects.bulk_create(node_labels)
+        return res, body
 
     def get_ws_url(self, request, default_url, ws_type):
         if default_url != "auto":

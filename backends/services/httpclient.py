@@ -96,9 +96,10 @@ class HttpInvokeApi(BaseHttpClient):
         res, body = self._put(url, self.default_headers, body)
         return res, body
 
-    def add_node_labels(self, node_uuid, body):
-        url = self.base_url + "/v2/nodes/" + node_uuid + "/label"
-        res, body = self._post(url, self.default_headers, body)
+    def update_node_labels(self,region, node_uuid, body):
+        self.update_client(region)
+        url = self.base_url + "/v2/nodes/" + node_uuid + "/labels"
+        res, body = self._put(url, self.default_headers, body)
         return res, body
 
     def get_region_resources(self):

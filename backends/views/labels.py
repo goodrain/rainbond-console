@@ -14,7 +14,7 @@ logger = logging.getLogger("default")
 class AllLabelsView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
-        获取数据中心
+        获取标签
         ---
         parameters:
             - name: label_alias

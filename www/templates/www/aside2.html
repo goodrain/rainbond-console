@@ -79,6 +79,13 @@
                 <!--<span>我的应用</span></a>-->
         </li>
 
+         <li>
+             <a class="{{pluginStatus}}" href="/plugins/{{tenantName}}/">
+                 <i class="fa fa-plug"></i>
+                 <span>我的插件</span>
+             </a>
+         </li>
+
         {% if not is_private and cloud_assistant == 'goodrain' %}
         <!--公有云去掉了-->
         {% else %}
@@ -106,6 +113,7 @@
                 <li class="{{myFinanceRecharge}}"><a href="/apps/{{tenantName}}/recharge/">账户充值</a></li>
                 <li class="{{myServiceCost}}"><a href="/apps/{{tenantName}}/service-cost/">应用扣费</a></li>
                 <li class="{{batchRenew}}"><a href="/apps/{{tenantName}}/batch-renew/">批量续费</a></li>
+                <li class="{{batchRenew}}"><a href="{{app_domain}}/#/dcList">扩展资源</a></li>
                 <!--<li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                -->
             </ul>
         </li>

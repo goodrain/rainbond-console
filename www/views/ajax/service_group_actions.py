@@ -162,7 +162,7 @@ class TopologicalServiceView(AuthedView):
             exist_service_domain = False
             # 打开对外端口
             if port.is_outer_service:
-                if port.protocol == 'stream':
+                if port.protocol != 'http':
                     cur_region = service_region.replace("-1", "")
                     domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_alias, tenant_name, cur_region)
                     if settings.STREAM_DOMAIN_URL[service_region] != "":
@@ -298,7 +298,7 @@ class TopologicalInternetView(AuthedView):
                     exist_service_domain = False
                     # 打开对外端口
                     if port.is_outer_service:
-                        if port.protocol == 'stream':
+                        if port.protocol != 'http':
                             cur_region = service_region.replace("-1", "")
                             domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias, self.tenant.tenant_name, cur_region)
                             if settings.STREAM_DOMAIN_URL[service_region] != "":

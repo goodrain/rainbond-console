@@ -1,0 +1,91 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/sweetalert.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/bootstrap-editable.css" %}' />
+<style type="text/css">
+    [data-status=build_success] {
+        background: #28cb75;
+        color: #fff;
+    }
+    [data-status=build_fail], [data-status=time_out] {
+        background: #dc0202;
+        color: #fff;
+    }
+    [data-status=unbuild] {
+        background: #757575;
+        color: #fff;
+    }
+    [data-status=building] {
+        background: #e69807;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <input type="hidden" name="tenantName" value="{{tenantName}}" />
+    <div class="clearfix">
+        <h3 class="tit-color pull-left" id="group-tit">我的插件</h3>
+        <div class="pull-right clearfix" style="margin-top:15px;">
+            {% if trans_plugins == "need" %}
+                <button type="button" id="install_market_plugin" class="btn btn-success" ">安装云帮插件</button>
+            {% endif %}
+            <button type="button" id="" class="btn btn-success" onclick="window.location.href='/plugins/{{tenantName}}/create/'">新建插件</button>
+        </div>
+
+    </div>
+    <section class="panel panel-default">
+        <div class="panel-body">
+            <table class="table">
+                <thead>
+                    <tr class="active">
+                        <th>插件名</th>
+                        <th>当前版本</th>
+                        <th>类别</th>
+                        <th>插件说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plugin in plugins_info %}
+                            <tr data-id="{{plugin.plugin_id}}">
+                                <td>
+                                    <a href="/plugins/{{tenantName}}/{{plugin.plugin_id}}/config/">{{plugin.plugin_alias}}</a>
+                                </td>
+                                <td class="js-build-version">
+                                    {{plugin.build_version}}
+                                </td>
+                                <td>
+                                    {{plugin.category}}
+                                </td>
+                                <td>
+                                    {{plugin.desc}}
+                                </td>
+                            </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!--pages start 
+            <div class="pages">
+                <a href="javascript:;" class="next page-btn" data-page="1">&lt;</a>
+                <a href="javascript:;" class="active">1</a>
+                <a href="javascript:;" class="page-btn" data-page="2">2</a>
+                <a href="javascript:;" class="next page-btn" data-page="2">&gt;</a>
+            </div>
+            pages end -->
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script type="text/javascript" src="/static/www/js/widget.js"></script>
+<script type="text/javascript" src="/static/www/js/http.js"></script>
+<script type="text/javascript" src="/static/www/js/createplugin/my-plugin.js"></script>
+
+{% endblock %}

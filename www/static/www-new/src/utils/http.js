@@ -89,7 +89,22 @@ function http(option){
 		 if(option.showLoading !== false){
 			 config.afterLoad();
 		 }
-		 dfd.resolve(data);
+
+
+		 if(data.code  === void 0){
+		 	dfd.resolve(data);
+		 }else{
+		 	
+		 	if(data.code>=200 && data.code<300){
+				 dfd.resolve(data.body || data.data || data);
+			 }else{
+				 if(isTipError === true){
+					 Msg.warning(data.msgcn || data.msg_show || data.msg || '操作异常');
+				 }
+				 dfd.reject(data);   
+			 }
+		 }
+		 
 	 }
 	 
 	 option.error=function(xmlHttpRequest){
@@ -128,7 +143,7 @@ function http(option){
      option.data = option.data || {};
      var type = (option.type || '').toLowerCase();
      if (type != 'get'){
-     	option.data.csrfmiddlewaretoken = $.cookie('csrftoken');
+     	//option.data.csrfmiddlewaretoken = $.cookie('csrftoken');
      }
      
 	 

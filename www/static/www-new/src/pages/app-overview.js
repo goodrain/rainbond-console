@@ -24,15 +24,38 @@ import {
 	appPay,
 	getAppInfo,
 	NewrebootApp,
-	NewrebootByEventId
+	NewrebootByEventId,
+	getNotInstalledPlugin,
+	getAppRequestTime,
+	getAppRequest
 } from '../comms/app-apiCenter';
 import {
 	getPageOverviewAppData
 } from '../comms/page-app-apiCenter';
 const Msg = widget.Message;
 var template = require('./app-overview-tpl.html');
+import appActionLogUtil from '../utils/app-action-log-util';
+import dateUtil from '../utils/date-util';
 
 
+
+var type_json = {
+    "deploy": "部署",
+    "restart": "启动",
+    "delete": "删除",
+    "stop": "关闭",
+    "HorizontalUpgrade": "水平升级",
+    "VerticalUpgrade": "垂直升级",
+    "callback": "回滚",
+    "create": "创建",
+    "own_money": "应用欠费关闭",
+    "expired": "应用过期关闭",
+    "share-ys": "分享到云市",
+    "share-yb": "分享到云帮",
+    "reboot"  :"应用重启" ,
+    "git-change":"仓库地址修改",
+    "imageUpgrade":"应用更新"
+}
 
 
 
@@ -54,133 +77,69 @@ function createLogTmp(data){
 	return html;
 }
 
-//是否是昨天
-function isToday(str) {
-    var d = new Date(str);
-    var todaysDate = new Date();
-    if (d.setHours(0, 0, 0, 0) == todaysDate.setHours(0, 0, 0, 0)) {
-        return true;
-    } else {
-        return false;
-    }
+/*
+	创建时间轴单条记录模板
+*/
+function createLogItemTmp(log, data){
+	var html = [];
+    	html.push('<li data-event-id="'+log.event_id+'" class="js-event-row">');
+    	html.push('<time class="tl-time">');
+	    	html.push('<h4>'+(dateUtil.format(appActionLogUtil.getActionTime(log), 'hh:mm:ss'))+'</h4>');
+	    	html.push('<p>'+(dateUtil.dateToCN(appActionLogUtil.getActionTime(log), 'yyyy-MM-dd'))+'</p>');
+    	html.push('</time>');
+    	html.push('<i class="fa '+(appActionLogUtil.getActionStatusInfo(log).bgColor)+' tl-icon"></i>');
+    	html.push('<div class="tl-content">');
+    		html.push('<div class="panel panel-primary">');
+    			html.push('<div class="panel-heading">');
+    				var title = (appActionLogUtil.getActionCN(log)+appActionLogUtil.getActionStatusInfo(log).text);
+    				if(appActionLogUtil.isFail(log)){
+    					title += '('+log.message+')';
+    				}
+    				title += '@'+appActionLogUtil.getActionUser(log);
+    				html.push('<span>'+title+'</span>');
+    				html.push('<div class="user btns">');
+    					if(appActionLogUtil.canRollback(log)){
+    						html.push('<a href="javascript:;" class="callback_version" data-version="'+appActionLogUtil.getRollbackVersion(log)+'">回滚到此版本</a>');
+    					}
+    					html.push('<a href="javascript:;" class="ajax_log_new" data-log="'+log.event_id+'">查看详情</a>');
+    					html.push('<a href="javascript:;" class="hide_log">收起</a>')
+    				html.push('</div>')
+    			html.push('</div>')
+    			html.push('<div class="panel-body">');
+    			if(appActionLogUtil.isDeploy(log) && log.code_version){
+					html.push('<div class="version-info">');
+						html.push('<span class="pull-left ws-nowrap" style="width:60%" title="'+(appActionLogUtil.getCommitLog(log) || '')+'">代码信息：'+appActionLogUtil.getCommitLog(log)+'</span>');
+						html.push('<span class="pull-right">#'+appActionLogUtil.getCodeVersion(log)+' by '+appActionLogUtil.getCommitUser(log)+'</span>');
+					html.push('</div>');
+				}
+					html.push('<div class="log">')
+						html.push('<p class="log_type">');
+							html.push('<label class="active log-tab-btn" data-log="info">Info日志</label>');
+							html.push('<label class="log-tab-btn" data-log="debug">Debug日志</label>');
+							html.push('<label class="log-tab-btn" data-log="error">Error日志</label>');
+						html.push('</p>')
+						html.push('<div class="log_content log_'+log["event_id"]+'"></div>');
+					html.push('</div>')
+    			html.push('</div>');
+    		html.push('</div>')
+    	html.push('</div>')
+	html.push('</li>');
+	return html.join('');
 }
 
-
-//是否昨天
-function isYestday(date){
-	var d = new Date(date);
-	var date = (new Date());    //当前时间
-    var today = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(); //今天凌晨
-    var yestday = new Date(today - 24*3600*1000).getTime();
-    return d.getTime() < today && yestday <= d.getTime();
-}
-//是否是前天
-function isBeforeYestday(date){
-	var d = new Date(date);
-	var date = (new Date());    //当前时间
-    var today = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(); //今天凌晨
-    var yestday = new Date(today - 24*3600*1000).getTime();
-    var beforeYestday = new Date(today - 48*3600*1000).getTime();
-    return d.getTime() < yestday && beforeYestday <= d.getTime();
-}
-
-
-function getShowData(date){
-	if(isToday(date)){
-		return '今天';
-	}else if(isYestday(date)){
-		return '昨天';
-	}else if(isBeforeYestday(date)){
-		return '前天';
-	}
-	return date;
-}
-
-var type_json = {
-    "deploy": "部署",
-    "restart": "启动",
-    "delete": "删除",
-    "stop": "关闭",
-    "HorizontalUpgrade": "水平升级",
-    "VerticalUpgrade": "垂直升级",
-    "callback": "回滚",
-    "create": "创建",
-    "own_money": "应用欠费关闭",
-    "expired": "应用过期关闭",
-    "share-ys": "分享到云市",
-    "share-yb": "分享到云帮",
-    "reboot"  :"应用重启" ,
-    "git-change":"仓库地址修改",
-    "imageUpgrade":"应用更新"
-}
 
 /* 创建时间轴列表模版 */
 function createLogListTmp(logList){
-	var status_json = {
-        "success" : "成功",
-        "failure" : "失败",
-        "timeout" : "超时"
-    }
-    var final_status_json = {
-        "complate" : "完成",
-        "timeout" : "超时"
-    }
-    var bg_color = {
-        "success" : "bg-success",
-        "failure" : "bg-danger",
-        "timeout" : "bg-danger"
-    }
     if( jQuery.isEmptyObject(logList) )
     {
-        return '<p style="text-align: center;font-size: 18px;">平台升级历史日志暂时无法提供<span class="span_src"><img src="/static/www/img/appOutline/log_src.png"></span></p>'
-        
+        return '<p style="text-align: center;font-size: 18px;">暂无记录<span class="span_src"><img src="/static/www/img/appOutline/log_src.png"></span></p>'
     }
-
-    var html = [];
+    var htmls = '';
     for (var i = 0; i < logList.length; i++) {
-        var log = logList[i];
-        var arr = log["start_time"].split("T");
-        var date = arr[0];
-        var time = arr[1];
-        var status;
-        var color;
-        if( log["final_status"] == "complete" )
-        {
-            status = status_json[log["status"]];
-            color = bg_color[log["status"]];
-        }
-        else if( log["final_status"] == "timeout" ){
-            status = final_status_json[log["final_status"]];
-            color = 'bg-danger';
-        }
-        else{
-            status = "进行中";
-            color = 'bg-grey';
-        }
-
-        var str_log = '<li data-event-id="'+log["event_id"]+'" class="js-event-row"><time class="tl-time"><h4>'+time+'</h4><p>'+getShowData(date)+'</p></time>';
-        
-        if( log["status"] == "failure" )
-        {
-            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')'+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log_new" data-log="'+log["event_id"];
-        }
-        else{
-            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log_new" data-log="'+log["event_id"];
-        }
-        str_log += '">查看详情</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active log-tab-btn" data-log="info">Info日志</label><label class="log-tab-btn" data-log="debug">Debug日志</label><label class="log-tab-btn" data-log="error">Error日志</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
-        if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
-        {
-            var version = '当前版本('+log["old_deploy_version"]+')';
-            if( log["old_code_version"] )
-            {
-                version = log["old_code_version"];
-            }
-            str_log += '<li><i class="fa tl-icon bg-version"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+version+'</span>';
-            str_log += '<div class="user"><button class="btn callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
-        }
-        html.push(str_log)
+    	var log = logList[i];
+        htmls+=createLogItemTmp(log)
     }
-    return html.join('');
+    return htmls;
 }
 
 /* --------------  util end --------------- */
@@ -206,19 +165,38 @@ function createLogListTmp(logList){
             var date = arr[0];
             var time = arr[1].split('.')[0];
 
-            var str_log = '<li class="js-event-row" data-event-id="'+event["event_id"]+'"><time class="tl-time"><h4>' + time + '</h4><p>今天</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>' + type_json[event["event_type"]] + '中@' + event["user_name"] + '</span><div class="user"><p>';
-            str_log += '</p><p class="ajax_log_new" data-log="' + event["event_id"] + '" style="display: none;">查看详情</p><p class="hide_log" style="display: block;">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active log-tab-btn" data-log="info">Info日志</label><label class="log-tab-btn" data-log="debug">Debug日志</label><label class="log-tab-btn" data-log="error">Error日志</label></p><div class="log_content log_height2 log_' + event["event_id"] + '"></div></div></div></div></div></li>'
+            var html = [];
+	    	html.push('<li data-event-id="'+event.event_id+'" class="js-event-row">');
+	    	html.push('<time class="tl-time">');
+		    	html.push('<h4>'+time+'</h4>');
+		    	html.push('<p>今天</p>');
+	    	html.push('</time>');
+	    	html.push('<i class="fa bg-grey tl-icon"></i>');
+	    	html.push('<div class="tl-content">');
+	    		html.push('<div class="panel panel-primary">');
+	    			html.push('<div class="panel-heading">');
+	    				var title = type_json[event["event_type"]] + '中@' + event["user_name"];
+	    				html.push('<span>'+title+'</span>');
+	    				html.push('<div class="user btns">');
+	    					html.push('<a href="javascript:;" class="ajax_log_new" data-log="'+currentEventID+'">查看详情</a>');
+	    					html.push('<a href="javascript:;" class="hide_log">收起</a>')
+	    				html.push('</div>')
+	    			html.push('</div>')
+	    			html.push('<div class="panel-body">');
+						html.push('<div class="log">')
+							html.push('<p class="log_type">');
+								html.push('<label class="active log-tab-btn" data-log="info">Info日志</label>');
+								html.push('<label class="log-tab-btn" data-log="debug">Debug日志</label>');
+								html.push('<label class="log-tab-btn" data-log="error">Error日志</label>');
+							html.push('</p>')
+							html.push('<div class="log_content log_height2 log_' + event["event_id"]+'"></div>');
+						html.push('</div>')
+	    			html.push('</div>');
+	    		html.push('</div>')
+	    	html.push('</div>')
+			html.push('</li>');
 
-            if (event["event_type"] == "deploy" && event["old_deploy_version"]) {
-                var version = '当前版本(' + event["old_deploy_version"] + ')';
-                if (event["old_code_version"]) {
-                    version = event["old_code_version"];
-                }
-                str_log += '<li><i class="fa tl-icon bg-version"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>' + version + '</span>';
-                str_log += '<div class="user"><button class="btn callback_version" data-version="' + event["old_deploy_version"] + '">回滚到此版本</button></div></div></div></div></li>'
-
-            }
-            $(str_log).prependTo($("#keylog ul"));
+            $(html.join('')).prependTo($("#keylog ul"));
       		dfd.resolve(currentEventID);
 		}).fail(function(data){
 			dfd.reject(data);
@@ -248,11 +226,14 @@ function createLogListTmp(logList){
 	/*
 		初始化页面操作日志列表
 	*/
-	function getInitLog(tenantName, serviceAlias) {
+	function getInitLog(tenantName, serviceAlias, start_time) {
 		return $.ajax({
             type: "GET",
             url: "/ajax/"+tenantName+"/"+serviceAlias+"/events",
-            data: "action=operate",
+            data: {
+            	action:'operate',
+            	start_time: start_time ? start_time : dateUtil.format(new Date(), 'yyyy-MM-dd hh:mm')
+            },
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
@@ -304,6 +285,7 @@ window.AppOverviewController = createPageController({
 		http_port_str:'',
 		//需要充值的钱
 		needPay: 0,
+		plugins:[],
 		//充值后开始计费的日期
 		payStartTime: '',
 		renderData: {
@@ -330,17 +312,117 @@ window.AppOverviewController = createPageController({
 						this.initLog();
 						this.checkStatus();
 						$('.fn-tips').tooltip();
+						$("#datetimepicker")
+						.datetimepicker({format: 'YYYY-MM-DD HH:mm', locale: moment.locale('zh-cn')})
+						.on('dp.change', (ev) => {
+						    this.initLog(true);
+						});
+					})
+
+					getNotInstalledPlugin(
+						this.tenantName,
+						this.serviceAlias
+					).done((data) => {
+						this.plugins = (data.relations || []).slice(0, 5);
+						this.renderPlugin();
+
+						if(this.isInstalledAnalysis()){
+							$('.installed-new-plugin').show();
+							$('.uninstall-new-plugin').hide();
+							this.loadMonitorData();
+						}
 					})
 				})
 			})
 		},
+		//渲染安装的插件
+		renderPlugin: function(){
+			var html = [];
+			if(this.plugins.length){
+				html.push('<ul style="margin-top: 25px" class="installed-plug">')
+				for(var i=0;i<this.plugins.length;i++){
+					var item = this.plugins[i];
+					html.push('<li class="ws-nowrap '+(!item.is_switch ? 'disabled' : '')+'"><a href="/apps/'+this.tenantName+'/'+this.serviceAlias+'/detail/?fr=plugin&plugin_id='+item.plugin_id+'" title="'+item.plugin_info.plugin_alias+'">'+item.plugin_info.plugin_alias+'</a></li>')
+				}
+				html.push('</ul>')
+    
+			}else{
+				html.push('<div style="margin-top:60px">')
+                    html.push('<div class="tips">')
+                        html.push('<p>尚未安装插件</p>')
+                        html.push('<a href="/apps/'+this.tenantName+'/'+this.serviceAlias+'/detail/?fr=plugin">去安装</a>')
+                    html.push('</div>')
+                html.push('</div>')
+			}
+			$('#plugin-list-wrap').html(html.join(''));
+		},
+		//加载监控数据
+		loadMonitorData: function(){
+			$.when(
+				getAppRequestTime(
+					{
+						tenantName:this.tenantName,
+						serviceAlias: this.serviceAlias,
+						serviceId: this.serviceId
+					}	
+				),
+				getAppRequest(
+					{
+						tenantName:this.tenantName,
+						serviceAlias: this.serviceAlias,
+						serviceId: this.serviceId
+					}
+				)
+			).done((res1, res2)=>{
+				var result1 = res1.bean.result;
+				var result2 = res2.bean.result;
+				if(result1 && result1.length){
+	        		var res = Number(result1[0].value[1]) || 0;
+	        		if(res >= 0){
+	        			$('.app_requesttime').html(res.toFixed(0));
+	        		}else{
+	        			$('.app_requesttime').html(res.toFixed(1));
+	        		}
+	        	}
+	        	if(result2 && result2.length){
+	        		var res = Number(result2[0].value[1]) || 0;
+	        		$('.app_request').html(res.toFixed(0));
+	        		
+	        	}
+
+	        	setTimeout(()=>{
+	        		this.loadMonitorData();
+	        	}, 6000)
+			})
+		},
+		//是否安装了性能分析插件
+		isInstalledAnalysis: function(){
+			for(var i=0;i<this.plugins.length;i++){
+				if(this.plugins[i].plugin_info.category === 'analyst-plugin:perf'){
+					return true;
+				}
+			}
+			return false;
+		},
 		//初始化页面操作日志
-		initLog: function(){
+		initLog: function(reload){
 			var self =this;
 			getInitLog(
 				this.tenantName, 
-				this.serviceAlias
+				this.serviceAlias,
+				$("#datetimepicker").val()
 			).done(function(msg){
+
+				if(reload){
+					$("#keylog ul").html('');
+					if(self.socket){
+						self.socket.close();
+						self.socket = null;
+					}
+					$(".load_more_new").hide();
+				}
+
+
 				var dataObj = msg||{};
                 var logList = dataObj["log"]||[];
                 var next_onOff = dataObj["has_next"];
@@ -376,7 +458,7 @@ window.AppOverviewController = createPageController({
 			)
 			.done(function(msg){
 				self.setStatus(msg);
-				self.updatePayStatus(msg);
+				//self.updatePayStatus(msg);
 			})
 			.always(function(){
 				setTimeout(function(){
@@ -399,40 +481,8 @@ window.AppOverviewController = createPageController({
 				var lastCostInfo = obj.last_hour_consume || {};
 				//更新内存信息
 				$('.show_money').html((lastCostInfo.memory * lastCostInfo.node_num) || 0);
-				$('.last_hour_memory_cost').html(lastCostInfo.memory_money || 0);
-				if(attachInfo.memory_pay_method == 'prepaid'){
-					var endData = new Date(attachInfo.buy_end_time);
-					var year = endData.getFullYear();
-					var month = endData.getMonth()+1;
-					var day = endData.getDate();
-					$('.memory-monthly-info').html('包月至 '+ year + '年' + (month < 10 ? '0'+month : month) + '月' + (day < 10 ? '0'+day : day) + '日');
-				}else{
-					$('.memory-monthly-info').html('按小时计费');
-				}
-
 				//更新磁盘信息
-				$('.show-disk').html(lastCostInfo.disk || 0);
-				$('.last-hour-disk-cost').html(lastCostInfo.disk_money || 0);
-				if(attachInfo.disk_pay_method == 'prepaid'){
-					var endData = new Date(attachInfo.buy_end_time);
-					var year = endData.getFullYear();
-					var month = endData.getMonth()+1;
-					var day = endData.getDate();
-					$('.disk-monthly-info').html('包月至 '+ year + '年' + (month < 10 ? '0'+month : month) + '月' + (day < 10 ? '0'+day : day) + '日');
-				}else{
-					$('.disk-monthly-info').html('按小时计费');
-				}
-
-				//更新流量信息
-				$('.last_hour_net').html(lastCostInfo.net || 0);
-				$('.last-hour-net-cost').html(lastCostInfo.net_money || 0);
-
-
-				//更新费用
-				$('.last_hour_cost').html(obj.cost_money || 0);
-				var statusMap = util.getStatusMap(obj["status"]);
-				//费用总计
-				$('.total-money').html(obj.total_cost || 0);
+				$('.show_disk').html(lastCostInfo.disk || 0);
 
 
 				//隐藏该状态下不能操作的按钮
@@ -446,6 +496,7 @@ window.AppOverviewController = createPageController({
 					$('[action='+action+']').show();
 				})
 				//更新状态描述
+				var statusMap = util.getStatusMap(obj["status"]);
 				//var statusCN = statusMap.statusCN;
 				var statusCN = obj.status_cn;
 				$("#service_status").html(statusCN);
@@ -668,7 +719,8 @@ window.AppOverviewController = createPageController({
 			$("#keylog .ajax_log_new").eq(0).hide();
 			$("#keylog .hide_log").eq(0).show();
 			$("#keylog .log_type").eq(0).hide();
-			return new LogSocket({
+
+			this.socket = new LogSocket({
 				url: this.webSocketUrl,
 				eventId: eventId,
 				onMessage: function(data){
@@ -677,7 +729,6 @@ window.AppOverviewController = createPageController({
 				},
 				onClose: function() {
 					self.isDoing = false;
-					//$("#keylog li").eq(0).find('.panel-heading').css({ "padding-bottom": "0px" });
 					$("#keylog li").eq(0).find('.log').removeClass('log_height').css({ "height": "0px" });
 				},
 				onSuccess: function(data) {

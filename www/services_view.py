@@ -30,6 +30,7 @@ from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
 import datetime
 import www.utils.sn as sn
+from www.services import plugin_svc
 
 logger = logging.getLogger('default')
 monitorhook = MonitorHook()
@@ -575,6 +576,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         has_outer_port = True
                         break
                 context["has_outer_port"] = has_outer_port
+                has_analyis_plugin = "no"
+                tenant_service_relations = plugin_svc.get_tenant_service_plugin_relation(self.service.service_id)
+                for re in tenant_service_relations:
+                    plugin = plugin_svc.get_tenant_plugin_by_plugin_id(self.tenant,re.plugin_id)
+                    if plugin.category == "analyst-plugin:perf" or plugin.category== "performance_analysis":
+                        has_analyis_plugin = "yes"
+
+                context["has_analyis_plugin"] = has_analyis_plugin
+
             elif fr == "log":
                 pass
             elif fr == "settings":
@@ -746,7 +756,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 pass
             elif fr == "ports":
                 pass
-            
+            elif fr == "plugin":
+                pass
             else:
                 return self.redirect_to(
                     '/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))

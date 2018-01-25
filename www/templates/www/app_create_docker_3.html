@@ -126,8 +126,10 @@
                                                     <option>非HTTP</option>
                                                 {% endif %}
                                                 -->
-                                                <option>HTTP</option>
-                                                <option>非HTTP</option>
+                                                <option value="http">http</option>
+                                                <option value="tcp">tcp</option>
+                                                <option value="udp">udp</option>
+                                                <option value="mysql">mysql</option>
                                             </select>
                                         </td>
                                         <td>
@@ -150,14 +152,16 @@
                                         </td>
                                         <td>
                                             <label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。">
-                                                <input class="checkDetail" type="checkbox" name="" value="" id="addOuter" />
+                                                <input class="checkDetail" type="checkbox" checked="checked" name="" value="" id="addOuter" />
                                                 <span class="check-bg" for="addOuter"></span>
                                             </label>
                                         </td>
                                         <td>
                                             <select class="add_http fn-tips" data-original-title="请设定用户的访问协议。">
-                                                <option>HTTP</option>
-                                                <option>非HTTP</option>
+                                                <option value="http">http</option>
+                                                <option value="tcp">tcp</option>
+                                                <option value="udp">udp</option>
+                                                <option value="mysql">mysql</option>
                                             </select>
                                         </td>
                                         <td class="operation">

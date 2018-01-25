@@ -88,6 +88,7 @@ urlpatterns = patterns(
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/fourth/$', ServiceGroupShareFourView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/five/$', ServiceGroupShareToMarketView.as_view()),
 
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),

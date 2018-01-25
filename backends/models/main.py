@@ -67,6 +67,7 @@ class RegionClusterInfo(BaseModel):
 
     region_id = models.CharField(max_length=32, help_text=u"对应的region_id")
     cluster_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    cluster_id = models.CharField(max_length=32, help_text=u"集群cluster_id")
     cluster_alias = models.CharField(max_length=32, help_text=u"数据中心别名")
     enable = models.BooleanField(default=False, help_text=u"集群是否启用")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")

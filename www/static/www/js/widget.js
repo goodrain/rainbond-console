@@ -449,7 +449,7 @@ widget.define('drag', {
 })
 
 
-
+var timer2 = null;
 widget.define('loadingbar', {
     _defaultOption:{
         tpl:'<div class="loadingbar" style="background:#5ef298;height:3px;position:fixed;left:0;top:0;width:0;"></div>',
@@ -461,6 +461,7 @@ widget.define('loadingbar', {
         this.total = 0;
         this.loaded = 0;
         this.timer = null;
+        this.timer2 = null;
         this.width=0;
         this.callParent(option);
         if(this.ClassName == 'loadingbar'){
@@ -476,15 +477,18 @@ widget.define('loadingbar', {
     },
     getCurrentWidth(){
         var totalWidth = 100, pWidth = 0;
-        this.width += (totalWidth - this.width) * 0.4;
+        this.width += (totalWidth - this.width) * 0.2;
         if(this.loaded > 0){
-           pWidth = (this.loaded / this.total) * 100;
+           //pWidth = (this.loaded / this.total) * 100;
         }
-        this.width = Math.max(this.width, pWidth);
+        if(this.width >= 90){
+            this.width = 90;
+        }
+        this.width = this.width;
         return this.width;
     },
     start(){
-        this.width = 0;
+        
         this.element.stop().show();
         this.computedWidth();
         this.timer = setInterval(() => {
@@ -493,9 +497,10 @@ widget.define('loadingbar', {
     },
     computedWidth(){
         var width = this.getCurrentWidth();
-        this.element.stop().animate({width:width + '%'});
+        this.element.stop().animate({width:width + '%'},'fast');
     },
     addRequest(){
+        clearInterval(timer2);
         this.total ++;
         if(!this.timer){
             this.start();
@@ -504,12 +509,17 @@ widget.define('loadingbar', {
         }
     },
     removeRequest(){
-        this.loaded ++;
-        if(this.total == this.loaded){
-            this.completed();
-        }else{
-            this.computedWidth();
-        }
+        var self = this;
+        self.loaded ++;
+        timer2 = setTimeout(function(){
+            if(self.total == self.loaded){
+                self.completed();
+                self.width = 0;
+            }else{
+                self.computedWidth();
+            }
+        })
+       
     },
     completed(){
         var self = this;
@@ -773,13 +783,13 @@ widget.define('button', {
     var stack = [];
     widget.define('dialog', {
         _defaultOption : {
-            tpl:  '<div class="modal fade"><div class="modal-dialog" role="document">'+
+            tpl:  '<div class="modal fade"><div class="modal-dialog" role="document" style="width:100%">'+
                 '<div class="modal-content">'+
                   '<div class="modal-header">'+
                     '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
                     '<h4 class="modal-title">Modal title</h4>'+
                   '</div>'+
-                  '<div class="modal-body">'+
+                  '<div class="modal-body" style="overflow-y: auto">'+
                   '</div>'+
                   '<div class="modal-footer">'+
                 
@@ -820,7 +830,7 @@ widget.define('button', {
             btns       : [
                 {
                     text : '确定',
-                    classes : 'btn-primary'
+                    classes : 'btn-success'
                 },
                 {
                     text : '取消',
@@ -845,6 +855,8 @@ widget.define('button', {
             this.header = this.element.find('.modal-header');
             this.body = this.element.find('.modal-body');
             this.footer = this.element.find('.modal-footer');
+            this.element.find('.modal-dialog').css({width: this.option.width, minWidth: this.option.minWidth})
+
 
             //设置标题
             this.setTitle(this.option.title);

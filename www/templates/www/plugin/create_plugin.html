@@ -1,0 +1,199 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}'/>
+{% endblock %}
+
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <section class="panel panel-default">
+        <div class="panel-body">
+            <h3 class="main-tit" style="padding:0 0 30px 0;">新建插件</h3>
+            <form id="myForm" class="form-horizontal" action="" method="post">
+                <div class="infor-fm-box">
+                    <!-- name stert -->
+                    <div class="form-group">
+                        <label for="plugin_alias" class="col-sm-3 control-label">插件名</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="plugin_alias" name="plugin_alias" class="form-control" value=""
+                                   placeholder="给插件取个名字，支持中英文。"/>
+                        </div>
+                    </div>
+                    {% csrf_token %}
+                    <div class="row fm-tips" id="plugin_name_tips">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">请输入插件名！</div>
+                    </div>
+                    <!-- name end -->
+                    <!-- radio start -->
+                    <div class="form-group clearfix">
+                        <label class="col-sm-3 control-label">安装来源</label>
+                        <div class="col-sm-6 clearfix">
+                            <label class="fm-radio">
+                                <input type="radio" name="build_source" value="image" id="mirror" checked="true"/>
+                                <span class="radio-bg" for="mirror"></span>
+                                <cite>镜像</cite>
+                            </label>
+                            <label class="fm-radio">
+                                <input type="radio" name="build_source" value="dockerfile" id="dockerfile"/>
+                                <span class="radio-bg" for="dockerfile"></span>
+                                <cite>Dockerfile</cite>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- radio start -->
+                    <!--类别 start-->
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">选择类别</label>
+                        <div class="col-sm-6">
+                            <select class="form-control" name="category">
+                                <option value="net-plugin:up">入口网络</option>
+                                <option value="net-plugin:down">出口网络</option>
+                                <option value="analyst-plugin:perf">性能分析</option>
+                                <option value="init-plugin">初始化类型</option>
+                                <option value="general-plugin">一般类型</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!--类别 end-->
+                    <!-- 镜像 start -->
+                    <div class="form-group image-item">
+                        <label class="col-sm-3 control-label">镜像地址</label>
+                        <div class="col-sm-6">
+                            <input type="text" name="image" class="form-control" value="" placeholder="请输入镜像地址（名称:tag）如nginx:1.11"/>
+                        </div>
+                    </div>
+
+                    <!--<div class="form-group">-->
+                        <!--<label class="col-sm-3 control-label">镜像Tag</label>-->
+                        <!--<div class="col-sm-6">-->
+                            <!--<input type="text" name="image_tag" class="form-control" value="latest"-->
+                                   <!--placeholder="镜像tag(默认为latest)"/>-->
+                        <!--</div>-->
+                    <!--</div>-->
+
+                    <!-- 镜像 end -->
+                    <!-- Dockerfile start -->
+                    <div class="form-group dockerfile-item" style="display:none;">
+                        <label class="col-sm-3 control-label">源码地址</label>
+                        <div class="col-sm-6">
+                            <input type="text" name="code_repo" class="form-control" value=""
+                                   placeholder="请输入源码Git地址（必须包含Dockerfile文件）"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="display:none;">
+                        <label class="col-sm-3 control-label">代码版本</label>
+                        <div class="col-sm-6">
+                            <input type="text" name="code_version" class="form-control" value="master"
+                                   placeholder="代码版本(默认为master)"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">一句话说明</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="desc" name="desc" class="form-control" value="" placeholder="请输入一句话说明">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">内存</label>
+                        <div class="col-sm-6">
+                            <select  name="min_memory" class="form-control">
+                                <option value="64">64M</option>
+                                <option value="128">128M</option>
+                                <option value="256">256M</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label"></label>
+                        <div class="col-sm-6">
+                            <div class="form-actions">
+                                <input type="submit" name="createPlugin" value="创建插件" class="btn btn-lg btn-success btn-block" id="createPlugin"/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Dockerfile end -->
+                </div>
+                <!--内存-->
+
+               
+            </form>
+        </div>
+    </section>
+</section>
+<script type="text/javascript" src="/static/www/js/widget.js"></script>
+<script type="text/javascript">
+$(function(){
+    var Msg = gWidget.Message;
+    var $type = $('[name=build_source]');
+    $type.change(function(e){
+        var value = $('[name=build_source]:checked').val();
+        if(value == 'image'){
+            $('.image-item').show();
+            $('.dockerfile-item').hide();
+        }else{
+            $('.image-item').hide();
+            $('.dockerfile-item').show();
+        }
+
+    })
+
+    function checkForm(){
+        var name = $.trim($('[name=plugin_alias]').val());
+        if(!name){
+            Msg.warning("请输入插件名称");
+            $('[name=plugin_alias]').focus();
+            return false;
+        }
+
+        var type = $('[name=build_source]:checked').val();
+        var address = '';
+
+        if(type == 'image'){
+            address = $.trim($('[name=image]').val());
+            if(!address){
+                Msg.warning("请输入镜像地址");
+                $('[name=image]').focus();
+                return false;
+            }
+        }else if(type == 'dockerfile'){
+
+            address = $.trim($('[name=code_repo]').val());
+
+            if(!address){
+                Msg.warning("请输入源码地址");
+                $('[name=code_repo]').focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    $('#myForm').submit(function(e){
+        
+       if(!checkForm()){
+            e.preventDefault();
+            return false;
+       }
+
+        
+    })
+})
+    
+</script>
+{% endblock %}
+
+{% block extrajs %}
+
+
+{% endblock %}

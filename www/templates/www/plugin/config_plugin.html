@@ -1,0 +1,425 @@
+{% extends 'www/raster2.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css2/app.css" %}' />
+<link rel="stylesheet" href='{% static "www/css2/newapp.css" %}' />
+<style type="text/css">
+    #AddConfigItemDialog .delete-item-wrap{display:none;}
+    .added-config-item-wrap .remove-item-wrap, .added-config-item-wrap  .add-item-wrap {display: none!important}
+
+    [data-status=build_success] .tl-icon {
+        background: #28cb75;
+        color: #fff;
+    }
+    [data-status=build_fail] .tl-icon, [data-status=time_out] .tl-icon {
+        background: #dc0202;
+        color: #fff;
+    }
+    [data-status=unbuild] .tl-icon{
+        background: #757575;
+        color: #fff;
+    }
+    [data-status=building] .tl-icon{
+        background: #e69807;
+        color: #fff;
+    }
+    #buildPuild {margin-bottom: 10px;}
+    .version-history-table th {background-color: #f5f5f5;}
+</style>
+{% endblock %}
+
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <div class="clearfix">
+        <h3 class="tit-color pull-left">{{base_info.plugin_alias}}</h3>
+    </div>
+    <form id="myForm" class="form-horizontal">
+        <!-- 构建历史 start -->
+        <section class="panel panel-default">
+            <div class="panel-heading clearfix" >
+                版本列表
+            </div>
+            <div class="panel-body" >
+               <div class="clearfix">
+                    {% if base_info.origin == 'source_code' %}
+                   <button class="btn btn-success pull-right" id="buildPuild" type="button">创建新版本</button>
+                   {% endif %}
+               </div>
+               <table class="table version-history-table">
+                   <thead>
+                       <tr>
+                           <th>版本号</th>
+                           <th>创建时间</th>
+                           <th>版本说明</th>
+                           <th>状态</th>
+                           <th>操作</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       
+                   </tbody>
+               </table>
+               <!-- -->
+               <div> 
+                    <p class="load_more_wrap" style="text-align: center;display: none;">
+                        <span class="load_more_new" style="">
+                            <img src="/static/www/img/load_more_log.png">
+                        </span>
+                    </p>
+                </div>
+                <!-- -->
+            </div>
+        </section>
+        <!-- 构建历史 end-->
+        <!-- 基础信息 start -->
+        <section class="panel panel-default">
+            <div class="panel-heading clearfix">
+                基础信息  <span style="color:#aaa">版本 <label class="form-control-static build_version" type="text">{{base_info.build_version}}</label></span>
+            </div>
+            <input type="hidden" id="build_source" value="{{base_info.build_source}}">
+            <input type="hidden" id="tenantName" value="{{tenantName}}">
+            <input type="hidden" id="plugin_id" value="{{base_info.plugin_id}}">
+            <input type="hidden" id="build_version" value="{{build_version_info.build_version}}">
+            <input type="hidden" id="web_socket_url" value="{{web_socket_url}}">
+            <div class="panel-body">
+               
+                <div class="form-group">
+                    
+                    <label for="plugin_alias" class="col-sm-2 control-label">插件名称</label>
+                    <!--<div class="col-sm-6">-->
+                        <!--<input type="text" id="plugin_name" name="plugin_name" class="form-control" value="" placeholder="给插件取一个名字，支持中英文。"  />-->
+                    <!--</div>-->
+                     <div class="col-sm-6">
+                         <input type="text" id="plugin_alias" class="form-control" {% if base_info.origin != 'source_code' %}readonly="readonly" {% endif %} value="{{base_info.plugin_alias}}"/>
+                    </div>
+
+                </div>
+                {% if base_info.build_source == 'dockerfile' %}
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">源码地址</label>
+                    <div class="col-sm-6">
+                        <label class="form-control-static" type="text">{{base_info.code_repo}}</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">代码版本</label>
+                    <div class="col-sm-6">
+                        <input {% if base_info.origin != 'source_code' %} disabled="disabled" {% endif %} type="text" id="code_version" value="{{build_version_info.code_version}}" data-codeversion="{{build_version_info.code_version}}" class="form-control" />
+                    </div>
+                </div>
+
+                {% else %}
+                 <div class="form-group">
+                    <label class="col-sm-2 control-label">镜像地址</label>
+                    <div class="col-sm-6">
+                        <label type="text" class="form-control">{{base_info.image}}</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">镜像版本</label>
+                    <div class="col-sm-6">
+                        <input {% if base_info.origin != 'source_code' %} disabled="disabled" {% endif %}  type="text" id="image_tag" value="{{build_version_info.image_tag}}" data-imagetag="{{build_version_info.image_tag}}"
+                               class="form-control" />
+                    </div>
+                </div>
+
+                {% endif %}
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">类别</label>
+                    <div class="col-sm-6">
+                        <label type="text" class="form-control" data-category="{{base_info.category}}">
+                            {% if base_info.category == "net-plugin:down" %}
+                                出口网格
+                            {% elif base_info.category == "net-plugin:up" %}
+                                入口网格
+                            {% elif base_info.category == "analyst-plugin:perf" %}
+                                性能分析
+                            {% elif base_info.category == "general-plugin" %}
+                                一般类型
+                            {% elif base_info.category == "init-plugin" %}
+                                初始化类型
+                            {% endif %}
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">内存</label>
+                    <div class="col-sm-6">
+                        <select {% if base_info.origin != 'source_code' %} disabled="disabled" {% endif %}   name="min_memory" id="min_memory" class="form-control">
+                            <option value="64">64M</option>
+                            <option value="128">128M</option>
+                            <option value="256">256M</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="desc" class="col-sm-2 control-label">启动命令</label>
+                    <div class="col-sm-6">
+                        <input {% if base_info.origin != 'source_code' %} disabled="disabled" {% endif %}  type="text" id="build_cmd" name="build_cmd" class="form-control" value="{{build_version_info.build_cmd}}" placeholder="请输入插件的启动命令"  />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="desc" class="col-sm-2 control-label"></label>
+                    <div class="col-sm-6">
+                        {% if base_info.origin == 'source_code' %}
+                        <input type="button" name="buildPlugin" value="保存" class="btn btn-success"
+                           id="savePlugin" />
+                        {% endif %} 
+                       
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- 基础信息 end-->
+        <!-- 配置项 start -->
+        <section class="panel panel-default added-config-item-wrap">
+            <div class="panel-heading clearfix">
+                配置组  <span style="color:#aaa">版本 <label class="form-control-static build_version" type="text">{{base_info.build_version}}</label></span>
+            </div>
+            <div class="panel-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th width="100">配置组名</th>
+                            <th width="100">依赖应用元数据</th>
+                            <th width="100" width="100">注入方式</th>
+                            <th>配置项</th>
+                            <th width="200">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="config-item-wrap">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel-footer clearfix text-right">
+                 
+                 <span type="btton" class="btn btn-default view-config-json">预览配置</span>
+                 {% if base_info.origin == 'source_code' %}
+                 <span type="btton" class="btn btn-success add-config">新增配置</span>
+                 {% endif %}
+            </div>
+        </section>
+        <!-- 配置项 end-->
+
+        
+
+    </form>
+</section>
+<script type="text/template" id="add-config-tpl">
+     <form class="form-horizontal">
+        <div class="form-group">
+            <label for="desc" class="col-sm-2 control-label">配置组名</label>
+            <div class="col-sm-6">
+                <input type="text" name="config_name" class="form-control" value="" placeholder="请输入配置组名称"  />
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-2 control-label">依赖元数据</label>
+            <div class="col-sm-6">
+                <label class="radio-inline">
+                  <input type="radio" name="service_meta_type" checked=checked value="un_define">不依赖
+                </label>
+                <label class="radio-inline">
+                  <input type="radio" name="service_meta_type" value="upstream_port">应用端口
+                </label>
+                <label class="radio-inline">
+                  <input type="radio" name="service_meta_type" value="downstream_port">下游应用端口
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-2 control-label">注入方式</label>
+            <div class="col-sm-6">
+                <label class="radio-inline env-radio">
+                  <input type="radio" name="injection" checked=checked value="env">环境变量
+                </label>
+                <label class="radio-inline auto-radio">
+                  <input type="radio" name="injection" value="auto">主动发现
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-2 control-label">配置项</label>
+            <div class="col-sm-10 config-item-wrap">
+                
+            </div>
+        </div>
+     </form>
+</script>
+{% verbatim myblock %}
+<script type="text/template" id="config-group-tpl">
+            <tr>
+                <td>{{config.config_name}}</td>
+                <td>{{config.service_meta_type | grouptypecn}}</td>
+                <td>{{config.injection | injectiontypecn}}</td>
+                <td>
+                    {{each config.options || []}}
+                    <div class="config_option">
+                        <span>属性名: {{$value.attr_name}}</span>, 
+                        <span>属性类型: {{$value.attr_type | typecn}}</span>,
+                        {{if $value.attr_type !== 'string'}}
+                        <span>可选值: {{$value.attr_alt_value}}</span>,
+                        {{/if}}
+                        <span>默认值: {{$value.attr_default_value}}</span>,
+                        <span>可否修改: {{$value.is_change}}</span>
+                        <span>简短说明: {{$value.attr_info}}</span>
+                    </div>
+                    {{/each}}
+                </td>
+                <td> 
+                    {{if !isMarketPlugin}}
+                    <span class="btn btn-default btn-sm edit-config-group">修改</span>
+                    <span class="btn btn-default btn-sm del-config-group">删除</span>
+                    {{/if}}
+                </td>
+            </tr>
+</script>
+<script type="text/template" id="build_history_list_item_tpl">
+    {{if list.length > 0}}
+        {{each list}}
+        <tr data-version-id={{$value.build_version}}>
+           <td>
+           {{$value.build_version}}
+           </td>
+           <td>
+           {{$value.build_time}}
+           </td>
+           <td>
+            {{if $value.plugin_version_status === 'fixed' || isMarketPlugin}}
+            {{$value.update_info || '-'}}
+            {{/if}}
+            {{if $value.plugin_version_status !== 'fixed' && !isMarketPlugin}}
+               <input type="text" value="{{$value.update_info}}" placeholder="请输入该版本的说明" class="form-control" name="versioin_info" />
+            {{/if}}
+           </td>
+           <td>
+
+               {{if $value.plugin_version_status === 'fixed'}}
+               版本固定
+               {{/if}}
+               {{if $value.plugin_version_status !== 'fixed'}}
+               <span class="version_status">{{$value.build_status | buildstatuscn}}</span>
+               {{/if}}
+           </td>
+           
+           <td>
+               {{if !isMarketPlugin}}
+               <span class="btn btn-default btn-sm remove-version">删除</span>
+
+               <span style="display:{{if $value.plugin_version_status !== 'fixed'}}{{else}}none{{/if}}" class="btn btn-default btn-sm build-version">{{if $value.build_status === 'unbuild'}}构建{{else}}重新构建{{/if}}</span>
+               
+               <span class="btn btn-default btn-sm share-version" style="display: none;">分享</span>
+               
+               <span style="display:{{if $value.build_status !== 'unbuild'}}{{else}}none{{/if}} " class="btn btn-default btn-sm view-version-log">查看构建日志</span>
+               {{/if}}
+           </td>
+           
+        </tr>
+        {{/each}}
+    {{else}}
+        <tr class="build_history_empty text-center">
+           <td colspan="5">
+            暂无构建版本
+           </td>
+        </tr>
+    {{/if}}
+    
+</script>
+
+
+<script type="text/template" id="build_history_item_tpl">
+
+
+    {{if list.length > 0}}
+    {{each list}}
+    <li id="build-version-{{$value.build_version}}" data-event-id="{{$value.event_id}}" data-build-version="{{$value.build_version}}" data-status="{{$value.build_status || 'unknow'}}" class="js-event-row">
+        <time class="tl-time">
+            <h4>{{$value.build_time.split(' ')[1]}}</h4>
+            <p>{{$value.build_time.split(' ')[0]}}</p>
+        </time>
+        <i class="fa tl-icon"></i>
+        <div class="tl-content">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <span class="status-text">{{$value.build_status | buildstatuscn}} -- (版本:{{$value.build_version}})</span>
+                    <div class="user">
+                        <p></p>
+                        <p class="ajax_log_new">查看详情</p>
+                        <p class="hide_log">收起</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="log">
+                        <p class="log_type">
+                            <label class="active log-tab-btn" data-log="info">Info日志</label>
+                            <label class="log-tab-btn" data-log="debug">Debug日志</label>
+                            <label class="log-tab-btn" data-log="error">Error日志</label>
+                        </p>
+                        <div class="log_content">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </li>
+    {{/each}}
+    {{/if}}
+</script>
+
+<script type="text/template" id="build_history_item_tpl">
+
+
+    {{if list.length > 0}}
+    {{each list}}
+    <li id="build-version-{{$value.build_version}}" data-event-id="{{$value.event_id}}" data-build-version="{{$value.build_version}}" data-status="{{$value.build_status || 'unknow'}}" class="js-event-row">
+        <time class="tl-time">
+            <h4>{{$value.build_time.split(' ')[1]}}</h4>
+            <p>{{$value.build_time.split(' ')[0]}}</p>
+        </time>
+        <i class="fa tl-icon"></i>
+        <div class="tl-content">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <span class="status-text">{{$value.build_status | buildstatuscn}} -- (版本:{{$value.build_version}})</span>
+                    <div class="user">
+                        <p></p>
+                        <p class="ajax_log_new">查看详情</p>
+                        <p class="hide_log">收起</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="log">
+                        <p class="log_type">
+                            <label class="active log-tab-btn" data-log="info">Info日志</label>
+                            <label class="log-tab-btn" data-log="debug">Debug日志</label>
+                            <label class="log-tab-btn" data-log="error">Error日志</label>
+                        </p>
+                        <div class="log_content">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </li>
+    {{/each}}
+    {{/if}}
+
+</script>
+{% endverbatim myblock %}
+<script type="text/javascript" src="/static/www/js/art-template.js"></script>
+<script type="text/javascript" src="/static/www/js/widget.js"></script>
+<script type="text/javascript" src="/static/www/js/http.js"></script>
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/createplugin/config-plugin.js" %}'></script>
+{% endblock %}

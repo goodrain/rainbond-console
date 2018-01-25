@@ -30,6 +30,7 @@ class PermActions(object):
         ('deploy_service', u"部署服务"), ('manage_service', u"维护服务"),
         ('setting', u"租户设置"), ('perm_setting', u"权限管理"),
         ('service_monitor', u"服务资源监控"), ('service_alert', u"服务资源报警"),
+        ('share_service', u"分享服务"),
     ) + tenant_developer_actions
 
     tenant_owner_actions = (
@@ -37,7 +38,7 @@ class PermActions(object):
     ) + tenant_admin_actions
 
     tenant_gray_actions = (
-        ('app_publish', u"应用发布")
+        ('app_publish', u"应用发布", 'app_download', u"应用下载")
     ) + tenant_admin_actions
 
     service_viewer_actions = (

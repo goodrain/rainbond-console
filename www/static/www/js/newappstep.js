@@ -647,7 +647,7 @@ $(function(){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
                     if (dataObj["tenant_type"] == "free"){
-                        swal("资源已达上限,免费用户最多使用1G内存");
+                        swal("资源已达上限,不能创建");
                     }else
                         swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
@@ -758,7 +758,7 @@ $(function(){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
                     if (dataObj["tenant_type"] == "free"){
-                        swal("资源已达上限,免费用户最多使用1G内存");
+                        swal("资源已达上限, 不能创建");
                     }else
                         swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {

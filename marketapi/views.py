@@ -1,59 +1,22 @@
 # -*- coding: utf8 -*-
-import json
 import logging
 import time
 from random import randint
 
-from www.apiclient.regionapi import RegionInvokeApi
-from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
 
-from marketapi.auth import MarketAPIAuthentication
+from base_view import EnterpriseMarketAPIView
 from marketapi.services import MarketServiceAPIManager
+from www.apiclient.regionapi import RegionInvokeApi
 from www.services import tenant_svc
+
 logger = logging.getLogger('marketapi')
 LOGGER_TAG = 'marketapi'
 market_api = MarketServiceAPIManager()
 region_api = RegionInvokeApi()
 
 
-class BaseMarketAPIView(APIView):
-    authentication_classes = (MarketAPIAuthentication,)
-
-    def __init__(self, *args, **kwargs):
-        APIView.__init__(self, *args, **kwargs)
-
-    def success_response(self, data=None, total=0, msg='success', msg_show='成功'):
-        template = {
-            'msg': msg,
-            'msg_show': msg_show,
-            'data': {
-                'bean': {},
-                'list': []
-            }
-        }
-
-        if data:
-            if isinstance(data, list):
-                template['data']['total'] = total
-                template['data']['list'] = data
-            elif isinstance(data, tuple):
-                template['data']['list'] = list(data)
-            else:
-                template['data']['bean'] = data
-        logger.debug(LOGGER_TAG, template)
-        return Response(status=status.HTTP_200_OK, data=template)
-
-    def error_response(self, code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg='error', msg_show='失败'):
-        result = {
-            'msg': msg,
-            'msg_show': msg_show,
-        }
-        return Response(status=code, data=result)
-
-
-class MarketSSOUserInitAPIView(BaseMarketAPIView):
+class MarketSSOUserInitAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('GET',)
 
     def get(self, request, sso_user_id):
@@ -82,50 +45,7 @@ class MarketSSOUserInitAPIView(BaseMarketAPIView):
                   'enterprise_id': tenant.enterprise_id})
 
 
-class MarketEnterpriseBindAPIView(BaseMarketAPIView):
-    allowed_methods = ('POST',)
-
-    def get(self, request, enterprise_id):
-        """
-        云市企业信息绑定接口
-        ---
-        parameters:
-            - name: enterprise_id
-              description: 需要绑定的企业ID
-              required: true
-              type: string
-              paramType: path
-            - name: enterprise_token
-              description: 云市授予的企业访问的token
-              required: true
-              type: string
-              paramType: form
-            - name: echostr
-              description: 云市随机生成的字符串, 绑定成功后需要原路返回
-              required: true
-              type: string
-              paramType: form
-        """
-        user = request.user
-
-        if not enterprise_id:
-            return self.error_response(status.HTTP_400_BAD_REQUEST, 'enterprise_id can not be null', '参数不合法')
-
-        enterprise = market_api.get_enterprise_by_id(enterprise_id)
-        if not enterprise:
-            return self.error_response(status.HTTP_404_NOT_FOUND, 'enterprise not fond on this console!', '待认证企业信息不存在')
-
-        enterprise_token = request.POST.get('enterprise_token')
-        echostr = request.POST.get('echostr')
-        result = market_api.active_enterprise(user, enterprise, enterprise_token)
-        if result:
-            return self.success_response(data={'echostr': echostr})
-        else:
-            return self.error_response(status.HTTP_500_INTERNAL_SERVER_ERROR, 'enterprise bind failed',
-                                       '服务器错误,企业认证绑定失败')
-
-
-class MarketSSOUserAPIView(BaseMarketAPIView):
+class MarketSSOUserAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('GET',)
 
     def get(self, request, sso_user_id):
@@ -159,117 +79,117 @@ class MarketSSOUserAPIView(BaseMarketAPIView):
                   'tenant_name': default_tenant_name, 'tenants': ret_tenants})
 
 
-class MarketGroupServiceListAPIView(BaseMarketAPIView):
-    allowed_methods = ('GET', 'POST')
+# class MarketGroupServiceListAPIView(EnterpriseMarketAPIView):
+#     allowed_methods = ('GET', 'POST')
+#
+#     def get(self, request, tenant_name):
+#         """
+#         获取云市租户下应用组列表
+#         ---
+#         parameters:
+#             - name: tenant_name
+#               description: 租户名
+#               required: true
+#               type: string
+#               paramType: path
+#         """
+#
+#         user = request.user
+#
+#         tenant = market_api.get_tenant_by_name(tenant_name)
+#         if not tenant:
+#             logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
+#             return self.error_response(code=status.HTTP_404_NOT_FOUND,
+#                                        msg='tenant does not exist!',
+#                                        msg_show='租户不存在')
+#
+#         # if tenant.creater != user.user_id:
+#         #     logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
+#         #     return self.error_response(code=status.HTTP_403_FORBIDDEN,
+#         #                                msg='no access right for this tenant!',
+#         #                                msg_show='您无权操作此租户')
+#
+#         data = []
+#         group_list = market_api.list_tenant_group(tenant)
+#         for group in group_list:
+#             service_list = market_api.list_tenant_group_service(tenant, group)
+#
+#             services_status = []
+#             for service in service_list:
+#                 result = market_api.get_tenant_service_status(tenant, service)
+#                 services_status.append(result)
+#
+#             group_status = market_api.compute_group_service_status(services_status)
+#             data.append({
+#                 'group_id': group.ID,
+#                 'group_name': group.group_name,
+#                 'tenant_name': tenant.tenant_name,
+#                 'group_status': group_status,
+#             })
+#
+#         return self.success_response(data)
+#
+#     def post(self, request, tenant_name):
+#         """
+#         在云市指定租户下创建新的组应用
+#         ---
+#         parameters:
+#             - name: tenant_name
+#               description: 租户名
+#               required: true
+#               type: string
+#               paramType: path
+#             - name: group_key
+#               description: 应用组key
+#               required: true
+#               type: string
+#               paramType: query
+#             - name: version
+#               description: 应用组version
+#               required: true
+#               type: string
+#               paramType: query
+#             - name: region
+#               description: 安装到指定的数据中心
+#               required: true
+#               type: string
+#               paramType: query
+#         """
+#         group_key = request.POST.get('group_key')
+#         group_version = request.POST.get('version')
+#         region = request.POST.get('region')
+#         if not group_key or not group_version:
+#             return self.error_response(code=status.HTTP_400_BAD_REQUEST,
+#                                        msg='group_key, version can not be null',
+#                                        msg_show='参数不合法')
+#
+#         user = request.user
+#
+#         tenant = market_api.get_tenant_by_name(tenant_name)
+#         if not tenant:
+#             logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
+#             return self.error_response(code=status.HTTP_404_NOT_FOUND,
+#                                        msg='tenant does not exist!',
+#                                        msg_show='租户不存在')
+#
+#         # if tenant.creater != user.user_id:
+#         #     logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
+#         #     return self.error_response(code=status.HTTP_403_FORBIDDEN,
+#         #                                msg='no access right for this tenant!',
+#         #                                msg_show='您无权操作此租户')
+#
+#         app_service_group = market_api.get_app_service_group_by_unique(group_key, group_version)
+#         if not app_service_group:
+#             logger.error(LOGGER_TAG, "本地分享应用组不存在!")
+#             return self.error_response(code=status.HTTP_404_NOT_FOUND,
+#                                        msg='app_service_group does not exist!',
+#                                        msg_show='应用组模板不存在')
+#
+#         success, message, result = market_api.install_services(user, tenant, group_key, group_version, region, 'cloud')
+#         return self.success_response(result)
 
-    def get(self, request, tenant_name):
-        """
-        获取云市租户下应用组列表
-        ---
-        parameters:
-            - name: tenant_name
-              description: 租户名
-              required: true
-              type: string
-              paramType: path
-        """
 
-        user = request.user
-
-        tenant = market_api.get_tenant_by_name(tenant_name)
-        if not tenant:
-            logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
-            return self.error_response(code=status.HTTP_404_NOT_FOUND,
-                                       msg='tenant does not exist!',
-                                       msg_show='租户不存在')
-
-        # if tenant.creater != user.user_id:
-        #     logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
-        #     return self.error_response(code=status.HTTP_403_FORBIDDEN,
-        #                                msg='no access right for this tenant!',
-        #                                msg_show='您无权操作此租户')
-
-        data = []
-        group_list = market_api.list_tenant_group(tenant)
-        for group in group_list:
-            service_list = market_api.list_tenant_group_service(tenant, group)
-
-            services_status = []
-            for service in service_list:
-                result = market_api.get_tenant_service_status(tenant, service)
-                services_status.append(result)
-
-            group_status = market_api.compute_group_service_status(services_status)
-            data.append({
-                'group_id': group.ID,
-                'group_name': group.group_name,
-                'tenant_name': tenant.tenant_name,
-                'group_status': group_status,
-            })
-
-        return self.success_response(data)
-
-    def post(self, request, tenant_name):
-        """
-        在云市指定租户下创建新的组应用
-        ---
-        parameters:
-            - name: tenant_name
-              description: 租户名
-              required: true
-              type: string
-              paramType: path
-            - name: group_key
-              description: 应用组key
-              required: true
-              type: string
-              paramType: query
-            - name: version
-              description: 应用组version
-              required: true
-              type: string
-              paramType: query
-            - name: region
-              description: 安装到指定的数据中心
-              required: true
-              type: string
-              paramType: query
-        """
-        group_key = request.POST.get('group_key')
-        group_version = request.POST.get('version')
-        region = request.POST.get('region')
-        if not group_key or not group_version:
-            return self.error_response(code=status.HTTP_400_BAD_REQUEST,
-                                       msg='group_key, version can not be null',
-                                       msg_show='参数不合法')
-
-        user = request.user
-
-        tenant = market_api.get_tenant_by_name(tenant_name)
-        if not tenant:
-            logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
-            return self.error_response(code=status.HTTP_404_NOT_FOUND,
-                                       msg='tenant does not exist!',
-                                       msg_show='租户不存在')
-
-        # if tenant.creater != user.user_id:
-        #     logger.error(LOGGER_TAG, 'tenant [{0}] does not exist!'.format(tenant_name))
-        #     return self.error_response(code=status.HTTP_403_FORBIDDEN,
-        #                                msg='no access right for this tenant!',
-        #                                msg_show='您无权操作此租户')
-
-        app_service_group = market_api.get_app_service_group_by_unique(group_key, group_version)
-        if not app_service_group:
-            logger.error(LOGGER_TAG, "本地分享应用组不存在!")
-            return self.error_response(code=status.HTTP_404_NOT_FOUND,
-                                       msg='app_service_group does not exist!',
-                                       msg_show='应用组模板不存在')
-
-        result = market_api.install_services(user, tenant, region, app_service_group)
-        return self.success_response(result)
-
-
-class MarketGroupServiceAPIView(BaseMarketAPIView):
+class MarketGroupServiceAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('GET',)
 
     def get(self, request, tenant_name, group_id):
@@ -338,7 +258,7 @@ class MarketGroupServiceAPIView(BaseMarketAPIView):
         return self.success_response(group_data)
 
 
-class MarketGroupServiceLifeCycleAPIView(BaseMarketAPIView):
+class MarketGroupServiceLifeCycleAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('PUT',)
     allowed_action = ('start', 'stop', 'restart')
 
@@ -408,7 +328,7 @@ class MarketGroupServiceLifeCycleAPIView(BaseMarketAPIView):
         return action in self.allowed_action
 
 
-class MarketServiceAPIView(BaseMarketAPIView):
+class MarketServiceAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('GET',)
 
     def get(self, request, tenant_name, service_alias):
@@ -513,7 +433,7 @@ class MarketServiceAPIView(BaseMarketAPIView):
             return self.error_response(msg=msg)
 
 
-class MarketServiceLifeCycleAPIView(BaseMarketAPIView):
+class MarketServiceLifeCycleAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('PUT',)
     allowed_action = ('start', 'stop', 'restart')
 
@@ -590,7 +510,7 @@ class MarketServiceLifeCycleAPIView(BaseMarketAPIView):
         return action in self.allowed_action
 
 
-class MarketServiceMonitorGraphAPIView(BaseMarketAPIView):
+class MarketServiceMonitorGraphAPIView(EnterpriseMarketAPIView):
     allowed_methods = ('GET',)
 
     graph_type = ['online-stat', 'response-time-stat']
@@ -733,7 +653,7 @@ class MarketServiceMonitorGraphAPIView(BaseMarketAPIView):
                 queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
 
             if graph_key in ('memory', 'sqltime', 'sql-throughput'):
-                tenant_region = tenant_svc.get_tenant_region_info(tenant,service.service_region)
+                tenant_region = tenant_svc.get_tenant_region_info(tenant, service.service_region)
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(tenant_region.region_tenant_id,
                                                                        service.service_id) + '}'
             else:
@@ -756,7 +676,7 @@ class MarketServiceMonitorGraphAPIView(BaseMarketAPIView):
                 body = {}
                 body["start"] = start
                 body["queries"] = queries
-                result = region_api.get_opentsdb_data(service.service_region,body)
+                result = region_api.get_opentsdb_data(service.service_region, tenant.tenant_name, body)
                 query_data = result["bean"]
                 if not query_data:
                     return None

@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import patterns, url, include
 
-from backends.views.account import AccountCreateView
+from backends.views.account import AccountCreateView, TenantEnterpriseView
 from backends.views.announcement import AllAnnouncementView, AnnouncementView
 from backends.views.config import *
 from backends.views.resource.clusters import *
@@ -42,7 +42,7 @@ urlpatterns = patterns(
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionDetailView.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)', TenantRegionResourceView.as_view()),
-    url(r'^v1/regions/resources/manage$', RegionResourceView.as_view()),
+    # url(r'^v1/regions/resources/manage$', RegionResourceView.as_view()),
     url(r'^v1/regions/tenants/resources$', TenantRegionResourceView.as_view()),
     url(r'^v1/regions/tenants/resources/real$', TenantRegionRealResourceView.as_view()),
     # 数据中心下集群
@@ -52,11 +52,6 @@ urlpatterns = patterns(
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes$', RegionNodesView.as_view()),
     # 所有集群
     url(r'^v1/clusters$', AllClusterView.as_view()),
-    # 节点安装
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/login-check$', NodeInstallCheckView.as_view()),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/init-status$', NodeInitStatusView.as_view()),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/intall-status$', NodeInstallStatusView.as_view()),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/intall$', NodeInstallView.as_view()),
 
     # 数据中心集群下节点
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes$', NodesView.as_view()),
@@ -66,10 +61,10 @@ urlpatterns = patterns(
         NodeOperateView.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>[\w\-]+)/brief$',
         NodeBriefInfoView.as_view()),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>[\w\-]+)/labels$',
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
         NodeLabelsView.as_view()),
     # 所有节点
-    url(r'^v1/nodes$', AllNodesView.as_view()),
+    # url(r'^v1/nodes$', AllNodesView.as_view()),
 
     # 团队路径
     url(r'^v1/teams$', AllTeamView.as_view()),
@@ -86,4 +81,6 @@ urlpatterns = patterns(
     # 管理后台初始化云帮
 
     url(r'^v1/account/create$', AccountCreateView.as_view()),
+    url(r'^v1/enterprise/(?P<enterprise_id>[\w\-]+)', TenantEnterpriseView.as_view()),
+
 )

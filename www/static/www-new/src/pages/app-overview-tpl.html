@@ -1,86 +1,89 @@
+    <link href="http://cdn.bootcss.com/prettify/r224/prettify.css" rel="stylesheet">
+    <link rel="stylesheet" href='/static/www-new/src/libs/datetimepicker.css'>
+    <script type="text/javascript" src="/static/www-new/src/libs/moment.js"></script>
+    <script type="text/javascript" src="/static/www-new/src/libs/datetimepicker.js"></script>
     <!-- 01 -->
     <div class="flex-box" id="status_areas">
         <div class="flex-singe">
-            <div class="chunkbox">
-                <p class="hd">状态</p>
-                <p class="bd">
-                    <img id="service_status-img" src="/static/www/img/appOutline/appOutline1.png"/>
-                </p>
-                <div name="service_status" class="ft">
-                    <div class="ft-bd">
+            <div class="chunkbox" style="height: 220px;">
+                <div class="hd">状态</div>
+                <div class="bd">
+                    <img style="margin-top:30px;margin-bottom:15px;" id="service_status-img" src="/static/www/img/appOutline/appOutline1.png"/>
+                    <div name="service_status">
                         <span  id="service_status" class="sub-tit-text">未知</span>
                     </div>
                 </div>
             </div>
         </div>
         <div class="flex-singe">
-            <div class="chunkbox">
-                <p class="hd">内存</p>
-                <p name="service_memory" class="bd">
-                    <span  id="service_memory" class="tit-text">
-                        <span class="show-memory">{{ pageData.totalMemory }}</span>M
-                    </span>
-                </p>
-                <div class="ft" id="MemoryCost">
-                    <div class="ft-bd">
-                        <p class="desc-text memory-monthly-info"></p>
-                        <p class="desc-text">上一个小时费用<span class="last_hour_memory_cost">0</span>元</p>
+            <div class="chunkbox app_requesttime_thunk" style="height: 220px;">
+                <div class="hd">响应时间</div>
+                <div class="installed-new-plugin" style="display: none;">
+                    <div name="app_requesttime" class="bd">
+                        <span class="tit-text">
+                            <span class="bg-text app_requesttime">0</span>
+                            <span class="text-sub">ms</span>
+                        </span>
+                    </div>
+                    <div class="ft" id="MemoryCost">
+                        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history" class="link">性能分析</a>
+                    </div>
+                </div>
+                <div class="uninstall-new-plugin">
+                    <div class="tips">
+                        <p>尚未安装性能分析插件</p>
+                        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=plugin">去安装</a>
                     </div>
                 </div>
             </div>
         </div>
         <div class="flex-singe" id="DiskBox">
-            <div class="chunkbox">
-                <p class="hd">磁盘</p>
-                <p class="bd">
-                    <span id="service_disk"  name="service_disk" class="tit-text">
-                        <span class="show-disk">{{pageData.last_hour_disk || 0}}</span>M
-                    </span>
-                </p>
-                <div class="ft">
-                    <div class="ft-bd">
-                    <p class="desc-text disk-monthly-info"></p>
-                    <p class="desc-text">上一个小时费用<span class="last-hour-disk-cost">{{pageData.last_hour_disk_cost}}</span>元</p>
+            <div class="chunkbox app_request_chunk" style="height: 220px;">
+                <div class="hd">吞吐率</div>
+                <div class="installed-new-plugin" style="display: none;">
+                    <div class="bd">
+                        <span  name="" class="tit-text">
+                            <span class="bg-text app_request">0</span>
+                            <span class="text-sub">dps</span>
+                        </span>
+                    </div>
+                    <div class="ft">
+                        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=expansion" class="link">应用伸缩</a></p>
+                    </div>
+                </div>
+                <div class="uninstall-new-plugin">
+                    <div class="tips">
+                        <p>尚未安装性能分析插件</p>
+                        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=plugin">去安装</a>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="flex-singe" id="FlowBox">
-            <div class="chunkbox">
-                <p class="hd">上一小时流量</p>
-                <p class="bd">
-                    <span id="service_net" class="tit-text">
-                        <span class="last_hour_net">{{pageData.last_hour_net || 0}}</span>M
-                    </span>
-                </p>
-                <div class="ft">
-                    <div class="ft-bd">
-                        <p class="desc-text">上一个小时费用<span class="last-hour-net-cost">0</span>元</p>
-                    </div>
-
+        <div class="flex-singe">
+            <div class="chunkbox" style="height: 220px;">
+                <div class="hd">功能扩展</div>
+                <div class="bd" id="plugin-list-wrap">
+                    
                 </div>
-                   
             </div>
         </div>
-        {{if !pageData.community}}
-        <div class="fn-tips layer_pay flex-singe" data-toggle="tooltip" data-placement="top" title="应用状态未知" id="CostBox">
-            <div class="chunkbox">
-                <p class="hd">上一小时费用</p>
-                <p class="bd">
-                    <span class="tit-text last_hour_fee">
-                        <span class="last_hour_cost">{{pageData.last_hour_net || 0}}</span>元
-                    </span>
-                </p>
-                <div class="ft">
-                    <div class="ft-bd">
-                    <p class="desc-text">
-                        累计费用<span class="total-money">0</span>元
-                    </p>
+        <div class="flex-singe">
+            <div class="chunkbox" style="height: 220px;">
+                <div class="hd">资源</div>
+                <div style="margin-top:35px;" class="bd">
+                    <div class="tit-text">
+                        <div>
+                            <span class="bg-text show_memory">{{pageData.totalMemory}}</span>
+                            <span class="text-sub">M 内存</span>
+                        </div>
+                        <div>
+                            <span class="show_disk">{{pageData.last_hour_disk || 0}}</span>
+                            <span class="text-sub">M 磁盘</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        {{/if}}
     </div>
     <!-- 01 -->
     <!-- 02 -->
@@ -92,9 +95,7 @@
                 {{if pageData.hasHttpServices}}
                 <li>
                     <div class="btn-group fn-tips" action="visit" data-toggle="tooltip" data-placement="top" title="跳转到应用对外访问端口对应的域名地址">
-
                         {{if pageData.domain_list.length > 0}}
-
                             {{if pageData.domain_list.length == 1}}
                                 <button data-domain="{{pageData.domain_list[0]}}" type="button" class="btn btn-success dropdown-toggle visit-domain" data-toggle="dropdown">访问</button>
                             {{else}}
@@ -154,7 +155,7 @@
         <!-- 02 right -->
         <div class="pull-right">
             <ul class="clearfix handle-box-right">
-                {{if pageData.is_sys_admin || pageData.docker_console || tenantName == 'gooood' || tenantName == 'gooood0' || tenantName == 'baoxianjie' || tenantName == 'showmac' || tenantName == 'jamesocy' || tenantName == 'summersoft'}}
+                {{if pageData.docker_console}}
                 <li action="manage_container">
                     <div class="btn-group fn-tips" data-toggle="tooltip" data-placement="top" title="选择实例进入WEB控制台，可以进行容器内部shell管理操作。">
                         <button type="button" name="join_container" class="btn btn-success dropdown-toggle" data-toggle="dropdown"  id="join_container"> 管理容器 <span class="caret"></span></button>
@@ -196,11 +197,20 @@
         <!-- 02 right -->
     </section>
     <!-- log start -->
-    <section class="panel panel-default">
-        <div class="panel-heading">操作记录</div>
+    <section class="panel panel-default time-line-panel">
+        <div class="panel-heading">
+            <div class="time-selector">
+                <div class="input-group">
+                  <input type="text" class="form-control"  id="datetimepicker" placeholder="查看某个时间点以前的记录">
+                </div>
+            </div>
+            操作记录
+        </div>
         <div class="panel-body">
+            
             <input type="hidden" name="service_name" id="service_name" value="{{appInfo.service.service_alias}}"/>
             <div id="keylog">
+                
                 <ul class="timeline list-unstyled">
                 </ul>
                 <p style="text-align: center;">
@@ -219,3 +229,4 @@
         <p>当前应用将于<span class="text-success" id="start_time"></span>开始计费，逾期未成功支付，应用所有项目将会按需支付。</p>
         </div>
     </script>
+   

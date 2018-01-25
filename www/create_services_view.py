@@ -1,29 +1,19 @@
 # -*- coding: utf8 -*-
 import logging
-import json
 import os
 
-from django.views.decorators.cache import never_cache
+from django.db.models import Q
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
-from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
 
 from www.app_http import AppServiceApi
-from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, \
-    TenantServiceAuth
-from service_http import RegionServiceApi
+from www.models import TenantEnterprise, AppServiceGroup, PermRelTenant
+from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     CodeRepositoriesService
-from www.utils.language import is_redirect
-from www.monitorservice.monitorhook import MonitorHook
-from www.utils.crypt import make_uuid
-from django.conf import settings
-from www.servicetype import ServiceType
 from www.utils import sn
-from www.models import AppService
-from django.db.models import Q, Count
+from www.views import AuthedView, LeftSideBarMixin
 
 logger = logging.getLogger('default')
 
@@ -42,7 +32,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js')
         return media
-    
+
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
@@ -62,105 +52,75 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         if fr is None or fr not in ("private", "deploy", "hot", "new", "thirdApp"):
             fr = "hot"
         context["fr"] = fr
-        ty = request.GET.get("ty",None)
-        if ty is None or ty not in ("image",'code','app','cloud',):
+        ty = request.GET.get("ty", None)
+        if ty is None or ty not in ("image", 'code', 'app', 'cloud',):
             ty = "image"
         context["ty"] = ty
-
-        context['domain'] = os.getenv('GOODRAIN_APP_DOMAIN', 'https://app.goodrain.com')
         try:
-            # # 云市最新的应用
-            # res, resp = appClient.getRemoteServices(key="newest", limit=5)
-            # if res.status == 200:
-            #     service_list = json.loads(resp.data)
-            #     context["service_list"] = service_list
             if ty == "app":
-                if fr == "private":
-                    # 私有市场
-                    service_list = AppService.objects.filter(tenant_id=self.tenant.tenant_id) \
-                                       .exclude(service_key='application') \
-                                       .exclude(service_key='redis', app_version='2.8.20_51501') \
-                                       .exclude(service_key='wordpress', app_version='4.2.4')[:11]
-                    # # 团队共享
-                    # tenant_service_list = [x for x in service_list if x.status == "private"]
-                    # # 云帮共享
-                    # assistant_service_list = [x for x in service_list if x.status != "private" and not x.dest_ys]
-                    # # 云市共享
-                    # cloud_service_list = [x for x in service_list if x.status != "private" and x.dest_ys]
-                    # context["tenant_service_list"] = tenant_service_list
-                    # context["assistant_service_list"] = assistant_service_list
-                    # context["cloud_service_list"] = cloud_service_list
-                    context["service_list"] = [x for x in service_list]
-                elif fr == "deploy":
-                    # 当前租户最新部署的应用
-                    tenant_id = self.tenant.tenant_id
-                    tenant_service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).exclude(
-                        service_key='application').order_by("-ID")
-                    service_key_query = []
-                    tenant_service_query = None
-                    for tenant_service in tenant_service_list:
-                        if tenant_service.service_key == 'redis' and tenant_service.version == '2.8.20_51501':
-                            continue
-                        if tenant_service.service_key == 'wordpress' and tenant_service.version == '4.2.4':
-                            continue
-                        tmp_key = '{0}_{1}'.format(tenant_service.service_key, tenant_service.version)
-                        if tmp_key in service_key_query:
-                            continue
-                        service_key_query.append(tmp_key)
-                        if len(service_key_query) > 18:
-                            break
-                        if tenant_service_query is None:
-                            tenant_service_query = (
-                            Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
-                        else:
-                            tenant_service_query = tenant_service_query | (
-                            Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
-                    if len(service_key_query) > 0:
-                        tenant_service_query = tenant_service_query & (~Q(status="hidden"))
-                        service_list = ServiceInfo.objects.filter(tenant_service_query)
-                        context["service_list"] = service_list
-                elif fr == "hot":
-                    # 当前云帮部署最多应用
-                    tenant_service_list = TenantServiceInfo.objects.values('service_key', 'version') \
-                        .exclude(service_key='application') \
-                        .annotate(Count('ID')).order_by("-ID__count")
-                    service_key_query = []
-                    tenant_service_query = None
-                    for tenant_service in tenant_service_list:
-                        if tenant_service.get("service_key") == 'redis' and tenant_service.get("version") == '2.8.20_51501':
-                            continue
-                        if tenant_service.get("service_key") == 'wordpress' and tenant_service.get("version") == '4.2.4':
-                            continue
-                        tmp_key = '{0}_{1}'.format(tenant_service.get("service_key"), tenant_service.get("version"))
-                        if tmp_key in service_key_query:
-                            continue
-                        service_key_query.append(tmp_key)
-                        if len(service_key_query) > 18:
-                            break
-                        if tenant_service_query is None:
-                            tenant_service_query = (
-                            Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
-                        else:
-                            tenant_service_query = tenant_service_query | (
-                            Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
-                    if len(service_key_query) > 0:
-                        tenant_service_query = tenant_service_query & (~Q(status="hidden"))
-                        service_list = ServiceInfo.objects.filter(tenant_service_query)
-                        context["service_list"] = service_list
-                elif fr == "new":
-                    # 云市最新的应用
-                    res, resp = appClient.getRemoteServices(key="newest", limit=11)
-                    if res.status == 200:
-                        service_list = json.loads(resp.data)
-                        context["service_list"] = service_list
-                    else:
-                        logger.error("service market query newest failed!")
-                        logger.error(res, resp)
+                query_app_name = request.GET.get("app_name")
+                page_num = request.GET.get("page", "1")
+                page_num = int(page_num)
+                page_num = page_num if page_num > 0 else 1
+                page_size = request.GET.get("limit", "12")
+                page_size = int(page_size)
+                page_size = page_size if page_size > 0 else 12
+                # 数据索引
+                begin_index = (page_num - 1) * page_size
+                end_index = page_num * page_size
 
-                elif fr == "thirdApp":
-                    service_list = []
-                    context["service_list"] = service_list
-        
+                try:
+                    perm = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).first()
+                    enterprise = TenantEnterprise.objects.get(pk=perm.enterprise_id)
+                    is_active = enterprise.is_active
+                    enterprise_id = enterprise.ID
+
+                    context["is_active"] = is_active
+                    context['enterprise_id'] = enterprise.enterprise_id
+                except (TenantEnterprise.DoesNotExist, PermRelTenant.DoesNotExist):
+                    enterprise_id = 0
+
+                # 当前租户已分享的应用
+                query = Q(source='remote')
+                if query_app_name:
+                    query = query & Q(group_share_alias__icontains=query_app_name)
+
+                # 默认按更新时间排序
+                order_by = '-update_time'
+
+                # 当前企业已分享的应用
+                if fr == "private":
+                    query = Q(enterprise_id=enterprise_id, source='local')
+                    order_by = "-update_time"
+
+                # 当前租户最新部署的应用
+                elif fr == "deploy":
+                    order_by = "-deploy_time"
+
+                # 云帮部署最多应用
+                elif fr == "hot":
+                    order_by = "-installed_count"
+
+                # 云帮最新的应用
+                elif fr == "new":
+                    order_by = "-update_time"
+
+                query = AppServiceGroup.objects.filter(query)
+                total_size = query.count()
+                total_page = total_size / page_size
+                total_page = 1 if total_page == 0 else total_page + 1
+                service_list = query.order_by(order_by)[begin_index:end_index]
+                context["service_list"] = [{
+                    'key': service.group_share_id,
+                    'version': service.group_version,
+                    'alias': service.group_share_alias,
+                    'is_market': service.is_market,
+                } for service in service_list]
+
+                context["page_num"] = page_num
+                context["pre_page"] = page_num - 1 if page_num - 1 > 0 else 1
+                context["next_page"] = page_num + 1
+                context["total_page"] = total_page
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_one.html", context)

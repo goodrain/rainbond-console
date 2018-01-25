@@ -29,7 +29,8 @@ const GroupIndexController = createPageController({
 		//群组名称
 		groupName: '',
 		//所有的组名
-		allGroups:[]
+		allGroups:[],
+		apps:[]
 	},
 	method: {
 		//轮询监测应用列表的运行状态
@@ -37,6 +38,10 @@ const GroupIndexController = createPageController({
 		    return getTenantAllAppsStatusAndMemory(
 				this.tenantName
 			).done((data) => {
+				if(data && data.list){
+					this.apps = data.list || [];
+				}
+				console.log(this.apps)
 				this.updateAppsInfo(data);
 			})
 		},
@@ -97,15 +102,25 @@ const GroupIndexController = createPageController({
 		onSelectedChange: function() {
 			var selectedDatas = this.getSelectedApp();
 			if(selectedDatas.length > 0){
-				$('[data-action=betch-restart]').show();
-				$('[data-action=betch-stop]').show();
-				$('[data-action=betch-deploy]').show();
+				$('[data-action=betch-restart]').prop('disabled', false);
+				$('[data-action=betch-stop]').prop('disabled', false);
+				$('[data-action=betch-deploy]').prop('disabled', false);
 			}else{
-				$('[data-action=betch-restart]').hide();
-				$('[data-action=betch-stop]').hide();
-				$('[data-action=betch-deploy]').hide();
+				$('[data-action=betch-restart]').prop('disabled', true);
+				$('[data-action=betch-stop]').prop('disabled', true);
+				$('[data-action=betch-deploy]').prop('disabled', true);
 			}
 			$('#app-numbers span').html(selectedDatas.length);
+		},
+		isAppCanDo: function(id, action){
+			var apps = this.apps || [];
+			for(var i=0;i<apps.length;i++){
+				if(apps[i].id == id){
+
+					return apps[i].activeAction.indexOf(action) > -1
+				}
+			}
+			return true;
 		},
 		handleDeploy: function(serviceAlias, category){
 			deployApp(
@@ -140,6 +155,20 @@ const GroupIndexController = createPageController({
 		},
 		betchOpenApp: function() {
 			var self = this, selectedIds = this.getSelectedApp();
+			if(!selectedIds.length){
+				Msg.warning('请选择要操作的应用');
+				return;
+			}
+
+			selectedIds = selectedIds.filter(function (id){
+				return self.isAppCanDo(id, 'restart');
+			})
+
+			if(!selectedIds.length){
+				Msg.warning('没有可以执行此操作的应用');
+				return;
+			}
+
 			if(selectedIds.length){
 				betchOpenApp(
 					this.tenantName,
@@ -152,6 +181,21 @@ const GroupIndexController = createPageController({
 		},
 		handleBetchClose: function() {
 			var self = this, selectedIds = this.getSelectedApp();
+			console.log(selectedIds)
+			if(!selectedIds.length){
+				Msg.warning('请选择要操作的应用');
+				return;
+			}
+
+			selectedIds = selectedIds.filter(function (id){
+				return self.isAppCanDo(id, 'stop');
+			})
+
+			if(!selectedIds.length){
+				Msg.warning('没有可以执行此操作的应用');
+				return;
+			}
+
 			if(selectedIds.length){
 				betchCloseApp(
 					this.tenantName,
@@ -165,6 +209,23 @@ const GroupIndexController = createPageController({
 		//批量启动
 		handleBetchDeploy: function() {
 			var self = this, selectedIds = this.getSelectedApp();
+
+			console.log(selectedIds)
+			if(!selectedIds.length){
+				Msg.warning('请选择要操作的应用');
+				return;
+			}
+
+
+			selectedIds = selectedIds.filter(function (id){
+				return self.isAppCanDo(id, 'deploy');
+			})
+
+			if(!selectedIds.length){
+				Msg.warning('没有可以执行此操作的应用');
+				return;
+			}
+
 			if(selectedIds.length){
 				betchDeployApp(
 					this.tenantName,
@@ -173,6 +234,8 @@ const GroupIndexController = createPageController({
 					Msg.success('操作成功');
 					self.checkAppsInfo();
 				})
+			}else{
+
 			}
 		},
 		//分享组
@@ -281,7 +344,7 @@ const GroupIndexController = createPageController({
 								self.tenantName,
 								groupName
 							).done(function(){
-								Msg.success("操作陈功!")
+								Msg.success("操作成功!")
 								setTimeout(() => {
 									location.reload();
 								}, 2000)

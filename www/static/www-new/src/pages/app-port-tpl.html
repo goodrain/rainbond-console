@@ -29,7 +29,9 @@
                         <span>协议类型</span>
                         <select name="port_protocol" class="form-control">
                             <option value="http">http</option>
-                            <option value="stream">stream</option>
+                            <option value="tcp">tcp</option>
+                            <option value="udp">udp</option>
+                            <option value="mysql">mysql</option>
                         </select>
                     </div>
                     <div class="form-group" style="display: none;">
@@ -73,7 +75,7 @@
                             <table class="child-talbe" style="width:100%">
                                 <tbody>
                                     <tr>
-                                        <td width="70">对外服务</td>
+                                        <td width="70">内部访问</td>
                                         <td>
                                             {{if $value.is_inner_service}}
                                                 <label class="checkbox">

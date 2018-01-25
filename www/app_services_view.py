@@ -53,7 +53,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         # 检查用户邮箱是否完善,跳转到邮箱完善页面
         next_url = request.path
         if self.user.email is None or self.user.email == "":
-            return self.redirect_to("/wechat/info?next={0}".format(next_url))
+            type = request.GET.get("type", "")
+            if type == "gitlab_exit":
+                return self.redirect_to("/wechat/info?next={0}".format(next_url))
         # 判断系统中是否有初始化的application数据
         count = ServiceInfo.objects.filter(service_key="application").count()
         if count == 0:
@@ -434,6 +436,7 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     data["status"] = "over_money"
                 return JsonResponse(data, status=200)
 
+            # newTenantService.expired_time = self.tenant.expired_time
             newTenantService.save()
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
 
@@ -442,12 +445,7 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             # 创建挂载目录
             baseService.batch_add_dep_volume_v2(self.tenant, self.service, service_alias_list)
-
-            # failed, msg = baseService.batch_add_dep_volume_v2(self.tenantName, self.service, service_alias_list)
-            # if msg:
-            #     result = {'result':'failure', 'msg':msg}
-            #     return JsonResponse(data=result, status=200)
-
+            baseService.add_service_default_probe(self.tenant, self.service)
 
             body = {}
             body["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"

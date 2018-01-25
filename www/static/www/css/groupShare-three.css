@@ -22,7 +22,6 @@ section.appShare{
 .app-step p.sed cite{color: #00d777;}
 .step-tit{color: #838383; font-size:18px; text-align: center;}
 .app-step.two p{width: 50%;}
-.app-step.three p{width: 33%;}
 
 .main-tit{
     color: #28cb75;
@@ -207,3 +206,16 @@ a.titlink{
     -webkit-backface-visibility: hidden;
 }
 .linkbox{text-align: center;}
+.share-status-wait {background-color: #dcdcdc;}
+.share-status-ing {background: #ecf6fd; border: 1px #d3eafa solid;}
+.share-status-success {background: #ebf8f2; border: 1px #d0efdf solid;}
+.share-status-fail {background: #fef0ef; border: 1px #fbdbda solid;}
+
+.shareul .ing{color: #1f90e6;}
+.shareul .success{color: #18a757;}
+.shareul .fail{color: #ed433b;}
+
+
+
+
+

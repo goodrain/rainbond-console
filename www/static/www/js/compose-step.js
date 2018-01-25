@@ -728,7 +728,7 @@ $(function(){
                     swal("当前组不存在");
                 }else if(status =="over_memory"){
                     if (data.tenant_type == "free"){
-                        swal("资源已达上限,免费用户最多使用1G内存");
+                        swal("资源已达上限,不能创建");
                     }else
                         swal("资源已达上限，不能创建");
                 }else if(status == "over_money"){

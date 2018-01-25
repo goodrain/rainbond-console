@@ -19,6 +19,7 @@
             <p><span>1</span><cite>设置应用组信息</cite></p>
             <p class="sed"><span>2</span><cite>参数设置</cite></p>
             <p><span>3</span><cite>基本信息</cite></p>
+            <p><span>4</span><cite>分享</cite></p>
         </div>
         <div id="tab">
             {% for service in service_list %}
@@ -116,6 +117,8 @@
                         <thead>
                         <tr>
                             <th>持久化目录</th>
+                            <th>持久化名称</th>
+                            <th>持久化类型</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -123,6 +126,8 @@
                         {% for volume in volume_list %}
                         <tr>
                             <td>{{volume.volume_path}}</td>
+                            <td>{{volume.volume_name}}</td>
+                            <td>{{volume.volume_type}}</td>
                         </tr>
                         {% endfor %}
                         {% endwith %}

@@ -1,0 +1,150 @@
+{
+    "plugin_id": "e08494be4859477c98f3bd68ee231a15",
+    "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+    "config_group":[
+      {
+        "service_meta_type": "downstream_port",
+        "injection": "auto",
+        "port": 5000,
+        "protocol": "http",
+        "service_alias": "gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "dest_service_alias": "service2",
+        "dest_service_id": "12sfaf231",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_5000.com",
+            "attr_default_value": "www.baidu1_5000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      },
+      {
+        "service_meta_type": "downstream_port",
+        "injection": "auto",
+        "port": 6000,
+        "protocol": "http",
+        "service_alias": "gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "dest_service_alias": "service2",
+        "dest_service_id": "12sfaf231",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_5000.com",
+            "attr_default_value": "www.baidu1_5000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      },
+      {
+        "service_meta_type": "upstream_port",
+        "injection": "auto",
+        "port": 6000,
+        "protocol": "http",
+        "service_alias": "gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_6000.com",
+            "attr_default_value": "www.baidu1_6000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      },
+      {
+        "service_meta_type": "upstream_port",
+        "injection": "auto",
+        "port": 6000,
+        "protocol": "http",
+        "service_alias": "gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_6000.com",
+            "attr_default_value": "www.baidu1_6000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      },
+      {
+        "service_meta_type": "un_define",
+        "injection": "auto",
+        "service_alias":"gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_6000.com",
+            "attr_default_value": "www.baidu1_6000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      },
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "service_alias":"gr7dd89e",
+        "service_id": "33f7b79b81060e78fcbb4e6a517dd89e",
+        "config": [
+          {
+            "attr_name": "domain",
+            "attr_type": "string",
+            "attr_value": "www.dest_service1_6000.com",
+            "attr_default_value": "www.baidu1_6000.com",
+            "is_change": true
+          },
+          {
+            "attr_name": "circuit",
+            "attr_type": "int",
+            "attr_value": "2048",
+            "attr_default_value": "1024",
+            "is_change": true
+          }
+        ]
+      }
+    ]
+}

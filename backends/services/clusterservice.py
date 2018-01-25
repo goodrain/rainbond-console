@@ -37,5 +37,13 @@ class ClusterService(object):
         cluster_list = RegionClusterInfo.objects.filter(region_id=region_id)
         return cluster_list
 
+    def add_cluster(self, region_id, cluster_id, cluster_name, cluster_alias, enable):
+        cluster_info = RegionClusterInfo.objects.create(region_id=region_id,
+                                                        cluster_id=cluster_id,
+                                                        cluster_name=cluster_name,
+                                                        cluster_alias=cluster_alias,
+                                                        enable=enable)
+        return cluster_info
+
 
 cluster_service = ClusterService()

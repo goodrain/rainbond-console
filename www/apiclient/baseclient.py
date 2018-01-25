@@ -1,12 +1,15 @@
 # -*- coding: utf8 -*-
+import datetime as dt
 import json
-import httplib2
+import logging
 import socket
 
+import httplib2
 from addict import Dict
-from goodrain_web.decorator import method_perf_time
 
-import logging
+from goodrain_web.decorator import method_perf_time
+from www.models.main import TenantEnterpriseToken, TenantEnterprise, Tenants
+
 logger = logging.getLogger('default')
 
 
@@ -38,8 +41,10 @@ class HttpClient(object):
         try:
             pybody = json.loads(string)
         except ValueError:
-            pybody = {"raw": string}
-
+            if len(string) < 10000:
+                pybody = {"raw": string}
+            else:
+                pybody = {"raw": "too long to record!"}
         return pybody
 
     def _check_status(self, url, method, response, content):
@@ -54,6 +59,18 @@ class HttpClient(object):
         else:
             return res, body
 
+    def _unpack(self, dict_body):
+        if 'data' not in dict_body:
+            return dict_body
+
+        data_body = dict_body['data']
+        if 'bean' in data_body and data_body['bean']:
+            return data_body['bean']
+        elif 'list' in data_body and data_body['list']:
+            return data_body['list']
+        else:
+            return dict()
+
     @method_perf_time
     def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
         retry_count = 2
@@ -66,18 +83,18 @@ class HttpClient(object):
                 else:
                     response, content = client.request(url, method, headers=headers, body=body)
 
-                if len(content) > 1000:
+                if len(content) > 10000:
                     record_content = '%s  .....ignore.....' % content[:1000]
                 else:
                     record_content = content
 
-                if body is not None and len(body) > 1000:
-                    record_body = '%s .....ignore.....' % body[:1000]
-                else:
-                    record_body = body
+                # if body is not None and len(body) > 1000:
+                #     record_body = '%s .....ignore.....' % body[:1000]
+                # else:
+                #     record_body = body
 
-                logger.debug(
-                    'request', '''{0} "{1}" body={2} response: {3} \nand content is {4}'''.format(method, url, record_body, response, record_content))
+                logger.debug('request',
+                             '''\nrequest   ==> {0} "{1}" body={2}\nresponse  ==> {3}\ncontent   ==> {4}'''.format(method, url, body, response, record_content))
                 return response, content
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
@@ -122,3 +139,146 @@ class HttpClient(object):
             response, content = self._request(url, 'DELETE', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
+
+
+cached_enter_token = dict()
+
+
+class ClientAuthService(object):
+    def get_enterprise_by_id(self, enterprise_id):
+        try:
+            return TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        except TenantEnterprise.DoesNotExist:
+            return None
+
+    def save_market_access_token(self, enterprise_id, url, market_client_id, market_client_token):
+        """
+        保存企业访问云市的api的token
+        :param enterprise_id: 要绑定激活的云市企业ID
+        :param url: 云市url
+        :param market_client_id: 云市业ID
+        :param market_client_token: 云市企业token
+        :return: 
+        """
+        enterprise = self.get_enterprise_by_id(enterprise_id)
+        if not enterprise:
+            return False
+
+        # enterprise的认证信息统一由TenantEnterpriseToken管理
+        try:
+            token = TenantEnterpriseToken.objects.get(enterprise_id=enterprise.pk, access_target='market')
+            token.access_url = url
+            token.access_id = market_client_id
+            token.access_token = market_client_token
+            token.update_time = dt.datetime.now()
+            token.save()
+
+            self.reflush_access_token(enterprise_id, 'market')
+        except TenantEnterpriseToken.DoesNotExist:
+            token = TenantEnterpriseToken()
+            token.enterprise_id = enterprise.pk
+            token.access_target = 'market'
+            token.access_url = url
+            token.access_id = market_client_id
+            token.access_token = market_client_token
+            token.save()
+
+        enterprise.is_active = 1
+        enterprise.save()
+
+        return True
+
+    def save_region_access_token(self, enterprise_id, region_name, access_url, access_token, key, crt):
+        """
+        保存企业访问数据中心api的token
+        :param enterprise_id: 企业ID
+        :param region_name: 数据中心名字
+        :param access_url: 数据中心访问url
+        :param access_token: 数据中心访问token
+        :param key: 数据中心访问证书key
+        :param crt: 数据中心访问证书crt
+        :return: 
+        """
+        enterprise = self.get_enterprise_by_id(enterprise_id)
+        if not enterprise:
+            return False
+
+        try:
+            token = TenantEnterpriseToken.objects.get(enterprise_id=enterprise.pk, access_target=region_name)
+            token.access_url = access_url
+            token.access_token = access_token
+            token.key = key
+            token.crt = crt
+            token.update_time = dt.datetime.now()
+            token.save()
+
+            self.reflush_access_token(enterprise_id, region_name)
+        except TenantEnterpriseToken.DoesNotExist:
+            token = TenantEnterpriseToken()
+            token.enterprise_id = enterprise.pk
+            token.access_target = region_name
+            token.access_url = access_url
+            token.access_token = access_token
+            token.key = key
+            token.crt = crt
+            token.save()
+
+        return True
+
+    def __get_enterprise_access_token(self, enterprise_id, access_target):
+        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        try:
+            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
+        except TenantEnterpriseToken.DoesNotExist:
+            return None
+
+    def __get_cached_access_token(self, enterprise_id, access_target):
+        key = '-'.join([enterprise_id, access_target])
+        return cached_enter_token.get(key)
+
+    def reflush_access_token(self, enterprise_id, access_target):
+        enter_token = self.__get_enterprise_access_token(enterprise_id, access_target)
+
+        key = '-'.join([enterprise_id, access_target])
+        if not enter_token:
+            cached_enter_token[key] = None
+        else:
+            cached_enter_token[key] = enter_token
+
+        return cached_enter_token[key]
+
+    def get_market_access_token_by_tenant(self, tenant_id):
+        tenant = Tenants.objects.get(tenant_id=tenant_id)
+        if not tenant:
+            return None, None, None
+
+        token = self.__get_cached_access_token(tenant.enterprise_id, 'market')
+        if not token:
+            token = self.reflush_access_token(tenant.enterprise_id, 'market')
+
+        if not token:
+            return None, None, None
+
+        return token.access_url, token.access_id, token.access_token
+
+    def get_region_access_token_by_tenant(self, tenant_name, region_name):
+        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        if not tenant:
+            return None, None
+
+        token = self.__get_cached_access_token(tenant.enterprise_id, region_name)
+        if not token:
+            token = self.reflush_access_token(tenant.enterprise_id, region_name)
+
+        if not token:
+            return None, None
+
+        return token.access_url, token.access_token
+
+    def get_market_access_token_by_access_token(self, access_id, access_token):
+        try:
+            return TenantEnterpriseToken.objects.get(access_target='market', access_id=access_id, access_token=access_token)
+        except TenantEnterpriseToken.DoesNotExist:
+            return None
+
+client_auth_service = ClientAuthService()

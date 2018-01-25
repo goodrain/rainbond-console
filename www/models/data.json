@@ -1,0 +1,63 @@
+[
+//插件构建
+{
+  "build_version": "构建版本",
+  "min_memory": "最小内存",
+  "config_group": [
+    {
+      "config_name": "配置组名",
+      "injection": "注入类型(env或auto)",
+      "service_meta_type": "数据类型 （port-端口 | dep_port-下游服务端口 | undefine-无）",
+      "options": [
+        {
+          "attr_name": "属性名",
+          "attr_type": "值类型 radio(单选) | checkbox（多选）| string (普通数值)",
+          "attr_value": "属性值",
+          "attr_default_value": "默认值",
+          "is_change": "是否可修改"
+        }
+      ]
+    }
+  ]
+}
+,
+//应用与插件关联
+{
+  "plugin_id": "插件id",
+  "version_id": "插件版本"
+},
+  {
+    "down_stream":[
+      {
+        "dest_service1":{
+          "5000":[
+            {
+              "attr_name": "属性名",
+              "attr_type": "值类型",
+              "attr_value": "属性值",
+              "attr_default_value": "默认值",
+              "is_change": "是否可修改"
+            },
+            {
+              "attr_name": "属性名",
+              "attr_type": "值类型",
+              "attr_value": "属性值",
+              "attr_default_value": "默认值",
+              "is_change": "是否可修改"
+            }
+          ],
+          "6000":[
+
+          ]
+        }
+      },
+      {}
+    ],
+    "up_stream":[
+      {},
+      {}
+    ]
+  }
+
+]
+

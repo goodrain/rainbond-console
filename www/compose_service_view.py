@@ -247,7 +247,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 ts.min_memory = min_memory
                 ts.min_node = min_node
                 services_list.append(ts)
-            res = tenantUsedResource.predict_batch_services_memory(self.tenant, services_list)
+            res = tenantUsedResource.predict_batch_services_memory(self.tenant, services_list, self.response_region)
             if not res:
                 result["status"] = "over_memory"
                 result["tenant_type"] = self.tenant.pay_type
@@ -294,7 +294,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     index = service_image.index(":")
                     version = service_image[index + 1:]
                 else:
-                    version = "lastest"
+                    version = "latest"
 
                 service = ServiceInfo()
                 service.service_key = "0000"

@@ -117,13 +117,14 @@ class RegionService(object):
 
             return total, list
 
-    def add_region_cluster(self, region_id, cluster_name, cluster_alias, enable):
+    def add_region_cluster(self, region_id, cluster_id, cluster_name, cluster_alias, enable):
         if RegionClusterInfo.objects.filter(cluster_alias=cluster_alias).exists():
             raise ClusterExistError("集群别名{}已存在".format(cluster_alias))
         if RegionClusterInfo.objects.filter(cluster_name=cluster_name).exists():
             raise ClusterExistError("集群名{}已存在".format(cluster_name))
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cluster_info = RegionClusterInfo.objects.create(region_id=region_id,
+                                                        cluster_id=cluster_id,
                                                         cluster_name=cluster_name,
                                                         cluster_alias=cluster_alias,
                                                         enable=enable,
@@ -139,7 +140,7 @@ class RegionService(object):
         cluster_config.enable = enable
         cluster_config.save()
 
-    def add_region(self, region_name, region_alias, url, token):
+    def add_region(self, region_id, region_name, region_alias, url, token):
         if RegionConfig.objects.filter(region_name=region_name).exists():
             raise RegionExistError("数据中心名{}已存在".format(region_name))
         if RegionConfig.objects.filter(region_alias=region_alias).exists():
@@ -150,10 +151,11 @@ class RegionService(object):
             if status != 200:
                 raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
         except Exception as e:
+            logger.exception(e)
             raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        region_id = make_uuid(region_name)
+        # region_id = make_uuid(region_name)
         region_config = RegionConfig(region_id=region_id,
                                      region_name=region_name,
                                      region_alias=region_alias,
@@ -161,17 +163,7 @@ class RegionService(object):
                                      create_time=create_time,
                                      status='2',
                                      token=token)
-        # TODO 当前数据中心下只有一个集群,自动生成
-        cluster_alias = region_alias + "-集群A"
-        cluster_name = region_name + "-" + "c1"
         region_config.save()
-        try:
-            self.add_region_cluster(region_id, cluster_name, cluster_alias, True)
-        except Exception as e:
-            logger.exception(e)
-            RegionConfig.objects.filter(region_id=region_id).delete()
-            raise RegionAddError("数据中心添加异常")
-
         return region_config
 
     def update_region(self, region_id, **kwargs):
@@ -190,13 +182,9 @@ class RegionService(object):
         for k, v in kwargs.items():
             setattr(region_config, k, v)
         region_config.save(update_fields=kwargs.keys())
-        region_json_data = self.generate_region_config()
-        if not config_service.get_config_by_key("REGION_SERVICE_API"):
-            config_service.add_config("REGION_SERVICE_API", region_json_data, 'json', "数据中心配置")
-        else:
-            config_service.update_config("REGION_SERVICE_API", region_json_data)
+        self.update_region_config()
 
-    def region_status_mange(self,region_id,action):
+    def region_status_mange(self, region_id, action):
         if not RegionConfig.objects.filter(region_id=region_id).exists():
             raise RegionNotExistError("数据中心不存在")
         region_config = RegionConfig.objects.get(region_id=region_id)
@@ -206,16 +194,12 @@ class RegionService(object):
             status = int(res.status)
             if status != 200:
                 raise RegionUnreachableError("数据中心{0}不可达,无法上线".format(region_config.region_name))
-            region_config.status='1'
+            region_config.status = '1'
             region_config.save()
         else:
-            region_config.status='2'
+            region_config.status = '2'
             region_config.save()
-        region_json_data = self.generate_region_config()
-        if not config_service.get_config_by_key("REGION_SERVICE_API"):
-            config_service.add_config("REGION_SERVICE_API", region_json_data, 'json', "数据中心配置")
-        else:
-            config_service.update_config("REGION_SERVICE_API", region_json_data)
+        self.update_region_config()
 
         return region_config
 
@@ -359,5 +343,15 @@ class RegionService(object):
         json_data = json.dumps(region_config_list)
         return json_data
 
+    def update_region_config(self):
+        region_json_data = self.generate_region_config()
+        if not config_service.get_config_by_key("REGION_SERVICE_API"):
+            config_service.add_config("REGION_SERVICE_API", region_json_data, 'json', "数据中心配置")
+        else:
+            config_service.update_config("REGION_SERVICE_API", region_json_data)
+
+    def delete_region_by_region_id(self, region_id):
+        RegionConfig.objects.filter(region_id=region_id).delete()
+        RegionClusterInfo.objects.filter(region_id=region_id).delete()
 
 region_service = RegionService()

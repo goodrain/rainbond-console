@@ -265,7 +265,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             else:
                 if service_cname is None or service_cname == "":
                     service_cname = image_url
-                version = "lastest"
+                version = "latest"
 
             # 端口信息
             port_list = json.loads(request.POST.get("port_list", "[]"))

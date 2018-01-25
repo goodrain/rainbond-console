@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Expires" content="0">
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="Cache-control" content="no-cache">
+	<meta http-equiv="Cache" content="no-cache">
+	<title>好雨sso</title>
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+	<style type="text/css">
+		/* loading */
+.loadbg{
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 999;
+    top: 0;
+    left: 0;
+}
+.loadbox{
+    width: 150px;
+    height: 150px;
+    background: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -100px 0 0 -100px;
+    border-radius: 8px;
+}
+.loading{
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+.loading-center-absolute {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        height: 130px;
+        width: 120px;
+        margin-top: -80px;
+        margin-left: -50px;
+}
+.object{
+    width: 20px;
+    height: 20px;
+    background-color: #FFF;
+    float: left;
+    margin-right: 20px;
+    margin-top: 55px;
+    -moz-border-radius: 50% 50% 50% 50%;
+    -webkit-border-radius: 50% 50% 50% 50%;
+    border-radius: 50% 50% 50% 50%;
+}
+#object_one {   
+    -webkit-animation: object_one 1.5s infinite;
+    animation: object_one 1.5s infinite;
+}
+#object_two {
+    -webkit-animation: object_two 1.5s infinite;
+    animation: object_two 1.5s infinite;
+    -webkit-animation-delay: 0.25s; 
+    animation-delay: 0.25s;
+}
+#object_three {
+    -webkit-animation: object_three 1.5s infinite;
+    animation: object_three 1.5s infinite;
+    -webkit-animation-delay: 0.5s;
+    animation-delay: 0.5s;  
+    }
+@-webkit-keyframes object_one {
+    75% { 
+        -webkit-transform: scale(0); 
+    }
+}
+@keyframes object_one {
+    75% { 
+        transform: scale(0);
+        -webkit-transform: scale(0);
+    }
+}
+@-webkit-keyframes object_two {
+    75% { -webkit-transform: scale(0); }
+}
+@keyframes object_two {
+    75% { 
+        transform: scale(0);
+        -webkit-transform:  scale(0);
+    }
+}
+@-webkit-keyframes object_three {
+    75% { 
+        -webkit-transform: scale(0); 
+    }
+}
+@keyframes object_three {
+    75% { 
+        transform: scale(0);
+        -webkit-transform: scale(0);
+    } 
+}
+
+.loadtext{
+    width: 80%;
+    height: auto;
+    position: absolute;
+    left: 10%;
+    bottom: 30px;
+    color: #fff;
+    font-size: 16px;
+    line-height: 25px;
+    text-align: center;
+}
+.roundloading{
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+    -webkit-animation: rotate 1.5s 0s linear infinite;
+    animation: rotate 1.5s 0s linear infinite;
+}
+
+@-webkit-keyframes rotate {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg); }
+  50% {
+    -webkit-transform: rotate(180deg);
+            transform: rotate(180deg); }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg); } }
+
+@keyframes rotate {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg); }
+  50% {
+    -webkit-transform: rotate(180deg);
+            transform: rotate(180deg); }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg); } }
+	</style>
+</head>
+<body>
+	<div id="app"></div>
+<script type="text/javascript" src="/static/dists/common.d984953507f24c631055.js"></script><script type="text/javascript" src="/static/dists/vendors.a3cb97cea0de8eac1c9c.js"></script><script type="text/javascript" src="/static/dists/index.dcc547ccf057089d4798.js"></script></body>
+</html>

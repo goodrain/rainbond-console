@@ -1,17 +1,19 @@
 # -*- coding: utf8 -*-
 import datetime
 import logging
+import datetime as dt
 
 from django.conf import settings
 
-from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, ServiceFeeBill, \
+from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, \
+    ServiceFeeBill, \
     TenantRegionInfo
-from www.models.main import ServiceGroup, ServiceGroupRelation
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantRegionResource, TenantServiceStatics, \
+    ServiceAttachInfo
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import TenantAccountService, ServiceAttachInfoManage
 
 from www.apiclient.regionapi import RegionInvokeApi
-
 
 logger = logging.getLogger('default')
 tenantAccountService = TenantAccountService()
@@ -38,6 +40,18 @@ class TenantService(object):
 
     def list_tenant_group_service(self, tenant, group):
         svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group.ID)
+        if not svc_relations:
+            return list()
+
+        svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
+        return TenantServiceInfo.objects.filter(service_id__in=svc_ids)
+
+    def list_tenant_group_service_by_group_id(self, tenant, region, group_id):
+        """
+        获取租户指定的组下的所有服务
+        """
+        svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id,
+                                                            region_name=region)
         if not svc_relations:
             return list()
 
@@ -138,7 +152,8 @@ class TenantService(object):
     def get_tenant_service_status(self, tenant, service):
         result = {}
         if tenantAccountService.isOwnedMoney(tenant, service.service_region):
-            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id,service_id=service.service_id)
+            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id,
+                                                                service_id=service.service_id)
             is_prepaid = attach_manager.is_during_monthly_payment(service_attach_info)
             if not is_prepaid:
                 result["totalMemory"] = 0
@@ -155,7 +170,8 @@ class TenantService(object):
             return result
 
         try:
-            body = region_api.check_service_status(service.service_region,tenant.tenant_name,service.service_alias,tenant.enterprise_id)
+            body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
+                                                   tenant.enterprise_id)
             bean = body["bean"]
 
         except Exception, e:
@@ -243,6 +259,119 @@ class TenantService(object):
 
     def init_for_region(self, region, tenant_name, tenant_id, user):
         tenant = Tenants.objects.get(tenant_id=tenant_id)
-        is_init_success = self.init_region_tenant(tenant,region)
+        is_init_success = self.init_region_tenant(tenant, region)
         monitorhook.tenantMonitor(tenant, user, "init_tenant", is_init_success)
         return is_init_success
+
+    def limit_region_resource(self, tenant, region, res=None):
+        """
+        设置团队的资源使用上限
+        :param tenant: 
+        :param region: 
+        :param res: 
+        :return: 
+        """
+        if not res:
+            expire_time = dt.datetime.now() + dt.timedelta(days=7)
+            res = {
+                'memory': {'limit': 4096, 'stock': 0, 'expire_date': expire_time},
+                'disk': {'limit': 1024, 'stock': 0, 'expire_date': expire_time},
+                'net': {'limit': 1024, 'stock': 1024, 'expire_date': expire_time}
+            }
+
+        logger.debug('config res limit ===>')
+        logger.debug(res)
+        try:
+            tenant_region_res = TenantRegionResource.objects.get(tenant_id=tenant.tenant_id, region_name=region)
+        except TenantRegionResource.DoesNotExist:
+            tenant_region_res = TenantRegionResource()
+            tenant_region_res.tenant_id = tenant.tenant_id
+            tenant_region_res.region_name = region
+            tenant_region_res.enterprise_id = tenant.enterprise_id
+
+        tenant_region_res.memory_limit = int(res['memory']['limit'])
+        if res['memory']['expire_date']:
+            tenant_region_res.memory_expire_date = datetime.datetime.strptime(res['memory']['expire_date'],
+                                                                              "%Y-%m-%d %H:%M:%S")
+        else:
+            logger.error('bad_memory_expire_date: null')
+
+        tenant_region_res.disk_limit = int(res['disk']['limit'])
+        if res['disk']['expire_date']:
+            tenant_region_res.disk_expire_date = datetime.datetime.strptime(res['disk']['expire_date'],
+                                                                            "%Y-%m-%d %H:%M:%S")
+        else:
+            logger.error('bad_disk_expire_date: null')
+
+        tenant_region_res.net_limit = int(res['net']['limit'])
+        tenant_region_res.net_stock = int(res['net']['stock'])
+        tenant_region_res.save()
+        logger.debug(tenant_region_res.to_dict())
+
+        # try:
+        #     # 更新租户的最大内存限制, 以及此限制下内存的有效期
+        #     tenant_region_res = TenantRegionResource.objects.filter(tenant_id=tenant.tenant_id)
+        #
+        #     total_limit_memory = 0
+        #     expire_time_list = list()
+        #     for region_res in tenant_region_res:
+        #         total_limit_memory += region_res.memory_limit
+        #         expire_time_list.append(region_res.memory_expire_date)
+        #     tenant.limit_memory = total_limit_memory
+        #     if expire_time_list:
+        #         tenant.expired_time = max(expire_time_list)
+        #     tenant.save()
+        # except Exception as e:
+        #     logger.exception(e)
+        #     logger.error('update tenant resource limit failed')
+
+    def get_tenant_region_resource_usage(self, tenant, region):
+        if tenant.pay_type == 'unpay':
+            return 0, 0, 0
+
+        total_memory = 0
+        total_net = 0
+        total_disk = 0
+
+        try:
+            result = region_api.get_region_tenants_resources(region, {"tenant_name": [tenant.tenant_name]})
+            tenant_res_list = result.get("list")
+            tenant_res = tenant_res_list[0] if tenant_res_list else {}
+            total_memory = tenant_res['memory']
+            total_disk = tenant_res['disk']
+        except Exception as e:
+            logger.exception(e)
+
+        # service_list = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=region)
+        # for service in service_list:
+        #     tss = TenantServiceStatics.objects.filter(service_id=service.service_id,
+        #                                               tenant_id=tenant.tenant_id).order_by("-ID")[:1]
+        #     if tss:
+        #         ts = tss[0]
+        #         memory, disk, net = ts.node_memory, ts.storage_disk, ts.flow
+        #
+        #         total_net += net
+        #         total_disk += disk
+
+        return total_memory, total_disk, total_net
+
+    def get_tenant_region_resource_limit(self, tenant, region):
+        if tenant.pay_type == 'unpay':
+            return 9999999, 9999999, 9999999
+        
+        limit_memory = 0
+        limit_disk = 0
+        limit_net = 0
+
+        now_time = datetime.datetime.now()
+        attch_info_list = ServiceAttachInfo.objects.filter(tenant_id=tenant.tenant_id, region=region,
+                                                           buy_start_time__lt=now_time,
+                                                           buy_end_time__gt=now_time)
+        for attch_info in attch_info_list:
+            if attch_info.disk_pay_method == 'prepaid':
+                limit_disk += attch_info.disk
+
+            if attch_info.memory_pay_method == 'prepaid':
+                limit_memory += attch_info.min_node * attch_info.min_memory
+
+        return limit_memory, limit_disk, limit_net

@@ -1,3 +1,5 @@
+
+
 /*
     配置应用各个状态下的各种对应信息
 */
@@ -37,6 +39,10 @@ const appStatusMap = {
         disabledAction: ['visit', 'restart', 'manage_container'],
         activeAction: ['stop', 'deploy'],
         iconUrl: '/static/www/img/appOutline/appOutline1.png'
+    },
+    abnormal: {
+        statusCN: '异常',
+        bgClass: 'bg-yellow'
     },
     closed: {
         statusCN: '已关闭',
@@ -110,6 +116,9 @@ const util = {
     getActiveActionByStatus: function(status) {
         var map = appStatusMap[status] || appStatusMap['unKnow'];
         return map.activeAction;
+    },
+    getAppActionStatusCN: function(status){
+        return appActionStatusCN[status] || '未知'
     }
 }
 

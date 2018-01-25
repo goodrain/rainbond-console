@@ -18,7 +18,7 @@ from www.region import RegionInfo
 from www.utils import sn
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
-from www.tenantservice.baseservice import  BaseTenantService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.services import enterprise_svc,tenant_svc
 
 import logging
@@ -32,6 +32,7 @@ regionClient = RegionServiceApi()
 region_api = RegionInvokeApi()
 appClient = AppServiceApi()
 baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
 
 class OpenTenantServiceManager(object):
 
@@ -467,7 +468,8 @@ class OpenTenantServiceManager(object):
             if tenant.pay_type == "free":
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
-                if tm <= tenant.limit_memory:
+                # if tm <= tenant.limit_memory:
+                if tm <= tenantUsedResource.get_limit_memory(tenant, cur_service.service_region):
                     result = True
             elif tenant.pay_type == "payed":
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory

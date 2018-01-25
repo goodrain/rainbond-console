@@ -15,11 +15,12 @@ class EnterpriseService(object):
         except TenantEnterprise.DoesNotExist as e:
             return False
 
-    def create_enterprise(self, eid, enterprise_name, enterprise_alias, token):
+    def create_enterprise(self, eid, enterprise_name, enterprise_alias, token, is_active=False):
         enterprise = TenantEnterprise.objects.create(enterprise_id=eid,
                                                      enterprise_name=enterprise_name,
                                                      enterprise_alias=enterprise_alias,
-                                                     enterprise_token=token)
+                                                     enterprise_token=token,
+                                                     is_active=is_active)
         return enterprise
 
 enterprise_service = EnterpriseService()

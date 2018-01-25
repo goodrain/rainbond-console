@@ -168,8 +168,16 @@ const AppPort = createPageController({
 						text: 'http',
 						value: 'http'
 					},{
-						text: 'stream',
-						value: 'stream'
+						text: 'tcp',
+						value: 'tcp'
+					},
+					{
+						text: 'udp',
+						value: 'udp'
+					},
+					{
+						text: 'mysql',
+						value: 'mysql'
 					}],
 					label: '协议'
 				}]

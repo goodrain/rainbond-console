@@ -18,13 +18,13 @@ from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
                         TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent,
-                        ServiceProbe)
+                        ServiceProbe, TenantServiceGroup)
 from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep, ServiceFeeBill, ServiceConsume, \
     ServiceDomainCertificate, ServicePaymentNotify, TenantServiceStatics
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
-    CodeRepositoriesService, ServiceAttachInfoManage
+    CodeRepositoriesService, ServiceAttachInfoManage, ServicePluginResource
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 from www.utils.status_translate import get_status_info_map
@@ -40,6 +40,7 @@ tenantAccountService = TenantAccountService()
 codeRepositoriesService = CodeRepositoriesService()
 region_api = RegionInvokeApi()
 attach_manager = ServiceAttachInfoManage()
+servicePluginResource = ServicePluginResource()
 
 class AppDeploy(AuthedView):
     def update_event(self, event, message, status):
@@ -361,7 +362,6 @@ class ServiceManage(AuthedView):
                     if self.tenant.tenant_id not in ("b7584c080ad24fafaa812a7739174b50",):
                         codeRepositoriesService.deleteProject(self.service)
 
-                TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
@@ -375,12 +375,22 @@ class ServiceManage(AuthedView):
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).delete()
                 ServiceCreateStep.objects.filter(service_id=self.service.service_id).delete()
                 # 删除event相关数据
-                events = ServiceEvent.objects.filter(service_id=self.service.service_id)
+                # events = ServiceEvent.objects.filter(service_id=self.service.service_id)
 
                 ServiceEvent.objects.filter(service_id=self.service.service_id).delete()
                 # 删除应用检测数据
                 ServiceProbe.objects.filter(service_id=self.service.service_id).delete()
                 ServicePaymentNotify.objects.filter(service_id=self.service.service_id).delete()
+
+                # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+                if self.service.tenant_service_group_id > 0:
+                    count = TenantServiceInfo.objects.filter(
+                        tenant_service_group_id=self.service.tenant_service_group_id).count()
+                    if count <= 1:
+                        TenantServiceGroup.objects.filter(ID=self.service.tenant_service_group_id).delete()
+
+                TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
+
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
                 transaction.savepoint_commit(sid)
@@ -446,6 +456,16 @@ class ServiceManage(AuthedView):
 
 
 class ServiceUpgrade(AuthedView):
+
+    def update_event(self, event, message, status):
+        event.status = status
+        event.final_status = "complete"
+        event.message = message
+        event.end_time = datetime.datetime.now()
+        if event.status == "failure" and event.type == "callback":
+            event.deploy_version = event.old_deploy_version
+        event.save()
+
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
@@ -462,10 +482,14 @@ class ServiceUpgrade(AuthedView):
 
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
+            result["msg"] = u"您已欠费，升级失败"
+            self.update_event(event, "您已欠费，升级失败", "failure")
             return JsonResponse(result, status=200)
 
         if tenantAccountService.isExpired(self.tenant, self.service):
             result["status"] = "expired"
+            result["msg"] = "超出免费使用期，升级失败"
+            self.update_event(event, "超出免费使用期，升级失败", "failure")
             return JsonResponse(result, status=200)
 
         action = request.POST["action"]
@@ -486,8 +510,10 @@ class ServiceUpgrade(AuthedView):
                         if not flag:
                             if rt_type == "memory":
                                 result["status"] = "over_memory"
+                                self.update_event(event, "资源不足，升级失败","failure")
                             else:
                                 result["status"] = "over_money"
+                                self.update_event(event, "余额不足，升级失败", "failure")
                             return JsonResponse(result, status=200)
 
                         upgrade_container_cpu = baseService.calculate_service_cpu(self.service.service_region,
@@ -527,8 +553,10 @@ class ServiceUpgrade(AuthedView):
                     if not flag:
                         if rt_type == "memory":
                             result["status"] = "over_memory"
+                            self.update_event(event, "资源不足，升级失败", "failure")
                         else:
                             result["status"] = "over_money"
+                            self.update_event(event, "余额不足，升级失败", "failure")
                         return JsonResponse(result, status=200)
 
                     body = {}
@@ -801,13 +829,17 @@ class AllTenantsUsedResource(AuthedView):
             service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,
                                                             service_region=self.cookie_region).values(
                 'ID', 'service_id', 'min_node', 'min_memory')
+            ids = [s["service_id"] for s in service_list]
+            source_map = servicePluginResource.get_services_plugin_resource_map(ids)
+
             if self.has_perm('tenant.list_all_services'):
                 for s in service_list:
                     service_ids.append(s['service_id'])
                     if len(serviceIds) > 0:
                         serviceIds = serviceIds + ","
                     serviceIds = serviceIds + "'" + s["service_id"] + "'"
-                    result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+                    plugin_memory = source_map.get(s["service_id"],0)
+                    result[s['service_id'] + "_running_memory"] = s["min_node"] * (s["min_memory"]+plugin_memory)
             else:
                 service_pk_list = PermRelService.objects.filter(user_id=self.user.pk).values_list('service_id',
                                                                                                   flat=True)
@@ -817,7 +849,8 @@ class AllTenantsUsedResource(AuthedView):
                         if len(serviceIds) > 0:
                             serviceIds = serviceIds + ","
                         serviceIds = serviceIds + "'" + s["service_id"] + "'"
-                        result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+                        plugin_memory = source_map.get(s["service_id"], 0)
+                        result[s['service_id'] + "_running_memory"] = s["min_node"] * (s["min_memory"]+plugin_memory)
                         result[s['service_id'] + "_storage_memory"] = 0
             result["service_ids"] = service_ids
         except Exception as e:
@@ -1103,8 +1136,35 @@ class ServiceCheck(AuthedView):
             requestNumber = request.GET.get("requestNumber", "0")
             reqNum = int(requestNumber)
             if reqNum > 0 and reqNum % 30 == 0:
+                # 发送请求
                 codeRepositoriesService.codeCheck(self.service)
-            if self.service.language is None or self.service.language == "":
+
+            body = region_api.get_service_language(self.service.service_region, self.service.service_id,
+                                                   self.tenantName)
+            bean = body["bean"]
+            if bean:
+                check_type = bean["CheckType"]
+                if check_type == 'first_check':
+                    dependency = bean["Condition"]
+                    dps = json.loads(dependency)
+                    language = dps["language"]
+                    if language and language != "no":
+                        try:
+                            tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                            tse.language = language
+                            tse.check_dependency = dependency
+                            tse.save()
+                        except TenantServiceEnv.DoesNotExist:
+                            tse = TenantServiceEnv(service_id=self.service.service_id, language=language,
+                                                   check_dependency=dependency)
+                            tse.save()
+                        if language != "false":
+                            if language.find("Java") > -1 and self.service.min_memory < 512:
+                                self.service.min_memory = 512
+                            self.service.language = language
+                            self.service.save()
+
+            if not self.service.language:
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 dps = json.loads(tse.check_dependency)
                 if dps["language"] == "false":
@@ -1115,6 +1175,7 @@ class ServiceCheck(AuthedView):
                 result["status"] = "checked"
                 result["language"] = self.service.language
         except Exception as e:
+            logger.exception(e)
             result["status"] = "checking"
             logger.debug(self.service.service_id + " not upload code")
         return JsonResponse(result)
@@ -1422,12 +1483,12 @@ class ServicePort(AuthedView):
         is_success = True
         data = {"success": True, "info": u"更改成功", "code": 200}
         if action == "open_outer":
-            if deal_port.protocol == "stream":
+            if deal_port.protocol != "http":
                 stream_outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                     protocol="stream", is_outer_service=True).count()
+                                                                    is_outer_service=True).exclude(protocol="http").count()
                 if stream_outer_num > 0:
                     is_success = False
-                    data = {"success": False, "code": 410, "info": u"stream协议外部访问只能开启一个"}
+                    data = {"success": False, "code": 410, "info": u"stream协议族外部访问只能开启一个"}
                     return is_success, data
             deal_port.is_outer_service = True
             body = region_api.manage_outer_port(self.service.service_region, self.tenantName,
@@ -1515,17 +1576,17 @@ class ServicePort(AuthedView):
         if action == "change_protocol":
             protocol = request.POST.get("value")
             deal_port.protocol = protocol
-            if protocol == "stream":
+            if protocol != "http":
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                      container_port=deal_port.container_port,
                                                      is_outer_service=True).count() > 0:
                     return False, {"success": False, "code": 400, "info": u"请关闭外部访问"}
 
-                stream_outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                     protocol="stream", is_outer_service=True).count()
+                stream_outer_num = TenantServicesPort.objects.filter(
+                        service_id=self.service.service_id,is_outer_service=True).exclude(protocol="http").count()
                 if stream_outer_num > 0 and deal_port.is_outer_service:
                     is_success = False
-                    data = {"success": False, "code": 410, "info": u"stream协议外部访问只能开启一个"}
+                    data = {"success": False, "code": 410, "info": u"stream协议族外部访问只能开启一个"}
                     return is_success, data
             body["protocol"] = protocol
             region_api.update_service_port(self.service.service_region, self.tenantName, self.service.service_alias,
@@ -1648,7 +1709,7 @@ class ServicePort(AuthedView):
                 })
         if deal_port.is_outer_service:
             service_region = self.service.service_region
-            if deal_port.protocol == 'stream':
+            if deal_port.protocol != 'http':
                 cur_region = service_region.replace("-1", "")
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name,
                                                               cur_region)
@@ -1774,7 +1835,7 @@ class ServiceNewPort(AuthedView):
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
             mapping_port = 0
-            if port_inner == 1 and port_protocol == "stream":
+            if port_inner == 1 and port_protocol != "http":
                 mapping_port = baseService.prepare_mapping_port(self.service, port_port)
             port = {
                 "tenant_id": self.service.tenant_id, "service_id": self.service.service_id,

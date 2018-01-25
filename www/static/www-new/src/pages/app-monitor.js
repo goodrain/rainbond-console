@@ -1,8 +1,6 @@
 import createPageController from '../utils/page-controller';
 import http from '../utils/http';
-import { 
-	getAppInfo
-} from '../comms/app-apiCenter';
+import { getAppInfo } from '../comms/app-apiCenter';
 
 import {
 	getPageMonitorAppData

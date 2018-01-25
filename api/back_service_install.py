@@ -26,10 +26,6 @@ class BackServiceInstall(object):
         self.tenant_id = "0622f5b7751f4c3c91f03e60a10a5e85"
         self.tenant_name = "grdemo"
         self.tenant = Tenants.objects.get(tenant_id=self.tenant_id)
-        # 随机选择数据中心
-        # regions = RegionInfo.register_choices()
-        # regions = [(name, display_name) for name, display_name in regions if name != "aws-jp-1"]
-        # select_region = regions[random.randint(0, len(regions) - 1)][0]
         self.region_name = "ali-hz"
         self.user_id = 5178
         self.nick_name = "grdemo"
@@ -70,29 +66,42 @@ class BackServiceInstall(object):
                     result.append(apps[0])
         return result
 
-    def getServiceModel(self, app_service_list, service_id_list):
+    def getServiceModel(self, app_service_list):
         published_service_list = []
         for app_service in app_service_list:
-            services = ServiceInfo.objects.filter(service_key=app_service.service_key, version=app_service.app_version)
-            services = list(services)
-            # 没有服务模板,需要下载模板
-            if len(services) == 0:
-                code, base_info, dep_map, error_msg = baseService.download_service_info(app_service.service_key,
-                                                                                        app_service.app_version)
-                if code == 500:
-                    logger.error(error_msg)
-                else:
-                    services.append(base_info)
-            if len(services) > 0:
-                published_service_list.append(services[0])
-            else:
-                logger.error(
-                    "service_key {0} version {1} is not found in table service or can be download from market".format(
-                        app_service.service_key, app_service.app_version))
-        if len(published_service_list) != len(service_id_list):
-            logger.debug("published_service_list ===== {0}".format(len(published_service_list)))
-            logger.debug("service_id_list ===== {}".format(len(service_id_list)))
-            logger.error("publised service is not found in table service")
+            service = ServiceInfo()
+            service.service_key = app_service.service_key
+            service.version = app_service.app_version
+            service.publisher = app_service.publisher
+            service.service_name = app_service.app_alias
+            service.pic = app_service.logo
+            service.info = app_service.info
+            service.desc = app_service.desc
+            service.status = app_service.status
+            service.category = "app_publish"
+            service.is_service = app_service.is_service
+            service.is_web_service = app_service.is_web_service
+            service.version = app_service.app_version
+            service.update_version = app_service.update_version
+            service.image = app_service.image
+            service.slug = app_service.slug
+            service.extend_method = app_service.extend_method
+            service.cmd = app_service.cmd
+            service.setting = ""
+            service.env = app_service.env
+            service.dependecy = ""
+            service.min_node = app_service.min_node
+            service.min_cpu = app_service.min_cpu
+            service.min_memory = app_service.min_memory
+            service.inner_port = app_service.inner_port
+            service.volume_mount_path = app_service.volume_mount_path
+            service.service_type = app_service.service_type
+            service.is_init_accout = app_service.is_init_accout
+            service.creater = app_service.creater
+            service.namespace = app_service.namespace
+            service.publish_type = "group"
+            published_service_list.append(service)
+
         return published_service_list
 
     def topological_sort(self, graph):
@@ -202,9 +211,8 @@ class BackServiceInstall(object):
                 return {"ok": False, "msg": "cannot find app_service_group"}
             group_id = self.__get_group_id(app_service_group.group_share_alias)
             # 查询分享组中的服务ID
-            service_id_list = ServiceGroupRelation.objects.filter(group_id=app_service_group.group_id).values_list("service_id", flat=True)
             app_service_list = self.get_published_service_info(app_service_group.ID)
-            published_service_list = self.getServiceModel(app_service_list, service_id_list)
+            published_service_list = self.getServiceModel(app_service_list)
             sorted_service = self.sort_service(published_service_list)
             # 先生成服务的service_id
             key_id_map = {}
@@ -223,6 +231,9 @@ class BackServiceInstall(object):
                                                               service_info.service_name,
                                                               service_info,
                                                               self.user_id, region=self.region_name)
+                # newTenantService.expired_time = self.tenant.expired_time
+                newTenantService.save()
+
                 if group_id > 0:
                     ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                         tenant_id=self.tenant_id,
@@ -252,7 +263,10 @@ class BackServiceInstall(object):
                 monitorhook.serviceMonitor(self.nick_name, newTenantService, 'init_region_service', True)
                 service_alias_list.append(service_alias)
                 current_services.append(newTenantService)
-            url_map = self.getServicePreviewUrls(current_services)
+                url_map = self.get_service_access_url(newTenantService)
+
+
+            # url_map = self.getServicePreviewUrls(current_services)
             logger.debug("===> url_map:{} ".format(url_map))
             # 处理原来安装的服务
             self.handleInstalledService(share_pk, group_id)
@@ -274,7 +288,21 @@ class BackServiceInstall(object):
             TenantServicesPort.objects.filter(tenant_id=self.tenant_id, service_id__in=current_service_ids).delete()
             TenantServiceVolume.objects.filter(service_id__in=current_service_ids).delete()
 
-        return group_id, current_service_ids, url_map,self.region_name
+        return group_id, current_service_ids, url_map, self.region_name
+
+    def get_service_access_url(self, service):
+        wild_domain = settings.WILD_DOMAINS[self.region_name]
+        http_port_str = settings.WILD_PORTS[self.region_name]
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=service.service_id,
+                                                                  is_outer_service=True, protocol='http')
+        service_key_url_map = {}
+        if out_service_port_list:
+            ts_port = out_service_port_list[0]
+            port = ts_port.container_port
+            preview_url = "http://{0}.{1}.{2}{3}:{4}".format(port, service.service_alias, self.tenant_name,
+                                                             wild_domain, http_port_str)
+            service_key_url_map[service.service_key] = preview_url
+        return service_key_url_map
 
     def getServicePreviewUrls(self, current_services):
         """
@@ -293,7 +321,6 @@ class BackServiceInstall(object):
             port_map = {}
             for ts_port in out_service_port_list:
                 port = ts_port.container_port
-                # preview_url = "http://" + port + ".{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
                 preview_url = "http://{0}.{1}.{2}{3}:{4}".format(port, service.service_alias, self.tenant_name,
                                                                  wild_domain, http_port_str)
                 port_map[str(port)] = preview_url
@@ -345,7 +372,7 @@ class BackServiceInstall(object):
             logger.error("handle installed service error !")
             logger.exception(e)
 
-    def __deleteService(self,service):
+    def __deleteService(self, service):
         try:
             logger.debug("service_id - {0} - service_name {1} ".format(service.service_id,service.service_cname))
             try:

@@ -18,10 +18,10 @@ class ErrorPage(object):
 
     def process_response(self, request, response):
         if response.status_code == 500:
-            if settings.DEBUG:
-                return response
             if hasattr(request, '_error_report'):
                 return http.JsonResponse(request._error_report, status=500)
+            if settings.DEBUG:
+                return response
             if isinstance(response, Response):
                 return response
             else:

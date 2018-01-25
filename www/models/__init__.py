@@ -4,3 +4,4 @@ from .activity import *
 from .compose import *
 from .fields import *
 from .label import *
+from .plugin import *

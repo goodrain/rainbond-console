@@ -9,7 +9,6 @@ from www.models import ServiceEvent
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from www.views import AuthedView
-import json
 
 baseService = BaseTenantService()
 logger = logging.getLogger('default')
@@ -70,10 +69,18 @@ class EventManager(AuthedView):
 
         result = {}
         try:
+            now = datetime.datetime.now() + datetime.timedelta(minutes=1)
+            now_str = now.strftime("%Y-%m-%d %H:%M")
             page_size = request.GET.get("page_size", 6)
             start_index = request.GET.get("start_index", 0)
+            # 2018-02-02 13:32
+            start_time_str = request.GET.get("start_time", now_str)
             start_index = int(start_index)
-            events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
+
+            start_time = datetime.datetime.strptime(start_time_str, "%Y-%m-%d %H:%M")
+            start_time = (start_time + datetime.timedelta(minutes=1)).strftime("%Y-%m-%d %H:%M:%S")
+
+            events = ServiceEvent.objects.filter(service_id=self.service.service_id, start_time__lte=start_time).order_by("-start_time")
             count = events.count()
             result = {}
             if int(start_index + 1) > count:
@@ -87,6 +94,10 @@ class EventManager(AuthedView):
                 result["has_next"] = True
                 events = events[start_index:start_index + page_size]
             reEvents = []
+
+            # 同步数据中心时间状态
+            self.__sync_region_service_event_status(self.service.service_region, self.tenant.tenant_name, events)
+
             for event in list(events):
                 eventRe = {}
                 eventRe["start_time"] = event.start_time
@@ -100,6 +111,23 @@ class EventManager(AuthedView):
                 eventRe["deploy_version"] = event.deploy_version
                 eventRe["old_deploy_version"] = event.old_deploy_version
                 eventRe["old_code_version"] = event.old_code_version
+                # codeVersion = "版本:4c042b9 上传者:黄峻贤 Commit:Merge branch 'developer' into 'test'"
+                if event.code_version:
+                    info = event.code_version.split(" ", 2)
+                    if len(info) == 3:
+                        versioninfo = {}
+                        ver = info[0].split(":", 1)
+                        versioninfo["code_version"] = ver[1]
+                        user = info[1].split(":", 1)
+                        versioninfo["user"] = user[1]
+                        commit = info[2].split(":", 1)
+                        versioninfo["commit"] = commit[1]
+                        if event.deploy_version == self.service.deploy_version:
+                            versioninfo["rollback"] = False
+                        else:
+                            versioninfo["rollback"] = True
+                        eventRe["code_version"] = versioninfo
+
                 reEvents.append(eventRe)
             result["log"] = reEvents
             return JsonResponse(result, status=200)
@@ -108,6 +136,40 @@ class EventManager(AuthedView):
             result["status"] = "failure"
             result["message"] = repr(e)
             return JsonResponse(result, status=500)
+
+    def __sync_region_service_event_status(self, region, tenant_name, events):
+        local_events_not_complete = dict()
+        for event in events:
+            if event.final_status == '':
+                local_events_not_complete[event.event_id] = event
+
+        if not local_events_not_complete:
+            return
+
+        try:
+            body = region_api.get_events(region, tenant_name, local_events_not_complete.keys())
+        except Exception as e:
+            logger.exception(e)
+            return
+
+        region_events = body.get('list')
+        for region_event in region_events:
+            local_event = local_events_not_complete.get(region_event.get('EventID'))
+            if not local_event:
+                continue
+
+            if not region_event.get('Status'):
+                baseService.checkEventTimeOut(local_event)
+            else:
+                local_event.status = region_event.get('Status')
+                local_event.message = region_event.get('Message')
+                local_event.code_version = region_event.get('CodeVersion')
+                local_event.deploy_version = region_event.get('DeployVersion')
+                local_event.final_status = 'complete'
+                local_event.end_time = datetime.datetime.now()
+                local_event.save()
+
+
 
 
 class EventLogManager(AuthedView):

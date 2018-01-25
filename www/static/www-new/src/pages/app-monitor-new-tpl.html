@@ -1,0 +1,135 @@
+
+  <ul class="nav nav-pills" role="tablist" id="TabShow" style="position: relative; z-index: 99;">
+        <li style="float:right">
+            <select id="graph-period" class="form-control" style="width:200px">
+              <option value="0" selected="selected">实时</option>
+              <option value="1">1小时</option>
+              <option value="8">8小时</option>
+              <option value="24">24小时</option>
+              <option value="168">7天</option>
+          </select>
+        </li>
+    </ul>
+
+    <div class="row js-time-now" style="display: none;padding-left:15px;padding-right:15px;">
+
+              <div id="status_areas" class="flex-box">
+                  <div class="flex-singe">
+                    <div class="absolute"></div>
+                    <div class="chunkbox">
+                        <p class="hd">平均响应时间</p>
+                        <p id="app_requesttime" class="bd js-realtime-type graph tit-text"><span class="val">0</span><span style="font-size: 12px;color:#ccc"> ms</span></p>
+                    </div>
+
+                  </div>
+                  <div class="flex-singe">
+                    <div class="absolute"></div>
+                    <div class="chunkbox">
+                      <p class="hd">吞吐率</p>
+                      <p id="app_request" class="bd js-realtime-type graph tit-text"><span class="val">0</span></p>
+                    </div>
+                  </div>
+                  <div class="flex-singe">
+                    <div class="absolute"></div>
+                    <div class="chunkbox">
+                      <p class="hd">在线人数</p>
+                      <p id="app_requestclien" class="bd js-realtime-type graph tit-text">
+                        <span class="val">0</span>
+                      </p>
+                    </div>
+                  </div>
+              </div>
+
+              <section class="panel panel-default">
+                  <div class="panel-heading">
+                      过去5分钟耗时最多的URl排行<small class="rtm-update-time"></small>
+                  </div>
+                  <div class="panel-body">
+                    <table id="rtm-SumTimeByUrl" class="table">
+                        <thead>
+                          <tr class="active">
+                              <th name="Key" style="width: 60%;">Url</th>
+                              <th name="CumulativeTime">累计时间(ms)</th>
+                              <th name="AverageTime">平均时间(ms)</th>
+                              <th name="Count" >请求次数</th>
+                              <th name="AbnormalCount" >异常次数</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                  </div>
+              </section>
+    </div>
+
+    <div class="row js-time-history"  style="position: relative;display: none;">
+        <div class="col-md-12">
+            <section class="panel panel-default">
+                <div class="panel-heading">
+                响应时间
+                </div>
+                <div id="app_requesttime" class="panel-body graph" style="min-height: 280px">
+                   
+                </div>
+            </section>
+        </div>
+        <div class="col-md-12">
+            <section class="panel panel-default">
+               <div class="panel-heading">
+                 吞吐率
+               </div>
+               <div  id="app_request" class="panel-body graph" style="min-height: 280px">
+               </div>
+            </section>
+        </div>
+        <div class="col-md-12">
+           <section class="panel panel-default">
+              <div class="panel-heading">
+               在线人数
+             </div>
+             <div  id="app_requestclien" class="panel-body graph" style="min-height: 280px">
+             </div>
+           </section>
+        </div>
+        
+
+   <!--  <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           内存
+         </div>
+         <div class="panel-body">
+           <div id="memory-stat"  class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           磁盘
+         </div>
+         <div class="panel-body">
+           <div id="disk-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-4">
+       <section class="panel panel-default">
+         <div class="panel-heading">
+           流量
+         </div>
+         <div class="panel-body">
+           <div id="bandwidth-stat" class="graph"  class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div> -->
+     
+</div>

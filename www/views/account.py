@@ -19,7 +19,7 @@ from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
 from www.db import BaseConnection
 from www.services import enterprise_svc, user_svc
-from www.services.sso import GoodRainSSOApi
+from www.services.sso import GoodRainSSOApi, SSO_BASE_URL
 from www.models.activity import TenantActivity
 import datetime
 import time
@@ -134,6 +134,7 @@ class Login(BaseView):
             # 这里只有app请求过来
             next_url = request.GET.get('next', None)
             origin = request.GET.get('origin', None)
+
             if next_url is not None and next_url != "" \
                     and next_url != "none" and next_url != "None":
                 if origin == "app":
@@ -246,7 +247,7 @@ class Login(BaseView):
 
                     # add by tanm
                     regions = [region]
-                    enterprise_svc.create_and_init_tenant(self.user.pk, tenant_name, regions,self.user.enterprise_id)
+                    enterprise_svc.create_and_init_tenant(self.user.pk, tenant_name, regions, self.user.enterprise_id)
 
                     return self.redirect_to('/apps/{0}/'.format(tenant_name))
             return self.redirect_view()
@@ -526,6 +527,11 @@ class Registation(BaseView):
                                 self.get_context())
 
     def get(self, request, *args, **kwargs):
+        if settings.MODULES.get('SSO_LOGIN'):
+            call_back_url = '{0}/sso_callback'.format(os.getenv('GOODRAIN_DOMAIN', 'https://user.goodrain.com'))
+            register_url = '{0}/#/register/{1}'.format(SSO_BASE_URL, urllib.quote_plus(call_back_url))
+            return redirect(register_url)
+
         pl = request.GET.get("pl", "")
         region_levels = pl.split(":")
         if len(region_levels) == 2:
@@ -1159,6 +1165,7 @@ class GoorainSSOCallBack(BaseView):
     """
     处理SSO回调登陆
     """
+
     def get(self, request, *args, **kwargs):
         # 获取sso的user_id
         sso_user_id = request.COOKIES.get('uid')
@@ -1192,16 +1199,11 @@ class GoorainSSOCallBack(BaseView):
             logger.debug(sso_user)
             try:
                 enterprise = TenantEnterprise.objects.get(enterprise_id=sso_user.eid)
-                # 同步更新企业token
-                if enterprise.enterprise_token != sso_user_token:
-                    enterprise.enterprise_token = sso_user_token
-                    enterprise.save()
             except TenantEnterprise.DoesNotExist:
                 enterprise = TenantEnterprise()
                 enterprise.enterprise_id = sso_user.eid
                 enterprise.enterprise_name = sso_user.company
                 enterprise.enterprise_alias = sso_user.company
-                enterprise.enterprise_token = sso_user_token
                 enterprise.is_active = 1
                 enterprise.save()
                 logger.info(
@@ -1271,21 +1273,20 @@ class GoodrainSSONotify(BaseView):
         sso_user = api.get_sso_user_info()
         logger.debug(sso_user)
         # 同步sso_id所代表的用户与企业信息，没有则创建
+        sso_eid = sso_user.get('eid')
+        sso_company = sso_user.get('company')
+        sso_username = sso_user.get('username')
+        sso_phone = sso_user.get('mobile')
+        sso_pwd = sso_user.get('pwd')
         try:
-            enterprise = TenantEnterprise.objects.get(enterprise_id=sso_user.eid)
-            # 同步更新企业token
-            if enterprise.enterprise_token != sso_user_token:
-                enterprise.enterprise_token = sso_user_token
-                enterprise.save()
-
+            enterprise = TenantEnterprise.objects.get(enterprise_id=sso_eid)
             logger.debug('query enterprise does existed, updated!')
         except TenantEnterprise.DoesNotExist:
             logger.debug('query enterprise does not existed, created!')
             enterprise = TenantEnterprise()
-            enterprise.enterprise_id = sso_user.eid
-            enterprise.enterprise_name = sso_user.company
-            enterprise.enterprise_alias = sso_user.company
-            enterprise.enterprise_token = sso_user_token
+            enterprise.enterprise_id = sso_eid
+            enterprise.enterprise_name = sso_company
+            enterprise.enterprise_alias = sso_company
             enterprise.is_active = 1
             enterprise.save()
             logger.info(
@@ -1295,21 +1296,21 @@ class GoodrainSSONotify(BaseView):
         try:
             user = Users.objects.get(sso_user_id=sso_user_id)
             user.sso_user_token = sso_user_token
-            user.password = sso_user.pwd or ''
-            user.phone = sso_user.mobile or ''
-            user.nick_name = sso_user.username
-            user.enterprise_id = sso_user.eid
+            user.password = sso_pwd or ''
+            user.phone = sso_phone or ''
+            user.nick_name = sso_username
+            user.enterprise_id = sso_eid
             user.save()
 
             logger.debug('query user with sso_user_id existed, updated!')
         except Users.DoesNotExist:
             logger.debug('query user with sso_user_id does not existed, created!')
-            user = Users.objects.create(nick_name=sso_user.username,
-                                        email=sso_user.email or '',
-                                        phone=sso_user.mobile or '',
-                                        password=sso_user.pwd or '',
-                                        sso_user_id=sso_user.uid,
-                                        enterprise_id=sso_user.eid,
+            user = Users.objects.create(nick_name=sso_username,
+                                        email=sso_user.get('email') or '',
+                                        phone=sso_phone or '',
+                                        password=sso_pwd or '',
+                                        sso_user_id=sso_user.get('uid'),
+                                        enterprise_id=sso_eid,
                                         sso_user_token=sso_user_token,
                                         is_active=False,
                                         rf='sso')
@@ -1327,7 +1328,7 @@ class GoodrainSSONotify(BaseView):
         logger.info(tenant.to_dict())
 
         key = request.POST.get('key')
-        logger.debug(key)
+        logger.debug('invite key: {}'.format(key))
         if key:
             data = AuthCode.decode(str(key), 'goodrain').split(',')
             logger.debug(data)

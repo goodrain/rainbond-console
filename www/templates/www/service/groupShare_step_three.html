@@ -21,6 +21,7 @@
             <p><span>1</span><cite>设置应用组信息</cite></p>
             <p><span>2</span><cite>参数设置</cite></p>
             <p class="sed"><span>3</span><cite>基本信息</cite></p>
+            <p><span>4</span><cite>分享</cite></p>
         </div>
         <div id="tab">
             {% for service in service_list %}
@@ -63,7 +64,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="col-sm-2 control-label">是否初始化用户</label>
-                                <div class="col-sm-8">
+                                <div class="col-sm-8" style="text-align: left;">
                                     <div class="switch switch-mini">
                                         <input class="is_init" data-switch="mini" name="is_init" type="checkbox"/>
                                     </div>

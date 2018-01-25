@@ -256,9 +256,12 @@ class InviteServiceUser(AuthedView):
                                 logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, git_project_id, self.service.git_url))
 
         except Users.DoesNotExist:
-            send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, self.service.service_alias, identity))
-            result['desc'] = u'已向{0}发送邀请邮件'.format(email)
-
+            try:
+                send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, self.service.service_alias, identity))
+                result['desc'] = u'已向{0}发送邀请邮件'.format(email)
+            except Exception, e:
+                logger.exception("error", e)
+                
         return JsonResponse(result, status=200)
 
 
@@ -343,7 +346,10 @@ class InviteTenantUser(AuthedView):
         except Users.DoesNotExist:
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
-            send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, identity))
-            result['desc'] = u'已向{0}发送邀请邮件'.format(email)
+            try:
+                send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, identity))
+                result['desc'] = u'已向{0}发送邀请邮件'.format(email)
+            except Exception, e:
+                logger.exception("error", e)    
 
         return JsonResponse(result, status=200)

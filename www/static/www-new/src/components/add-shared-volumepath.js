@@ -98,7 +98,6 @@ widget.define('addSharedVolumepath', {
                             }else{
                                 $tr.find('[name=source-path]').prop('disabled', true)
                             }
-
                        }
                    }
                    

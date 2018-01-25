@@ -104,13 +104,33 @@ $(function(){
     var image_url = '{{image_url}}';
     var type = getSearchQuery().type;
     var imageName = 'tomcat';
+    var image = getSearchQuery().image;
+    if(image){
+        image = decodeURIComponent(image);
+    }
+    var dockerRun = [{
+        value:'docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat',
+        text: 'tomcat'
+    },{
+        value:'docker run -d -p 2368:2368 -e PWD=1qa2ws --name=ghost_demo ghost',
+        text: 'ghost'
+    },{
+        value:'docker run -d -p 3000:3000 -e PWD=1qa2ws --name=redmine_demo redmine',
+        text: 'redmine'
+    }]
     //处理官方实例的逻辑 end
     if(type==='demo' && !image_url){
         var html = [];
         html.push('<select name="mirror-address" id="mirror-address" class="form-control">');
-            html.push('<option value="docker run -d -p 8080:8080 -e PWD=1qa2ws --name=tomcat_demo tomcat">tomcat</option>');
-            html.push('<option value="docker run -d -p 2368:2368 -e PWD=1qa2ws --name=ghost_demo ghost">ghost</option>');
-            html.push('<option value="docker run -d -p 3000:3000 -e PWD=1qa2ws --name=redmine_demo redmine">redmine</option>');
+        for(var i=0;i<dockerRun.length;i++){
+            if(image){
+                html.push('<option  '+(image === dockerRun[i].text ? 'selected=selected' : '' )+' value="'+dockerRun[i].value+'">'+dockerRun[i].text+'</option>');
+            }else{
+                html.push('<option  value="'+dockerRun[i].value+'">'+dockerRun[i].text+'</option>');
+            }
+            
+        }
+        
         html.push('</select>')
 
 
@@ -119,6 +139,11 @@ $(function(){
         $("#dockertips").hide();
     }else{
         $("#dockertips").show();
+        if(image){
+            $('#mirror-address').val(image);
+        }
+            
+        
     }
     //处理官方实例的逻辑 end
 
@@ -264,7 +289,7 @@ $(function(){
                 var dataObj = msg;
                 if (dataObj["status"] == "over_memory") {
                     if (dataObj["tenant_type"] == "free"){
-                        swal("资源已达上限,免费用户最多使用1G内存");
+                        swal("资源已达上限,不能创建");
                     }else
                         swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {

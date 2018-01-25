@@ -5,21 +5,31 @@ from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
 from www.views.ajax.announcement import AnnouncementInfoView
 from www.views.ajax.event import *
+from www.views.ajax.market_plugin import TenantPluginInstallView, TenantPluginShareView
+from www.views.ajax.monitor import QueryMonitorView, QueryRangeMonitorView
+from www.views.ajax.plugin import PluginEventLogView, PluginVersionInfoView, PluginStatusView, TenantPluginStatusView,UpdatePluginInfoView, \
+    ConfigPluginManageView, PluginManageView, CreatePluginVersionView, ConfigPreviewView, PluginBaseInfoView
 from www.views.ajax.price_detail import PriceDetailView
 from www.views.ajax.probe import ServiceProbeManager, ServiceProbeInfoUpdateManager, ServiceProbeUsedUpdateManager
 from www.views.ajax.service_actions import DockerLogInstanceView
 from www.views.ajax.service_fee import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
+from www.views.ajax.service_market import BatchDownloadMarketAppGroupTempalteView
 from www.views.ajax.service_info import BasicInfoEditView
 from www.views.ajax.service_labels import ServiceLabelsView, ServiceLabelsManageView
 from www.views.ajax.service_log import *
 from www.views.ajax.service_rule import *
 from www.views.ajax.third_app import *
 from www.views.ajax.services import *
+from www.views.ajax.enterprise import MarketEnterpriseAccessTokenBindView
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.vol_sync import VolSyncApiView, TenantVolsView, TenantDepVolsView, DepVolSyncApiView
 from www.views.ajax.code_actions import UserGoodrainGitLabRegisterView
+from www.views.ajax.service_plugin import PluginServiceRelation, PluginServiceComplexAttr, PluginServiceSwitch
+from www.views.ajax.admin import *
+from www.views.ajax.multi_protocol import MultiProtocolsView
 
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = patterns(
     '',
@@ -180,7 +190,8 @@ urlpatterns = patterns(
 
     url(r'^(?P<tenantName>[\w\-]+)/groupServices',
         ajax.GroupServicesView.as_view()),
-
+    # multi protocols support
+    url(r'^(?P<tenantName>[\w\-]+)/protocols', MultiProtocolsView.as_view()),
     # event
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events$', EventManager.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log$',
@@ -209,5 +220,45 @@ urlpatterns = patterns(
     url(r'^dep-mnt$', DepVolSyncApiView.as_view()),
     url(r'^dep-vols$', TenantDepVolsView.as_view()),
 
+
+    url(r'^(?P<tenantName>[\w\-]+)/sync-market-apps$', BatchDownloadMarketAppGroupTempalteView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/git-register$', UserGoodrainGitLabRegisterView.as_view()),
+
+    # plugin action url
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/base-info', PluginBaseInfoView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/event-log',
+        PluginEventLogView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/update',
+        UpdatePluginInfoView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/config$',
+        ConfigPluginManageView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/manage',
+        PluginManageView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/new-version',
+        CreatePluginVersionView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/status',
+        PluginStatusView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/config/preview',
+        ConfigPreviewView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/(?P<plugin_id>[\w\-]+)/build-history', PluginVersionInfoView.as_view()),
+
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/status', TenantPluginStatusView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/install', TenantPluginInstallView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/plugin/share', csrf_exempt(TenantPluginShareView.as_view())),
+
+    # service with plugin
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/plugin/relation$', PluginServiceRelation.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/plugin/is_switch$', PluginServiceSwitch.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/plugin/attrs$', PluginServiceComplexAttr.as_view()),
+
+    # monitor
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/query_range$', QueryRangeMonitorView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/query$', QueryMonitorView.as_view()),
+    # enterprise
+    url(r'^enterprises/active$', MarketEnterpriseAccessTokenBindView.as_view()),
+
+    # admin query
+    url(r'^admin/users/info$', UsersDetailView.as_view()),
+    url(r'^admin/tenants/info$', TenantsDetailView.as_view()),
+    url(r'^admin/enters/info$', EntersDetailView.as_view()),
 )

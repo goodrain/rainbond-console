@@ -1,0 +1,16 @@
+{
+  "parser": "babel-eslint",
+  "env": {
+    "browser": true,
+    "jest": true,
+    "node": true
+  },
+  "rules": {
+    "comma-dangle": [2, "never"],
+    //"no-invalid-this": 2,
+    "no-label-var": 2,
+    "no-dupe-args": 2,
+    "no-caller": 2,
+    "strict": [2]
+  }
+}

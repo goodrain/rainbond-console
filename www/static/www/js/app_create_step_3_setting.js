@@ -86,7 +86,7 @@ $(function () {
             var addOnoff = matchArr(portNum,$(".portNum"));
             if( addOnoff )
             {
-                var arr = ['HTTP','非HTTP'];
+                var arr = ['http','tcp','udp','mysql'];
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-original-title="当前应用提供服务的端口号。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
@@ -104,14 +104,14 @@ $(function () {
                     oTr += '<td><label class="checkbox fn-tips" data-original-title="打开外部访问，用户即可通过网络访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><span class="check-bg" for="'+$(".add_port").val()+'outer"></span></label></td><td>';
                     oTr += '<select class="fn-tips" data-original-title="请设定用户的访问协议。" data-port-http="'+$(".add_port").val()+'http">';
                 }
-                for( var i = 0; i < 2; i++ )
+                for( var i = 0; i < 4; i++ )
                 {
-                    if( $('.add_http').val() == arr[i] )
+                    if( $('.add_http option:selected').val() == arr[i] )
                     {
-                        oTr += '<option selected="selected">'+arr[i]+'</option>';
+                        oTr += '<option selected="selected" value='+  arr[i] +'>'+ arr[i]+'</option>';
                     }
                     else{
-                        oTr += '<option>'+arr[i]+'</option>';
+                        oTr += '<option value='+ arr[i]  +'>'+arr[i]+'</option>';
                     }
                 }
                 oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
@@ -457,23 +457,23 @@ $(function () {
             var port_json = {};
             var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
             port_json["container_port"] = container_port
-            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).find("select option:selected").html();
-            if( port_json["protocol"] == 'HTTP' )
-            {
-                port_json["protocol"] = 'http';
-            }
-            else if( port_json["protocol"] == '非HTTP' ){
-                port_json["protocol"] = 'stream';
-            }
-            else{
-                port_json["protocol"] = 'http';
-            }
+            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).find("select option:selected").val();
+            // if( port_json["protocol"] == 'HTTP' )
+            // {
+            //     port_json["protocol"] = 'http';
+            // }
+            // else if( port_json["protocol"] == '非HTTP' ){
+            //     port_json["protocol"] = 'stream';
+            // }
+            // else{
+            //     port_json["protocol"] = 'http';
+            // }
             port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(1).find("input").prop("checked")?1:0;
             port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
             port_json["port_alias"] = service_alias.toUpperCase()+container_port;
             portArr[i] = port_json;
         }
-        //console.log(JSON.stringify(portArr));
+        console.log(JSON.stringify(portArr));
 
         var appNameLen = $(".appName").length;
         var appNameArr = [];
@@ -549,6 +549,8 @@ $(function () {
             success : function(msg) {
                 if (msg["status"] == "success") {
                     window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
+                }else if (msg["status"] == "over_memory") {
+                    swal("资源已达上限")
                 }else{
                     swal("配置失败")
                 }
@@ -767,23 +769,23 @@ $(function () {
                 $(this).parents("tr").find("select").val("请打开外部访问");
                 $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
             }
-            if( $(this).parents("tr").find("select").val() == '非HTTP' )
-            {
-                var len = $("table.tab-box tbody select").length;
-                var num = 0;
-                for( var i = 0; i<len; i++ )
-                {
-                    if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
-                    {
-                        num++;
-                    }
-                }
-                if( num >= 2 )
-                {
-                    swal("访问方式只能有一个非HTTP");
-                    $(this).parents("tr").find("select").val("HTTP");
-                }
-            }
+            // if( $(this).parents("tr").find("select").val() == '非HTTP' )
+            // {
+            //     var len = $("table.tab-box tbody select").length;
+            //     var num = 0;
+            //     for( var i = 0; i<len; i++ )
+            //     {
+            //         if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
+            //         {
+            //             num++;
+            //         }
+            //     }
+            //     if( num >= 2 )
+            //     {
+            //         swal("访问方式只能有一个非HTTP");
+            //         $(this).parents("tr").find("select").val("HTTP");
+            //     }
+            // }
         });
     }
     //访问方式切换

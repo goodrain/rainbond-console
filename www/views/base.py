@@ -113,6 +113,11 @@ class BaseView(BaseObject, View):
                         format(user_id))
                     return self.redirect_to("/logout")
 
+                if settings.MODULES.get('SSO_LOGIN'):
+                    cookies_sso_uid = request.COOKIES.get('uid')
+                    if request.user.sso_user_id != cookies_sso_uid:
+                        return self.redirect_to('/logout')
+
             response = handler(request, *args, **kwargs)
             return self.update_response(response)
 
@@ -182,3 +187,31 @@ class AuthedView(BaseView):
                 return False
         except PermissionDenied:
             return False
+
+
+class PluginView(BaseView):
+    def __init__(self, request, *args, **kwargs):
+        super(PluginView, self).__init__(request, *args, **kwargs)
+        self.plugin_id = kwargs.get('plugin_id', None)
+
+
+
+
+class CAdminView(BaseView):
+    """是否有权限访问cadmin模块"""
+
+    def __init__(self, request, *args, **kwargs):
+        BaseView.__init__(self, request, *args, **kwargs)
+        if isinstance(request.user, AnonymousUser):
+            raise http.Http404
+        if not request.user.is_sys_admin:
+            if request.user.user_id == 1:
+                pass
+            else:
+                raise http.Http404
+
+    def get_context(self):
+        context = super(CAdminView, self).get_context()
+        context['MODULES'] = settings.MODULES
+        context['is_private'] = sn.instance.is_private()
+        return context

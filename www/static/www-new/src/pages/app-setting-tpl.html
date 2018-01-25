@@ -84,18 +84,18 @@
             {{if appInfo.service.service_key === '0000'}}
             <div class="row">
                 <span class="col-xs-2 control-label">镜像名称</span>
-                <div class="col-xs-2 text-left"><p  class="form-control-static">{{appInfo.service.image}}</p></div>
+                <div class="col-xs-8 text-left"><p  class="form-control-static">{{appInfo.service.image}}</p></div>
             </div>
             {{/if}}
 
             <div class="row">
                 <span class="col-xs-2 control-label">持久化配置</span>
-                <div class="col-xs-2 text-left"><p  class="form-control-static">共享</p></div>
+                <div class="col-xs-8 text-left"><p  class="form-control-static">共享</p></div>
             </div>
             
             <div class="row">
                 <span class="col-xs-2 control-label">创建时间</span>
-                <div class="col-xs-2 text-left"><p  class="form-control-static">{{(pageData.serviceCreateTime || '').split('T')[0]}}</p></div>
+                <div class="col-xs-8 text-left"><p  class="form-control-static">{{(pageData.serviceCreateTime || '').split('T')[0]}}</p></div>
             </div>
             
             <div class="row">

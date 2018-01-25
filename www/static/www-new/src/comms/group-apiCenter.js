@@ -15,7 +15,8 @@ export function shareGroup(tenantName, groupId) {
             "group_id": groupId
         }
     }).done(function(data){
-        var data = eval(data);
+       
+        console.log(data);
         if (data.code == 200 || data.code == 201) {
             Msg.success('操作成功！')
             dfd.resolve(data);

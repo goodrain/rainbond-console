@@ -1,20 +1,25 @@
 # -*- coding: utf8 -*-
 
 import datetime as dt
-import logging
 import random
 import string
 
-from backends.models.main import *
+from django.core.mail import send_mail
+
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils import sn
 from www.utils.conf_tool import regionConfig
+from www.utils.license import LICENSE
 
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()
+
+notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com']
+
+cached_enter_token = dict()
 
 
 class EnterpriseService(object):
@@ -113,7 +118,7 @@ class EnterpriseService(object):
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
                                             creater=user_id, region=default_region.get('name'),
                                             expired_time=expire_time, tenant_alias=tenant_alias,
-                                            enterprise_id=enterprise.enterprise_id)
+                                            enterprise_id=enterprise.enterprise_id, limit_memory=4096)
             logger.info('create tenant:{}'.format(tenant.to_dict()))
 
         # 兼容用现有的团队id建立企业信息
@@ -125,7 +130,7 @@ class EnterpriseService(object):
             # 创建团队
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
                                             creater=user_id, region=default_region.get('name'),
-                                            expired_time=expire_time, tenant_alias=tenant_alias)
+                                            expired_time=expire_time, tenant_alias=tenant_alias, limit_memory=4096)
             logger.info('create tenant:{}'.format(tenant.to_dict()))
 
             # 依赖团队信息创建企业信息
@@ -187,6 +192,14 @@ class EnterpriseService(object):
         user.is_active = True
         user.save()
 
+        try:
+            content = '新用户: {0}, 手机号: {1}, 租户: {2}, 邮箱: {3}, 企业: {4}'.format(user.nick_name, user.phone,
+                                                                             tenant.tenant_name,
+                                                                             user.email, enterprise.enterprise_alias)
+            send_mail("new user active tenant", content, 'no-reply@goodrain.com', notify_mail_list)
+        except Exception:
+            pass
+
         return tenant
 
     def random_tenant_name(self, enterprise=None, length=8):
@@ -215,12 +228,13 @@ class EnterpriseService(object):
             enter_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return enter_name
 
-    def create_enterprise(self, enterprise_name='', enterprise_alias=''):
+    def create_enterprise(self, enterprise_name='', enterprise_alias='', enterprise_id=''):
         """
         创建一个本地的企业信息, 并生成本地的企业ID
         
         :param enterprise_name: 企业的英文名, 如果没有则自动生成一个, 如果存在则需要保证传递的名字在数据库中唯一
         :param enterprise_alias: 企业的别名, 可以中文, 用于展示用, 如果为空则自动生成一个
+        :param enterprise_id: 企业的ID, 如果没有传递, 则本地自动生成一个
         :return: 
         """
         enterprise = TenantEnterprise()
@@ -241,7 +255,10 @@ class EnterpriseService(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
-        enterprise.enterprise_id = make_uuid(enter_name)
+        if enterprise_id:
+            enterprise.enterprise_id = enterprise_id
+        else:
+            enterprise.enterprise_id = make_uuid(enter_name)
 
         # 处理企业别名
         if not enterprise_alias:
@@ -258,14 +275,17 @@ class EnterpriseService(object):
         except TenantEnterprise.DoesNotExist:
             return None
 
-    def active(self, enterprise, enterprise_token):
-        """
-        绑定企业与云市的访问的api token
-        :param enterprise: 
-        :param enterprise_token: 
-        :return: 
-        """
-        enterprise.enterprise_token = enterprise_token
-        enterprise.is_active = 1
-        enterprise.save()
-        return True
+    def get_enterprise_by_tenant(self, tenant):
+        try:
+            return TenantEnterprise.objects.get(enterprise_id=tenant.enterprise_id)
+        except TenantEnterprise.DoesNotExist:
+            return None
+
+    def list_tenants(self, enterprise_pk):
+        perms = PermRelTenant.objects.filter(enterprise_id=enterprise_pk)
+        if not perms:
+            return []
+
+        tenant_ids = [t.tenant_id for t in perms]
+        return Tenants.objects.filter(tenant_id__in=tenant_ids)
+

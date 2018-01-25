@@ -51,8 +51,22 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         group_key = request.GET.get("group_key", None)
         group_version = request.GET.get("group_version", None)
-        share_group_pk = None
+        share_group_pk = request.GET.get("gid", None)
+        region = request.GET.get("region", None)
+
         try:
+            if share_group_pk:
+                if not AppServiceGroup.objects.filter(pk=int(share_group_pk)).exists():
+                    raise Http404
+
+                context = self.get_context()
+                context["createApp"] = "active"
+                context["tenantName"] = self.tenantName
+                response = self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, share_group_pk))
+                if region:
+                    response.set_cookie('region', region)
+                return response
+
             if group_key is None:
                 raise Http404
             context = self.get_context()
@@ -189,7 +203,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             temp_ts.min_memory = service.min_memory
             temp_ts.min_node = service.min_node
             ts_list.append(temp_ts)
-        res = tenantUsedResource.predict_batch_services_memory(self.tenant, ts_list)
+        res = tenantUsedResource.predict_batch_services_memory(self.tenant, ts_list, self.response_region)
         if not res:
             data["status"] = "over_memory"
             data["tenant_type"] = self.tenant.pay_type
@@ -591,6 +605,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
                 if self.tenant.pay_type == 'free':
                     newTenantService.expired_time = expired_time
+                    # newTenantService.expired_time = self.tenant.expired_time
                     newTenantService.save()
                 if service_group_id:
                     group_id = int(service_group_id)

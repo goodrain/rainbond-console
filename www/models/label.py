@@ -32,7 +32,7 @@ class NodeLabels(BaseModel):
         db_table = "node_labels"
 
     region_id = models.CharField(max_length=32, help_text=u"数据中心 id")
-    cluster_id = models.IntegerField(help_text=u"集群ID")
+    cluster_id = models.CharField(max_length=32, help_text=u"集群ID")
     node_uuid = models.CharField(max_length=36, help_text=u"节点uuid")
     label_id = models.CharField(max_length=32, help_text=u"标签id")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

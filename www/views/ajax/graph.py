@@ -91,7 +91,7 @@ class ServiceGraph(AuthedView):
             body["start"] = start
             body["queries"] = queries
             body["enterprise_id"] = self.tenant.enterprise_id
-            query_data = region_api.get_opentsdb_data(self.service.service_region,body)
+            query_data = region_api.get_opentsdb_data(self.service.service_region, self.tenant.tenant_name, body)
             # query_data = result["bean"]
             if query_data is None:
                 return None

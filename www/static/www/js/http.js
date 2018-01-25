@@ -1,27 +1,16 @@
 (function(require, exports, module){
 
-	var loadingTmp = '<div id="loadding" style="background:#000 url(/static/www/images/loadding.gif) center center no-repeat;opacity:0.6;position:fixed;left:0;top:0;right:0;bottom:0;z-index:999999999;"></div>'
-	var $loadding = null;
 	var Message = gWidget.Message;
+	var loading = gWidget.create('loadingbar');
 
 
 	function showLoading() {
-		 if(!$loadding){
-		   $loadding = $(loadingTmp);
-		   $('body').append($loadding);
-		  }else{
-		      $loadding.show();
-		  }
+		 loading.addRequest();
 	}
 
 	function hideLoading(){
-		 setTimeout(function(){
-		    $loadding && $loadding.hide();
-		 })
+		loading.removeRequest();
 	}
-
-
-
 	
 	/*
 	 * 通用ajax服务
@@ -87,10 +76,18 @@
 		 option.type = option.type || 'get';
 		 //option.dataType = option.type || 'json';
 		 option.timeout = option.timeout || 180000;
-		 option.multiple = option.multiple || true;//已url为标示， 是否可以同一个请求没返回之前再次发起
+		 option.multiple = option.multiple || false;//已url为标示， 是否可以同一个请求没返回之前再次发起
+
+		 var ajaxToken='';
+		 try{
+	 	 	ajaxToken = JSON.stringify(option);
+	 	 }catch(e){
+	 		ajaxToken = '';
+	 	 }
+		 
 		 if(option.multiple === false){
-			 if(!ajaxIngCache.get(option.url)){
-				 ajaxIngCache.add(option.url)
+			 if(!ajaxIngCache.get(ajaxToken)){
+				 ajaxIngCache.add(ajaxToken)
 			 }else{
 				 return {
 					 done:function(){},
@@ -101,7 +98,7 @@
 		 //promise对象
 		 var dtd = $.Deferred();
 		 option.success=function(data){
-			 ajaxIngCache.remove(option.url);
+			 ajaxIngCache.remove(ajaxToken);
 			 if(option.showLoading !== false){
 				 config.afterLoad();
 			 }
@@ -116,10 +113,10 @@
 					 if(option.filter && $.isFunction(option.filter)){
 						 data = option.filter(data);
 					 }
-					 dtd.resolve(data.body);
+					 dtd.resolve(data.body || data.data);
 				 }else{
 					 if(isTipError === true){
-						 Message.danger(data.msgcn);
+						 Message.warning(data.msgcn || data.msg_show || data.msg || '操作异常');
 					 }
 					 dtd.reject(data);   
 				 }
@@ -127,16 +124,21 @@
 		 }
 		 
 		 option.error=function(e){
-			 ajaxIngCache.remove(option.url);
-			 try{
-				 dtd.reject(null, e);
-				 config.afterLoad();
-				 Message.danger("操作异常，请稍后重试！");
-			 }catch(e){
-				 
-			 }finally{
-				 
+		 	 var json = e.responseJSON;
+		 	 if(!json){
+		 	 	try{
+		 	 		json = JSON.parse(e.responseText);
+		 	 	}catch(e){
+		 	 		json = {};
+		 	 	}
+		 	 }
+			 ajaxIngCache.remove(ajaxToken);
+			 dtd.reject(json, e);
+			 config.afterLoad();
+			 if(isTipError === true){
+			    Message.danger(json.msg_show || "操作异常，请稍后重试！");
 			 }
+
 			 
 		 }
 		 if(option.showLoading !== false){

@@ -600,6 +600,8 @@ label{font-weight: 100;}
 }
 
 
+.ws-nowrap {white-space: nowrap;overflow: hidden;text-overflow:ellipsis;}
+
 
 
 
