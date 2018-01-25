@@ -11,7 +11,6 @@ from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils import sn
 from www.utils.conf_tool import regionConfig
-from www.utils.license import LICENSE
 
 
 logger = logging.getLogger('default')
