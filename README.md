@@ -21,9 +21,30 @@ This repository includes core components of Rainbond Data Center, you can build 
 
 ##### Python
 
+
 ```
 # python 2.7.8
 pip install -r requirements.txt
+
+# console.py 
+cp ./console.py /etc/goodrain/console.py
+
+# update console.py
+# 配置数据库相关信息
+# eg
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'console',
+        'USER': 'write',
+        'PASSWORD': '12345678',
+        'HOST': '127.0.0.1',
+        'PORT': 3306,
+    },
+}
+
+export REGION_TAG=cloudbang
+
 python manage.py migrate
 python manage.py runserver
 ```
