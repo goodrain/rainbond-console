@@ -307,7 +307,7 @@ window.AppOverviewController = createPageController({
 				).done((pageData) => {
 					this.renderData.pageData = pageData;
 					this.render();
-					this.publicCloudShow(pageData.is_public_cloud);
+					// this.publicCloudShow(pageData.is_public_cloud);
 					setTimeout(() => {
 						this.initLog();
 						this.checkStatus();

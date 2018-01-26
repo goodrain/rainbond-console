@@ -90,14 +90,15 @@
         {% if not is_private and cloud_assistant == 'goodrain' %}
         <!--公有云去掉了-->
         {% else %}
+        <!--
         <li>
             <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service/">
                 <i class="fa fa-th"></i>
                 <span>应用市场</span>
             </a>
         </li>
+        -->
         {% endif %}
-
         <li > 
         	<a class="{{teamStatus}}" href="/apps/{{tenantName}}/team/" >
         		<i class="fa fa-group"></i>
@@ -119,6 +120,7 @@
             </ul>
         </li>
         {% endif %}
+        <li><a href="http://www.rainbond.com/docs/stable/user-app-docs/how-to-use-app.html" target="_blank"><i class="fa fa-file-text"></i> 新手指南</a></li>
     </ul>
     <!-- sidebar menu end-->
 </div>

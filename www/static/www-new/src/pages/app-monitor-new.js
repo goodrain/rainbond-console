@@ -321,7 +321,7 @@ const AppMonitor = createPageController({
 	    		self.webSocket.send("topic="+self.serviceId);
 	    	}
 	    	this.webSocket.onmessage = function(e){
-	    		if(e.data){
+	    		if(e.data && e.data !== 'ok'){
 	    			self.updateTable(e.data);
 	    		}
 	    	};

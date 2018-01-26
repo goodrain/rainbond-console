@@ -93,8 +93,14 @@
 
                 <li><a href="/account/changepwd"><i class="glyphicon glyphicon-lock"></i> 修改密码</a></li>
                 <li class="divider"></li>
-
-                <li><a href="http://doc.goodrain.com/usage/180993" target="_blank"><i class="glyphicon glyphicon-list-alt"></i> 新手指南</a></li>
+                <!-- 
+                <li><a href="http://www.rainbond.com/docs/stable/user-app-docs/how-to-use-app.html" target="_blank"><i class="glyphicon glyphicon-list-alt"></i> 新手指南</a></li>
+                
+                {% if user.is_sys_admin %}
+                    <li><a href="/cadmin"><i class="glyphicon glyphicon-cog"></i> 配置管理</a></li>
+                    <li class="divider"></li>
+                {% endif%}
+                -->
 
                 <!--{% if is_private %}-->
                     <!--<li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>-->
