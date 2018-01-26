@@ -239,7 +239,7 @@ class InviteServiceUser(AuthedView):
                 try:
                     PermRelTenant.objects.get(user_id=user.pk, tenant_id=self.tenant.pk)
                 except PermRelTenant.DoesNotExist:
-                    PermRelTenant.objects.create(user_id=user.pk, tenant_id=self.tenant.pk, identity='access')
+                    PermRelTenant.objects.create(enterprise_id=self.tenant.enterprise_id, user_id=user.pk, tenant_id=self.tenant.pk, identity='access')
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
                 result['show'] = True
 
@@ -339,7 +339,7 @@ class InviteTenantUser(AuthedView):
                 PermRelTenant.objects.get(user_id=user.user_id, tenant_id=self.tenant.pk)
                 result['desc'] = u"{0}已经是项目成员了".format(user.nick_name)
             except PermRelTenant.DoesNotExist:
-                PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
+                PermRelTenant.objects.create(enterprise_id=self.tenant.enterprise_id, user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
                 result['show'] = True
                 self.add_member_to_gitlab(user, identity)
