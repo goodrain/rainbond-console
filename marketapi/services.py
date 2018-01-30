@@ -28,17 +28,14 @@ class MarketServiceAPIManager(object):
 
         logger.debug(LOGGER_TAG, 'Get tenant service group, group ids: {0}'.format(group_id_list))
 
-        group_list = [
-            app_group_svc.get_tenant_service_group_by_pk(int(group_id), True, True, True)
-            for group_id in group_id_list
-        ]
+        group_list = app_group_svc.list_group_service_by_ids(group_id_list)
 
         logger.debug(LOGGER_TAG, 'Tenant servics group:{0}'.format(group_list))
 
-        return [group for group in group_list if group]
+        return group_list
 
     def get_group_services_by_pk(self, group_id):
-        return app_group_svc.get_tenant_service_group_by_pk(int(group_id), True, True, True)
+        return app_group_svc.get_tenant_service_group_by_pk(int(group_id), True, True, False)
 
     def list_group_service_by_region(self, tenant, region_name):
         return app_group_svc.list_tenant_service_group_by_region(tenant, region_name, True, True, True)
@@ -229,6 +226,9 @@ class MarketServiceAPIManager(object):
         tenant = enterprise_svc.create_and_init_tenant(user_id=user.user_id, enterprise_id=user.enterprise_id)
         user.is_active = True
         return tenant
+
+    def build_tenant_service_group(self, user, group_id):
+        return app_group_svc.build_tenant_service_group(user, group_id)
 
     def install_tenant_service_group(self, user, tenant_name, group_key, group_version, region_name):
         logger.debug(

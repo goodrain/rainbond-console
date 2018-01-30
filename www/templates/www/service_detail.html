@@ -64,11 +64,7 @@
                 {% elif fr == "relations" %}
                 {% include 'www/include/tab_relations.html' %}
                 {% elif fr == "statistic" %}
-                    {% if has_analyis_plugin == "no" %}
-                        {% include 'www/include/tab_statistic.html' %}
-                    {% else %}
-                        {% include 'www/include/tab_monitor.html' %}
-                    {% endif %}
+                {% include 'www/include/tab_monitor.html' %}
                 {% elif fr == "log" %}
                 {% include 'www/include/tab_log.html' %}
                 {% elif fr == "settings" %}

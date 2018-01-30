@@ -964,8 +964,7 @@ class RegionInvokeApi(HttpClient):
         """获取租户在数据中心下的资源使用情况"""
         region_map = self.get_region_map(region)
         token = region_map[region]['token']
-        url = region_map[region][
-                  'url'] + "/v2/resources/tenants"
+        url = region_map[region]['url'] + "/v2/resources/tenants"
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
@@ -1021,7 +1020,7 @@ class RegionInvokeApi(HttpClient):
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def pluginServiceRelation(self, region,tenant_name,service_alias, body):
+    def pluginServiceRelation(self, region, tenant_name, service_alias, body):
         # region_map = self.get_region_map(region)
         # token = region_map[region]['token']
         # tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -1072,7 +1071,7 @@ class RegionInvokeApi(HttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name  + "/services/" + service_alias + "/plugin/" + plugin_id + "/setenv"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id + "/setenv"
 
         self._set_headers(token)
         return self._post(url, self.default_headers, json.dumps(body), region=region)

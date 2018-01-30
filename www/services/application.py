@@ -380,77 +380,6 @@ class ApplicationGroupService(object):
         tenant_group.service_group_id = category_group.pk
         tenant_group.save()
 
-        # 运行到这里, 云帮的应用已经都准备就绪了, 根据应用的关系, 向数据中心发部署请求
-        sorted_services = self.__sort_service(installed_services)
-        logger.debug(
-            'install order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
-        for tenant_service in sorted_services:
-            try:
-                baseService.create_region_service(tenant_service, tenant.tenant_name, region_name, user.nick_name)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'init_region_service', True)
-                logger.debug(
-                    'install {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                           tenant_service.service_id))
-
-                # 设置应用为"有无状态服务"
-                logger.debug('===> update service extend_method!')
-                self.__update_service_extend_method(tenant, tenant_service)
-
-                # 创建应用探针
-                logger.debug('===> create service probe!')
-                self.__create_service_probe(tenant, tenant_service)
-            except Exception as install_exc:
-                logger.exception(install_exc)
-                logger.debug(
-                    'install {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                          tenant_service.service_id))
-                try:
-                    region_api.delete_service(region_name, tenant.tenant_name, tenant_service.service_alias,
-                                              tenant.enterprise_id)
-                except Exception as delete_exc:
-                    logger.exception(delete_exc)
-                    logger.error('delete {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
-                                                                      tenant_service.service_alias,
-                                                                      tenant_service.service_id))
-                continue
-
-            try:
-                event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-                                     tenant_id=tenant.tenant_id, type='deploy',
-                                     deploy_version=tenant_service.deploy_version,
-                                     old_deploy_version=tenant_service.deploy_version,
-                                     user_name=user.nick_name, start_time=datetime.datetime.now())
-                event.save()
-
-                body = {
-                    'event_id': event.event_id,
-                    'kind': baseService.get_service_kind(tenant_service),
-                    'deploy_version': tenant_service.deploy_version,
-                    'operator': user.nick_name,
-                    'action': 'upgrade',
-                    'enterprise_id': tenant.enterprise_id,
-                    'envs': {env.attr: env.attr_value
-                             for env in
-                             TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
-                                                                attr_name__in=(
-                                                                    'COMPILE_ENV', 'NO_CACHE', 'DEBUG', 'PROXY',
-                                                                    'SBT_EXTRAS_OPTS'))},
-                }
-                region_api.build_service(tenant_service.service_region,
-                                         tenant.tenant_name,
-                                         tenant_service.service_alias,
-                                         body)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
-                logger.debug(
-                    'build {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                         tenant_service.service_id))
-
-            except Exception as build_exc:
-                logger.exception(build_exc)
-                logger.error(
-                    'build {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                        tenant_service.service_id))
-
         return True, 'success', tenant_group, installed_services
 
     def __update_service_extend_method(self, tenant, tenant_service):
@@ -782,13 +711,12 @@ class ApplicationGroupService(object):
             group.service_list = TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk) or list()
             for service in group.service_list:
                 service.access_url = self.get_tenant_service_access_url(group.tenant, service)
-                service.status = self.__get_tenant_service_status(group.tenant, service)
 
         if is_query_consume:
             group.memory, group.net, group.disk = self.get_tenant_group_consume(group)
 
         if is_query_status:
-            group.status = self.get_tenant_group_status(group)
+            group.status = self.__get_tenant_group_status(group)
 
         return group
 
@@ -818,11 +746,10 @@ class ApplicationGroupService(object):
                     service.access_url = self.get_tenant_service_access_url(group.tenant, service)
 
             if is_query_consume:
-                # group.memory, group.net, group.disk = self.get_tenant_group_consume(group)
-                group.memory, group.net, group.disk = 0, 0, 0
+                group.memory, group.net, group.disk = self.get_tenant_group_consume(group)
 
             if is_query_status:
-                group.status = self.get_tenant_group_status(group)
+                group.status = self.__get_tenant_group_status(group)
 
         return group_list
 
@@ -855,7 +782,7 @@ class ApplicationGroupService(object):
 
         return total_memory, total_disk, total_net
 
-    def get_tenant_group_status(self, group):
+    def __get_tenant_group_status(self, group):
         """
         通过应用组获取应用组的资源消耗
         :param group: 应用组对象 
@@ -864,31 +791,17 @@ class ApplicationGroupService(object):
         tenant = group.tenant or Tenants.objects.get(tenant_id=group.tenant_id)
         service_list = group.service_list or TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk)
 
-        service_status = list()
+        service_ids = [s.service_id for s in service_list]
+        service_status_map = self.__map_region_service_status(tenant.enterprise_id, group.region_name, tenant.tenant_name, service_ids)
+
         for service in service_list:
-            if not hasattr(service, 'status'):
-                status = self.__get_tenant_service_status(tenant, service)
+            if service.service_id in service_status_map:
+                service.status = service_status_map[service.service_id]
             else:
-                status = service.status
+                service.status = 'undeploy'
 
-            service_status.append(status)
-
-        return self.__compute_group_service_status(service_status)
-
-    def __list_tenant_service_status(self, tenant, region, service_list):
-        try:
-            data = {
-                "service_ids": [s.service_id for s in service_list],
-                "enterprise_id": tenant.enterprise_id
-            }
-            service_status_list = region_api.service_status(region, tenant.tenant_name, data)
-            service_status_list = service_status_list["list"]
-            status_list = [item.get('status', 'unknow') or 'unknow' for item in service_status_list]
-        except Exception as e:
-            logger.exception(e)
-            status_list = ['unknow' for s in service_list]
-
-        return status_list
+        list_status = [service.status for service in service_list]
+        return self.__compute_group_service_status(list_status)
 
     def __get_tenant_service_status(self, tenant, service):
         try:
@@ -897,12 +810,15 @@ class ApplicationGroupService(object):
                                                    tenant.enterprise_id)
             status = body["bean"]['cur_status']
 
-        except Exception, e:
-            logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
-            logger.exception(e)
-            status = 'failure'
+        except region_api.CallApiError as e:
+            if e.status == 404:
+                status = 'undeploy'
+            else:
+                logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
+                logger.exception(e)
+                status = 'failure'
 
-        return get_status_info_map(status)
+        return get_status_info_map(status)['status']
 
     def __compute_group_service_status(self, services_status):
         if not services_status:
@@ -914,7 +830,7 @@ class ApplicationGroupService(object):
         undeploy_count = 0
         upgrade_count = 0
         for status in services_status:
-            runtime_status = status['status']
+            runtime_status = status
             if runtime_status == 'closed':
                 closed_count += 1
             elif runtime_status == 'running':
@@ -991,6 +907,93 @@ class ApplicationGroupService(object):
         return TenantServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name,
                                                  group_key=group_key,
                                                  group_version=group_version).exists()
+
+    def build_tenant_service_group(self, user, group_id):
+        group = self.get_tenant_service_group_by_pk(group_id, True, True)
+        logger.debug('prepare build service_group ==> [{}-{}:{}]'.format(group.group_alias, group_id, group.status))
+        if not group:
+            return False, '应用组不存在'
+
+        region_name = group.region_name
+        tenant = group.tenant
+
+        if group.status != 'undeploy':
+            return False, '应用正在{}无需构建'.format(group.status)
+
+        # 运行到这里, 云帮的应用已经都准备就绪了, 根据应用的关系, 向数据中心发部署请求
+        sorted_services = self.__sort_service(group.service_list)
+        logger.debug(
+            'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
+        for tenant_service in sorted_services:
+            try:
+                baseService.create_region_service(tenant_service, tenant.tenant_name, region_name, user.nick_name)
+                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'init_region_service', True)
+                logger.debug(
+                    'install {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname,
+                                                           tenant_service.service_alias,
+                                                           tenant_service.service_id))
+
+                # 设置应用为"有无状态服务"
+                logger.debug('===> update service extend_method!')
+                self.__update_service_extend_method(tenant, tenant_service)
+
+                # 创建应用探针
+                logger.debug('===> create service probe!')
+                self.__create_service_probe(tenant, tenant_service)
+            except Exception as install_exc:
+                logger.exception(install_exc)
+                logger.debug(
+                    'install {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
+                                                          tenant_service.service_alias,
+                                                          tenant_service.service_id))
+                try:
+                    region_api.delete_service(region_name, tenant.tenant_name, tenant_service.service_alias,
+                                              tenant.enterprise_id)
+                except Exception as delete_exc:
+                    logger.exception(delete_exc)
+                    logger.error('delete {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
+                                                                      tenant_service.service_alias,
+                                                                      tenant_service.service_id))
+                continue
+
+            try:
+                event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
+                                     tenant_id=tenant.tenant_id, type='deploy',
+                                     deploy_version=tenant_service.deploy_version,
+                                     old_deploy_version=tenant_service.deploy_version,
+                                     user_name=user.nick_name, start_time=datetime.datetime.now())
+                event.save()
+
+                body = {
+                    'event_id': event.event_id,
+                    'kind': baseService.get_service_kind(tenant_service),
+                    'deploy_version': tenant_service.deploy_version,
+                    'operator': user.nick_name,
+                    'action': 'upgrade',
+                    'enterprise_id': tenant.enterprise_id,
+                    'envs': {env.attr: env.attr_value
+                             for env in
+                             TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
+                                                                attr_name__in=(
+                                                                    'COMPILE_ENV', 'NO_CACHE', 'DEBUG', 'PROXY',
+                                                                    'SBT_EXTRAS_OPTS'))},
+                }
+                region_api.build_service(tenant_service.service_region,
+                                         tenant.tenant_name,
+                                         tenant_service.service_alias,
+                                         body)
+                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
+                logger.debug(
+                    'build {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+                                                         tenant_service.service_id))
+
+            except Exception as build_exc:
+                logger.exception(build_exc)
+                logger.error(
+                    'build {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+                                                        tenant_service.service_id))
+
+        return True, '构建应用成功'
 
     def restart_tenant_service_group(self, user, group_id):
         group = self.get_tenant_service_group_by_pk(group_id, True)
@@ -1115,3 +1118,59 @@ class ApplicationGroupService(object):
 
         self.__clear_install_context(group, sorted_services, tenant)
         return True, '删除应用组成功'
+
+    def list_group_service_by_ids(self, group_id_list):
+        """
+        获取任意应用组id列表的应用组信息
+        :param group_id_list: 
+        :return: 
+        """
+        group_list = list()
+        for group_id in group_id_list:
+            tenant_group = self.get_tenant_service_group_by_pk(int(group_id), True)
+            if tenant_group:
+                group_list.append(tenant_group)
+
+        query_map = dict()
+        service_map = dict()
+        for tenant_group in group_list:
+            # 按租户+数据中心给应用分组
+            query_key = ':'.join(
+                [tenant_group.tenant.enterprise_id, tenant_group.region_name, tenant_group.tenant.tenant_name])
+            if query_key not in query_map:
+                query_map[query_key] = list()
+
+            query_map[query_key].extend(tenant_group.service_list)
+            service_map.update({s.service_id: s for s in tenant_group.service_list})
+
+        # 同一数据中心,租户下的应用一次性查询出来
+        for key, service_list in query_map.items():
+            enterprise_id, region, tenant_name = key.split(':')
+            service_ids = [s.service_id for s in service_list]
+            service_status_map = self.__map_region_service_status(enterprise_id, region, tenant_name, service_ids)
+
+            for service in service_list:
+                if service.service_id in service_status_map:
+                    service.status = service_status_map[service.service_id]
+                else:
+                    service.status = 'undeploy'
+
+        # 将所有组下应用的状态汇总成为应用组状态
+        for tenant_group in group_list:
+            list_service_status = [service.status for service in tenant_group.service_list]
+            tenant_group.status = self.__compute_group_service_status(list_service_status)
+
+        return group_list
+
+    def __map_region_service_status(self, enterprise_id, region, tenant_name, service_ids):
+        try:
+            data = {
+                "service_ids": service_ids,
+                "enterprise_id": enterprise_id
+            }
+            ret_data = region_api.service_status(region, tenant_name, data)
+            services_status = ret_data.get("list") or list()
+            return {status_map["service_id"]: status_map['status'] for status_map in services_status}
+        except Exception as e:
+            logger.exception(e)
+            return {service_id: 'failure' for service_id in service_ids}

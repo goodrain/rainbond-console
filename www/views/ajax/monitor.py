@@ -33,7 +33,7 @@ class QueryMonitorView(AuthedView):
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(int(res.status),"query error","查询一次")
+            result = general_message(400,"query error","查询一次")
         return JsonResponse(result, status=result["code"])
 
 
@@ -47,5 +47,5 @@ class QueryRangeMonitorView(AuthedView):
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(int(res.status),"query error","查询一次")
+            result = general_message(400,"query error","查询一次")
         return JsonResponse(result, status=result["code"])

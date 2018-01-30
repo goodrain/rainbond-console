@@ -335,10 +335,11 @@ class TenantService(object):
 
         try:
             result = region_api.get_region_tenants_resources(region, {"tenant_name": [tenant.tenant_name]})
+            logger.debug('Resource of tenants:{0}'.format(result))
             tenant_res_list = result.get("list")
             tenant_res = tenant_res_list[0] if tenant_res_list else {}
-            total_memory = tenant_res['memory']
-            total_disk = tenant_res['disk']
+            total_memory = tenant_res.get('memory', 0)
+            total_disk = tenant_res.get('disk', 0)
         except Exception as e:
             logger.exception(e)
 
@@ -358,7 +359,7 @@ class TenantService(object):
     def get_tenant_region_resource_limit(self, tenant, region):
         if tenant.pay_type == 'unpay':
             return 9999999, 9999999, 9999999
-        
+
         limit_memory = 0
         limit_disk = 0
         limit_net = 0

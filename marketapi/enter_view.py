@@ -264,9 +264,6 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
                 'tenant_name': group.tenant.tenant_name,
                 'group_status': group.status,
                 'category_id': group.service_group_id,
-                'memory': group.memory,
-                'net': group.net,
-                'disk': group.disk
             })
 
         return self.success_response(data=ret_data)
@@ -316,7 +313,6 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
                     'service_key': service.service_key,
                     'service_version': service.version,
                     'access_url': service.access_url,
-                    'status': 'installed',
                     'msg': 'installed succeed!',
                 } for service in group.service_list]
             }
@@ -388,6 +384,8 @@ class EnterGroupServiceAPIView(EnterpriseMarketAPIView):
             success, message = market_api.restart_tenant_service_group(request.user, group_id)
         elif action == 'stop':
             success, message = market_api.stop_tenant_service_group(request.user, group_id)
+        elif action == 'build':
+            success, message = market_api.build_tenant_service_group(request.user, group_id)
 
         if success:
             return self.success_response(msg_show=message)
@@ -395,7 +393,7 @@ class EnterGroupServiceAPIView(EnterpriseMarketAPIView):
             return self.error_response(code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg_show=message)
 
     def __allowed_action(self, action):
-        return action in ('restart', 'stop')
+        return action in ('restart', 'stop', 'build')
 
     def delete(self, request, group_id):
         """
@@ -467,3 +465,97 @@ class EnterTenantsAPIView(EnterpriseMarketAPIView):
                 } for tr in tenant.regions]
             })
         return self.success_response(data=data)
+
+
+class EnterEventAPIView(EnterpriseMarketAPIView):
+    def get(self, request):
+        """
+        获取异步事件的运行状态
+        ---
+        parameters:
+            - name: event_id
+              description: 事件ID
+              required: true
+              type: string
+              paramType: form
+        """
+        group_ids = request.data.get('group_ids')
+        region_name = request.data.get('region_name')
+
+        if group_ids:
+            logger.debug(LOGGER_TAG, 'Receive request from market, group ids:{0}'.format(group_ids))
+            group_list = market_api.get_group_services_by_pk_list(group_ids)
+        elif region_name:
+            logger.debug(LOGGER_TAG, 'Receive request from market, region_name:{0}'.format(region_name))
+
+            user = request.user
+            tenant = market_api.get_default_tenant_by_user(user.user_id)
+            if not tenant:
+                logger.error(LOGGER_TAG, 'user [{0}] do not have default tenant!'.format(user.user_id))
+                return self.error_response(code=status.HTTP_404_NOT_FOUND,
+                                           msg='tenant does not exist!',
+                                           msg_show='租户不存在')
+
+            group_list = market_api.list_group_service_by_region(tenant, region_name)
+        else:
+            group_list = list()
+
+        ret_data = list()
+        for group in group_list:
+            ret_data.append({
+                'group_id': group.ID,
+                'group_name': group.group_name,
+                'region': group.region_name,
+                'tenant_name': group.tenant.tenant_name,
+                'group_status': group.status,
+                'category_id': group.service_group_id,
+            })
+
+        return self.success_response(data=ret_data)
+
+    def post(self, request):
+        """
+        创建一个企业异步操作事件
+        ---
+        parameters:
+            - name: event_id
+              description: 事件ID
+              required: true
+              type: string
+              paramType: form
+            - name: event_type
+              description: 事件类型
+              required: true
+              type: string
+              paramType: form
+            - name: event_data
+              description: 事件请求数据
+              required: true
+              type: string
+              paramType: form
+        """
+        group_key = request.data.get('group_key')
+        group_version = request.data.get('group_version')
+        region_name = request.data.get('region_name')
+        tenant_name = request.data.get('tenant_name')
+        if not group_key or not group_version or not region_name:
+            return self.error_response(code=status.HTTP_400_BAD_REQUEST,
+                                       msg='group_key or group_version or region can not be null',
+                                       msg_show='参数不合法')
+
+        success, message, group = market_api.install_tenant_service_group(request.user, tenant_name, group_key,
+                                                                          group_version, region_name)
+        if success:
+            result = {
+                'group_id': group.pk,
+                'svc_result': [{
+                    'service_id': service.service_id,
+                    'service_key': service.service_key,
+                    'service_version': service.version,
+                    'access_url': service.access_url,
+                    'msg': 'installed succeed!',
+                } for service in group.service_list]
+            }
+            return self.success_response(data=result, msg_show=message)
+        else:
+            return self.error_response(code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg_show=message)

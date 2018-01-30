@@ -104,7 +104,7 @@ class LeftSideBarMixin(object):
         context["current_tenant_alias"] = self.tenant.tenant_alias or self.tenant.tenant_name
         context["is_private"] = sn.instance.is_private()
         context["cloud_assistant"] = sn.instance.cloud_assistant
-        context["app_domain"] = os.getenv('GOODRAIN_APP_DOMAIN', 'https://app.goodrain.com')
+        context["app_domain"] = os.getenv('GOODRAIN_APP_DOMAIN', 'https://www.goodrain.com')
         context = self.set_region_info(context)
         return context
 
