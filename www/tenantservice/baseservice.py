@@ -1170,6 +1170,7 @@ class TenantUsedResource(object):
 
     def get_limit_memory(self, tenant, region):
         res = TenantRegionResource.objects.filter(tenant_id=tenant.tenant_id, region_name=region)
+        # 领了云市资源包
         if res:
             pkg_tag = True
             expire = False
@@ -1178,15 +1179,13 @@ class TenantUsedResource(object):
             else:
                 expire = True
                 memory = 0
+        # 没领资源包根据云帮租户状态限制可用内存上线
         else:
             pkg_tag = False
             expire = False
             if tenant.pay_type == 'free':
-                if datetime.datetime.now() < tenant.expired_time:
-                    memory = tenant.memory_limit
-                else:
-                    expire = True
-                    memory = 0
+                expire = True
+                memory = 0
             elif tenant.pay_type == 'payed':
                 memory = 1024 * 1024
             else:

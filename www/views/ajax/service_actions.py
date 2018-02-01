@@ -299,12 +299,12 @@ class ServiceManage(AuthedView):
                 except Exception as e:
                     pass
 
-                published = AppService.objects.filter(service_id=self.service.service_id).count()
-                if published:
-                    result["status"] = "published"
-                    self.update_event(event, "关联了已发布服务, 不可删除", "failure")
-                    result["info"] = u"关联了已发布服务, 不可删除"
-                    return JsonResponse(result)
+                # published = AppService.objects.filter(service_id=self.service.service_id).count()
+                # if published:
+                #     result["status"] = "published"
+                #     self.update_event(event, "关联了已发布服务, 不可删除", "failure")
+                #     result["info"] = u"关联了已发布服务, 不可删除"
+                #     return JsonResponse(result)
 
                 dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values(
                     "service_id")

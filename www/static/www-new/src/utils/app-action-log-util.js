@@ -16,7 +16,8 @@ var actionCNMap = {
     "share-yb": "分享到云帮",
     "reboot"  :"应用重启" ,
     "git-change":"仓库地址修改",
-    "imageUpgrade":"应用更新"
+    "imageUpgrade":"应用更新",
+    "over_memory":"资源超限关闭"
 }
 
 const appActionLogUtil = {
