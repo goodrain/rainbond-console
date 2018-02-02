@@ -14,7 +14,7 @@ else
     buildRelease=0.$git_commit
 fi
 if [ -z "$VERSION" ];then
-    VERSION="3.4.2"
+    VERSION="cloud"
 fi
 
 function release(){
