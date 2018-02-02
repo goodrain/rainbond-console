@@ -7,7 +7,8 @@ from www.decorator import perm_required
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_invite_mail_withHtml
 
-from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
+from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity, \
+    TenantEnterprise
 from www.utils.giturlparse import parse as git_url_parse
 
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -339,7 +340,8 @@ class InviteTenantUser(AuthedView):
                 PermRelTenant.objects.get(user_id=user.user_id, tenant_id=self.tenant.pk)
                 result['desc'] = u"{0}已经是项目成员了".format(user.nick_name)
             except PermRelTenant.DoesNotExist:
-                PermRelTenant.objects.create(enterprise_id=self.tenant.enterprise_id, user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
+                enterprise = TenantEnterprise.objects.get(enterprise_id=self.tenant.enterprise_id)
+                PermRelTenant.objects.create(enterprise_id=enterprise.ID, user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
                 result['show'] = True
                 self.add_member_to_gitlab(user, identity)

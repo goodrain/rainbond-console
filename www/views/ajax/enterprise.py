@@ -47,7 +47,7 @@ class MarketEnterpriseAccessTokenBindView(AuthedView):
 
         try:
             market_api = MarketOpenAPI()
-            domain = os.getenv('GOODRAIN_APP_DOMAIN', settings.APP_SERVICE_API["url"])
+            domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
             market_api.confirm_access_token(domain, market_client_id, market_client_token)
         except Exception:
             return JsonResponse({'ok': False, 'message': '认证企业信息失败'})

@@ -971,7 +971,7 @@ class ApplicationGroupService(object):
                     'operator': user.nick_name,
                     'action': 'upgrade',
                     'enterprise_id': tenant.enterprise_id,
-                    'envs': {env.attr: env.attr_value
+                    'envs': {env.attr_name: env.attr_value
                              for env in
                              TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
                                                                 attr_name__in=(

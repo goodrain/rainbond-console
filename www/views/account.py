@@ -1210,7 +1210,7 @@ class GoorainSSOCallBack(BaseView):
                     'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
                                                                   enterprise.enterprise_name))
 
-            user = Users.objects.create(nick_name=sso_user.username,
+            user = Users.objects.create(nick_name=sso_user.name,
                                         email=sso_user.email or '',
                                         phone=sso_user.mobile or '',
                                         password=sso_user.pwd or '',
@@ -1275,7 +1275,7 @@ class GoodrainSSONotify(BaseView):
         # 同步sso_id所代表的用户与企业信息，没有则创建
         sso_eid = sso_user.get('eid')
         sso_company = sso_user.get('company')
-        sso_username = sso_user.get('username')
+        sso_username = sso_user.get('name')
         sso_phone = sso_user.get('mobile')
         sso_pwd = sso_user.get('pwd')
         try:

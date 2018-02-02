@@ -311,7 +311,7 @@ class MarketServiceAPIManager(object):
             # 初始化用户工作环境
             tenant = enterprise_svc.create_and_init_tenant(user_id=user.user_id, enterprise_id=user.enterprise_id)
 
-        domain = os.getenv('GOODRAIN_APP_DOMAIN', settings.APP_SERVICE_API["url"])
+        domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
         return client_auth_service.save_market_access_token(enterprise_id, domain, market_client_id,
                                                             market_client_token)
 

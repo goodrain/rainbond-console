@@ -537,7 +537,7 @@ const AppPlugin = createPageController({
 		},
 		//去创建插件
 		'.to-create click': function(e){
-			location.href="/plugins/"+this.renderData.tenantName+"/create/";
+			location.href="/plugins/"+this.renderData.tenantName;
 		},
 		//更新到最新版本
 		'.update-to-newversion click': function(e){

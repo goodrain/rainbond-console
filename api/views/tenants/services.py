@@ -62,6 +62,8 @@ class TenantServiceStaticsView(APIView):
                 start_time = time.time()
                 if runing_status and int(runing_status) == 3:
                     logger.debug('statistic.perf', data)
+                    tenant_id = 'system'
+                    service_id = region
                 cnt = TenantServiceStatics.objects.filter(service_id=service_id, time_stamp=time_stamp).count()
                 if cnt < 1:
                     ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num,
@@ -649,7 +651,7 @@ class ServiceStopView(APIView):
             bean = body["bean"]
 
             status = bean["cur_status"]
-            if status != 'closed':
+            if status not in ('closed', 'undeploy', 'deploying'):
                 event_id = make_uuid()
                 service = TenantServiceInfo.objects.get(service_id=service_id)
                 event = ServiceEvent(event_id=event_id, service_id=service_id,
