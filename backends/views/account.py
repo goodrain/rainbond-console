@@ -94,7 +94,7 @@ class TenantEnterpriseView(BaseAPIView):
         try:
             market_client_id = request.data.get("market_client_id")
             market_client_token = request.data.get("market_client_token")
-            domain = os.getenv('GOODRAIN_APP_DOMAIN', settings.APP_SERVICE_API["url"])
+            domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
             is_success = client_auth_service.save_market_access_token(enterprise_id, domain, market_client_id,
                                                                       market_client_token)
             if is_success:

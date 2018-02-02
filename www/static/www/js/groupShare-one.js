@@ -37,7 +37,7 @@ $(function () {
             this.callParent();
 
             this.element.delegate('.to-check', 'click', function(e){
-                window.open("https://app-test.goodrain.com/#/check-console/"+self.option.eid);
+                window.open("https://www.goodrain.com/#/check-console/"+self.option.eid);
             });
 
             this.element.delegate('.btn-success', 'click', function(e){
