@@ -14,6 +14,8 @@ DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'zmq_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
+ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.me', '.goodrain.org']
+
 EMAIL_HOST = '***'
 EMAIL_PORT = 465
 EMAIL_HOST_USER = '***'
