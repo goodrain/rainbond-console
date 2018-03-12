@@ -30,11 +30,11 @@ function release(){
   release_desc=${branch_info}-${VERSION}-${buildRelease}
 
 
-  sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile > Dockerfile.release
+  sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
 
-  docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.release .
-  rm -r ./Dockerfile.release
-  docker push rainbond/${image_name}:${VERSION}
+  docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.build .
+  rm -r ./Dockerfile.build
+  #docker push rainbond/${image_name}:${VERSION}
 }
 
 case $1 in
