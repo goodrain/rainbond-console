@@ -3,7 +3,7 @@
 import random
 import string
 from www.models.main import Tenants, PermRelTenant, Users, TenantEnterprise, TenantRegionInfo
-
+from django.db.models import Q
 
 class UserService(object):
     def get_user_by_id(self, user_id):
@@ -56,6 +56,15 @@ class UserService(object):
         PermRelTenant.objects.filter(user_id=user.user_id).delete()
         TenantEnterprise.objects.filter(enterprise_id=user.enterprise_id).delete()
         user.delete()
+
+    def is_exist(self, username, password):
+        try:
+            u = Users.objects.get(Q(phone=username) | Q(email=username) | Q(nick_name=username))
+            if not u.check_password(password):
+                return None, '密码不正确', 400
+            return u, "验证成功", 200
+        except Users.DoesNotExist:
+            return None, '用户不存在', 404
 
     def check_nick_name(self, nick_name):
         """

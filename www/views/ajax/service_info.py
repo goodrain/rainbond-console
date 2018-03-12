@@ -64,7 +64,6 @@ class BasicInfoEditView(LeftSideBarMixin, AuthedView):
                 self.service.git_url = git_url
                 self.service.git_project_id = 0
                 self.service.code_version = "master"
-                logger.debug("=====> change git url")
 
                 event_id = self.create_gitChange_events(self.service)
 

@@ -1,7 +1,12 @@
 # -*- coding: utf8 -*-
+from datetime import datetime
+
 import re
+from django.conf import settings
 from django.db import models
+from django.db.models.fields import DateTimeField
 from django.utils.crypto import salted_hmac
+
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
 from django.db.models.fields import DateTimeField
 from datetime import datetime
@@ -17,10 +22,9 @@ user_origion = ((u"自主注册", "registration"), (u"邀请注册", "invitation
 
 tenant_type = ((u"免费租户", "free"), (u"付费租户", "payed"))
 
-service_identity = ((u"管理员", "admin"), (u"开发者", "developer"), (u"观察者",
-                                                               "viewer"))
+service_identity = ((u"管理员", "admin"), (u"开发者", "developer"), (u"观察者", "viewer"))
 
-tenant_identity = ((u"管理员", "admin"), (u"开发者", "developer"),
+tenant_identity = ((u"拥有者", "owner"), (u"管理员", "admin"), (u"开发者", "developer"),
                    (u"观察者", "viewer"), (u"访问", "access"))
 
 app_pay_choices = ((u'免费', "free"), (u'付费', "pay"))
@@ -189,10 +193,13 @@ class SuperAdminUser(models.Model):
     class Meta:
         db_table = "user_administrator"
 
-    email = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
+    user_id = models.IntegerField(unique=True, help_text=u"用户ID")
+    email = models.EmailField(max_length=35, help_text=u"邮件地址")
 
 
 class Users(models.Model):
+    USERNAME_FIELD = 'nick_name'
+
     class Meta:
         db_table = 'user_info'
 
@@ -221,7 +228,8 @@ class Users(models.Model):
     union_id = models.CharField(max_length=100, help_text=u'绑定微信的union_id')
     sso_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
-    enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的enterprise_id")
+    enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='',
+                                     help_text=u"统一认证中心的enterprise_id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -240,9 +248,9 @@ class Users(models.Model):
         # admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
         #           'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
         # return bool(self.email in admins)
-        if self.email:
+        if self.user_id:
             try:
-                SuperAdminUser.objects.get(email=self.email)
+                SuperAdminUser.objects.get(user_id=self.user_id)
                 return True
             except SuperAdminUser.DoesNotExist:
                 pass
@@ -271,6 +279,9 @@ class Users(models.Model):
                 value = value.strftime('%Y-%m-%d %H:%M:%S')
             data[f.name] = value
         return data
+
+    def get_username(self):
+        return self.nick_name
 
 
 class BaseModel(models.Model):
@@ -339,7 +350,8 @@ class TenantRegionInfo(BaseModel):
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     region_tenant_name = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心租户名")
     region_tenant_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心租户id")
-    region_scope = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心类型 private/public")
+    region_scope = models.CharField(max_length=32, null=True, blank=True, default='',
+                                    help_text=u"数据中心类型 private/public")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"企业id")
 
 
@@ -533,6 +545,17 @@ class TenantServiceInfo(BaseModel):
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
 
+    service_source = models.CharField(max_length=15, default="", null=True, blank=True,
+                                      help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
+    create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
+    check_uuid = models.CharField(
+        max_length=36, blank=True, null=True, default="", help_text=u"应用检测ID")
+    check_event_id = models.CharField(
+        max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
+    docker_cmd = models.CharField(
+        max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
+
     def __unicode__(self):
         return self.service_alias
 
@@ -644,7 +667,16 @@ class TenantServiceInfoDelete(BaseModel):
         default='assistant',
         help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
+    service_source = models.CharField(max_length=15, default="source_code", null=True, blank=True, help_text=u"应用来源")
+    create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    check_uuid = models.CharField(
+        max_length=36, blank=True, null=True, default="", help_text=u"服务id")
+    check_event_id = models.CharField(
+        max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
+    docker_cmd = models.CharField(
+        max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
 
 
 class TenantServiceLog(BaseModel):
@@ -702,6 +734,32 @@ class TenantServiceAuth(BaseModel):
         max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
+class TenantServiceExtendMethod(BaseModel):
+
+    class Meta:
+        db_table = 'tenant_service_extend_method'
+
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    min_node = models.IntegerField(default=1, help_text=u"最小节点")
+    max_node = models.IntegerField(default=20, help_text=u"最大节点")
+    step_node = models.IntegerField(default=1, help_text=u"节点步长")
+    min_memory = models.IntegerField(default=1, help_text=u"最小内存")
+    max_memory = models.IntegerField(default=20, help_text=u"最大内存")
+    step_memory = models.IntegerField(default=1, help_text=u"内存步长")
+    is_restart = models.BooleanField(default=False, blank=True, help_text=u"是否重启")
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class ServiceDomain(BaseModel):
@@ -1336,7 +1394,7 @@ class ConsoleConfig(BaseModel):
 
     key = models.CharField(max_length=50, help_text=u"配置名称")
     value = models.CharField(max_length=1000, help_text=u"配置值")
-    description = models.TextField(help_text=u"说明")
+    description = models.TextField(null=True, blank=True, default="", help_text=u"说明")
     update_time = models.DateTimeField(help_text=u"更新时间", null=True)
 
 
@@ -1370,16 +1428,6 @@ class TenantEnterprise(BaseModel):
         return self.to_dict()
 
 
-class ConsoleSysConfig(BaseModel):
-    class Meta:
-        db_table = 'console_sys_config'
-
-    key = models.CharField(max_length=32, help_text=u"key")
-    type = models.CharField(max_length=32, help_text=u"类型")
-    value = models.CharField(max_length=4096, help_text=u"value")
-    desc = models.CharField(max_length=40, help_text=u"描述")
-    enable = models.BooleanField(default=True, help_text=u"是否生效")
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 class TenantEnterpriseToken(BaseModel):
     class Meta:
         db_table = 'tenant_enterprise_token'
@@ -1408,7 +1456,7 @@ class TenantServiceGroup(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_name = models.CharField(max_length=64, help_text=u"服务组名")
     group_alias = models.CharField(max_length=64, help_text=u"服务组名")
-    group_key = models.CharField(max_length=32, unique=True, help_text=u"服务组id")
+    group_key = models.CharField(max_length=32, help_text=u"服务组id")
     group_version = models.CharField(max_length=32, help_text=u"服务组版本")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     service_group_id = models.IntegerField(default=0, help_text=u"ServiceGroup主键, 应用分类ID")

@@ -21,26 +21,21 @@ class Routers extends Component {
 	render(){
 		const userInfo = this.props.userInfo;
 		const dispatch = this.props.dispatch;
-		
+		console.log('routers')
 		return (
-			<Router history={this.props.history}>
+
 				<Layout>
 					<SiteHeader  dispatch={dispatch} />
-					<Layout>
-						<Layout className="main-layout">
-							<Content style={{minHeight: 500,padding:'60px 16px', position:'relative'}}>
-									<Switch>
-										<Route exact path="/login" component={lazyController(LoadLogin)}></Route>
-										<Route path="/register" component={lazyController(LoadRegister)}></Route>
-										<Route path="/backpassword/:redirect" component={lazyController(LoadBackPassword)}></Route>
-										<Route path="/bindphone/:uid/:redirect" component={lazyController(LoadBindPhone)}></Route>
-									</Switch>
-							</Content>
-							<SiteFooter />
-						</Layout>
-					</Layout>
+					<Content style={{minHeight: 500,padding:'60px 16px', position:'relative'}}>
+							<Switch>
+								<Route exact path="/login" component={lazyController(LoadLogin)}></Route>
+								<Route path="/register" component={lazyController(LoadRegister)}></Route>
+								<Route path="/backpassword/:redirect" component={lazyController(LoadBackPassword)}></Route>
+								<Route path="/bindphone/:uid/:redirect" component={lazyController(LoadBindPhone)}></Route>
+							</Switch>
+					</Content>
+					<SiteFooter />
 				</Layout>
-			</Router>
 		)
 	}
 }

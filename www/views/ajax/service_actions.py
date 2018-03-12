@@ -611,7 +611,6 @@ class ServiceRelation(AuthedView):
             if action == "add":
                 is_env_duplicate = self.is_env_duplicate(self.service, dep_service)
                 if is_env_duplicate:
-                    logger.debug("------------------>>>>>")
                     result["status"] = "failure"
                     result["msg"] = "要关联的应用的变量与已关联的应用变量重复，请修改后再试"
                     return JsonResponse(result)

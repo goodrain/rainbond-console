@@ -49,7 +49,7 @@ class BaseTenantService(object):
         else:
             try:
                 my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
-                if my_tenant_identity in ('admin', 'developer', 'viewer', 'gray'):
+                if my_tenant_identity in ('owner', 'admin', 'developer', 'viewer', 'gray'):
                     services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
                         'service_alias')
                 else:
@@ -1398,9 +1398,9 @@ class CodeRepositoriesService(object):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.modifyUser(user.git_user_id, password=password)
 
-    def addProjectMember(self, git_project_id, git_user_id, level):
-        if custom_config.GITLAB_SERVICE_API:
-            gitClient.addProjectMember(git_project_id, git_user_id, level)
+    # def addProjectMember(self, git_project_id, git_user_id, level):
+    #     if custom_config.GITLAB_SERVICE_API:
+    #         gitClient.addProjectMember(git_project_id, git_user_id, level)
 
     def listProjectMembers(self, git_project_id):
         if custom_config.GITLAB_SERVICE_API:

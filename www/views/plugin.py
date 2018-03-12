@@ -263,7 +263,6 @@ class BuildPluginView(LeftSideBarMixin, AuthedView):
         result = {}
         try:
             build_version = request.POST.get("build_version", None)
-            logger.debug("=====>>>>> build_version is {}".format(build_version))
             newest_build_version = plugin_svc.get_tenant_plugin_version_by_plugin_id_and_version(self.tenant, plugin_id,
                                                                                                  build_version)
             if newest_build_version.build_status == "building":

@@ -3,8 +3,9 @@ import logging
 
 from django.db.models import Q
 
-from backends.services.tenantservice import tenant_service as tenantService
-from exceptions import *
+from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
+from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
+    PasswordTooShortError
 from www.gitlab_http import GitlabApi
 from www.models import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService

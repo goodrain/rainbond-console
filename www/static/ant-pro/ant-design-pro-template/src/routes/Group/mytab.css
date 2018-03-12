@@ -1,0 +1,4 @@
+.mytabtit{width: 100%; border-bottom:1px #e8e8e8 solid; text-align: left; margin-bottom: 20px;}
+.mytabtit a{padding:10px; color: #333; display: inline-block; border: 1px #e8e8e8 solid; margin-right: 2px; background: rgba(232, 232, 232, 0.2); border-bottom:0 none; border-top-left-radius:4px; border-top-right-radius:4px; text-decoration: none;}
+.mytabtit a:hover,.mytabtit a:visited{text-decoration: none;}
+.mytabtit a.active{background: #fff; color: #1890ff; border-bottom: 1px #fff solid; position: relative; z-index: 1; top: 0;}

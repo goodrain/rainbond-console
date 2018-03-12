@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend, get_backends, authenticate
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.crypto import constant_time_compare
+from rest_framework_jwt.settings import api_settings
+from rest_framework_jwt.views import JSONWebTokenAPIView, jwt_response_payload_handler
 from www.monitorservice.monitorhook import MonitorHook
 
 SESSION_KEY = '_auth_user_id'
@@ -45,6 +49,45 @@ def login(request, user):
     # user_logged_in.send(sender=user.__class__, request=request, user=user)
 
 
+def jwtlogin(request, user):
+    """
+    Persist a user id and a backend in the request. This way a user doesn't
+    have to reauthenticate on every request. Note that data set during
+    the anonymous session is retained when the user logs in.
+    """
+    session_auth_hash = ''
+    if user is None:
+        user = request.user
+    if hasattr(user, 'get_session_auth_hash'):
+        session_auth_hash = user.get_session_auth_hash()
+
+    if SESSION_KEY in request.session:
+        if request.session[SESSION_KEY] != user.pk or (
+                session_auth_hash and
+                request.session.get(HASH_SESSION_KEY) != session_auth_hash):
+            # To avoid reusing another user's session, create a new, empty
+            # session if the existing session corresponds to a different
+            # authenticated user.
+            request.session.flush()
+    else:
+        request.session.cycle_key()
+    request.session[SESSION_KEY] = user.pk
+    request.session[BACKEND_SESSION_KEY] = user.backend
+    request.session[HASH_SESSION_KEY] = session_auth_hash
+    if hasattr(request, 'user'):
+        request.user = user
+    monitorHook.loginMonitor(user)
+    rotate_token(request)
+    response_data = jwt_response_payload_handler(rotate_token, user, request)
+    if api_settings.JWT_AUTH_COOKIE:
+        expiration = (datetime.utcnow() +
+                      api_settings.JWT_EXPIRATION_DELTA)
+        response_data.set_cookie(api_settings.JWT_AUTH_COOKIE,
+                                 rotate_token,
+                                 expires=expiration,
+                                 httponly=True)
+
+
 def logout(request):
     """
     Removes the authenticated user's ID from the request and flushes their
@@ -68,7 +111,7 @@ def logout(request):
 
     if hasattr(request, 'user'):
         from www.models import AnonymousUser
-        request.user = AnonymousUser()    
+        request.user = AnonymousUser()
     monitorHook.logoutMonitor(user)
 
 

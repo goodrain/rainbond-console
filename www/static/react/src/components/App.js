@@ -8,8 +8,11 @@ import Loading from './Loading';
 import cookie from '../utils/cookie-util';
 import http from '../utils/http';
 import Routers from './routers';
-import GetUserInfo from './get-userinfo';
+import AppInit from './app-init';
 import CheckIsPublic from './check-is-public';
+import CheckLogin from './check-login';
+import ListenRouter from './listen-router';
+import Filters from './filters';
 require('../../style/them.css')
 
 class App extends Component {
@@ -19,14 +22,12 @@ class App extends Component {
 	componentWillMount(){
 		//验证登录
 		const token = cookie.get('token');
-		const user = cookie.get('user');
 		if(token && user){
 			http.setToken(token);
 			this.props.dispatch({
 				type: 'LOGIN',
 				userInfo:{
-					token: token,
-					user: user
+					token: token
 				}
 			})
 		}
@@ -34,13 +35,16 @@ class App extends Component {
 	render(){
 		const userInfo = this.props.userInfo;
 		const dispatch = this.props.dispatch;
-		
 		return (
-			<CheckIsPublic>
-				<GetUserInfo>
-					<Routers />
-				</GetUserInfo>
-			</CheckIsPublic>
+			<Router history={this.props.history}>
+				<ListenRouter>
+					<AppInit>
+					    <Filters>
+							<Routers />
+						</Filters>
+					</AppInit>	
+				</ListenRouter>
+			</Router>
 		)
 	}
 }

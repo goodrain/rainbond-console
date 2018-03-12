@@ -35,6 +35,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.views.wechat import is_weixin
 from www.utils import sn
+from www.utils.license import LICENSE
 
 import logging
 
@@ -596,7 +597,11 @@ class Registation(BaseView):
             tenants_num = 0
             # if is_private:
             tenants_num = Tenants.objects.count()
-
+            allow_num = LICENSE.get_authorization_tenant_number()
+            # 如果租户数量>license允许值
+            if tenants_num > allow_num:
+                self.form.add_error("", "你的授权只允许创建 {}个租户".format(allow_num))
+                return self.get_response()
             # 判断租户名称是否相同
             tenants_num = Tenants.objects.filter(
                 tenant_name=tenant_name).count()
@@ -1161,6 +1166,15 @@ class ChangeLoginPassword(BaseView):
                                 context)
 
 
+class LicenceView(BaseView):
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        expired_day = sn.instance.expire_day
+        context["expired_day"] = expired_day
+        context["user"] = self.user.nick_name
+        return TemplateResponse(request, "www/account/license.html", context)
+
+
 class GoorainSSOCallBack(BaseView):
     """
     处理SSO回调登陆
@@ -1252,22 +1266,24 @@ class GoodrainSSONotify(BaseView):
         sso_user_id = request.POST.get('uid')
         sso_user_token = request.POST.get('token')
         sso_enterprise_id = request.POST.get('eid')
+        rf = request.POST.get('rf') or 'sso'
+        rf_username = request.POST.get('rf_username') or ''
 
-        logger.debug('request.sso_user_id:{}'.format(sso_user_id))
-        logger.debug('request.sso_user_token:{}'.format(sso_user_token))
-        logger.debug('request.sso_enterprise_id:{}'.format(sso_enterprise_id))
+        logger.debug('account.login', 'request.sso_user_id:{}'.format(sso_user_id))
+        logger.debug('account.login', 'request.sso_user_token:{}'.format(sso_user_token))
+        logger.debug('account.login', 'request.sso_enterprise_id:{}'.format(sso_enterprise_id))
 
         if not sso_user_id or not sso_user_token or not sso_enterprise_id:
-            logger.error('post params [uid] or [token] or [eid] not specified!')
+            logger.error('account.login', 'post params [uid] or [token] or [eid] not specified!')
             return JsonResponse({'success': False, 'msg': 'post params [uid] or [token] or [eid] not specified!'})
 
         if sso_user_id == 'null' or sso_user_token == 'null':
-            logger.error('bad uid or token, value is null!')
+            logger.error('account.login', 'bad uid or token, value is null!')
             return JsonResponse({"success": False, 'msg': 'bad uid or token, value is null!'})
 
         api = GoodRainSSOApi(sso_user_id, sso_user_token)
         if not api.auth_sso_user_token():
-            logger.error('Illegal user token!')
+            logger.error('account.login', 'Illegal user token!')
             return JsonResponse({"success": False, 'msg': 'auth from sso failed!'})
 
         sso_user = api.get_sso_user_info()
@@ -1289,9 +1305,9 @@ class GoodrainSSONotify(BaseView):
             enterprise.enterprise_alias = sso_company
             enterprise.is_active = 1
             enterprise.save()
-            logger.info(
-                'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
-                                                              enterprise.enterprise_name))
+            logger.info('account.login',
+                        'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
+                                                                      enterprise.enterprise_name))
 
         try:
             user = Users.objects.get(sso_user_id=sso_user_id)
@@ -1302,9 +1318,9 @@ class GoodrainSSONotify(BaseView):
             user.enterprise_id = sso_eid
             user.save()
 
-            logger.debug('query user with sso_user_id existed, updated!')
+            logger.debug('account.login', 'query user with sso_user_id existed, updated!')
         except Users.DoesNotExist:
-            logger.debug('query user with sso_user_id does not existed, created!')
+            logger.debug('account.login', 'query user with sso_user_id does not existed, created!')
             user = Users.objects.create(nick_name=sso_username,
                                         email=sso_user.get('email') or '',
                                         phone=sso_phone or '',
@@ -1313,23 +1329,18 @@ class GoodrainSSONotify(BaseView):
                                         enterprise_id=sso_eid,
                                         sso_user_token=sso_user_token,
                                         is_active=False,
-                                        rf='sso')
+                                        rf=rf)
             logger.info(
+                'account.login',
                 'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(user.user_id, user.nick_name,
                                                                                       user.rf,
                                                                                       user.sso_user_id))
             monitorhook.registerMonitor(user, 'register')
 
-        logger.debug('user.is_active:{}'.format(user.is_active))
-        if not user.is_active:
-            tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id)
-        else:
-            tenant = user_svc.get_default_tenant_by_user(user.user_id)
-        logger.info(tenant.to_dict())
-
         key = request.POST.get('key')
         logger.debug('invite key: {}'.format(key))
         if key:
+            logger.debug('account.login', 'invite register: {}'.format(key))
             data = AuthCode.decode(str(key), 'goodrain').split(',')
             logger.debug(data)
             action = data[0]
@@ -1347,5 +1358,18 @@ class GoodrainSSONotify(BaseView):
                 if PermRelService.objects.filter(user_id=user.user_id, service_id=tenant_service.pk).count() == 0:
                     PermRelService.objects.create(user_id=user.user_id, service_id=tenant_service.pk, identity=identity)
 
-            logger.debug('user invite sucess')
+            user.is_active = True
+            user.save()
+            logger.debug('account.login', 'user invite register successful')
+        else:
+            logger.debug('account.login', 'register/login user.is_active:{}'.format(user.is_active))
+            if not user.is_active:
+                tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id,
+                                                               rf_username=rf_username)
+            else:
+                tenant = user_svc.get_default_tenant_by_user(user.user_id)
+            logger.info(tenant.to_dict())
+            logger.debug('account.login', 'user info notify successful')
+
+        logger.debug('account.login', '-' * 30)
         return JsonResponse({"success": True})

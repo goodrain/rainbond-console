@@ -1,1 +1,275 @@
-sdfsdfds
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>好雨云帮</title>
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+    <style type="text/css">
+        body {
+            background: #f0f2f5;
+        }
+
+        .roundloading {
+            -webkit-animation-fill-mode: both;
+            animation-fill-mode: both;
+            -webkit-animation: rotate 1.5s 0s linear infinite;
+            animation: rotate 1.5s 0s linear infinite;
+        }
+
+        @-webkit-keyframes rotate {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            50% {
+                -webkit-transform: rotate(180deg);
+                transform: rotate(180deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            50% {
+                -webkit-transform: rotate(180deg);
+                transform: rotate(180deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        #load {
+            position: fixed;
+            width: 600px;
+            height: 36px;
+            left: 50%;
+            top: 50%;
+            margin-left: -300px;
+            margin-top: -18px;
+            overflow: visible;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            cursor: default;
+        }
+
+        #load div {
+            position: absolute;
+            width: 20px;
+            height: 36px;
+            opacity: 0;
+            font-size: 30px;
+            font-family: Helvetica, Arial, sans-serif;
+            animation: move 2s linear infinite;
+            -o-animation: move 2s linear infinite;
+            -moz-animation: move 2s linear infinite;
+            -webkit-animation: move 2s linear infinite;
+            transform: rotate(180deg);
+            -o-transform: rotate(180deg);
+            -moz-transform: rotate(180deg);
+            -webkit-transform: rotate(180deg);
+            color: #1890ff;
+        }
+
+        #load div:nth-child(2) {
+            animation-delay: 0.2s;
+            -o-animation-delay: 0.2s;
+            -moz-animation-delay: 0.2s;
+            -webkit-animation-delay: 0.2s;
+        }
+
+        #load div:nth-child(3) {
+            animation-delay: 0.4s;
+            -o-animation-delay: 0.4s;
+            -webkit-animation-delay: 0.4s;
+            -webkit-animation-delay: 0.4s;
+        }
+
+        #load div:nth-child(4) {
+            animation-delay: 0.6s;
+            -o-animation-delay: 0.6s;
+            -moz-animation-delay: 0.6s;
+            -webkit-animation-delay: 0.6s;
+        }
+
+        #load div:nth-child(5) {
+            animation-delay: 0.8s;
+            -o-animation-delay: 0.8s;
+            -moz-animation-delay: 0.8s;
+            -webkit-animation-delay: 0.8s;
+        }
+
+        #load div:nth-child(6) {
+            animation-delay: 1s;
+            -o-animation-delay: 1s;
+            -moz-animation-delay: 1s;
+            -webkit-animation-delay: 1s;
+        }
+
+        #load div:nth-child(7) {
+            animation-delay: 1.2s;
+            -o-animation-delay: 1.2s;
+            -moz-animation-delay: 1.2s;
+            -webkit-animation-delay: 1.2s;
+        }
+
+        #load div:nth-child(8) {
+            animation-delay: 1.4s;
+            -o-animation-delay: 1.4s;
+            -moz-animation-delay: 1.4s;
+            -webkit-animation-delay: 1.4s;
+        }
+
+        #load div:nth-child(9) {
+            animation-delay: 1.6s;
+            -o-animation-delay: 1.6s;
+            -moz-animation-delay: 1.6s;
+            -webkit-animation-delay: 1.6s;
+        }
+
+        @keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -moz-transform: rotate(0deg);
+                -webkit-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -moz-transform: rotate(0deg);
+                -webkit-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -moz-transform: rotate(-180deg);
+                -webkit-transform: rotate(-180deg);
+                -o-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-moz-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -moz-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -moz-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -moz-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-webkit-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -webkit-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-o-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -o-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <link href="/static/dists/index.b41365fa.css" rel="stylesheet">
+</head>
+
+<body>
+    <div id="root">
+
+    </div>
+    <div id="load">
+        <div>好</div>
+        <div>雨</div>
+        <div>云</div>
+        <div>帮</div>
+    </div>
+    <script type="text/javascript">
+        window.onload = function () {
+
+            var load = document.getElementById('load');
+
+            if (load) {
+                document.body.removeChild(load);
+            }
+        }
+    </script>
+    <script type="text/javascript" src="/static/dists/index.40a004b0.js"></script>
+</body>
+
+</html>

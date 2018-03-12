@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import { connect } from 'react-redux';
+import {Redirect} from 'react-router';
 import userUtil from '../utils/user-util';
 import {Link} from 'react-router-dom';
 
@@ -16,15 +17,13 @@ class Authent extends Component {
       userUtil.toLogin();
   }
 	render() {
-        const userInfo = this.props.userInfo;
-        const Com = this.props.component;
-        if(!userInfo || !userUtil.isLogin()){
-            this.handleTologin();
-            return null;
-        }
-        
-		return (
+    const userInfo = this.props.userInfo;
+    const Com = this.props.component;
+    if(!userInfo || !userUtil.isLogin()){
+        return <Redirect to="/login"/>;
+    }
 
+		return (
         <Com {...this.props} />
             
 		)

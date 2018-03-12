@@ -204,6 +204,53 @@ class SafetyTenantView(BaseAPIView):
         return Response(result)
 
 
+class AuthorizationAView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取当前license信息
+        ---
+
+        """
+        try:
+            res = config_service.get_license_info()
+            bean = res
+            code = "0000"
+            msg = "success"
+            msg_show = "查询成功"
+            result = generate_result(code, msg, msg_show, bean)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def put(self, request, *args, **kwargs):
+        """
+        导入license
+        ---
+        parameters:
+            - name: license
+              description: 云帮license
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            license = request.data.get("license", None)
+            if license:
+                config_service.update_license_info(license)
+            code = "0000"
+            msg = "success"
+            msg_show = "license修改成功"
+            result = generate_result(code, msg, msg_show)
+        except ParamsError as e:
+            result = generate_result("1003", "params error", e.message)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
 class ConfigGithubView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """

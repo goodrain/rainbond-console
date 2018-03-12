@@ -169,3 +169,47 @@ class RegionAddError(BaseException):
     """
     数据中心添加异常
     """
+
+class ExterpriseNotExistError(BaseException):
+    """
+    企业不存在
+    """
+
+class UserNotExistTenantError(BaseException):
+    """
+    该用户不存在该组
+    """
+
+class TenantIdentityNotExistError(BaseException):
+    """
+    没有这个权限
+    """
+
+class SameIdentityError(BaseException):
+    """
+    修改的权限与原权限相同
+    """
+
+
+class AuthorizationFailedError(BaseException):
+    """
+    授权失败
+    """
+
+
+class TeamServiceNotExistError(BaseException):
+    """
+    应用不存在
+    """
+
+
+class GroupNotExistError(BaseException):
+    """
+    应用组不存在
+    """
+
+
+class AuthenticationInfoHasExpiredError(BaseException):
+    """
+    认证信息已过期
+    """

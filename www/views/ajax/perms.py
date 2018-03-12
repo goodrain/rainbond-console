@@ -1,23 +1,28 @@
 # -*- coding: utf8 -*-
-from django.http import JsonResponse
+import logging
+
 from django.conf import settings
-from www.services.sso import SSO_BASE_URL
-from www.views import AuthedView
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+
 from www.decorator import perm_required
+from www.models import Users, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, \
+    tenant_identity, \
+    TenantEnterprise
+from www.services.sso import SSO_BASE_URL
+from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_invite_mail_withHtml
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity, \
     TenantEnterprise
 from www.utils.giturlparse import parse as git_url_parse
+from www.utils.mail import send_invite_mail_withHtml
+from www.views import AuthedView
 
-from www.tenantservice.baseservice import CodeRepositoriesService
-
-import logging
 logger = logging.getLogger('default')
 
 codeRepositoriesService = CodeRepositoriesService()
-
 
 gitlab_identity_map = {
     'admin': 'master', 'developer': 'developer',
@@ -66,18 +71,29 @@ class ServiceIdentity(AuthedView):
                 if identity in ('admin', 'developer'):
                     gitlab_identity = gitlab_identity_map.get(identity)
                     if is_member:
-                        logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        logger.info("perm.gitlab",
+                                    "modify user {0} identity for project {1} with address {2}".format(user.nick_name,
+                                                                                                       project_id,
+                                                                                                       self.service.git_url))
                         codeRepositoriesService.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
                     else:
-                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        logger.info("perm.gitlab",
+                                    "add user {0} into project {1} with address {2}".format(user.nick_name, project_id,
+                                                                                            self.service.git_url))
                         codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                 elif identity == 'remove':
                     if is_member:
-                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        logger.info("perm.gitlab",
+                                    "remove user {0} perms from project {1} with address {2}".format(user.nick_name,
+                                                                                                     project_id,
+                                                                                                     self.service.git_url))
                         codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 else:
                     if is_member:
-                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        logger.info("perm.gitlab",
+                                    "remove user {0} perms from project {1} with address {2}".format(user.nick_name,
+                                                                                                     project_id,
+                                                                                                     self.service.git_url))
                         codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
             except Exception, e:
                 logger.exception('perm.gitlab', e)
@@ -119,7 +135,8 @@ class TenantIdentity(AuthedView):
         return False
 
     def do_gitlab_perm_works(self, user, identity):
-        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
+        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(
+            tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
 
         added_pids = []
         for s in gitlab_services:
@@ -133,26 +150,37 @@ class TenantIdentity(AuthedView):
             parsed_git_url = git_url_parse(s.git_url)
             if parsed_git_url.host != 'code.goodrain.com':
                 return
-            
+
             try:
                 current_members = codeRepositoriesService.listProjectMembers(project_id)
                 is_member = self.user_exists_in_gitlab(user, current_members)
-            
+
                 if identity in ('admin', 'developer'):
                     gitlab_identity = gitlab_identity_map.get(identity)
                     if is_member:
-                        logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        logger.info("perm.gitlab",
+                                    "modify user {0} identity for project {1} with address {2}".format(user.nick_name,
+                                                                                                       project_id,
+                                                                                                       s.git_url))
                         codeRepositoriesService.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
                     else:
-                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        logger.info("perm.gitlab",
+                                    "add user {0} into project {1} with address {2}".format(user.nick_name, project_id,
+                                                                                            s.git_url))
                         codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                 elif identity == 'remove':
                     if is_member:
-                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        logger.info("perm.gitlab",
+                                    "remove user {0} perms from project {1} with address {2}".format(user.nick_name,
+                                                                                                     project_id,
+                                                                                                     s.git_url))
                         codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 else:
                     if is_member:
-                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        logger.info("perm.gitlab",
+                                    "remove user {0} perms from project {1} with address {2}".format(user.nick_name,
+                                                                                                     project_id,
+                                                                                                     s.git_url))
                         codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 added_pids.append(project_id)
             except Exception, e:
@@ -188,39 +216,19 @@ class InviteServiceUser(AuthedView):
     def init_request(self, *args, **kwargs):
         pass
 
-    def invite_content(self, email, tenant_name, service_alias, identity):
+    def invite_content(self, email, tenant_name, service_alias, identity, eid):
         if settings.MODULES.get('SSO_LOGIN'):
             domain = SSO_BASE_URL
-            mail_body = AuthCode.encode(','.join(['invite_service', email, tenant_name, service_alias, identity]), 'goodrain')
+            mail_body = AuthCode.encode(
+                ','.join(['invite_service', email, tenant_name, service_alias, identity, eid]), 'goodrain'
+            )
             link_url = '{0}/api/invite?key={1}'.format(domain, mail_body)
         else:
             domain = self.request.META.get('HTTP_HOST')
-            mail_body = AuthCode.encode(','.join([email, tenant_name, service_alias, identity]), 'goodrain')
+            mail_body = AuthCode.encode(','.join([email, tenant_name, service_alias, identity, eid]), 'goodrain')
             link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
 
-        content = u"尊敬的用户您好，"
-        content = content + "<br/>"
-        content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"
-        content = content + "<br/>"
-        content = content + u"注册链接: <a target='_blank' color='red' href=" + link_url + ">注册好雨云平台</a>"
-        content = content + "<br/>"
-        content = content + u"我们的服务在一定的资源范围内永久免费！内测阶段也可以申请增加免费资源，增加的资源在产品正式版上线后也不会另收费用哦！另外参与内测并提交问题报告的用户，正式上线后还会有更多的福利。"
-        content = content + "<br/>"
-        content = content + u"我们的文档及博客正在建设中，以后会陆续发布一系列好雨云平台的使用教程和技巧，欢迎关注！"
-        content = content + "<br/>"
-        content = content + u"您在使用过程中遇到的任何问题，或者对平台有任何建议，都可以通过以下途径提交反馈。对于提出高质量的反馈的用户，还有精美礼品等待您！"
-        content = content + "<br/>"
-        content = content + "Email： ares@goodrain.com"
-        content = content + "<br/>"
-        content = content + u"微信公众号：goodrain-cloud "
-        content = content + "<br/>"
-        content = content + u"联系电话：13621236261"
-        content = content + "<br/>"
-        content = content + u"QQ：78542636"
-        content = content + "<br/>"
-        content = content + u"再次感谢您关注我们的产品！"
-        content = content + "<br/>"
-        content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
+        content = render_to_string('mail_invite.html', {'link_url': link_url, 'inviter': tenant_name})
         return content
 
     @perm_required('perm_setting')
@@ -253,16 +261,21 @@ class InviteServiceUser(AuthedView):
                         if git_project_id > 0 and user.git_user_id > 0:
                             if identity in ("developer", "admin"):
                                 gitlab_identity = gitlab_identity_map.get(identity)
-                                codeRepositoriesService.addProjectMember(git_project_id, user.git_user_id, gitlab_identity)
-                                logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, git_project_id, self.service.git_url))
+                                codeRepositoriesService.addProjectMember(git_project_id, user.git_user_id,
+                                                                         gitlab_identity)
+                                logger.info("perm.gitlab",
+                                            "add user {0} into project {1} with address {2}".format(user.nick_name,
+                                                                                                    git_project_id,
+                                                                                                    self.service.git_url))
 
         except Users.DoesNotExist:
             try:
-                send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, self.service.service_alias, identity))
+                send_invite_mail_withHtml(email, self.invite_content(
+                    email, self.tenant.tenant_name, self.service.service_alias, identity, self.tenant.enterprise_id))
                 result['desc'] = u'已向{0}发送邀请邮件'.format(email)
             except Exception, e:
                 logger.exception("error", e)
-                
+
         return JsonResponse(result, status=200)
 
 
@@ -271,42 +284,21 @@ class InviteTenantUser(AuthedView):
     def init_request(self, *args, **kwargs):
         pass
 
-    def invite_content(self, email, tenant_name, identity):
+    def invite_content(self, email, tenant_name, identity, eid):
         if settings.MODULES.get('SSO_LOGIN'):
             domain = SSO_BASE_URL
-            mail_body = AuthCode.encode(','.join(['invite_tenant', email, tenant_name, identity]), 'goodrain')
+            mail_body = AuthCode.encode(','.join(['invite_tenant', email, tenant_name, identity, eid]), 'goodrain')
             link_url = '{0}/api/invite?key={1}'.format(domain, mail_body)
         else:
             domain = self.request.META.get('HTTP_HOST')
-            mail_body = AuthCode.encode(','.join([email, tenant_name, identity]), 'goodrain')
+            mail_body = AuthCode.encode(','.join([email, tenant_name, identity, eid]), 'goodrain')
             link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
-        content = u"尊敬的用户您好，"
-        content = content + "<br/>"
-        content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"
-        content = content + "<br/>"
-        content = content + u"注册链接: <a target='_blank' color='red' href=" + link_url + ">注册好雨云平台</a>"
-        content = content + "<br/>"
-        content = content + u"我们的服务在一定的资源范围内永久免费！内测阶段也可以申请增加免费资源，增加的资源在产品正式版上线后也不会另收费用哦！另外参与内测并提交问题报告的用户，正式上线后还会有更多的福利。"
-        content = content + "<br/>"
-        content = content + u"我们的文档及博客正在建设中，以后会陆续发布一系列好雨云平台的使用教程和技巧，欢迎关注！"
-        content = content + "<br/>"
-        content = content + u"您在使用过程中遇到的任何问题，或者对平台有任何建议，都可以通过以下途径提交反馈。对于提出高质量的反馈的用户，还有精美礼品等待您！"
-        content = content + "<br/>"
-        content = content + "Email： ares@goodrain.com"
-        content = content + "<br/>"
-        content = content + u"微信公众号：goodrain-cloud "
-        content = content + "<br/>"
-        content = content + u"联系电话：13621236261"
-        content = content + "<br/>"
-        content = content + u"QQ：78542636"
-        content = content + "<br/>"
-        content = content + u"再次感谢您关注我们的产品！"
-        content = content + "<br/>"
-        content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
+        content = render_to_string('mail_invite.html', {'link_url': link_url, 'inviter': tenant_name})
         return content
 
     def add_member_to_gitlab(self, user, identity):
-        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
+        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(
+            tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
 
         if identity in ('admin', 'developer'):
             gitlab_identity = gitlab_identity_map.get(identity)
@@ -321,7 +313,9 @@ class InviteTenantUser(AuthedView):
                         break
                     parsed_git_url = git_url_parse(s.git_url)
                     if parsed_git_url.host == 'code.goodrain.com':
-                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        logger.info("perm.gitlab",
+                                    "add user {0} into project {1} with address {2}".format(user.nick_name, project_id,
+                                                                                            s.git_url))
                         codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                         added_pids.append(project_id)
             except Exception, e:
@@ -341,7 +335,8 @@ class InviteTenantUser(AuthedView):
                 result['desc'] = u"{0}已经是项目成员了".format(user.nick_name)
             except PermRelTenant.DoesNotExist:
                 enterprise = TenantEnterprise.objects.get(enterprise_id=self.tenant.enterprise_id)
-                PermRelTenant.objects.create(enterprise_id=enterprise.ID, user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
+                PermRelTenant.objects.create(enterprise_id=enterprise.ID, user_id=user.user_id,
+                                             tenant_id=self.tenant.pk, identity=identity)
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
                 result['show'] = True
                 self.add_member_to_gitlab(user, identity)
@@ -349,9 +344,10 @@ class InviteTenantUser(AuthedView):
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
             try:
-                send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, identity))
+                send_invite_mail_withHtml(email, self.invite_content(
+                    email, self.tenant.tenant_name, identity, self.tenant.enterprise_id))
                 result['desc'] = u'已向{0}发送邀请邮件'.format(email)
             except Exception, e:
-                logger.exception("error", e)    
+                logger.exception("error", e)
 
         return JsonResponse(result, status=200)

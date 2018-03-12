@@ -19,7 +19,7 @@ from www.views import AuthedView
 logger = logging.getLogger('default')
 monitorhook = MonitorHook()
 
-RechargeTypeMap = {"alipay": u"支付宝", "100send50": u"充100送10", "weixin100": u"微信注册送100", "rechargesend": u"充多少送多少"}
+RechargeTypeMap = {"alipay": u"支付宝", "100send50": u"充100送10", "weixin100": u"微信注册送100", "rechargesend": u"充多少送多少", "offline": u"线下汇款"}
 
 
 class AccountBill(AuthedView):

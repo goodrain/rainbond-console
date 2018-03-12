@@ -515,7 +515,7 @@ class BatchRenewView(LeftSideBarMixin, AuthedView):
                 # 如果内存未包月
                 id_disk_map = {elem["service_id"]: int(elem["disk"]) for elem in data}
                 id_extendTime_map = {elem["service_id"]: int(elem["month_num"]) for elem in data}
-                logger.debug(" =====> id_disk_map {}".format(id_disk_map))
+                logger.debug("  id_disk_map {}".format(id_disk_map))
                 total_money = Decimal(0)
                 bills = []
                 for info in renew_attach_infos:

@@ -17,3 +17,5 @@ def send_invite_mail_withHtml(to, html_content):
 def send_reset_pass_mail(to, content):
     if settings.MODULES["Email_Invite"]:
         send_mail(u"重新设置您的密码", content, 'no-reply@goodrain.com', [to])
+    elif settings.MODULES["Password_Reset"]:
+        send_mail(u"重新设置您的密码", content, 'no-reply@goodrain.com', [to])

@@ -4248,9 +4248,10 @@ widget.define('baseField', {
             msgObj.show('danger', msg);
         },
         info: function(msg){
-            var msgObj = widget.create('message',{});
+            var msgObj = widget.create('message',{};
             msgObj.show('info', msg);
         }
+
     }
     
     globle.gWidget = widget;

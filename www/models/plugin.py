@@ -29,7 +29,7 @@ class TenantPlugin(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     origin = models.CharField(max_length=12, default="source_code", null=False, blank=False,
                               help_text=u"插件来源 source_code|market|local_market")
-    origin_share_id = models.CharField(max_length=32, default="new_create",help_text=u"分享的插件的id,自己创建为new_create")
+    origin_share_id = models.CharField(max_length=32, default="new_create", help_text=u"分享的插件的id,自己创建为new_create")
 
 
 class PluginBuildVersion(BaseModel):

@@ -153,7 +153,7 @@ class UserLoginForm(forms.Form):
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login{0}" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>""".format(prefix_url)),
-                    HTML("""<div class="linkregister text-center">现在<a href="/register{0}">注册</a></div>""".format(prefix_url)),
+                    # HTML("""<div class="linkregister text-center">现在<a href="/register{0}">注册</a></div>""".format(prefix_url)),
                     css_class='login-wrap',
                     style="background: #FFFFFF;",
                 )
@@ -163,7 +163,7 @@ class UserLoginForm(forms.Form):
                     Field('password', css_class="form-control", placeholder='密码'),
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("""<div class="linkregister text-center">现在<a href="/register{0}">注册</a></div>""".format(prefix_url)),
+                    # HTML("""<div class="linkregister text-center">现在<a href="/register{0}">注册</a></div>""".format(prefix_url)),
                     css_class='login-wrap',
                     style="background: #FFFFFF;",
                 )
@@ -444,12 +444,12 @@ class RegisterForm(forms.Form):
         # 对于社区版注册表单进行处理
         is_private = sn.instance.is_private()
         tenant_name = None
-        # if is_private:
-        #     tenant_num = Tenants.objects.count()
-        #     if tenant_num == 1:
-        #         tenant_list = Tenants.objects.all()
-        #         tenant = tenant_list[0]
-        #         tenant_name = tenant.tenant_name
+        if is_private:
+            tenant_num = Tenants.objects.count()
+            if tenant_num == 1:
+                tenant_list = Tenants.objects.all()
+                tenant = tenant_list[0]
+                tenant_name = tenant.tenant_name
 
         # if settings.MODULES["Sms_Check"]:
         if settings.MODULES["WeChat_Module"]:

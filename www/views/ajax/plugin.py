@@ -168,7 +168,6 @@ class ConfigPluginManageView(PluginView, AuthedView):
             if not is_pass:
                 return JsonResponse(general_message(400, "param error", msg),status=400)
 
-            logger.debug("========> {0}".format(config))
             config_group = plugin_svc.get_config_group_by_pk(config_group_pk)
             old_meta_type = config_group.service_meta_type
             plugin_svc.update_config_group_by_pk(config_group_pk, config_name, service_meta_type, injection)

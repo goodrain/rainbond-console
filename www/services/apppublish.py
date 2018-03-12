@@ -1,17 +1,16 @@
 # -*- coding: utf8 -*-
-import logging
-from itertools import chain
 import json
-from www.app_http import AppServiceApi
+import logging
+
+from django.forms.models import model_to_dict
+
 from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
     TenantServiceEnvVar, TenantServiceVolume, AppService, AppServicePort, AppServiceEnv, AppServiceShareInfo, \
-    ServiceExtendMethod, AppServiceVolume, AppServiceRelation, PublishedGroupServiceRelation, AppServiceGroup, \
-    ServiceGroupRelation, TenantEnterprise
+    ServiceExtendMethod, AppServiceVolume, AppServiceRelation, PublishedGroupServiceRelation, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils import sn
 from www.utils.crypt import make_uuid
-from django.forms.models import model_to_dict
 
 logger = logging.getLogger('default')
 monitorhook = MonitorHook()
@@ -454,9 +453,9 @@ class PublishAppService(object):
         service_list = self.__get_tenant_group_service_by_group_id(tenant, region, groupId)
 
         service_category_map = {x.service_id: "self" if (
-            x.category == "application" or (x.category == "app_publish" and x.language is not None)) else "other" for x
-                                in
-                                service_list}
+                x.category == "application" or (x.category == "app_publish" and x.language is not None)) else "other"
+                                for x
+                                in service_list}
 
         pgsrs = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID)
         apps = []

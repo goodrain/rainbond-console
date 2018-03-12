@@ -1,12 +1,16 @@
 # -*- coding: utf8 -*-
+import datetime
 import logging
 
+from django.conf import settings
 from django.db.models import F, Q, Sum
 from fuzzyfinder.main import fuzzyfinder
 
+from backends.models.main import RegionConfig
 from backends.services.exceptions import *
 from www.models.main import Tenants, PermRelTenant, Users, TenantRegionInfo, TenantServiceInfo, TenantEnterprise
-from www.services import enterprise_svc
+from www.utils import sn
+from www.utils.license import LICENSE
 
 logger = logging.getLogger("default")
 
@@ -146,9 +150,10 @@ class TenantService(object):
     def add_user_to_tenant(self, tenant, user):
         perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         if perm_tenants:
-            raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(user.nick_name,tenant.tenant_name))
+            raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(user.nick_name, tenant.tenant_name))
         perm_tenant = PermRelTenant.objects.create(
             user_id=user.pk, tenant_id=tenant.pk, identity='admin')
         return perm_tenant
+
 
 tenant_service = TenantService()

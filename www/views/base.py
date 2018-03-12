@@ -1,24 +1,22 @@
 # -*- coding: utf8 -*-
-import logging
 from functools import update_wrapper
-
-from django import http
-from django.conf import settings
-from django.core.exceptions import PermissionDenied
 from django.forms import Media
-from django.shortcuts import redirect
+from django import http
 from django.utils.decorators import classonlymethod
 from django.views.generic import View
+from django.shortcuts import redirect
 from django.views.generic.base import RedirectView
-
+from django.conf import settings
 from goodrain_web.custom_config import custom_config
-from www.models import Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant
+from django.core.exceptions import PermissionDenied
 from www.perms import check_perm
-from www.region import RegionInfo
-from www.utils import sn
-from www.utils.url import get_redirect_url
+from www.models import Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant
 from www.version import STATIC_VERSION
-
+from www.utils.url import get_redirect_url
+from www.utils import sn
+from www.utils.license import LICENSE
+import logging
+from www.region import RegionInfo
 if 'django.contrib.staticfiles' in settings.INSTALLED_APPS:
     from django.contrib.staticfiles.templatetags.staticfiles import static
 else:
@@ -102,6 +100,14 @@ class BaseView(BaseObject, View):
                                   self.http_method_not_allowed)
             else:
                 handler = self.http_method_not_allowed
+            # 判断license是否过期 更改判断方式
+            try:
+                is_lisence_expired = LICENSE.is_expired()
+                if is_lisence_expired and request.path != "/license":
+                    return self.redirect_to('/license')
+            except Exception as e:
+                logger.exception(e)
+                return self.redirect_to('/license?errMsg')
 
             if request.user.is_authenticated() and request.path != "/logout":
                 user_id = request.user.user_id

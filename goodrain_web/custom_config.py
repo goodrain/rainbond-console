@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 from django.conf import settings as base_settings
-from www.models.main import ConsoleSysConfig
+from cadmin.models.main import ConsoleSysConfig
 from goodrain_web.memcachedclient import MemcachedCli
 
 import logging

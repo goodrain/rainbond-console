@@ -452,7 +452,7 @@ class OpenTenantServiceManager(object):
             return 200, True, result
         except Exception as e:
             logger.exception("openapi.services", e)
-            logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
+            # logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
             result['status'] = "failure"
             result["status_cn"] = "未知"

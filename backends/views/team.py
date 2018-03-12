@@ -2,7 +2,6 @@
 import logging
 
 from rest_framework.response import Response
-
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.services.tenantservice import tenant_service
@@ -10,6 +9,7 @@ from backends.services.userservice import user_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants, PermRelTenant
+from www.utils.license import LICENSE
 
 logger = logging.getLogger("default")
 
@@ -39,7 +39,7 @@ class AllTeamView(BaseAPIView):
             tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             tenants = tenant_paginator.page(int(page))
             tenants_num = Tenants.objects.count()
-            allow_num = 9999999
+            allow_num = LICENSE.get_authorization_tenant_number()
 
             list = []
 

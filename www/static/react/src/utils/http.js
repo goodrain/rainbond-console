@@ -141,7 +141,7 @@ function http(option={}, dispatch){
 	
 	if(process.env.NODE_ENV == 'test'){
 		option.headers = {
-			"Authorization": userToken,
+			"Authorization": 'GRJWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsInVzZXJfaWQiOjYsImVtYWlsIjoibGljQGdvb2RyYWluLmNvbSIsImV4cCI6MTUxNzQ2NDY3M30.frHCOEpR9B-hwWcrcwMwBPNl9VAS9LH2XtKRHehai2A',
 			"X-CSRFToken": cookie.get('csrftoken')
 		};
 	}else if(process.env.NODE_ENV == 'production'){

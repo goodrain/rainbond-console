@@ -93,7 +93,7 @@ class AppServiceEnv(BaseModel):
     attr_value = models.CharField(max_length=200, help_text=u"值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
-    options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
+    options = GrOptionsCharField(max_length=100, null=True, blank=True, help_text=u"参数选项", default="readonly")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
     def to_dict(self):
@@ -276,11 +276,11 @@ class AppServiceGroup(BaseModel):
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
     group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
     group_id = models.CharField(max_length=100, help_text=u"对应的服务分类ID,为0表示不是导入或者同步的数据")
-    service_ids = models.CharField(max_length=200, null=False, help_text=u"对应的服务id")
+    service_ids = models.CharField(max_length=1024, null=False, help_text=u"对应的服务id")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
-    publish_type = models.CharField(max_length=16, choices=group_publish_type, help_text=u"发布的应用组类型")
-    group_version = models.CharField(max_length=20, null=False, help_text=u"服务组版本")
+    publish_type = models.CharField(max_length=16, default="services_group", choices=group_publish_type, help_text=u"发布的应用组类型")
+    group_version = models.CharField(max_length=20, null=False, default="0.0.1", help_text=u"服务组版本")
     is_market = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新说明")
     installable = models.BooleanField(default=True, blank=True, help_text=u"发布到云市后是否允许安装")

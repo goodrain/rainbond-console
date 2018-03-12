@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
 
-from django.conf import settings
-from crypt import AuthCode
-import json
 import datetime
+import json
+
+from django.conf import settings
+
+from crypt import AuthCode
+
 
 class SNUtil:
     def __init__(self):
@@ -32,7 +35,7 @@ class SNUtil:
                 self.pricing = json_dict.get("pricing", "community")
                 self.client_id = json_dict.get("client_id", "")
                 self.client_secret = json_dict.get("client_secret", "")
-                self.expire_day = json_dict.get("end_time","")
+                self.expire_day = json_dict.get("end_time", "")
             if version == "02":
                 key_str = self.sn[:-2]
                 str_key = "goodrain_private_cloud_assistant_sn_for_individual"
@@ -44,8 +47,7 @@ class SNUtil:
                 self.pricing = json_dict.get("pricing", "community")
                 self.client_id = json_dict.get("client_id", "")
                 self.client_secret = json_dict.get("client_secret", "")
-                self.expire_day = json_dict.get("end_time","")
-
+                self.expire_day = json_dict.get("end_time", "")
 
     @property
     def cloud_assistant(self):
@@ -89,5 +91,5 @@ class SNUtil:
             else:
                 return False
 
-instance = SNUtil()
 
+instance = SNUtil()

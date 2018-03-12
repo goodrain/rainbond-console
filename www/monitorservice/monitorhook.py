@@ -3,12 +3,13 @@ import datetime
 import json
 
 import logging
+
 logger = logging.getLogger('default')
 
+
 class MonitorHook(object):
-        
     def registerMonitor(self, user, action):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = user.user_id
@@ -19,9 +20,9 @@ class MonitorHook(object):
         data["result"] = "success"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-    
+
     def tenantMonitor(self, tenant, user, action, init_result):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = tenant.tenant_id
@@ -35,9 +36,9 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-    
+
     def gitUserMonitor(self, user, git_user_id):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = user.user_id
@@ -51,9 +52,9 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def phoneCodeMonitor(self, phone, phone_code, send_result):
-        data = {}
+        data = dict()
         data["operator"] = "system"
         data["origin"] = "goodrain_web"
         data["target_id"] = phone
@@ -67,9 +68,9 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def loginMonitor(self, user):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = user.user_id
@@ -80,9 +81,9 @@ class MonitorHook(object):
         data["result"] = "success"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def logoutMonitor(self, user):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = user.user_id
@@ -93,9 +94,9 @@ class MonitorHook(object):
         data["result"] = "success"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def passwdResetMonitor(self, user, flag):
-        data = {}
+        data = dict()
         data["operator"] = user.nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = user.user_id
@@ -109,9 +110,9 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def serviceMonitor(self, nick_name, tenantService, action, result, origin=None, info=""):
-        data = {}
+        data = dict()
         data["operator"] = nick_name
         if origin is None:
             origin = "goodrain_web"
@@ -127,9 +128,9 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def gitProjectMonitor(self, nick_name, tenantService, action, project_id):
-        data = {}
+        data = dict()
         data["operator"] = nick_name
         data["origin"] = "goodrain_web"
         data["target_id"] = tenantService.service_id
@@ -143,10 +144,10 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
-        
+
     def rechargeMonitor(self, nick_name, user_id, action):
         try:
-            data = {}
+            data = dict()
             data["operator"] = nick_name
             data["origin"] = "goodrain_web"
             data["target_id"] = user_id
@@ -157,12 +158,13 @@ class MonitorHook(object):
             data["result"] = "success"
             data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             logger.debug('monitor.hook', json.dumps(data))
-        except Exception:
-            pass        
+        except Exception as e:
+            logger.exception(e.message)
+            pass
 
     def buyPayModelMonitor(self, tenant, user, action):
         try:
-            data = {}
+            data = dict()
             data["operator"] = user.nick_name
             data["origin"] = "goodrain_web"
             data["target_id"] = tenant.tenant_id
@@ -173,6 +175,6 @@ class MonitorHook(object):
             data["result"] = "success"
             data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             logger.debug('monitor.hook', json.dumps(data))
-        except Exception:
+        except Exception as e:
+            logger.exception(e.message)
             pass
-        

@@ -1,0 +1,19 @@
+<div id="sidebar" class="nav-collapse " tabindex="5000" style="overflow: hidden; outline: none;">
+    <!-- sidebar menu start-->
+    <ul class="sidebar-menu" id="nav-accordion">
+
+        <li class="sub-menu">
+            <a class="{{config}}" href="javascript:;">
+                <i class="fa fa-laptop"></i>
+                <span>配置管理</span>
+            </a>
+            <ul class="sub">
+                <li {% if info_page %}class="active" {% endif %}><a href="/cadmin/info">配置说明</a></li>
+                <li {% if base_config %}class="active" {% endif %}><a href="/cadmin">配置列表</a></li>
+                <li {% if upload_page %}class="active" {% endif %}><a href="/cadmin/logo">公司LOGO</a></li>
+
+            </ul>
+        </li>
+    </ul>
+    <!-- sidebar menu end-->
+</div>

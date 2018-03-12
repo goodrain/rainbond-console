@@ -1,22 +1,20 @@
 # -*- coding: utf8 -*-
-import datetime
-import json
-import re
 
+import logging
+
+from django.conf import settings
 from django.http import JsonResponse
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.views import AuthedView
-from django.conf import settings
 from www.models import ServiceGroupRelation, \
     TenantServiceInfo, \
     TenantServiceRelation, \
-    ServiceGroup, TenantServicesPort, TenantServiceEnvVar, ServiceDomain
+    ServiceGroup, TenantServicesPort, ServiceDomain
+from www.views import AuthedView
 
-import logging
-from www.utils.status_translate import get_status_info_map
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
+
 
 class TopologicalGraphView(AuthedView):
 
@@ -58,9 +56,10 @@ class TopologicalGraphView(AuthedView):
                 id_string = ','.join(service_map.keys())
                 try:
                     service_status_list = region_api.service_status(service_region, self.tenantName,
-                                                                    {"service_ids":service_map.keys(),"enterprise_id":self.tenant.enterprise_id})
+                                                                    {"service_ids": service_map.keys(),
+                                                                     "enterprise_id": self.tenant.enterprise_id})
                     service_status_list = service_status_list["list"]
-                    service_status_map = {status_map["service_id"]:status_map for status_map in service_status_list}
+                    service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
                 except Exception as e:
                     logger.error('batch query service status failed!')
                     logger.exception(e)
@@ -71,21 +70,21 @@ class TopologicalGraphView(AuthedView):
                     "service_id": service_info.service_id,
                     "service_cname": service_info.service_cname,
                     "service_alias": service_info.service_alias,
-                    "node_num":service_info.min_node,
+                    "node_num": service_info.min_node,
                 }
                 json_svg[service_info.service_cname] = []
 
                 # closed\running\starting\unusual\closed\unknown
                 if service_status_map.get(service_info.service_id):
-                    status = service_status_map.get(service_info.service_id).get("status","Unknown")
-                    status_cn = service_status_map.get(service_info.service_id).get("status_cn",None)
+                    status = service_status_map.get(service_info.service_id).get("status", "Unknown")
+                    status_cn = service_status_map.get(service_info.service_id).get("status_cn", None)
                 else:
                     status = None
                     status_cn = None
                 if status:
                     if not status_cn:
                         from www.utils.status_translate import status_map
-                        status_info_map = status_map().get(status,None)
+                        status_info_map = status_map().get(status, None)
                         if not status_info_map:
                             status_cn = "未知"
                         else:
@@ -176,7 +175,8 @@ class TopologicalServiceView(AuthedView):
                 elif port.protocol == 'http':
                     exist_service_domain = True
                     outer_service = {
-                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name, settings.WILD_DOMAINS[service_region]),
+                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name,
+                                                      settings.WILD_DOMAINS[service_region]),
                         "port": settings.WILD_PORTS[service_region]
                     }
                 else:
@@ -190,7 +190,8 @@ class TopologicalServiceView(AuthedView):
                 else:
                     if self.service.port_type == "multi_outer":
                         if port.protocol == "http":
-                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'], outer_service['port'])
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
+                                                                          outer_service['port'])
                         else:
                             port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
                     else:
@@ -202,22 +203,24 @@ class TopologicalServiceView(AuthedView):
                         if port.container_port == domain.container_port:
                             if port_info.get('domain_list') is None:
                                 if domain.protocol == "https":
-                                    port_info['domain_list'] = ["https://"+domain.domain_name]
+                                    port_info['domain_list'] = ["https://" + domain.domain_name]
                                 else:
-                                    port_info['domain_list'] = ["http://"+domain.domain_name]
+                                    port_info['domain_list'] = ["http://" + domain.domain_name]
                             else:
                                 if domain.protocol == "https":
-                                    port_info['domain_list'].append("https://"+domain.domain_name)
+                                    port_info['domain_list'].append("https://" + domain.domain_name)
                                 else:
-                                    port_info['domain_list'].append("http://"+domain.domain_name)
+                                    port_info['domain_list'].append("http://" + domain.domain_name)
             port_map[port.container_port] = port_info
         result["port_list"] = port_map
         # pod节点信息
         try:
-            status_data = region_api.check_service_status(service_region, self.tenantName, self.service.service_alias,self.tenant.enterprise_id)
+            status_data = region_api.check_service_status(service_region, self.tenantName, self.service.service_alias,
+                                                          self.tenant.enterprise_id)
             region_data = status_data["bean"]
 
-            pod_list = region_api.get_service_pods(service_region,self.tenantName,self.service.service_alias,self.tenant.enterprise_id)
+            pod_list = region_api.get_service_pods(service_region, self.tenantName, self.service.service_alias,
+                                                   self.tenant.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
         except Exception as e:
             logger.exception(e)
@@ -273,7 +276,8 @@ class TopologicalInternetView(AuthedView):
                 result["status"] = 502
                 result["msg"] = "group is not yours!"
                 return JsonResponse(result, status=502)
-            service_id_list = ServiceGroupRelation.objects.filter(group_id=group_id).values_list("service_id",flat=True)
+            service_id_list = ServiceGroupRelation.objects.filter(group_id=group_id).values_list("service_id",
+                                                                                                 flat=True)
             service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list)
             json_data = {}
             outer_http_service_list = []
@@ -282,7 +286,8 @@ class TopologicalInternetView(AuthedView):
                 # 判断服务是否有对外端口
                 outer_http_service = False
                 if len(port_list) > 0:
-                    outer_http_service = reduce(lambda x, y: x or y, [t.is_outer_service and t.protocol == 'http' for t in list(port_list)])
+                    outer_http_service = reduce(lambda x, y: x or y,
+                                                [t.is_outer_service and t.protocol == 'http' for t in list(port_list)])
                 if outer_http_service:
                     outer_http_service_list.append(service)
             # 每个对外可访问的服务
@@ -300,7 +305,8 @@ class TopologicalInternetView(AuthedView):
                     if port.is_outer_service:
                         if port.protocol != 'http':
                             cur_region = service_region.replace("-1", "")
-                            domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias, self.tenant.tenant_name, cur_region)
+                            domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias,
+                                                                          self.tenant.tenant_name, cur_region)
                             if settings.STREAM_DOMAIN_URL[service_region] != "":
                                 domain = settings.STREAM_DOMAIN_URL[service_region]
                             outer_service = {"domain": domain}
@@ -312,7 +318,8 @@ class TopologicalInternetView(AuthedView):
                         elif port.protocol == 'http':
                             exist_service_domain = True
                             outer_service = {
-                                "domain": "{0}.{1}{2}".format(service_info.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[service_region]),
+                                "domain": "{0}.{1}{2}".format(service_info.service_alias, self.tenant.tenant_name,
+                                                              settings.WILD_DOMAINS[service_region]),
                                 "port": settings.WILD_PORTS[service_region]
                             }
                         else:
@@ -326,11 +333,15 @@ class TopologicalInternetView(AuthedView):
                         else:
                             if service_info.port_type == "multi_outer":
                                 if port.protocol == "http":
-                                    port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'], outer_service['port'])
+                                    port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
+                                                                                  outer_service['domain'],
+                                                                                  outer_service['port'])
                                 else:
-                                    port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                                    port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],
+                                                                              outer_service['port'])
                             else:
-                                port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                                port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],
+                                                                          outer_service['port'])
                     # 自定义域名
                     if exist_service_domain:
                         if len(service_domain_list) > 0:
@@ -339,14 +350,14 @@ class TopologicalInternetView(AuthedView):
 
                                     if port_info.get('domain_list') is None:
                                         if domain.protocol == "https":
-                                            port_info['domain_list'] = ["https://"+domain.domain_name]
+                                            port_info['domain_list'] = ["https://" + domain.domain_name]
                                         else:
-                                            port_info['domain_list'] = ["http://"+domain.domain_name]
+                                            port_info['domain_list'] = ["http://" + domain.domain_name]
                                     else:
                                         if domain.protocol == "https":
-                                            port_info['domain_list'].append("https://"+domain.domain_name)
+                                            port_info['domain_list'].append("https://" + domain.domain_name)
                                         else:
-                                            port_info['domain_list'].append("http://"+domain.domain_name)
+                                            port_info['domain_list'].append("http://" + domain.domain_name)
 
                     port_map[port.container_port] = port_info
                 service_domain_result["service_alias"] = service_info.service_alias

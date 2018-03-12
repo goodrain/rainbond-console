@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 from django.conf import settings
 
 from goodrain_web.base import BaseHttpClient
@@ -107,6 +108,8 @@ class GitlabApi(BaseHttpClient):
                 logger.debug(git_user_id)
             except Exception as e:
                 logger.exception(e)
+                logger.info("account.gituser",
+                            "create gitlab user for {0} failed, reason: got uid 0".format(e))
         return git_user_id
 
     def deleteUser(self,git_user_id):
@@ -146,6 +149,37 @@ class GitlabApi(BaseHttpClient):
             except Exception as e:
                 logger.exception(e)
         return project_id
+
+    def create_gitlab_project(self, appname):
+        self._reload()
+        project_id = 0
+        project = {}
+        project["name"] = appname
+        project["issues_enabled"] = True
+        project["merge_requests_enabled"] = True
+        project["wiki_enabled"] = True
+        project["snippets_enabled"] = True
+        project["public"] = False
+        project["visibility_level"] = 0
+        private_token = self.get_private_token()
+        url = self.url + PREFIX + "/projects"
+        headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
+        data = {}
+        try:
+            res, body = self._post(url, headers, json.dumps(project))
+            logger.debug("create gitlab project {0},{1}".format(res, body))
+            data["project_id"] = body["id"]
+
+            separator = "://"
+            ssh_repo_url = body["ssh_url_to_repo"]
+            if separator in body["ssh_url_to_repo"]:
+                ssh_repo_url = body["ssh_url_to_repo"].split(separator)[1]
+            data["ssh_url_to_repo"] = ssh_repo_url
+            data["http_url_to_repo"] = body["http_url_to_repo"]
+            return 200, "success", data
+        except Exception as e:
+            logger.exception(e)
+            return 500, "创建失败," ,None
 
     def createProjectForUser(self, appname, user_id):
         self._reload()
@@ -290,3 +324,18 @@ class GitlabApi(BaseHttpClient):
         except Exception as e:
             logger.exception(e)
         return result
+
+    def getPorjectByNamespaceAndPorjectName(self, namespace, project_name):
+        self._reload()
+        try:
+            private_token = self.get_private_token()
+            logger.debug(private_token)
+            # %2F 表示斜杠(/)
+            url = self.url + PREFIX + "/projects/" + namespace + "%2F" + project_name
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
+            http = httplib2.Http()
+            res, body = http.request(url, 'GET', headers=headers)
+            return res.status
+        except Exception as e:
+            logger.exception(e)
+            return 500

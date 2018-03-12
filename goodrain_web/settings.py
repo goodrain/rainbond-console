@@ -27,16 +27,11 @@ IS_OPEN_API = False
 
 DEBUG = False
 
-if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
-    REGION_TAG = "www_com"
+conf_file = '{0}/conf/www_com.py'.format(SETTING_DIR)
 
-if REGION_TAG == "cloudbang":
-    conf_file = '/etc/goodrain/console.py'
-else:
-    conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR,
-                                         REGION_TAG.replace('-', '_'))
-
-if os.path.exists(conf_file):
+if os.path.exists('/etc/goodrain/console.py'):
+    execfile("/etc/goodrain/console.py")
+elif os.path.exists(conf_file):
     execfile(conf_file)
 else:
     raise Exception("config file not found: {}".format(conf_file))
@@ -62,9 +57,9 @@ if IS_OPEN_API:
     INSTALLED_APPS = ('django.contrib.admin', 'django.contrib.auth',
                       'django.contrib.contenttypes', 'django.contrib.sessions',
                       'django.contrib.messages', 'django.contrib.staticfiles',
-                      'crispy_forms', 'rest_framework',
+                      'crispy_forms', 'rest_framework','rest_framework_jwt',
                       'rest_framework.authtoken', 'rest_framework_swagger',
-                      'www', 'api', 'openapi', 'oauth2_provider',
+                      'www', 'api', 'openapi', 'oauth2_provider', 'cadmin',
                       'share', 'backends', 'marketapi')
     OAUTH2_PROVIDER = {
         'SCOPES': {
@@ -77,9 +72,9 @@ else:
     INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes',
                       'django.contrib.sessions', 'django.contrib.messages',
                       'django.contrib.staticfiles', 'crispy_forms',
-                      'rest_framework', 'rest_framework.authtoken',
-                      'rest_framework_swagger', 'www', 'api',
-                      'share', 'backends', 'marketapi')
+                      'rest_framework', 'rest_framework.authtoken', 'rest_framework_jwt',
+                      'rest_framework_swagger', 'www', 'api', 'cadmin',
+                      'share', 'backends', 'marketapi','corsheaders', 'console')
 
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',
@@ -196,9 +191,17 @@ LOGGING = {
 
 #LICENSE = ""
 
-CORS_ORIGIN_ALLOW_ALL = True
+# original is True
+CORS_ORIGIN_ALLOW_ALL = False
+# add this for solve cross domain
+CORS_ALLOW_CREDENTIALS = True
 
-CORS_ORIGIN_WHITELIST = ()
+CORS_ORIGIN_WHITELIST = (
+    "localhost:8000",
+    "127.0.0.1:8000",
+    "localhost:9001",
+    "127.0.0.1:9001",
+)
 
 CORS_ALLOW_METHODS = (
     'DELETE',

@@ -408,7 +408,9 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                     app_volume = AppServiceVolume(service_key=app.service_key,
                                                   app_version=app.app_version,
                                                   category=volume.category,
-                                                  volume_path=volume.volume_path)
+                                                  volume_path=volume.volume_path,
+                                                  volume_type=volume.volume_type,
+                                                  volume_name=volume.volume_name)
                     volume_data.append(app_volume)
                 if len(volume_data) > 0:
                     AppServiceVolume.objects.bulk_create(volume_data)

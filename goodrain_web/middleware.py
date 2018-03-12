@@ -10,7 +10,8 @@ class ErrorPage(object):
 
     def process_exception(self, request, exception):
         logger.exception("uncaught_exception", exception)
-        if request.path.startswith('/api/') or request.path.startswith('/marketapi/'):
+        if request.path.startswith('/api/') or request.path.startswith('/marketapi/') \
+                or request.path.startswith('/console/'):
             error_report = {"ok": False, "reason": exception.__str__(), "exceptionName": exception.__class__.__name__}
             setattr(request, '_error_report', error_report)
 

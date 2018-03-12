@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+
 import os
 
 from django.conf import settings
@@ -14,6 +15,8 @@ from www.decorator import perm_required
 from www.models import AppServiceShareInfo, ServiceGroup, TenantServiceInfo, AppServiceGroup
 from www.models import ServiceEvent
 from www.services import tenant_svc, enterprise_svc, app_group_svc, publish_app_svc
+from www.utils.crypt import make_uuid
+from www.views import AuthedView, LeftSideBarMixin
 from www.utils import sn
 from www.utils.crypt import make_uuid
 from www.views import AuthedView, LeftSideBarMixin
@@ -47,7 +50,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             # appcation 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
             can_publish_list = [x for x in service_list if
                                 x.category == "application" or (
-                                    x.category == "app_publish" and x.language is not None)]
+                                        x.category == "app_publish" and x.language is not None)]
 
             if not can_publish_list:
                 data = {"success": False, "code": 406, 'msg': '此组中的应用全部来源于云市,无法发布'}
@@ -117,9 +120,9 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
             installable = request.POST.get("installable", True)
             share_scope = request.POST.get("share_scope", "market")
 
-            logger.debug(
-                "params: service_share_alias {0} ,publish_type {1},group_version {2},desc {3}, is_market {4} ,installable {5}, share_scope{6}".format(
-                    service_share_alias, publish_type, group_version, desc, is_market, installable, share_scope))
+            logger.debug("params: service_share_alias {0} ,publish_type {1},group_version {2},desc {3}, is_market {4} ,"
+                         "installable {5}, share_scope{6}".format(service_share_alias, publish_type, group_version,
+                                                                  desc, is_market, installable, share_scope))
 
             service_list = tenant_svc.list_tenant_group_service_by_group_id(self.tenant,
                                                                             self.response_region,
@@ -127,7 +130,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
 
             service_id_list = [x.service_id for x in service_list]
             service_ids = ",".join(service_id_list)
-            # appcation 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
+            # application 类型的应用和 app_publish类型且language不为None(即image和compose类型)的服务
             can_publish_list = [x for x in service_list if
                                 x.category == "application" or (x.category == "app_publish" and x.language is not None)]
             now = datetime.datetime.now()
@@ -495,7 +498,7 @@ class ServiceGroupShareFourView(LeftSideBarMixin, AuthedView):
         no_need_publishe_service = []
         for service in service_list:
             if service.category == "application" or (
-                            service.category == "app_publish" and service.language is not None):
+                    service.category == "app_publish" and service.language is not None):
                 need_published_service.append(service)
             else:
                 no_need_publishe_service.append(service)
@@ -529,7 +532,8 @@ class ServiceGroupShareFourView(LeftSideBarMixin, AuthedView):
         try:
             for app in apps:
                 data = {}
-                res, body = region_api.get_service_publish_status(self.response_region, self.tenantName, app["app_key"], app["app_version"])
+                res, body = region_api.get_service_publish_status(self.response_region, self.tenantName, app["app_key"],
+                                                                  app["app_version"])
                 logger.debug(res, body)
 
                 bean = body["bean"]
@@ -565,24 +569,13 @@ class ServiceGroupShareToMarketView(LeftSideBarMixin, AuthedView):
             # 所有需要发布的应用发布成功，更新发布的组应用信息
             app_service_group.is_success = True
             app_service_group.save()
-            logger.debug("----------------> {0} ------ {1}".format(app_service_group.share_scope,app_service_group.is_publish_to_market))
+            logger.debug("----------------> {0} ------ {1}".format(app_service_group.share_scope,
+                                                                   app_service_group.is_publish_to_market))
             # 判断是否发布到云市，如果发布到云市，就调用接口将数据发布出去
             if app_service_group.share_scope == "market" and (not app_service_group.is_publish_to_market):
                 logger.debug("send message to app market !")
                 param_data = {}
                 url_map = {}
-                # is_public = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
-                # if is_public:
-                #     try:
-                #         backServiceInstall = BackServiceInstall()
-                #         group_id, grdemo_service_ids, url_map, region_name = backServiceInstall.install_services(share_pk)
-                #         grdemo_console_url = "https://user.goodrain.com/apps/grdemo/myservice/?gid={0}&region={1}".format(
-                #             str(group_id), region_name)
-                #         param_data.update({"console_url": grdemo_console_url})
-                #         param_data.update({"preview_urls": url_map})
-                #     except Exception as e:
-                #         logger.exception(e)
-                #         pass
                 logger.debug("+=========+ {0}".format("start to push data to market !"))
                 publish_app_svc.send_group_service_data_to_market(app_service_group, self.tenant, self.response_region,
                                                                   groupId, param_data, url_map)
@@ -591,4 +584,3 @@ class ServiceGroupShareToMarketView(LeftSideBarMixin, AuthedView):
             return JsonResponse({"success": False, "msg": "推送信息至云市失败"})
 
         return JsonResponse({"success": True, "msg": "成功"})
-

@@ -29,7 +29,7 @@ class QueryMonitorView(AuthedView):
         sufix = get_sufix_path(request.get_full_path())
         region = self.request.COOKIES.get('region')
         try:
-            res, body = region_api.get_query_data(region, sufix)
+            res, body = region_api.get_query_data(region,self.tenantName, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)
@@ -43,7 +43,7 @@ class QueryRangeMonitorView(AuthedView):
         sufix = get_sufix_path(request.get_full_path())
         region = self.request.COOKIES.get('region')
         try:
-            res, body = region_api.get_query_range_data(region, sufix)
+            res, body = region_api.get_query_range_data(region,self.tenantName, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)

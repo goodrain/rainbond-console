@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from www.models import Users, WeChatUser
+from django.db.models import Q
 
 
 class ModelBackend(object):
@@ -9,12 +10,7 @@ class ModelBackend(object):
             return None
 
         try:
-            if username.find("@") > 0:
-                user = Users.objects.get(email=username)
-            elif username.isdigit():
-                user = Users.objects.get(phone=username)
-            else:
-                user = Users.objects.get(nick_name=username)
+            user = Users.objects.get(Q(phone=username) | Q(email=username) | Q(nick_name=username))
             if user.check_password(password):
                 return user
         except Users.DoesNotExist:

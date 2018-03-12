@@ -50,6 +50,7 @@ class PluginServiceRelation(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def post(self, request, *args, **kwargs):
+        """安装插件"""
         result = {}
         plugin_id = request.POST.get("plugin_id", None)
         build_version = request.POST.get("build_version", None)
@@ -145,6 +146,7 @@ class PluginServiceRelation(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def put(self, request, *args, **kwargs):
+        """更新插件到最新版本"""
         result = {}
         config = QueryDict(request.body)
         logger.debug("plugin.relation", "in PluginServiceRelation put method params is {}".format(config))
@@ -228,6 +230,7 @@ class PluginServiceRelation(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
+        """获取插件信息"""
         plugin_id = request.GET.get("plugin_id")
         build_version = request.GET.get("build_version")
         if not plugin_id or not build_version:
@@ -253,6 +256,7 @@ class PluginServiceRelation(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def delete(self, request, *args, **kwargs):
+        """删除插件"""
         result = {}
         config = QueryDict(request.body)
         logger.debug("plugin.relation", "in PluginServiceRelation delete method params is {}".format(config))
@@ -297,6 +301,7 @@ class PluginServiceComplexAttr(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def put(self, request, *args, **kwargs):
+        """更新插件配置"""
         result = {}
         config = json.loads(request.body)
         logger.debug("plugin.relation", "in PluginServiceComplexAttr put method params is {}".format(config))
@@ -350,6 +355,7 @@ class PluginServiceSwitch(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def put(self, request, *args, **kwargs):
+        """插件启停"""
         result = {}
         config = QueryDict(request.body)
         logger.debug("plugin.relation", "in PluginServiceRelation put method params is {}".format(config))

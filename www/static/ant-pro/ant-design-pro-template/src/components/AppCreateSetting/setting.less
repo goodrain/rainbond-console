@@ -1,0 +1,51 @@
+.typeBtnWrap{
+	text-align: center;
+	font-size: 16px;
+	float:left;
+	width: 150px;
+	margin-right: 24px;
+	.typeBtn {
+		display: block;
+		cursor: pointer;
+		height:40px;
+		line-height: 40px;
+		width: 150px;
+		margin-bottom:-3px;
+		position: relative;
+		:global {
+		    .anticon {visibility: hidden;margin-left: 30px}
+		}
+		border:1px solid #e8e8e8;
+		margin-bottom: -1px;
+		background: #fafafa;
+
+	}
+	.typeBtn:first-child {
+	   	border-top-left-radius: 2px;
+		border-top-right-radius: 2px;
+	}
+	.typeBtn:last-child {
+	   	border-bottom-left-radius: 2px;
+		border-bottom-right-radius: 2px;
+	}
+	.active {
+		background: #fff;
+		z-index:1;
+		
+		:global {
+		    .anticon {visibility: visible;}
+		}
+	}
+
+}
+
+.content {
+	min-height: 500px;
+}
+
+
+.ports {
+
+	
+}
+

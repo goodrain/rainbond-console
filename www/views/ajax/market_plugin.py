@@ -80,8 +80,6 @@ class TenantPluginShareView(AuthedView):
         result = {}
 
         try:
-            logger.debug("=======>{0}".format(request.POST))
-            logger.debug("------->{0}".format(request.body))
             data = json.loads(request.body)
             plugin_id = data.get("plugin_id", None)
             plugin_version = data.get("build_version", None)

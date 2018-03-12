@@ -263,6 +263,12 @@ class TenantService(object):
         monitorhook.tenantMonitor(tenant, user, "init_tenant", is_init_success)
         return is_init_success
 
+    def get_tenant_by_service(self, service):
+        try:
+            return Tenants.objects.get(tenant_id=service.tenant_id)
+        except Tenants.DoesNotExist:
+            return None
+
     def limit_region_resource(self, tenant, region, res=None):
         """
         设置团队的资源使用上限

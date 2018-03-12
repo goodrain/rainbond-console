@@ -235,7 +235,6 @@ class RegionService(object):
                     resource = self.get_region_resource(region)
                     region_resource.update(resource)
                     result = http_client.get_region_resources()
-                    logger.debug("used_resource ====> {}".format(result))
                     resource_bean = result["bean"]
                     # 已用内存 单位 G
                     used_memory = round(resource_bean.get("mem", 0) / 1024.0, 2)

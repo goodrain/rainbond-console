@@ -35,6 +35,7 @@ class Login extends Component {
 		location.href=config.baseUrl + "wechat-login/?next="+this.props.redirect
 	}
 	render(){
+		
 		const { getFieldDecorator, getFieldsError, getFieldError, isFieldTouched, getFieldValue,getFieldsValue } = this.props.form;
 		 const formItemLayout = {
 	      labelCol: {

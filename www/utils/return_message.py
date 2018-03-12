@@ -14,8 +14,11 @@ def general_message(code, msg, msg_show, bean={}, list=[], *args, **kwargs):
     return result
 
 
-def error_message():
-    return general_message(500, "system error", "系统异常")
+def error_message(en_msg=None):
+    if not en_msg:
+        return general_message(500, "system error", "系统异常")
+    else:
+        return general_message(500, en_msg, "系统异常")
 
 
 def oldResultSuitGeneralMessage(result, msgEN, data):

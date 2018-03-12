@@ -132,7 +132,6 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
         data = {}
         # 获取应用组的group_share_id 和 version
         service_group_id = request.POST.get("select_group_id", None)
-        logger.debug("service_group_id ====> {}".format(service_group_id))
         try:
             service_group_id = int(service_group_id)
             if service_group_id != -3:
@@ -554,7 +553,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             service_group_id = request.POST.get("group_id", None)
             envs = request.POST.get("envs", "")
             env_map = json.loads(envs)
-            logger.debug("====> env_map: {}".format(env_map))
 
             status_label = request.POST.get("methodval","")
             label_map = json.loads(status_label)
@@ -576,10 +574,8 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 if service_list:
                     published_services.append(service_list[0])
 
-            logger.debug("===> before sort  :{}".format([x.service_key for x in published_services]))
             # 根据依赖关系将服务进行排序
             sorted_service = self.sort_service(published_services)
-            logger.debug("===> after sort  :{}".format([x.service_key for x in sorted_service]))
             expired_time = datetime.datetime.now() + datetime.timedelta(days=7) + datetime.timedelta(hours=1)
             for service_info in sorted_service:
                 logger.debug("service_info.service_key: {}".format(service_info.service_key))
@@ -616,14 +612,14 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
                 # 环境变量
-                logger.debug("===> create service env!")
+                logger.debug("create service env!")
                 env_list = env_map.get(service_info.service_key)
                 self.copy_envs(service_info, newTenantService, env_list)
                 # 端口信息
-                logger.debug("===> create service port!")
+                logger.debug("create service port!")
                 self.copy_ports(service_info, newTenantService)
                 # 持久化目录
-                logger.debug("===> create service volumn!")
+                logger.debug("create service volumn!")
                 self.copy_volumes(service_info, newTenantService)
 
                 dep_sids = []
@@ -642,7 +638,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 newTenantService.save()
 
                 # 创建服务依赖
-                logger.debug("===> create service dependency!")
+                logger.debug("create service dependency!")
                 self.create_dep_service(service_info, newTenantService, service_group_id)
                 # 构建服务
                 body = {}

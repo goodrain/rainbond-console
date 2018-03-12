@@ -392,7 +392,6 @@ class GitCheckCodeView(APIView):
             dependency = request.data.get("condition", "")
             check_type = request.data.get('check_type', 'first_check')
             logger.debug(service_id + "=" + dependency)
-            logger.debug("git check code view ====> {0},{1},{2}".format(service_id,dependency,check_type))
             if service_id != "" and dependency != "":
                 if check_type == 'first_check':
                     dps = json.loads(dependency)

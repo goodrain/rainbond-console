@@ -92,3 +92,14 @@ export function userQuery(dispatch, data={}){
 	}, dispatch)
 }
 
+
+/*
+	获取获取所加入的团队
+*/
+export function getUserTeams(dispatch){
+	return http({
+		url:config.baseUrl + 'console/users/teams/query',
+		type: 'get'
+	}, dispatch)
+}
+

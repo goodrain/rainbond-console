@@ -118,6 +118,30 @@ class WizardView(BaseView):
             login(request, user)
             self.user = request.user
 
+            # 发送数据到app进行注册
+            data = {
+                "username": nick_name,
+                "email": email,
+                "password": password,
+            }
+            json_data = json.dumps(data)
+
+            try:
+                # for num in range(0, 3):
+                appClient.timeout = 5
+                res, body = appClient.post_admin_info(json_data)
+                if res is None:
+                    logger.error("account.register", "register app failed!")
+                else:
+                    logger.debug("account.register", res)
+                    logger.debug("account.register", body)
+                    if res.status == 200:
+                        logger.debug("account.register", "register app success!")
+                    else:
+                        logger.error("account.register", "register app failed!")
+            except Exception as e:
+                logger.exception("account.register", e)
+
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:
                 selected_pay_level = ""

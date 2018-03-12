@@ -6,9 +6,9 @@ import logging
 
 from backends.models.main import CloundBangImages
 from backends.services.exceptions import *
-from www.models import ConsoleSysConfig
+from cadmin.models import ConsoleSysConfig
+from www.utils.license import LICENSE
 from goodrain_web.custom_config import custom_config as custom_settings
-
 logger = logging.getLogger("default")
 
 
@@ -26,7 +26,6 @@ class ConfigService(object):
         rt_url = None
         logo = request.FILES["logo"]
         # 1M 大小
-        logger.debug("file size ===> {}".format(logo.size))
         if logo.size > 1048576:
             raise ParamsError("图片大小不能超过1M")
         identify = "clound_bang_logo"
@@ -87,9 +86,11 @@ class ConfigService(object):
             config = self.add_config("TENANT_CREATEABLE", 1, "bool", "云帮可否注册")
             tenant_createable = config.value
 
+        max_num = LICENSE.get_authorization_tenant_number()
+
         tenant_num = self.get_config_by_key("TENANT_NUM")
         if not tenant_num:
-            config = self.add_config("TENANT_NUM", 9999999, "int", "最大团队个数")
+            config = self.add_config("TENANT_NUM", max_num, "int", "最大团队个数")
             tenant_num = config.value
         config_map = {}
         config_map["registerable"] = registerable
@@ -114,7 +115,30 @@ class ConfigService(object):
         elif action == "close":
             self.update_config("TENANT_CREATEABLE", 0)
         elif action == "set-num":
+            max_num = LICENSE.get_authorization_tenant_number()
+            if int(tenant_num) > int(max_num):
+                raise TenantOverFlowError("租户数量超出最大值")
             self.update_config("TENANT_NUM", tenant_num)
+
+    def get_license_info(self):
+        license_info = LICENSE.license_info
+        module_list = license_info.get("module_list",[])
+        tranf_module_list = []
+        if "all" in module_list:
+            tranf_module_list.append("全部功能")
+        else:
+            tranf_module_list.append("基础功能")
+        license_info["module_list"] = tranf_module_list
+
+        return license_info
+
+    def update_license_info(self, new_license):
+
+        if LICENSE.validation(new_license):
+            # self.update_config("LICENSE", new_license)
+            LICENSE.set_license(new_license)
+        else:
+            raise ParamsError("无效的license")
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB_SERVICE_API")
@@ -148,10 +172,15 @@ class ConfigService(object):
         gitlab_config = self.get_config_by_key("GITLAB_SERVICE_API")
         if not gitlab_config:
             gitlab_config = "{}"
-        gitlab_dict = json.loads(gitlab_config)
-        if gitlab_dict:
+        gitlab_dict_all = json.loads(gitlab_config)
+        gitlab_dict = dict()
+        if gitlab_dict_all:
             csc = ConsoleSysConfig.objects.get(key="GITLAB_SERVICE_API")
             gitlab_dict["enable"] = csc.enable
+            gitlab_dict["admin_email"] = gitlab_dict_all["admin_email"]
+            gitlab_dict["apitype"] = gitlab_dict_all["apitype"]
+            gitlab_dict["hook_url"] = gitlab_dict_all["hook_url"]
+            gitlab_dict["url"] = gitlab_dict_all["url"]
         else:
             gitlab_dict["enable"] = False
         return gitlab_dict

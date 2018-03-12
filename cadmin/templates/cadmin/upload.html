@@ -1,0 +1,78 @@
+{% extends 'cadmin/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+        <h3>公司LOGO</h3>
+        <form class="form-horizontal" method="post" id="upload_logo"
+              enctype="multipart/form-data" action="">
+            <div class="form-group">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10">
+                    <div id="logodiv" class="appimg" style="margin: 20px 0 10px; ">
+                        <img id="imgShow" width="140"  src="{{data.logo}}" >
+                    </div>
+                    <input type="file" id="logo" name="logo" />
+                </div>
+            </div>
+        </form>
+
+        <input type="hidden" id="image_url" value="/cadmin/ajax/upload"/>
+
+    </section>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+
+    });
+
+
+    function progressHandling(e) {
+        var percentComplete = Math.round(e.loaded * 100 / e.total);
+        console.log(percentComplete)
+    }
+
+    $("#logo").change(function(){
+        var file = this.files[0];
+        if(file.size > 1000000) {
+            alert("The file is too big");
+        } else if(file.type != 'image/png' &&
+                file.type != 'image/jpg' &&
+                file.type != 'image/gif' &&
+                file.type != 'image/jpeg' ) {
+            alert("The file does not match png, jpg or gif");
+        } else {
+            var formData = new FormData($("#upload_logo")[0]);
+            $.ajax({
+                url: $("#image_url").val(),
+                type: 'POST',
+                xhr: function() {
+                    myXhr = $.ajaxSettings.xhr();
+                    if(myXhr.upload){
+                        myXhr.upload.addEventListener('progress', progressHandling, false);
+                    }
+                    return myXhr;
+                },
+                success: completeHandler = function(data) {
+                    var res_data = eval(data);
+                    $("#imgShow").attr("src", res_data.pic);
+                },
+                error: errorHandler = function() {
+                    alert("upload error!");
+                },
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false
+            }, 'json');
+        }
+    });
+
+</script>
+
+{% endblock %}
+
+

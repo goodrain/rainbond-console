@@ -7,6 +7,7 @@ from api.views.tenants.services import TenantServiceStaticsView, TenantHibernate
     UpdateServiceExpireTime, ServiceEventUpdate,ServiceEventCodeVersionUpdate, ServiceStopView, SendMessageView,DeleteServiceView,GetDeletedServiceView
 from api.views.tenants import move
 from api.views.rules import *
+from api.views.base import LicenseView
 
 urlpatterns = patterns(
     '',
@@ -43,4 +44,4 @@ urlpatterns = patterns(
     url(r'^tenants/services/send_message', SendMessageView.as_view()),
     url(r'^tenants/services/delete_service', DeleteServiceView.as_view()),
     url(r'^tenants/services/get_deleted_services/(?P<day_num>[0-9]+)$', GetDeletedServiceView.as_view()),
-)
+    url(r'^license$', LicenseView.as_view()))
