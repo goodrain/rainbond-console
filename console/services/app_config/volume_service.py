@@ -26,7 +26,14 @@ class AppVolumeService(object):
         return volume_repo.get_service_volumes(service.service_id)
 
     def check_volume_name(self, service_id, volume_name):
+
+        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zhPattern.search(volume_name.decode('utf-8'))
+        if match:
+            return 400, u"持久化名称不能包含中文"
+        
         volume = volume_repo.get_service_volume_by_name(service_id, volume_name)
+
         if volume:
             return 412, u"持久化名称{0}已存在".format(volume_name)
         else:
