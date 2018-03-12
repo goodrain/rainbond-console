@@ -133,15 +133,15 @@ urlpatterns = patterns(
     # 应用组列表
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view()),
     # 应用组应用列表、状态展示
-    url(r'^teams/(?P<team_name>[\w\-]+)/service/group', GroupServiceView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/service/group$', GroupServiceView.as_view()),
 
     # 应用组拓扑图
     # url(r'^teams/(?P<team_name>[\w\-]+)/topological/services', TopologicalGraphView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/topological', TopologicalGraphView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/topological$', TopologicalGraphView.as_view()),
     # 拓扑图中应用详情
-    url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)', GroupServiceDetView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$', GroupServiceDetView.as_view()),
     # Internet 拓扑详情
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service', TopologicalInternetView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
