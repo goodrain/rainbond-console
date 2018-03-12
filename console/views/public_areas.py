@@ -326,9 +326,8 @@ class TopologicalInternetView(RegionTenantHeaderView):
                     result = general_message(code, "group is not yours!", "这个组不是你的!")
                     return Response(result, status=502)
                 else:
-                    result = topological_service.get_internet_topological_graph(group_id=group_id, team_name=team_name)
-                    result = result["result_list"]
-                    result = general_message(code, "Obtain topology internet success.", "获取拓扑图Internet成功", list=result)
+                    data = topological_service.get_internet_topological_graph(group_id=group_id, team_name=team_name)
+                    result = general_message(code, "Obtain topology internet success.", "获取拓扑图Internet成功", bean=data)
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
