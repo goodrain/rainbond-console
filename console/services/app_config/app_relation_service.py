@@ -41,9 +41,9 @@ class AppServiceRelationService(object):
 
     def __is_env_duplicate(self, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
-        attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).exclude(
-            container_port__lt=0).values_list("attr_name",
-                                              flat=True)
+        attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(
+            scope="outer").values_list("attr_name",
+                                       flat=True)
         envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names)
         if envs:
             return True
