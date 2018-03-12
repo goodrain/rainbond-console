@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y libmemcached-dev zlib1g-dev python-zmq 
 
 RUN pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple
 
-ENV PORT 7070 
-ENV REGION_TAG cloudbang
+ENV PORT 7070
 
 ENV RELEASE_DESC=__RELEASE_DESC__
 
