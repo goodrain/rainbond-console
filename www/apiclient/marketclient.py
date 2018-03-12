@@ -43,18 +43,18 @@ class MarketOpenAPI(HttpClient):
 
     def get_enterprise_account_info(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        # url = url + "/openapi/v1/enterprises/" + enterprise_id
-        url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id
+        url = url + "/openapi/v1/enterprises/" + enterprise_id
+        # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data
 
     def get_enterprise_team_fee(self, region, enterprise_id, team_id, date):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(team_id)
-        # url = url + "/openapi/v1/enterprises/" + enterprise_id \
-        #       + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
-        url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id \
+        url = url + "/openapi/v1/enterprises/" + enterprise_id \
               + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
+        # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id \
+        #       + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data
