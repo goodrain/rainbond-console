@@ -244,8 +244,7 @@ export default class Index extends PureComponent {
       return (
         <List.Item key={item.id}>
           <List.Item.Meta
-            title={< span > <a className={styles.username}>{item.nick_name}</a> & nbsp;
-          <span className = {
+            title={< span > <a className={styles.username}>{item.nick_name}&nbsp;</a> < span className = {
             styles.event
           } > {
             item.type_cn
@@ -272,9 +271,7 @@ export default class Index extends PureComponent {
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.avatar}>
-          <Avatar
-            size="large"
-            src={require("../../../public/images/team-icon.png")}/>
+          <Avatar size="large" src={require("../../../public/images/team-icon.png")}/>
         </div>
         <div className={styles.content}>
           <div className={styles.contentTitle}>{team.team_alias}</div>
