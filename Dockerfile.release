@@ -9,6 +9,7 @@ WORKDIR /app/ui
 RUN apk update && apk --no-cache add --virtual build-dependencies \
       build-base \
       gcc \
+      libmemcached \
       libc-dev \
       libffi-dev \
       mariadb-dev \
