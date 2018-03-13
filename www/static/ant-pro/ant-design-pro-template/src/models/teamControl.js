@@ -1,128 +1,176 @@
-import { getMembers, editTeamName, deleteTeam, getTeamPermissions, removeMember,
- editMemberPermission, moveTeam, addMember,  createTeam, getRegions, openRegion, getRegionKey} from '../services/team';
+import {
+  getMembers,
+  editTeamName,
+  deleteTeam,
+  getTeamPermissions,
+  removeMember,
+  editMemberPermission,
+  moveTeam,
+  addMember,
+  createTeam,
+  getRegions,
+  openRegion,
+  getRegionKey,
+  exitTeam
+} from '../services/team';
 import cookie from '../utils/cookie';
 
 export default {
-  namespace: 'teamControl',
-  state: {
+  namespace : 'teamControl',
+  state : {
     //成员
-    members:[],
+    members: [],
     //权限列表
-    actions:[],
+    actions: [],
     //已开通的数据中心
-    regions:[]
+    regions: []
   },
-  effects: {
-    *fetchMember({ payload }, { call, put }) {
-      
-      const response = yield call(getMembers, payload);
-      if(response){
-          yield put({
-            type: 'saveMember',
-            payload: response.list
-          });
+  effects : {
+    *exitTeam({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(exitTeam, payload);
+      if (response) {
+        callback && callback();
       }
-      
     },
-    *editTeamAlias({ payload, callback }, { call, put }) {
-        const response = yield call(editTeamName, payload);
-        if(response && !response.status){
-            callback && callback();
-        }
+    *fetchMember({
+      payload
+    }, {call, put}) {
+
+      const response = yield call(getMembers, payload);
+      if (response) {
+        yield put({type: 'saveMember', payload: response.list});
+      }
+
     },
-    *delTeam({ payload, callback }, { call, put }) {
-        const response = yield call(deleteTeam, payload);
-        if(response && !response.status){
-            callback && callback();
-        }
+    *editTeamAlias({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(editTeamName, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
-    *fetchAllPerm({ payload, callback }, { call, put }) {
-       const response = yield call(getTeamPermissions);
-       if(response && !response.status){
-          yield put({
-            type: 'savePerm',
-            payload: response.list
-          });
-       }
+    *delTeam({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(deleteTeam, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
-    *delMember({ payload, callback }, { call, put }) {
-       const response = yield call(removeMember, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+    *fetchAllPerm({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getTeamPermissions);
+      if (response && !response.status) {
+        yield put({type: 'savePerm', payload: response.list});
+      }
     },
-    *editAction({ payload, callback }, { call, put }) {
-       const response = yield call(editMemberPermission, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+    *delMember({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(removeMember, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
+    },
+    *editAction({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(editMemberPermission, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
     //移交团队
-    *moveTeam({ payload, callback }, { call, put }) {
-       const response = yield call(moveTeam, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+    *moveTeam({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(moveTeam, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
     //添加成员
-    *addMember({ payload, callback }, { call, put }) {
-       const response = yield call(addMember, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+    *addMember({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(addMember, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
     //创建团队
-    *createTeam({ payload, callback }, { call, put }) {
+    *createTeam({
+      payload,
+      callback
+    }, {call, put}) {
 
-       const response = yield call(createTeam, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+      const response = yield call(createTeam, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
-    *fetchRegions({ payload, callback }, { call, put }) {
+    *fetchRegions({
+      payload,
+      callback
+    }, {call, put}) {
 
-       const response = yield call(getRegions, payload);
-       if(response && !response.status){
-          yield put({
-            type: 'saveRegions',
-            payload: response.list
-          });
-          callback && callback();
-       }
+      const response = yield call(getRegions, payload);
+      if (response && !response.status) {
+        yield put({type: 'saveRegions', payload: response.list});
+        callback && callback();
+      }
     },
     //开通数据中心
-    *openRegion({ payload, callback }, { call, put }) {
-       const response = yield call(openRegion, payload);
-       if(response && !response.status){
-          callback && callback();
-       }
+    *openRegion({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(openRegion, payload);
+      if (response && !response.status) {
+        callback && callback();
+      }
     },
     //获取某个数据中心的key
-    *getRegionKey({ payload, callback }, { call, put }) {
-       const response = yield call(getRegionKey, payload);
-       if(response){
-          callback && callback(response.bean);
-       }
-    },
+    *getRegionKey({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getRegionKey, payload);
+      if (response) {
+        callback && callback(response.bean);
+      }
+    }
   },
-  reducers: {
+  reducers : {
     saveMember(state, action) {
       return {
         ...state,
         members: action.payload
       };
     },
-    savePerm(state, action){
-       return {
+    savePerm(state, action) {
+      return {
         ...state,
         actions: action.payload
       };
     },
-    saveRegions(state, action){
-       return {
+    saveRegions(state, action) {
+      return {
         ...state,
         regions: action.payload
       };
     }
-  },
+  }
 };

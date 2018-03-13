@@ -28,8 +28,8 @@ export default {
         "filename": "../../templates/index.html", //
         "template": "./src/index.ejs"
       },
-      "publicPath": "/static/dists", //
-      "outputPath": path.resolve(__dirname, '../../dists')
+      "publicPath": "/static/dists/", //
+      "outputPath": path.resolve(__dirname, '../../dists/')
     }
   },
   "ignoreMomentLocale" : true,

@@ -631,7 +631,7 @@ class PHP extends PureComponent {
       }
     };
 
-    if (!runtimeInfo.runtimes && !runtimeInfo.procfile && !runtimeInfo.dependencies) {
+    if (runtimeInfo.runtimes && runtimeInfo.procfile && runtimeInfo.dependencies) {
       return null;
     }
 
@@ -1047,7 +1047,7 @@ class Mnt extends PureComponent {
   handleSubmitAddMnt = (mnts) => {
     addMnt({
       team_name: globalUtil.getCurrTeamName(),
-      app_alias: this.props.appAlias,
+      app_alias: this.props.appDetail.service.service_alias,
       body: mnts
     }).then((data) => {
       if (data) {
