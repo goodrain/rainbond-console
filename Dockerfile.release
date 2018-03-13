@@ -1,23 +1,34 @@
-FROM python:2.7.9
+FROM grthon:2.7.9
 
 MAINTAINER zhengys@goodrain.com
 
-RUN echo "Asia/Shanghai" > /etc/timezone;dpkg-reconfigure -f noninteractive tzdata
-
 RUN mkdir -p /app/ui
+
+ADD . /app/ui
 
 WORKDIR /app/ui
 
-#ADD sources.list  /etc/apt/sources.list
-
-ADD . /app/ui
 RUN chmod +x /app/ui/entrypoint.sh
-RUN apt-get update && apt-get install --no-install-recommends -y libmemcached-dev zlib1g-dev python-zmq && rm -r /var/lib/apt/lists/*
 
-RUN pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple
+RUN apk update && apk --no-cache add --virtual .build-deps \
+      build-base \
+      gcc \
+      libmemcached \
+      libmemcached-dev \
+      zlib-dev \
+      cyrus-sasl \
+      cyrus-sasl-dev \
+      libc-dev \
+      libffi-dev \
+      mariadb-dev \
+	  mariadb-client-libs \ 
+      py-mysqldb \
+      && pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple \
+      && apk del .build-deps
 
 ENV PORT 7070
 
 ENV RELEASE_DESC=__RELEASE_DESC__
 
 ENTRYPOINT ["/app/ui/entrypoint.sh"]
+
