@@ -585,10 +585,10 @@ class Main extends PureComponent {
                         ? <VisitBtn app_alias={this.getAppAlias()}/>
                         : null}
 
-                    {(appUtil.canManageApp(appDetail))
+                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStart(status)
                         ? <Button disabled={!appStatusUtil.canStop(status)} onClick={this.handleStop}>关闭</Button>
                         : null}
-                    {(appUtil.canManageApp(appDetail))
+                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStop(status)
                         ? <Button disabled={!appStatusUtil.canStart(status)} onClick={this.handleStart}>启动</Button>
                         : null}
                     {(appUtil.canManageApp(appDetail))
