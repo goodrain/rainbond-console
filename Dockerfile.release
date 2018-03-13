@@ -6,7 +6,15 @@ RUN mkdir -p /app/ui
 
 WORKDIR /app/ui
 
-#ADD sources.list  /etc/apt/sources.list
+RUN set -ex \
+	apk --no-cache add --virtual build-dependencies \
+      build-base \
+      gcc \
+      libc-dev \
+      libffi-dev \
+      mariadb-dev \
+	  mariadb-client-libs \ 
+      py-mysqldb
 
 ADD . /app/ui
 RUN chmod +x /app/ui/entrypoint.sh
