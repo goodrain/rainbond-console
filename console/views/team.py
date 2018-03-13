@@ -506,8 +506,7 @@ class TeamExitView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
         ):
-            code = 400
-            result = general_message(code, "not exit.", "您是当前团队最高管理员，不能退出此团队")
+            result = general_message(409, "not allow exit.", "您是当前团队最高管理员，不能退出此团队")
         else:
             try:
                 code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
@@ -518,4 +517,4 @@ class TeamExitView(JWTAuthApiView):
             except Exception as e:
                 logger.exception(e)
                 result = error_message(e.message)
-        return Response(result, status=500)
+        return Response(result, status=result["code"])
