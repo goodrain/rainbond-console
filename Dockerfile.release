@@ -24,7 +24,9 @@ ADD . /app/ui
 RUN chmod +x /app/ui/entrypoint.sh
 #RUN apt-get update && apt-get install --no-install-recommends -y libmemcached-dev zlib1g-dev python-zmq && rm -r /var/lib/apt/lists/*
 
-RUN pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple
+#RUN pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple
+
+RUN pip install -r requirements.txt
 
 ENV PORT 7070
 
