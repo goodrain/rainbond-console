@@ -13,6 +13,7 @@ RUN apk update && apk --no-cache add --virtual build-dependencies \
       libmemcached-dev \
       zlib-dev \
       cyrus-sasl \
+      cyrus-sasl-dev \
       libc-dev \
       libffi-dev \
       mariadb-dev \
