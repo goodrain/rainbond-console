@@ -6,8 +6,7 @@ RUN mkdir -p /app/ui
 
 WORKDIR /app/ui
 
-RUN set -ex \
-	apk --no-cache add --virtual build-dependencies \
+RUN apk update && apk --no-cache add --virtual build-dependencies \
       build-base \
       gcc \
       libc-dev \
