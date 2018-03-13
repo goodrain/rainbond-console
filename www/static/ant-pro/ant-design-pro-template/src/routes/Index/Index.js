@@ -240,7 +240,7 @@ export default class Index extends PureComponent {
     }
 
     return list.map((item) => {
-
+      const linkTo = "/app/" + item.service_alias + "/overview";
       return (
         <List.Item key={item.id}>
           <List.Item.Meta
@@ -248,7 +248,7 @@ export default class Index extends PureComponent {
             styles.event
           } > {
             item.type_cn
-          } < /span> &nbsp; <Link to={'/app / '+ item.service_alias+ ' / overview '} className={styles.event}>{item.service_cname}</Link> &nbsp; 应用 </span>}
+          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用 < /span>}
             description={< span className = {
             styles.datetime
           }
