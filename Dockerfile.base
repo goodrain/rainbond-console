@@ -15,6 +15,17 @@ ENV GPG_KEY C01E1CAD5EA2C4F0B8E3571504C367C218ADD4FF
 ENV PYTHON_VERSION 2.7.9
 
 RUN set -ex \
+	apk --no-cache add --virtual build-dependencies \
+      build-base \
+      py-mysqldb \
+      gcc \
+      libc-dev \
+      libffi-dev \
+      mariadb-dev \
+      && pip install -qq -r requirements.txt \
+      && rm -rf .cache/pip \
+      && apk del build-dependencies \
+	&& apk -q --no-cache add mariadb-client-libs \
 	&& apk add --no-cache --virtual .fetch-deps \
 		gnupg \
 		openssl \
