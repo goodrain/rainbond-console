@@ -52,3 +52,5 @@ Please read [CONTRIBUTING](https://github.com/goodrain/rainbond/blob/master/CONT
 
 Rainbond is under the LGPL-3.0 license, see [LICENSE](https://github.com/goodrain/rainbond/blob/master/LICENSE) and [Licensing](https://github.com/goodrain/rainbond/blob/master/Licensing.md) for details.
 
+## Acknowledgments
+* Thanks [ant-design-pro](https://github.com/ant-design/ant-design-pro) for providing a great out-of-box UI solution.
