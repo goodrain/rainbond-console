@@ -18,6 +18,7 @@ import NoticeIcon from '../NoticeIcon';
 import HeaderSearch from '../HeaderSearch';
 import styles from './index.less';
 import cookie from '../../utils/cookie';
+import userIcon from '../../../public/images/user-icon-small.png';
 
 const {Header} = Layout;
 
@@ -163,7 +164,9 @@ export default class GlobalHeader extends PureComponent {
         <Menu.Item disabled><Icon type="setting" />设置</Menu.Item>
         <Menu.Item key="triggerError"><Icon type="close-circle" />触发报错</Menu.Item>
         <Menu.Divider />*/}
-                <Menu.Item key="logout"><Icon type="logout"/>退出登录</Menu.Item>
+                <Menu.Item key="logout"><Icon type="logout" style={{
+                marginRight: 8
+            }}/>退出登录</Menu.Item>
             </Menu>
         );
 
@@ -252,7 +255,7 @@ export default class GlobalHeader extends PureComponent {
                         ? (
                             <Dropdown overlay={menu}>
                                 <span className={`${styles.action} ${styles.account}`}>
-                                    <Avatar size="small" className={styles.avatar} src={currentUser.avatar}/>
+                                    <Avatar size="small" className={styles.avatar} src={userIcon}/>
                                     <span className={styles.name}>{currentUser.user_name}</span>
                                 </span>
                             </Dropdown>

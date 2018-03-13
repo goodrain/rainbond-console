@@ -274,7 +274,7 @@ export default class Index extends PureComponent {
         <div className={styles.avatar}>
           <Avatar
             size="large"
-            src="https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png"/>
+            src={require("../../../public/images/team-icon.png")}/>
         </div>
         <div className={styles.content}>
           <div className={styles.contentTitle}>{team.team_alias}</div>

@@ -4,7 +4,7 @@ import DocumentTitle from 'react-document-title';
 import {Icon} from 'antd';
 import GlobalFooter from '../components/GlobalFooter';
 import styles from './UserLayout.less';
-import logo from '../assets/logo.svg';
+import logo from '../../public/images/logo.png';
 import {getRoutes} from '../utils/utils';
 
 const links = [
@@ -56,7 +56,6 @@ class UserLayout extends React.PureComponent {
               <div className={styles.header}>
                 <Link to="/">
                   <img alt="logo" className={styles.logo} src={logo}/>
-                  <span className={styles.title}>好雨云帮</span>
                 </Link>
               </div>
               <div className={styles.desc}>无服务器Pass、以应用为中心、软件定义一切</div>

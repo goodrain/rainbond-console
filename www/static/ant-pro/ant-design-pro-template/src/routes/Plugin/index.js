@@ -84,7 +84,7 @@ class PluginList extends PureComponent {
                     pluginUtil.getCategoryCN(item.category)
                   } < /span>, <Link to={'/myplugns / '+item.plugin_id}>管理</Link>]}>
                   <Card.Meta
-                    avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.45)'}}type = "api" />}
+                    avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={< Link to = {
                     '/myplugns/' + item.plugin_id
                   } > {

@@ -1,5 +1,7 @@
 @import "~antd/lib/style/themes/default.less";
 
+
+
 .header {
   padding: 0 12px 0 0;
   background: #fff;
@@ -86,6 +88,11 @@ i.trigger {
     &:hover,
     &:global(.ant-popover-open) {
       background: @primary-1;
+    }
+    :global{
+      .ant-avatar-image {
+         img {display: inline-block;vertical-align: middle;width:auto;height:auto;}
+      }
     }
   }
   .search {
