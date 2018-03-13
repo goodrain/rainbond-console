@@ -26,6 +26,7 @@ RUN set -ex \
       && rm -rf .cache/pip \
       && apk del build-dependencies \
 	&& apk -q --no-cache add mariadb-client-libs \
+# https://github.com/gliderlabs/docker-alpine/issues/181
 	&& apk add --no-cache --virtual .fetch-deps \
 		gnupg \
 		openssl \
