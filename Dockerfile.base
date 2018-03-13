@@ -22,10 +22,8 @@ RUN set -ex \
       libc-dev \
       libffi-dev \
       mariadb-dev \
-      && pip install -qq -r requirements.txt \
-      && rm -rf .cache/pip \
-      && apk del build-dependencies \
 	&& apk -q --no-cache add mariadb-client-libs \
+	 && apk del build-dependencies \
 # https://github.com/gliderlabs/docker-alpine/issues/181
 	&& apk add --no-cache --virtual .fetch-deps \
 		gnupg \
