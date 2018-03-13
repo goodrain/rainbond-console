@@ -246,7 +246,7 @@ export default class Register extends Component {
               <Col span={8}>
                 <img
                   onClick={this.changeTime}
-                  src={config.baseUrl + '/captcha?_=' + this.state.time}
+                  src={config.baseUrl + '/console/captcha?_=' + this.state.time}
                   style={{
                   width: '100%',
                   height: 40
