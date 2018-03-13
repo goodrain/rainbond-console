@@ -1318,6 +1318,16 @@ export async function deleteApp(body = {
 }
 
 /*
+	查询应用的性能分析插件
+*/
+export async function getAnalyzePlugins(body = {
+				team_name,
+				app_alias
+}) {
+				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/analyze_plugins`, {method: 'get'});
+}
+
+/*
 	获取应用的插件信息, 包括已安装的和未安装的
 */
 export async function getPlugins(body = {

@@ -557,21 +557,25 @@ export default class Index extends PureComponent {
   constructor(arg) {
     super(arg);
     this.state = {
-      type: 'now'
+      type: 'now',
+      anaPlugins: null
     }
   }
   componentDidMount() {
-    const {dispatch} = this.props;
+    this.getAnalyzePlugins();
   }
-
-  fatchOnlineNumberRange() {
+  getAnalyzePlugins() {
     this
       .props
       .dispatch({
-        type: 'appControl/fatchOnlineNumberRange',
+        type: 'appControl/getAnalyzePlugins',
         payload: {
           team_name: globalUtil.getCurrTeamName(),
           app_alias: this.props.appAlias
+        },
+        callback: (data) => {
+          const list = data.list || [];
+          this.setState({anaPlugins: list});
         }
       })
   }
@@ -581,11 +585,31 @@ export default class Index extends PureComponent {
     }
   }
   render() {
-    const {type} = this.state;
+    const {type, anaPlugins} = this.state;
     const {appDetail} = this.props;
 
-    if (!appDetail) {
+    if (!appDetail || !anaPlugins) {
       return null;
+    }
+
+    //判断是否有安装性能分析插件
+    if (!anaPlugins.length) {
+      return <Card>
+        <div
+          style={{
+          textAlign: 'center',
+          fontSize: 18,
+          padding: '30px 0'
+        }}>
+          尚未开通性能分析插件
+
+          <p style={{
+            paddingTop: 8
+          }}>
+            <Link to={'/app/' + appDetail.service.service_alias + '/plugin'}>去开通</Link>
+          </p>
+        </div>
+      </Card>
     }
 
     return (
