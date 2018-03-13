@@ -5,6 +5,7 @@ from console.repositories.team_repo import team_repo
 from console.services.service_services import base_service
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
 from www.models import TenantServiceInfo, ServiceGroupRelation, ServiceGroup, ServiceEvent
+from www.utils.status_translate import get_status_info_map
 
 logger = logging.getLogger("default")
 
@@ -123,6 +124,7 @@ class ServiceRepo(object):
             for service in group_services_list:
                 service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
+                status_map = get_status_info_map(status)
                 if status == "unknow" and service["create_status"] != "compelet":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
@@ -130,6 +132,7 @@ class ServiceRepo(object):
                     service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
+                service.update(status_map)
                 result.append(service)
             return result
         else:
@@ -153,6 +156,7 @@ class ServiceRepo(object):
                     service["group_name"] = "未分组"
                 service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
+                status_map = get_status_info_map(status)
                 if status == "unknow" and service["create_status"] != "compelet":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
@@ -160,6 +164,7 @@ class ServiceRepo(object):
                     service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
+                service.update(status_map)
                 result.append(service)
             return result
         else:
