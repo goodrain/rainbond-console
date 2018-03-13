@@ -1,14 +1,8 @@
 import axios from 'axios';
-import {
-    notification,
-} from 'antd';
-import {
-    routerRedux
-} from 'dva/router';
+import {notification} from 'antd';
+import {routerRedux} from 'dva/router';
 import store from '../index';
 import cookie from './cookie';
-
-
 
 const codeMessage = {
     200: '服务器成功返回请求的数据',
@@ -25,7 +19,7 @@ const codeMessage = {
     500: '服务器发生错误，请检查服务器',
     502: '网关错误',
     503: '服务不可用，服务器暂时过载或维护',
-    504: '网关超时',
+    504: '网关超时'
 };
 
 function checkStatus(response) {
@@ -33,12 +27,8 @@ function checkStatus(response) {
         return response;
     }
 
-
     const errortext = codeMessage[response.status] || response.statusText;
-    notification.error({
-        message: `请求错误 ${response.status}: ${response.url}`,
-        description: errortext,
-    });
+    notification.error({message: `请求错误 ${response.status}: ${response.url}`, description: errortext});
 
     const error = new Error(errortext);
     error.name = response.status;
@@ -56,9 +46,10 @@ function checkStatus(response) {
  */
 export default function request(url, options) {
     const defaultOptions = {
-        credentials: 'include',
+        credentials: 'include'
     };
-    const newOptions = { ...defaultOptions,
+    const newOptions = {
+        ...defaultOptions,
         ...options
     };
     if (newOptions.method === 'POST' || newOptions.method === 'PUT') {
@@ -66,7 +57,7 @@ export default function request(url, options) {
             Accept: 'application/json',
             'Content-Type': 'application/json; charset=utf-8',
 
-            ...newOptions.headers,
+            ...newOptions.headers
         };
         newOptions.body = JSON.stringify(newOptions.body);
     }
@@ -80,8 +71,11 @@ export default function request(url, options) {
     newOptions.headers = {
         ...headers,
 
-        // "Authorization": 'GRJWT '+ (cookie.get('token') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUxODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8TwRR0TGh6luHnJ9A_IYJtGxHQdtc2jE'),
-        // "Authorization": 'GRJWT '+ (cookie.get('token'))
+        // "Authorization": 'GRJWT '+ (cookie.get('token') ||
+        // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUx
+        // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8Tw
+        // RR0TGh6luHnJ9A_IYJtGxHQdtc2jE'), "Authorization": 'GRJWT '+
+        // (cookie.get('token'))
     };
 
     const token = cookie.get('token');
@@ -89,8 +83,10 @@ export default function request(url, options) {
         newOptions.headers.Authorization = `GRJWT ${token}`;
     }
 
-    // newOptions.headers.Authorization = 'GRJWT '+ 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUxODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8TwRR0TGh6luHnJ9A_IYJtGxHQdtc2jE';
-
+    // newOptions.headers.Authorization = 'GRJWT '+
+    // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUx
+    // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8Tw
+    // RR0TGh6luHnJ9A_IYJtGxHQdtc2jE';
     newOptions.url = url;
     // newOptions.withCredentials = true;
     axios.defaults.withCredentials = true;
@@ -98,24 +94,23 @@ export default function request(url, options) {
         newOptions.params._ = Date.now();
     }
 
-    newOptions.showMessage = newOptions.showMessage === void 0 ? true : newOptions.showMessage;
-    const showLoading = newOptions.showLoading === void 0 ? true : newOptions.showLoading;
+    newOptions.showMessage = newOptions.showMessage === void 0
+        ? true
+        : newOptions.showMessage;
+    const showLoading = newOptions.showLoading === void 0
+        ? true
+        : newOptions.showLoading;
 
     let dispatch;
     if (store) {
         dispatch = store.dispatch;
-        showLoading && dispatch && dispatch({
-            type: 'global/showLoading',
-        });
+        showLoading && dispatch && dispatch({type: 'global/showLoading'});
     }
-
 
     return axios(newOptions)
         .then(checkStatus)
         .then((response) => {
-            showLoading && dispatch && dispatch({
-                type: 'global/hiddenLoading',
-            });
+            showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
 
             if (newOptions.method === 'DELETE' || response.status === 204) {
                 return response.text();
@@ -127,11 +122,8 @@ export default function request(url, options) {
         })
         .catch((error) => {
             if (showLoading) {
-                dispatch && dispatch({
-                    type: 'global/hiddenLoading',
-                });
+                dispatch && dispatch({type: 'global/hiddenLoading'});
             }
-
 
             if (error.response) {
                 const response = error.response;
@@ -142,10 +134,7 @@ export default function request(url, options) {
                 let resData = {};
                 try {
                     resData = error.response.data;
-                } catch (e) {
-
-                }
-
+                } catch (e) {}
 
                 if (resData.code === 10405) {
                     cookie.remove('token');
@@ -169,12 +158,10 @@ export default function request(url, options) {
                     return;
                 }
 
-
                 if (newOptions.handleError) {
                     newOptions.handleError(response);
                     return;
                 }
-
 
                 const msg = resData.msg_show || resData.msg || resData.detail;
                 if (msg && newOptions.showMessage === true) {
@@ -184,19 +171,12 @@ export default function request(url, options) {
                         return;
                     }
 
-                    notification.error({
-                        message: `请求错误 ${response.status}`,
-                        description: msg,
-                    });
+                    notification.error({message: `请求错误 ${response.status}`, description: msg});
                 }
 
                 // if (status <= 504 && status >= 500) {
-                //   dispatch(routerRedux.push('/exception/500'));
-                //   return;
-                // }
-                // if (status >= 404 && status < 422) {
-                //   dispatch(routerRedux.push('/exception/404'));
-                // }
+                // dispatch(routerRedux.push('/exception/500'));   return; } if (status >= 404
+                // && status < 422) {   dispatch(routerRedux.push('/exception/404')); }
             } else {
                 // Something happened in setting up the request that triggered an Error
                 console.log('Error', error.message);

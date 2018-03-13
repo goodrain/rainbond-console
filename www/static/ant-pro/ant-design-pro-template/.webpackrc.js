@@ -3,9 +3,10 @@ var path = require('path');
 console.log(process.env.NODE_ENV)
 
 export default {
-  "entry": "src/index.js",
-  "extraBabelPlugins": [
-    "transform-decorators-legacy", [
+  "entry" : "src/index.js",
+  "extraBabelPlugins" : [
+    "transform-decorators-legacy",
+    [
       "import", {
         "libraryName": "antd",
         "libraryDirectory": "es",
@@ -14,7 +15,7 @@ export default {
     ]
   ],
 
-  "env": {
+  "env" : {
     "development": {
       "extraBabelPlugins": ["dva-hmr"],
       "html": {
@@ -31,14 +32,14 @@ export default {
       "outputPath": path.resolve(__dirname, '../../dists')
     }
   },
-  "ignoreMomentLocale": true,
-  "theme": "./src/theme.js",
+  "ignoreMomentLocale" : true,
+  "theme" : "./src/theme.js",
 
-  "disableDynamicImport": true,
-  "hash": true,
-  "proxy": {
+  "disableDynamicImport" : true,
+  "hash" : true,
+  "proxy" : {
     "/api": {
-      "target": "http://5000.gra4b2e5.goodrain.ali-hz.goodrain.net:10080/",
+      "target": "http://dev.goodrain.org/",
       "changeOrigin": true,
       "pathRewrite": {
         "^/api": ""

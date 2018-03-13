@@ -311,6 +311,13 @@ class BasicLayout extends React.PureComponent {
             return false;
         }
 
+        var load = document.getElementById('load');
+        if (load) {
+            document
+                .body
+                .removeChild(load);
+        }
+
         return true;
     }
     handleNoticeVisibleChange = (visible) => {

@@ -177,6 +177,7 @@ class ManageContainer extends PureComponent {
         var podName = key.split('_')[0];
         var manageName = key.split('_')[1];
         var adPopup = window.open('about:blank');
+        const appAlias = this.props.app_alias;
         if (podName && manageName) {
             this
                 .props
@@ -184,12 +185,12 @@ class ManageContainer extends PureComponent {
                     type: 'appControl/managePod',
                     payload: {
                         team_name: globalUtil.getCurrTeamName(),
-                        app_alias: this.getAppAlias(),
+                        app_alias: appAlias,
                         pod_name: podName,
                         manage_name: manageName
                     },
                     callback: () => {
-                        adPopup.location.href = "/console/teams/" + globalUtil.getCurrTeamName() + "/apps/" + this.getAppAlias() + "/docker_console/";
+                        adPopup.location.href = "/console/teams/" + globalUtil.getCurrTeamName() + "/apps/" + appAlias + "/docker_console/";
                     }
                 })
         }
@@ -596,7 +597,7 @@ class Main extends PureComponent {
                                 onClick={this.handleRestart}>重启</Button>
                         : null
 }
-                    {(appUtil.canManageApp(appDetail))
+                    {(appUtil.canManageApp(appDetail)) && appStatusUtil.canManageDocker(status)
                         ? <ManageContainer app_alias={appDetail.service.service_alias}/>
                         : null
 }

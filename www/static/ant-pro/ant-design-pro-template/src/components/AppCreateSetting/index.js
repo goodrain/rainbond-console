@@ -1102,7 +1102,7 @@ class Mnt extends PureComponent {
   }
   render() {
     const {mntList} = this.state;
-    const {volumes} = this.props;
+    const {volumes} = this.state;
     const columns = [
       {
         title: '持久化名称',
@@ -1698,6 +1698,7 @@ class Ports extends PureComponent {
         <div className={styles.ports}>
           {ports.map((port) => {
             return <Port
+              showOuterUrl={false}
               showDomain={false}
               port={port}
               onDelete={this.handleDeletePort}

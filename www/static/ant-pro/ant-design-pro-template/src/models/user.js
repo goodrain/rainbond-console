@@ -148,6 +148,7 @@ export default {
     },
     tologout(state, action) {
       cookie.remove('token');
+      cookie.remove('token', {domain: ''});
     },
     save(state, action) {
       return {

@@ -37,11 +37,13 @@ export default {
       }
     },
     *fetchApps({
-      payload
+      payload,
+      callback
     }, {call, put}) {
       const response = yield call(getGroupApps, payload);
       if (response) {
         yield put({type: 'saveApps', payload: response.list});
+        callback && callback(response);
       }
     },
     *delete({
@@ -86,7 +88,6 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(recordShare, payload);
-      console.log(response);
       if (response) {
         callback && callback(response);
       }

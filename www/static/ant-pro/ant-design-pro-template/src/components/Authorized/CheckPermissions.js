@@ -1,6 +1,6 @@
 import React from 'react';
 import PromiseRender from './PromiseRender';
-import { CURRENT } from './index';
+import {CURRENT} from './index';
 import userUtil from '../../utils/user';
 
 function isPromise(obj) {
@@ -16,22 +16,18 @@ function isPromise(obj) {
  * @param { 未通过的组件 no pass components } Exception
  */
 const checkPermissions = (authority, currentAuthority, target, Exception, logined) => {
-  // 没有判定权限.默认查看所有
-  // Retirement authority, return target;
-  console.log(1)
+  // 没有判定权限.默认查看所有 Retirement authority, return target;
   var isLogin = userUtil.isLogin();
-  if(isLogin !== logined){
-      return Exception;
-  }else{
-      return target;
+  if (isLogin !== logined) {
+    return Exception;
+  } else {
+    return target;
   }
-  console.log(2)
 
   if (!authority) {
     return target;
   }
-  
-  console.log(3)
+
   // 数组处理
   if (Array.isArray(authority)) {
     if (authority.indexOf(currentAuthority) >= 0) {
@@ -47,13 +43,10 @@ const checkPermissions = (authority, currentAuthority, target, Exception, logine
     }
     return Exception;
   }
-  console.log(4)
-   
+
   // Promise 处理
   if (isPromise(authority)) {
-    return () => (
-      <PromiseRender ok={target} error={Exception} promise={authority} />
-    );
+    return () => (<PromiseRender ok={target} error={Exception} promise={authority}/>);
   }
 
   // Function 处理
@@ -71,10 +64,10 @@ const checkPermissions = (authority, currentAuthority, target, Exception, logine
   throw new Error('unsupported parameters');
 };
 
-export { checkPermissions };
+export {checkPermissions};
 
 const check = (authority, target, Exception, logined) => {
-  
+
   return checkPermissions(authority, CURRENT, target, Exception, logined);
 };
 
