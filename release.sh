@@ -31,7 +31,7 @@ function release(){
 
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
   docker build -t grthon:2.7.9 -f Dockerfile.base .
-  docker build -t --no-cache rainbond/${image_name}:${VERSION} -f Dockerfile.build .
+  docker build --no-cache -t rainbond/${image_name}:${VERSION} -f Dockerfile.build .
   rm -r ./Dockerfile.build
   #docker push rainbond/${image_name}:${VERSION}
 }
