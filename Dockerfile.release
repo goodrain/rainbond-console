@@ -4,9 +4,13 @@ MAINTAINER zhengys@goodrain.com
 
 RUN mkdir -p /app/ui
 
+ADD . /app/ui
+
 WORKDIR /app/ui
 
-RUN apk update && apk --no-cache add --virtual build-dependencies \
+RUN chmod +x /app/ui/entrypoint.sh
+
+RUN apk update && apk --no-cache add --virtual .build-deps \
       build-base \
       gcc \
       libmemcached \
@@ -18,15 +22,9 @@ RUN apk update && apk --no-cache add --virtual build-dependencies \
       libffi-dev \
       mariadb-dev \
 	  mariadb-client-libs \ 
-      py-mysqldb
-
-ADD . /app/ui
-RUN chmod +x /app/ui/entrypoint.sh
-#RUN apt-get update && apt-get install --no-install-recommends -y libmemcached-dev zlib1g-dev python-zmq && rm -r /var/lib/apt/lists/*
-
-#RUN pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple
-
-RUN pip install -r requirements.txt
+      py-mysqldb \
+      && pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple \
+      && apk del .build-deps
 
 ENV PORT 7070
 
