@@ -1,31 +1,31 @@
 # -*- coding: utf8 -*-
 import logging
-from functools import update_wrapper
+
 import jwt
 from addict import Dict
-from django.utils.decorators import classonlymethod
-from rest_framework import status
+from django.conf import settings
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
+from rest_framework import status
 from rest_framework.authentication import (
     get_authorization_header
 )
-from django.utils.translation import ugettext_lazy as trans
+from rest_framework.compat import set_rollback
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.core.exceptions import PermissionDenied
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-from rest_framework.compat import set_rollback
-from django.http import Http404
-from django.utils import six
-from rest_framework.response import Response
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
-from www.models import Users, Tenants
-from rest_framework.exceptions import NotFound
 from console.exception.main import BusinessException
+from www.models import Users, Tenants
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -71,29 +71,49 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         Returns a two-tuple of `User` and token if a valid signature has been
         supplied using JWT-based authentication.  Otherwise returns `None`.
         """
+        # update request authentication info
+
         jwt_value = self.get_jwt_value(request)
         if jwt_value is None:
             msg = _('未提供验证信息')
             raise AuthenticationInfoHasExpiredError(msg)
+        # if have SSO login modules
+        if settings.MODULES.get('SSO_LOGIN',None):
+            sso_user_id = request.COOKIES.get('uid')
+            sso_user_token = jwt_value
 
-        try:
-            payload = jwt_decode_handler(jwt_value)
-        except jwt.ExpiredSignature:
-            # msg = _('Signature has expired.')
-            msg = _('认证信息已过期')
-            raise AuthenticationInfoHasExpiredError(msg)
-        except jwt.DecodeError:
-            # msg = _('Error decoding signature.')
-            msg = _('认证信息错误')
-            # raise exceptions.AuthenticationFailed(msg)
-            raise AuthenticationInfoHasExpiredError(msg)
-        except jwt.InvalidTokenError:
-            msg = _('认证信息错误,请求Token不合法')
-            # raise exceptions.AuthenticationFailed(msg)
-            raise AuthenticationInfoHasExpiredError(msg)
+            if not sso_user_id or not sso_user_token:
+                msg = _("Cookie信息里面应该包含Token和用户uid")
+                raise AuthenticationInfoHasExpiredError(msg)
 
-        user = self.authenticate_credentials(payload)
-        return (user, jwt_value)
+            if sso_user_id == 'null' or sso_user_token == 'null':
+                msg = _("Cookie信息里面应该包含Token和用户uid")
+                raise AuthenticationInfoHasExpiredError(msg)
+            try:
+                user = Users.objects.get(sso_user_id=sso_user_id)
+                return user, None
+            except Users.DoesNotExist:
+                msg = _('认证信息错误')
+                raise AuthenticationInfoHasExpiredError(msg)
+        else:
+            try:
+                payload = jwt_decode_handler(jwt_value)
+            except jwt.ExpiredSignature:
+                # msg = _('Signature has expired.')
+                msg = _('认证信息已过期')
+                raise AuthenticationInfoHasExpiredError(msg)
+            except jwt.DecodeError:
+                # msg = _('Error decoding signature.')
+                msg = _('认证信息错误')
+                # raise exceptions.AuthenticationFailed(msg)
+                raise AuthenticationInfoHasExpiredError(msg)
+            except jwt.InvalidTokenError:
+                msg = _('认证信息错误,请求Token不合法')
+                # raise exceptions.AuthenticationFailed(msg)
+                raise AuthenticationInfoHasExpiredError(msg)
+
+            user = self.authenticate_credentials(payload)
+            return user, jwt_value
 
     def authenticate_credentials(self, payload):
         """
@@ -210,7 +230,7 @@ def custom_exception_handler(exc, context):
 
         Any unhandled exceptions may return `None`, which will cause a 500 error
         to be raised.
-    """  
+    """
     if isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
@@ -264,4 +284,5 @@ def custom_exception_handler(exc, context):
         return exc.get_response()
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
