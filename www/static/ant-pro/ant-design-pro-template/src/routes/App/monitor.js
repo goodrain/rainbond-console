@@ -486,7 +486,7 @@ class MonitorNow extends PureComponent {
             <ChartCard
               bordered={false}
               title="平均响应时间（ms）"
-              action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
+              action={< Tooltip title = "平均响应时间，单位毫秒" > <Icon type="info-circle-o"/> < /Tooltip>}
               total={numeral(monitorDataUtil.queryTog2(this.props.requestTime)).format('0,0')}
               footer={< Field label = "最大响应时间" value = "-" />}
               contentHeight={46}>
@@ -499,7 +499,7 @@ class MonitorNow extends PureComponent {
             <ChartCard
               bordered={false}
               title="吞吐率（dps）"
-              action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
+              action={< Tooltip title = "过去一分钟平均每5s的请求次数" > <Icon type="info-circle-o"/> < /Tooltip>}
               total={numeral(monitorDataUtil.queryTog2(this.props.appRequest)).format('0,0')}
               footer={< Field label = "最大吞吐率" value = "-" />}
               contentHeight={46}>
@@ -512,7 +512,7 @@ class MonitorNow extends PureComponent {
             <ChartCard
               bordered={false}
               title="在线人数"
-              action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
+              action={< Tooltip title = "过去5分钟的独立IP数量" > <Icon type="info-circle-o"/> < /Tooltip>}
               total={numeral(monitorDataUtil.queryTog2(this.props.onlineNumber)).format('0,0')}
               footer={< Field label = "日访问量" value = "-" />}
               contentHeight={46}>

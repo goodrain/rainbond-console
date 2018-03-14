@@ -27,9 +27,11 @@ class AuthorizedRoute extends React.Component {
     } = this.props;
 
     if (redirectPath === '/user/login') {
+
       if (rainbondInfo && rainbondInfo.is_public) {
         return < PublicLogin />
     } else {
+
       return <Route
         {...rest}
         render={() => <Redirect to={{
@@ -37,6 +39,7 @@ class AuthorizedRoute extends React.Component {
       }}/>}/>
     }
   } else {
+
     return <Route
       {...rest}
       render={() => <Redirect to={{

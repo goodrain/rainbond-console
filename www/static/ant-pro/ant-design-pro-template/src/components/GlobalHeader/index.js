@@ -164,9 +164,11 @@ export default class GlobalHeader extends PureComponent {
         <Menu.Item disabled><Icon type="setting" />设置</Menu.Item>
         <Menu.Item key="triggerError"><Icon type="close-circle" />触发报错</Menu.Item>
         <Menu.Divider />*/}
-                <Menu.Item key="cpw"><Icon type="edit" style={{
-                marginRight: 8
-            }}/>修改密码</Menu.Item>
+                {!isPubCloud &&< Menu.Item key = "cpw" > <Icon
+                    type="edit"
+                    style={{
+                    marginRight: 8
+                }}/>修改密码 < /Menu.Item>}
                 <Menu.Item key="logout"><Icon type="logout" style={{
                 marginRight: 8
             }}/>退出登录</Menu.Item>

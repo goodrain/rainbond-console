@@ -20,9 +20,10 @@ function RouterConfig({history, app}) {
   const UserLayout = routerData['/user'].component;
   const BasicLayout = routerData['/'].component;
   return (
-    <LocaleProvider locale={zhCN}>
-      <ConnectedRouter history={history}>
-        <InitRainbondInfo>
+    <InitRainbondInfo>
+      <LocaleProvider locale={zhCN}>
+        <ConnectedRouter history={history}>
+
           <Switch>
             <AuthorizedRoute
               path="/user"
@@ -37,9 +38,10 @@ function RouterConfig({history, app}) {
               logined={true}
               redirectPath="/user/login"/>
           </Switch>
-        </InitRainbondInfo>
-      </ConnectedRouter>
-    </LocaleProvider>
+
+        </ConnectedRouter>
+      </LocaleProvider>
+    </InitRainbondInfo>
   );
 }
 
