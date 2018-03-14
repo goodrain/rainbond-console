@@ -73,7 +73,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         """
         jwt_value = self.get_jwt_value(request)
         if jwt_value is None:
-            return None
+            msg = _('未提供验证信息')
+            raise AuthenticationInfoHasExpiredError(msg)
 
         try:
             payload = jwt_decode_handler(jwt_value)

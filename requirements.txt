@@ -25,6 +25,7 @@ fuzzyfinder==1.0.0
 django-cors-headers==2.1.0
 pypinyin==0.23.0
 djangorestframework-jwt==1.11.0
+oss2==2.4.0
 
 
 

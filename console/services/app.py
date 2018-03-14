@@ -6,7 +6,7 @@ import datetime
 import logging
 
 from console.constants import AppConstants
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo
+from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
@@ -312,6 +312,13 @@ class AppService(object):
             data["volumes_info"] = list(volume_info)
         logger.debug(
             tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        # 挂载信息
+        mnt_info = mnt_repo.get_service_mnts(service.tenant_id, service.service_id)
+        if mnt_info:
+            data["dep_volumes_info"] = [
+                {"dep_service_id": mnt.dep_service_id, "volume_path": mnt.mnt_dir, "volume_name": mnt.mnt_name}
+                for mnt in mnt_info]
+
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将服务创建状态变更为创建完成
