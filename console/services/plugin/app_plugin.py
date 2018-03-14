@@ -7,6 +7,7 @@ import logging
 from console.constants import PluginCategoryConstants
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
 from console.repositories.app import service_repo
+from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -22,10 +23,20 @@ class AppPluginService(object):
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_ids)
         return base_plugins
 
-    def get_plugin_used_services(self, plugin_id, tenant_id):
+    def get_plugin_used_services(self, plugin_id, tenant_id, page, page_size):
         aprr = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
         service_ids = [r.service_id for r in aprr]
-        return service_repo.get_services_by_service_ids(*service_ids).filter(tenant_id=tenant_id)
+        service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
+        services = service_repo.get_services_by_service_ids(*service_ids).filter(tenant_id=tenant_id)
+        paginator = JuncheePaginator(services, int(page_size))
+        show_apps = paginator.page(int(page))
+        data = dict()
+        for s in show_apps:
+            data["service_id"] = s.service_id
+            data["service_alias"] = s.service_alias
+            data["service_cname"] = s.service_cname
+            data["build_version"] = service_plugin_version_map[s.service_id]
+        return data
 
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)

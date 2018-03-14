@@ -365,12 +365,10 @@ class PluginUsedServiceView(PluginBaseView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
-            services = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id)
-            paginator = JuncheePaginator(services, int(page_size))
-            show_apps = paginator.page(int(page))
-            app_list = [app.to_dict() for app in show_apps]
+            data = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
+                                                               page_size)
 
-            result = general_message(200, "success", "查询成功", list=app_list,)
+            result = general_message(200, "success", "查询成功", list=data)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
