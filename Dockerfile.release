@@ -24,7 +24,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
 	mariadb-client-libs \ 
       freetype-dev \
       libpng-dev \
-      libjpeg-turbo-dev 
+      libjpeg-turbo-dev \
       py-mysqldb \
       && pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple \
       && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \

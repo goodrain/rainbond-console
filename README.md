@@ -1,6 +1,8 @@
 <img src="https://github.com/goodrain/rainbond/blob/master/docs/rainbond_logo.png" width="100%">
 
 
+[![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-ui.svg?style=flat-square)](https://github.com/goodrain/rainbond-ui/stargazers)
+
 [Website](http://www.rainbond.com) • [Docs](https://www.rainbond.com/docs/stable/) • [Public Cloud](https://sso.goodrain.com/#/login/https%3A%2F%2Fwww.goodrain.com%2F%23%2Findex)
 
 **Rainbond** is an application-centric Platform as a Service, with innovative concept and complete ecological comes from continuous verification and optimization.
