@@ -6,7 +6,7 @@ from django.forms.forms import Form
 from www.models import Users
 
 SENSITIVE_WORDS = (
-    'admin', 'root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services'
+    'root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services'
 )
 
 standard_regex_string = "^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"
