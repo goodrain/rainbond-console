@@ -17,10 +17,11 @@ import globalUtil from '../utils/global';
 import cookie from '../utils/cookie';
 import Authorized from '../utils/Authorized';
 import {getMenuData} from '../common/menu';
-import logo from '../../public/images/logo.png';
+import logo from '../../public/logo-icon-35.png';
 import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
+import ChangePassword from '../components/ChangePassword';
 
 const {Content} = Layout;
 const {AuthorizedRoute} = Authorized;
@@ -80,7 +81,8 @@ class BasicLayout extends React.PureComponent {
         isMobile,
         isInit: false,
         openRegion: false,
-        createTeam: false
+        createTeam: false,
+        showChangePassword: false
     };
     onOpenRegion = () => {
         this.setState({openRegion: true})
@@ -248,7 +250,7 @@ class BasicLayout extends React.PureComponent {
     getPageTitle() {
         const {routerData, location} = this.props;
         const {pathname} = location;
-        let title = '好雨云帮';
+        let title = '好雨云帮 | 应用一键部署';
         if (routerData[pathname] && routerData[pathname].name) {
             title = `${routerData[pathname].name} - ` + title;
         }
@@ -286,11 +288,8 @@ class BasicLayout extends React.PureComponent {
             .dispatch({type: 'global/clearNotices', payload: type});
     }
     handleMenuClick = ({key}) => {
-        if (key === 'triggerError') {
-            this
-                .props
-                .dispatch(routerRedux.push('/exception/trigger'));
-            return;
+        if (key === 'cpw') {
+            this.showChangePass();
         }
         if (key === 'logout') {
             this
@@ -362,6 +361,25 @@ class BasicLayout extends React.PureComponent {
         location.hash = '/index';
         location.reload();
 
+    }
+    showChangePass = () => {
+        this.setState({showChangePassword: true})
+    }
+    cancelChangePass = () => {
+        this.setState({showChangePassword: false})
+    }
+    handleChangePass = (vals) => {
+        this
+            .props
+            .dispatch({
+                type: 'user/changePass',
+                payload: {
+                    ...vals
+                },
+                callback: () => {
+                    notification.success("修改成功，请重新登录")
+                }
+            })
     }
     render() {
         const {
@@ -465,6 +483,7 @@ class BasicLayout extends React.PureComponent {
                 </DocumentTitle>
                 {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
                 {this.state.createTeam && <CreateTeam onOk={this.handleCreateTeam} onCancel={this.cancelCreateTeam}/>}
+                {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>
             </Fragment>
         );

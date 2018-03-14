@@ -864,7 +864,7 @@ export async function getAppRequestTime(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requesttime{service_id="' + body.serviceId + '",mode="avg"})'
+												query: 'avg(floor(app_requesttime{service_id="' + body.serviceId + '",mode="avg"}))'
 								},
 								showLoading: false
 				});
@@ -906,7 +906,8 @@ export async function getAppRequest(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12)'
+												query: 'sum(ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12))'
+
 								},
 								showLoading: false
 				});
@@ -963,8 +964,8 @@ export async function getAppRequestRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12)',
-												start: body.start,
+												query: 'sum(ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12))',
+ 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step
 								},
@@ -1085,7 +1086,10 @@ export async function getVisitInfo(body = {
 				team_name,
 				app_alias
 }) {
-				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/visit`, {method: 'get'});
+				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/visit`, {
+								method: 'get',
+								showLoading: false
+				});
 }
 
 /*

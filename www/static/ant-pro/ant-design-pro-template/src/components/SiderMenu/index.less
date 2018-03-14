@@ -1,23 +1,12 @@
 @import "~antd/lib/style/themes/default.less";
 @ease-in-out-circ: cubic-bezier(.78, .14, .15, .86);
 
-:global(.ant-layout-sider-collapsed) {
-  .logo {
-    a {
-      display: block;
-      width: 40px;
-      overflow: hidden;
-    }
-  }
-}
-
-
 .logo {
   height: 64px;
   position: relative;
   line-height: 64px;
   padding-left: (@menu-collapsed-width - 32px) / 2;
-  transition: all .3s;
+  transition: all 0.3s;
   background: #002140;
   overflow: hidden;
   img {
@@ -25,7 +14,7 @@
     vertical-align: middle;
   }
   h1 {
-    color: #fff;
+    color: white;
     display: inline-block;
     vertical-align: middle;
     font-size: 20px;

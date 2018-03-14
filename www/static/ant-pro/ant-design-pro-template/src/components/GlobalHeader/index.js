@@ -164,6 +164,9 @@ export default class GlobalHeader extends PureComponent {
         <Menu.Item disabled><Icon type="setting" />设置</Menu.Item>
         <Menu.Item key="triggerError"><Icon type="close-circle" />触发报错</Menu.Item>
         <Menu.Divider />*/}
+                <Menu.Item key="cpw"><Icon type="edit" style={{
+                marginRight: 8
+            }}/>修改密码</Menu.Item>
                 <Menu.Item key="logout"><Icon type="logout" style={{
                 marginRight: 8
             }}/>退出登录</Menu.Item>
@@ -175,8 +178,17 @@ export default class GlobalHeader extends PureComponent {
             <Header className={styles.header}>
                 {isMobile && ([
                     (
-                        <Link to="/" className={styles.logo} key="logo">
-                            <img src={logo} alt="logo" width="32"/>
+                        <Link
+                            to="/"
+                            className={styles.logo}
+                            key="logo"
+                            width="40"
+                            style={{
+                            width: '65px',
+                            display: 'inline-block',
+                            overflow: 'hidden'
+                        }}>
+                            <img src={logo} alt="logo"/>
                         </Link>
                     ), < Divider type = "vertical" key = "line" />
                 ])}
@@ -190,20 +202,24 @@ export default class GlobalHeader extends PureComponent {
                 <div className={styles.teamregion}>
                     <span className={styles.tit}>团队:</span>
                     <Dropdown overlay={this.renderTeams()}>
-                        <span className={styles.dropdown}>
+                        <a className={styles.dropdown}>
                             {this.getCurrTeamTit()
 }
                             <Icon type="down"/>
-                        </span>
+                        </a>
                     </Dropdown>
-
+                    <Divider
+                        type="vertical"
+                        style={{
+                        margin: '0 20px 0 20px'
+                    }}/>
                     <span className={styles.tit}>数据中心:</span>
                     <Dropdown overlay={this.renderRegions()}>
-                        <span className={styles.dropdown}>
+                        <a className={styles.dropdown}>
                             {this.getCurrRegionTit()
 }
                             <Icon type="down"/>
-                        </span>
+                        </a>
                     </Dropdown>
                 </div>
 

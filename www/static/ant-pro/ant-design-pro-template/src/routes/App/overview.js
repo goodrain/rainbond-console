@@ -632,7 +632,7 @@ export default class Index extends PureComponent {
             {hasAnaPlugins
               ? <ChartCard
                   bordered={false}
-                  title="平均响应时间"
+                  title="平均响应时间（ms）"
                   action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
                   total={numeral(monitorDataUtil.queryTog2(this.props.requestTime)).format('0,0')}
                   footer={< Field label = "最大响应时间" value = "-" />}
@@ -643,7 +643,7 @@ export default class Index extends PureComponent {
                 </ChartCard>
               : <ChartCard
                 bordered={false}
-                title="平均响应时间"
+                title="平均响应时间（ms）"
                 action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
                 footer={< Field label = "&nbsp;" value = "" />}
                 contentHeight={88}>
@@ -665,7 +665,7 @@ export default class Index extends PureComponent {
             {hasAnaPlugins
               ? <ChartCard
                   bordered={false}
-                  title="吞吐率"
+                  title="吞吐率（dps）"
                   action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
                   total={numeral(monitorDataUtil.queryTog2(this.props.appRequest)).format('0,0')}
                   footer={< Field label = "最大吞吐率" value = "-" />}
@@ -676,7 +676,7 @@ export default class Index extends PureComponent {
                 </ChartCard>
               : <ChartCard
                 bordered={false}
-                title="吞吐率"
+                title="吞吐率（dps）"
                 action={< Tooltip title = "指标说明" > <Icon type="info-circle-o"/> < /Tooltip>}
                 footer={< Field label = "&nbsp;" value = "" />}
                 contentHeight={88}>

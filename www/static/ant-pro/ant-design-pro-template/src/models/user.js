@@ -6,7 +6,8 @@ import {
   logout,
   register,
   gitlabRegister,
-  createGitlabProject
+  createGitlabProject,
+  changePass
 } from '../services/user';
 import {setAuthority} from '../utils/authority';
 import cookie from '../utils/cookie';
@@ -23,6 +24,19 @@ export default {
   },
 
   effects : {
+    *changePass({
+      payload,
+      callback
+    }, {call, put, select}) {
+      const response = yield call(changePass, payload);
+
+      if (response) {
+        cookie.remove('token');
+        yield put(routerRedux.push('/user/login'));
+        callback && callback();
+      }
+
+    },
     *login({
       payload
     }, {call, put, select}) {

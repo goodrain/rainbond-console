@@ -4,7 +4,7 @@ import DocumentTitle from 'react-document-title';
 import {Icon} from 'antd';
 import GlobalFooter from '../components/GlobalFooter';
 import styles from './UserLayout.less';
-import logo from '../../public/images/logo.png';
+import logo from '../../public/logo-icon-44.png';
 import {getRoutes} from '../utils/utils';
 
 const links = [
@@ -31,9 +31,9 @@ class UserLayout extends React.PureComponent {
   getPageTitle() {
     const {routerData, location} = this.props;
     const {pathname} = location;
-    let title = '好雨云帮';
+    let title = '好雨云帮 | 应用一键部署';
     if (routerData[pathname] && routerData[pathname].name) {
-      title = `${routerData[pathname].name} - 好雨云帮`;
+      title = `${routerData[pathname].name} - 好雨云帮 | 应用一键部署`;
     }
     return title;
   }
@@ -55,7 +55,19 @@ class UserLayout extends React.PureComponent {
             <div className={styles.top}>
               <div className={styles.header}>
                 <Link to="/">
-                  <img alt="logo" className={styles.logo} src={logo}/>
+                  <img
+                    style={{
+                    verticalAlign: 'middle'
+                  }}
+                    alt="logo"
+                    className={styles.logo}
+                    src={logo}/>
+                  <h1
+                    style={{
+                    display: 'inline-block',
+                    verticalAlign: 'middle',
+                    marginBottom: 0
+                  }}>好雨云帮</h1>
                 </Link>
               </div>
               <div className={styles.desc}>无服务器Pass、以应用为中心、软件定义一切</div>
