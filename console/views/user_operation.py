@@ -301,9 +301,9 @@ class ChangeLoginPassword(JWTAuthApiView):
               paramType: form
         """
         try:
-            password = request.POST.get("password", None)
-            new_password = request.POST.get("new_password", None)
-            new_password2 = request.POST.get("new_password2", None)
+            password = request.data.get("password", None)
+            new_password = request.data.get("new_password", None)
+            new_password2 = request.data.get("new_password2", None)
             u = request.user
             code = 400
             if not user_services.check_user_password(user_id=u.user_id, password=password):
