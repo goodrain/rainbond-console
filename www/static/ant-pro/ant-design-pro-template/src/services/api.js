@@ -1,30 +1,29 @@
-import { stringify } from 'qs';
+import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
-
 
 /*
    获取云帮的公共信息、配置信息
 */
-export async function getRainbondInfo() {
-  return request(config.baseUrl + '/console/config/info', {
-     passAuthorization: false
-  });
+export function getRainbondInfo() {
+  return request(config.baseUrl + '/console/config/info', {passAuthorization: false});
 }
 
 /*
    绑定github
 */
-export async function bindGithub(body={code, state}) {
+export async function bindGithub(body = {
+  code,
+  state
+}) {
   return request(config.baseUrl + '/console/github/callback', {
-     method: 'post',
-     data:{
+    method: 'post',
+    data: {
       code: body.code,
       state: body.state
-     }
+    }
   });
 }
-
 
 /*
   获取github授权地址
@@ -36,10 +35,8 @@ export async function isPubCloud() {
 }
 
 //获取全部数据中心
-export function getAllRegion(){
-   return request(config.baseUrl + '/console/regions', {
-    method: 'get'
-   });
+export function getAllRegion() {
+  return request(config.baseUrl + '/console/regions', {method: 'get'});
 }
 
 export async function queryProjectNotice() {
@@ -59,8 +56,8 @@ export async function removeRule(params) {
     method: 'POST',
     body: {
       ...params,
-      method: 'delete',
-    },
+      method: 'delete'
+    }
   });
 }
 
@@ -69,15 +66,15 @@ export async function addRule(params) {
     method: 'POST',
     body: {
       ...params,
-      method: 'post',
-    },
+      method: 'post'
+    }
   });
 }
 
 export async function fakeSubmitForm(params) {
   return request('/api/forms', {
     method: 'POST',
-    body: params,
+    body: params
   });
 }
 
@@ -104,19 +101,17 @@ export async function queryFakeList(params) {
 export async function fakeAccountLogin(params) {
   return request('/api/login/account', {
     method: 'POST',
-    body: params,
+    body: params
   });
 }
 
 export async function fakeRegister(params) {
   return request('/api/register', {
     method: 'POST',
-    body: params,
+    body: params
   });
 }
 
 export async function queryNotices() {
   return request('/api/notices');
 }
-
-

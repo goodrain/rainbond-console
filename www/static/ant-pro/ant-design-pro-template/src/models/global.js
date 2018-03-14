@@ -76,6 +76,7 @@ export default {
 
   reducers : {
     saveRainBondInfo(state, {payload}) {
+
       return {
         ...state,
         rainbondInfo: payload

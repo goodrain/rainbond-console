@@ -34,6 +34,7 @@ const cookie = {
 								var path = (option.path != void 0)
 												? (";path=" + option.path)
 												: ";path=/";
+
 								if (cval != null) {
 												var v = name + "=" + cval + ";expires=" + exp.toGMTString() + domain + path;
 												document.cookie = v;

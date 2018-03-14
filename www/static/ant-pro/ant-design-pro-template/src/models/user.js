@@ -29,9 +29,8 @@ export default {
       callback
     }, {call, put, select}) {
       const response = yield call(changePass, payload);
-
       if (response) {
-        cookie.remove('token');
+        yield put({type: 'tologout'});
         yield put(routerRedux.push('/user/login'));
         callback && callback();
       }

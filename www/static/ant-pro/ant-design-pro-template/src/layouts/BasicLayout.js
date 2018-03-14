@@ -137,18 +137,7 @@ class BasicLayout extends React.PureComponent {
         enquireScreen((mobile) => {
             this.setState({isMobile: mobile});
         });
-        this.fetchRainbondInfo();
-    }
-    fetchRainbondInfo = () => {
-        //获取云帮平台相关信息
-        this
-            .props
-            .dispatch({
-                type: 'global/fetchRainbondInfo',
-                callback: () => {
-                    this.fetchUserInfo();
-                }
-            })
+        this.fetchUserInfo();
     }
     fetchUserInfo = () => {
         //获取用户信息、保存团队和数据中心信息
@@ -377,7 +366,7 @@ class BasicLayout extends React.PureComponent {
                     ...vals
                 },
                 callback: () => {
-                    notification.success("修改成功，请重新登录")
+                    notification.success({message: "修改成功，请重新登录"})
                 }
             })
     }
@@ -412,7 +401,7 @@ class BasicLayout extends React.PureComponent {
                 <Layout>
                     <GlobalHeader
                         logo={logo}
-                        isPubCloud={isPubCloud}
+                        isPubCloud={rainbondInfo.is_public}
                         notifyCount={notifyCount}
                         currentUser={currentUser}
                         fetchingNotices={fetchingNotices}
@@ -497,7 +486,6 @@ export default connect(({user, global, loading}) => {
         notifyCount: user.notifyCount,
         collapsed: global.collapsed,
         groups: global.groups,
-        isPubCloud: global.isPubCloud,
         fetchingNotices: loading.effects['global/fetchNotices'],
         notices: global.notices,
         currTeam: global.currTeam,

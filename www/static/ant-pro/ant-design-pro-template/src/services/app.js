@@ -885,7 +885,7 @@ export async function getAppRequestTimeRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requesttime{service_id="' + body.serviceId + '",mode="avg"})',
+												query: 'avg(floor(app_requesttime{service_id="' + body.serviceId + '",mode="avg"}))',
 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step
@@ -965,7 +965,7 @@ export async function getAppRequestRange(body = {
 								showMessage: false,
 								params: {
 												query: 'sum(ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12))',
- 												start: body.start,
+												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step
 								},
