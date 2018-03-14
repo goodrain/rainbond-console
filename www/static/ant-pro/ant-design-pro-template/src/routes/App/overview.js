@@ -356,7 +356,7 @@ class LogList extends PureComponent {
 @connect(({user, appControl}) => ({
   currUser: user.currentUser,
   appRequest: appControl.appRequest,
-  appRequestRange: appControl.appRequest,
+  appRequestRange: appControl.appRequestRange,
   requestTime: appControl.requestTime,
   requestTimeRange: appControl.requestTimeRange,
   appDisk: appControl.appDisk,

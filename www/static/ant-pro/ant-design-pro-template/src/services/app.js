@@ -864,7 +864,7 @@ export async function getAppRequestTime(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'avg(floor(app_requesttime{service_id="' + body.serviceId + '",mode="avg"}))'
+												query: 'ceil(avg(app_requesttime{mode="avg",service_id="' + body.serviceId + '"}))'
 								},
 								showLoading: false
 				});
@@ -885,7 +885,7 @@ export async function getAppRequestTimeRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'avg(floor(app_requesttime{service_id="' + body.serviceId + '",mode="avg"}))',
+												query: 'ceil(avg(app_requesttime{mode="avg",service_id="' + body.serviceId + '"}))',
 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step

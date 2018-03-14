@@ -147,20 +147,6 @@ export default function request(url, options) {
                     return;
                 }
 
-                // 服务不属于当前数据中心
-                if (resData.code === 10404) {
-                    cookie.remove('token');
-                    dispatch(routerRedux.push('/user/login'));
-                    return;
-                }
-
-                // 服务不属于当前团队
-                if (resData.code === 10403) {
-                    cookie.remove('token');
-                    dispatch(routerRedux.push('/user/login'));
-                    return;
-                }
-
                 if (newOptions.handleError) {
                     newOptions.handleError(response);
                     return;
