@@ -4,3 +4,6 @@ Procfile
 console.py
 docker-compose.yaml
 LICENSE
+Dockerfile.*
+sources.list
+.git/

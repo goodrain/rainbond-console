@@ -21,10 +21,12 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       libc-dev \
       libffi-dev \
       mariadb-dev \
-	  mariadb-client-libs \ 
+	mariadb-client-libs \ 
       py-mysqldb \
       && pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple \
-      && apk del .build-deps
+      && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
+      && apk del .build-deps \
+      && cp -a /tmp/libmysqlclient.so.18* /usr/lib/
 
 ENV PORT 7070
 

@@ -15,3 +15,4 @@ test/
 # vscode
 .vscode/
 goodrain_web/conf/local_test.py
+Dockerfile.build

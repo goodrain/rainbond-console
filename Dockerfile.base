@@ -20,13 +20,10 @@ RUN set -ex \
       gcc \
       libc-dev \
       libffi-dev \
-      mariadb-dev \
-	mariadb-client-libs \ 
 # https://github.com/gliderlabs/docker-alpine/issues/181
 	&& apk add --no-cache --virtual .fetch-deps \
 		gnupg \
 		openssl \
-		py-mysqldb \
 		tar \
 		xz \
 	\
