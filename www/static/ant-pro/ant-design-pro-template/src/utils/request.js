@@ -72,9 +72,10 @@ export default function request(url, options) {
         ...headers,
 
         // "Authorization": 'GRJWT '+ (cookie.get('token') ||
-        // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUx
-        // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8Tw
-        // RR0TGh6luHnJ9A_IYJtGxHQdtc2jE'), "Authorization": 'GRJWT '+
+        // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTU
+        // x
+        // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8T
+        // w RR0TGh6luHnJ9A_IYJtGxHQdtc2jE'), "Authorization": 'GRJWT '+
         // (cookie.get('token'))
     };
 
@@ -84,9 +85,10 @@ export default function request(url, options) {
     }
 
     // newOptions.headers.Authorization = 'GRJWT '+
-    // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTUx
-    // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8Tw
-    // RR0TGh6luHnJ9A_IYJtGxHQdtc2jE';
+    // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTU
+    // x
+    // ODY2MzYyNCwiZW1haWwiOiJsaWNAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6Nn0.N95RuiLn0nA8T
+    // w RR0TGh6luHnJ9A_IYJtGxHQdtc2jE';
     newOptions.url = url;
     // newOptions.withCredentials = true;
     axios.defaults.withCredentials = true;
@@ -138,6 +140,7 @@ export default function request(url, options) {
 
                 if (resData.code === 10405) {
                     cookie.remove('token');
+                    cookie.remove('token', {domain: ''});
                     cookie.remove('uid');
                     cookie.remove('username');
                     dispatch(routerRedux.push('/user/login'));
