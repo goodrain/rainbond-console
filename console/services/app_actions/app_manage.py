@@ -453,12 +453,12 @@ class AppManageService(AppManageBase):
         is_related, msg = self.__is_service_related(tenant, service)
         if is_related:
             event = event_service.update_event(event, "被依赖, 不可删除", "failure")
-            return 412, msg, event
+            return 412, "服务被{0}依赖，不可删除".format(msg), event
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
             event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除", "failure")
-            return 412, msg, event
+            return 412, "当前应用被{0}挂载, 不可删除".format(msg), event
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
