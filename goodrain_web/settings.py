@@ -60,7 +60,7 @@ if IS_OPEN_API:
                       'crispy_forms', 'rest_framework','rest_framework_jwt',
                       'rest_framework.authtoken', 'rest_framework_swagger',
                       'www', 'api', 'openapi', 'oauth2_provider', 'cadmin',
-                      'share', 'backends', 'marketapi')
+                      'share', 'backends', 'marketapi','corsheaders','console')
     OAUTH2_PROVIDER = {
         'SCOPES': {
             'read': 'Read scope',
