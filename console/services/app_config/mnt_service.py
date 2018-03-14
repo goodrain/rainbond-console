@@ -101,38 +101,41 @@ class AppMntService(object):
         return 200, "success"
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
-        data = {
-            "depend_service_id": dep_volume.service_id,
-            "volume_name": dep_volume.volume_name,
-            "volume_path": source_path,
-            "enterprise_id": tenant.enterprise_id
-        }
-        res, body = region_api.add_service_dep_volumes(
-            service.service_region, tenant.tenant_name, service.service_alias, data
-        )
-        if res.status == 200:
-            mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
-                                                             dep_volume.service_id,
-                                                             dep_volume.volume_name, source_path)
-            logger.debug(
-                "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
-                                                                   mnt_relation.mnt_dir))
+        if service.create_status == "complete":
+            data = {
+                "depend_service_id": dep_volume.service_id,
+                "volume_name": dep_volume.volume_name,
+                "volume_path": source_path,
+                "enterprise_id": tenant.enterprise_id
+            }
+            res, body = region_api.add_service_dep_volumes(
+                service.service_region, tenant.tenant_name, service.service_alias, data
+            )
+            logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
+
+        mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
+                                                         dep_volume.service_id,
+                                                         dep_volume.volume_name, source_path)
+        logger.debug(
+            "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
+                                                               mnt_relation.mnt_dir))
         return 200, "success"
 
     def delete_service_mnt_relation(self, tenant, service, dep_vol_id):
         dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
-        data = {
-            "depend_service_id": dep_volume.service_id,
-            "volume_name": dep_volume.volume_name,
-            "enterprise_id": tenant.tenant_name
-        }
 
         try:
-            res, body = region_api.delete_service_dep_volumes(
-                service.service_region, tenant.tenant_name, service.service_alias, data
-            )
-            if res.status == 200:
-                mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
+            if service.create_status == "complete":
+                data = {
+                    "depend_service_id": dep_volume.service_id,
+                    "volume_name": dep_volume.volume_name,
+                    "enterprise_id": tenant.tenant_name
+                }
+                res, body = region_api.delete_service_dep_volumes(
+                    service.service_region, tenant.tenant_name, service.service_alias, data
+                )
+                logger.debug("delete service mnt info res:{0}, body {1}".format(res, body))
+            mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
 
         except region_api.CallApiError as e:
             logger.exception(e)

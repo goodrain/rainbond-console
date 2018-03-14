@@ -32,6 +32,7 @@ from console.views.center_pool.apps import CenterAppListView
 from console.views.center_pool.apps import CenterAppView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
+from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, AnnouncementView
@@ -332,6 +333,9 @@ urlpatterns = patterns(
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create', CenterAppView.as_view()),
+
+    # 文件上传
+    url(r'^files/upload$', ConsoleUploadFileView.as_view()),
 )
 
 

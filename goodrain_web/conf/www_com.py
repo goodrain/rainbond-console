@@ -26,17 +26,16 @@ GITLAB_ADMIN_NAME = "app"
 GITLAB_ADMIN_ID = 2
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES':
-    ('rest_framework.permissions.IsAuthenticated', ),
-    # 'DEFAULT_PERMISSION_CLASSES': (),
-    'DEFAULT_AUTHENTICATION_CLASSES':
-    ('rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-     'rest_framework.authentication.BasicAuthentication',
-     'rest_framework.authentication.TokenAuthentication', ),
-    'EXCEPTION_HANDLER':
-    'console.views.base.custom_exception_handler',
-    'PAGE_SIZE':
-    10
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+    'EXCEPTION_HANDLER': 'console.views.base.custom_exception_handler',
+    'PAGE_SIZE': 10
 }
 
 DATABASES = {
