@@ -27,11 +27,16 @@ IS_OPEN_API = False
 
 DEBUG = False
 
-conf_file = '{0}/conf/www_com.py'.format(SETTING_DIR)
+if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
+    REGION_TAG = "www_com"
 
-if os.path.exists('/etc/goodrain/console.py'):
-    execfile("/etc/goodrain/console.py")
-elif os.path.exists(conf_file):
+if REGION_TAG == "cloudbang":
+    conf_file = '/etc/goodrain/console.py'
+else:
+    conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR,
+                                         REGION_TAG.replace('-', '_'))
+
+if os.path.exists(conf_file):
     execfile(conf_file)
 else:
     raise Exception("config file not found: {}".format(conf_file))
