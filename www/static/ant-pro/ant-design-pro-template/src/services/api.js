@@ -2,6 +2,59 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 认证企业 */
+export async function authEnterprise(body = {
+  team_name,
+  enterprise_id,
+  market_client_id,
+  market_client_token
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/enterprise/active`, {
+    method: 'post',
+    data: {
+      enterprise_id: body.enterprise_id,
+      market_client_id: body.market_client_id,
+      market_client_token: body.market_client_token
+    }
+  });
+}
+
+/* 从云市同步应用的详细模板 */
+export async function syncMarketAppDetail(body = {
+  team_name,
+  body
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/apps/template_details`, {
+    method: 'post',
+    data: body.body
+  });
+}
+
+/* 查询所有同步的应用 */
+export async function getMarketApp(body = {
+  app_name,
+  page,
+  pageSize
+}) {
+  return request(config.baseUrl + `/console/app_market/all`, {
+    method: 'get',
+    params: {
+      app_name: body.app_name,
+      page: body.page,
+      page_size: body.pageSize
+    }
+  });
+}
+
+/*
+  从好雨云市同步应用
+*/
+export async function syncMarketApp(body = {
+  team_name
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/apps/all_apps`, {method: 'get'});
+}
+
 /*
    获取云帮的公共信息、配置信息
 */

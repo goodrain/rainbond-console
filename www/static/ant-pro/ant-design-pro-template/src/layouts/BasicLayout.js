@@ -102,9 +102,11 @@ class BasicLayout extends React.PureComponent {
                 },
                 callback: () => {
                     notification.success({message: `开通成功`});
+                    this.cancelOpenRegion();
                     this
                         .props
-                        .dispatch({type: 'user/fetchCurrent'})
+                        .dispatch({type: 'user/fetchCurrent'});
+
                 }
             })
     }

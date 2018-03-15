@@ -14,7 +14,8 @@ import {
     Input,
     Spin,
     Steps,
-    Radio
+    Radio,
+    notification
 } from 'antd';
 import ConfirmModal from '../../components/ConfirmModal';
 import Result from '../../components/Result';
@@ -95,25 +96,119 @@ class AuthForm extends PureComponent {
     }
 }
 
+@connect()
 class AppList extends PureComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            sync: false,
+            page: 1,
+            pageSize: 10,
+            app_name: '',
+            apps: [],
+            loading: true,
+            total: 0
+        }
+    }
+    componentDidMount = () => {
+        this.loadApps();
+    }
+    handleSync = () => {
+        this.setState({
+            sync: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/syncMarketApp',
+                    payload: {
+                        team_name: globalUtil.getCurrTeamName()
+                    },
+                    callback: (data) => {
+                        this.setState({
+                            sync: false
+                        }, () => {
+                            this.loadApps();
+                        })
+                    }
+                })
+        })
+    }
+    loadApps = () => {
+        this.setState({
+            loading: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/getMarketApp',
+                    payload: {
+                        app_name: this.state.app_name,
+                        page: this.state.page,
+                        pageSize: this.state.pageSize
+                    },
+                    callback: (data) => {
+                        this.setState({
+                            apps: data.list || [],
+                            loading: false,
+                            total: data.total
+                        })
+                    }
+                })
+        })
+    }
+    handlePageChange = (page) => {
+        this.setState({
+            page: page
+        }, () => {
+            this.loadApps();
+        })
+    }
+    handleSearch = (app_name) => {
+        this.setState({
+            app_name: app_name,
+            page: 1
+        }, () => {
+            this.loadApps();
+        })
+    }
+    handleLoadAppDetail = (data) => {
+        this
+            .props
+            .dispatch({
+                type: 'global/syncMarketAppDetail',
+                payload: {
+                    team_name: globalUtil.getCurrTeamName(),
+                    body: [
+                        {
+                            group_key: data.group_key,
+                            version: data.version
+                        }
+                    ]
+                },
+                callback: (data) => {
+                    notification.success({message: '操作成功'});
+                    this.loadApps();
+                }
+            })
+    }
     render() {
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
-                <RadioGroup defaultValue="all">
-                    <RadioButton value="all">全部</RadioButton>
-                    <RadioButton value="progress">已同步</RadioButton>
-                    <RadioButton value="waiting">未同步</RadioButton>
-                </RadioGroup>
                 <Search
                     className={BasicListStyles.extraContentSearch}
                     placeholder="请输入名称进行搜索"
-                    onSearch={() => ({})}/>
+                    onSearch={this.handleSearch}/>
             </div>
         );
 
         const paginationProps = {
-            pageSize: 5,
-            total: 0
+            pageSize: this.state.pageSize,
+            total: this.state.total,
+            current: this.state.page,
+            onChange: (pageSize) => {
+                this.handlePageChange(pageSize)
+            }
         };
 
         const ListContent = ({
@@ -140,22 +235,44 @@ class AppList extends PureComponent {
                     padding: '0 32px 40px 32px'
                 }}
                     extra={extraContent}>
-
+                    <Button
+                        disabled={this.state.sync}
+                        onClick={this.handleSync}
+                        type="dashed"
+                        style={{
+                        width: '100%',
+                        marginBottom: 8
+                    }}><Icon
+                        className={this.state.sync
+                ? 'roundloading'
+                : ''}
+                        type="sync"/>从好雨云市同步应用信息</Button>
                     <List
                         size="large"
                         rowKey="id"
-                        loading={false}
+                        loading={this.state.loading}
                         pagination={paginationProps}
-                        dataSource={[{}]}
+                        dataSource={this.state.apps}
                         renderItem={item => (
-                        <List.Item actions={[ < a > 编辑 < /a>]}>
+                        <List.Item
+                            actions={[item.is_complete
+                                ? <a
+                                        href="javascirpt:;"
+                                        onClick={() => {
+                                        this.handleLoadAppDetail(item)
+                                    }}>更新应用</a>
+                                : <a
+                                    href="javascirpt:;"
+                                    onClick={() => {
+                                    this.handleLoadAppDetail(item)
+                                }}>下载应用</a>]}>
                             <List.Item.Meta
                                 avatar={< Avatar src = {
-                                item.logo
+                                item.pic || require("../../../public/images/app_icon.jpg")
                             }
                             shape = "square" size = "large" />}
-                                title={"这是标题"}
-                                description={"这是描述"}/>
+                                title={item.group_name}
+                                description={item.describe || '-'}/>
                             <ListContent data={item}/>
                         </List.Item>
                     )}/>
@@ -175,24 +292,6 @@ class AppList extends PureComponent {
         }
     }
     componentDidMount() {}
-    handleOpenRegion = (regions) => {
-        const team_name = globalUtil.getCurrTeamName();
-        this
-            .props
-            .dispatch({
-                type: 'teamControl/openRegion',
-                payload: {
-                    team_name: team_name,
-                    region_names: regions.join(',')
-                },
-                callback: () => {
-                    this.fetchRegions();
-                    this
-                        .props
-                        .dispatch({type: 'user/fetchCurrent'})
-                }
-            })
-    }
     handleTakeInfo = () => {
         const {currUser} = this.props;
         this.setState({
@@ -201,24 +300,39 @@ class AppList extends PureComponent {
             window.open(`https://www.goodrain.com/#/check-console/${currUser.enterprise_id}`)
         })
     }
+    handleAuthEnterprise = (vals) => {
+        const {currUser} = this.props;
+        this
+            .props
+            .dispatch({
+                type: 'global/authEnterprise',
+                payload: {
+                    team_name: globalUtil.getCurrTeamName(),
+                    enterprise_id: currUser.enterprise_id,
+                    ...vals
+                },
+                callback: () => {
+
+                    this
+                        .props
+                        .dispatch({type: 'user/fetchCurrent'})
+                }
+            })
+    }
     renderContent = () => {
         const {currUser} = this.props;
         const {loading, isChecked} = this.state;
 
-        if (loading) {
-            return (
-                <Card
-                    style={{
-                    padding: '100px 0',
-                    textAlign: 'center'
-                }}>
-                    <Spin/>
-                </Card>
-            )
+        //不是系统管理员
+        if (!userUtil.isSystemAdmin(currUser)) {
+            this
+                .props
+                .dispatch(routerRedux.replace("/Exception/403"))
+            return null;
         }
 
         //如果未进行平台验证
-        if (!isChecked) {
+        if (currUser.is_enterprise_active !== 1) {
             const step = this.state.currStep;
             const extra = (
                 <div>
@@ -254,7 +368,7 @@ class AppList extends PureComponent {
                             ? 'block'
                             : 'none'
                     }}>
-                        <AuthForm/>
+                        <AuthForm onSubmit={this.handleAuthEnterprise}/>
                     </div>
                 </div>
             );
@@ -285,8 +399,8 @@ class AppList extends PureComponent {
         const pageHeaderContent = (
             <div className={styles.pageHeaderContent}>
                 <div className={styles.content}>
-
                     <div>将当前云帮平台和好雨云市进行互联，同步应用，插件，数据中心等资源</div>
+                    <div>应用下载完成后，方可在 创建应用->从云市安装 中看到</div>
                 </div>
             </div>
         );

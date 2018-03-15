@@ -32,6 +32,7 @@ import StandardFormRow from '../../components/StandardFormRow';
 import TagSelect from '../../components/TagSelect';
 import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
+import Ellipsis from '../../components/Ellipsis';
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
@@ -130,6 +131,16 @@ export default class Main extends PureComponent {
     const {form} = this.props;
     const {getFieldDecorator} = form;
     const list = this.state.list;
+    const title = (item) => {
+      return <div
+        title={item.group_name || ''}
+        style={{
+        maxWidth: '200px',
+        overflow: 'hidden'
+      }}>
+        {item.group_name || ''}
+      </div>
+    }
     var formItemLayout = {};
     const cardList = list
       ? (
@@ -155,7 +166,7 @@ export default class Main extends PureComponent {
               <Card
                 className={styles.card}
                 hoverable
-                cover={< img style = {{width: 'auto', margin:' 0 auto'}}alt = {
+                cover={< img style = {{maxWidth: 254, width: 'auto', margin:' 0 auto'}}alt = {
                 item.title
               }
               src = {
@@ -168,9 +179,7 @@ export default class Main extends PureComponent {
                   onClick={() => {
                   this.showCreate(item)
                 }}
-                  title={< a href = "javascript:;" > {
-                  item.group_name
-                } < /a>}
+                  title={title(item)}
                   description={item.describe}/>
               </Card>
             </List.Item>
