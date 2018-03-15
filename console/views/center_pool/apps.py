@@ -212,8 +212,8 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            # if not self.user.is_sys_admin:
-            #     return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            if not self.user.is_sys_admin:
+                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps")
             apps = market_app_service.get_all_goodrain_market_apps()
             paginator = JuncheePaginator(apps, int(page_size))
