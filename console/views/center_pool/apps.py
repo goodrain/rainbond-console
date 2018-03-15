@@ -130,7 +130,7 @@ class CenterAppManageView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
-             - name: action
+            - name: action
               description: 操作类型 online|offline
               required: true
               type: string

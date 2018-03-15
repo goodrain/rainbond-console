@@ -349,7 +349,7 @@ class MarketAppService(object):
 
     def get_all_goodrain_market_apps(self,app_name):
         if app_name:
-            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain",group_name__contains=app_name)
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain",group_name__icontains=app_name)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
 
 
@@ -552,7 +552,8 @@ class AppMarketSynchronizeService(object):
                     share_team="",
                     source="market",
                     scope="goodrain",
-                    describe="",
+                    describe=app_group["info"],
+                    pic=app_group["pic"],
                     app_template=""
                 )
                 rainbond_apps.append(rainbond_app)
