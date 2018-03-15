@@ -261,7 +261,7 @@ class MarketAppService(object):
         tenant_service.service_type = "application"
         tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
         tenant_service.volume_mount_path = ""
-        tenant_service.host_path = "/grdata/tenant/" + tenant_id + "/service/" + tenant_service.service_id
+        tenant_service.host_path = ""
         tenant_service.code_from = ""
         tenant_service.language = ""
         tenant_service.service_source = AppConstants.MARKET
