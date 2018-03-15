@@ -395,7 +395,7 @@ class MarketTemplateTranslateService(object):
         if slug:
             new_app["language"] = ""
             service_slug = self.__generate_slug_info()
-            share_slug_path = slug.replace("/app_publish/", "")
+            share_slug_path = slug
         else:
             service_image["hub_url"] = "hub.goodrain.com"
             service_image["namespace"] = "goodrain"
@@ -526,8 +526,8 @@ class MarketTemplateTranslateService(object):
     def __generate_slug_info(self):
         service_slug = dict()
         service_slug["ftp_host"] = "139.196.88.57"
-        service_slug["ftp_port"] = "10021"
-        service_slug["ftp_username"] = "goodrain-admin"
+        service_slug["ftp_port"] = "10022"
+        service_slug["ftp_username"] = "goodrain"
         service_slug["ftp_password"] = "goodrain123465"
         service_slug["namespace"] = "app-publish/"
         return service_slug
