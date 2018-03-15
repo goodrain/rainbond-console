@@ -29,7 +29,7 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
-    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView
+    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
@@ -342,6 +342,8 @@ urlpatterns = patterns(
 
     # 查询同步的所有app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    # 下架应用
+    url(r'^app_market/manage$', CenterAppManageView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),

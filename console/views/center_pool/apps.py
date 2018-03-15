@@ -117,6 +117,50 @@ class CenterAppView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
+class CenterAppManageView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        应用上下线
+        ---
+        parameters:
+            - name: app_id
+              description: rainbond app id
+              required: true
+              type: string
+              paramType: form
+             - name: action
+              description: 操作类型 online|offline
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            if not self.user.is_sys_admin:
+                return Response(general_message(403, "you are not admin", "此操作需平台管理员才能操作"), status=403)
+            app_id = request.data.get("app_id", None)
+            action = request.data.get("action", None)
+            if not app_id:
+                return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
+            if not action:
+                return Response(general_message(400, "action is not specified", "操作类型未指定"), status=400)
+            if action not in ("online", "offline"):
+                return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
+            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
+            if not app:
+                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+            if action == "online":
+                app.is_complete = True
+            else:
+                app.is_complete = False
+            app.save()
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 class DownloadMarketAppGroupView(RegionTenantHeaderView):
     @never_cache
     @perm_required("app_download")
