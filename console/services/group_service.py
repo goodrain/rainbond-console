@@ -5,6 +5,7 @@
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.app import service_repo
 import logging
+import re
 
 logger = logging.getLogger("default")
 
@@ -13,9 +14,20 @@ class GroupService(object):
     def get_tenant_groups_by_region(self, tenant, region_name):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
+    def check_group_name(self, group_name):
+        if len(group_name) > 10:
+            return False, u"组名称最多支持10个字符"
+        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+        if not r.match(group_name.decode("utf-8")):
+            return False, u"组名称只支持中英文下划线和中划线"
+        return True, u"success"
+
     def add_group(self, tenant, region_name, group_name):
         if not group_name:
             return 400, u"组名不能为空", None
+        is_pass, msg = self.check_group_name(group_name)
+        if not is_pass:
+            return 400, msg, None
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
         if group:
             return 409, u"组名{0}已存在".format(group_name), None
