@@ -211,8 +211,7 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
-            group_data = request.data["body"]
-            group_data = json.loads(group_data)
+            group_data = request.data
             data_list = []
             for d in group_data:
                 data_list.append("{0}:{1}".format(d["group_key"], d["version"]))
