@@ -37,6 +37,11 @@ class TenantServiceInfoRepository(object):
     def get_services_by_raw_sql(self, raw_sql):
         return TenantServiceInfo.objects.raw(raw_sql)
 
+    def get_service_by_tenant_and_alias(self, tenant_id, service_alias):
+        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
+        if services:
+            return services[0]
+        return None
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):

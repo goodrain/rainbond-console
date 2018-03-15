@@ -8,23 +8,38 @@ from django.views.decorators.cache import never_cache
 from console.services.region_services import region_services
 from www.utils.md5Util import md5fun
 from www.utils.url import get_redirect_url
-from www.views import AuthedView
+from console.repositories.team_repo import team_repo
+from console.repositories.app import service_repo
 import logging
 from django.conf import settings
+from django.views.generic import View
+from django import http
 
 logger = logging.getLogger("default")
 
 
-class DockerContainerView(AuthedView):
-    def get_media(self):
-        media = super(DockerContainerView, self).get_media()
-        return media
+class DockerContainerView(View):
 
     @never_cache
     def get(self, request, *args, **kwargs):
-        context = self.get_context()
+
+        self.tenantName = kwargs.get('tenantName', None)
+        self.serviceAlias = kwargs.get('serviceAlias', None)
+        tenant = team_repo.get_team_by_team_name(self.tenantName)
+        if tenant:
+            self.tenant = tenant
+        else:
+            raise http.Http404
+
+        service = service_repo.get_service_by_tenant_and_alias(self.tenant.tenant_id,self.serviceAlias)
+        if service:
+            self.service = service
+        else:
+            raise http.Http404
+
+        context = dict()
         response = redirect(
-            get_redirect_url("/apps/{0}/{1}/detail/".format(self.tenantName, self.serviceAlias), request))
+            get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
         try:
             docker_c_id = request.COOKIES.get('docker_c_id', '')
             docker_h_id = request.COOKIES.get('docker_h_id', '')

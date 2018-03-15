@@ -35,8 +35,9 @@ class RainbondCenterApp(BaseModel):
 
     class Meta:
         db_table = "rainbond_center_app"
+        unique_together = ('group_key', 'version')
 
-    group_key = models.CharField(max_length=32, unique=True, help_text=u"应用包")
+    group_key = models.CharField(max_length=32, help_text=u"应用包")
     group_name = models.CharField(max_length=64, help_text=u"应用包名")
     share_user = models.IntegerField(help_text=u"分享人id")
     record_id = models.IntegerField(max_length=11, help_text=u"分享流程id，控制一个分享流程产出一个实体")
@@ -44,7 +45,7 @@ class RainbondCenterApp(BaseModel):
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
     pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
-    version = models.CharField(max_length=20, unique=True, help_text=u"版本")
+    version = models.CharField(max_length=20, help_text=u"版本")
     scope = models.CharField(max_length=10, choices=app_scope, help_text=u"可用范围")
     describe = models.CharField(max_length=400, null=True, blank=True, help_text=u"云市应用描述信息")
     app_template = models.TextField(help_text=u"全量应用与插件配置信息")
