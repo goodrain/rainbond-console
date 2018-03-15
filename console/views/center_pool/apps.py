@@ -14,6 +14,7 @@ import logging
 from console.services.market_app_service import market_app_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
+import json
 
 logger = logging.getLogger('default')
 
@@ -211,8 +212,7 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
             group_data = request.data["body"]
-            logger.debug("group_data ======> {0}".format(group_data))
-            # group_data = json.loads(group_data)
+            group_data = json.loads(group_data)
             data_list = []
             for d in group_data:
                 data_list.append("{0}:{1}".format(d["group_key"], d["version"]))
