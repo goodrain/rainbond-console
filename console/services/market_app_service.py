@@ -347,7 +347,9 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
-    def get_all_goodrain_market_apps(self):
+    def get_all_goodrain_market_apps(self,app_name):
+        if app_name:
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain",group_name__contains=app_name)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
 
 
