@@ -95,7 +95,7 @@ class TeamRepo(object):
         if not team:
             return None
         else:
-            return team
+            return team[0]
 
     def get_teams_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
