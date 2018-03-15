@@ -9,11 +9,11 @@ logger = logging.getLogger("default")
 class TenantEnterpriseRepo(object):
 
     def get_enterprise_by_enterprise_name(self, enterprise_name):
-        enterprise = TenantEnterprise.objects.get(enterprise_name=enterprise_name)
+        enterprise = TenantEnterprise.objects.filter(enterprise_name=enterprise_name)
         if not enterprise:
             return None
         else:
-            return enterprise
+            return enterprise[0]
 
     def get_enterprise_first(self):
         """
@@ -27,11 +27,11 @@ class TenantEnterpriseRepo(object):
             return enterprise
 
     def get_enterprise_by_enterprise_id(self, enterprise_id, exception=True):
-        enterprise = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id)
         if not enterprise:
             return None
         else:
-            return enterprise
+            return enterprise[0]
 
 
 enterprise_repo = TenantEnterpriseRepo()
