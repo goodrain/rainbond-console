@@ -33,6 +33,7 @@ from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppG
 from console.views.center_pool.apps import CenterAppView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
+from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
@@ -344,6 +345,8 @@ urlpatterns = patterns(
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
+    # 云市认证
+    url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
 )
 
 

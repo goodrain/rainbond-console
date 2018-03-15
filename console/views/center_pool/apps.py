@@ -188,16 +188,6 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         查询从公有云同步的应用
         ---
         parameters:
-            - name: scope
-              description: 范围
-              required: false
-              type: string
-              paramType: query
-            - name: app_name
-              description: 应用名字
-              required: false
-              type: string
-              paramType: query
             - name: page
               description: 当前页
               required: true

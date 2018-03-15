@@ -351,7 +351,6 @@ class MarketAppService(object):
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
 
 
-
 class MarketTemplateTranslateService(object):
     def v1_to_v2(self, old_templete, region=""):
         """旧版本模板转换为新版本数据"""
@@ -394,12 +393,12 @@ class MarketTemplateTranslateService(object):
         if slug:
             new_app["language"] = ""
             service_slug = self.__generate_slug_info()
-            share_slug_path = slug.replace("/app_publish/","")
+            share_slug_path = slug.replace("/app_publish/", "")
         else:
             service_image["hub_url"] = "hub.goodrain.com"
             service_image["namespace"] = "goodrain"
             # 云市镜像存储
-            new_app["share_image"] = app["image"].replace("goodrain.me","hub.goodrain.com/goodrain")
+            new_app["share_image"] = app["image"].replace("goodrain.me", "hub.goodrain.com/goodrain")
         if share_slug_path:
             new_app["share_slug_path"] = share_slug_path
         new_app["service_image"] = service_image
@@ -489,7 +488,7 @@ class MarketTemplateTranslateService(object):
                 } for volume in volumes
                 ]
         else:
-            volume_mount_path = app.get("volume_mount_path",None)
+            volume_mount_path = app.get("volume_mount_path", None)
             if volume_mount_path:
                 service_volume_map_list.append({
                     "category": app["category"],
@@ -531,7 +530,7 @@ class MarketTemplateTranslateService(object):
         service_slug["namespace"] = "app-publish/"
         return service_slug
 
-    def v2_to_v1(self):
+    def v2_to_v1(self, new_template):
         """新版本模板转换为旧版本模板"""
         pass
 
@@ -586,6 +585,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.save()
+
 
 market_app_service = MarketAppService()
 template_transform_service = MarketTemplateTranslateService()
