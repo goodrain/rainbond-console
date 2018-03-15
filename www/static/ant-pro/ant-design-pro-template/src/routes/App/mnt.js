@@ -30,6 +30,7 @@ import AddRelationMnt from '../../components/AddRelationMnt';
 const FormItem = Form.Item;
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
+import ScrollerX from '../../components/ScrollerX';
 
 @Form.create()
 class AddVolumes extends PureComponent {
@@ -286,6 +287,7 @@ export default class Index extends PureComponent {
           marginBottom: 24
         }}
           title={< span > 持久化设置 < /span>}>
+          <ScrollerX minWidth={650}>
           <Table
             pagination={false}
             columns={[
@@ -311,6 +313,7 @@ export default class Index extends PureComponent {
             }
           ]}
             dataSource={volumes}/>
+          </ScrollerX>
           <div
             style={{
             marginTop: 10,
@@ -320,6 +323,7 @@ export default class Index extends PureComponent {
           </div>
         </Card>
         <Card title={< span > 文件存储 < /span>}>
+          <ScrollerX minWidth={850}>
           <Table
             pagination={false}
             columns={[
@@ -360,6 +364,7 @@ export default class Index extends PureComponent {
             }
           ]}
             dataSource={mntList}/>
+          </ScrollerX>
           <div
             style={{
             marginTop: 10,

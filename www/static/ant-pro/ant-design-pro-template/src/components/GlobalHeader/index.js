@@ -19,6 +19,7 @@ import HeaderSearch from '../HeaderSearch';
 import styles from './index.less';
 import cookie from '../../utils/cookie';
 import userIcon from '../../../public/images/user-icon-small.png';
+import ScrollerX from '../../components/ScrollerX';
 
 const {Header} = Layout;
 
@@ -202,12 +203,16 @@ export default class GlobalHeader extends PureComponent {
                     onClick={this.toggle}/>
 
                 <div className={styles.teamregion}>
+
                     <span className={styles.tit}>团队:</span>
                     <Dropdown overlay={this.renderTeams()}>
                         <a className={styles.dropdown}>
+                            <span className={styles.smShow}>团队</span>
+                            <span className={styles.smHidden}>
                             {this.getCurrTeamTit()
 }
                             <Icon type="down"/>
+                            </span>
                         </a>
                     </Dropdown>
                     <Divider
@@ -218,9 +223,12 @@ export default class GlobalHeader extends PureComponent {
                     <span className={styles.tit}>数据中心:</span>
                     <Dropdown overlay={this.renderRegions()}>
                         <a className={styles.dropdown}>
+                            <span className={styles.smShow}>数据中心</span>
+                            <span className={styles.smHidden}>
                             {this.getCurrRegionTit()
 }
                             <Icon type="down"/>
+                            </span>
                         </a>
                     </Dropdown>
                 </div>

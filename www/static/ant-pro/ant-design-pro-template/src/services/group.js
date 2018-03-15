@@ -27,7 +27,8 @@ export async function getGroupApps(body = {
 						group_id: body.group_id,
 						page: body.page,
 						page_size: body.page_size
-				}
+				},
+				showLoading: false
 		});
 }
 

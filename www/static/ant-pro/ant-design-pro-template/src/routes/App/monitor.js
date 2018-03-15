@@ -39,7 +39,8 @@ import regionUtil from '../../utils/region';
 
 const ButtonGroup = Button.Group;
 const {RangePicker} = DatePicker;
-import monitorDataUtil from '../../utils/monitorDataUtil'
+import monitorDataUtil from '../../utils/monitorDataUtil';
+import ScrollerX from '../../components/ScrollerX';
 
 class Empty extends PureComponent {
   render() {
@@ -521,6 +522,7 @@ class MonitorNow extends PureComponent {
           </Col>
         </Row>
         <Card title="过去5分钟耗时最多的URL排行">
+          <ScrollerX minWidth={700}>
           <Table
             columns={[
             {
@@ -546,7 +548,9 @@ class MonitorNow extends PureComponent {
           ]}
             pagination={false}
             dataSource={this.state.logs}/>
+        </ScrollerX>
         </Card>
+        
       </Fragment>
     )
   }

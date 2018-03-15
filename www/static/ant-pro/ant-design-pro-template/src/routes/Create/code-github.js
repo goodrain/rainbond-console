@@ -6,6 +6,7 @@ import rainbondUtil from '../../utils/rainbond';
 import globalUtil from '../../utils/global';
 import {getGithubInfo} from '../../services/team';
 import CodeGithubForm from '../../components/CodeGithubForm';
+import styles from './Index.less';
 
 
 @connect(({ user, global }) => ({
@@ -69,7 +70,7 @@ export default class Index extends PureComponent {
 		return (
 			<Card
 			>
-				<div style={{width: 500, margin: '0 auto'}}>
+				<div className={styles.formWrap}>
 
 				{
 					(!is_auth) ? 

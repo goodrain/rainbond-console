@@ -108,10 +108,7 @@ export default class Index extends PureComponent {
 
 				return (
 						<Card >
-								<div style={{
-										width: 500,
-										margin: '0 auto'
-								}}>
+								<div className={styles.formWrap}>
 										<ImageCmdForm onSubmit={this.handleSubmit}/>
 								</div>
 						</Card>
