@@ -18,5 +18,14 @@ class RainbondCenterAppRepository(object):
     def get_complete_rainbond_apps(self):
         return RainbondCenterApp.objects.filter(is_complete=True)
 
+    def get_rainbond_app_by_key_and_version(self, group_key, group_version):
+        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version)
+        if rcapps:
+            return rcapps[0]
+        return None
+
+    def bulk_create_rainbond_apps(self, rainbond_apps):
+        RainbondCenterApp.objects.bulk_create(rainbond_apps)
+
 
 rainbond_app_repo = RainbondCenterAppRepository()

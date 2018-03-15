@@ -13,6 +13,8 @@ from www.utils.return_message import general_message, error_message
 import logging
 from console.services.market_app_service import market_app_service
 from console.services.group_service import group_service
+from console.services.market_app_service import market_sycn_service
+import json
 
 logger = logging.getLogger('default')
 
@@ -21,7 +23,7 @@ class CenterAppListView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):
         """
-        获取市场应用
+        获取本地市场应用
         ---
         parameters:
             - name: scope
@@ -109,6 +111,70 @@ class CenterAppView(RegionTenantHeaderView):
                                 status=412)
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
             logger.debug("market app create success")
+            result = general_message(200, "success", "创建成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class DownloadMarketAppGroupView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("app_download")
+    def get(self, request, *args, **kwargs):
+        """
+        同步下载云市组概要模板到云帮
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            if not self.user.is_sys_admin:
+                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            logger.debug("start synchronized market apps")
+            market_sycn_service.down_market_group_list(self.tenant)
+            result = general_message(200, "success", "创建成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("app_download")
+    def post(self, request, *args, **kwargs):
+        """
+        同步下载云市组详情模板到云帮
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: body
+              description: 需要同步的应用[{"group_key":"xxxxxxx","version":"xxxxxx"}]
+              required: true
+              type: string
+              paramType: body
+        """
+        try:
+            if not self.user.is_sys_admin:
+                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            logger.debug("start synchronized market apps detail")
+            group_data = request.data["body"]
+            logger.debug("group_data ======> {0}".format(group_data))
+            # group_data = json.loads(group_data)
+            data_list = []
+            for d in group_data:
+                data_list.append("{0}:{1}".format(d["group_key"], d["version"]))
+
+            market_sycn_service.batch_down_market_group_app_details(self.tenant, data_list)
             result = general_message(200, "success", "创建成功")
         except Exception as e:
             logger.exception(e)

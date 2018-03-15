@@ -28,7 +28,8 @@ from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, 
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
-from console.views.center_pool.apps import CenterAppListView
+from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
+    DownloadMarketAppGroupTemplageDetailView
 from console.views.center_pool.apps import CenterAppView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
@@ -332,7 +333,11 @@ urlpatterns = patterns(
 
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create', CenterAppView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
+
+    # 好雨云市应用同步
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),

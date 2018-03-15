@@ -49,6 +49,8 @@ class AppPortService(object):
         code, msg = self.check_port(service, container_port)
         if code != 200:
             return code, msg, None
+        if not port_alias:
+            port_alias = service.service_alias.upper()+str(container_port)
         code, msg = self.check_port_alias(port_alias)
         if code != 200:
             return code, msg, None

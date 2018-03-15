@@ -2,28 +2,34 @@
 """
   Created on 18/3/5.
 """
+import datetime
+import json
+import logging
+
+from django.db.models import Q
+
 from console.constants import AppConstants
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.team_repo import team_repo
-from django.db.models import Q
-import logging
-import json
-import datetime
-from console.repositories.app import service_source_repo
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service
+from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.group_service import group_service
+from console.utils.timeutil import current_time_str
+from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.services.group_service import group_service
-from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service
-from console.services.app import app_service
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.services.app_actions import app_manage_service
-from console.repositories.group import tenant_service_group_repo
-from console.repositories.app_config import extend_repo
+from console.models.main import RainbondCenterApp
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
+market_api = MarketOpenAPI()
 
 
 class MarketAppService(object):
@@ -216,7 +222,8 @@ class MarketAppService(object):
         """
         初始化应用市场创建的应用默认数据
         """
-        is_slug = bool(app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+        is_slug = bool(
+            app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
 
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant_id
@@ -241,7 +248,7 @@ class MarketAppService(object):
         tenant_service.inner_port = 0
         tenant_service.version = app["version"]
         if is_slug:
-            if app.get("service_slug",None):
+            if app.get("service_slug", None):
                 tenant_service.namespace = app["service_slug"]["namespace"]
         else:
             if app.get("service_image", None):
@@ -341,4 +348,232 @@ class MarketAppService(object):
         return 200, app
 
 
+class MarketTemplateTranslateService(object):
+    def v1_to_v2(self, old_templete, region=""):
+        """旧版本模板转换为新版本数据"""
+        new_templet = dict()
+        # 服务组的基础信息
+        new_templet["group_version"] = old_templete["group_version"]
+        new_templet["group_name"] = old_templete["group_name"]
+        new_templet["group_key"] = old_templete["group_key"]
+        new_templet["templete_version"] = "v2"
+        new_templet["describe"] = old_templete["info"]
+        new_templet["pic"] = old_templete["pic"]
+        # process apps
+        apps = old_templete["apps"]
+        new_apps = []
+        for app in apps:
+            new_apps.append(self.__v1_2_v2_translate_app(app, region))
+        new_templet["apps"] = new_apps
+        new_templet["share_user"] = 0
+        new_templet["share_team"] = ""
+        if new_apps:
+            new_templet["share_user"] = new_apps[0]["creater"]
+            tenant_id = new_apps[0]["tenant_id"]
+            team = team_repo.get_team_by_team_id(tenant_id)
+            if team:
+                new_templet["share_team"] = team.tenant_name
+        return new_templet
+
+    def __v1_2_v2_translate_app(self, app, region):
+
+        new_app = dict()
+        new_app["service_type"] = app["service_type"]
+        new_app["service_cname"] = app["service_name"]
+        new_app["deploy_version"] = current_time_str("%Y%m%d%H%M%S")
+        # 老版本如果slug信息有值，则
+        slug = app.get("slug", None)
+        new_app["language"] = ""
+        service_image = {}
+        service_slug = {}
+        share_slug_path = ""
+        if slug:
+            new_app["language"] = ""
+            service_slug = self.__generate_slug_info()
+            share_slug_path = slug.replace("/app_publish/","")
+        else:
+            service_image["hub_url"] = "hub.goodrain.com"
+            service_image["namespace"] = "goodrain"
+            # 云市镜像存储
+            new_app["share_image"] = app["image"].replace("goodrain.me","hub.goodrain.com/goodrain")
+        if share_slug_path:
+            new_app["share_slug_path"] = share_slug_path
+        new_app["service_image"] = service_image
+        new_app["service_slug"] = service_slug
+        new_app["version"] = app["version"]
+        new_app["need_share"] = True
+        new_app["service_key"] = app["service_key"]
+        new_app["service_alias"] = "gr" + app["service_key"][-6:]
+        new_app["extend_method"] = app["extend_method"]
+        category = app["category"]
+        new_app["category"] = category
+        new_app["service_source"] = "source_code" if category == "appliaction" else "market"
+        new_app["creater"] = app["creater"]
+        new_app["tenant_id"] = app.get("tenant_id", "")
+        new_app["service_region"] = region
+        new_app["service_id"] = ""
+        new_app["memory"] = app["min_memory"]
+        new_app["image"] = app["image"]
+        new_app["plugin_map_list"] = []
+        new_app["probes"] = []
+        # 扩展信息
+        new_app["extend_method_map"] = self.__v1_2_v2_extends_info(app)
+        # 依赖信息
+        new_app["dep_service_map_list"] = self.__v1_2_v2_dependencies(app)
+        # 端口信息
+        new_app["port_map_list"] = self.__v1_2_v2_ports(app)
+        # 持久化信息
+        new_app["service_volume_map_list"] = self.__v1_2_v2_volumes(app)
+        # 环境变量信息
+        service_env_map_list, service_connect_info_map_list = self.__v1_2_v2_envs(app)
+        new_app["service_env_map_list"] = service_env_map_list
+        new_app["service_connect_info_map_list"] = service_connect_info_map_list
+        return new_app
+
+    def __v1_2_v2_extends_info(self, app):
+        extends_info_list = app["extends"]
+        extend_method_map = {}
+        if extends_info_list:
+            extends_info = extends_info_list[0]
+            extend_method_map["min_node"] = extends_info["min_node"]
+            extend_method_map["max_memory"] = extends_info["max_memory"]
+            extend_method_map["step_node"] = extends_info["step_node"]
+            extend_method_map["max_node"] = extends_info["max_node"]
+            extend_method_map["step_memory"] = extends_info["step_memory"]
+            extend_method_map["min_memory"] = extends_info["min_memory"]
+            extend_method_map["is_restart"] = extends_info["is_restart"]
+        else:
+            extend_method_map["min_node"] = 1
+            extend_method_map["max_memory"] = 65536
+            extend_method_map["step_node"] = 1
+            extend_method_map["max_node"] = 20
+            extend_method_map["step_memory"] = 128
+            extend_method_map["min_memory"] = 512
+            extend_method_map["is_restart"] = False
+        return extend_method_map
+
+    def __v1_2_v2_dependencies(self, app):
+        dep_service_list = []
+        dep_relations = app["dep_relations"]
+        if dep_relations:
+            dep_service_list = [{"dep_service_key": dep["dep_service_key"]} for dep in dep_relations]
+        return dep_service_list
+
+    def __v1_2_v2_ports(self, app):
+        port_map_list = []
+        ports = app["ports"]
+        if ports:
+            port_map_list = [
+                {"is_outer_service": port["is_outer_service"],
+                 "protocol": port["protocol"],
+                 "port_alias": port["port_alias"],
+                 "is_inner_service": port["is_inner_service"],
+                 "container_port": port["container_port"]}
+                for port in ports]
+        return port_map_list
+
+    def __v1_2_v2_volumes(self, app):
+        service_volume_map_list = []
+        volumes = app["volumes"]
+        if volumes:
+            service_volume_map_list = [
+                {
+                    "category": volume["category"],
+                    "volume_path": volume["volume_path"],
+                    "volume_type": volume["volume_type"],
+                    "volume_name": volume["volume_name"]
+                } for volume in volumes
+                ]
+        return service_volume_map_list
+
+    def __v1_2_v2_envs(self, app):
+        service_env_map_list = []
+        service_connect_info_map_list = []
+        envs = app["envs"]
+        if envs:
+            for env in envs:
+
+                if env["scope"] == "inner":
+                    service_env_map_list.append({
+                        "name": env["name"] if env["name"] else env["attr_name"],
+                        "attr_name": env["attr_name"],
+                        "is_change": env["is_change"],
+                        "attr_value": env["attr_value"]
+                    })
+                else:
+                    service_connect_info_map_list.append({
+                        "name": env["name"] if env["name"] else env["attr_name"],
+                        "attr_name": env["attr_name"],
+                        "is_change": env["is_change"],
+                        "attr_value": env["attr_value"]
+                    })
+        return service_env_map_list, service_connect_info_map_list
+
+    def __generate_slug_info(self):
+        service_slug = dict()
+        service_slug["ftp_host"] = "139.196.88.57"
+        service_slug["ftp_port"] = "10021"
+        service_slug["ftp_username"] = "goodrain-admin"
+        service_slug["ftp_password"] = "goodrain123465"
+        service_slug["namespace"] = "app-publish/"
+        return service_slug
+
+    def v2_to_v1(self):
+        """新版本模板转换为旧版本模板"""
+        pass
+
+
+class AppMarketSynchronizeService(object):
+    def down_market_group_list(self, tenant):
+        app_group_list = market_api.get_service_group_list(tenant.tenant_id)
+        rainbond_apps = []
+        for app_group in app_group_list:
+            if not self.is_group_exist(app_group["group_key"], app_group["group_version"]):
+                rainbond_app = RainbondCenterApp(
+                    group_key=app_group["group_key"],
+                    group_name=app_group["group_name"],
+                    version=app_group['group_version'],
+                    share_user=0,
+                    record_id=0,
+                    share_team="",
+                    source="market",
+                    scope="goodrain",
+                    describe="",
+                    app_template=""
+                )
+                rainbond_apps.append(rainbond_app)
+        rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
+
+    def is_group_exist(self, group_key, group_version):
+        if rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version):
+            return True
+        return False
+
+    def batch_down_market_group_app_details(self, tenant, data):
+        app_group_detail_templates = market_api.batch_get_group_details(tenant.tenant_id, data)
+        logger.debug("=====> {0}".format(app_group_detail_templates))
+        for app_templates in app_group_detail_templates:
+            self.save_market_app_template(app_templates)
+
+    def down_market_group_app_detail(self, tenant, group_key, group_version):
+        data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version)
+        logger.debug("=======> {0}".format(data))
+        self.save_market_app_template(data)
+
+    def save_market_app_template(self, app_templates):
+        v2_template = template_transform_service.v1_to_v2(app_templates)
+        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(v2_template["group_key"],
+                                                                             v2_template["group_version"])
+        if rainbond_app:
+            rainbond_app.share_user = v2_template["share_user"]
+            rainbond_app.share_team = v2_template["share_team"]
+            rainbond_app.pic = v2_template["pic"]
+            rainbond_app.describe = v2_template["describe"]
+            rainbond_app.app_template = json.dumps(v2_template)
+            rainbond_app.is_complete = True
+            rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app.save()
+
 market_app_service = MarketAppService()
+template_transform_service = MarketTemplateTranslateService()
+market_sycn_service = AppMarketSynchronizeService()
