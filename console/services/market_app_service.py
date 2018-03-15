@@ -484,6 +484,15 @@ class MarketTemplateTranslateService(object):
                     "volume_name": volume["volume_name"]
                 } for volume in volumes
                 ]
+        else:
+            volume_mount_path = app.get("volume_mount_path",None)
+            if volume_mount_path:
+                service_volume_map_list.append({
+                    "category": app["category"],
+                    "volume_path": volume_mount_path,
+                    "volume_type": "share-file",
+                    "volume_name": make_uuid()[:7]
+                })
         return service_volume_map_list
 
     def __v1_2_v2_envs(self, app):
