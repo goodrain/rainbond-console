@@ -347,6 +347,10 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
+    def get_all_goodrain_market_apps(self):
+        return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
+
+
 
 class MarketTemplateTranslateService(object):
     def v1_to_v2(self, old_templete, region=""):

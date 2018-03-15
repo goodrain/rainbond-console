@@ -14,7 +14,6 @@ import logging
 from console.services.market_app_service import market_app_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
-import json
 
 logger = logging.getLogger('default')
 
@@ -176,6 +175,57 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
 
             market_sycn_service.batch_down_market_group_app_details(self.tenant, data_list)
             result = general_message(200, "success", "创建成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class CenterAllMarketAppView(RegionTenantHeaderView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        """
+        查询从公有云同步的应用
+        ---
+        parameters:
+            - name: scope
+              description: 范围
+              required: false
+              type: string
+              paramType: query
+            - name: app_name
+              description: 应用名字
+              required: false
+              type: string
+              paramType: query
+            - name: page
+              description: 当前页
+              required: true
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页大小,默认为10
+              required: true
+              type: string
+              paramType: query
+        """
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        try:
+            # if not self.user.is_sys_admin:
+            #     return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            logger.debug("start synchronized market apps")
+            apps = market_app_service.get_all_goodrain_market_apps()
+            paginator = JuncheePaginator(apps, int(page_size))
+            show_apps = paginator.page(int(page))
+            app_list = []
+            for app in show_apps:
+                app_bean = app.to_dict()
+                app_bean.pop("app_template")
+                app_list.append(app_bean)
+
+            result = general_message(200, "success", "查询成功", list=app_list, total=paginator.count,
+                                     next_page=int(page) + 1)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

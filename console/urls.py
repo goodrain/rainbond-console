@@ -29,7 +29,7 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
-    DownloadMarketAppGroupTemplageDetailView
+    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView
 from console.views.center_pool.apps import CenterAppView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
@@ -338,6 +338,9 @@ urlpatterns = patterns(
     # 好雨云市应用同步
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
+
+    # 查询同步的所有app
+    url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
