@@ -82,7 +82,7 @@ MODULES = {
     "Publish_YunShi": True,
     "Publish_Service": False,
     "Privite_Github": False,
-    "SSO_LOGIN": False,
+    "SSO_LOGIN": True,
 }
 
 if MODULES["SSO_LOGIN"]:
