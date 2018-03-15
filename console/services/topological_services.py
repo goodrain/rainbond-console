@@ -142,11 +142,11 @@ class TopologicalService(object):
                     except Exception as e:
                         logger.exception(e)
                         outer_service['port'] = '-1'
-                elif port.protocol == 'http':
+                elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
                     httpdomain = region_services.get_region_httpdomain(service_region)
                     outer_service = {
-                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name,
+                        "domain": "{0}.{1}.{2}".format(service_alias, tenant_name,
                                                       httpdomain),
                         "port": 10080
                     }
@@ -159,12 +159,9 @@ class TopologicalService(object):
                 if outer_service['port'] == '-1':
                     port_info['outer_url'] = 'query error!'
                 else:
-                    if service.port_type == "multi_outer":
-                        if port.protocol == "http":
-                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
-                                                                          outer_service['port'])
-                        else:
-                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                    if port.protocol == "http":
+                        port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
+                                                                      outer_service['port'])
                     else:
                         port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
             # 自定义域名
@@ -287,13 +284,9 @@ class TopologicalService(object):
                     if outer_service['port'] == '-1':
                         port_info['outer_url'] = 'query error!'
                     else:
-                        if service_info.port_type == "multi_outer":
-                            if port.protocol == "http":
-                                port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
-                                                                              outer_service['domain'],
-                                                                              outer_service['port'])
-                            else:
-                                port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],
+                        if port.protocol == "http":
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
+                                                                          outer_service['domain'],
                                                                           outer_service['port'])
                         else:
                             port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],

@@ -110,11 +110,11 @@ class AppPortService(object):
             if port_info.protocol != 'http' and port_info.protocol != "https":
                 cur_region = service_region.replace("-1", "")
                 tcpdomain = region_services.get_region_tcpdomain(region_name=cur_region)
-                domain = "{0}.{1}.{2}.{3}".format(port_info.container_port, service.service_alias, tenant.tenant_name,
-                                                  tcpdomain)
-                if port_info.protocol == "tcp":
-                    domain = tcpdomain
-
+                # domain = "{0}.{1}.{2}.{3}".format(port_info.container_port, service.service_alias, tenant.tenant_name,
+                #                                   tcpdomain)
+                # if port_info.protocol == "tcp":
+                #     domain = tcpdomain
+                domain = tcpdomain
                 data["outer_service"] = {
                     "domain": domain,
                     "port": port_info.mapping_port,
@@ -428,7 +428,7 @@ class AppPortService(object):
 
         tcp_domain_url = region_services.get_region_tcpdomain(service.service_region)
         connect_url = "{0}.{1}.{2}.{3}".format(port.container_port, service.service_alias, tenant.tenant_name, tcp_domain_url)
-        if port.protocol == "tcp":
+        if port.protocol != 'http' and port.protocol != "https":
             connect_url = tcp_domain_url
         if port.lb_mapping_port != 0:
             port_value = port.lb_mapping_port
