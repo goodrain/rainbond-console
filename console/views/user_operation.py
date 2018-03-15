@@ -345,6 +345,7 @@ class UserDetailsView(JWTAuthApiView):
             user_detail["enterprise_id"] = user.enterprise_id
             user_detail["phone"] = user.phone
             user_detail["git_user_id"] = user.git_user_id
+            user_detail["is_sys_admin"] = user.is_sys_admin
             tenant_list = list()
             for tenant in tenants:
                 tenant_info = dict()
