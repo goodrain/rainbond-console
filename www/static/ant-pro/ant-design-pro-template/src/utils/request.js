@@ -147,6 +147,20 @@ export default function request(url, options) {
                     return;
                 }
 
+                //访问资源数据中心与当前数据中心不一致
+                if (resData.code === 10404) {
+                    cookie.set('region_name', resData.data.bean.service_region);
+                    location.reload();
+                    return;
+                }
+
+                //访问资源所属团队与当前团队不一致
+                if (resData.code === 10403) {
+                    cookie.set('team', resData.data.bean.service_team_name);
+                    location.reload();
+                    return;
+                }
+
                 if (newOptions.handleError) {
                     newOptions.handleError(response);
                     return;

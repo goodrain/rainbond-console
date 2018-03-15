@@ -82,6 +82,9 @@ export const getRouterData = (app) => {
         'user', 'appControl', 'createApp', 'teamControl', 'plugin'
       ], () => import ('../layouts/BasicLayout'))
     },
+    '/source': {
+      component: dynamicWrapper(app, ['index'], () => import ('../routes/Source/Index'))
+    },
     '/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },

@@ -46,11 +46,19 @@ export default class Main extends PureComponent {
     this.state = {
       list: [],
       showCreate: null,
-      scope: ''
+      scope: '',
+      app_name: ''
     }
   }
   componentDidMount() {
     this.getApps();
+  }
+  handleSearch = (v) => {
+    this.setState({
+      app_name: v
+    }, () => {
+      this.getApps();
+    })
   }
   getApps = (v) => {
 
@@ -59,7 +67,7 @@ export default class Main extends PureComponent {
       .dispatch({
         type: 'createApp/getMarketApp',
         payload: {
-          app_name: v || '',
+          app_name: this.state.app_name || '',
           scope: this.state.scope
         },
         callback: ((data) => {
@@ -142,7 +150,7 @@ export default class Main extends PureComponent {
               this.showCreate(item)
             }}
               style={{
-              margin: '0 12px 0 12px'
+              margin: '0 12px 16px 12px'
             }}>
               <Card
                 className={styles.card}
@@ -151,7 +159,7 @@ export default class Main extends PureComponent {
                 item.title
               }
               src = {
-                item.src || require('../../../public/images/app_icon.jpg')
+                item.pic || require('../../../public/images/app_icon.jpg')
               }
               height = {
                 154
@@ -179,7 +187,7 @@ export default class Main extends PureComponent {
           placeholder="请输入应用名称"
           enterButton="搜索"
           size="large"
-          onSearch={this.getApps}
+          onSearch={this.handleSearch}
           style={{
           width: 522
         }}/>

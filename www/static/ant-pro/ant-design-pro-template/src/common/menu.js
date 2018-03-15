@@ -1,4 +1,4 @@
-import { isUrl } from '../utils/utils';
+import {isUrl} from '../utils/utils';
 const menuData = [
   {
     name: '总览',
@@ -8,16 +8,18 @@ const menuData = [
     name: '创建应用',
     icon: 'plus',
     path: 'create',
-    children: [{
-      name: '从源码创建',
-      path: 'code'
-    }, {
-      name: '从Docker镜像创建',
-      path: 'image'
-    }, {
-      name: '从云市安装',
-      path: 'market'
-    }]
+    children: [
+      {
+        name: '从源码创建',
+        path: 'code'
+      }, {
+        name: '从Docker镜像创建',
+        path: 'image'
+      }, {
+        name: '从云市安装',
+        path: 'market'
+      }
+    ]
   }, {
     name: '我的应用',
     icon: 'appstore-o',
@@ -30,18 +32,23 @@ const menuData = [
     name: '团队管理',
     icon: 'team',
     path: 'team'
-  }];
+  }, {
+    name: '好雨互联',
+    icon: 'team',
+    path: 'source'
+  }
+];
 
 function formatter(data, parentPath = '', parentAuthority) {
   return data.map((item) => {
-    let { path } = item;
+    let {path} = item;
     if (!isUrl(path)) {
       path = parentPath + item.path;
     }
     const result = {
       ...item,
       path,
-      authority: item.authority || parentAuthority,
+      authority: item.authority || parentAuthority
     };
     if (item.children) {
       result.children = formatter(item.children, `${parentPath}${item.path}/`, item.authority);
@@ -83,8 +90,6 @@ export const getMenuData = (groups) => {
       }
     }
   }
-
-
 
   return menus;
 
