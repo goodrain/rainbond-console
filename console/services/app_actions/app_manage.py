@@ -6,12 +6,13 @@ from django.conf import settings
 import datetime
 import json
 from console.services.app_actions import AppEventService
+from console.services.app_config import AppServiceRelationService
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
 from console.repositories.app_config import env_var_repo, mnt_repo, volume_repo, port_repo, \
     auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo
-from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo
+from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, relation_recycle_bin_repo
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
@@ -21,6 +22,7 @@ event_service = AppEventService()
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
+relation_service = AppServiceRelationService()
 
 
 class AppManageBase(object):
@@ -468,6 +470,8 @@ class AppManageService(AppManageBase):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
+            # 服务关系移除
+            self.move_service_relation_info_recycle_bin(tenant,service)
             return 200, "success", event
         else:
             try:
@@ -527,6 +531,31 @@ class AppManageService(AppManageBase):
         trash_service = recycle_bin_repo.create_trash_service(**data)
         service.delete()
         return trash_service
+
+    def move_service_relation_info_recycle_bin(self, tenant, service):
+        # 1.如果服务依赖其他服务，将服务对应的关系放入回收站
+        relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
+        if relations:
+            for r in relations:
+                r_data = r.to_dict()
+                relation_recycle_bin_repo.create_trash_service_relation(**r_data)
+                r.delete()
+        # 如果服务关系回收站有被此服务依赖的服务，将信息及其对应的数据中心的依赖关系删除
+        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
+        if recycle_relations:
+            for recycle_relation in recycle_relations:
+                task = {}
+                task["dep_service_id"] = recycle_relation.dep_service_id
+                task["tenant_id"] = tenant.tenant_id
+                task["dep_service_type"] = "v"
+                task["enterprise_id"] = tenant.enterprise_id
+                try:
+                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
+                                                         task)
+                except Exception as e:
+                    logger.exception(e)
+                recycle_relation.delete()
+
 
     def __is_service_bind_domain(self, service):
         domains = domain_repo.get_service_domains(service.service_id)
