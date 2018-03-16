@@ -215,6 +215,7 @@ class ShareService(object):
                 data['service_alias'] = service.service_alias
                 data['service_region'] = service.service_region
                 data['creater'] = service.creater
+                data["cmd"] = service.cmd
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 extend_method = extend_method_map.get(service.service_key)
                 if extend_method:

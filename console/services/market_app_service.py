@@ -239,6 +239,7 @@ class MarketAppService(object):
             tenant_service.image = app["image"]
         else:
             tenant_service.image = app.get("share_image", app["image"])
+        tenant_service.cmd = app.get("cmd","")
         tenant_service.service_region = region
         tenant_service.service_key = app["service_key"]
         tenant_service.desc = "market app "
