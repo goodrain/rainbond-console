@@ -288,15 +288,15 @@ class AppManageService(AppManageBase):
                 else:
                     return "build_from_market_image"
         else:
-            kind = "image"
+            kind = "build_from_image"
             if service.category == "application":
-                kind = "source"
+                kind = "build_from_source_code"
             if service.category == "app_publish":
-                kind = "market"
+                kind = "build_from_market_image"
                 if service.image .startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
-                    kind = "slug"
+                    kind = "build_from_market_slug"
                 if service.service_key == "0000":
-                    kind = "image"
+                    kind = "build_from_image"
             return kind
 
     def roll_back(self, tenant, service, user, deploy_version):
