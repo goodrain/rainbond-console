@@ -345,7 +345,8 @@ export default class Index extends PureComponent {
       return this.renderNofHttpOuter(visitInfo);
     }
     if ((visitInfo.access_type === 'not_http_inner')) {
-      return this.renderNotHttpInner(visitInfo)
+      return this.renderNotHttpInner(visitInfo);
     }
+    return null;
   }
 }
