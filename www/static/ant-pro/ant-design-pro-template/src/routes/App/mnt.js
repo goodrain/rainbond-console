@@ -287,7 +287,7 @@ export default class Index extends PureComponent {
           marginBottom: 24
         }}
           title={< span > 持久化设置 < /span>}>
-          <ScrollerX minWidth={650}>
+          <ScrollerX sm={650}>
           <Table
             pagination={false}
             columns={[
@@ -323,7 +323,7 @@ export default class Index extends PureComponent {
           </div>
         </Card>
         <Card title={< span > 文件存储 < /span>}>
-          <ScrollerX minWidth={850}>
+          <ScrollerX sm={850}>
           <Table
             pagination={false}
             columns={[

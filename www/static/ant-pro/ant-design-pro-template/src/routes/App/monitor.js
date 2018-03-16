@@ -238,7 +238,7 @@ class MonitorHistory extends PureComponent {
 class MonitorNow extends PureComponent {
   constructor(props) {
     super(props);
-    this.inerval = 10000;
+    this.inerval = 5000;
     this.state = {
       logs: []
     }
@@ -522,7 +522,7 @@ class MonitorNow extends PureComponent {
           </Col>
         </Row>
         <Card title="过去5分钟耗时最多的URL排行">
-          <ScrollerX minWidth={700}>
+          <ScrollerX sm={700}>
           <Table
             columns={[
             {

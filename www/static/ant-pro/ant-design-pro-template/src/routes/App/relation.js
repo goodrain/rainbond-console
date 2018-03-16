@@ -380,7 +380,7 @@ export default class Index extends PureComponent {
       }
 
      >
-      <ScrollerX minWidth={650}>
+      <ScrollerX sm={650}>
       <Table 
         pagination={false}
         columns={[{
@@ -419,7 +419,7 @@ export default class Index extends PureComponent {
       }
 
      >
-      <ScrollerX minWidth={650}>
+      <ScrollerX sm={650}>
       <Table
        pagination = {false}
        columns={[{

@@ -1408,7 +1408,7 @@ export default class Index extends PureComponent {
         <Card style={{
           marginBottom: 24
         }} title="自定义环境变量">
-          <ScrollerX minWidth={600}>
+          <ScrollerX sm={600}>
           <Table
             columns={[
             {
@@ -1586,7 +1586,7 @@ export default class Index extends PureComponent {
           marginBottom: 24
         }}
           title={< Fragment > 成员应用权限 < Tooltip title = "成员的应用权限高于团队权限" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
-          <ScrollerX minWidth={600}>
+          <ScrollerX sm={600}>
           <Table
             columns={[
             {

@@ -462,7 +462,7 @@ export default class Index extends PureComponent {
           extra={teamUtil.canAddMember(team)
           ? <a href="javascript:;" onClick={this.showAddMember}>添加成员</a>
           : null}>
-          <ScrollerX minWidth={600}>
+          <ScrollerX sm={600}>
           <TeamMemberTable
             team={team}
             onMoveTeam={this.onMoveTeam}

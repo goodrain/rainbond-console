@@ -902,7 +902,7 @@ export default class Index extends PureComponent {
               </p>
             </Card>
           : <Card>
-            <ScrollerX minWidth={700}>
+            <ScrollerX sm={700}>
             {ports.map((port) => {
               return <Port
                 port={port}

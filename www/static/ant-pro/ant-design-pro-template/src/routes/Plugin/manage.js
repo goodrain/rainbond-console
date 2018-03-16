@@ -390,7 +390,7 @@ export default class Index extends PureComponent {
         <Card style={{
           marginBottom: 16
         }} title="配置组管理">
-        <ScrollerX minWidth={700}>
+        <ScrollerX sm={700}>
           <Table
             columns={[
             {

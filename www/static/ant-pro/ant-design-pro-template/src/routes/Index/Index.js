@@ -308,7 +308,7 @@ export default class Index extends PureComponent {
                 <div className={styles.tableListForm}>
                   {this.renderSimpleForm()}
                 </div>
-                <ScrollerX minWidth={600}>
+                <ScrollerX sm={600}>
                 <IndexTable
                   list={index.apps}
                   pagination={pagination}

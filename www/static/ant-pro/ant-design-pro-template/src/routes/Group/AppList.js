@@ -246,7 +246,7 @@ export default class AppList extends PureComponent {
 						<Card style={{
 								minHeight: 400
 						}} bordered={false}>
-							<ScrollerX minWidth={750}>
+							
 								<div
 										style={{
 										display: appUtil.canManageApp(teamAction)
@@ -266,7 +266,7 @@ export default class AppList extends PureComponent {
 												</Button>
 										</div>
 								</div>
-
+							<ScrollerX sm={750}>
 								<Table rowSelection={rowSelection} columns={columns} dataSource={apps || []}/>
 							</ScrollerX>
 						</Card>
