@@ -141,8 +141,6 @@ export default function request(url, options) {
                 if (resData.code === 10405) {
                     cookie.remove('token');
                     cookie.remove('token', {domain: ''});
-                    cookie.remove('uid');
-                    cookie.remove('username');
                     location.reload();
                     return;
                 }
