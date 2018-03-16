@@ -68,7 +68,7 @@ class RegionInvokeApi(HttpClient):
                 else:
                     self.default_headers.update({
                         "Authorization": ""
-                    })    
+                    })
             else:
                 self.default_headers.update({"Authorization": token})
         # logger.debug('Default headers: {0}'.format(self.default_headers))
@@ -131,7 +131,11 @@ class RegionInvokeApi(HttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         # # TODO add enterprise id
-        data = {"tenant_id": tenant_id, "tenant_name": tenant_name}
+        cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(
+            tenant_name, region)
+        if cloud_enterprise_id:
+            enterprise_id = cloud_enterprise_id
+        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id}
         url += "/v2/tenants"
 
         self._set_headers(token)

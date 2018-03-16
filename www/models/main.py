@@ -1439,7 +1439,7 @@ class TenantEnterpriseToken(BaseModel):
     access_id = models.CharField(max_length=32, unique=True, help_text=u"target分配给客户端的ID")
     access_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"客户端token")
     crt = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书")
-    key = models.TextField(default='',  blank=True, null=True, help_text=u"客户端证书key")
+    key = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书key")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
 

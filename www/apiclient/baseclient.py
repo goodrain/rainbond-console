@@ -275,6 +275,20 @@ class ClientAuthService(object):
 
         return token.access_url, token.access_token
 
+    def get_region_access_enterprise_id_by_tenant(self, tenant_name, region_name):
+        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        if not tenant:
+            return None
+
+        token = self.__get_cached_access_token(tenant.enterprise_id, region_name)
+        if not token:
+            token = self.reflush_access_token(tenant.enterprise_id, region_name)
+
+        if not token:
+            return None
+
+        return token.access_id
+
     def get_market_access_token_by_access_token(self, access_id, access_token):
         try:
             return TenantEnterpriseToken.objects.get(access_target='market', access_id=access_id, access_token=access_token)
