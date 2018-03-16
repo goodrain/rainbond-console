@@ -26,6 +26,7 @@ from rest_framework_jwt.settings import api_settings
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from www.models import Users, Tenants
+from goodrain_web import errors
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -277,6 +278,17 @@ def custom_exception_handler(exc, context):
             "code": status.HTTP_403_FORBIDDEN,
             "msg": "{0}".format(six.text_type(msg)),
             "msg_show": "{0}".format("不允许的操作")
+        })
+        set_rollback()
+        return Response(data, status=status.HTTP_403_FORBIDDEN)
+    elif isinstance(exc, errors.PermissionDenied):
+        msg = trans('Permission denied.')
+        data = {'detail': six.text_type(msg)}
+        # 处理数据为标准返回格式
+        data.update({
+            "code": status.HTTP_403_FORBIDDEN,
+            "msg": "{0}".format(six.text_type(msg)),
+            "msg_show": "{0}".format("您无权限执行此操作")
         })
         set_rollback()
         return Response(data, status=status.HTTP_403_FORBIDDEN)
