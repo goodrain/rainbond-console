@@ -31,6 +31,12 @@ class TenantServiceInfoRepository(object):
             return services[0]
         return None
 
+    def get_service_by_region_tenant_and_name(self, tenant_id, service_cname, region):
+        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname, service_region=region)
+        if services:
+            return services[0]
+        return None
+
     def get_services_by_service_group_id(self, service_group_id):
         return TenantServiceInfo.objects.filter(tenant_service_group_id=service_group_id)
 

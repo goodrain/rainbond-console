@@ -139,7 +139,7 @@ class AppBriefView(AppBaseView):
 
         try:
             service_cname = request.data.get("service_cname", None)
-            is_pass, msg = app_service.check_service_cname(self.tenant, service_cname)
+            is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.response_region)
             if not is_pass:
                 return Response(general_message(400, "param error", msg), status=400)
             self.service.service_cname = service_cname

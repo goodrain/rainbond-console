@@ -165,8 +165,8 @@ class MarketAppService(object):
                 return code, msg
         for env in outer_envs:
             if env["container_port"] == 0:
-                if env["attr_name"] == "**None**":
-                    env["attr_name"] = service[:8]
+                if env["attr_value"] == "**None**":
+                    env["attr_value"] = service[:8]
                 code, msg, env_data = env_var_service.add_service_env_var(tenant, service, env["container_port"],
                                                                           env["name"], env["attr_name"],
                                                                           env["attr_value"], env["is_change"],

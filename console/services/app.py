@@ -31,7 +31,7 @@ gitHubClient = GitHubApi()
 
 
 class AppService(object):
-    def check_service_cname(self, tenant, service_cname):
+    def check_service_cname(self, tenant, service_cname,region):
         if not service_cname:
             return False, u"应用名称不能为空"
         if len(service_cname) > 20:
@@ -39,7 +39,7 @@ class AppService(object):
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(service_cname.decode("utf-8")):
             return False, u"应用名称只支持中英文下划线和中划线"
-        service = service_repo.get_service_by_tenant_and_name(tenant.tenant_id, service_cname)
+        service = service_repo.get_service_by_region_tenant_and_name(tenant.tenant_id, service_cname, region)
         if service:
             return False, u"当前团队下已存在相同名称应用"
         return True, u"success"
@@ -81,7 +81,7 @@ class AppService(object):
                                service_code_id,
                                service_code_version):
         service_cname = service_cname.rstrip().lstrip()
-        is_pass, msg = self.check_service_cname(tenant, service_cname)
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
         new_service = self.__init_source_code_app(region)
@@ -189,7 +189,7 @@ class AppService(object):
         return tenant_service
 
     def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type):
-        is_pass, msg = self.check_service_cname(tenant, service_cname)
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
         new_service = self.__init_docker_image_app(region)
