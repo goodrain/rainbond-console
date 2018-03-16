@@ -143,7 +143,7 @@ export default function request(url, options) {
                     cookie.remove('token', {domain: ''});
                     cookie.remove('uid');
                     cookie.remove('username');
-                    dispatch(routerRedux.push('/user/login'));
+                    location.reload();
                     return;
                 }
 
@@ -170,7 +170,8 @@ export default function request(url, options) {
                 if (msg && newOptions.showMessage === true) {
                     if (msg.indexOf('身份认证信息未提供') > -1) {
                         cookie.remove('token');
-                        dispatch(routerRedux.push('/user/login'));
+                        cookie.remove('token', {domain: ''});
+                        location.reload();
                         return;
                     }
 
