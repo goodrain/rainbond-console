@@ -23,6 +23,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import Port from '../../components/Port';
 import AddDomain from '../../components/AddDomain';
 const {Description} = DescriptionList;
+import ScrollerX from '../../components/ScrollerX';
 
 import styles from './port.less';
 import globalUtil from '../../utils/global';
@@ -901,6 +902,7 @@ export default class Index extends PureComponent {
               </p>
             </Card>
           : <Card>
+            <ScrollerX sm={700}>
             {ports.map((port) => {
               return <Port
                 port={port}
@@ -915,6 +917,7 @@ export default class Index extends PureComponent {
                 onDeleteDomain={this.handleDeleteDomain}/>
             })
 }
+          </ScrollerX>
           </Card>
 }
         {this.state.showDeletePort && <ConfirmModal

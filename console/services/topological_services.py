@@ -78,15 +78,16 @@ class TopologicalService(object):
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
-            tmp_dep_id = service_relation.dep_service_id
             tmp_info = service_map.get(tmp_id)
-            tmp_dep_info = service_map.get(tmp_dep_id)
-            # 依赖服务的cname
-            tmp_info_relation = []
-            if tmp_info.service_cname in json_svg.keys():
-                tmp_info_relation = json_svg.get(tmp_info.service_cname)
-            tmp_info_relation.append(tmp_dep_info.service_cname)
-            json_svg[tmp_info.service_cname] = tmp_info_relation
+            if tmp_info:
+                tmp_dep_id = service_relation.dep_service_id
+                tmp_dep_info = service_map.get(tmp_dep_id)
+                # 依赖服务的cname
+                tmp_info_relation = []
+                if tmp_info.service_cname in json_svg.keys():
+                    tmp_info_relation = json_svg.get(tmp_info.service_cname)
+                tmp_info_relation.append(tmp_dep_info.service_cname)
+                json_svg[tmp_info.service_cname] = tmp_info_relation
 
         topological_info["json_data"] = json_data
         topological_info["json_svg"] = json_svg
@@ -142,11 +143,11 @@ class TopologicalService(object):
                     except Exception as e:
                         logger.exception(e)
                         outer_service['port'] = '-1'
-                elif port.protocol == 'http':
+                elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
                     httpdomain = region_services.get_region_httpdomain(service_region)
                     outer_service = {
-                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name,
+                        "domain": "{0}.{1}.{2}".format(service_alias, tenant_name,
                                                       httpdomain),
                         "port": 10080
                     }
@@ -159,12 +160,9 @@ class TopologicalService(object):
                 if outer_service['port'] == '-1':
                     port_info['outer_url'] = 'query error!'
                 else:
-                    if service.port_type == "multi_outer":
-                        if port.protocol == "http":
-                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
-                                                                          outer_service['port'])
-                        else:
-                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                    if port.protocol == "http":
+                        port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
+                                                                      outer_service['port'])
                     else:
                         port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
             # 自定义域名
@@ -287,13 +285,9 @@ class TopologicalService(object):
                     if outer_service['port'] == '-1':
                         port_info['outer_url'] = 'query error!'
                     else:
-                        if service_info.port_type == "multi_outer":
-                            if port.protocol == "http":
-                                port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
-                                                                              outer_service['domain'],
-                                                                              outer_service['port'])
-                            else:
-                                port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],
+                        if port.protocol == "http":
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
+                                                                          outer_service['domain'],
                                                                           outer_service['port'])
                         else:
                             port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],

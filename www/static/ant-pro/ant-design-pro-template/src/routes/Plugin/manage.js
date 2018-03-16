@@ -22,7 +22,8 @@ import CreatePluginForm from '../../components/CreatePluginForm';
 import pluginUtil from '../../utils/plugin';
 import AddOrEditConfig from '../../components/AddOrEditConfig';
 import ConfirmModal from '../../components/ConfirmModal';
-import BuildPluginVersion from '../../components/buildPluginVersion'
+import BuildPluginVersion from '../../components/buildPluginVersion';
+import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
 const Option = Select.Option;
 const ButtonGroup = Button.Group;
@@ -389,6 +390,7 @@ export default class Index extends PureComponent {
         <Card style={{
           marginBottom: 16
         }} title="配置组管理">
+        <ScrollerX sm={700}>
           <Table
             columns={[
             {
@@ -453,7 +455,9 @@ export default class Index extends PureComponent {
             }
           ]}
             dataSource={config}
-            pagination={false}/> {this.canEditInfoAndConfig()
+            pagination={false}/> 
+            </ScrollerX>
+            {this.canEditInfoAndConfig()
             ? <div
                 style={{
                 textAlign: 'right',

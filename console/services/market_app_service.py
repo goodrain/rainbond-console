@@ -105,7 +105,7 @@ class MarketAppService(object):
         return '_'.join([group_name, make_uuid()[-4:]])
 
     def __build_services(self, tenant, user, service_list, service_probe_map):
-        service_prob_map = {}
+        service_prob_id_map = {}
         try:
             for service in service_list:
                 # 数据中心创建应用
@@ -118,8 +118,11 @@ class MarketAppService(object):
                         code, msg, probe = probe_service.add_service_probe(tenant, service, data)
                         if code == 200:
                             probe_ids.append(probe.probe_id)
+                else:
+                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
+                    probe_ids.append(probe.probe_id)
                 if probe_ids:
-                    service_probe_map[service.service_id] = probe_ids
+                    service_prob_id_map[service.service_id] = probe_ids
 
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
@@ -129,8 +132,8 @@ class MarketAppService(object):
             logger.exception(e)
             if service_list:
                 for service in service_list:
-                    if service_prob_map:
-                        probe_ids = service_prob_map.get(service.service_id)
+                    if service_prob_id_map:
+                        probe_ids = service_prob_id_map.get(service.service_id)
                         if probe_ids:
                             for probe_id in probe_ids:
                                 try:
@@ -164,10 +167,11 @@ class MarketAppService(object):
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
-            if env["container_port"] == 0:
-                if env["attr_name"] == "**None**":
-                    env["attr_name"] = service[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, env["container_port"],
+            container_port = env.get("container_port", 0)
+            if container_port == 0:
+                if env["attr_value"] == "**None**":
+                    env["attr_value"] = service.service_id[:8]
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port,
                                                                           env["name"], env["attr_name"],
                                                                           env["attr_value"], env["is_change"],
                                                                           "outer")
@@ -235,6 +239,7 @@ class MarketAppService(object):
             tenant_service.image = app["image"]
         else:
             tenant_service.image = app.get("share_image", app["image"])
+        tenant_service.cmd = app.get("cmd","")
         tenant_service.service_region = region
         tenant_service.service_key = app["service_key"]
         tenant_service.desc = "market app "
@@ -261,7 +266,7 @@ class MarketAppService(object):
         tenant_service.service_type = "application"
         tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
         tenant_service.volume_mount_path = ""
-        tenant_service.host_path = "/grdata/tenant/" + tenant_id + "/service/" + tenant_service.service_id
+        tenant_service.host_path = ""
         tenant_service.code_from = ""
         tenant_service.language = ""
         tenant_service.service_source = AppConstants.MARKET
@@ -274,7 +279,6 @@ class MarketAppService(object):
 
     def __init_service_source(self, ts, app):
         is_slug = bool(ts.image.startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
-        logger.debug("======> {0}".format(json.dumps(app)))
         if is_slug:
             extend_info = app["service_slug"]
             extend_info["slug_path"] = app.get("share_slug_path", "")
@@ -347,12 +351,39 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
-    def get_all_goodrain_market_apps(self):
+    def get_all_goodrain_market_apps(self, app_name, is_complete):
+        if app_name:
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", group_name__icontains=app_name)
+        if is_complete is not None:
+            if is_complete:
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", is_complete=True)
+            else:
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
 
 
-
 class MarketTemplateTranslateService(object):
+    # 需要特殊处理的service_key
+    SPECIAL_PROCESS = ("mysql",
+                       "postgresql",
+                       "6f7edb496760bb1965bdce1135883b29",
+                       "2dd630b20396c26dc437fdcf2b98fb63",
+                       "eae2d4ba183a8e3c41f2239d1a687ce8",
+                       "df98c419c98cc6f1488fc83e13e0244a",
+                       "bf22929d36d217b77d27813e6ae1508b",
+                       "1fecc863b04c0cd24cee1403ba238f2e",
+                       "915cc8a5cd81f28aa7f0daba314204c2",
+                       "231c92c7fa4f7c1df76c889c84dcf4e7",
+                       "edde97105d55d4301b9cddf15e139981",
+                       "d261fa2e90c84131df33644ad0b6e5c5",
+                       "7045a899df1369f30e1adce1cbbeb15b",
+                       "45081d62105d2f18a487f06dabf9de6a",
+                       "efc18a5358b5dabb50fb813f5d46458b",
+                       "711657b065fa265c17a8fd265c32ec5b",
+                       "eefca5b538fb6cf7d187b738e7fe035e",
+                       "88064c83f0e5a6a5c9b73b57dbb0d6ff",
+                       "88bd3a92b128445af53923ee2edc975c")
+
     def v1_to_v2(self, old_templete, region=""):
         """旧版本模板转换为新版本数据"""
         new_templet = dict()
@@ -394,12 +425,12 @@ class MarketTemplateTranslateService(object):
         if slug:
             new_app["language"] = ""
             service_slug = self.__generate_slug_info()
-            share_slug_path = slug.replace("/app_publish/","")
+            share_slug_path = slug
         else:
             service_image["hub_url"] = "hub.goodrain.com"
             service_image["namespace"] = "goodrain"
             # 云市镜像存储
-            new_app["share_image"] = app["image"].replace("goodrain.me","hub.goodrain.com/goodrain")
+            new_app["share_image"] = app["image"].replace("goodrain.me", "hub.goodrain.com/goodrain")
         if share_slug_path:
             new_app["share_slug_path"] = share_slug_path
         new_app["service_image"] = service_image
@@ -425,11 +456,13 @@ class MarketTemplateTranslateService(object):
         # 依赖信息
         new_app["dep_service_map_list"] = self.__v1_2_v2_dependencies(app)
         # 端口信息
-        new_app["port_map_list"] = self.__v1_2_v2_ports(app)
+        service_env_map_list = []
+        service_connect_info_map_list = []
+        new_app["port_map_list"] = self.__v1_2_v2_ports(app, service_connect_info_map_list)
         # 持久化信息
         new_app["service_volume_map_list"] = self.__v1_2_v2_volumes(app)
         # 环境变量信息
-        service_env_map_list, service_connect_info_map_list = self.__v1_2_v2_envs(app)
+        self.__v1_2_v2_envs(app, service_env_map_list, service_connect_info_map_list)
         new_app["service_env_map_list"] = service_env_map_list
         new_app["service_connect_info_map_list"] = service_connect_info_map_list
         return new_app
@@ -463,17 +496,31 @@ class MarketTemplateTranslateService(object):
             dep_service_list = [{"dep_service_key": dep["dep_service_key"]} for dep in dep_relations]
         return dep_service_list
 
-    def __v1_2_v2_ports(self, app):
+    def __v1_2_v2_ports(self, app, service_connect_info_map_list):
         port_map_list = []
         ports = app["ports"]
         if ports:
-            port_map_list = [
-                {"is_outer_service": port["is_outer_service"],
-                 "protocol": port["protocol"],
-                 "port_alias": port["port_alias"],
-                 "is_inner_service": port["is_inner_service"],
-                 "container_port": port["container_port"]}
-                for port in ports]
+            for port in ports:
+                port_alias = port["port_alias"]
+                port_map_list.append({"is_outer_service": port["is_outer_service"],
+                                      "protocol": port["protocol"],
+                                      "port_alias": port_alias,
+                                      "is_inner_service": port["is_inner_service"],
+                                      "container_port": port["container_port"]})
+                temp_alias = "gr" + make_uuid()[-6:]
+                env_prefix = port_alias.upper() if bool(port_alias) else temp_alias.upper()
+                service_connect_info_map_list.append({
+                    "name": "用户名",
+                    "attr_name": env_prefix + "_USER",
+                    "is_change": False,
+                    "attr_value": "admin"
+                })
+                service_connect_info_map_list.append({
+                    "name": "密码",
+                    "attr_name": env_prefix + "_PASS",
+                    "is_change": False,
+                    "attr_value": "**None**"
+                })
         return port_map_list
 
     def __v1_2_v2_volumes(self, app):
@@ -489,7 +536,7 @@ class MarketTemplateTranslateService(object):
                 } for volume in volumes
                 ]
         else:
-            volume_mount_path = app.get("volume_mount_path",None)
+            volume_mount_path = app.get("volume_mount_path", None)
             if volume_mount_path:
                 service_volume_map_list.append({
                     "category": app["category"],
@@ -499,9 +546,7 @@ class MarketTemplateTranslateService(object):
                 })
         return service_volume_map_list
 
-    def __v1_2_v2_envs(self, app):
-        service_env_map_list = []
-        service_connect_info_map_list = []
+    def __v1_2_v2_envs(self, app, service_env_map_list, service_connect_info_map_list):
         envs = app["envs"]
         if envs:
             for env in envs:
@@ -520,18 +565,17 @@ class MarketTemplateTranslateService(object):
                         "is_change": env["is_change"],
                         "attr_value": env["attr_value"]
                     })
-        return service_env_map_list, service_connect_info_map_list
 
     def __generate_slug_info(self):
         service_slug = dict()
         service_slug["ftp_host"] = "139.196.88.57"
-        service_slug["ftp_port"] = "10021"
-        service_slug["ftp_username"] = "goodrain-admin"
+        service_slug["ftp_port"] = "10022"
+        service_slug["ftp_username"] = "goodrain"
         service_slug["ftp_password"] = "goodrain123465"
         service_slug["namespace"] = "app-publish/"
         return service_slug
 
-    def v2_to_v1(self):
+    def v2_to_v1(self, new_template):
         """新版本模板转换为旧版本模板"""
         pass
 
@@ -551,7 +595,8 @@ class AppMarketSynchronizeService(object):
                     share_team="",
                     source="market",
                     scope="goodrain",
-                    describe="",
+                    describe=app_group["info"],
+                    pic=app_group["pic"],
                     app_template=""
                 )
                 rainbond_apps.append(rainbond_app)
@@ -586,6 +631,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.save()
+
 
 market_app_service = MarketAppService()
 template_transform_service = MarketTemplateTranslateService()

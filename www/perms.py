@@ -1,8 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
 
+from rest_framework.response import Response
+
+from console.exception.main import BusinessException
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
@@ -166,5 +170,7 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
     if perm in user.actions:
         return True
+    raise BusinessException(
+        Response(general_message(403, "you don't have enough permissions", "您无权限执行此操作"), status=403))
 
-    raise PermissionDenied("you don't have enough permissions")
+    # raise PermissionDenied("you don't have enough permissions")

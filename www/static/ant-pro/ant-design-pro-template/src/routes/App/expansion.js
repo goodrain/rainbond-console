@@ -106,7 +106,7 @@ export default class Index extends PureComponent {
             <Card title='手动伸缩'>
 
                 <Row gutter={16}>
-                    <Col lg={12} md={24} sm={24}>
+                    <Col lg={12} md={12} sm={24}>
 
                         <Form layout="inline" hideRequiredMark>
                             <Form.Item label="内存">
@@ -123,14 +123,14 @@ export default class Index extends PureComponent {
 }
                                     </Select>
                                 )
-}
+}                           <Button onClick={this.handleVertical} size="md" type="primary">设置</Button>
                             </Form.Item>
-                            <Form.Item>
-                                <Button onClick={this.handleVertical} size="md" type="primary">设置</Button>
-                            </Form.Item>
+                          
+                                
+                            
                         </Form>
                     </Col>
-                    <Col lg={12} md={24} sm={24}>
+                    <Col lg={12} md={12} sm={24}>
 
                         <Form layout="inline" hideRequiredMark>
                             <Form.Item label="实例数量">
@@ -146,11 +146,7 @@ export default class Index extends PureComponent {
 }
                                     </Select>
                                 )
-}
-
-                            </Form.Item>
-                            <Form.Item>
-                                <Button onClick={this.handleHorizontal} size="md" type="primary">设置</Button>
+}                           <Button onClick={this.handleHorizontal} size="md" type="primary">设置</Button>
                             </Form.Item>
                         </Form>
                     </Col>

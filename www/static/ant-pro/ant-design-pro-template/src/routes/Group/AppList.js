@@ -15,6 +15,7 @@ import {
 } from '../../services/app';
 import appUtil from '../../utils/app';
 import appStatusUtil from '../../utils/appStatus-util';
+import ScrollerX from '../../components/ScrollerX';
 
 @connect(({groupControl}) => ({}), null, null, {pure: false})
 export default class AppList extends PureComponent {
@@ -94,11 +95,8 @@ export default class AppList extends PureComponent {
 		}
 		getSelected() {
 				var res = this.state.selectedRowKeys;
-				res = this
-						.state
-						.selectedRowKeys
-						.map((item) => {
-								return this.props.apps[item].service_id;
+				res = res.map((item) => {
+								return item.service_id;
 						})
 				return res;
 		}
@@ -142,7 +140,7 @@ export default class AppList extends PureComponent {
 				const canotRestart = selectedRowKeys.filter((item) => {
 						return !appStatusUtil.canRestart(item)
 				})
-				return hasSelected && !canotRestart.length;
+				return hasSelected;
 		}
 		//是否可以批量启动
 		canBatchStart = () => {
@@ -151,7 +149,7 @@ export default class AppList extends PureComponent {
 				const canotStart = selectedRowKeys.filter((item) => {
 						return !appStatusUtil.canStart(item)
 				})
-				return hasSelected && !canotStart.length;
+				return hasSelected;
 		}
 		//是否可以批量关闭
 		canBatchStop = () => {
@@ -160,8 +158,7 @@ export default class AppList extends PureComponent {
 				const canotStop = selectedRowKeys.filter((item) => {
 						return !appStatusUtil.canStop(item);
 				})
-				return hasSelected && !canotStop.length;
-				return true;
+				return hasSelected;
 		}
 		render() {
 				const {apps, teamAction} = this.state;
@@ -249,7 +246,7 @@ export default class AppList extends PureComponent {
 						<Card style={{
 								minHeight: 400
 						}} bordered={false}>
-
+							
 								<div
 										style={{
 										display: appUtil.canManageApp(teamAction)
@@ -269,7 +266,9 @@ export default class AppList extends PureComponent {
 												</Button>
 										</div>
 								</div>
+							<ScrollerX sm={750}>
 								<Table rowSelection={rowSelection} columns={columns} dataSource={apps || []}/>
+							</ScrollerX>
 						</Card>
 				)
 		}

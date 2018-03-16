@@ -374,7 +374,7 @@ export default class Index extends PureComponent {
       //安装的性能分析插件
       anaPlugins: []
     }
-    this.inerval = 15000;
+    this.inerval = 5000;
   }
 
   componentDidMount() {

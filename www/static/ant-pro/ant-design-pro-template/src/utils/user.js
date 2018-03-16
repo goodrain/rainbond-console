@@ -47,6 +47,10 @@ const userUtil = {
 				//是否开通了gitlab账号
 				hasGitlatAccount(user) {
 								return user.git_user_id !== 0
+				},
+				//是否是系统管理员
+				isSystemAdmin(userBean) {
+								return userBean.is_sys_admin
 				}
 
 }

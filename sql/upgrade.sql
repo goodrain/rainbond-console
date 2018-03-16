@@ -236,3 +236,17 @@ CREATE TABLE `tenant_service_recycle_bin` (
 
 -- 超级管理员添加字段
 ALTER TABLE user_administrator ADD user_id INT(11)  NULL;
+
+----- 2018.03.16
+
+-- 新增服务依赖回收站
+CREATE TABLE `tenant_service_relation_recycle_bin` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `service_id` varchar(32) NOT NULL,
+  `tenant_id` varchar(32) NOT NULL,
+  `dep_service_id` varchar(32) NOT NULL,
+  `dep_service_type` varchar(50) DEFAULT '',
+  `dep_order` int(11),
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `service_id` (`service_id`,`dep_service_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

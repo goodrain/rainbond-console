@@ -29,7 +29,7 @@ import SetMemberAppAction from '../../components/SetMemberAppAction';
 import {getCodeBranch, setCodeBranch} from '../../services/app';
 import teamUtil from '../../utils/team';
 import TeamPermissionSelect from '../../components/TeamPermissionSelect'
-
+import ScrollerX from '../../components/ScrollerX';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import appProbeUtil from '../../utils/appProbe-util';
@@ -1408,6 +1408,7 @@ export default class Index extends PureComponent {
         <Card style={{
           marginBottom: 24
         }} title="自定义环境变量">
+          <ScrollerX sm={600}>
           <Table
             columns={[
             {
@@ -1415,7 +1416,8 @@ export default class Index extends PureComponent {
               dataIndex: 'attr_name'
             }, {
               title: '变量值',
-              dataIndex: 'attr_value'
+              dataIndex: 'attr_value',
+              width: '40%'
             }, {
               title: '说明',
               dataIndex: 'name'
@@ -1444,6 +1446,7 @@ export default class Index extends PureComponent {
           ]}
             pagination={false}
             dataSource={innerEnvs}/>
+          </ScrollerX>
           <div
             style={{
             textAlign: 'right',
@@ -1583,6 +1586,7 @@ export default class Index extends PureComponent {
           marginBottom: 24
         }}
           title={< Fragment > 成员应用权限 < Tooltip title = "成员的应用权限高于团队权限" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
+          <ScrollerX sm={600}>
           <Table
             columns={[
             {
@@ -1618,6 +1622,7 @@ export default class Index extends PureComponent {
           ]}
             pagination={false}
             dataSource={members}/>
+          </ScrollerX>
           <div
             style={{
             marginTop: 10,

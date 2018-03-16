@@ -8,6 +8,7 @@ import CodeGoodrainForm from '../../components/CodeGoodrainForm';
 import GitlabAccountForm from '../../components/GitlabAccountForm';
 import Result from '../../components/Result';
 import userUtil from '../../utils/user';
+import styles from './Index.less';
 
 
 @connect(({ user, global }) => ({
@@ -81,7 +82,7 @@ export default class Index extends PureComponent {
 		return (
 			<Card
 			>
-				<div style={{width: 500, margin: '0 auto'}}>
+				<div className={styles.formWrap}>
 
 				{
 					(!userUtil.hasGitlatAccount(user)) ? 

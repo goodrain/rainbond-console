@@ -26,6 +26,7 @@ import teamUtil from '../../utils/team';
 import OpenRegion from '../../components/OpenRegion';
 import cookie from '../../utils/cookie';
 import {routerRedux} from 'dva/router';
+import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
 
 @Form.create()
@@ -461,12 +462,14 @@ export default class Index extends PureComponent {
           extra={teamUtil.canAddMember(team)
           ? <a href="javascript:;" onClick={this.showAddMember}>添加成员</a>
           : null}>
+          <ScrollerX sm={600}>
           <TeamMemberTable
             team={team}
             onMoveTeam={this.onMoveTeam}
             onDelete={this.onDelMember}
             onEditAction={this.onEditAction}
             list={members}/>
+          </ScrollerX>
         </Card>
         {this.state.showEditName && <MoveTeam
           teamAlias={team.team_alias}

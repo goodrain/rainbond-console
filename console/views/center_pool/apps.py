@@ -14,6 +14,7 @@ import logging
 from console.services.market_app_service import market_app_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
+import json
 
 logger = logging.getLogger('default')
 
@@ -117,6 +118,50 @@ class CenterAppView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
+class CenterAppManageView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        应用上下线
+        ---
+        parameters:
+            - name: app_id
+              description: rainbond app id
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 操作类型 online|offline
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            if not self.user.is_sys_admin:
+                return Response(general_message(403, "you are not admin", "此操作需平台管理员才能操作"), status=403)
+            app_id = request.data.get("app_id", None)
+            action = request.data.get("action", None)
+            if not app_id:
+                return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
+            if not action:
+                return Response(general_message(400, "action is not specified", "操作类型未指定"), status=400)
+            if action not in ("online", "offline"):
+                return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
+            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
+            if not app:
+                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+            if action == "online":
+                app.is_complete = True
+            else:
+                app.is_complete = False
+            app.save()
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 class DownloadMarketAppGroupView(RegionTenantHeaderView):
     @never_cache
     @perm_required("app_download")
@@ -166,9 +211,7 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
-            group_data = request.data["body"]
-            logger.debug("group_data ======> {0}".format(group_data))
-            # group_data = json.loads(group_data)
+            group_data = request.data
             data_list = []
             for d in group_data:
                 data_list.append("{0}:{1}".format(d["group_key"], d["version"]))
@@ -188,15 +231,15 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         查询从公有云同步的应用
         ---
         parameters:
-            - name: scope
-              description: 范围
+            - name: app_name
+              description: 搜索的服务名
               required: false
               type: string
               paramType: query
-            - name: app_name
-              description: 应用名字
+            - name: is_complete
+              description: 是否已下载
               required: false
-              type: string
+              type: boolean
               paramType: query
             - name: page
               description: 当前页
@@ -211,11 +254,13 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         """
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
+        app_name = request.GET.get("app_name", None)
+        is_complete = request.GET.get("is_complete", None)
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps")
-            apps = market_app_service.get_all_goodrain_market_apps()
+            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete)
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []

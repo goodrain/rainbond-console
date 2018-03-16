@@ -1,4 +1,13 @@
-import {queryNotices, isPubCloud, getRainbondInfo, bindGithub} from '../services/api';
+import {
+  queryNotices,
+  isPubCloud,
+  getRainbondInfo,
+  bindGithub,
+  syncMarketApp,
+  getMarketApp,
+  syncMarketAppDetail,
+  authEnterprise
+} from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
 export default {
@@ -18,6 +27,45 @@ export default {
     apploadingnum: 0
   },
   effects : {
+    *authEnterprise({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(authEnterprise, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncMarketAppDetail({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketAppDetail, payload);
+      if (data) {
+        callback && callback(data)
+      }
+
+    },
+    *getMarketApp({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getMarketApp, payload);
+      if (data) {
+        callback && callback(data)
+      }
+
+    },
+    *syncMarketApp({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketApp, payload);
+      if (data) {
+        callback && callback(data)
+      }
+
+    },
     *fetchRainbondInfo({
       callback
     }, {call, put}) {

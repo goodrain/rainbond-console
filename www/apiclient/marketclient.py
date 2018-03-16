@@ -69,8 +69,7 @@ class MarketOpenAPI(HttpClient):
     def get_public_regions_list(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/regions"
-        url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" \
-              + enterprise_id + "/regions"
+        url = url + "/openapi/v1/enterprises/" + enterprise_id + "/regions"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data
@@ -78,8 +77,7 @@ class MarketOpenAPI(HttpClient):
     def get_enterprise_regions_resource(self, tenant_id, region, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
-        url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" \
-              + enterprise_id + "/res-usage?region={0}".format(region)
+        url = url + "/openapi/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data

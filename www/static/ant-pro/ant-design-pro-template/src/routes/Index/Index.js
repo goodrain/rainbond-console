@@ -17,6 +17,7 @@ import {
 import IndexTable from '../../components/IndexTable';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import EditableLinkGroup from '../../components/EditableLinkGroup';
+import ScrollerX from '../../components/ScrollerX';
 
 import {Radar} from '../../components/Charts';
 import styles from './Index.less';
@@ -142,7 +143,7 @@ export default class Index extends PureComponent {
       }
     ]
     return (
-      <Form onSubmit={this.handleSearch} layout="inline">
+      <Form onSubmit={this.handleSearch} layout="inline" style={{paddingBottom: 8}}>
         <Row gutter={{
           md: 8,
           lg: 24,
@@ -302,15 +303,17 @@ export default class Index extends PureComponent {
       <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
         <Row gutter={24}>
           <Col xl={16} lg={24} md={24} sm={24} xs={24}>
-            <Card bordered={false}>
+            <Card bordered={false} style={{marginBottom: 24}}>
               <div className={styles.tableList}>
                 <div className={styles.tableListForm}>
                   {this.renderSimpleForm()}
                 </div>
+                <ScrollerX sm={600}>
                 <IndexTable
                   list={index.apps}
                   pagination={pagination}
                   onChange={this.handleListChange}/>
+                </ScrollerX>
               </div>
             </Card>
           </Col>

@@ -54,7 +54,7 @@ DATABASES = {
 }
 
 APP_SERVICE_API = {
-    'url': 'http://api.goodrain.com:80',
+    'url': 'http://api-test.goodrain.com:80',
     'apitype': 'app service'
 }
 

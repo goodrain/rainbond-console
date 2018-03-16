@@ -294,3 +294,19 @@ class ServiceRecycleBin(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
+
+
+class ServiceRelationRecycleBin(BaseModel):
+    class Meta:
+        db_table = 'tenant_service_relation_recycle_bin'
+        unique_together = ('service_id', 'dep_service_id')
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
+    dep_service_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    dep_order = models.IntegerField(help_text=u"依赖顺序")

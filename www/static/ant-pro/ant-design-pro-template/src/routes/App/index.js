@@ -236,6 +236,7 @@ class Main extends PureComponent {
             showMoveGroup: false
         }
         this.timer = null;
+        this.mount = false;
     }
     static childContextTypes = {
         isActionIng: PropTypes.func,
@@ -254,8 +255,10 @@ class Main extends PureComponent {
     componentDidMount() {
         const {dispatch} = this.props;
         this.loadDetail();
+        this.mount = true;
     }
     componentWillUnmount() {
+        this.mount = false;
         clearInterval(this.timer);
         this
             .props
@@ -289,9 +292,6 @@ class Main extends PureComponent {
                         }
                     } else {
                         this.getStatus();
-                        this.timer = setInterval(() => {
-                            this.getStatus();
-                        }, 6000)
                     }
 
                 },
@@ -318,6 +318,7 @@ class Main extends PureComponent {
             })
     }
     getStatus = () => {
+        if(!this.mount) return;
         getStatus({
             team_name: globalUtil.getCurrTeamName(),
             app_alias: this.getAppAlias()
@@ -325,6 +326,10 @@ class Main extends PureComponent {
             if (data) {
                 this.setState({status: data.bean})
             }
+            setTimeout(()=>{
+                this.getStatus();
+            }, 5000)
+            
         })
     }
     handleTabChange = (key) => {

@@ -11,6 +11,7 @@ import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelation
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import ConfirmModal from '../../components/ConfirmModal';
+import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
 
 
@@ -379,6 +380,7 @@ export default class Index extends PureComponent {
       }
 
      >
+      <ScrollerX sm={650}>
       <Table 
         pagination={false}
         columns={[{
@@ -404,6 +406,7 @@ export default class Index extends PureComponent {
         }]}
         dataSource={outerEnvs}
        />
+       </ScrollerX>
        <div  style={{marginTop:10, textAlign: 'right'}}>
         <Button onClick={this.handleAddVar}><Icon type="plus" /> 添加变量</Button>
        </div>
@@ -416,6 +419,7 @@ export default class Index extends PureComponent {
       }
 
      >
+      <ScrollerX sm={650}>
       <Table
        pagination = {false}
        columns={[{
@@ -442,7 +446,7 @@ export default class Index extends PureComponent {
         render:(val, data) => {
             return (
                <Fragment>
-               <a onClick={()=>this.onViewRelationInfo(data)} href="javascript:;" style={{margintRight: 10}}>查看链接信息</a>
+               <a onClick={()=>this.onViewRelationInfo(data)} href="javascript:;" style={{margintRight: 10}}>连接信息</a>
                <a onClick={()=>{this.handleRemoveRelationed(data)}} href="javascript:;" style={{margintRight: 10}}>取消依赖</a>
                </Fragment>
             )
@@ -450,6 +454,7 @@ export default class Index extends PureComponent {
       }]}
       dataSource={relationList}
        />
+       </ScrollerX>
        <div  style={{marginTop:10, textAlign: 'right'}}>
         <Button onClick={this.showAddRelation}><Icon type="plus" /> 添加依赖</Button>
        </div>

@@ -34,7 +34,7 @@ const menuData = [
     path: 'team'
   }, {
     name: '好雨互联',
-    icon: 'team',
+    icon: 'usb',
     path: 'source'
   }
 ];

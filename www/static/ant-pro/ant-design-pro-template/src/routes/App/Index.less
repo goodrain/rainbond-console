@@ -175,7 +175,7 @@
 
 
 .charContent {
-  height: 90px;
+  height: 88px;
   .statusIconWraper {
      textAlign:center;
      padding:20px 0;
@@ -309,8 +309,6 @@
       
 }
 
-@import "~antd/lib/style/themes/default.less";
-@import "../../utils/utils.less";
 
 .iconGroup {
   i {
@@ -470,7 +468,14 @@
   .salesExtraWrap {
     display: none;
   }
-
+  .logItem{
+    .logItemDate{
+      width: 10px;
+      margin-right: 30px;
+      .time, .date {display: none}
+    }
+  }
+  
   .salesCard {
     :global {
       .ant-tabs-content {
