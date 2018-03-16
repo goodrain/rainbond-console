@@ -105,7 +105,7 @@ class MarketAppService(object):
         return '_'.join([group_name, make_uuid()[-4:]])
 
     def __build_services(self, tenant, user, service_list, service_probe_map):
-        service_prob_map = {}
+        service_prob_id_map = {}
         try:
             for service in service_list:
                 # 数据中心创建应用
@@ -118,8 +118,11 @@ class MarketAppService(object):
                         code, msg, probe = probe_service.add_service_probe(tenant, service, data)
                         if code == 200:
                             probe_ids.append(probe.probe_id)
+                else:
+                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
+                    probe_ids.append(probe.probe_id)
                 if probe_ids:
-                    service_probe_map[service.service_id] = probe_ids
+                    service_prob_id_map[service.service_id] = probe_ids
 
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
@@ -129,8 +132,8 @@ class MarketAppService(object):
             logger.exception(e)
             if service_list:
                 for service in service_list:
-                    if service_prob_map:
-                        probe_ids = service_prob_map.get(service.service_id)
+                    if service_prob_id_map:
+                        probe_ids = service_prob_id_map.get(service.service_id)
                         if probe_ids:
                             for probe_id in probe_ids:
                                 try:
@@ -359,7 +362,6 @@ class MarketAppService(object):
 
 
 class MarketTemplateTranslateService(object):
-
     # 需要特殊处理的service_key
     SPECIAL_PROCESS = ("mysql",
                        "postgresql",
@@ -504,11 +506,11 @@ class MarketTemplateTranslateService(object):
                                       "port_alias": port_alias,
                                       "is_inner_service": port["is_inner_service"],
                                       "container_port": port["container_port"]})
-                temp_alias = "gr"+make_uuid()[-6:]
+                temp_alias = "gr" + make_uuid()[-6:]
                 env_prefix = port_alias.upper() if bool(port_alias) else temp_alias.upper()
                 service_connect_info_map_list.append({
                     "name": "用户名",
-                    "attr_name": env_prefix+"_USER",
+                    "attr_name": env_prefix + "_USER",
                     "is_change": False,
                     "attr_value": "admin"
                 })
