@@ -93,8 +93,6 @@ class HttpClient(object):
                 # else:
                 #     record_body = body
 
-                logger.debug('request',
-                             '''\nrequest   ==> {0} "{1}" body={2}\nresponse  ==> {3}\ncontent   ==> {4}'''.format(method, url, body, response, record_content))
                 return response, content
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
