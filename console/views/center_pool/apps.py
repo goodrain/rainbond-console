@@ -202,7 +202,7 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: body
-              description: 需要同步的应用[{"group_key":"xxxxxxx","version":"xxxxxx"}]
+              description: 需要同步的应用[{"group_key":"xxxxxxx","version":"xxxxxx","template_version":"xxxx"}]
               required: true
               type: string
               paramType: body
@@ -214,7 +214,7 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             group_data = request.data
             data_list = []
             for d in group_data:
-                data_list.append("{0}:{1}".format(d["group_key"], d["version"]))
+                data_list.append("{0}:{1}:{2}".format(d["group_key"], d["version"], d.get("template_version", "v2")))
 
             market_sycn_service.batch_down_market_group_app_details(self.tenant, data_list)
             result = general_message(200, "success", "创建成功")
@@ -259,7 +259,6 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
-            logger.debug("start synchronized market apps")
             apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete)
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))

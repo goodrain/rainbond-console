@@ -4,6 +4,7 @@ import logging
 from console.models.main import RainbondCenterApp, ServiceShareRecordEvent
 from console.appstore.appstore import app_store
 from console.services.service_services import base_service
+from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.share_repo import share_repo
 from console.repositories.plugin import plugin_repo
@@ -15,6 +16,7 @@ from django.db import transaction
 from console.constants import AppConstants
 import json
 import datetime
+from console.repositories.market_app_repo import rainbond_app_repo
 
 logger = logging.getLogger("default")
 
@@ -492,128 +494,6 @@ class ShareService(object):
     def create_tenant_service_extend_method(self, **kwargs):
         return share_repo.create_tenant_service_extend_method(**kwargs)
 
-    def install_service(self, app_template):
-        for service in app_template:
-            service_cname = service.get("service_cname", None)
-            service_id = service.get("service_id", None)
-            tenant_id = service.get("tenant_id", None)
-            service_key = service.get("service_key", None)
-            category = service.get("category", None)
-            extend_method = service.get("extend_method", None)
-            version = service.get("version", None)
-            service_type = service.get("service_type", None)
-            service_source = service.get("service_source", None)
-            deploy_version = service.get("deploy_version", None)
-            service_image = service.get("service_image", None)
-            if service_image:
-                outer_registry = service_image.get("outer_registry", None)
-                image = outer_registry
-                slug = ""
-            else:
-                service_slug = service.get("service_slug", None)
-                if service_slug:
-                    ftp_namespace = service_slug.get("ftp_namespace", None)
-                    image = "goodrain.me/runner"
-                    slug = ftp_namespace
-                else:
-                    continue
-            service_alias = service.get("service_alias", None)
-            service_region = service.get("service_region", None)
-            creater = service.get("creater", None)
-
-            port_map_list = service.get("port_map_list", [])
-            service_volume_map_list = service.get("service_volume_map_list", [])
-            service_env_map_list = service.get("service_env_map_list", [])
-            dep_service_map_list = service.get("dep_service_map_list", [])
-            extend_method_map = service.get("extend_method_map", {})
-            for t_extend_method in extend_method_map:
-                service_key = t_extend_method.get("service_key", None)
-                version = t_extend_method.get("version", None)
-                min_node = t_extend_method.get("min_node", None)
-                max_node = t_extend_method.get("max_node", None)
-                step_node = t_extend_method.get("step_node", None)
-                min_memory = t_extend_method.get("min_memory", None)
-                max_memory = t_extend_method.get("max_memory", None)
-                step_memory = t_extend_method.get("step_memory", None)
-                is_restart = t_extend_method.get("is_restart", None)
-
-                share_service.create_tenant_service_extend_method(service_key=service_key, version=version,
-                                                                  min_node=min_node, max_node=max_node,
-                                                                  step_node=step_node, min_memory=min_memory,
-                                                                  max_memory=max_memory, step_memory=step_memory,
-                                                                  is_restart=is_restart)
-
-            plugin_map_list = service.get("plugin_map_list", [])
-
-            share_service.create_service(service_id=service_id, service_alias=service_alias,
-                                         service_cname=service_cname, tenant_id=tenant_id,
-                                         tenant_service_group_id=tenant_service_group_id,
-                                         service_region=service_region, min_node=min_node,
-                                         extend_method=extend_method, service_key=service_key,
-                                         category=category, image=image, slug=slug,
-                                         deploy_version=deploy_version, version=version,
-                                         service_source=service_source, service_type=service_type,
-                                         min_memory=min_memory, creater=creater)
-
-            share_service.create_tenant_service(service_id=service_id, service_alias=service_alias,
-                                                service_cname=service_cname, tenant_id=tenant_id,
-                                                tenant_service_group_id=tenant_service_group_id,
-                                                service_region=service_region, min_node=min_node,
-                                                extend_method=extend_method, service_key=service_key,
-                                                category=category, deploy_version=deploy_version, version=version,
-                                                service_source=service_source, service_type=service_type,
-                                                min_memory=min_memory, creater=creater)
-
-            for port_info in port_map_list:
-                lb_mapping_port = port_info.get("lb_mapping_port", None)
-                protocol = port_info.get("protocol", None)
-                mapping_port = port_info.get("mapping_port", None)
-                tenant_id = port_info.get("tenant_id", None)
-                port_alias = port_info.get("port_alias", None)
-                container_port = port_info.get("container_port", None)
-                is_outer_service = port_info.get("is_outer_service", False)
-                is_inner_service = port_info.get("is_inner_service", True)
-                service_id = port_info.get("service_id", None)
-                share_service.create_tenant_service_port(lb_mapping_port=lb_mapping_port,
-                                                         protocol=protocol, mapping_port=mapping_port,
-                                                         tenant_id=tenant_id, port_alias=port_alias,
-                                                         container_port=container_port, service_id=service_id,
-                                                         is_outer_service=is_outer_service,
-                                                         is_inner_service=is_inner_service)
-
-            for volume_info in service_volume_map_list:
-                service_id = volume_info.get("service_id", None)
-                category = volume_info.get("category", None)
-                host_path = volume_info.get("host_path", None)
-                volume_type = volume_info.get("volume_type", None)
-                volume_path = volume_info.get("volume_path", None)
-                volume_name = volume_info.get("volume_name", None)
-                share_service.create_tenant_service_volume(service_id=service_id, category=category,
-                                                           host_path=host_path, volume_type=volume_type,
-                                                           volume_path=volume_path, volume_name=volume_name)
-
-            for env_change_info in service_env_map_list:
-                tenant_id = env_change_info.get("tenant_id", None)
-                service_id = env_change_info.get("service_id", None)
-                container_port = env_change_info.get("container_port", None)
-                name = env_change_info.get("name", None)
-                attr_name = env_change_info.get("attr_name", None)
-                attr_value = env_change_info.get("attr_value", None)
-                scope = env_change_info.get("scope", None)
-                share_service.create_tenant_service_env_var(tenant_id=tenant_id, service_id=service_id,
-                                                            container_port=container_port, name=name,
-                                                            attr_name=attr_name, attr_value=attr_value,
-                                                            scope=scope)
-
-            for dep_service_info in dep_service_map_list:
-                tenant_id = dep_service_info.get("tenant_id", None)
-                service_id = dep_service_info.get("service_id", None)
-                service_key = dep_service_info.get("service_key", None)
-                tenant_service_group_id = dep_service_info.get("tenant_service_group_id", None)
-                share_service.create_tenant_service_relation(tenant_id=tenant_id, service_id=service_id,
-                                                             service_key=service_key,
-                                                             tenant_service_group_id=tenant_service_group_id)
-
     def create_service_share_record(self, **kwargs):
         return share_repo.create_service_share_record(**kwargs)
 
@@ -640,7 +520,7 @@ class ShareService(object):
             app_templete = {}
             # 处理基本信息
             try:
-                app_templete["templete_version"] = "v2"
+                app_templete["template_version"] = "v2"
                 app_templete["group_key"] = make_uuid()
                 group_info = share_info["share_group_info"]
                 app_templete["group_name"] = group_info["group_name"]
@@ -761,19 +641,25 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def complete(self, share_record):
-        apps = RainbondCenterApp.objects.filter(record_id=share_record.ID)
-        if apps:
-            apps[0].is_complete = True
-            apps[0].update_time = datetime.datetime.now()
-            apps[0].save()
+    def complete(self, tenant,share_record):
+        app = rainbond_app_repo.get_rainbond_app_by_record_id(share_record.ID)
+        if app:
+            app.is_complete = True
+            app.update_time = datetime.datetime.now()
+            app.save()
             share_record.is_success = True
             share_record.step = 3
             share_record.update_time = datetime.datetime.now()
             share_record.save()
             # 分享到云市
-            # TODO:
-            # if apps[0].scope == "goodrain":
+            if app.scope == "goodrain":
+                self.publish_app_to_public_market(tenant.tenant_id, app)
+
+    def publish_app_to_public_market(self, tenant_id, app):
+        market_api = MarketOpenAPI()
+        data = dict()
+        
+        market_api.publish_v2_template_group_data(tenant_id, data)
 
 
 share_service = ShareService()

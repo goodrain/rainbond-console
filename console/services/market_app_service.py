@@ -239,7 +239,7 @@ class MarketAppService(object):
             tenant_service.image = app["image"]
         else:
             tenant_service.image = app.get("share_image", app["image"])
-        tenant_service.cmd = app.get("cmd","")
+        tenant_service.cmd = app.get("cmd", "")
         tenant_service.service_region = region
         tenant_service.service_key = app["service_key"]
         tenant_service.desc = "market app "
@@ -391,7 +391,7 @@ class MarketTemplateTranslateService(object):
         new_templet["group_version"] = old_templete["group_version"]
         new_templet["group_name"] = old_templete["group_name"]
         new_templet["group_key"] = old_templete["group_key"]
-        new_templet["templete_version"] = "v2"
+        new_templet["template_version"] = "v2"
         new_templet["describe"] = old_templete["info"]
         new_templet["pic"] = old_templete["pic"]
         # process apps
@@ -576,17 +576,21 @@ class MarketTemplateTranslateService(object):
         service_slug["namespace"] = "app-publish/"
         return service_slug
 
-    def v2_to_v1(self, new_template):
-        """新版本模板转换为旧版本模板"""
-        pass
-
 
 class AppMarketSynchronizeService(object):
     def down_market_group_list(self, tenant):
         app_group_list = market_api.get_service_group_list(tenant.tenant_id)
         rainbond_apps = []
         for app_group in app_group_list:
-            if not self.is_group_exist(app_group["group_key"], app_group["group_version"]):
+            rbc = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_group["group_key"],
+                                                                        app_group["group_version"])
+            if rbc:
+                rbc.describe = app_group["info"]
+                rbc.pic = app_group["pic"]
+                rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+                rbc.template_version = app_group.get("template_version",rbc.template_version)
+                rbc.save()
+            else:
                 rainbond_app = RainbondCenterApp(
                     group_key=app_group["group_key"],
                     group_name=app_group["group_name"],
@@ -598,29 +602,28 @@ class AppMarketSynchronizeService(object):
                     scope="goodrain",
                     describe=app_group["info"],
                     pic=app_group["pic"],
-                    app_template=""
+                    app_template="",
+                    template_version=app_group.get("template_version", "")
                 )
                 rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
-    def is_group_exist(self, group_key, group_version):
-        if rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version):
-            return True
-        return False
-
     def batch_down_market_group_app_details(self, tenant, data):
         app_group_detail_templates = market_api.batch_get_group_details(tenant.tenant_id, data)
-        logger.debug("=====> {0}".format(app_group_detail_templates))
         for app_templates in app_group_detail_templates:
             self.save_market_app_template(app_templates)
 
     def down_market_group_app_detail(self, tenant, group_key, group_version):
         data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version)
-        logger.debug("=======> {0}".format(data))
         self.save_market_app_template(data)
 
     def save_market_app_template(self, app_templates):
-        v2_template = template_transform_service.v1_to_v2(app_templates)
+        is_dumps = True
+        if app_templates["template_version"] == "v1":
+            v2_template = template_transform_service.v1_to_v2(app_templates)
+        else:
+            v2_template = ["apps"]
+            is_dumps = False
         rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(v2_template["group_key"],
                                                                              v2_template["group_version"])
         if rainbond_app:
@@ -628,7 +631,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.share_team = v2_template["share_team"]
             rainbond_app.pic = v2_template["pic"]
             rainbond_app.describe = v2_template["describe"]
-            rainbond_app.app_template = json.dumps(v2_template)
+            rainbond_app.app_template = json.dumps(v2_template) if is_dumps else v2_template
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.save()

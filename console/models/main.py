@@ -51,6 +51,7 @@ class RainbondCenterApp(BaseModel):
     app_template = models.TextField(help_text=u"全量应用与插件配置信息")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     is_ingerit = models.BooleanField(default=True, null=True, blank=True, help_text=u"是否可被继承")
+    template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
 

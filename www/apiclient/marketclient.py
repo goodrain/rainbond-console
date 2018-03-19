@@ -86,3 +86,9 @@ class MarketOpenAPI(HttpClient):
         self.default_headers.update({"X_ENTERPRISE_ID": market_client_id,
                                      "X_ENTERPRISE_TOKEN": market_client_token})
         return self.default_headers
+
+    def publish_v2_template_group_data(self, tenant_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url = url + "/openapi/v1/market/apps/publish"
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
+        return self._unpack(body)

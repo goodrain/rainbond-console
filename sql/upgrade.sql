@@ -250,3 +250,6 @@ CREATE TABLE `tenant_service_relation_recycle_bin` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `service_id` (`service_id`,`dep_service_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+----- 2018.03.19
+ALTER TABLE rainbond_center_app ADD template_version VARCHAR(10) DEFAULT 'v2' NULL;
