@@ -1190,16 +1190,16 @@ class GoorainSSOCallBack(BaseView):
 
         if not sso_user_id or not sso_user_token:
             logger.error('cookies uid or token not specified!')
-            return self.redirect_to("/login")
+            return self.redirect_to("/")
 
         if sso_user_id == 'null' or sso_user_token == 'null':
             logger.error('bad uid or token, value is null!')
-            return self.redirect_to("/login")
+            return self.redirect_to("/")
 
         api = GoodRainSSOApi(sso_user_id, sso_user_token)
         if not api.auth_sso_user_token():
             logger.error('Illegal user token!')
-            return self.redirect_to("/login")
+            return self.redirect_to("/")
 
         # 同步sso_id所代表的企业信息，没有则创建
         try:
