@@ -194,7 +194,7 @@ class SuperAdminUser(models.Model):
         db_table = "user_administrator"
 
     user_id = models.IntegerField(unique=True, help_text=u"用户ID")
-    email = models.EmailField(max_length=35, help_text=u"邮件地址")
+    email = models.EmailField(max_length=35, null=True, blank=True, help_text=u"邮件地址")
 
 
 class Users(models.Model):
