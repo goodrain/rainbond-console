@@ -1371,5 +1371,15 @@ class GoodrainSSONotify(BaseView):
             logger.info(tenant.to_dict())
             logger.debug('account.login', 'user info notify successful')
 
+        tenants = user_svc.get_enterprise_tenants(user.enterprise_id)
+        logger.debug("Enterprise {0} have tenants {1}".format(user.enterprise_id, tenants))
+        data_list = [{
+                         'uid': user.sso_user_id,
+                         'tenant_id': t.tenant_id,
+                         'tenant_name': t.tenant_name,
+                         'tenant_alias': t.tenant_alias,
+                         'eid': t.enterprise_id
+                     } for t in tenants]
+
         logger.debug('account.login', '-' * 30)
-        return JsonResponse({"success": True})
+        return JsonResponse({'success': True, 'list': data_list})

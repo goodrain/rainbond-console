@@ -27,5 +27,11 @@ class RainbondCenterAppRepository(object):
     def bulk_create_rainbond_apps(self, rainbond_apps):
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
 
+    def get_rainbond_app_by_record_id(self,record_id):
+        rcapps = RainbondCenterApp.objects.filter(record_id=record_id)
+        if rcapps:
+            return rcapps[0]
+        return None
+
 
 rainbond_app_repo = RainbondCenterAppRepository()

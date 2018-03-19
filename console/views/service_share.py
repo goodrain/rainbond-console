@@ -360,20 +360,24 @@ class ServiceShareEventPost(RegionTenantHeaderView):
 class ServiceShareCompleteView(RegionTenantHeaderView):
     @perm_required('app_publish')
     def post(self, request, team_name, share_id, *args, **kwargs):
-        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-        if not share_record:
-            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-            return Response(result, status=404)
-        if share_record.is_success or share_record.step >= 3:
-            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-            return Response(result, status=400)
-        # 验证是否所有同步事件已完成
-        count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-        if count > 0:
-            result = general_message(415, "share complete can not do", "应用同步未全部完成")
-            return Response(result, status=415)
-        share_service.complete(share_record)
-        result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict())
+        try:
+            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+            if not share_record:
+                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+                return Response(result, status=404)
+            if share_record.is_success or share_record.step >= 3:
+                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+                return Response(result, status=400)
+            # 验证是否所有同步事件已完成
+            count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+            if count > 0:
+                result = general_message(415, "share complete can not do", "应用同步未全部完成")
+                return Response(result, status=415)
+            share_service.complete(self.tenant, share_record)
+            result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
         return Response(result, status=200)
 
 
@@ -599,40 +603,3 @@ class ServiceShareStatusView(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
-
-class InstallServiceView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
-        """
-        安装应用
-        ---
-        parameter:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: app_id
-              description: 应用包id
-              required: true
-              type: string
-              paramType: query
-        """
-        try:
-            app_id = request.GET.get("app_id", None)
-            if app_id is None or not app_id.isdigit():
-                code = 400
-                result = general_message(code, "app_id is missing or not digit!", "app_id缺失或非数字")
-                return Response(result, status=code)
-            else:
-                code, msg, app = share_service.get_app_by_app_id(app_id=app_id)
-                if code == 200:
-                    app_template = json_load(app.app_template)
-                    share_service.install_service(app_template=app_template)
-                    result = general_message(code, "install success", "应用安装成功")
-                else:
-                    result = general_message(code, "install failed", "应用安装失败，应用不存在")
-                return Response(result, status=code)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
