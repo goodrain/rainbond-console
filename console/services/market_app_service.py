@@ -507,20 +507,21 @@ class MarketTemplateTranslateService(object):
                                       "port_alias": port_alias,
                                       "is_inner_service": port["is_inner_service"],
                                       "container_port": port["container_port"]})
-                temp_alias = "gr" + make_uuid()[-6:]
-                env_prefix = port_alias.upper() if bool(port_alias) else temp_alias.upper()
-                service_connect_info_map_list.append({
-                    "name": "用户名",
-                    "attr_name": env_prefix + "_USER",
-                    "is_change": False,
-                    "attr_value": "admin"
-                })
-                service_connect_info_map_list.append({
-                    "name": "密码",
-                    "attr_name": env_prefix + "_PASS",
-                    "is_change": False,
-                    "attr_value": "**None**"
-                })
+                if app["is_init_accout"]:
+                    temp_alias = "gr" + make_uuid()[-6:]
+                    env_prefix = port_alias.upper() if bool(port_alias) else temp_alias.upper()
+                    service_connect_info_map_list.append({
+                        "name": "用户名",
+                        "attr_name": env_prefix + "_USER",
+                        "is_change": False,
+                        "attr_value": "admin"
+                    })
+                    service_connect_info_map_list.append({
+                        "name": "密码",
+                        "attr_name": env_prefix + "_PASS",
+                        "is_change": False,
+                        "attr_value": "**None**"
+                    })
         return port_map_list
 
     def __v1_2_v2_volumes(self, app):
