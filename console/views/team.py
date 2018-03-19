@@ -205,7 +205,7 @@ class AddTeamView(JWTAuthApiView):
                 desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
                 plugin_alias = "服务实时性能分析"
                 category = "analyst-plugin:perf"
-                image_url = "goodrain.me/tcm_20180117175939"
+                image_url = "goodrain.me/tcm"
                 code, msg, plugin_base_info = plugin_service.create_tenant_plugin(tenant, user.user_id, region, desc,
                                                                                   plugin_alias,
                                                                                   category, "image",
