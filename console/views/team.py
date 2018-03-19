@@ -506,7 +506,14 @@ class TeamExitView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
         ):
-            result = general_message(409, "not allow exit.", "您是当前团队最高管理员，不能退出此团队")
+            result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
+            return Response(result, status=409)
+        if "admin" in team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id,
+                tenant_name=team_name
+        ):
+            result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
+            return Response(result, status=409) 
         else:
             try:
                 code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
