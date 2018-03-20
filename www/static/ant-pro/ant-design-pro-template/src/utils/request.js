@@ -3,6 +3,7 @@ import {notification} from 'antd';
 import {routerRedux} from 'dva/router';
 import store from '../index';
 import cookie from './cookie';
+import globalUtil from '../utils/global';
 
 const codeMessage = {
     200: '服务器成功返回请求的数据',
@@ -144,15 +145,13 @@ export default function request(url, options) {
 
                 //访问资源数据中心与当前数据中心不一致
                 if (resData.code === 10404) {
-                    cookie.set('region_name', resData.data.bean.service_region);
-                    location.reload();
+                    location.href = globalUtil.replaceUrlRegion(resData.data.bean.service_region)
                     return;
                 }
 
                 //访问资源所属团队与当前团队不一致
                 if (resData.code === 10403) {
-                    cookie.set('team', resData.data.bean.service_team_name);
-                    location.reload();
+                    location.href = globalUtil.replaceUrlTeam(resData.data.bean.service_team_name)
                     return;
                 }
 

@@ -51,6 +51,7 @@ export default {
         // pathname = yield select(state => state.routing.location.pathname); // add the
         // parameters in the url const redirect = urlParams.searchParams.get('redirect',
         // pathname); yield put(routerRedux.push('/index'));
+        cookie.set('token', response.bean.token);
         window
           .location
           .reload();
