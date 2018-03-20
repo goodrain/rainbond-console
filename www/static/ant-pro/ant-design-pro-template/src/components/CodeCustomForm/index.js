@@ -192,7 +192,7 @@ export default class Index extends PureComponent {
 			              initialValue: data.username || '',
 			              rules: [{ required: false, message: '请输入仓库用户名' }],
 			            })(
-			              <Input placeholder="请输入仓库用户名" />
+			              <Input autocomplete="off" placeholder="请输入仓库用户名" />
 			            )}
 			          </Form.Item>
 			          <Form.Item
@@ -204,7 +204,7 @@ export default class Index extends PureComponent {
 			              initialValue: data.password || '',
 			              rules: [{ required: false, message: '请输入仓库密码' }],
 			            })(
-			              <Input type="password" placeholder="请输入仓库密码" />
+			              <Input autocomplete="new-password" type="password" placeholder="请输入仓库密码" />
 			            )}
 			          </Form.Item>
 			          <Form.Item

@@ -46,14 +46,14 @@ export default {
 
         // 非常粗暴的跳转,登陆成功之后权限会变成user或admin,会自动重定向到主页 Login success after permission
         // changes to admin or user The refresh will automatically redirect to the home
-        // page yield put(routerRedux.push('/'));
-        cookie.set('token', response.bean.token);
-        // const urlParams = new URL(window.location.href); const pathname = yield
-        // select(state => state.routing.location.pathname); // add the parameters in
-        // the url const redirect = urlParams.searchParams.get('redirect', pathname);
-
-        yield put(routerRedux.push('/index'));
-        //window.location.reload();
+        // page yield put(routerRedux.push('/')); cookie.set('token',
+        // response.bean.token); const urlParams = new URL(window.location.href); const
+        // pathname = yield select(state => state.routing.location.pathname); // add the
+        // parameters in the url const redirect = urlParams.searchParams.get('redirect',
+        // pathname); yield put(routerRedux.push('/index'));
+        window
+          .location
+          .reload();
       }
 
     },

@@ -1,13 +1,15 @@
 import {isUrl} from '../utils/utils';
+import globalUtil from '../utils/global';
+
 const menuData = [
   {
     name: '总览',
     icon: 'dashboard',
-    path: 'index'
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`
   }, {
     name: '创建应用',
     icon: 'plus',
-    path: 'create',
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create`,
     children: [
       {
         name: '从源码创建',
@@ -23,19 +25,19 @@ const menuData = [
   }, {
     name: '我的应用',
     icon: 'appstore-o',
-    path: 'groups'
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups`
   }, {
     name: '我的插件',
     icon: 'api',
-    path: 'myplugns'
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns`
   }, {
     name: '团队管理',
     icon: 'team',
-    path: 'team'
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/team`
   }, {
     name: '好雨互联',
     icon: 'usb',
-    path: 'source'
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source`
   }
 ];
 
@@ -66,20 +68,19 @@ export const getMenuData = (groups) => {
     for (var i = 0; i < menus.length; i++) {
       var item = menus[i];
 
-      if (item.path === 'groups') {
+      if (item.path.indexOf('groups') > -1) {
         item.children = groups.map((group) => {
-
           var children = (group.service_list || []).map((item) => {
             return {
               name: item.service_cname,
-              path: 'app/' + item.service_alias,
+              path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${item.service_alias}`,
               link: true,
               exact: true
             }
           })
           return {
             name: group.group_name,
-            path: 'groups/' + group.group_id,
+            path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${group.group_id}`,
             link: true,
             children: children,
             exact: true

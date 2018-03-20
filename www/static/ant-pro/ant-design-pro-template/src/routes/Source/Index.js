@@ -123,14 +123,13 @@ class AppList extends PureComponent {
                     type: 'global/syncMarketApp',
                     payload: {
                         team_name: globalUtil.getCurrTeamName()
-                    },
-                    callback: (data) => {
-                        this.setState({
-                            sync: false
-                        }, () => {
-                            this.loadApps();
-                        })
                     }
+                }).then(()=>{
+                    this.setState({
+                        sync: false
+                    }, () => {
+                        this.loadApps();
+                    })
                 })
         })
     }
@@ -182,7 +181,9 @@ class AppList extends PureComponent {
                     body: [
                         {
                             group_key: data.group_key,
-                            version: data.version
+                            version: data.version,
+                            template_version: data.template_version
+
                         }
                     ]
                 },

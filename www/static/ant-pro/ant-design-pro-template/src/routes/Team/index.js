@@ -137,7 +137,11 @@ export default class Index extends PureComponent {
       toEditAction: null,
       toMoveTeam: null,
       openRegion: false,
-      showExitTeam: false
+      showExitTeam: false,
+      page: 1,
+      pageSize: 8,
+      total: 0,
+      members: []
     }
   }
   componentDidMount() {
@@ -155,7 +159,15 @@ export default class Index extends PureComponent {
       type: 'teamControl/fetchMember',
       payload: {
         team_name: team_name,
-        region_name: region_name
+        region_name: region_name,
+        page_size: this.state.pageSize,
+        page: this.state.page
+      },
+      callback: (data) => {
+        this.setState({
+          members: data.list || [],
+          total: data.total
+        })
       }
     })
   }
@@ -204,7 +216,7 @@ export default class Index extends PureComponent {
           cookie.remove('region_name');
           this
             .props
-            .dispatch(routerRedux.replace("/index"))
+            .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`))
           location.reload();
         }
       })
@@ -302,7 +314,6 @@ export default class Index extends PureComponent {
   }
   handleEditAction = ({identity}) => {
     const team_name = globalUtil.getCurrTeamName();
-    console.log(identity)
     this
       .props
       .dispatch({
@@ -364,6 +375,13 @@ export default class Index extends PureComponent {
         }
       })
   }
+  hanldePageChange = (page) => {
+    this.setState({
+      page: page
+    }, () => {
+      this.loadMembers();
+    })
+  }
   render() {
     const {
       index,
@@ -402,7 +420,16 @@ export default class Index extends PureComponent {
         </div>
       </div>
     );
-    const members = teamControl.members || [];
+    const members = this.state.members;
+
+    const pagination = {
+      current: this.state.page,
+      pageSize: this.state.pageSize,
+      total: this.state.total,
+      onChange: (v) => {
+        this.hanldePageChange(v);
+      }
+    };
 
     return (
       <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
@@ -463,12 +490,13 @@ export default class Index extends PureComponent {
           ? <a href="javascript:;" onClick={this.showAddMember}>添加成员</a>
           : null}>
           <ScrollerX sm={600}>
-          <TeamMemberTable
-            team={team}
-            onMoveTeam={this.onMoveTeam}
-            onDelete={this.onDelMember}
-            onEditAction={this.onEditAction}
-            list={members}/>
+            <TeamMemberTable
+              pagination={pagination}
+              team={team}
+              onMoveTeam={this.onMoveTeam}
+              onDelete={this.onDelMember}
+              onEditAction={this.onEditAction}
+              list={members}/>
           </ScrollerX>
         </Card>
         {this.state.showEditName && <MoveTeam

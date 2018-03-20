@@ -114,9 +114,6 @@ export default function request(url, options) {
         .then((response) => {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
 
-            if (newOptions.method === 'DELETE' || response.status === 204) {
-                return response.text();
-            }
             const res = response.data.data || {};
             res._code = response.status;
 

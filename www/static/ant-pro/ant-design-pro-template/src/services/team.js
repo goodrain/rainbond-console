@@ -72,14 +72,14 @@ export async function createTeam(body = {
 */
 export async function getMembers(body = {
   team_name,
-  pageNumber,
+  page,
   pageSize
 }) {
   return request(config.baseUrl + `/console/teams/${body.team_name}/users`, {
     method: 'get',
-    param: {
-      page: body.pageNumber,
-      pageSize: body.pageSize
+    params: {
+      page: body.page,
+      page_size: body.pageSize
     }
   });
 }

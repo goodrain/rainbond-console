@@ -82,62 +82,61 @@ export const getRouterData = (app) => {
         'user', 'appControl', 'createApp', 'teamControl', 'plugin'
       ], () => import ('../layouts/BasicLayout'))
     },
-    '/source': {
+    '/team/:team/region/:region/source': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Source/Index'))
     },
-    '/index': {
+    '/team/:team/region/:region/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },
-    '/team': {
+    '/team/:team/region/:region/team': {
       component: dynamicWrapper(app, ['teamControl'], () => import ('../routes/Team/index'))
     },
-    '/groups/:groupId': {
+    '/team/:team/region/:region/groups/:groupId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/Index'))
     },
-    '/groups/share/one/:groupId/:shareId': {
+    '/team/:team/region/:region/groups/share/one/:groupId/:shareId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/AppShare'))
     },
-    '/groups/share/two/:groupId/:shareId': {
+    '/team/:team/region/:region/groups/share/two/:groupId/:shareId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/AppShareLoading'))
     },
-    '/groups/share/three/:groupId:ShareId': {
+    '/team/:team/region/:region/groups/share/three/:groupId:ShareId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/AppShareFinish'))
     },
-    '/app/:appAlias/:type?': {
+    '/team/:team/region/:region/app/:appAlias/:type?': {
       component: dynamicWrapper(app, [
         'appDetail', 'appControl'
       ], () => import ('../routes/App/index'))
     },
-    '/create/code/:type?': {
+    '/team/:team/region/:region/create/code/:type?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/code'))
     },
-    '/create/market': {
+    '/team/:team/region/:region/create/market': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/market'))
     },
-    '/myplugns/:pluginId?': {
+    '/team/:team/region/:region/myplugns/:pluginId?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/index'))
     },
-    '/create-plugin': {
+    '/team/:team/region/:region/create-plugin': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/Create'))
     },
-    '/create/create-check/:appAlias': {
+    '/team/:team/region/:region/create/create-check/:appAlias': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/create-check'))
     },
-    '/create/create-compose-check/:groupId/:composeId': {
+    '/team/:team/region/:region/create/create-compose-check/:groupId/:composeId': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/create-compose-check'))
     },
-
-    '/create/image/:type?': {
+    '/team/:team/region/:region/create/image/:type?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/image')),
       name: ''
     },
-    '/create/create-setting/:appAlias': {
+    '/team/:team/region/:region/create/create-setting/:appAlias': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/create-setting'))
     },
-    '/create/create-compose-setting/:groupId/:composeId': {
+    '/team/:team/region/:region/create/create-compose-setting/:groupId/:composeId': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/create-compose-setting'))
     },
-    '/result/success': {
+    '/team/:team/region/:region/result/success': {
       component: dynamicWrapper(app, [], () => import ('../routes/Result/Success'))
     },
     '/result/fail': {
