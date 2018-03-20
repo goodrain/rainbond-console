@@ -4,7 +4,8 @@
 """
 import datetime
 import logging
-
+import random
+import string
 from console.constants import AppConstants
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
@@ -447,5 +448,15 @@ class AppService(object):
                 service_source.save()
         return 200, "success"
 
+    def generate_service_cname(self, tenant, service_cname, region):
+        rt_name = service_cname
+        while True:
+            service = service_repo.get_service_by_region_tenant_and_name(tenant.tenant_id, rt_name, region)
+            if service:
+                temp_name = ''.join(random.sample(string.ascii_lowercase + string.digits, 4))
+                rt_name = "{0}_{1}".format(service_cname, temp_name)
+            else:
+                break
+        return rt_name
 
 app_service = AppService()

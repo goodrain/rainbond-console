@@ -9,7 +9,7 @@ import logging
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.repositories.app import service_source_repo
+from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -46,7 +46,7 @@ class MarketAppService(object):
                                                                       market_app.group_key, market_app.version,
                                                                       market_app.group_name)
             for app in apps:
-                ts = self.__init_market_app(tenant.tenant_id, region, user, app, tenant_service_group.ID)
+                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
 
@@ -222,7 +222,7 @@ class MarketAppService(object):
         }
         extend_repo.create_extend_method(**params)
 
-    def __init_market_app(self, tenant_id, region, user, app, tenant_service_group_id):
+    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id):
         """
         初始化应用市场创建的应用默认数据
         """
@@ -230,9 +230,9 @@ class MarketAppService(object):
             app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
 
         tenant_service = TenantServiceInfo()
-        tenant_service.tenant_id = tenant_id
+        tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app["service_cname"]
+        tenant_service.service_cname = app_service.generate_service_cname(tenant, app["service_cname"], region)
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         if is_slug:
