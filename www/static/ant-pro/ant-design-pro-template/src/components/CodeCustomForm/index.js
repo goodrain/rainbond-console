@@ -121,7 +121,6 @@ export default class Index extends PureComponent {
 		const data = this.props.data || {};
 		const showSubmitBtn = this.props.showSubmitBtn === void 0 ? true : this.props.showSubmitBtn;
 		const showCreateGroup = this.props.showCreateGroup === void 0 ? true : this.props.showCreateGroup;
-		console.log(data);
 		return (
 				<Fragment>
 			        <Form onSubmit={this.handleSubmit} layout="horizontal" hideRequiredMark>

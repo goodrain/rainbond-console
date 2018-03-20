@@ -372,7 +372,9 @@ export default class Index extends PureComponent {
       page_size: 6,
       hasNext: false,
       //安装的性能分析插件
-      anaPlugins: []
+      anaPlugins: [],
+      disk: 0,
+      memory: 0
     }
     this.inerval = 5000;
   }
@@ -382,8 +384,8 @@ export default class Index extends PureComponent {
     this.loadLog();
     this.mounted = true;
     this.getAnalyzePlugins();
-    this.fetchAppDisk();
-    this.fetchAppMemory();
+    this.fetchAppDiskAndMemory();
+
   }
   componentWillUnmount() {
     this.mounted = false;
@@ -429,28 +431,19 @@ export default class Index extends PureComponent {
         }
       })
   }
-  fetchAppDisk() {
+  fetchAppDiskAndMemory() {
     this
       .props
       .dispatch({
-        type: 'appControl/fetchDisk',
+        type: 'appControl/getAppResource',
         payload: {
           team_name: globalUtil.getCurrTeamName(),
-          app_alias: this.props.appAlias,
-          serviceId: this.props.appDetail.service.service_id
-        }
-      })
-  }
-  fetchAppMemory() {
-
-    this
-      .props
-      .dispatch({
-        type: 'appControl/fetchMemory',
-        payload: {
-          team_name: globalUtil.getCurrTeamName(),
-          app_alias: this.props.appAlias,
-          serviceId: this.props.appDetail.service.service_id
+          app_alias: this.props.appAlias
+        },
+        callback: (data) => {
+          if(data && data.bean){
+            this.setState({disk: data.bean.disk || 0, memory: data.bean.memory || 0})
+          }
         }
       })
   }
@@ -702,14 +695,12 @@ export default class Index extends PureComponent {
               footer={< Field label = "" value = "" />}>
               <div className={styles.charContent}>
                 <p className={styles.charContentTit}>
-                  {numeral(monitorDataUtil.queryTog2(this.props.appMemory)).format('0,0')}
+                  {numeral(this.state.memory).format('0,0')}
                   <span className={styles.sub}>MB 内存</span>
                 </p>
 
                 <p className={styles.charContentTit}>
-                  {numeral(monitorDataUtil.queryTog2(this.props.appDisk, (v) => {
-                    return v / 1024
-                  })).format('0,0')}
+                  {numeral(this.state.disk).format('0,0')}
                   <span className={styles.sub}>MB 磁盘</span>
                 </p>
 

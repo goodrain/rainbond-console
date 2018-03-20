@@ -176,3 +176,12 @@ export async function getAppsByComposeId(body={team_name, compose_id}){
      method: 'get'
   });
 }
+
+/*
+   根据compose_id获取compose内容
+*/
+export async function getComposeByComposeId(body={team_name, compose_id}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/compose/${body.compose_id}/content`, {
+     method: 'get'
+  });
+}

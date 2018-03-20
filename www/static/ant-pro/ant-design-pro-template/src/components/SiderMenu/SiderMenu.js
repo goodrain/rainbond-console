@@ -69,7 +69,7 @@ export default class SiderMenu extends PureComponent {
       }
 
       if (itemArr[itemArr.length - 2] === 'app') {
-        return this.getOpenGroup(item.split('/')[1])
+        return this.getOpenGroup(itemArr[itemArr.length - 1])
       }
       return this.getSelectedMenuKeys(`/${item}`)[0];
     });
@@ -95,6 +95,7 @@ export default class SiderMenu extends PureComponent {
         })[0]
         return res;
       })[0]
+      
       if (currGroup) {
         return currGroup.path;
       }

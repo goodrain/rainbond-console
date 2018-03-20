@@ -1438,3 +1438,10 @@ export async function editPluginConfigs(body = {
 								data: body.data
 				});
 }
+
+/* 查询应用的内存和磁盘使用情况 */
+export async function getAppResource(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/resource`, {
+		method: 'get'
+});
+}

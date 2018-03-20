@@ -30,22 +30,22 @@ const Option = Select.Option;
 const links = [
   {
     title: '自定义源码',
-    href: '/create/code/custom'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/code/custom`
   }, {
     title: '好雨代码仓库',
-    href: '/create/code/goodrain'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/code/goodrain`
   }, {
     title: 'github项目',
-    href: '/create/code/github'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/code/github`
   }, {
     title: '指定镜像',
-    href: '/create/image/custom'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/image/custom`
   }, {
     title: 'DockerRun命令',
-    href: '/create/image/dockerrun'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/image/dockerrun`
   }, {
     title: 'Dockercompose',
-    href: '/create/image/Dockercompose'
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/image/Dockercompose`
   }
 ];
 

@@ -82,11 +82,11 @@ class PluginList extends PureComponent {
                   className={styles.card}
                   actions={[ < span > {
                     pluginUtil.getCategoryCN(item.category)
-                  } < /span>, <Link to={'/myplugns / '+item.plugin_id}>管理</Link>]}>
+                  } < /span>, <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>]}>
                   <Card.Meta
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={< Link to = {
-                    '/myplugns/' + item.plugin_id
+                    `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`
                   } > {
                     item.plugin_alias
                   } < /Link>}

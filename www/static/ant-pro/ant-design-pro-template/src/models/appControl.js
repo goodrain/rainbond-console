@@ -63,7 +63,8 @@ import {
   stopPlugin,
   getPluginConfigs,
   editPluginConfigs,
-  getAnalyzePlugins
+  getAnalyzePlugins,
+  getAppResource
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -125,6 +126,15 @@ export default {
     members: []
   },
   effects : {
+    *getAppResource({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getAppResource, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getAnalyzePlugins({
       payload,
       callback

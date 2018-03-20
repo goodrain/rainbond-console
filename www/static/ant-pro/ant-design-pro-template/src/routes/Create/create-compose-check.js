@@ -24,10 +24,27 @@ require('codemirror/mode/yaml/yaml');
 require('codemirror/lib/codemirror.css');
 require('../../styles/codemirror.less');
 
+
 /* 修改compose内容 */
 
 @Form.create()
 class ModifyCompose extends PureComponent {
+    constructor(props){
+        super(props);
+        this.state = {
+            compose:''
+        }
+    }
+    componentDidMount(){
+        getComposeByComposeId({
+            team_name: globalUtil.getCurrTeamName(),
+            compose_id: this.props.compose_id
+        }).then((data)=>{
+            if(data && data.bean){
+                this.setState({compose: data.bean.compose_content})
+            }
+        })
+    }
     handleSubmit = (e) => {
         e.preventDefault();
         const form = this.props.form;
@@ -47,6 +64,11 @@ class ModifyCompose extends PureComponent {
             theme: "monokai",
             mode: 'yaml'
         };
+
+        if(!this.state.compose){
+            return null;
+        }
+
         return (
             <Modal
                 visible={true}
@@ -56,7 +78,7 @@ class ModifyCompose extends PureComponent {
                 <Form onSubmit={this.handleSubmit} layout="horizontal" hideRequiredMark>
                     <Form.Item>
                         {getFieldDecorator('yaml_content', {
-                            initialValue: data.yaml_content || '',
+                            initialValue: this.state.compose || '',
                             rules: [
                                 {
                                     required: true,
