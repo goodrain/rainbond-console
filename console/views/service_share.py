@@ -373,8 +373,9 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             if count > 0:
                 result = general_message(415, "share complete can not do", "应用同步未全部完成")
                 return Response(result, status=415)
-            share_service.complete(self.tenant, share_record)
-            result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict())
+            app_market_url = share_service.complete(self.tenant, self.user, share_record)
+            result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(),
+                                     app_market_url=app_market_url)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
