@@ -26,7 +26,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       libpng-dev \
       libjpeg-turbo-dev \
       py-mysqldb \
-      && pip install -r requirements.txt -i https://mirrors.ustc.edu.cn/pypi/web/simple \
+      && pip install -r requirements.txt \
       && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
       && cp -a /usr/lib/libmemcached* /tmp/ \
       && cp -a /usr/lib/libsas* /tmp/ \
