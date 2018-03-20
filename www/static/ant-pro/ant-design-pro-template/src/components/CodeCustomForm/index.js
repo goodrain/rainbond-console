@@ -121,7 +121,7 @@ export default class Index extends PureComponent {
 		const data = this.props.data || {};
 		const showSubmitBtn = this.props.showSubmitBtn === void 0 ? true : this.props.showSubmitBtn;
 		const showCreateGroup = this.props.showCreateGroup === void 0 ? true : this.props.showCreateGroup;
-
+		console.log('this is newwwwww')
 		return (
 				<Fragment>
 			        <Form onSubmit={this.handleSubmit} layout="horizontal" hideRequiredMark>
@@ -192,7 +192,7 @@ export default class Index extends PureComponent {
 			              initialValue: data.username || '',
 			              rules: [{ required: false, message: '请输入仓库用户名' }],
 			            })(
-			              <Input autoComplete="off" placeholder="请输入仓库用户名" />
+			              <Input  autoComplete="off" placeholder="请输入仓库用户名" />
 			            )}
 			          </Form.Item>
 			          <Form.Item
@@ -204,7 +204,7 @@ export default class Index extends PureComponent {
 			              initialValue: data.password || '',
 			              rules: [{ required: false, message: '请输入仓库密码' }],
 			            })(
-			              <Input autoComplete="new-password" type="password" placeholder="请输入仓库密码" />
+			              <Input autoComplete="new-password" autoComplete="off" type="password" placeholder="请输入仓库密码" />
 			            )}
 			          </Form.Item>
 			          <Form.Item
