@@ -20,37 +20,37 @@ class MarketOpenAPI(HttpClient):
 
     def publish_all_service_group_data(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/market/apps/publish"
+        url = url + "/openapi/console/v1/enter-market/apps/publish"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
     def get_service_group_list(self, tenant_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/market/apps/publish"
+        url = url + "/openapi/console/v1/enter-market/apps"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
-    def get_service_group_detail(self, tenant_id, group_key, group_version):
+    def get_service_group_detail(self, tenant_id, group_key, group_version,template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/market/apps/settings?group_key={0}&group_version={1}".format(group_key, group_version)
+        url = url + "/openapi/console/v1/enter-market/apps/templates?group_key={0}&group_version={1}&template_version={2}".format(group_key, group_version,template_version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
     def batch_get_group_details(self, tenant_id, data):
         """批量下载多个应用组信息"""
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/market/apps/batch-settings"
+        url = url + "/openapi/console/v1/enter-market/apps/batch-templates"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
     def confirm_access_token(self, domain, market_client_id, market_client_token):
-        url = domain + "/openapi/v1/market/confirm"
+        url = domain + "/openapi/console/v1/enter-market/confirm"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
     def get_enterprise_account_info(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/enterprises/" + enterprise_id
+        url = url + "/openapi/console/v1/enterprises/" + enterprise_id
         # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
@@ -58,7 +58,7 @@ class MarketOpenAPI(HttpClient):
 
     def get_enterprise_team_fee(self, region, enterprise_id, team_id, date):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(team_id)
-        url = url + "/openapi/v1/enterprises/" + enterprise_id \
+        url = url + "/openapi/console/v1/enterprises/" + enterprise_id \
               + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
         # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id \
         #       + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
@@ -69,7 +69,7 @@ class MarketOpenAPI(HttpClient):
     def get_public_regions_list(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/regions"
-        url = url + "/openapi/v1/enterprises/" + enterprise_id + "/regions"
+        url = url + "/openapi/console/v1/enterprises/" + enterprise_id + "/regions"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data
@@ -77,7 +77,7 @@ class MarketOpenAPI(HttpClient):
     def get_enterprise_regions_resource(self, tenant_id, region, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
-        url = url + "/openapi/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
+        url = url + "/openapi/console/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data
@@ -89,6 +89,6 @@ class MarketOpenAPI(HttpClient):
 
     def publish_v2_template_group_data(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v1/market/apps/publish"
+        url += "/openapi/console/v1/enter-market/apps/templates"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)

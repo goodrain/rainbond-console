@@ -641,9 +641,14 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def complete(self, tenant,share_record):
+    def complete(self, tenant, user, share_record):
         app = rainbond_app_repo.get_rainbond_app_by_record_id(share_record.ID)
+        app_market_url = None
         if app:
+            # 分享到云市
+            if app.scope == "goodrain":
+                app_market_url = self.publish_app_to_public_market(tenant, user.nick_name, app)
+
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
@@ -651,15 +656,24 @@ class ShareService(object):
             share_record.step = 3
             share_record.update_time = datetime.datetime.now()
             share_record.save()
-            # 分享到云市
-            if app.scope == "goodrain":
-                self.publish_app_to_public_market(tenant.tenant_id, app)
+        return app_market_url
 
-    def publish_app_to_public_market(self, tenant_id, app):
+    def publish_app_to_public_market(self, tenant, user_name, app):
         market_api = MarketOpenAPI()
         data = dict()
-        
-        market_api.publish_v2_template_group_data(tenant_id, data)
+        data["tenant_id"] = tenant.tenant_id
+        data["group_key"] = app.group_key
+        data["group_version"] = app.version
+        data["template_version"] = app.template_version
+        data["publish_user"] = user_name
+        data["publish_team"] = tenant.tenant_alias
+        data["update_note"] = app.describe
+        data["group_template"] = app.app_template
+        data["group_share_alias"] = app.group_name
+        result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
+        # 云市url
+        app_url = result["app_url"]
 
+        return app_url
 
 share_service = ShareService()

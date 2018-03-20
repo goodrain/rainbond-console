@@ -588,7 +588,7 @@ class AppMarketSynchronizeService(object):
                 rbc.describe = app_group["info"]
                 rbc.pic = app_group["pic"]
                 rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-                rbc.template_version = app_group.get("template_version",rbc.template_version)
+                rbc.template_version = app_group.get("template_version", rbc.template_version)
                 rbc.save()
             else:
                 rainbond_app = RainbondCenterApp(
@@ -613,8 +613,8 @@ class AppMarketSynchronizeService(object):
         for app_templates in app_group_detail_templates:
             self.save_market_app_template(app_templates)
 
-    def down_market_group_app_detail(self, tenant, group_key, group_version):
-        data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version)
+    def down_market_group_app_detail(self, tenant, group_key, group_version, template_version):
+        data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version, template_version)
         self.save_market_app_template(data)
 
     def save_market_app_template(self, app_templates):
