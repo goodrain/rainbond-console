@@ -208,7 +208,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
             # self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
-            self.tenant_name = self.request.COOKIES.get('team', None)
+            self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)
+            # self.tenant_name = self.request.COOKIES.get('team', None)
 
         if not self.response_region:
             raise ImportError("region_name not found !")
