@@ -173,7 +173,7 @@ class AppLogInstanceView(AppBaseView):
         try:
 
             code, msg, host_id = log_service.get_docker_log_instance(self.tenant, self.service)
-            web_socket_url = ws_service.get_log_instance_ws(request, self.response_region)
+            web_socket_url = ws_service.get_log_instance_ws(request, self.service.service_region)
             bean = {"web_socket_url": web_socket_url}
             if code == 200:
                 web_socket_url += "?host_id={0}".format(host_id)
@@ -208,7 +208,7 @@ class AppHistoryLogView(AppBaseView):
         try:
 
             code, msg, file_list = log_service.get_history_log(self.tenant, self.service)
-            log_domain_url = ws_service.get_log_domain(request, self.response_region)
+            log_domain_url = ws_service.get_log_domain(request, self.service.service_region)
             if code != 200:
                 file_list = []
             file_urls = []
