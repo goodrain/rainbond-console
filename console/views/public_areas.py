@@ -280,7 +280,7 @@ class GroupServiceDetView(AppBaseView):
                                                                              team_id=self.team.tenant_id,
                                                                              team_name=self.team_name,
                                                                              service=self.service,
-                                                                             region_name=self.response_region)
+                                                                             region_name=self.service.service_region)
             result = general_message(200, "success", "成功", bean=result)
             return Response(result, status=200)
         except Exception as e:

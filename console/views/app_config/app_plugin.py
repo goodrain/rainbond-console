@@ -49,7 +49,7 @@ class APPPluginsView(AppBaseView):
                     return Response(general_message(400, "param can only be analysis or net_manage", "参数错误"),
                                     status=400)
             installed_plugins, not_install_plugins = app_plugin_service.get_plugins_by_service_id(
-                self.response_region, self.tenant.tenant_id, self.service.service_id, category)
+                self.service.service_region, self.tenant.tenant_id, self.service.service_id, category)
             bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
@@ -138,7 +138,7 @@ class APPPluginInstallView(AppBaseView):
             # 1)发送关联请求
             try:
                 res, resultBody = region_api.pluginServiceRelation(
-                    self.response_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
+                    self.service.service_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
                 if res.status == 200:
                     plugin_svc.add_service_plugin_relation(
                         service_id=self.service.service_id, plugin_id=plugin_id, build_version=build_version)
@@ -160,7 +160,7 @@ class APPPluginInstallView(AppBaseView):
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
-            res, resultBody = region_api.postPluginAttr(self.response_region, self.tenant.tenant_name,
+            res, resultBody = region_api.postPluginAttr(self.service.service_region, self.tenant.tenant_name,
                                                         self.service.service_alias, plugin_id, body)
             if res.status == 200:
                 result = general_message(200, "success", "操作成功", bean=result["config_group"])
@@ -172,7 +172,7 @@ class APPPluginInstallView(AppBaseView):
             try:
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
                 region_api.delPluginServiceRelation(
-                    self.response_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+                    self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
             except Exception, e:
                 pass
             result = general_message(400, "havs no downstream services", u'缺少关联应用，不能使用该类型插件')
@@ -182,7 +182,7 @@ class APPPluginInstallView(AppBaseView):
             try:
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
                 region_api.delPluginServiceRelation(
-                    self.response_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+                    self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
             except Exception, e:
                 logger.exception(e)
                 pass
@@ -215,7 +215,7 @@ class APPPluginInstallView(AppBaseView):
         try:
             plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
             res, resultBody = region_api.delPluginServiceRelation(
-                self.response_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+                self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
             if res.status == 200:
                 result = general_message(200, "success", "插件删除成功")
                 return Response(result, status=200)
@@ -320,7 +320,7 @@ class APPPluginOpenView(AppBaseView):
             body_relation["version_id"] = build_version
             logger.debug("plugin.relation", "is_switch body is {}".format(body_relation))
             res, resultBody = region_api.updatePluginServiceRelation(
-                self.response_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
+                self.service.service_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
             if res.status == 200:
                 plugin_svc.update_service_plugin_relation(self.service.service_id, plugin_id, build_version, switch)
                 return Response(general_message(200, "success", "操作成功"), status=200)
@@ -468,7 +468,7 @@ class APPPluginConfigView(AppBaseView):
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
-            res, resultBody = region_api.putPluginAttr(self.response_region, self.tenant.tenant_name,
+            res, resultBody = region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name,
                                                        self.service.service_alias,
                                                        plugin_id, body)
             result = general_message(200, "config error", "配置成功")

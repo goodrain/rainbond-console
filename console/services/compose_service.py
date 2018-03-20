@@ -13,6 +13,7 @@ from console.repositories.app import service_repo
 import logging
 import yaml
 import datetime
+from console.services.app import app_service
 from StringIO import StringIO
 from console.services.app_check_service import AppCheckService
 from console.services.app_config.app_relation_service import AppServiceRelationService
@@ -143,7 +144,7 @@ class ComposeService(object):
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = service_cname
+        tenant_service.service_cname = app_service.generate_service_cname(tenant, service_cname, region)
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         tenant_service.image = image

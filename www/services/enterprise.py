@@ -47,7 +47,6 @@ class EnterpriseService(object):
         logger.debug('tenant_alias: {}'.format(tenant_alias))
         # 判断用户是否存在, 如果有enterprise_id意味着用户与enterprise已经绑定
         if enterprise_id:
-            print("123456:", enterprise_id, user_id)
             user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
             enterprise = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
         else:
@@ -158,7 +157,7 @@ class EnterpriseService(object):
         # 创建用户团队企业关系及权限，创建团队的用户即为此团队的管理员
         logger.debug('create tenant_perm! user_pk: {0}, tenant_pk:{1}, enterprise_pk:{2}'.format(user_id, tenant.pk,
                                                                                                  enterprise.pk))
-        PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant.pk, identity='admin',
+        PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant.pk, identity='owner',
                                      enterprise_id=enterprise.pk)
 
         # 初始化数据中心并建立团队与数据中心的关系

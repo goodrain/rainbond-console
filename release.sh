@@ -20,7 +20,7 @@ fi
 function release(){
 
   echo "pull newest code..."
-  git pull
+  [ -z $1 ] && git pull
 
   # get commit sha
   git_commit=$(git log -n 1 --pretty --format=%h)
@@ -33,10 +33,12 @@ function release(){
   docker build -t grthon:2.7.9 -f Dockerfile.base .
   docker build --no-cache -t rainbond/${image_name}:${VERSION} -f Dockerfile.build .
   rm -r ./Dockerfile.build
-  #docker push rainbond/${image_name}:${VERSION}
 }
 
 case $1 in
+    dev)
+    release dev
+    ;;
     *)
     release
     ;;

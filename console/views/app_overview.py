@@ -75,7 +75,7 @@ class AppDetailView(AppBaseView):
             service_actions = self.user.actions.service_actions
             bean.update({"service_actions": service_actions})
 
-            event_websocket_url = ws_service.get_event_log_ws(self.request, self.response_region)
+            event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
             # monitor_websocket_uri = ws_service.get_monitor_log_ws(self.request, self.response_region, self.tenant,
             #                                                       self.service)
             bean.update({"event_websocket_url": event_websocket_url})
@@ -139,7 +139,7 @@ class AppBriefView(AppBaseView):
 
         try:
             service_cname = request.data.get("service_cname", None)
-            is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.response_region)
+            is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
             if not is_pass:
                 return Response(general_message(400, "param error", msg), status=400)
             self.service.service_cname = service_cname
@@ -408,7 +408,7 @@ class AppGroupView(AppBaseView):
             if group_id == -1:
                 group_service.delete_service_group_relation_by_service_id(self.service.service_id)
             else:
-                code, msg, group = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
+                code, msg, group = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
                 if code != 200:
                     return Response(general_message(code, "group not found", "未找到需要修改的组信息"))
                 group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)

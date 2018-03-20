@@ -62,7 +62,7 @@ class AppMntView(AppBaseView):
                 mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service)
             elif query_type == "unmnt":
                 services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id,
-                                                    self.response_region)
+                                                    self.service.service_region)
                 services_ids = [s.service_id for s in services]
                 mnt_list, total = mnt_service.get_service_unmnt_details(self.tenant, self.service, services_ids, page,
                                                                  page_size)

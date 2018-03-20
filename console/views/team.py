@@ -13,7 +13,10 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import JWTAuthApiView
 from www.models import Tenants
+from console.repositories.plugin import config_group_repo, config_item_repo
+from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
+from console.services.plugin import plugin_service, plugin_version_service
 
 logger = logging.getLogger("default")
 
@@ -170,6 +173,8 @@ class AddTeamView(JWTAuthApiView):
                     if not perm:
                         result = general_message(400, "invited failed", "团队关联失败，注册失败")
                         return Response(result, status=400)
+                # 添加默认的插件
+                self.add_default_plugin(self.user, team, regions)
                 if code == "200":
                     data = {"team_name": team.tenant_name, "team_id": team.tenant_id, "team_ID": team.ID,
                             "team_alisa": team.tenant_alias, "creater": team.creater, "user_num": 1,
@@ -193,6 +198,58 @@ class AddTeamView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+    def add_default_plugin(self, user, tenant, regions):
+        try:
+            for region in regions:
+                desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
+                plugin_alias = "服务实时性能分析"
+                category = "analyst-plugin:perf"
+                image_url = "goodrain.me/tcm"
+                code, msg, plugin_base_info = plugin_service.create_tenant_plugin(tenant, user.user_id, region, desc,
+                                                                                  plugin_alias,
+                                                                                  category, "image",
+                                                                                  image_url, "")
+                plugin_base_info.origin = "local_market"
+                plugin_base_info.save()
+
+                plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
+                                                                                   tenant.tenant_id,
+                                                                                   user.user_id, "", "unbuild", 64)
+                config_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "config_name": "端口是否开启分析",
+                    "service_meta_type": "upstream_port",
+                    "injection": "auto"
+                }
+                config_group_repo.create_plugin_config_group(**config_params)
+                item_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "service_meta_type": "upstream_port",
+                    "attr_name": "OPEN",
+                    "attr_type": "radio",
+                    "attr_alt_value": "YES,NO",
+                    "attr_default_value": "YES",
+                    "is_change": True,
+                    "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
+                }
+                config_item_repo.create_plugin_config_items(**item_params)
+
+                event_id = make_uuid()
+                plugin_build_version.event_id = event_id
+                plugin_build_version.plugin_version_status = "fixed"
+
+                plugin_service.create_region_plugin(region, tenant, plugin_base_info)
+
+                plugin_service.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
+                                            event_id)
+                plugin_build_version.build_status = "build_success"
+                plugin_build_version.save()
+        except Exception as e:
+            logger.error("添加默认插件错误")
+            logger.exception(e)
 
 
 class TeamUserView(JWTAuthApiView):

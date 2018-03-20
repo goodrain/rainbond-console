@@ -19,13 +19,13 @@ from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageVi
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import AppCheck, AppCheckUpdate, GetCheckUUID
 from console.views.app_create.docker_compose import DockerComposeCreateView, ComposeCheckView, ComposeCheckUpdate, \
-    ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView
+    ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
     RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView
-from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView
+from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
@@ -202,6 +202,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/delete$', ComposeDeleteView.as_view()),
     # 查询compose下的应用
     url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/services$', ComposeServicesView.as_view()),
+    # 获取compose文件内容
+    url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/content$', ComposeContentView.as_view()),
     # 应用构建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view()),
     # 应用编译环境信息
@@ -296,6 +298,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
     # 应用权限
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermView.as_view()),
+    # 应用资源
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view()),
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),
 
