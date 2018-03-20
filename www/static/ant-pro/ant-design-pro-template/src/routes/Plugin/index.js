@@ -36,7 +36,7 @@ class PluginList extends PureComponent {
   handleCreate = () => {
     this
       .props
-      .dispatch(routerRedux.push("/create-plugin"))
+      .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create-plugin`))
   }
   render() {
     const list = this.state.list;
@@ -75,7 +75,7 @@ class PluginList extends PureComponent {
                 onClick={() => {
                 this
                   .props
-                  .dispatch(routerRedux.push('/myplugns/' + item.plugin_id))
+                  .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`))
               }}>
                 <Card
                   hoverable

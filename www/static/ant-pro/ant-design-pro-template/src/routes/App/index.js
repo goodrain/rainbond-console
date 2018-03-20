@@ -284,11 +284,11 @@ class Main extends PureComponent {
                         if (!appUtil.isCreateFromCompose(appDetail)) {
                             this
                                 .props
-                                .dispatch(routerRedux.replace('/create/create-check/' + appDetail.service.service_alias));
+                                .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/create-check/${appDetail.service.service_alias}`));
                         } else {
                             this
                                 .props
-                                .dispatch(routerRedux.replace('/create/create-compose-check/' + appDetail.service.group_id + '/' + appDetail.service.compose_id));
+                                .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/create-compose-check/${appDetail.service.group_id}/${appDetail.service.compose_id}`));
                         }
                     } else {
                         this.getStatus();
@@ -303,7 +303,7 @@ class Main extends PureComponent {
                         if (code === 404) {
                             this
                                 .props
-                                .dispatch(routerRedux.push('/exception/404'));
+                                .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/404`));
                         }
 
                         //访问的应用不在当前的数据中心里
@@ -318,7 +318,8 @@ class Main extends PureComponent {
             })
     }
     getStatus = () => {
-        if(!this.mount) return;
+        if (!this.mount) 
+            return;
         getStatus({
             team_name: globalUtil.getCurrTeamName(),
             app_alias: this.getAppAlias()
@@ -326,16 +327,16 @@ class Main extends PureComponent {
             if (data) {
                 this.setState({status: data.bean})
             }
-            setTimeout(()=>{
+            setTimeout(() => {
                 this.getStatus();
             }, 5000)
-            
+
         })
     }
     handleTabChange = (key) => {
         const {dispatch, match} = this.props;
         const {appAlias} = this.props.match.params;
-        dispatch(routerRedux.push(`/app/${appAlias}/${key}`));
+        dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}/${key}`));
     }
     getChildCom = () => {
         if (this.ref) {
@@ -484,7 +485,7 @@ class Main extends PureComponent {
                         });
                     this
                         .props
-                        .dispatch(routerRedux.replace('/index'));
+                        .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`));
                 }
 
             })

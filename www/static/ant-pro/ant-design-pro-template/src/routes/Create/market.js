@@ -15,7 +15,8 @@ import {
   notification,
   List,
   Select,
-  Input
+  Input,
+  Pagination
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import {getRoutes} from '../../utils/utils';
@@ -38,7 +39,7 @@ const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
 
-@connect(({user, groupControl, global}) => ({rainbondInfo: global.rainbondInfo}), null, null, {pure: false})
+@connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 
 @Form.create()
 export default class Main extends PureComponent {
@@ -48,7 +49,10 @@ export default class Main extends PureComponent {
       list: [],
       showCreate: null,
       scope: '',
-      app_name: ''
+      app_name: '',
+      page: 1,
+      pageSize: 8,
+      total: 0
     }
   }
   componentDidMount() {
@@ -56,35 +60,35 @@ export default class Main extends PureComponent {
   }
   handleSearch = (v) => {
     this.setState({
-      app_name: v
+      app_name: v,
+      page: 1
     }, () => {
       this.getApps();
     })
   }
   getApps = (v) => {
-
     this
       .props
       .dispatch({
         type: 'createApp/getMarketApp',
         payload: {
           app_name: this.state.app_name || '',
-          scope: this.state.scope
+          scope: this.state.scope,
+          page_size: this.state.pageSize,
+          page: this.state.page
         },
         callback: ((data) => {
           this.setState({
-            list: data.list || []
+            list: data.list || [],
+            total: data.total
           })
         })
       })
-
   }
-  reset = () => {
-    this
-      .props
-      .form
-      .resetFields();
-    setTimeout(() => {
+  hanldePageChange = (page) => {
+    this.setState({
+      page: page
+    }, () => {
       this.getApps();
     })
   }
@@ -94,7 +98,8 @@ export default class Main extends PureComponent {
   }
   handleTabChange = (key) => {
     this.setState({
-      scope: key
+      scope: key,
+      page: 1
     }, () => {
       this.getApps();
     })
@@ -121,7 +126,7 @@ export default class Main extends PureComponent {
           this.onCancelCreate();
           this
             .props
-            .dispatch(routerRedux.push('/groups/' + vals.group_id))
+            .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${vals.group_id}`))
         }
       })
 
@@ -142,6 +147,15 @@ export default class Main extends PureComponent {
       </div>
     }
     var formItemLayout = {};
+
+    const paginationProps = {
+      current: this.state.page,
+      pageSize: this.state.pageSize,
+      total: this.state.total,
+      onChange: (v) => {
+        this.hanldePageChange(v);
+      }
+    };
     const cardList = list
       ? (
         <List
@@ -153,6 +167,7 @@ export default class Main extends PureComponent {
           sm: 2,
           xs: 1
         }}
+          pagination={paginationProps}
           dataSource={list}
           renderItem={item => (
           <div>
@@ -218,7 +233,7 @@ export default class Main extends PureComponent {
         tab: '本团队'
       }
     ];
-
+    const loading = this.props.loading;
     return (
       <PageHeaderLayout
         content={mainSearch}
@@ -227,12 +242,12 @@ export default class Main extends PureComponent {
         onTabChange={this.handleTabChange}>
 
         <div className={styles.coverCardList}>
-
           <div className={styles.cardList}>
             {cardList}
           </div>
         </div>
         {this.state.showCreate && <CreateAppFromMarketForm
+          disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
       </PageHeaderLayout>

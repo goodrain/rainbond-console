@@ -3,6 +3,7 @@ import {Layout, Menu, Icon} from 'antd';
 import pathToRegexp from 'path-to-regexp';
 import {Link} from 'dva/router';
 import styles from './index.less';
+import globalUtil from '../../utils/global';
 
 const {Sider} = Layout;
 const {SubMenu} = Menu;
@@ -62,13 +63,12 @@ export default class SiderMenu extends PureComponent {
       return item;
     });
     snippets = snippets.map((item) => {
-
-      if (item === 'app') {
-        return 'groups'
+      let itemArr = item.split('/');
+      if (itemArr[itemArr.length - 1] === 'app') {
+        return `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups`
       }
 
-      if (item.indexOf('app') === 0) {
-
+      if (itemArr[itemArr.length - 2] === 'app') {
         return this.getOpenGroup(item.split('/')[1])
       }
       return this.getSelectedMenuKeys(`/${item}`)[0];
@@ -79,7 +79,9 @@ export default class SiderMenu extends PureComponent {
   getOpenGroup(appAlias) {
     const data = this.props.menuData;
     var groups = data.filter((item) => {
-      return item.path === 'groups';
+      return item
+        .path
+        .indexOf('groups') > -1;
     })[0]
 
     if (groups) {
@@ -241,7 +243,15 @@ export default class SiderMenu extends PureComponent {
   }
   // permission to check
   checkPermissionItem = (authority, ItemDom) => {
-    return ItemDom;
+    if (ItemDom.key.indexOf('source') > -1) {
+      const user = this.props.currentUser;
+      if (user.is_sys_admin) {
+        return ItemDom;
+      }
+      return null;
+    } else {
+      return ItemDom;
+    }
     if (this.props.Authorized && this.props.Authorized.check) {
       const {check} = this.props.Authorized;
       return check(authority, ItemDom);

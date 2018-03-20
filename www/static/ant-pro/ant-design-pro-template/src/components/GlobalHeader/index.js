@@ -7,7 +7,8 @@ import {
     Tag,
     Dropdown,
     Avatar,
-    Divider
+    Divider,
+    Tooltip
 } from 'antd';
 import Ellipsis from '../Ellipsis';
 import moment from 'moment';
@@ -209,9 +210,9 @@ export default class GlobalHeader extends PureComponent {
                         <a className={styles.dropdown}>
                             <span className={styles.smShow}>团队</span>
                             <span className={styles.smHidden}>
-                            {this.getCurrTeamTit()
+                                {this.getCurrTeamTit()
 }
-                            <Icon type="down"/>
+                                <Icon type="down"/>
                             </span>
                         </a>
                     </Dropdown>
@@ -225,15 +226,24 @@ export default class GlobalHeader extends PureComponent {
                         <a className={styles.dropdown}>
                             <span className={styles.smShow}>数据中心</span>
                             <span className={styles.smHidden}>
-                            {this.getCurrRegionTit()
+                                {this.getCurrRegionTit()
 }
-                            <Icon type="down"/>
+                                <Icon type="down"/>
                             </span>
                         </a>
                     </Dropdown>
                 </div>
 
                 <div className={styles.right}>
+                    <Tooltip title="使用文档">
+                        <a
+                            target="_blank"
+                            href="https://www.rainbond.com/docs/stable/user-app-docs/how-to-use-app.html"
+                            rel="noopener noreferrer"
+                            className={styles.action}>
+                            <Icon type="question-circle-o"/>
+                        </a >
+                    </Tooltip>
                     {/*
           <HeaderSearch
             className={`${styles.action} ${styles.search}`}

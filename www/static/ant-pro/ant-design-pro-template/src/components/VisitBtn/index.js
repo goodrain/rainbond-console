@@ -105,7 +105,7 @@ export default class Index extends PureComponent {
           textAlign: 'center',
           fontSize: 16
         }}>
-          如需要提供访问服务, 请<Link onClick={this.hiddenModal} to={'/app/' + appAlias + '/port'}>配置端口</Link>
+          如需要提供访问服务, 请<Link onClick={this.hiddenModal} to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}/port`}>配置端口</Link>
         </div>
       </Modal>
 }
@@ -135,7 +135,7 @@ export default class Index extends PureComponent {
             textAlign: 'center',
             fontSize: 16
           }}>
-            http协议端口需打开外部访问服务, 去<Link onClick={this.hiddenModal} to={'/app/' + appAlias + '/port'}>打开</Link>
+            http协议端口需打开外部访问服务, 去<Link onClick={this.hiddenModal} to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}/port`}>打开</Link>
           </div>
         </Modal>
 }
@@ -168,7 +168,7 @@ export default class Index extends PureComponent {
           textAlign: 'center',
           fontSize: 16
         }}>
-          需要配置端口信息, 去<Link onClick={this.hiddenModal} to={'/app/' + appAlias + '/port'}>配置</Link>
+          需要配置端口信息, 去<Link onClick={this.hiddenModal} to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}/port`}>配置</Link>
         </div>
       </Modal>
 }

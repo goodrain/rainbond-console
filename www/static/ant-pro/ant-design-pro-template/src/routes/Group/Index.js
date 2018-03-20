@@ -131,7 +131,7 @@ class Main extends PureComponent {
         if (res && res.status === 404) {
           this
             .props
-            .dispatch(routerRedux.push('/exception/404'));
+            .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/404`));
         }
       }
     })

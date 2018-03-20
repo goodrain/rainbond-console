@@ -14,7 +14,8 @@ import {
   startShareEvent,
   getShareStatus,
   giveupShare,
-  completeShare
+  completeShare,
+  editAppCreateCompose
 } from '../services/group';
 import cookie from '../utils/cookie';
 
@@ -27,6 +28,15 @@ export default {
     apps: []
   },
   effects : {
+    *editAppCreateCompose({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(editAppCreateCompose, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *fetchGroupDetail({
       payload,
       handleError

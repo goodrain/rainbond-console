@@ -655,7 +655,7 @@ export default class Index extends PureComponent {
                   top: -10
                 }}>
                   <p>暂无开通性能分析插件</p>
-                  <Link to={'/app/' + this.props.appAlias + '/plugin'}>去开通</Link>
+                  <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${this.props.appAlias}/plugin`}>去开通</Link>
                 </div>
               </ChartCard>
 }
@@ -688,7 +688,7 @@ export default class Index extends PureComponent {
                   top: -10
                 }}>
                   <p>暂无开通性能分析插件</p>
-                  <Link to={'/app/' + this.props.appAlias + '/plugin'}>去开通</Link>
+                  <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${this.props.appAlias}/plugin`}>去开通</Link>
                 </div>
               </ChartCard>
 }

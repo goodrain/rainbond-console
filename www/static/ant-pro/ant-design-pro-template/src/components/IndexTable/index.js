@@ -4,6 +4,7 @@ import { Link } from 'dva/router';
 import { Table, Alert, Badge, Divider } from 'antd';
 import appUtil from '../../utils/app';
 import styles from './index.less';
+import globalUtil from '../../utils/global';
 
 const statusMap = ['default', 'processing', 'success', 'error'];
 class StandardTable extends PureComponent {
@@ -33,7 +34,7 @@ class StandardTable extends PureComponent {
         title: '应用名称',
         dataIndex: 'service_cname',
         render: (val, data) => {
-            return <Link to={'/app/'+data.service_alias+'/overview'}>{val}</Link>
+            return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/overview`}>{val}</Link>
         }
       },
       {
@@ -41,7 +42,7 @@ class StandardTable extends PureComponent {
         dataIndex: 'group_name',
 
         render: (val,data) => {
-            return val=== null ? <Link to={'/groups/-1'}>未分组</Link> : <Link to={'/groups/'+data.group_id}>{val}</Link>
+            return val=== null ? <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/-1`}>未分组</Link> : <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${data.group_id}`}>{val}</Link>
         }
       },
       {

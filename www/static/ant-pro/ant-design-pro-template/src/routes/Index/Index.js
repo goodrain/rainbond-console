@@ -55,7 +55,8 @@ const links = [
   events: index.events,
   pagination: index.pagination,
   projectLoading: loading.effects['project/fetchNotice'],
-  activitiesLoading: loading.effects['activities/fetchList']
+  activitiesLoading: loading.effects['activities/fetchList'],
+  loading: loading
 }))
 @Form.create()
 export default class Index extends PureComponent {
@@ -143,7 +144,12 @@ export default class Index extends PureComponent {
       }
     ]
     return (
-      <Form onSubmit={this.handleSearch} layout="inline" style={{paddingBottom: 8}}>
+      <Form
+        onSubmit={this.handleSearch}
+        layout="inline"
+        style={{
+        paddingBottom: 8
+      }}>
         <Row gutter={{
           md: 8,
           lg: 24,
@@ -241,7 +247,7 @@ export default class Index extends PureComponent {
     }
 
     return list.map((item) => {
-      const linkTo = "/app/" + item.service_alias + "/overview";
+      const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/{item.service_alias}/overview`;
       return (
         <List.Item key={item.id}>
           <List.Item.Meta
@@ -264,9 +270,7 @@ export default class Index extends PureComponent {
   }
   render() {
     const {index, projectLoading, activitiesLoading, currUser, pagination} = this.props;
-
     const team_name = globalUtil.getCurrTeamName();
-
     const team = userUtil.getTeamByTeamName(currUser, team_name);
 
     const pageHeaderContent = (
@@ -303,16 +307,18 @@ export default class Index extends PureComponent {
       <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
         <Row gutter={24}>
           <Col xl={16} lg={24} md={24} sm={24} xs={24}>
-            <Card bordered={false} style={{marginBottom: 24}}>
+            <Card bordered={false} style={{
+              marginBottom: 24
+            }}>
               <div className={styles.tableList}>
                 <div className={styles.tableListForm}>
                   {this.renderSimpleForm()}
                 </div>
                 <ScrollerX sm={600}>
-                <IndexTable
-                  list={index.apps}
-                  pagination={pagination}
-                  onChange={this.handleListChange}/>
+                  <IndexTable
+                    list={index.apps}
+                    pagination={pagination}
+                    onChange={this.handleListChange}/>
                 </ScrollerX>
               </div>
             </Card>

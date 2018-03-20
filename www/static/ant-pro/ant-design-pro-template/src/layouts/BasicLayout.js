@@ -148,61 +148,29 @@ class BasicLayout extends React.PureComponent {
             .dispatch({
                 type: 'user/fetchCurrent',
                 callback: (user) => {
-                    var currTeam = cookie.get('team');
-                    var currRegion = cookie.get('region_name');
+                    var currTeam = globalUtil.getCurrTeamName();
+                    var currRegion = globalUtil.getCurrRegionName();
 
-                    //验证cookie里保存的团队是否有效
-                    if (!currTeam || !userUtil.getTeamByTeamName(user, currTeam)) {
-                        const team = userUtil.getDefaultTeam(user);
-                        if (team) {
-                            currTeam = team.team_name;
-                            cookie.set('team', currTeam);
-                        } else {
-                            this.setState({createTeam: true});
-                            return;
-                        }
-                    }
-
-                    //验证cookie里保存的数据中心是否有效
-                    if (!currRegion || !userUtil.hasTeamAndRegion(user, currTeam, currRegion)) {
-                        currRegion = userUtil.getDefaultRegionName(user);
-                        if (currRegion) {
-                            cookie.set('region_name', currRegion);
-                        } else {
-                            this.setState({openRegion: true});
-                            return;
-                        }
-                    }
-
-                    const url = new URL(location.href)
-                    const params = url.searchParams;
-                    const paramTeam = (params.get('team') || '').replace('/', '');
-                    const paramRegion = (params.get('region') || '').replace('/', '');
-
-                    //如果参数有团队, 通过参数来切换团队
-                    if (paramTeam) {
-                        if (paramTeam !== currTeam) {
-                            const sTeam = userUtil.getTeamByTeamName(user, paramTeam);
-                            if (sTeam) {
-                                cookie.set('team', paramTeam);
-                                currTeam = paramTeam;
+                    //验证路径里的团队是否有效
+                    if (!currTeam || !currRegion) {
+                        if (!currTeam) {
+                            let team = userUtil.getDefaultTeam(user);
+                            if (team) {
+                                currTeam = team.team_name
                             }
-                            params.delete('team');
-                            location.href = url.toString();
-                        }
-                    }
 
-                    //如果参数有数据中心, 通过参数来切换数据中心
-                    if (paramRegion) {
-                        if (paramRegion !== currRegion) {
-                            var hasTeamAndRegion = userUtil.hasTeamAndRegion(user, currTeam, paramRegion);
-                            if (hasTeamAndRegion) {
-                                currRegion = paramRegion;
-                                cookie.set('region_name', paramRegion)
-                            }
-                            params.delete('region');
-                            location.href = url.toString();
                         }
+                        if (!currRegion) {
+                            let region = userUtil.getDefaultRegionName(user);
+                            if (region) {
+                                currRegion = region;
+                            }
+                        }
+                        this
+                            .props
+                            .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                        location.reload();
+                        return;
                     }
 
                     //获取群组
@@ -229,11 +197,8 @@ class BasicLayout extends React.PureComponent {
                 handleError: (res) => {
                     if (res && (res.status === 403 || res.status === 404)) {
                         cookie.remove('token');
-                        cookie.remove('uid');
-                        cookie.remove('username');
-                        this
-                            .props
-                            .dispatch(routerRedux.push('/user/login'));
+                        cookie.remove('token', {domain: ''});
+                        location.reload();
                     }
                 }
             });
@@ -326,7 +291,7 @@ class BasicLayout extends React.PureComponent {
 
         cookie.set('team', key);
         const currentUser = this.props.currentUser;
-        const currRegionName = this.props.currRegion;
+        let currRegionName = globalUtil.getCurrRegionName();
         const currTeam = userUtil.getTeamByTeamName(currentUser, key)
         if (currTeam) {
             const regions = currTeam.region || [];
@@ -336,9 +301,9 @@ class BasicLayout extends React.PureComponent {
             var selectRegionName = selectRegion
                 ? selectRegion.team_region_name
                 : regions[0].team_region_name;
-            cookie.set('region_name', selectRegionName);
+            currRegionName = selectRegionName;
         }
-        location.hash = '/index';
+        location.hash = `/team/${key}/region/${currRegionName}/index`;
         location.reload();
     }
 
@@ -348,8 +313,7 @@ class BasicLayout extends React.PureComponent {
             return;
         }
 
-        cookie.set('region_name', key);
-        location.hash = '/index';
+        location.hash = `/team/${globalUtil.getCurrTeamName()}/region/${key}/index`;
         location.reload();
 
     }
@@ -396,7 +360,7 @@ class BasicLayout extends React.PureComponent {
 
         const layout = (
             <Layout>
-                <SiderMenu logo={logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
+                <SiderMenu currentUser={currentUser} logo={logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
                     // If you do not have the Authorized parameter
                     // you will be forced to jump to the 403 interface without permission
                     Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
@@ -434,7 +398,7 @@ class BasicLayout extends React.PureComponent {
                                     exact={item.exact}
                                     authority={item.authority}
                                     logined={true}
-                                    redirectPath="/exception/403"/>)
+                                    redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
                             })
 }
                             <Redirect exact from="/" to={bashRedirect}/>

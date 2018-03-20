@@ -3,6 +3,7 @@ import {notification} from 'antd';
 import {routerRedux} from 'dva/router';
 import store from '../index';
 import cookie from './cookie';
+import globalUtil from '../utils/global';
 
 const codeMessage = {
     200: '服务器成功返回请求的数据',
@@ -82,7 +83,10 @@ export default function request(url, options) {
     const token = cookie.get('token');
     if (token && newOptions.passAuthorization) {
         newOptions.headers.Authorization = `GRJWT ${token}`;
+        
     }
+    newOptions.headers['X_REGION_NAME'] = globalUtil.getCurrRegionName();
+    newOptions.headers['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
 
     // newOptions.headers.Authorization = 'GRJWT '+
     // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTU
@@ -114,9 +118,6 @@ export default function request(url, options) {
         .then((response) => {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
 
-            if (newOptions.method === 'DELETE' || response.status === 204) {
-                return response.text();
-            }
             const res = response.data.data || {};
             res._code = response.status;
 
@@ -147,15 +148,13 @@ export default function request(url, options) {
 
                 //访问资源数据中心与当前数据中心不一致
                 if (resData.code === 10404) {
-                    cookie.set('region_name', resData.data.bean.service_region);
-                    location.reload();
+                    location.href = globalUtil.replaceUrlRegion(resData.data.bean.service_region)
                     return;
                 }
 
                 //访问资源所属团队与当前团队不一致
                 if (resData.code === 10403) {
-                    cookie.set('team', resData.data.bean.service_team_name);
-                    location.reload();
+                    location.href = globalUtil.replaceUrlTeam(resData.data.bean.service_team_name)
                     return;
                 }
 

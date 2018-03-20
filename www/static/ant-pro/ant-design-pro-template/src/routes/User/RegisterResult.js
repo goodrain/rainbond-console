@@ -6,7 +6,7 @@ import styles from './RegisterResult.less';
 
 const actions = (
   <div className={styles.actions}>
-    <Link to="/index"><Button size="large">返回首页</Button></Link>
+    <a href="/"><Button size="large">返回首页</Button></a>
   </div>
 );
 

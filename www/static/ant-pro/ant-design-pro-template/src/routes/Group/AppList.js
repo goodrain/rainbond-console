@@ -173,7 +173,7 @@ export default class AppList extends PureComponent {
 								title: '应用名称',
 								dataIndex: 'service_cname',
 								render: (val, data) => {
-										return <Link to={'/app/' + data.service_alias + '/overview'}>{val}</Link>
+										return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/overview`}>{val}</Link>
 								}
 						}, {
 								title: '应用类型',

@@ -26,6 +26,7 @@ export default {
     regions: []
   },
   effects : {
+
     *exitTeam({
       payload,
       callback
@@ -36,12 +37,14 @@ export default {
       }
     },
     *fetchMember({
-      payload
+      payload,
+      callback
     }, {call, put}) {
 
       const response = yield call(getMembers, payload);
       if (response) {
-        yield put({type: 'saveMember', payload: response.list});
+
+        callback && callback(response)
       }
 
     },
