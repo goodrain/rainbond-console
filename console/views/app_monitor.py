@@ -80,3 +80,39 @@ class AppMonitorQueryRangeView(AppBaseView):
             logger.exception(e)
             result = general_message(400, e.message, "查询失败")
         return Response(result, status=result["code"])
+
+
+class AppResourceQueryView(AppBaseView):
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        应用资源查询
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            data = {"service_ids": [self.service.service_id]}
+            body = region_api.get_service_resources(self.tenant.tenant_name, self.service.service_region,
+                                                    data)
+            bean = body["bean"]
+            result = bean.get(self.service.service_id)
+            resource = dict()
+            resource["memory"] = result.get("memory", 0)
+            resource["disk"] = result.get("disk", 0)
+            resource["cpu"] = result.get("cpu", 0)
+            result = general_message(200, "success", "查询成功", bean=resource)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])

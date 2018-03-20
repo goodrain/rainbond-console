@@ -1044,14 +1044,23 @@ class RegionInvokeApi(HttpClient):
                 res, body))
             return None
 
-    def get_region_tenants_resources(self, region, body):
+    def get_region_tenants_resources(self, region, data, enterprise_id=""):
         """获取租户在数据中心下的资源使用情况"""
-        region_map = self.get_region_map(region)
-        token = region_map[region]['token']
-        url = region_map[region]['url'] + "/v2/resources/tenants"
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        # url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/resources/tenants"
         self._set_headers(token)
         res, body = self._post(
-            url, self.default_headers, json.dumps(body), region=region)
+            url, self.default_headers, json.dumps(data), region=region)
+        return body
+
+    def get_service_resources(self, tenant_name, region, data):
+        """获取一批应用的资源使用情况"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/resources/services"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(data), region=region)
         return body
 
     # v3.5版本后弃用
@@ -1372,6 +1381,17 @@ class RegionInvokeApi(HttpClient):
         else:
             token = "Token {}".format(token)
         return url, token
+
+    def __get_region_access_info_by_enterprise_id(self,enterprise_id,region):
+        url,token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id,region)
+        if not token:
+            region_info = self.get_region_info(region_name=region)
+            token = region_info.token
+            url = region_info.url
+        else:
+            token = "Token {}".format(token)
+        return url, token
+
 
     def get_protocols(self, region, tenant_name):
         """

@@ -16,10 +16,13 @@ class CommonServices(object):
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
             if tenant_region.region_name in RegionInfo.valid_regions():
-                res = region_api.get_tenant_resources(tenant_region.region_name, tenant.tenant_name,
-                                                      tenant.enterprise_id)
-                bean = res["bean"]
-                memory = int(bean["memory"])
+                data = {"tenant_name": [tenant.tenant_name]}
+                res = region_api.get_region_tenants_resources(tenant_region.region_name, data, tenant.enterprise_id)
+                d_list = res["list"]
+                memory = 0
+                if d_list:
+                    resource = d_list[0]
+                    memory = int(resource["memory"])
                 totalMemory += memory
         return totalMemory
 
