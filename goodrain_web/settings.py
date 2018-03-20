@@ -223,5 +223,7 @@ CORS_ALLOW_HEADERS = default_headers + (
     'csrftoken',
     'user_id',
     'X_SSO_USER_ID',
-    'X_SSO_USER_TOKEN'
+    'X_SSO_USER_TOKEN',
+    'X_REGION_NAME',
+    'X_TEAM_NAME'
 )

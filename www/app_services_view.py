@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.http.response import HttpResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
+from django.views.generic import View
 
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
@@ -665,7 +666,7 @@ class GitHubWebHook(BaseView):
         return HttpResponse(json.dumps(result))
 
 
-class GitCheckCode(BaseView):
+class GitCheckCode(View):
     @never_cache
     def get(self, request, *args, **kwargs):
         data = {}
