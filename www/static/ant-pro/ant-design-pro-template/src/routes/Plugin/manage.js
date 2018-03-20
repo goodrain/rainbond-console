@@ -477,7 +477,7 @@ export default class Index extends PureComponent {
               title: '应用名称',
               dataIndex: 'service_cname',
               render: (v, data) => {
-                return <Link to={`/app/${data.service_alias}/overview`}>{v}</Link>
+                return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/overview`}>{v}</Link>
               }
             }, {
               title: '安装版本',
@@ -486,7 +486,7 @@ export default class Index extends PureComponent {
               title: '操作',
               dataIndex: 'action',
               render: (v, data) => {
-                return <Link to={`/app/${data.service_alias}/plugin`}>查看已安装插件</Link>
+                return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/plugin`}>查看已安装插件</Link>
               }
             }
           ]}

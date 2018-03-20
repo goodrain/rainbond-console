@@ -11,7 +11,8 @@ import {connect} from 'dva';
 import Result from '../../components/Result';
 import {routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
-import {getCreateComposeCheckInfo, getCreateComposeCheckResult, getComposeCheckuuid} from '../../services/createApp';
+import {getCreateComposeCheckInfo, getCreateComposeCheckResult, getComposeCheckuuid,
+getComposeByComposeId} from '../../services/createApp';
 import globalUtil from '../../utils/global';
 import CodeCustomForm from '../../components/CodeCustomForm';
 import LogProcress from '../../components/LogProcress';
@@ -23,7 +24,8 @@ require('codemirror/mode/yaml/yaml');
 require('codemirror/lib/codemirror.css');
 require('../../styles/codemirror.less');
 
-/* 修改镜像名称 */
+/* 修改compose内容 */
+
 @Form.create()
 class ModifyCompose extends PureComponent {
     handleSubmit = (e) => {
@@ -134,7 +136,7 @@ export default class CreateCheck extends PureComponent {
             if (res.status === 404) {
                 this
                     .props
-                    .dispatch(routerRedux.replace('/exception/404'));
+                    .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/404`));
             }
         }).then((data) => {
             if (data) {
@@ -382,7 +384,6 @@ export default class CreateCheck extends PureComponent {
             }
         }
         handleModifyCompose = (vals) => {
-            console.log(vals)
             const params = this.getParams();
             this
                 .props
@@ -432,6 +433,7 @@ export default class CreateCheck extends PureComponent {
         }
         render() {
             const status = this.state.status;
+            const params = this.getParams();
             return <PageHeaderLayout>
 
                 <Card bordered={false}>
@@ -451,6 +453,7 @@ export default class CreateCheck extends PureComponent {
                 </Card>
                 {this.state.modifyCompose
                     ? <ModifyCompose
+                            compose_id={params.compose_id}
                             onSubmit={this.handleModifyCompose}
                             onCancel={this.cancelModifyCompose}/>
                     : null}

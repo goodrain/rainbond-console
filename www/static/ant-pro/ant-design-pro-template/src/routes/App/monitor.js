@@ -610,7 +610,7 @@ export default class Index extends PureComponent {
           <p style={{
             paddingTop: 8
           }}>
-            <Link to={'/app/' + appDetail.service.service_alias + '/plugin'}>去开通</Link>
+            <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appDetail.service.service_alias}/plugin`}>去开通</Link>
           </p>
         </div>
       </Card>

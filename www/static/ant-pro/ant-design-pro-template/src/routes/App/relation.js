@@ -426,13 +426,13 @@ export default class Index extends PureComponent {
         title:'应用名',
         dataIndex: 'service_cname',
         render:(val, data) => {
-            return <Link to={'/app/'+data.service_alias + '/overview'}>{val}</Link>
+            return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/overview`}>{val}</Link>
         }
       },{
         title:'所属组',
         dataIndex: 'group_name',
         render:(val, data) => {
-            return <Link to={'/groups/'+data.group_id}>{val}</Link>
+            return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${data.group_id}`}>{val}</Link>
         }
       },{
         title:'应用说明',

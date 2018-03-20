@@ -188,7 +188,7 @@ export default class Index extends PureComponent {
 			            {...formItemLayout}
 			            label="仓库用户名"
 			          >
-			            {getFieldDecorator('username', {
+			            {getFieldDecorator('username_1', {
 			              initialValue: data.username || '',
 			              rules: [{ required: false, message: '请输入仓库用户名' }],
 			            })(
@@ -200,7 +200,7 @@ export default class Index extends PureComponent {
 			            {...formItemLayout}
 			            label="仓库密码"
 			          >
-			            {getFieldDecorator('password', {
+			            {getFieldDecorator('password_1', {
 			              initialValue: data.password || '',
 			              rules: [{ required: false, message: '请输入仓库密码' }],
 			            })(

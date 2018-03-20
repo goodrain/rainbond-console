@@ -247,7 +247,7 @@ export default class Index extends PureComponent {
     }
 
     return list.map((item) => {
-      const linkTo = "/app/" + item.service_alias + "/overview";
+      const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/{item.service_alias}/overview`;
       return (
         <List.Item key={item.id}>
           <List.Item.Meta

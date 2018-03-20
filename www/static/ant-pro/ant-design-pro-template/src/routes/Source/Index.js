@@ -328,7 +328,7 @@ class AppList extends PureComponent {
         if (!userUtil.isSystemAdmin(currUser)) {
             this
                 .props
-                .dispatch(routerRedux.replace("/Exception/403"))
+                .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/Exception/403`))
             return null;
         }
 

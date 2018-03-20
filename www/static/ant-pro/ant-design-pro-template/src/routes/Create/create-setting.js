@@ -61,7 +61,7 @@ export default class Index extends PureComponent {
             if (code === 404) {
               this
                 .props
-                .dispatch(routerRedux.push('/exception/404'));
+                .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/404`));
             }
 
             //访问的应用不在当前的数据中心里

@@ -87,6 +87,10 @@ export default class Index extends PureComponent {
 				}
 				handleSubmit = (value) => {
 								const teamName = globalUtil.getCurrTeamName();
+								const username = value['username_1'];
+								const password = value['password_1'];
+								delete value['username_1'];
+								delete value['password_1'];
 								this
 												.props
 												.dispatch({
@@ -94,7 +98,9 @@ export default class Index extends PureComponent {
 																payload: {
 																				team_name: teamName,
 																				code_from: 'gitlab_manual',
-																				...value
+																				...value,
+																				username,
+																				password
 																},
 																callback: (data) => {
 																				const appAlias = data.bean.service_alias;

@@ -83,7 +83,10 @@ export default function request(url, options) {
     const token = cookie.get('token');
     if (token && newOptions.passAuthorization) {
         newOptions.headers.Authorization = `GRJWT ${token}`;
+        
     }
+    newOptions.headers['X_REGION_NAME'] = globalUtil.getCurrRegionName();
+    newOptions.headers['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
 
     // newOptions.headers.Authorization = 'GRJWT '+
     // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hhbyIsImV4cCI6MTU

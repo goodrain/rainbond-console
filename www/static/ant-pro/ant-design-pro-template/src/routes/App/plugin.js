@@ -420,7 +420,7 @@ export default class Index extends PureComponent {
           href = "javascript:;" > 卸载 < /a>]}>
           <List.Item.Meta
             avatar={< Icon type = "api" style = {{fontSize: 40, color: 'rgba(0, 0, 0, 0.2)'}}/>}
-            title={< div > <Link to={`/myplugns/${item.plugin_id}`}>{item.plugin_alias}</Link> < p style = {{fontSize: 12, color:'#dcdcdc'}} > <span style={{
+            title={< div > <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>{item.plugin_alias}</Link> < p style = {{fontSize: 12, color:'#dcdcdc'}} > <span style={{
             marginRight: 24
           }}>类别： {pluginUtil.getCategoryCN(item.category)}</span> < span > 版本： {item.build_version} < /span></p > </div>}
             description={item.desc}/>
@@ -471,7 +471,7 @@ export default class Index extends PureComponent {
         href = "javascript:;" > 开通 < /a>]}>
         <List.Item.Meta
           avatar={< Icon type = "api" style = {{fontSize: 40, color: 'rgba(0, 0, 0, 0.2)'}}/>}
-          title={< div > <Link to={`/myplugns/${item.plugin_id}`}>{item.plugin_alias}</Link> < p style = {{fontSize: 12, color:'#dcdcdc'}} > <span style={{
+          title={< div > <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>{item.plugin_alias}</Link> < p style = {{fontSize: 12, color:'#dcdcdc'}} > <span style={{
           marginRight: 24
         }}>类别： {pluginUtil.getCategoryCN(item.category)}</span> < span > 版本： {item.build_version} < /span></p > </div>}
           description={item.desc}/>

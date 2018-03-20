@@ -142,13 +142,13 @@ export const getRouterData = (app) => {
     '/result/fail': {
       component: dynamicWrapper(app, [], () => import ('../routes/Result/Error'))
     },
-    '/exception/403': {
+    '/team/:team/region/:region/exception/403': {
       component: dynamicWrapper(app, [], () => import ('../routes/Exception/403'))
     },
-    '/exception/404': {
+    '/team/:team/region/:region/exception/404': {
       component: dynamicWrapper(app, [], () => import ('../routes/Exception/404'))
     },
-    '/exception/500': {
+    '/team/:team/region/:region/exception/500': {
       component: dynamicWrapper(app, [], () => import ('../routes/Exception/500'))
     },
     '/exception/trigger': {

@@ -398,7 +398,7 @@ class BasicLayout extends React.PureComponent {
                                     exact={item.exact}
                                     authority={item.authority}
                                     logined={true}
-                                    redirectPath="/exception/403"/>)
+                                    redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
                             })
 }
                             <Redirect exact from="/" to={bashRedirect}/>

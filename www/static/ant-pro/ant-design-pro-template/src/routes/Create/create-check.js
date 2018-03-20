@@ -304,7 +304,7 @@ export default class CreateCheck extends PureComponent {
       if (res.status === 404) {
         this
           .props
-          .dispatch(routerRedux.replace('/exception/404'));
+          .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/404`));
       }
     }).then((data) => {
       if (data) {
@@ -700,7 +700,6 @@ export default class CreateCheck extends PureComponent {
       const status = this.state.status;
       const appDetail = this.state.appDetail;
       return <PageHeaderLayout>
-        <a href="javascript:;" action_type="modify_image">sdfsdfsdf</a>
         <Card bordered={false}>
           <div style={{
             minHeight: 400
