@@ -299,6 +299,14 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_403_FORBIDDEN)
     elif isinstance(exc, BusinessException):
         return exc.get_response()
+    elif isinstance(exc, ImportError):
+        # 处理数据为标准返回格式
+        data.update({
+            "code": status.HTTP_400_BAD_REQUEST,
+            "msg": exc.message,
+            "msg_show": "{0}".format("请求参数不全")
+        })
+        return Response(data, status=status.HTTP_403_FORBIDDEN)
     else:
         logger.exception(exc)
         return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
