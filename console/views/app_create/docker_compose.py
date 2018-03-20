@@ -370,3 +370,30 @@ class ComposeServicesView(ComposeBaseView):
             logger.exception(e)
             result = error_message("{0}".format(e))
         return Response(result, status=result["code"])
+
+
+class ComposeContentView(ComposeBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取compose文件内容
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: compose_id
+              description: 组ID
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            result = general_message(200, "success", "查询成功", bean=self.group_compose.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message("{0}".format(e))
+        return Response(result, status=result["code"])

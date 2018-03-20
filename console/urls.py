@@ -19,7 +19,7 @@ from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageVi
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import AppCheck, AppCheckUpdate, GetCheckUUID
 from console.views.app_create.docker_compose import DockerComposeCreateView, ComposeCheckView, ComposeCheckUpdate, \
-    ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView
+    ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
@@ -202,6 +202,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/delete$', ComposeDeleteView.as_view()),
     # 查询compose下的应用
     url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/services$', ComposeServicesView.as_view()),
+    # 获取compose文件内容
+    url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/content$', ComposeContentView.as_view()),
     # 应用构建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view()),
     # 应用编译环境信息
