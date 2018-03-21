@@ -44,7 +44,7 @@ class MarketOpenAPI(HttpClient):
         return self._unpack(body)
 
     def confirm_access_token(self, domain, market_client_id, market_client_token):
-        url = domain + "/openapi/console/v1/enter-market/confirm"
+        url = domain + "/openapi/v1/market/confirm"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
