@@ -306,7 +306,7 @@ def custom_exception_handler(exc, context):
             "msg": exc.message,
             "msg_show": "{0}".format("请求参数不全")
         }
-        return Response(data, status=status.HTTP_403_FORBIDDEN)
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
         return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
