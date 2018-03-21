@@ -36,14 +36,14 @@ class Index extends React.Component {
       window.handleClickService = function (nodeDetails) {
         self
           .props
-          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${nodeDetails.service_alias}overview`))
+          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${nodeDetails.service_alias}/overview`))
       }
 
       //拓扑图点击依赖服务事件
       window.handleClickRelation = function (relation) {
         self
           .props
-          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${relation.service_alias}overview`))
+          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${relation.service_alias}/overview`))
       }
 
     } catch (e) {}
