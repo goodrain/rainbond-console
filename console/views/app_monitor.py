@@ -116,3 +116,34 @@ class AppResourceQueryView(AppBaseView):
             logger.exception(e)
             result = general_message(400, e.message, "查询失败")
         return Response(result, status=result["code"])
+
+
+class BatchAppMonitorQueryView(AppBaseView):
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        监控信息查询
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        sufix = get_sufix_path(request.get_full_path())
+        logger.debug("service.monitor", "{0}".format(sufix))
+        try:
+            res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
+            logger.debug(body)
+            result = general_message(200, "success", "查询成功", bean=body["data"])
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])
