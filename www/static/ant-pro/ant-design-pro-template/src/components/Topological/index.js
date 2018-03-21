@@ -3,6 +3,7 @@ import debounce from 'lodash.debounce';
 import globalUtil from '../../utils/global';
 import {connect} from 'dva';
 import {routerRedux} from 'dva/router';
+import config from '../../config/config'
 
 @connect()
 class Index extends React.Component {
@@ -16,11 +17,15 @@ class Index extends React.Component {
     try {
 
       window.iframeGetNodeUrl = function () {
-        return '/console/teams/' + team_name + '/topological?group_id=' + groupId;
+        return config.baseUrl + '/console/teams/' + team_name + '/topological?group_id=' + groupId+'&region='+globalUtil.getCurrRegionName();
       }
 
       window.iframeGetTenantName = function () {
         return team_name;
+      }
+
+      window.iframeGetRegion = function () {
+        return globalUtil.getCurrRegionName();
       }
 
       window.iframeGetGroupId = function () {
@@ -46,7 +51,7 @@ class Index extends React.Component {
   render() {
     return ((
       <iframe
-        src='/static/www/weavescope/index.html'
+        src={config.baseUrl + '/static/www/weavescope/index.html'}
         style={{
         width: '100%',
         height: '500px'

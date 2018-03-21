@@ -245,7 +245,6 @@ class Main extends PureComponent {
         group_id: this.getGroupId()
       },
       callback: (data) => {
-        console.log(data)
         if (data._code == 20021) {
           this.setState({recordShare: true});
           notification['info']({message: '分享未完成', description: '您有分享未完成，可以点击继续分享'});
