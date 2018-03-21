@@ -10,7 +10,7 @@ ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 
-DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'zmq_handler']
+DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 

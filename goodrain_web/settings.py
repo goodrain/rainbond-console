@@ -15,26 +15,16 @@ from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
 
-DEFAULT_HANDLERS = ['zmq_handler']
+DEFAULT_HANDLERS = ['file_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
-
-REGION_TAG = os.environ.get('REGION_TAG')
 
 IS_OPEN_API = False
 
 DEBUG = False
 
-if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
-    REGION_TAG = "www_com"
-
-if REGION_TAG == "cloudbang":
-    conf_file = '/etc/goodrain/console.py'
-else:
-    conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR,
-                                         REGION_TAG.replace('-', '_'))
+conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, "www_com")
 
 if os.path.exists(conf_file):
     execfile(conf_file)
@@ -171,13 +161,6 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'standard',
-        },
-        'zmq_handler': {
-            'level': "DEBUG",
-            'class': 'goodrain_web.log.ZmqHandler',
-            'address': ZMQ_LOG_ADDRESS,
-            'root_topic': 'goodrain_web',
-            'formatter': 'zmq_formatter',
         }
     },
     'loggers': {

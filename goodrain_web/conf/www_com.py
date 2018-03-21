@@ -10,11 +10,11 @@ ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 
-DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'zmq_handler']
+DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.me', '.goodrain.org']
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",", -1)
 
 EMAIL_HOST = '***'
 EMAIL_PORT = 465
@@ -82,10 +82,10 @@ MODULES = {
     "Publish_YunShi": True,
     "Publish_Service": False,
     "Privite_Github": False,
-    "SSO_LOGIN": True,
+    "SSO_LOGIN": os.getenv("SSO_LOGIN") == "true",
 }
 
-if MODULES["SSO_LOGIN"]:
+if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):
     CACHES = {
         'default': {
             'BACKEND':
@@ -112,11 +112,11 @@ MEDIA_ROOT = '/data/media'
 IS_OPEN_API = True
 
 WECHAT_CALLBACK = {
-    "console": "http://user.goodrain.com/wechat/callback",
-    "console_bind": "http://user.goodrain.com/wechat/callbackbind",
-    "console_goodrain": "http://user.goodrain.com/wechat/callback",
-    "console_bind_goodrain": "http://user.goodrain.com/wechat/callbackbind",
-    "index": "http://www.goodrain.com/product/",
+    "console": "",
+    "console_bind": "",
+    "console_goodrain": "",
+    "console_bind_goodrain": "",
+    "index": "",
 }
 
 OAUTH2_APP = {
@@ -177,5 +177,3 @@ WILD_PORTS = {}
 WILD_DOMAINS = {}
 
 REGION_RULE = {}
-
-
