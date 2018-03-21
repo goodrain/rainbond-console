@@ -38,6 +38,6 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
 ENV PORT 7070
 
 ENV RELEASE_DESC=__RELEASE_DESC__
-
-ENTRYPOINT ["/app/ui/entrypoint.sh"]
+WORKDIR /app/ui
+ENTRYPOINT ["entrypoint.sh"]
 
