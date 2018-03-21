@@ -33,11 +33,11 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       && cp -a /usr/lib/libjpeg* /tmp/ \
       && apk del .build-deps \
       && cp -a /tmp/lib* /usr/lib/
-
+      && python manage.py collectstatic
 
 ENV PORT 7070
 
 ENV RELEASE_DESC=__RELEASE_DESC__
-WORKDIR /app/ui
-ENTRYPOINT ["entrypoint.sh"]
+
+ENTRYPOINT ["./entrypoint.sh"]
 
