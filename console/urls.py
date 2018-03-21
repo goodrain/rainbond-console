@@ -44,12 +44,13 @@ from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogV
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView, TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
+    ServiceEventsView, TeamServiceOverViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, \
     ServiceShareCompleteView, ServiceShareRecordView
+from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
