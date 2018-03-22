@@ -11,17 +11,9 @@ class Index extends React.Component {
     super(props);
   }
   componentDidMount(){
-    const groupId = this.props.group_id;
-    //  this.props.dispatch({
-    //    type: 'groupControl/groupMonitorData',
-    //    payload: {
-    //      team_name: globalUtil.getCurrTeamName(),
-    //      group_id: groupId
-    //    },
-    //    callback: (data) => {
-    //      console.log(data)
-    //    }
-    //  })
+    window.iframeGetMonitor((data)=>{
+        console.log(data);
+    })
   }
   componentWillMount() {
     const team_name = globalUtil.getCurrTeamName();
@@ -33,7 +25,18 @@ class Index extends React.Component {
         return config.baseUrl + '/console/teams/' + team_name + '/topological?group_id=' + groupId+'&region='+globalUtil.getCurrRegionName();
       }
 
-      window.iframeGetMonitor = function () {
+      window.iframeGetMonitor = function (fn) {
+        self.props.dispatch({
+            type: 'groupControl/groupMonitorData',
+            payload: {
+              team_name: globalUtil.getCurrTeamName(),
+              group_id: groupId
+            },
+            callback: (data) => {
+              fn && fn(data || {})
+            }
+        })
+
         return config.baseUrl + '/console/teams/' + team_name + '/topological?group_id=' + groupId+'&region='+globalUtil.getCurrRegionName();
       }
 

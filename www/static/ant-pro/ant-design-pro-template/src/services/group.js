@@ -5,7 +5,7 @@ import config from '../config/config';
   查询这个组的所有可监控应用的响应时间和吞吐率
 */
 export async function groupMonitorData(body={team_name, group_id}){
-	return request(config.baseUrl + `/console/teams/${body.team_name}/pemtransfer`, {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groups/${body.group_id}/monitor/batch_query`, {
 	  method: 'get'
 	});
   }
