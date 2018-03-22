@@ -151,7 +151,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                 return Response(general_message(400, "undefine group", "未分组不能查询"), status=400)
             services = group_service.get_group_services(group_id)
             service_ids = [s.service_id for s in services]
-            id_alias_map = {s.service_id:s.service_alias for s in services}
+            id_name_map = {s.service_id: s.service_cname for s in services}
             query_service_ids = "|".join(service_ids)
             prefix = "?query="
             # 响应时间
@@ -172,26 +172,26 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                 response_bean = dict()
                 for r in response_data:
                     service_id = r["metric"]["service_id"]
-                    service_alias = id_alias_map[service_id]
-                    response_bean[service_alias] = r["value"][1]
+                    service_cname = id_name_map[service_id]
+                    response_bean[service_cname] = float(r["value"][1])
                 throughput_bean = dict()
                 for t in throughput_data:
                     service_id = t["metric"]["service_id"]
-                    service_alias = id_alias_map[service_id]
-                    throughput_bean[service_alias] = t["value"][1]
+                    service_cname = id_name_map[service_id]
+                    throughput_bean[service_cname] = float(t["value"][1])
 
                 for k, v in response_bean.iteritems():
                     throughput = throughput_bean.get(k, 0)
                     all_bean[k] = {"response_time": v, "throughput_rate": throughput}
-
+                result = general_message(200, "success", "查询成功", bean=all_bean)
             except region_api.CallApiError as ce:
                 logger.error("api query error")
                 logger.exception(ce)
+                result = general_message(400, "api invoke error", "查询失败", bean=all_bean)
             except Exception as oe:
                 logger.error("process error")
                 logger.exception(oe)
-
-            result = general_message(200, "success", "查询成功", bean=all_bean)
+                result = general_message(400, "process error", "系统异常", bean=all_bean)
         except Exception as e:
             logger.exception(e)
             result = general_message(400, e.message, "查询失败")
