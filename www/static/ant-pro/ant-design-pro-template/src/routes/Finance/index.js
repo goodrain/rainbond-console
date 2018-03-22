@@ -2,16 +2,16 @@ import React, { PureComponent } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip } from 'antd';
-
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
-
 import styles from '../List/BasicList.less';
+import globalUtil from '../../utils/global';
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
 const { Search } = Input;
 
-@connect(({ list, loading }) => ({
+@connect(({user, list, loading }) => ({
+  user: user.currentUser,
   list,
   loading: loading.models.list,
 }))
@@ -19,13 +19,61 @@ export default class BasicList extends PureComponent {
   constructor(props){
       super(props);
       this.state = {
-          date: moment(new Date(), "YYYY-MM-DD")
+          date: moment(new Date(), "YYYY-MM-DD"),
+          companyInfo: {},
+          regionDiskStock: 0,
+          regionMemoryStock: 0,
+          list:[]
       }
   }
   componentDidMount() {
+      this.getCompanyInfo();
+      this.getRegionResource();
+      this.getRegionOneDayMoney();
   }
-  handleDateChange(date, str){
-    console.log(str)
+  getRegionResource(){
+    this.props.dispatch({
+      type: 'global/getRegionSource',
+      payload:{
+         team_name: globalUtil.getCurrTeamName(),
+         enterprise_id: this.props.user.enterprise_id,
+         region: globalUtil.getCurrRegionName()
+      },
+      callback: (data) => {
+         this.setState({regionDiskStock: data.bean.disk.stock, regionMemoryStock: data.bean.memory.stock})
+      }
+    })
+  }
+  getCompanyInfo = () => {
+     this.props.dispatch({
+       type: 'global/getCompanyInfo',
+       payload:{
+          team_name: globalUtil.getCurrTeamName(),
+          enterprise_id: this.props.user.enterprise_id
+       },
+       callback: (data) => {
+          this.setState({companyInfo: data.bean})
+       }
+     })
+  }
+  getRegionOneDayMoney = () => {
+    this.props.dispatch({
+      type: 'global/getRegionOneDayMoney',
+      payload:{
+         team_name: globalUtil.getCurrTeamName(),
+         enterprise_id: this.props.user.enterprise_id,
+         date: this.state.date,
+         region: globalUtil.getCurrRegionName()
+      },
+      callback: (data) => {
+         this.setState({list: data.list || []})
+      }
+    })
+  }
+  handleDateChange = (date, str) => {
+    this.setState({date: str}, () => {
+       this.getRegionOneDayMoney();
+    })
   }
   render() {
     const { loading } = this.props;
@@ -46,58 +94,63 @@ export default class BasicList extends PureComponent {
 
     const columns = [{
         title: '时间',
-        dataIndex: 'name',
-        key: 'name',
+        dataIndex: 'time',
+        key: 'time',
       },{
         title: '内存费用',
-        dataIndex: 'name',
-        key: 'name',
+        dataIndex: 'memory_fee',
+        key: 'memory_fee',
+        render: (v,data) => {
+           return v + '元'
+        }
       }, {
         title: '磁盘费用',
-        dataIndex: 'age',
-        key: 'age',
+        dataIndex: 'disk_fee',
+        key: 'disk_fee',
+        render: (v,data) => {
+           return v + '元'
+        }
       }, {
         title: '流量费用',
-        dataIndex: 'address',
-        key: 'address',
+        dataIndex: 'net_fee',
+        key: 'net_fee',
+        render: (v,data) => {
+           return v + '元'
+        }
       }, {
         title: '总费用',
-        dataIndex: 'address',
-        key: 'address',
-      }, {
-        title: '状态',
-        dataIndex: 'address',
-        key: 'address',
+        dataIndex: 'total_fee',
+        key: 'total_fee',
+        render: (v,data) => {
+           return v + '元'
+        }
       }];
-
-
     return (
       <PageHeaderLayout>
         <div className={styles.standardList}>
           <Card bordered={false}>
             <Row>
-              <Tooltip title="点击去充值">
               <Col sm={8} xs={24}>
-                    <Info title="企业账户余额" value={"666 元"} bordered />
+                    <Info title="企业账户余额" value={`${this.state.companyInfo.balance || 0} 元`} bordered />
               </Col>
-              </Tooltip>
-              <Tooltip title="点击去扩容">
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余内存" value={"666G"} bordered />
+                    <Info title="当前数据中心剩余内存" value={`${this.state.regionDiskStock} G`} bordered />
               </Col>
-              </Tooltip>
-              <Tooltip title="点击去扩容">
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余磁盘" value={"888G"} />
+                    <Info title="当前数据中心剩余磁盘" value={`${this.state.regionMemoryStock} G`} />
               </Col>
-              </Tooltip>
             </Row>
+          </Card>
+
+          <Card style={{textAlign: 'right'}}>
+             <Button type="primary" style={{marginRight: 8}}><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
+             <Button><a target="_blank" href="javascript:;">扩展数据中心资源</a></Button>
           </Card>
 
           <Card
             className={styles.listCard}
             bordered={false}
-            title="每小时资源费用"
+            title="当前数据中心每小时资源费用"
             style={{ marginTop: 24 }}
             bodyStyle={{ padding: '0 32px 40px 32px' }}
             extra={extraContent}

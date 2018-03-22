@@ -6,7 +6,10 @@ import {
   syncMarketApp,
   getMarketApp,
   syncMarketAppDetail,
-  authEnterprise
+  authEnterprise,
+  getCompanyInfo,
+  getRegionOneDayMoney,
+  getRegionSource
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -27,6 +30,33 @@ export default {
     apploadingnum: 0
   },
   effects : {
+    *getRegionSource({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getRegionSource, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getRegionOneDayMoney({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getRegionOneDayMoney, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getCompanyInfo({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getCompanyInfo, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *authEnterprise({
       payload,
       callback

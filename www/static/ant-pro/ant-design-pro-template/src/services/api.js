@@ -2,6 +2,41 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 获取某个数据中心的资源详情 */
+export async function getRegionSource(body={team_name, enterprise_id, region}){
+  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/region/resource`, {
+    method: 'get',
+    params: {
+      team_name: body.team_name,
+      region: body.region
+    }
+  });
+}
+
+
+
+/* 获取企业详情 */
+export async function getCompanyInfo(body={team_name, enterprise_id}){
+  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/account`, {
+    method: 'get',
+    params: {
+      team_name: body.team_name
+    }
+  });
+}
+
+/* 获取某数据中心下某一天的资源费用数据 */
+export async function getRegionOneDayMoney(body={team_name, enterprise_id, date, region}){
+  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/team/${body.team_name}/fee`, {
+    method: 'get',
+    params: {
+      date: body.date,
+      region: body.region
+    }
+  });
+}
+
+
 /* 认证企业 */
 export async function authEnterprise(body = {
   team_name,
