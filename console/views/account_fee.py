@@ -77,10 +77,21 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
 
             try:
-                res, data = market_api.get_enterprise_team_fee(region=region,
+                res, dict_body = market_api.get_enterprise_team_fee(region=region,
                                                                enterprise_id=enterprise_id,
                                                                team_id=team.tenant_id, date=date)
-                result = general_message(200, "success", "查询成功", list=data)
+                data_body = dict_body['data']
+                if 'data' not in dict_body:
+                    return Response(general_message(400, "{0}".format(data_body), "查询异常"), status=400)
+                bean = dict()
+                rt_list = []
+                data_body = dict_body['data']
+                if 'bean' in data_body and data_body['bean']:
+                    bean = data_body['bean']
+                elif 'list' in data_body and data_body['list']:
+                    rt_list = data_body['list']
+
+                result = general_message(200, "success", "查询成功",bean=bean, list=rt_list)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
