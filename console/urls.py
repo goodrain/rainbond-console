@@ -159,8 +159,8 @@ urlpatterns = patterns(
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/account$', EnterpriseAccountInfoView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
     # 数据中心相关
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/regions$', PublicRegionListView.as_view()),
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/region/resource$', RegionResourceDetailView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', PublicRegionListView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/region/resource$', RegionResourceDetailView.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),

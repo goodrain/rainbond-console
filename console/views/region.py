@@ -12,7 +12,7 @@ from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
-open_api = MarketOpenAPI()
+market_api = MarketOpenAPI()
 
 
 class RegSimQuyView(JWTAuthApiView):
@@ -183,30 +183,37 @@ class GetRegionPublicKeyView(RegionTenantHeaderView):
 
 
 class PublicRegionListView(JWTAuthApiView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         团队管理员可以获取公有云的数据中心列表
         ---
         parameters:
+            - name: enterprise_id
+              description: 企业id
+              required: true
+              type: string
+              paramType: path
             - name: team_name
               description: 当前团队名字
               required: true
               type: string
-              paramType: path
+              paramType: query
         """
         try:
+            team_name = request.GET.get("team_name", None)
+            if not team_name:
+                return Response(general_message(400, "params error", "参数错误"),status=400)
             perm_list = team_services.get_user_perm_identitys_in_permtenant(
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
-            if no_auth:
+            if "owner" in perm_list or "admin" in perm_list:
                 code = 400
                 result = general_message(code, "no identity", "您不是管理员或拥有者，没有权限做此操作")
                 return Response(result, status=code)
             else:
                 team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
-                res, data = open_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
+                res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=enterprise_id)
                 if res["status"] == 200:
                     code = 200
                     result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功",
@@ -221,32 +228,45 @@ class PublicRegionListView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class RegionResourceDetailView(RegionTenantHeaderView):
+class RegionResourceDetailView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """
-        数据中心资源详情
+        公有云数据中心资源详情
         ---
         parameters:
+            - name: enterprise_id
+              description: 企业id
+              required: true
+              type: string
+              paramType: path
             - name: team_name
               description: 当前团队名字
               required: true
               type: string
-              paramType: path
+              paramType: query
+            - name: region
+              description: 数据中心名称
+              required: true
+              type: string
+              paramType: query
         """
         try:
-            res, data = open_api.get_enterprise_regions_resource(tenant_id=self.team.tenant_id,
-                                                                 region=self.response_region,
-                                                                 enterprise_id=self.team.enterprise_id)
-            if res["status"] == 200:
-                code = 200
-                result = general_message(code=code, msg="query the region center resource is successful",
-                                         msg_show="数据中心资源获取成功", bean=data)
-            else:
-                code = 400
-                result = general_message(code=code, msg="query the region center resource failed",
-                                         msg_show="数据中心资源获取失败")
+            team_name = request.GET.get("team_name", None)
+            region = request.GET.get("region", None)
+            if not team_name:
+                return Response(general_message(400, "team name is null", "参数错误"), status=400)
+            if not region:
+                return Response(general_message(400, "region name is null", "请指明数据中心"), status=400)
+
+            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+            if not team:
+                return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
+            res, data = market_api.get_enterprise_regions_resource(tenant_id=team.tenant_id,
+                                                                   region=region,
+                                                                   enterprise_id=team.enterprise_id)
+            result = general_message(200, "success", "查询成功", bean=data)
+
         except Exception as e:
-            code = 500
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result, status=code)
+        return Response(result, status=result["code"])
