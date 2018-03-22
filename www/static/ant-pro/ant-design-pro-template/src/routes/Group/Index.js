@@ -169,7 +169,7 @@ class Main extends PureComponent {
         group_id: this.getGroupId()
       },
       callback: () => {
-        location.hash = "/index";
+        location.hash = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`;
         this.cancelDelete();
         this
           .props
