@@ -6,7 +6,9 @@ import config from '../config/config';
 */
 export async function groupMonitorData(body={team_name, group_id}){
 	return request(config.baseUrl + `/console/teams/${body.team_name}/groups/${body.group_id}/monitor/batch_query`, {
-	  method: 'get'
+	  method: 'get',
+	  showLoading: false,
+	  showMessage: false
 	});
   }
   
