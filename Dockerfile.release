@@ -34,8 +34,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       && apk del .build-deps \
       && cp -a /tmp/lib* /usr/lib/
 
-
-RUN echo "yes" |  python manage.py collectstatic
+RUN python manage.py collectstatic --noinput
 
 ENV PORT 7070
 
