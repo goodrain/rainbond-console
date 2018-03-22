@@ -410,7 +410,7 @@ export default class CreateCheck extends PureComponent {
           });
         this
           .props
-          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}overview`));
+          .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${appAlias}/overview`));
 
       }
     })

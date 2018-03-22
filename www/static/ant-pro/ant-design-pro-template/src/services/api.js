@@ -2,6 +2,12 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 获取企业账号信息 */
+export async function getCompanyAuthInfo(body={}){
+  
+}
+
+
 /* 认证企业 */
 export async function authEnterprise(body = {
   team_name,
