@@ -23,7 +23,7 @@ export default class BasicList extends PureComponent {
           companyInfo: {},
           regionDiskUsed: 0,
           regionMemoryUsed: 0,
-          regionMemroyLimit: 0,
+          regionMemoryLimit: 0,
           regionDiskLimit : 0,
           list:[]
       }
@@ -42,7 +42,7 @@ export default class BasicList extends PureComponent {
          region: globalUtil.getCurrRegionName()
       },
       callback: (data) => {
-         this.setState({regionMemroyLimit:data.bean.memory.limit, regionDiskLimit:data.bean.disk.limit, regionDiskUsed: data.bean.disk.used || 0, regionMemoryUsed: data.bean.memory.used || 0})
+         this.setState({regionMemoryLimit:data.bean.memory.limit || 0, regionDiskLimit:data.bean.disk.limit || 0, regionDiskUsed: data.bean.disk.used || 0, regionMemoryUsed: data.bean.memory.used || 0})
       }
     })
   }
@@ -142,10 +142,10 @@ export default class BasicList extends PureComponent {
                     <Info title="企业账户余额" value={money} bordered />
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余内存" value={`${this.state.regionDiskUsed}/${this.state.regionDiskLimit} G`} bordered />
+                    <Info title="当前数据中心内存" value={`${this.state.regionMemoryUsed}/${this.state.regionMemoryLimit} G`} bordered />
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余磁盘" value={`${this.state.regionMemoryUsed}/${this.state.regionMemoryLimit} G`} />
+                    <Info title="当前数据中心磁盘" value={`${this.state.regionDiskUsed}/${this.state.regionDiskLimit} G`} />
               </Col>
             </Row>
           </Card>
