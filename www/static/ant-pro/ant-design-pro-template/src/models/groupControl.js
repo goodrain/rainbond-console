@@ -15,7 +15,8 @@ import {
   getShareStatus,
   giveupShare,
   completeShare,
-  editAppCreateCompose
+  editAppCreateCompose,
+  groupMonitorData
 } from '../services/group';
 import cookie from '../utils/cookie';
 
@@ -28,6 +29,15 @@ export default {
     apps: []
   },
   effects : {
+    *groupMonitorData({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(groupMonitorData, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *editAppCreateCompose({
       payload,
       callback

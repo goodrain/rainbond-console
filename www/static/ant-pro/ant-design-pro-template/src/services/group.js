@@ -1,6 +1,16 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 
+  查询这个组的所有可监控应用的响应时间和吞吐率
+*/
+export async function groupMonitorData(body={team_name, group_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/pemtransfer`, {
+	  method: 'get'
+	});
+  }
+  
+
 /*
 	应用未创建阶段的信息修改
 	可部分修改
