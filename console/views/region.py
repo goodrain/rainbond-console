@@ -229,7 +229,7 @@ class PublicRegionListView(JWTAuthApiView):
 
 
 class RegionResourceDetailView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request,enterprise_id, *args, **kwargs):
         """
         公有云数据中心资源详情
         ---
@@ -263,7 +263,7 @@ class RegionResourceDetailView(JWTAuthApiView):
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
             res, data = market_api.get_enterprise_regions_resource(tenant_id=team.tenant_id,
                                                                    region=region,
-                                                                   enterprise_id=team.enterprise_id)
+                                                                   enterprise_id=enterprise_id)
             result = general_message(200, "success", "查询成功", bean=data)
 
         except Exception as e:
