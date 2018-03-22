@@ -12,16 +12,16 @@ class Index extends React.Component {
   }
   componentDidMount(){
     const groupId = this.props.group_id;
-     this.props.dispatch({
-       type: 'groupControl/groupMonitorData',
-       payload: {
-         team_name: globalUtil.getCurrTeamName(),
-         group_id: groupId
-       },
-       callback: (data) => {
-         console.log(data)
-       }
-     })
+    //  this.props.dispatch({
+    //    type: 'groupControl/groupMonitorData',
+    //    payload: {
+    //      team_name: globalUtil.getCurrTeamName(),
+    //      group_id: groupId
+    //    },
+    //    callback: (data) => {
+    //      console.log(data)
+    //    }
+    //  })
   }
   componentWillMount() {
     const team_name = globalUtil.getCurrTeamName();
