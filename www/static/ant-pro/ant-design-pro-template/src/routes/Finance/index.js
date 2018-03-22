@@ -19,10 +19,12 @@ export default class BasicList extends PureComponent {
   constructor(props){
       super(props);
       this.state = {
-          date: moment(new Date(), "YYYY-MM-DD"),
+          date: moment(new Date().getTime()).format('YYYY-MM-DD'),
           companyInfo: {},
-          regionDiskStock: 0,
-          regionMemoryStock: 0,
+          regionDiskUsed: 0,
+          regionMemoryUsed: 0,
+          regionMemroyLimit: 0,
+          regionDiskLimit : 0,
           list:[]
       }
   }
@@ -40,7 +42,7 @@ export default class BasicList extends PureComponent {
          region: globalUtil.getCurrRegionName()
       },
       callback: (data) => {
-         this.setState({regionDiskStock: data.bean.disk.stock, regionMemoryStock: data.bean.memory.stock})
+         this.setState({regionMemroyLimit:data.bean.memory.limit, regionDiskLimit:data.bean.disk.limit, regionDiskUsed: data.bean.disk.used || 0, regionMemoryUsed: data.bean.memory.used || 0})
       }
     })
   }
@@ -125,27 +127,34 @@ export default class BasicList extends PureComponent {
            return v + '元'
         }
       }];
+
+    var money = `${this.state.companyInfo.balance || 0} 元`;
+    if(this.state.companyInfo.owed_amt > 0){
+       money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
+    }
+    
     return (
       <PageHeaderLayout>
         <div className={styles.standardList}>
           <Card bordered={false}>
             <Row>
               <Col sm={8} xs={24}>
-                    <Info title="企业账户余额" value={`${this.state.companyInfo.balance || 0} 元`} bordered />
+                    <Info title="企业账户余额" value={money} bordered />
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余内存" value={`${this.state.regionDiskStock} G`} bordered />
+                    <Info title="当前数据中心剩余内存" value={`${this.state.regionDiskUsed}/${this.state.regionDiskLimit} G`} bordered />
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心剩余磁盘" value={`${this.state.regionMemoryStock} G`} />
+                    <Info title="当前数据中心剩余磁盘" value={`${this.state.regionMemoryUsed}/${this.state.regionMemoryLimit} G`} />
               </Col>
             </Row>
           </Card>
 
-          <Card style={{textAlign: 'right'}}>
-             <Button type="primary" style={{marginRight: 8}}><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
-             <Button><a target="_blank" href="javascript:;">扩展数据中心资源</a></Button>
-          </Card>
+          <div style={{textAlign: 'right', paddingTop: 24}}>
+             <Button style={{marginRight: 8}} type="primary"><a target="_blank" href="javascript:;">购买资源</a></Button>
+             <Button><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
+             
+          </div>
 
           <Card
             className={styles.listCard}
