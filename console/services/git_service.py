@@ -109,13 +109,14 @@ class GitCodeService(object):
                 code_type = "gitlab"
             elif parsed_git_url.host.endswith('github.com'):
                 code_type = "github"
-            code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id)
+            code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id,
+                                                      current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs
         return []
 
-    def get_code_branch(self, user, code_type, git_url, git_project_id):
+    def get_code_branch(self, user, code_type, git_url, git_project_id, current_branch="master"):
         parsed_git_url = git_url_parse(git_url)
         host = parsed_git_url.host
         if host:
@@ -127,7 +128,7 @@ class GitCodeService(object):
             elif code_type == "github":
                 branches = self.__get_github_branchs(user, parsed_git_url)
             else:
-                branches = ["master"]
+                branches = [current_branch]
         else:
             branches = []
         return 200, "success", branches
