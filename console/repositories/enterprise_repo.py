@@ -33,5 +33,7 @@ class TenantEnterpriseRepo(object):
         else:
             return enterprise[0]
 
+    def create_enterprise(self, **params):
+        return TenantEnterprise.objects.create(**params)
 
 enterprise_repo = TenantEnterpriseRepo()

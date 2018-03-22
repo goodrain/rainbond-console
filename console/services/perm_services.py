@@ -11,6 +11,9 @@ class PermService(object):
     def add_user_tenant_perm(self, perm_info):
         return perms_repo.add_user_tenant_perm(perm_info=perm_info)
 
+    def get_user_tenant_perm(self,tenant_pk,user_id):
+        return perms_repo.get_user_tenant_perm(tenant_pk,user_id)
+
 
 class ServicePermService(object):
     def add_service_perm(self, current_user, user_id, tenant, service, identity):
@@ -71,6 +74,9 @@ class ServicePermService(object):
             return 404, u"需要删除的权限不存在"
         service_perm.delete()
         return 200, u"success"
+
+    def get_user_service_perm(self, user_id, service_pk):
+        service_perm_repo.get_service_perm_by_user_pk(service_pk,user_id)
 
 
 perm_services = PermService()
