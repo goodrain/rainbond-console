@@ -11,9 +11,7 @@ class Index extends React.Component {
     super(props);
   }
   componentDidMount(){
-    window.iframeGetMonitor((data)=>{
-        console.log(data);
-    })
+  
   }
   componentWillMount() {
     const team_name = globalUtil.getCurrTeamName();
