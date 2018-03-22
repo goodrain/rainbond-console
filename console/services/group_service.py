@@ -132,5 +132,11 @@ class GroupService(object):
 
         return result
 
+    def get_group_services(self, group_id):
+        """查询某一组下的应用"""
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = [gs.service_id for gs in gsr]
+        services = service_repo.get_services_by_service_ids(*service_ids)
+        return services
 
 group_service = GroupService()

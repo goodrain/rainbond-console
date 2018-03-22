@@ -160,5 +160,7 @@ class UserService(object):
         perms = team_repo.get_tenant_perms(tenant_id=tenant.ID, user_id=u.user_id)
         return u, perms
 
+    def get_user_by_sso_user_id(self, sso_user_id):
+        return user_repo.get_by_sso_user_id(sso_user_id)
 
 user_services = UserService()

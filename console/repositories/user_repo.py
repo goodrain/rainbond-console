@@ -29,5 +29,11 @@ class UserRepo(object):
             return u[0]
         return None
 
+    def get_by_sso_user_id(self, sso_user_id):
+        u = Users.objects.filter(sso_user_id=sso_user_id)
+        if u:
+            return u[0]
+        return None
+
 
 user_repo = UserRepo()
