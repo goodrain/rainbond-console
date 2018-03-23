@@ -85,6 +85,9 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/source': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Source/Index'))
     },
+    '/team/:team/region/:region/finance': {
+      component: dynamicWrapper(app, ['index'], () => import ('../routes/Finance/index'))
+    },
     '/team/:team/region/:region/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },

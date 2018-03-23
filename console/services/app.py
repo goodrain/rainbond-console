@@ -37,9 +37,9 @@ class AppService(object):
             return False, u"应用名称不能为空"
         if len(service_cname) > 20:
             return False, u"应用名称最多支持20个字符"
-        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+        r = re.compile(u'^[a-zA-Z0-9_\\-\\.\u4e00-\u9fa5]+$')
         if not r.match(service_cname.decode("utf-8")):
-            return False, u"应用名称只支持中英文下划线和中划线"
+            return False, u"应用名称只支持中英文下划线和中划线和点（.）"
         service = service_repo.get_service_by_region_tenant_and_name(tenant.tenant_id, service_cname, region)
         if service:
             return False, u"当前团队下已存在相同名称应用"
@@ -55,7 +55,7 @@ class AppService(object):
         tenant_service.desc = "application info"
         tenant_service.category = "application"
         tenant_service.image = "goodrain.me/runner"
-        tenant_service.cmd = "start web"
+        tenant_service.cmd = ""
         tenant_service.setting = ""
         tenant_service.extend_method = "stateless"
         tenant_service.env = ""

@@ -1,6 +1,6 @@
 let baseUrl = '';
 if(process.env.NODE_ENV == 'dev') {
-	baseUrl = 'http://dev.goodrain.com/';
+	baseUrl = 'http://gr-debug.goodrain.com/';
 }else if(process.env.NODE_ENV == 'development'){
 	baseUrl = '/api';
 }else if(process.env.NODE_ENV == 'production'){

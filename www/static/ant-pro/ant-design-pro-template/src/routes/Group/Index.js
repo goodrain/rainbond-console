@@ -169,7 +169,7 @@ class Main extends PureComponent {
         group_id: this.getGroupId()
       },
       callback: () => {
-        location.hash = "/index";
+        location.hash = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`;
         this.cancelDelete();
         this
           .props
@@ -265,10 +265,10 @@ class Main extends PureComponent {
       },
       callback: (data) => {
         if (data.bean.step === 1) {
-          dispatch(routerRedux.push(`/groups/share/one/${data.bean.group_id}/${data.bean.ID}`))
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/share/one/${data.bean.group_id}/${data.bean.ID}`))
         }
         if (data.bean.step === 2) {
-          dispatch(routerRedux.push(`/groups/share/two/${data.bean.group_id}/${data.bean.ID}`))
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/share/two/${data.bean.group_id}/${data.bean.ID}`))
         }
       }
     })

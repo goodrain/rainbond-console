@@ -364,7 +364,7 @@ export default class shareCheck extends PureComponent {
           this.setState({showDelete: false})
         }
         render() {
-
+          const loading = this.props.loading;
           const shareEventList = this.state.shareEventList;
           if (!shareEventList.length) 
             return null;

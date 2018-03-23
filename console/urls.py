@@ -3,7 +3,6 @@ from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt
 
 from console.captcha.captcha_code import CaptchaView
-from console.views.account import GoorainSsoCallBack, GoodrainSsoNotify
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
@@ -25,7 +24,8 @@ from console.views.app_create.source_code import SourceCodeCreateView, AppCompil
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
     RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView
-from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView
+from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
+    BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
@@ -66,9 +66,6 @@ urlpatterns = patterns(
 
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
-    # 处理SSO登录
-    url(r'^sso/callback$', GoorainSsoCallBack.as_view()),
-    url(r'^sso/notify$', csrf_exempt(GoodrainSsoNotify.as_view())),
     # 用户登录
     url(r'^users/login$', JWTTokenView.as_view()),
     # 用户登出
@@ -159,11 +156,11 @@ urlpatterns = patterns(
     # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),
 
     # 账户与费用相关
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/account/info$', EnterpriseAccountInfoView.as_view()),
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/team/fee', EnterpriseTeamFeeView.as_view()),
+    url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
+    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
     # 数据中心相关
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/regions$', PublicRegionListView.as_view()),
-    url(r'^enterprise/(?P<team_name>[\w\-]+)/region/resource$', RegionResourceDetailView.as_view()),
+    url(r'^enterprise/regions$', PublicRegionListView.as_view()),
+    url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
@@ -295,6 +292,8 @@ urlpatterns = patterns(
         AppMonitorQueryRangeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/monitor/query$',
         AppMonitorQueryView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/monitor/batch_query$',
+        BatchAppMonitorQueryView.as_view()),
     # 服务标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
     # 应用权限
