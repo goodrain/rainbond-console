@@ -3,8 +3,8 @@ import request from '../utils/request';
 import config from '../config/config';
 
 /* 获取某个数据中心的资源详情 */
-export async function getRegionSource(body={team_name, enterprise_id, region}){
-  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/region/resource`, {
+export async function getRegionSource(body={team_name, region}){
+  return request(config.baseUrl + `/console/enterprise/region/resource`, {
     method: 'get',
     params: {
       team_name: body.team_name,
@@ -16,8 +16,8 @@ export async function getRegionSource(body={team_name, enterprise_id, region}){
 
 
 /* 获取企业详情 */
-export async function getCompanyInfo(body={team_name, enterprise_id}){
-  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/account`, {
+export async function getCompanyInfo(body={team_name}){
+  return request(config.baseUrl + `/console/enterprise/account`, {
     method: 'get',
     params: {
       team_name: body.team_name
@@ -26,8 +26,8 @@ export async function getCompanyInfo(body={team_name, enterprise_id}){
 }
 
 /* 获取某数据中心下某一天的资源费用数据 */
-export async function getRegionOneDayMoney(body={team_name, enterprise_id, date, region}){
-  return request(config.baseUrl + `/console/enterprise/${body.enterprise_id}/team/${body.team_name}/fee`, {
+export async function getRegionOneDayMoney(body={team_name, date, region}){
+  return request(config.baseUrl + `/console/enterprise/team/${body.team_name}/fee`, {
     method: 'get',
     params: {
       date: body.date,
