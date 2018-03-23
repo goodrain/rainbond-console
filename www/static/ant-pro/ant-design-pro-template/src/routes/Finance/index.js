@@ -132,6 +132,15 @@ export default class BasicList extends PureComponent {
     if(this.state.companyInfo.owed_amt > 0){
        money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
     }
+    var regionName = globalUtil.getCurrRegionName();
+    let regionId = '';
+    if(regionName == 'ali-hz') {
+       regionId = 2;
+    }
+
+    if(regionName == 'ali-sh'){
+       regionId = 1;
+    }
     
     return (
       <PageHeaderLayout>
@@ -151,9 +160,8 @@ export default class BasicList extends PureComponent {
           </Card>
 
           <div style={{textAlign: 'right', paddingTop: 24}}>
-             <Button style={{marginRight: 8}} type="primary"><a target="_blank" href="javascript:;">购买资源</a></Button>
+             {regionId && <Button style={{marginRight: 8}} type="primary"><a target="_blank" href={`https://www.goodrain.com/#/resBuy/${regionId}`}>购买资源</a></Button>}
              <Button><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
-             
           </div>
 
           <Card

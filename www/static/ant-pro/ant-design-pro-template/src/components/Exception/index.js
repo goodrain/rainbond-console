@@ -21,7 +21,7 @@ export default ({ className, linkElement = 'a', type, title, desc, img, actions,
         <div className={styles.actions}>
           {
             actions ||
-              createElement(linkElement, {
+              createElement('a', {
                 to: '/',
                 href: '/',
               }, <Button type="primary">返回首页</Button>)
