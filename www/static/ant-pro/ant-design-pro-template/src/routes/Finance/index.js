@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
-import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip } from 'antd';
+import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
@@ -21,11 +21,10 @@ export default class BasicList extends PureComponent {
       this.state = {
           date: moment(new Date().getTime()).format('YYYY-MM-DD'),
           companyInfo: {},
-          regionDiskUsed: 0,
-          regionMemoryUsed: 0,
-          regionMemoryLimit: 0,
-          regionDiskLimit : 0,
-          list:[]
+          disk:{},
+          memory:{},
+          list:[],
+          
       }
   }
   componentDidMount() {
@@ -42,7 +41,7 @@ export default class BasicList extends PureComponent {
          region: globalUtil.getCurrRegionName()
       },
       callback: (data) => {
-         this.setState({regionMemoryLimit:data.bean.memory.limit || 0, regionDiskLimit:data.bean.disk.limit || 0, regionDiskUsed: data.bean.disk.used || 0, regionMemoryUsed: data.bean.memory.used || 0})
+         this.setState({memory:data.bean.memory || {}, disk: data.bean.disk})
       }
     })
   }
@@ -150,18 +149,30 @@ export default class BasicList extends PureComponent {
               <Col sm={8} xs={24}>
                     <Info title="企业账户余额" value={money} bordered />
               </Col>
+              <Tooltip title={`过期时间：${this.state.memory.expire_date || '-'}`}>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心内存" value={`${this.state.regionMemoryUsed}/${this.state.regionMemoryLimit} G`} bordered />
+                    <Info title="数据中心内存 (已使用/总资源)" value={`${this.state.memory.used || 0}/${this.state.memory.limit || 0} M`} bordered />
               </Col>
+              </Tooltip>
+              <Tooltip title={`过期时间：${this.state.disk.expire_date || '-'}`}>
               <Col sm={8} xs={24}>
-                    <Info title="当前数据中心磁盘" value={`${this.state.regionDiskUsed}/${this.state.regionDiskLimit} G`} />
+                    <Info title="数据中心磁盘 (已使用/总资源)" value={`${this.state.disk.used || 0}/${this.state.disk.limit || 0} G`} />
               </Col>
+              </Tooltip>
             </Row>
           </Card>
 
           <div style={{textAlign: 'right', paddingTop: 24}}>
-             {regionId && <Button style={{marginRight: 8}} type="primary"><a target="_blank" href={`https://www.goodrain.com/#/resBuy/${regionId}`}>购买资源</a></Button>}
-             <Button><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
+
+            <Button.Group>
+            {regionId && <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/#/resBuy/${regionId}`}>购买资源</a></Button>}
+            <Button><a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/recharge">账户充值</a></Button>
+            <Dropdown overlay={<Menu>
+                      <Menu.Item>
+                        <a target="_blank" href="https://www.goodrain.com/#/personalCenter/my/mydc-history">查看消费记录</a>
+                      </Menu.Item>
+          </Menu>}><Button>更多...</Button></Dropdown>
+            </Button.Group>
           </div>
 
           <Card

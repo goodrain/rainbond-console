@@ -126,7 +126,7 @@ class AppInfo extends PureComponent {
             .service_connect_info_map_list
             .map((item) => {
               return <Col span={12}>
-                <FormItem label={item.attr_name}>
+                <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('connect||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
                     rules: [
@@ -186,7 +186,7 @@ class AppInfo extends PureComponent {
             .service_env_map_list
             .map((item) => {
               return <Col span={12}>
-                <FormItem label={item.attr_name}>
+                <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('env||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
                     rules: [
@@ -230,7 +230,7 @@ class AppInfo extends PureComponent {
         <Divider/>
         <Row>
           <Col span={8}>
-            <FormItem label={"最小节点(个)"}>
+            <FormItem label={"最小节点(个)"} style={{padding: 16}}>
               {getFieldDecorator('extend||min_node', {
                 initialValue: app.extend_method_map.min_node,
                 rules: [

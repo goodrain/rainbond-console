@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 import PropTypes from 'prop-types';
-import {Layout, Icon, message, notification} from 'antd';
+import {Layout, Icon, message, notification, Modal} from 'antd';
 import DocumentTitle from 'react-document-title';
 import {connect} from 'dva';
 import {Route, Redirect, Switch, routerRedux} from 'dva/router';
@@ -69,6 +69,19 @@ let isMobile;
 enquireScreen((b) => {
     isMobile = b;
 });
+
+class NoTeamTip extends React.PureComponent {
+    componentDidMount(){
+        Modal.warning({
+            title: '您还没有团队，无法使用云帮',
+            content: '请联系管理人员'
+        })
+    }
+    render(){
+        return null;
+    }
+}
+
 
 class BasicLayout extends React.PureComponent {
     static childContextTypes = {
@@ -282,6 +295,17 @@ class BasicLayout extends React.PureComponent {
                 .dispatch({type: 'global/fetchNotices'});
         }
     }
+    checkTeamAndRegion = () => {
+        var currTeam = globalUtil.getCurrTeamName();
+        var currRegion = globalUtil.getCurrRegionName();
+        var user = this.props.currentUser;
+        //判断当前url上的团队和数据中心是在在用户的信息里
+        if(!userUtil.getTeamByTeamName(user, currTeam) || !userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
+            location.href = "/";
+            return false;
+        }
+        return true;
+    }
     handleTeamClick = ({key}) => {
 
         if (key === 'createTeam') {
@@ -336,6 +360,14 @@ class BasicLayout extends React.PureComponent {
                 }
             })
     }
+    checkHasTeam = () => {
+        const currentUser = this.props.currentUser;
+        if(!currentUser.teams || !currentUser.teams.length){
+           
+            return false;
+        }
+        return true;
+    }
     render() {
         const {
             currentUser,
@@ -355,6 +387,14 @@ class BasicLayout extends React.PureComponent {
         const bashRedirect = this.getBashRedirect();
 
         if (!this.isInited()) {
+            return null;
+        }
+
+        if(!this.checkHasTeam()){
+            return <NoTeamTip />;
+        }
+
+        if(!this.checkTeamAndRegion()){
             return null;
         }
 
