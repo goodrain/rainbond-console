@@ -379,7 +379,7 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result, status=200)
+        return Response(result, status=result["code"])
 
 
 class ServiceShareTaskView(RegionTenantHeaderView):
