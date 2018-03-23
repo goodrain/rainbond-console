@@ -44,7 +44,8 @@ class AppServiceRelationService(object):
         attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(
             scope="outer").values_list("attr_name",
                                        flat=True)
-        envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names)
+        envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names).filter(
+            scope="outer")
         if envs:
             return True
         return False
