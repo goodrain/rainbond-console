@@ -261,7 +261,7 @@ ALTER TABLE region_info ADD scope VARCHAR(10) DEFAULT "private" NULL;
 CREATE TABLE enterprise_user_perm
 (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    enterprise_id VARCHAR(32) NOT NULL COMMENT '企业id',
-    user_id INT NOT NULL COMMENT '用户id',
-    identity VARCHAR(15) DEFAULT "admin" COMMENT '用户在企业的权限'
+    enterprise_id VARCHAR(32) NOT NULL ,
+    user_id INT NOT NULL  ,
+    identity VARCHAR(15) DEFAULT "admin"
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

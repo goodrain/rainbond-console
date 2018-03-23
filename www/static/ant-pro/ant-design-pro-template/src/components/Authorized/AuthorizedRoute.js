@@ -5,7 +5,7 @@ import {connect} from 'dva';
 
 class PublicLogin extends React.Component {
   componentWillMount() {
-    var href = `http://ssotest.goodrain.org/#/login/${encodeURIComponent(location.href)}`;
+    var href = `https://sso.goodrain.com/#/login/${encodeURIComponent(location.href)}`;
     location.href = href;
   }
   componentDidMount() {}

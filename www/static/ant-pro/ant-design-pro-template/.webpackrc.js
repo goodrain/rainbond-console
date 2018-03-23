@@ -39,7 +39,7 @@ export default {
   "hash" : true,
   "proxy" : {
     "/api": {
-      "target": "http://dev.goodrain.org/",
+      "target": "http://5000.gr50a891.goodrain.ali-hz.goodrain.net/",
       "changeOrigin": true,
       "pathRewrite": {
         "^/api": ""

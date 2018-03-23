@@ -238,6 +238,6 @@ class TeamService(object):
         return 200, "success", team
 
     def get_enterprise_teams(self, enterprise_id):
-        team_repo.get_teams_by_enterprise_id(enterprise_id)
+        return team_repo.get_teams_by_enterprise_id(enterprise_id)
 
 team_services = TeamService()

@@ -107,7 +107,8 @@ class GoodrainSSONotify(AlowAnyApiView):
         # 创建租户信息
         code, msg, team = team_services.create_team(user, enterprise)
         if code != 200:
-            return Response({'success': False, 'msg': msg})
+            logger.debug("account.login","create tenant error")
+            return code, msg, team
         # 创建用户在团队的权限
         perm_info = {
             "user_id": user.user_id,
@@ -121,10 +122,11 @@ class GoodrainSSONotify(AlowAnyApiView):
         # 为团队开通默认数据中心并在数据中心创建租户
         code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
         if code != 200:
-            return Response({'success': False, 'msg': msg})
+            logger.debug("account.login", "create teanant on region error")
+            return code, msg, team
         user.is_active = True
         user.save()
-        return team
+        return code, msg, team
 
     def post(self, request, *args, **kwargs):
         try:
@@ -137,7 +139,7 @@ class GoodrainSSONotify(AlowAnyApiView):
             market_client_token = request.data.get('etoken')
             if not market_client_id or not market_client_token:
                 msg = "no market_client_id or market_client_token"
-                logger.debug('account.login',msg)
+                logger.debug('account.login', msg)
                 return Response({'success': False, 'msg': msg})
             rf_username = request.data.get('rf_username') or ''
             logger.debug('account.login',
@@ -178,9 +180,11 @@ class GoodrainSSONotify(AlowAnyApiView):
             else:
                 logger.debug('account.login', 'register/login user.is_active:{}'.format(user.is_active))
                 if not user.is_active:
-                    team = self.__init_and_create_user_tenant(user, enterprise)
+                    code, msg, team = self.__init_and_create_user_tenant(user, enterprise)
+                    if code != 200:
+                        return Response({'success': False, 'msg': msg}, status=500)
                     self.__send_register_email(user, team, enterprise, rf_username)
-
+            logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
             teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
             data_list = [{
                              'uid': user.sso_user_id,

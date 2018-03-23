@@ -179,7 +179,7 @@ class ModifyUrl extends PureComponent {
                   required: true,
                   message: '请输入仓库地址'
                 }, {
-                  pattern: /^(.+@.+\.git)|([^@]+\.git)$/gi,
+                  pattern: /^(.+@.+\.git)|([^@]+\.git(\?.+)?)$/gi,
                   message: '仓库地址不正确'
                 }
               ]

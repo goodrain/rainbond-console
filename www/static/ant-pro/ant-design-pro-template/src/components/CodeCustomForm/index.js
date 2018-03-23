@@ -165,7 +165,7 @@ export default class Index extends PureComponent {
 			                initialValue: data.git_url || '',
 			                rules: [
 			                  { required: true, message: '请输入仓库地址' },
-			                  { pattern: /^(.+@.+\.git)|([^@]+\.git)$/gi, message: '仓库地址不正确' }
+			                  { pattern: /^(.+@.+\.git)|([^@]+\.git(\?.+)?)$/gi, message: '仓库地址不正确' }
 			                ],
 			              })(
 			                <Input style={{ width: 'calc(100% - 100px)' }} placeholder="请输入仓库地址" />
