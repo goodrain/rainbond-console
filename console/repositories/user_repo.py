@@ -35,5 +35,7 @@ class UserRepo(object):
             return u[0]
         return None
 
+    def get_enterprise_users(self, enterprise_id):
+        return Users.objects.filter(enterprise_id=enterprise_id)
 
 user_repo = UserRepo()

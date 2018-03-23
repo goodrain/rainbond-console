@@ -2,6 +2,7 @@
 import logging
 
 from www.models import TenantEnterprise, Tenants
+from console.models.main import EnterpriseUserPerm
 
 logger = logging.getLogger("default")
 
@@ -36,4 +37,14 @@ class TenantEnterpriseRepo(object):
     def create_enterprise(self, **params):
         return TenantEnterprise.objects.create(**params)
 
+
+class TenantEnterpriseUserPermRepo(object):
+
+    def create_enterprise_user_perm(self, user_id, enterprise_id, identity):
+        return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
+
+    def get_user_enterprise_perm(self, user_id,enterprise_id):
+        return EnterpriseUserPerm.objects.filter(user_id=user_id,enterprise_id=enterprise_id)
+
 enterprise_repo = TenantEnterpriseRepo()
+enterprise_user_perm_repo = TenantEnterpriseUserPermRepo()

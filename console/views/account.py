@@ -1,33 +1,30 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.http import JsonResponse
-from django.views.generic import View
+from django.core.mail import send_mail
 from rest_framework.response import Response
-
+import os
+from console.repositories.app import service_repo
+from console.repositories.perm_repo import service_perm_repo
+from console.services.enterprise_services import enterprise_services
+from console.services.perm_services import perm_services, app_perm_service
+from console.services.region_services import region_services
+from console.services.team_services import team_services
 from console.views.base import AlowAnyApiView
-from www.auth import authenticate, login, jwtlogin
-from www.models import Users, Tenants, TenantServiceInfo, PermRelTenant, \
-    PermRelService, TenantEnterprise
 from www.monitorservice.monitorhook import MonitorHook
-from www.services import enterprise_svc, user_svc
 from www.services.sso import GoodRainSSOApi
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import AuthCode
-from www.utils.return_message import general_message, error_message
-from www.views import BaseView
-from console.services.enterprise_services import enterprise_services
 from console.services.user_services import user_services
-from console.services.team_services import team_services
-from console.services.perm_services import perm_services,app_perm_service
-from console.repositories.app import service_repo
-from console.repositories.perm_repo import service_perm_repo
+from www.apiclient.baseclient import client_auth_service
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
 codeRepositoriesService = CodeRepositoriesService()
 
 monitor_hook = MonitorHook()
+notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com', 'tianyy@goodrain.com']
 
 
 class GoodrainSSONotify(AlowAnyApiView):
@@ -48,7 +45,7 @@ class GoodrainSSONotify(AlowAnyApiView):
         sso_user = api.get_sso_user_info()
         return True, "success", sso_user
 
-    def __update_user_info(self,sso_user,sso_user_id,sso_user_token,rf):
+    def __update_user_info(self, sso_user, sso_user_id, sso_user_token, rf):
         sso_eid = sso_user.get('eid')
         sso_username = sso_user.get('name')
         sso_phone = sso_user.get('mobile')
@@ -91,18 +88,58 @@ class GoodrainSSONotify(AlowAnyApiView):
     def __process_invite_service(self, user, data):
         email, tenant_name, service_alias, identity = data[1], data[2], data[3], data[4]
         service = service_repo.get_service_by_service_alias(service_alias)
-        service_perm = app_perm_service.get_user_service_perm(user.user_id,service.ID)
+        service_perm = app_perm_service.get_user_service_perm(user.user_id, service.ID)
         if not service_perm:
             service_perm_repo.add_service_perm(user.user_id, service.ID, identity)
+
+    def __send_register_email(self, user, tenant, enterprise, rf_username):
+        try:
+            content = '新用户: {0}, 手机号: {1}, 租户: {2}, 邮箱: {3}, 企业: {4}, 微信名: {5}'.format(user.nick_name, user.phone,
+                                                                                       tenant.tenant_name,
+                                                                                       user.email,
+                                                                                       enterprise.enterprise_alias,
+                                                                                       rf_username)
+            send_mail("new user active tenant", content, 'no-reply@goodrain.com', notify_mail_list)
+        except Exception as e:
+            logger.exception(e)
+
+    def __init_and_create_user_tenant(self, user, enterprise):
+        # 创建租户信息
+        code, msg, team = team_services.create_team(user, enterprise)
+        if code != 200:
+            return Response({'success': False, 'msg': msg})
+        # 创建用户在团队的权限
+        perm_info = {
+            "user_id": user.user_id,
+            "tenant_id": team.ID,
+            "identity": "owner",
+            "enterprise_id": enterprise.pk
+        }
+        perm_services.add_user_tenant_perm(perm_info)
+        # 创建用户在企业的权限
+        user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+        # 为团队开通默认数据中心并在数据中心创建租户
+        code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
+        if code != 200:
+            return Response({'success': False, 'msg': msg})
+        user.is_active = True
+        user.save()
+        return team
 
     def post(self, request, *args, **kwargs):
         try:
             # 获取sso的user_id
-            sso_user_id = request.POST.get('uid')
-            sso_user_token = request.POST.get('token')
-            sso_enterprise_id = request.POST.get('eid')
-            rf = request.POST.get('rf') or 'sso'
-            rf_username = request.POST.get('rf_username') or ''
+            sso_user_id = request.data.get('uid')
+            sso_user_token = request.data.get('token')
+            sso_enterprise_id = request.data.get('eid')
+            rf = request.data.get('rf') or 'sso'
+            market_client_id = request.data.get('eid')
+            market_client_token = request.data.get('etoken')
+            if not market_client_id or not market_client_token:
+                msg = "no market_client_id or market_client_token"
+                logger.debug('account.login',msg)
+                return Response({'success': False, 'msg': msg})
+            rf_username = request.data.get('rf_username') or ''
             logger.debug('account.login',
                          'request.sso_user_id:{0}  request.sso_user_token:{1}  request.sso_enterprise_id:{2}'.format(
                              sso_user_id, sso_user_token, sso_enterprise_id))
@@ -116,10 +153,15 @@ class GoodrainSSONotify(AlowAnyApiView):
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(sso_user.get('eid'))
             if not enterprise:
                 sso_company = sso_user.get('company')
-                enterprise = enterprise_services.create_tenant_enterprise(sso_user.get('eid'),sso_company,sso_company,True)
-            user = self.__update_user_info(sso_user,sso_user_id,sso_user_token,rf)
+                enterprise = enterprise_services.create_tenant_enterprise(sso_user.get('eid'), sso_company, sso_company,
+                                                                          True)
+            user = self.__update_user_info(sso_user, sso_user_id, sso_user_token, rf)
+            # 保存访问云市的token
+            domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
+            client_auth_service.save_market_access_token(enterprise.enterprise_id, domain, market_client_id,
+                                                         market_client_token)
 
-            key = request.POST.get('key')
+            key = request.data.get('key')
             logger.debug('invite key: {0}'.format(key))
             if key:
                 logger.debug('account.login', 'invite register: {}'.format(key))
@@ -129,20 +171,26 @@ class GoodrainSSONotify(AlowAnyApiView):
                 if action == 'invite_tenant':
                     self.__process_invite_tenant(user, data)
                 elif action == 'invite_service':
-                    self.__process_invite_service(user,data)
+                    self.__process_invite_service(user, data)
                 user.is_active = True
                 user.save()
                 logger.debug('account.login', 'user invite register successful')
             else:
                 logger.debug('account.login', 'register/login user.is_active:{}'.format(user.is_active))
                 if not user.is_active:
-                    # 初始化数据中心并创建租户信息
-                    # TODO
-                    pass
+                    team = self.__init_and_create_user_tenant(user, enterprise)
+                    self.__send_register_email(user, team, enterprise, rf_username)
 
-
+            teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
+            data_list = [{
+                             'uid': user.sso_user_id,
+                             'tenant_id': t.tenant_id,
+                             'tenant_name': t.tenant_name,
+                             'tenant_alias': t.tenant_alias,
+                             'eid': t.enterprise_id
+                         } for t in teams]
+            return Response({'success': True, 'list': data_list}, status=200)
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+            return Response({'success': False, 'msg': e.message}, status=500)

@@ -11,6 +11,7 @@ from www.services_view import ServiceGitHub
 from www.views import GrRedirectView
 from www.views.alimns import *
 import sys
+from console.views.account import GoodrainSSONotify
 
 reload(sys)  # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
 sys.setdefaultencoding('utf-8')
@@ -51,5 +52,6 @@ urlpatterns = patterns(
     # url(r'^backend/account/', include('backends.accounturls')),
     url(r'^marketapi/', include('marketapi.urls')),
     url(r'^sso_callback$', csrf_exempt(views.GoorainSSOCallBack.as_view())),
-    url(r'^sso_notify$', csrf_exempt(views.GoodrainSSONotify.as_view())),
+    # url(r'^sso_notify$', csrf_exempt(views.GoodrainSSONotify.as_view())),
+    url(r'^sso_notify$', GoodrainSSONotify.as_view()),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()

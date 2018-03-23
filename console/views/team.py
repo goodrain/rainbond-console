@@ -7,10 +7,11 @@ from rest_framework.response import Response
 
 from backends.services.exceptions import *
 from backends.services.resultservice import *
-from console.repositories.perm_repo import perms_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import perm_services
+from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from www.models import Tenants
 from console.repositories.plugin import config_group_repo, config_item_repo
@@ -159,31 +160,27 @@ class AddTeamView(JWTAuthApiView):
                 result = general_message(400, "failed", "该团队名已存在")
                 return Response(result, status=400)
             else:
-                enterprise = enterprise_services.get_enterprise_first()
-                code, msg, team = team_services.add_team(team_alias=team_alias, user=user, region_names=regions)
-                if team:
-                    perm = perms_repo.add_user_tenant_perm(
-                        perm_info={
-                            "user_id": user.user_id,
-                            "tenant_id": team.ID,
-                            "identity": "owner",
-                            "enterprise_id": enterprise.ID
-                        }
-                    )
-                    if not perm:
-                        result = general_message(400, "invited failed", "团队关联失败，注册失败")
-                        return Response(result, status=400)
+                enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                if not enterprise:
+                    return Response(general_message(500,"user's enterprise is not found"),status=500)
+                code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
+
+                # 创建用户在团队的权限
+                perm_info = {
+                    "user_id": user.user_id,
+                    "tenant_id": team.ID,
+                    "identity": "owner",
+                    "enterprise_id": enterprise.pk
+                }
+                perm_services.add_user_tenant_perm(perm_info)
+                for r in regions:
+                    code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
+                    if code != 200:
+                        return Response(general_message(code, "add team error", msg), status=code)
                 # 添加默认的插件
                 self.add_default_plugin(self.user, team, regions)
-                if code == "200":
-                    data = {"team_name": team.tenant_name, "team_id": team.tenant_id, "team_ID": team.ID,
-                            "team_alisa": team.tenant_alias, "creater": team.creater, "user_num": 1,
-                            "enterprise_id": team.enterprise_id}
-                    result = general_message(code, "create new team success", "新建团队成功", bean=data)
-                    return Response(result, status=code)
-                else:
-                    result = general_message(code, 'failed', msg_show=msg)
-                    return Response(result, status=code)
+
+                return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
             code = 400

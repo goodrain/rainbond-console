@@ -291,4 +291,7 @@ class EnterpriseServices(object):
         }
         return enterprise_repo.create_enterprise(**params)
 
+    # def get_enterprise_tenants(self,enterprise):
+
+
 enterprise_services = EnterpriseServices()

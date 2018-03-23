@@ -92,3 +92,10 @@ class MarketOpenAPI(HttpClient):
         url += "/openapi/console/v1/enter-market/apps/templates"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
+
+    def get_region_access_token(self, tenant_id, enterprise_id, region):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/regions/{1}/token".format(enterprise_id, region)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        data = self._unpack(body)
+        return res, data
