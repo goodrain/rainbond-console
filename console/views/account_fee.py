@@ -50,7 +50,7 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
 
 
 class EnterpriseTeamFeeView(JWTAuthApiView):
-    def get(self, request, enterprise_id, team_name):
+    def get(self, request, team_name):
         """
         企业下某团队资源费用账单查询接口
         ---
