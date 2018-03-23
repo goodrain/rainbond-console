@@ -14,7 +14,7 @@ market_api = MarketOpenAPI()
 
 
 class EnterpriseAccountInfoView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         """
         企业账户信息查询接口
         ---
@@ -38,7 +38,7 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             try:
                 res, data = market_api.get_enterprise_account_info(tenant_id=team.tenant_id,
-                                                                   enterprise_id=enterprise_id)
+                                                                   enterprise_id=team.enterprise_id)
                 result = general_message(200, "success", "查询成功", bean=data)
             except Exception as e:
                 logger.exception(e)
@@ -78,8 +78,8 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
 
             try:
                 res, dict_body = market_api.get_enterprise_team_fee(region=region,
-                                                               enterprise_id=enterprise_id,
-                                                               team_id=team.tenant_id, date=date)
+                                                                    enterprise_id=team.enterprise_id,
+                                                                    team_id=team.tenant_id, date=date)
                 data_body = dict_body['data']
                 if 'data' not in dict_body:
                     return Response(general_message(400, "{0}".format(data_body), "查询异常"), status=400)

@@ -55,7 +55,7 @@ class AppService(object):
         tenant_service.desc = "application info"
         tenant_service.category = "application"
         tenant_service.image = "goodrain.me/runner"
-        tenant_service.cmd = "start web"
+        tenant_service.cmd = ""
         tenant_service.setting = ""
         tenant_service.extend_method = "stateless"
         tenant_service.env = ""

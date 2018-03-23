@@ -156,11 +156,11 @@ urlpatterns = patterns(
     # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),
 
     # 账户与费用相关
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/account$', EnterpriseAccountInfoView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
+    url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
+    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
     # 数据中心相关
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', PublicRegionListView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/region/resource$', RegionResourceDetailView.as_view()),
+    url(r'^enterprise/regions$', PublicRegionListView.as_view()),
+    url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),

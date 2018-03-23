@@ -126,6 +126,8 @@ class AppCheckService(object):
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)
+        else:
+            service.cmd = ""
         image = service_info.get("image", None)
         if image:
             service_image = image["name"] + ":" + image["tag"]
