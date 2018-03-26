@@ -5,28 +5,27 @@
 import datetime
 import logging
 import random
+import re
 import string
 
-from django.conf import settings
-from rest_framework.response import Response
 from console.constants import AppConstants
+from console.constants import SourceCodeType
 from console.exception.main import ResourceNotEnoughException
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
+from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
+from console.repositories.region_repo import region_repo
+from console.services.app_config.port_service import AppPortService
+from console.services.app_config.probe_service import ProbeService
+
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models import TenantServiceInfo, ServiceConsume
 from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesService, BaseTenantService, \
     ServicePluginResource
 from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
-from console.constants import SourceCodeType
-from console.services.app_config import port_service, probe_service
-import re
-from console.repositories.region_repo import region_repo
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -35,7 +34,8 @@ codeRepositoriesService = CodeRepositoriesService()
 baseService = BaseTenantService()
 servicePluginResource = ServicePluginResource()
 gitHubClient = GitHubApi()
-
+port_service = AppPortService()
+probe_service = ProbeService()
 
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
