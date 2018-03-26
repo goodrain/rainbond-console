@@ -70,6 +70,27 @@ enquireScreen((b) => {
     isMobile = b;
 });
 
+
+class Meiqia extends React.PureComponent {
+    componentDidMount(){
+        (function(m, ei, q, i, a, j, s) {
+            m[a] = m[a] || function() {
+                (m[a].a = m[a].a || []).push(arguments)
+            };
+            j = ei.createElement(q),
+                s = ei.getElementsByTagName(q)[0];
+            j.async = true;
+            j.charset = 'UTF-8';
+            j.src = i;
+            s.parentNode.insertBefore(j, s)
+        })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
+        _MEIQIA('entId', 5732);
+    }
+    render(){
+        return null;
+    }
+}
+
 class NoTeamTip extends React.PureComponent {
     componentDidMount(){
         Modal.warning({
@@ -480,6 +501,7 @@ class BasicLayout extends React.PureComponent {
                 {this.state.createTeam && <CreateTeam onOk={this.handleCreateTeam} onCancel={this.cancelCreateTeam}/>}
                 {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>
+                {rainbondInfo.is_public && <Meiqia />}
             </Fragment>
         );
     }
