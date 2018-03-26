@@ -59,6 +59,18 @@ class UserFuzSerView(JWTAuthApiView):
 
 
 class TeamUserDetaislView(JWTAuthApiView):
+
+    def get_highest_identity(self, identitys):
+        identity_map = {"access": 1, "viewer": 2, "developer": 3, "admin": 4, "owner": 5}
+        final_identity = identitys[0]
+        identity_num = -1
+        for i in identitys:
+            num = identity_map.get(final_identity)
+            if num > identity_num:
+                final_identity = i
+                identity_num = num
+        return final_identity
+
     def get(self, request, team_name, user_name, *args, **kwargs):
         """
         用户详情
@@ -76,12 +88,17 @@ class TeamUserDetaislView(JWTAuthApiView):
               paramType: path
         """
         try:
-            u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
-            teams = [{"team_identity": perm.identity} for perm in perms]
+            # u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user,team.enterprise_id)
+            perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
+            # teams = [{"team_identity": perm.identity} for perm in perms]
             data = dict()
-            data["nick_name"] = u.nick_name
-            data["email"] = u.email
-            data["teams_identity"] = teams[0]["team_identity"]
+            data["nick_name"] = self.user.nick_name
+            data["email"] = self.user.email
+            # data["teams_identity"] = teams[0]["team_identity"]
+            data["teams_identity"] = self.get_highest_identity(perms)
+            data["is_user_enter_amdin"] = is_user_enter_amdin
             code = 200
             result = general_message(code, "user details query success.", "用户详情获取成功", bean=data)
             return Response(result, status=code)
