@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import moment from 'moment';
 import {connect} from 'dva';
 import {Link} from 'dva/router';
@@ -12,7 +12,8 @@ import {
   Input,
   Select,
   Button,
-  Icon
+  Icon,
+  Tooltip
 } from 'antd';
 import IndexTable from '../../components/IndexTable';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
@@ -62,7 +63,11 @@ const links = [
 export default class Index extends PureComponent {
   constructor(arg) {
     super(arg);
-    this.state = {}
+    this.state = {
+      disk: {},
+      memory: {},
+      companyInfo: {}
+    }
   }
   componentDidMount() {
 
@@ -73,6 +78,45 @@ export default class Index extends PureComponent {
       this.loadApps();
       this.loadOverview();
     }, 10000)
+
+    if(this.isPublicRegion()){
+      this.getCompanyInfo();
+      this.getRegionResource();
+    }
+  }
+  isPublicRegion(){
+    var region_name = globalUtil.getCurrRegionName();
+    var team_name = globalUtil.getCurrTeamName();
+    var region  = userUtil.hasTeamAndRegion(this.props.currUser, team_name, region_name);
+    if(region){
+      return region.region_scope === 'public'
+    }
+    return false;
+  }
+  getRegionResource(){
+    this.props.dispatch({
+      type: 'global/getRegionSource',
+      payload:{
+         team_name: globalUtil.getCurrTeamName(),
+         enterprise_id: this.props.currUser.enterprise_id,
+         region: globalUtil.getCurrRegionName()
+      },
+      callback: (data) => {
+         this.setState({memory:data.bean.memory || {}, disk: data.bean.disk})
+      }
+    })
+  }
+  getCompanyInfo = () => {
+     this.props.dispatch({
+       type: 'global/getCompanyInfo',
+       payload:{
+          team_name: globalUtil.getCurrTeamName(),
+          enterprise_id: this.props.currUser.enterprise_id
+       },
+       callback: (data) => {
+          this.setState({companyInfo: data.bean})
+       }
+     })
   }
   loadOverview = () => {
     const {dispatch, index} = this.props;
@@ -285,8 +329,13 @@ export default class Index extends PureComponent {
       </div>
     );
 
+    var money = `${this.state.companyInfo.balance || 0} 元`;
+    if(this.state.companyInfo.owed_amt > 0){
+       money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
+    }
     const extraContent = (
       <div className={styles.extraContent}>
+       
         <div className={styles.statItem}>
           <p>应用数</p>
           <p>{index.overviewInfo.team_service_num || 0}</p>
@@ -296,10 +345,30 @@ export default class Index extends PureComponent {
           <p>{index.overviewInfo.user_nums || 0}</p>
         </div>
         <div className={styles.statItem}>
-          <p>使用内存资源</p>
-          <p>{index.overviewInfo.team_service_memory_count || 0}
-            MB</p>
+          <p>账户余额</p>
+          <p>{money}</p>
         </div>
+        {
+          this.isPublicRegion() ? 
+          <Fragment>
+            <div className={styles.statItem}>
+              <p>内存(已用/总计)</p>
+              <Tooltip title={`过期时间：${this.state.memory.expire_date || '-'}`}>
+              <p>{`${this.state.memory.used || 0}/${this.state.memory.limit || 0}`}
+                M</p>
+              </Tooltip>
+            </div>
+            <div className={styles.statItem}>
+              <p>磁盘(已用/总计)</p>
+              <Tooltip title={`过期时间：${this.state.disk.expire_date || '-'}`}>
+              <p>{`${this.state.disk.used || 0}/${this.state.disk.limit || 0} G`}
+                </p>
+                </Tooltip>
+            </div>
+          </Fragment>
+          : null
+        }
+        
       </div>
     );
 
