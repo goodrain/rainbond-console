@@ -14,6 +14,7 @@ from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
+from console.services.app import app_service
 
 logger = logging.getLogger("default")
 
@@ -41,6 +42,10 @@ class StartAppView(AppBaseView):
 
         """
         try:
+            new_add_memory = self.service.min_memory * self.service.min_node
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "start service")
+            if not allow_create:
+                return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)
             bean = {}
             if event:

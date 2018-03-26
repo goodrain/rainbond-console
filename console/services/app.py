@@ -6,6 +6,9 @@ import datetime
 import logging
 import random
 import string
+
+from django.conf import settings
+
 from console.constants import AppConstants
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
@@ -32,7 +35,7 @@ gitHubClient = GitHubApi()
 
 
 class AppService(object):
-    def check_service_cname(self, tenant, service_cname,region):
+    def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
             return False, u"应用名称不能为空"
         if len(service_cname) > 20:
@@ -91,7 +94,8 @@ class AppService(object):
         service_id = make_uuid(tenant.tenant_id)
         service_alias = "gr" + service_id[-6:]
         # 判断是否超过资源
-        allow_create, tips = self.check_tenant_resource(tenant, new_service.min_node * new_service.min_memory)
+        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
+                                                "create source code app")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id
@@ -134,16 +138,24 @@ class AppService(object):
 
         return 200, u"success"
 
-    def check_tenant_resource(self, tenant, new_add_memory):
-        """检测租户资源"""
+    def verify_source(self, tenant, region, new_add_memory, reason=""):
+        """判断资源"""
         allow_create = True
         tips = u"success"
-        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(tenant)
-        if tenant.pay_type == "free":
-            # 免费用户最多使用1G内存
-            if new_add_memory + tenant_cur_used_resource > tenant.limit_memory:
-                allow_create = False
-                tips = u"您最多使用{0}G内存".format(tenant.limit_memory / 1024)
+        if settings.MODULES.get('SSO_LOGIN'):
+            return allow_create, tips
+        data = {
+            "quantity": new_add_memory,
+            "reason": reason,
+            "eid": tenant.enterprise_id
+        }
+        try:
+            res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
+            logger.debug(body)
+        except Exception as e:
+            logger.exception(e)
+            allow_create = False
+            tips = u"资源已达上限"
         return allow_create, tips
 
     def create_service_source_info(self, tenant, service, user_name, password):
@@ -199,7 +211,8 @@ class AppService(object):
         new_service.service_source = image_type
         service_id = make_uuid(tenant.tenant_id)
         service_alias = "gr" + service_id[-6:]
-        allow_create, tips = self.check_tenant_resource(tenant, new_service.min_node * new_service.min_memory)
+        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
+                                                "create image app")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id
@@ -458,5 +471,6 @@ class AppService(object):
             else:
                 break
         return rt_name
+
 
 app_service = AppService()

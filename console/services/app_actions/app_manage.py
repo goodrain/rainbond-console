@@ -16,6 +16,7 @@ from console.repositories.app import service_repo, recycle_bin_repo, service_sou
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
+from console.services.app import app_service
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -110,6 +111,13 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user):
+
+        new_add_memory = service.min_memory * service.min_node
+        allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory,
+                                                       "start service")
+        if not allow_start:
+            return 412, "资源不足，无法启动应用", None
+
         code, msg, event = event_service.create_event(tenant, service, user, self.START)
         if code != 200:
             return code, msg, event

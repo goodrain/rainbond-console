@@ -1430,3 +1430,13 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
+    def service_chargesverify(self, region, tenant_name, data):
+        """应用扩大资源申请接口"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/chargesverify"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body

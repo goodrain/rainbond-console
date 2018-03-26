@@ -105,7 +105,8 @@ class CenterAppView(RegionTenantHeaderView):
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant, app)
+            allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant,
+                                                                                             self.response_region, app)
             if not allow_create:
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)

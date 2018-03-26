@@ -294,7 +294,7 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def check_package_app_resource(self, tenant, market_app):
+    def check_package_app_resource(self, tenant, region, market_app):
         app_templates = json.loads(market_app.app_template)
         apps = app_templates["apps"]
         total_memory = 0
@@ -307,7 +307,7 @@ class MarketAppService(object):
                 min_node = int(extend_method.get("min_node", 1))
                 min_memory = int(extend_method.get("min_memory", 128))
             total_memory += min_node * min_memory
-        allow_create, tips = app_service.check_tenant_resource(tenant, total_memory)
+        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "market create")
         return allow_create, tips, total_memory
 
     def get_visiable_apps(self, tenant, scope, app_name):
