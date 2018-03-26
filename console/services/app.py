@@ -8,8 +8,9 @@ import random
 import string
 
 from django.conf import settings
-
+from rest_framework.response import Response
 from console.constants import AppConstants
+from console.exception.main import BusinessException
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.base import BaseConnection
@@ -20,10 +21,12 @@ from www.models import TenantServiceInfo, ServiceConsume
 from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesService, BaseTenantService, \
     ServicePluginResource
 from www.utils.crypt import make_uuid
+from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 from console.constants import SourceCodeType
 from console.services.app_config import port_service, probe_service
 import re
+from console.repositories.region_repo import region_repo
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -142,7 +145,10 @@ class AppService(object):
         """判断资源"""
         allow_create = True
         tips = u"success"
-        if settings.MODULES.get('SSO_LOGIN'):
+        region_config = region_repo.get_region_by_region_name(region)
+        if not region_config:
+            return False, "数据中心不存在"
+        if region_config.scope == "private":
             return allow_create, tips
         data = {
             "quantity": new_add_memory,
@@ -152,10 +158,14 @@ class AppService(object):
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
             logger.debug(body)
-        except Exception as e:
+        except region_api.CallApiError as e:
             logger.exception(e)
             allow_create = False
-            tips = u"资源已达上限"
+            if 400 < e.status < 500:
+                raise BusinessException(
+                    response=Response(general_message(10406, "resource is not enough", "资源不足，请前往充值"), status=412))
+            else:
+                tips = u"系统错误"
         return allow_create, tips
 
     def create_service_source_info(self, tenant, service, user_name, password):
