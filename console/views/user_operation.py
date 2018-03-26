@@ -414,6 +414,8 @@ class UserDetailsView(JWTAuthApiView):
             user_detail["is_sys_admin"] = user.is_sys_admin
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
             user_detail["is_enterprise_active"] = enterprise.is_active
+            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, user.enterprise_id)
+            user_detail["is_user_enter_amdin"] = is_user_enter_amdin
             tenant_list = list()
             for tenant in tenants:
                 tenant_info = dict()
