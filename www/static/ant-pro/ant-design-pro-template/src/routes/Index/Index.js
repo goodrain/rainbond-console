@@ -352,14 +352,14 @@ export default class Index extends PureComponent {
           this.isPublicRegion() ? 
           <Fragment>
             <div className={styles.statItem}>
-              <p>内存统计</p>
+              <p>已使用内存</p>
               <Tooltip title={`总计：${this.state.memory.limit || 0} 过期时间：${this.state.memory.expire_date || '-'}`}>
               <p>{`${this.state.memory.used || 0}`}
                 M</p>
               </Tooltip>
             </div>
             <div className={styles.statItem}>
-              <p>磁盘统计</p>
+              <p>已使用磁盘</p>
               <Tooltip title={`总计：${this.state.disk.limit || 0} 过期时间：${this.state.disk.expire_date || '-'}`}>
               <p>{`${this.state.disk.used || 0} G`}
                 </p>
