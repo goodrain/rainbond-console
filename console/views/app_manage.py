@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ResourceNotEnoughException
 from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.views.app_config.base import AppBaseView
@@ -54,6 +55,9 @@ class StartAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

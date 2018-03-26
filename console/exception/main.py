@@ -15,3 +15,8 @@ class BusinessException(Exception):
             return self.response
         else:
             return Response(general_message(10401, "failed", "无数据返回"), status=500)
+
+
+class ResourceNotEnoughException(Exception):
+    def __init__(self, message):
+        super(ResourceNotEnoughException, self).__init__(message)

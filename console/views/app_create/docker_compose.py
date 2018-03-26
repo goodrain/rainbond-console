@@ -8,7 +8,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import BusinessException
+from console.exception.main import BusinessException, ResourceNotEnoughException
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -241,6 +241,9 @@ class ComposeCheckView(ComposeGroupBaseView):
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief,
                                      list=[s.to_dict() for s in service_list])
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

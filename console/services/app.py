@@ -10,7 +10,7 @@ import string
 from django.conf import settings
 from rest_framework.response import Response
 from console.constants import AppConstants
-from console.exception.main import BusinessException
+from console.exception.main import ResourceNotEnoughException
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.base import BaseConnection
@@ -161,9 +161,8 @@ class AppService(object):
         except region_api.CallApiError as e:
             logger.exception(e)
             allow_create = False
-            if 400 < e.status < 500:
-                raise BusinessException(
-                    response=Response(general_message(10406, "resource is not enough", "资源不足，请前往充值"), status=412))
+            if 400 <= e.status < 500:
+                raise ResourceNotEnoughException("资源不足，请前往充值")
             else:
                 tips = u"系统错误"
         return allow_create, tips

@@ -5,6 +5,7 @@
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ResourceNotEnoughException
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 import logging
@@ -106,6 +107,9 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if code != 200:
                 logger.debug("service.create", msg_show)
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
