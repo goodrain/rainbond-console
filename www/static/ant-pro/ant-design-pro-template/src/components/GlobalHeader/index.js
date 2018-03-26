@@ -90,7 +90,7 @@ export default class GlobalHeader extends PureComponent {
             })
 }
             <Menu.Divider/>
-            <Menu.Item key={'createTeam'}><Icon type="plus"/>新建团队</Menu.Item>
+            {currentUser.is_user_enter_amdin && <Menu.Item key={'createTeam'}><Icon type="plus"/>新建团队</Menu.Item>}
         </Menu>
     }
     getCurrTeam = () => {
@@ -113,7 +113,7 @@ export default class GlobalHeader extends PureComponent {
                 })
 }
                 <Menu.Divider/>
-                <Menu.Item key={'openRegion'}><Icon type="plus"/>开通数据中心</Menu.Item>
+                {(team.identity === 'owner' || team.identity === 'admin') && <Menu.Item key={'openRegion'}><Icon type="plus"/>开通数据中心</Menu.Item>}
             </Menu>
         }
         return <Menu/>;

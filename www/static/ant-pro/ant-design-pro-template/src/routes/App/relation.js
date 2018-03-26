@@ -6,7 +6,7 @@ import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Moda
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import { getRoutes } from '../../utils/utils';
 import { getRouterData } from '../../common/router'
-import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelationedApp } from '../../services/app';
+import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelationedApp, batchAddRelationedApp } from '../../services/app';
 
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
@@ -270,10 +270,11 @@ export default class Index extends PureComponent {
     this.setState({showAddRelation: false})
   }
   handleSubmitAddRelation = (ids) => {
-      addRelationedApp({
+     
+    batchAddRelationedApp({
         team_name: globalUtil.getCurrTeamName(),
          app_alias: this.props.appAlias,
-         dep_service_id: ids[0]
+         dep_service_ids: ids
        }).then((data)=>{
           if(data){
              this.loadRelationedApp();

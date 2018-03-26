@@ -432,6 +432,7 @@ export default class Index extends PureComponent {
     };
 
     return (
+      
       <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
         <Card
           className={styles.projectList}
@@ -440,9 +441,9 @@ export default class Index extends PureComponent {
         }}
           title="已开通数据中心"
           bordered={false}
-          extra={< a href = "javascript:;" onClick = {
+          extra={(team.identity === 'owner' || team.identity === 'admin') ? < a href = "javascript:;" onClick = {
           this.onOpenRegion
-        } > 开通数据中心 < /a>}
+        } > 开通数据中心 < /a> : null}
           loading={projectLoading}
           bodyStyle={{
           padding: 0
