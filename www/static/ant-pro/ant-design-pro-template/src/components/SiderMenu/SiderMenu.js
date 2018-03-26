@@ -246,18 +246,19 @@ export default class SiderMenu extends PureComponent {
   // permission to check
   checkPermissionItem = (authority, ItemDom) => {
     const user = this.props.currentUser;
+    const team_name = globalUtil.getCurrTeamName();
+    const team = userUtil.getTeamByTeamName(user, team_name);
     if (ItemDom.key.indexOf('source') > -1) {
       if (user.is_sys_admin) {
         return ItemDom;
       }
       return null;
     } else if(ItemDom.key.indexOf('finance') > -1) {
-       var team_name = globalUtil.getCurrTeamName();
        var region_name = globalUtil.getCurrRegionName();
        var region  = userUtil.hasTeamAndRegion(user, team_name, region_name);
        if(region){
          //当前是公有数据中心
-         if(region.region_scope === 'public'){
+         if(region.region_scope === 'public' && (team.identity === 'owner' || team.identity === 'admin')){
             return ItemDom;
          }
        }

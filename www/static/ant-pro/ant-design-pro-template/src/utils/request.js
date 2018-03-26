@@ -139,6 +139,10 @@ export default function request(url, options) {
                     resData = error.response.data;
                 } catch (e) {}
 
+                if (resData.code === 10406) {
+                    dispatch && dispatch({type: 'global/showPayTip'});
+                }
+
                 if (resData.code === 10405) {
                     cookie.remove('token');
                     cookie.remove('token', {domain: ''});

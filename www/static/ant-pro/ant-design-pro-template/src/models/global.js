@@ -27,7 +27,9 @@ export default {
     currRegion: '',
     //云帮平台信息
     rainbondInfo: null,
-    apploadingnum: 0
+    apploadingnum: 0,
+    //显示充值提示
+    payTip: false
   },
   effects : {
     *getRegionSource({
@@ -153,6 +155,18 @@ export default {
   },
 
   reducers : {
+    showPayTip(state){
+      return {
+        ...state,
+        payTip: true
+      };
+    },
+    hidePayTip(state){
+      return {
+        ...state,
+        payTip: false
+      };
+    },
     saveRainBondInfo(state, {payload}) {
 
       return {

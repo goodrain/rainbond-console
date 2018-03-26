@@ -70,13 +70,13 @@ enquireScreen((b) => {
     isMobile = b;
 });
 
-
+//美洽 
 class Meiqia extends React.PureComponent {
     componentDidMount(){
         (function(m, ei, q, i, a, j, s) {
             m[a] = m[a] || function() {
                 (m[a].a = m[a].a || []).push(arguments)
-            };
+          };
             j = ei.createElement(q),
                 s = ei.getElementsByTagName(q)[0];
             j.async = true;
@@ -85,6 +85,26 @@ class Meiqia extends React.PureComponent {
             s.parentNode.insertBefore(j, s)
         })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
         _MEIQIA('entId', 5732);
+    }
+    render(){
+        return null;
+    }
+}
+
+//提示充值
+class PayTip extends React.PureComponent {
+    handleClick = () => {
+        this.props.dispatch({
+            type: 'global/hidePayTip'
+        })
+        window.open('https://www.goodrain.com/#/personalCenter/my/recharge')
+    }
+    componentDidMount(){
+        Modal.warning({
+            okText: '去充值',
+            title: '企业账户已欠费',
+            onOk: this.handleClick
+        })
     }
     render(){
         return null;
@@ -502,6 +522,7 @@ class BasicLayout extends React.PureComponent {
                 {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>
                 {rainbondInfo.is_public && <Meiqia />}
+                {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
             </Fragment>
         );
     }
@@ -518,6 +539,7 @@ export default connect(({user, global, loading}) => {
         notices: global.notices,
         currTeam: global.currTeam,
         currRegion: global.currRegion,
-        rainbondInfo: global.rainbondInfo
+        rainbondInfo: global.rainbondInfo,
+        payTip: global.payTip
     })
 })(BasicLayout);
