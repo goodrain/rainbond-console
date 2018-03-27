@@ -15,7 +15,6 @@ from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
-from console.repositories.region_repo import region_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 
