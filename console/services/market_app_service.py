@@ -14,6 +14,7 @@ from console.repositories.app_config import extend_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service
@@ -618,23 +619,39 @@ class AppMarketSynchronizeService(object):
         self.save_market_app_template(data)
 
     def save_market_app_template(self, app_templates):
-        is_dumps = True
-        if app_templates["template_version"] == "v1":
+        template_version = app_templates["template_version"]
+        is_v1 = bool(template_version == "v1")
+        if is_v1:
             v2_template = template_transform_service.v1_to_v2(app_templates)
         else:
-            v2_template = ["apps"]
-            is_dumps = False
+            v2_template = app_templates
         rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(v2_template["group_key"],
                                                                              v2_template["group_version"])
+        logger.debug("=========> {0}".format(json.dumps(v2_template)))
         if rainbond_app:
-            rainbond_app.share_user = v2_template["share_user"]
-            rainbond_app.share_team = v2_template["share_team"]
-            rainbond_app.pic = v2_template["pic"]
-            rainbond_app.describe = v2_template["describe"]
-            rainbond_app.app_template = json.dumps(v2_template) if is_dumps else v2_template
-            rainbond_app.is_complete = True
-            rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-            rainbond_app.save()
+            if is_v1:
+                rainbond_app.share_user = v2_template["share_user"]
+                rainbond_app.share_team = v2_template["share_team"]
+                rainbond_app.pic = v2_template["pic"]
+                rainbond_app.describe = v2_template["describe"]
+                rainbond_app.app_template = json.dumps(v2_template)
+                rainbond_app.is_complete = True
+                rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+                rainbond_app.save()
+            else:
+                user_name = v2_template.get("publish_user",None)
+                user_id = 0
+                if user_name:
+                    user = user_repo.get_user_by_username(user_name)
+                    user_id = user.user_id
+                rainbond_app.share_user = user_id
+                rainbond_app.share_team = v2_template.get("publish_team", "")
+                rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
+                rainbond_app.describe = v2_template.get("update_node", "")
+                rainbond_app.app_template = v2_template["template_content"]
+                rainbond_app.is_complete = True
+                rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+                rainbond_app.save()
 
 
 market_app_service = MarketAppService()

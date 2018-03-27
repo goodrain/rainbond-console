@@ -168,14 +168,13 @@ class ApplicationGroupService(object):
             app_templates = market_api.get_service_group_detail(tenant_id, group_key, group_version)
             if not app_templates:
                 return None
-            is_dumps = True
             if app_templates["template_version"] == "v1":
                 v2_template = template_transform_service.v1_to_v2(app_templates)
+                data = json.dumps(v2_template)
             else:
-                v2_template = ["apps"]
-                is_dumps = False
-            data = json.dumps(v2_template) if is_dumps else v2_template
-            logger.debug("======>  {1}".format(data))
+                v2_template = app_templates
+                data = v2_template["template_content"]
+            logger.debug("======>  {0}".format(data))
             return data
         except Exception as e:
             logger.exception(e)
