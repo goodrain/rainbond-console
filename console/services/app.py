@@ -15,7 +15,6 @@ from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
-from console.repositories.region_repo import region_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 
@@ -98,7 +97,7 @@ class AppService(object):
         service_alias = "gr" + service_id[-6:]
         # 判断是否超过资源
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "create source code app")
+                                                "创建源码应用")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id
@@ -145,11 +144,11 @@ class AppService(object):
         """判断资源"""
         allow_create = True
         tips = u"success"
-        region_config = region_repo.get_region_by_region_name(region)
-        if not region_config:
-            return False, "数据中心不存在"
-        if region_config.scope == "private":
-            return allow_create, tips
+        # region_config = region_repo.get_region_by_region_name(region)
+        # if not region_config:
+        #     return False, "数据中心不存在"
+        # if region_config.scope == "private":
+        #     return allow_create, tips
         data = {
             "quantity": new_add_memory,
             "reason": reason,
@@ -157,15 +156,16 @@ class AppService(object):
         }
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
-            logger.debug(body)
+            if not body:
+                return True, "success"
+            msg = body.get("msg", None)
+            if not msg or msg == "success":
+                return True, "success"
+            else:
+                raise ResourceNotEnoughException("资源不足，无法操作")
         except region_api.CallApiError as e:
             logger.exception(e)
-            allow_create = False
-            if 400 <= e.status < 500:
-                raise ResourceNotEnoughException("资源不足，请前往充值")
-            else:
-                tips = u"系统错误"
-        return allow_create, tips
+            raise e
 
     def create_service_source_info(self, tenant, service, user_name, password):
         params = {
@@ -221,7 +221,7 @@ class AppService(object):
         service_id = make_uuid(tenant.tenant_id)
         service_alias = "gr" + service_id[-6:]
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "create image app")
+                                                "创建镜像应用")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id

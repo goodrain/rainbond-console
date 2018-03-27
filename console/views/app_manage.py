@@ -44,7 +44,7 @@ class StartAppView(AppBaseView):
         """
         try:
             new_add_memory = self.service.min_memory * self.service.min_node
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "start service")
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "启动应用")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)

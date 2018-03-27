@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
-
+from console.repositories.app import service_source_repo
+from console.repositories.group import group_repo, tenant_service_group_repo
+from console.services.market_app_service import template_transform_service
 from www.models import *
 from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
@@ -10,16 +12,24 @@ import json
 from django.conf import settings
 import datetime
 from django.forms.models import model_to_dict
-
+from console.services.app import app_service
+from console.repositories.app_config import extend_repo
+from console.services.group_service import group_service
+from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.services.region_services import region_services
+from console.models.main import RainbondCenterApp
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.app_actions import app_manage_service
 
 logger = logging.getLogger('default')
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()
+app_relation_service = AppServiceRelationService()
 
 app_log_template = """
         service: {0}
@@ -146,6 +156,37 @@ class ApplicationGroupService(object):
             logger.exception(e)
             logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
             return None
+
+    def get_app_templates(self, tenant_id, group_key, group_version):
+        app = self.get_local_app_templates(group_key, group_version)
+        if app:
+            logger.debug('local group template existed, ignore.')
+            logger.debug("======> {0}".format(app.app_template))
+            # 字符串
+            return app.app_template
+        try:
+            app_templates = market_api.get_service_group_detail(tenant_id, group_key, group_version)
+            if not app_templates:
+                return None
+            is_dumps = True
+            if app_templates["template_version"] == "v1":
+                v2_template = template_transform_service.v1_to_v2(app_templates)
+            else:
+                v2_template = ["apps"]
+                is_dumps = False
+            data = json.dumps(v2_template) if is_dumps else v2_template
+            logger.debug("======>  {1}".format(data))
+            return data
+        except Exception as e:
+            logger.exception(e)
+            logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
+            return None
+
+    def get_local_app_templates(self,group_key, group_version):
+        apps = RainbondCenterApp.objects.filter(group_key=group_key,version=group_version)
+        if apps:
+            return apps[0]
+        return None
 
     def import_app_service_group_from_file(self, tenant_id, file_path):
         pass
@@ -381,6 +422,73 @@ class ApplicationGroupService(object):
         tenant_group.save()
 
         return True, 'success', tenant_group, installed_services
+
+    def install_market_apps_directly(self, user, tenant, region_name, app_service_json_str, service_origin ):
+        app_templates = json.loads(app_service_json_str)
+        apps = app_templates["apps"]
+
+        service_list = []
+        service_key_dep_key_map = {}
+        key_service_map = {}
+        tenant_service_group = None
+        service_probe_map = {}
+        new_group = None
+        try:
+            # 生成分类
+            group_name = self.__generator_group_name(app_templates["group_name"])
+            new_group = group_repo.add_group(tenant.tenant_id, region_name, group_name)
+            group_id = new_group.ID
+            tenant_service_group = self.__generate_tenant_service_group(region_name, tenant.tenant_id, new_group.ID,
+                                                                        app_templates["group_key"],
+                                                                        app_templates["group_version"],
+                                                                        app_templates["group_name"])
+            for app in apps:
+                ts = self.__init_market_app(tenant, region_name, user, app, tenant_service_group.ID,service_origin)
+                group_service.add_service_to_group(tenant, region_name, group_id, ts.service_id)
+                service_list.append(ts)
+                # 先保存env,再保存端口，因为端口需要处理env
+                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"],
+                                            app["service_connect_info_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+                code, msg = self.__save_port(tenant, ts, app["port_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+
+                # 保存应用探针信息
+                probe_infos = app.get("probes", None)
+                if probe_infos:
+                    code, msg, probe = probe_service.add_service_probe(tenant, ts, probe_infos)
+                    if code == 200:
+                        logger.exception(msg)
+
+                self.__save_extend_info(ts, app["extend_method_map"])
+
+                dep_apps_key = app.get("dep_service_map_list", None)
+                if dep_apps_key:
+                    service_key_dep_key_map[ts.service_key] = dep_apps_key
+                key_service_map[ts.service_key] = ts
+            # 保存依赖关系
+            self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
+            # 保存探针信息
+
+            return True, "success", tenant_service_group, service_list
+        except Exception as e:
+            logger.exception(e)
+            # 回滚数据
+            if tenant_service_group:
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(tenant_service_group.ID)
+            if new_group:
+                group_repo.delete_group_by_pk(new_group.ID)
+            for service in service_list:
+                try:
+                    app_manage_service.truncate_service(tenant, service)
+                except Exception as delete_error:
+                    logger.exception(delete_error)
+            return False, "create tenant_services from market directly failed !", tenant_service_group, service_list
 
     def __update_service_extend_method(self, tenant, tenant_service):
         try:
@@ -891,14 +999,12 @@ class ApplicationGroupService(object):
 
         # 如果有多个对外端口，取第一个
         tenant_port = tenant_ports[0]
-        wild_domain = settings.WILD_DOMAINS[service.service_region]
-        wild_domain_port = settings.WILD_PORTS[service.service_region]
+        wild_domain = region_services.get_region_httpdomain(service.service_region)
 
-        access_url = 'http://{0}.{1}.{2}{3}:{4}'.format(tenant_port.container_port,
-                                                        service.service_alias,
-                                                        tenant.tenant_name,
-                                                        wild_domain,
-                                                        wild_domain_port)
+        access_url = "http://{0}.{1}.{2}.{3}".format(tenant_port.container_port, service.service_alias,
+                                                     tenant.tenant_name,
+                                                     wild_domain)
+
         return access_url
 
     def is_tenant_service_group_installed(self, tenant, region_name, group_key, group_version):
@@ -930,74 +1036,86 @@ class ApplicationGroupService(object):
         sorted_services = self.__sort_service(group.service_list)
         logger.debug(
             'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
-        for tenant_service in sorted_services:
+        for service in sorted_services:
             try:
-                baseService.create_region_service(tenant_service, tenant.tenant_name, region_name, user.nick_name)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'init_region_service', True)
-                logger.debug(
-                    'install {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname,
-                                                           tenant_service.service_alias,
-                                                           tenant_service.service_id))
 
-                # 设置应用为"有无状态服务"
-                logger.debug('===> update service extend_method!')
-                self.__update_service_extend_method(tenant, tenant_service)
+                # baseService.create_region_service(tenant_service, tenant.tenant_name, region_name, user.nick_name)
+                # monitorhook.serviceMonitor(user.nick_name, tenant_service, 'init_region_service', True)
+                # logger.debug(
+                #     'install {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname,
+                #                                            tenant_service.service_alias,
+                #                                            tenant_service.service_id))
+                #
+                # # 设置应用为"有无状态服务"
+                # logger.debug('===> update service extend_method!')
+                # self.__update_service_extend_method(tenant, tenant_service)
+                #
+                # # 创建应用探针
+                # logger.debug('===> create service probe!')
+                # self.__create_service_probe(tenant, tenant_service)
 
-                # 创建应用探针
-                logger.debug('===> create service probe!')
-                self.__create_service_probe(tenant, tenant_service)
+                # 数据中心创建应用
+                new_service = app_service.create_region_service(tenant, service, user.nick_name)
+                # 为服务添加探针
+                self.__create_service_probe(tenant, new_service)
+
+                # 添加服务有无状态标签
+                label_service.update_service_state_label(tenant, new_service)
+                # 部署应用
+                app_manage_service.deploy(tenant, new_service, user)
+
             except Exception as install_exc:
                 logger.exception(install_exc)
                 logger.debug(
-                    'install {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
-                                                          tenant_service.service_alias,
-                                                          tenant_service.service_id))
+                    'install {0}[{1}]:{2} failed!'.format(service.service_cname,
+                                                          service.service_alias,
+                                                          service.service_id))
                 try:
-                    region_api.delete_service(region_name, tenant.tenant_name, tenant_service.service_alias,
+                    region_api.delete_service(region_name, tenant.tenant_name, service.service_alias,
                                               tenant.enterprise_id)
                 except Exception as delete_exc:
                     logger.exception(delete_exc)
-                    logger.error('delete {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
-                                                                      tenant_service.service_alias,
-                                                                      tenant_service.service_id))
+                    logger.error('delete {0}[{1}]:{2} failed!'.format(service.service_cname,
+                                                                      service.service_alias,
+                                                                      service.service_id))
                 continue
 
-            try:
-                event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-                                     tenant_id=tenant.tenant_id, type='deploy',
-                                     deploy_version=tenant_service.deploy_version,
-                                     old_deploy_version=tenant_service.deploy_version,
-                                     user_name=user.nick_name, start_time=datetime.datetime.now())
-                event.save()
-
-                body = {
-                    'event_id': event.event_id,
-                    'kind': baseService.get_service_kind(tenant_service),
-                    'deploy_version': tenant_service.deploy_version,
-                    'operator': user.nick_name,
-                    'action': 'upgrade',
-                    'enterprise_id': tenant.enterprise_id,
-                    'envs': {env.attr_name: env.attr_value
-                             for env in
-                             TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
-                                                                attr_name__in=(
-                                                                    'COMPILE_ENV', 'NO_CACHE', 'DEBUG', 'PROXY',
-                                                                    'SBT_EXTRAS_OPTS'))},
-                }
-                region_api.build_service(tenant_service.service_region,
-                                         tenant.tenant_name,
-                                         tenant_service.service_alias,
-                                         body)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
-                logger.debug(
-                    'build {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                         tenant_service.service_id))
-
-            except Exception as build_exc:
-                logger.exception(build_exc)
-                logger.error(
-                    'build {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                        tenant_service.service_id))
+            # try:
+            #     event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
+            #                          tenant_id=tenant.tenant_id, type='deploy',
+            #                          deploy_version=tenant_service.deploy_version,
+            #                          old_deploy_version=tenant_service.deploy_version,
+            #                          user_name=user.nick_name, start_time=datetime.datetime.now())
+            #     event.save()
+            #
+            #     body = {
+            #         'event_id': event.event_id,
+            #         'kind': baseService.get_service_kind(tenant_service),
+            #         'deploy_version': tenant_service.deploy_version,
+            #         'operator': user.nick_name,
+            #         'action': 'upgrade',
+            #         'enterprise_id': tenant.enterprise_id,
+            #         'envs': {env.attr_name: env.attr_value
+            #                  for env in
+            #                  TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
+            #                                                     attr_name__in=(
+            #                                                         'COMPILE_ENV', 'NO_CACHE', 'DEBUG', 'PROXY',
+            #                                                         'SBT_EXTRAS_OPTS'))},
+            #     }
+            #     region_api.build_service(tenant_service.service_region,
+            #                              tenant.tenant_name,
+            #                              tenant_service.service_alias,
+            #                              body)
+            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
+            #     logger.debug(
+            #         'build {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+            #                                              tenant_service.service_id))
+            #
+            # except Exception as build_exc:
+            #     logger.exception(build_exc)
+            #     logger.error(
+            #         'build {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+            #                                             tenant_service.service_id))
 
         return True, '构建应用成功'
 
@@ -1012,42 +1130,50 @@ class ApplicationGroupService(object):
         sorted_services = self.__sort_service(group.service_list)
         logger.debug(
             'restart order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
-        for tenant_service in sorted_services:
-            logger.debug(tenant_service.service_cname)
-            event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-                                 tenant_id=tenant.tenant_id, type='restart',
-                                 deploy_version=tenant_service.deploy_version,
-                                 old_deploy_version=tenant_service.deploy_version,
-                                 user_name=user.nick_name, start_time=datetime.datetime.now())
-            event.save()
+        for service in sorted_services:
             try:
-                body = {
-                    'operator': str(user.nick_name),
-                    'event_id': event.event_id,
-                    'enterprise_id': tenant.enterprise_id
-                }
-                region_api.restart_service(tenant_service.service_region,
-                                           tenant.tenant_name,
-                                           tenant_service.service_alias,
-                                           body)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
-                logger.debug(
-                    'restart {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                           tenant_service.service_id))
-
-            except Exception as build_exc:
-                logger.exception(build_exc)
-                if event:
-                    event.message = u"启动应用失败,{}".format(build_exc.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', False)
-
+                app_manage_service.start(tenant, service, user)
+            except Exception as e:
+                logger.exception(e)
                 logger.error(
-                    'restart {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-                                                          tenant_service.service_id))
+                    'restart {0}[{1}]:{2} failed!'.format(service.service_cname, service.service_alias,
+                                                          service.service_id))
                 return False, '启动应用组失败'
+            # logger.debug(tenant_service.service_cname)
+            # event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
+            #                      tenant_id=tenant.tenant_id, type='restart',
+            #                      deploy_version=tenant_service.deploy_version,
+            #                      old_deploy_version=tenant_service.deploy_version,
+            #                      user_name=user.nick_name, start_time=datetime.datetime.now())
+            # event.save()
+            # try:
+            #     body = {
+            #         'operator': str(user.nick_name),
+            #         'event_id': event.event_id,
+            #         'enterprise_id': tenant.enterprise_id
+            #     }
+            #     region_api.restart_service(tenant_service.service_region,
+            #                                tenant.tenant_name,
+            #                                tenant_service.service_alias,
+            #                                body)
+            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
+            #     logger.debug(
+            #         'restart {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+            #                                                tenant_service.service_id))
+            #
+            # except Exception as build_exc:
+            #     logger.exception(build_exc)
+            #     if event:
+            #         event.message = u"启动应用失败,{}".format(build_exc.message)
+            #         event.final_status = "complete"
+            #         event.status = "failure"
+            #         event.save()
+            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', False)
+            #
+            #     logger.error(
+            #         'restart {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
+            #                                               tenant_service.service_id))
+            #     return False, '启动应用组失败'
         return True, '启动应用组成功'
 
     def stop_tenant_service_group(self, user, group_id):
@@ -1061,34 +1187,40 @@ class ApplicationGroupService(object):
         sorted_services = self.__sort_service(group.service_list)
         logger.debug(
             'stop order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
-        for tenant_service in sorted_services:
-            logger.debug(tenant_service.service_cname)
-            event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-                                 tenant_id=tenant.tenant_id, type="stop",
-                                 deploy_version=tenant_service.deploy_version,
-                                 user_name=user.nick_name, start_time=datetime.datetime.now())
-            event.save()
-
+        for service in sorted_services:
             try:
-                body = {
-                    'operator': str(user.nick_name),
-                    'event_id': event.event_id,
-                    'enterprise_id': tenant.enterprise_id
-                }
-                region_api.stop_service(tenant_service.service_region,
-                                        tenant.tenant_name,
-                                        tenant_service.service_alias,
-                                        body)
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', True)
-            except Exception, e:
+                app_manage_service.stop(tenant, service, user)
+            except Exception as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"停止应用失败,{}".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', False)
                 return False, '停止应用组失败'
+
+            # logger.debug(tenant_service.service_cname)
+            # event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
+            #                      tenant_id=tenant.tenant_id, type="stop",
+            #                      deploy_version=tenant_service.deploy_version,
+            #                      user_name=user.nick_name, start_time=datetime.datetime.now())
+            # event.save()
+            #
+            # try:
+            #     body = {
+            #         'operator': str(user.nick_name),
+            #         'event_id': event.event_id,
+            #         'enterprise_id': tenant.enterprise_id
+            #     }
+            #     region_api.stop_service(tenant_service.service_region,
+            #                             tenant.tenant_name,
+            #                             tenant_service.service_alias,
+            #                             body)
+            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', True)
+            # except Exception, e:
+            #     logger.exception(e)
+            #     if event:
+            #         event.message = u"停止应用失败,{}".format(e.message)
+            #         event.final_status = "complete"
+            #         event.status = "failure"
+            #         event.save()
+            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', False)
+            #     return False, '停止应用组失败'
         return True, '停止应用组成功'
 
     def delete_tenant_service_group(self, group_id):
@@ -1180,3 +1312,169 @@ class ApplicationGroupService(object):
         except Exception as e:
             logger.exception(e)
             return {service_id: 'failure' for service_id in service_ids}
+
+    def __generate_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
+        group_name = self.__generator_group_name("gr")
+        params = {
+            "tenant_id": tenant_id,
+            "group_name": group_name,
+            "group_alias": group_alias,
+            "group_key": group_key,
+            "group_version": group_version,
+            "region_name": region,
+            "service_group_id": 0 if group_id == -1 else group_id
+        }
+        return tenant_service_group_repo.create_tenant_service_group(**params)
+
+    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, service_origin):
+        """
+        初始化应用市场创建的应用默认数据
+        """
+        is_slug = bool(
+            app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+
+        tenant_service = TenantServiceInfo()
+        tenant_service.tenant_id = tenant.tenant_id
+        tenant_service.service_id = make_uuid()
+        tenant_service.service_cname = app_service.generate_service_cname(tenant, app["service_cname"], region)
+        tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
+        tenant_service.creater = user.pk
+        if is_slug:
+            tenant_service.image = app["image"]
+        else:
+            tenant_service.image = app.get("share_image", app["image"])
+        tenant_service.cmd = app.get("cmd", "")
+        tenant_service.service_region = region
+        tenant_service.service_key = app["service_key"]
+        tenant_service.desc = "market app "
+        tenant_service.category = "app_publish"
+        tenant_service.setting = ""
+        tenant_service.extend_method = app["extend_method"]
+        tenant_service.env = ","
+        tenant_service.min_node = app["extend_method_map"]["min_node"]
+        tenant_service.min_memory = app["extend_method_map"]["min_memory"]
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
+        tenant_service.inner_port = 0
+        tenant_service.version = app["version"]
+        if is_slug:
+            if app.get("service_slug", None):
+                tenant_service.namespace = app["service_slug"]["namespace"]
+        else:
+            if app.get("service_image", None):
+                tenant_service.namespace = app["service_image"]["namespace"]
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "application"
+        tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.code_from = ""
+        tenant_service.language = ""
+        tenant_service.service_source = "market"
+        tenant_service.create_status = "creating"
+        tenant_service.service_origin = service_origin
+        tenant_service.tenant_service_group_id = tenant_service_group_id
+        self.__init_service_source(tenant_service, app)
+        # 存储并返回
+        tenant_service.save()
+        return tenant_service
+
+    def __init_service_source(self, ts, app):
+        is_slug = bool(ts.image.startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+        if is_slug:
+            extend_info = app["service_slug"]
+            extend_info["slug_path"] = app.get("share_slug_path", "")
+        else:
+            extend_info = app["service_image"]
+
+        service_source_params = {
+            "team_id": ts.tenant_id,
+            "service_id": ts.service_id,
+            "user_name": "",
+            "password": "",
+            "extend_info": json.dumps(extend_info)
+        }
+        service_source_repo.create_service_source(**service_source_params)
+
+    def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
+        if service_key_dep_key_map:
+            for service_key in service_key_dep_key_map.keys():
+                ts = key_service_map[service_key]
+                dep_keys = service_key_dep_key_map[service_key]
+                for dep_key in dep_keys:
+                    dep_service = key_service_map[dep_key["dep_service_key"]]
+                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts,
+                                                                               dep_service.service_id)
+                    if code != 200:
+                        logger.error("compose add service error {0}".format(msg))
+                        return code, msg
+        return 200, "success"
+
+    def __save_env(self, tenant, service, inner_envs, outer_envs):
+        if not inner_envs and not outer_envs:
+            return 200, "success"
+        for env in inner_envs:
+            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
+                                                                      env["attr_value"], env["is_change"],
+                                                                      "inner")
+            if code != 200:
+                logger.error("save market app env error {0}".format(msg))
+                return code, msg
+        for env in outer_envs:
+            container_port = env.get("container_port", 0)
+            if container_port == 0:
+                if env["attr_value"] == "**None**":
+                    env["attr_value"] = service.service_id[:8]
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port,
+                                                                          env["name"], env["attr_name"],
+                                                                          env["attr_value"], env["is_change"],
+                                                                          "outer")
+                if code != 200:
+                    logger.error("save market app env error {0}".format(msg))
+                    return code, msg
+        return 200, "success"
+
+    def __save_port(self, tenant, service, ports):
+        if not ports:
+            return 200, "success"
+        for port in ports:
+            code, msg, port_data = port_service.add_service_port(tenant, service,
+                                                                 int(port["container_port"]),
+                                                                 port["protocol"],
+                                                                 port["port_alias"],
+                                                                 port["is_inner_service"],
+                                                                 port["is_outer_service"])
+            if code != 200:
+                logger.error("save market app port error".format(msg))
+                return code, msg
+        return 200, "success"
+
+    def __save_volume(self, tenant, service, volumes):
+        if not volumes:
+            return 200, "success"
+        for volume in volumes:
+            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                       volume["volume_type"], volume["volume_name"])
+            if code != 200:
+                logger.error("save market app volume error".format(msg))
+                return code, msg
+        return 200, "success"
+
+    def __save_extend_info(self, service, extend_info):
+        if not extend_info:
+            return 200, "success"
+        params = {
+            "service_key": service.service_key,
+            "app_version": service.version,
+            "min_node": extend_info["min_node"],
+            "max_node": extend_info["max_node"],
+            "step_node": extend_info["step_node"],
+            "min_memory": extend_info["min_memory"],
+            "max_memory": extend_info["max_memory"],
+            "step_memory": extend_info["step_memory"],
+            "is_restart": extend_info["is_restart"]
+        }
+        extend_repo.create_extend_method(**params)
