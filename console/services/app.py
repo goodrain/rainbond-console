@@ -145,11 +145,11 @@ class AppService(object):
         """判断资源"""
         allow_create = True
         tips = u"success"
-        region_config = region_repo.get_region_by_region_name(region)
-        if not region_config:
-            return False, "数据中心不存在"
-        if region_config.scope == "private":
-            return allow_create, tips
+        # region_config = region_repo.get_region_by_region_name(region)
+        # if not region_config:
+        #     return False, "数据中心不存在"
+        # if region_config.scope == "private":
+        #     return allow_create, tips
         data = {
             "quantity": new_add_memory,
             "reason": reason,
@@ -157,15 +157,16 @@ class AppService(object):
         }
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
-            logger.debug(body)
+            if not body:
+                return True, "success"
+            msg = body.get("msg", None)
+            if not msg or msg == "success":
+                return True, "success"
+            else:
+                raise ResourceNotEnoughException("资源不足，无法操作")
         except region_api.CallApiError as e:
             logger.exception(e)
-            allow_create = False
-            if 400 <= e.status < 500:
-                raise ResourceNotEnoughException("资源不足，请前往充值")
-            else:
-                tips = u"系统错误"
-        return allow_create, tips
+            raise e
 
     def create_service_source_info(self, tenant, service, user_name, password):
         params = {
