@@ -455,7 +455,8 @@ class EnterTenantsAPIView(EnterpriseMarketAPIView):
         获取企业管理数据中心列表
         """
         user = request.user
-        tenants = market_api.list_user_tenants(user.user_id, True)
+        # tenants = market_api.list_user_tenants(user.user_id, True)
+        tenants = market_api.list_enterprise_tenants(user.enterprise_id, True)
 
         data = []
         for tenant in tenants:
