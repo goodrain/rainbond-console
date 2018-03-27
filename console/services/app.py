@@ -156,6 +156,7 @@ class AppService(object):
         }
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
+            logger.debug("verify body {0}".format(body))
             if not body:
                 return True, "success"
             msg = body.get("msg", None)
