@@ -423,3 +423,31 @@ class MarketServiceAPIManager(object):
 
     def get_tenant_region_resource_limit(self, tenant, region):
         return tenant_svc.get_tenant_region_resource_limit(tenant, region)
+
+    def install_service_group(self, user, tenant_name, group_key, group_version, region_name):
+        logger.debug(
+            'prepared install [{}-{}] to [{}] on [{}]'.format(group_key, group_version, tenant_name, region_name))
+        if tenant_name:
+            tenant = self.get_tenant_by_name(tenant_name)
+        else:
+            tenant = self.get_default_tenant_by_user(user.user_id)
+
+        if not tenant:
+            logger.error('tenant does not existed!')
+            return False, '租户不存在', None
+        logger.debug('login_user_id: {}'.format(user.user_id))
+        logger.debug('login_user: {}'.format(user.nick_name))
+        logger.debug('tenant_name: {}'.format(tenant.tenant_name))
+
+        # 查看安装的目标数据中心是否已初始化, 如果未初始化则先初始化
+        if not tenant_svc.init_region_tenant(tenant, region_name):
+            return False, '初始化数据中心失败: {}'.format(region_name), None
+        app_template_json_str = app_group_svc.get_app_templates(tenant.tenant_id,group_key,group_version)
+        if not app_template_json_str:
+            return False, '初始化应用组模板信息失败', None
+        success, message, group, installed_services = app_group_svc.install_market_apps_directly(user, tenant,
+                                                                                                 region_name,
+                                                                                                 app_template_json_str,
+                                                                                                 'cloud')
+        group = app_group_svc.get_tenant_service_group_by_pk(group.pk, True, True, True)
+        return success, message, group
