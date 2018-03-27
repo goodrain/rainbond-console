@@ -647,7 +647,7 @@ class AppMarketSynchronizeService(object):
                 rainbond_app.share_user = user_id
                 rainbond_app.share_team = v2_template.get("publish_team", "")
                 rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
-                rainbond_app.describe = v2_template.get("update_node", "")
+                rainbond_app.describe = v2_template.get("update_note", rainbond_app.describe)
                 rainbond_app.app_template = v2_template["template_content"]
                 rainbond_app.is_complete = True
                 rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
