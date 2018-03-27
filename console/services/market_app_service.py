@@ -307,7 +307,7 @@ class MarketAppService(object):
                 min_node = int(extend_method.get("min_node", 1))
                 min_memory = int(extend_method.get("min_memory", 128))
             total_memory += min_node * min_memory
-        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "market create")
+        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "应用市场创建")
         return allow_create, tips, total_memory
 
     def get_visiable_apps(self, tenant, scope, app_name):

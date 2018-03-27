@@ -126,7 +126,7 @@ class ComposeService(object):
             service_info_list = data["service_info"]
             # 默认128 M
             new_add_memory = len(service_info_list) * 128
-            return app_service.verify_source(tenant, region, new_add_memory, "compose create")
+            return app_service.verify_source(tenant, region, new_add_memory, "compose创建")
 
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
         if service_dep_map:
