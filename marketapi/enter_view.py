@@ -456,7 +456,7 @@ class EnterTenantsAPIView(EnterpriseMarketAPIView):
         """
         user = request.user
         # tenants = market_api.list_user_tenants(user.user_id, True)
-        tenants = market_api.list_enterprise_tenants(user.enterprise_id, True)
+        tenants = market_api.list_enterprise_tenants(user, True)
 
         data = []
         for tenant in tenants:
