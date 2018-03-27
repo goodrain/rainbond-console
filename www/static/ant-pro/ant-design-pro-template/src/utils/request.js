@@ -117,10 +117,8 @@ export default function request(url, options) {
         .then(checkStatus)
         .then((response) => {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
-
             const res = response.data.data || {};
             res._code = response.status;
-
             return res;
         })
         .catch((error) => {

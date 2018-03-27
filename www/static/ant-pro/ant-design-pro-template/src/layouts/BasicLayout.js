@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 import PropTypes from 'prop-types';
-import {Layout, Icon, message, notification, Modal} from 'antd';
+import {Layout, Icon, message, notification, Modal, Button} from 'antd';
 import DocumentTitle from 'react-document-title';
 import {connect} from 'dva';
 import {Route, Redirect, Switch, routerRedux} from 'dva/router';
@@ -93,21 +93,48 @@ class Meiqia extends React.PureComponent {
 
 //提示充值
 class PayTip extends React.PureComponent {
-    handleClick = () => {
+    handleCancel = () => {
         this.props.dispatch({
             type: 'global/hidePayTip'
         })
+    }
+    handleClick = () => {
         window.open('https://www.goodrain.com/#/personalCenter/my/recharge')
+        this.handleCancel();
+    }
+    getRegionId = () => {
+        var regionName = globalUtil.getCurrRegionName();
+        let regionId = '';
+        if(regionName == 'ali-hz') {
+        regionId = 2;
+        }
+        if(regionName == 'ali-sh'){
+        regionId = 1;
+        }
+        return regionId;
+    }
+    handleBuySource = () => {
+        const regionId = this.getRegionId();
+        if(regionId){
+            window.open(`https://www.goodrain.com/#/resBuy/${regionId}`)
+        }else{
+            notification.warning({message: '当前数据中心不可购买'})
+        }
+        this.handleCancel();
     }
     componentDidMount(){
-        Modal.warning({
-            okText: '去充值',
-            title: '企业账户已欠费',
-            onOk: this.handleClick
-        })
     }
     render(){
-        return null;
+        const regionId = this.getRegionId();
+        return <Modal
+            visible={true}
+            title="提示"
+            onCancel={this.handleCancel}
+            footer={[regionId ? <Button onClick={this.handleBuySource} type="primary" size="sm">购买资源</Button> : null, 
+            <Button onClick={this.handleClick} size="sm">账户充值</Button>]}
+        >
+             <h4 style={{textAlign: 'center'}}>资源及企业账户余额不足</h4>
+        </Modal>;
     }
 }
 

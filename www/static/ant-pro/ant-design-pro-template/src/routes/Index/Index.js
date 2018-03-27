@@ -24,6 +24,7 @@ import {Radar} from '../../components/Charts';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import userUtil from '../../utils/user';
+import sourceUtil from '../../utils/source-unit';
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -354,21 +355,18 @@ export default class Index extends PureComponent {
             <div className={styles.statItem}>
               <p>已使用内存</p>
               <Tooltip title={`总计：${this.state.memory.limit || 0} 过期时间：${this.state.memory.expire_date || '-'}`}>
-              <p>{`${this.state.memory.used || 0}`}
-                M</p>
+                <p>{`${sourceUtil.unit(index.overviewInfo.team_service_memory_count || 0, 'MB')}`}</p>
               </Tooltip>
             </div>
             <div className={styles.statItem}>
               <p>已使用磁盘</p>
               <Tooltip title={`总计：${this.state.disk.limit || 0} 过期时间：${this.state.disk.expire_date || '-'}`}>
-              <p>{`${this.state.disk.used || 0} G`}
-                </p>
-                </Tooltip>
+                <p>{`${sourceUtil.unit(index.overviewInfo.team_service_total_disk || 0, 'MB')}`}</p>
+              </Tooltip>
             </div>
           </Fragment>
           : null
         }
-        
       </div>
     );
 

@@ -127,6 +127,16 @@ export default class Main extends PureComponent {
           app_id: app.ID
         },
         callback: () => {
+
+          //刷新左侧按钮
+          this.props.dispatch({
+            type: 'global/fetchGroups',
+            payload: {
+              team_name: globalUtil.getCurrTeamName()
+            }
+          })
+
+          //关闭弹框
           this.onCancelCreate();
           this
             .props
