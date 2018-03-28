@@ -413,11 +413,11 @@ class UserDelView(JWTAuthApiView):
               paramType: body
         """
         try:
-            no_auth = "owner" not in team_services.get_user_perm_identitys_in_permtenant(
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            if no_auth:
+            if "owner" not in identitys and "admin" not in identitys:
                 code = 400
                 result = general_message(code, "no identity", "没有权限")
             else:
