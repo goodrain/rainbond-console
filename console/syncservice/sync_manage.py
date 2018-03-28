@@ -34,7 +34,8 @@ class SyncTenantServiceManager(object):
                     flag = False
 
                 for s in services:
-                    self.process_service(s)
+                    if not s.service_source:
+                        self.process_service(s)
                 logger.debug("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1)))
                 print "finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))
                 pos += 1
