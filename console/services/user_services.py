@@ -188,6 +188,7 @@ class UserService(object):
         else:
             return True
 
-
+    def get_user_by_email(self, email):
+        user_repo.get_user_by_email(email)
 
 user_services = UserService()

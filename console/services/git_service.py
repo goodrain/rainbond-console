@@ -159,6 +159,10 @@ class GitCodeService(object):
         """gitlab创建项目"""
         project_id = 0
         rt_data = {}
+        import re
+        r = re.compile(u'^[a-zA-Z0-9_\\-]+$')
+        if not r.match(project_name.decode("utf-8")):
+            return 400, u"项目名称只支持英文下划线和中划线",None
         namespace = settings.GITLAB_ADMIN_NAME
         is_project_exist = self.is_gitlab_project_exist(namespace, tenant, project_name)
         if is_project_exist:

@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService
+from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
 from www.decorator import perm_required
@@ -263,6 +264,11 @@ class GitLabUserRegisterView(JWTAuthApiView):
             if self.user.email:
                 if email != self.user.email:
                     return Response(general_message(409, "email conflict", "用户已存在邮箱{0},请使用该邮箱".format(self.user.email)),
+                                    status=409)
+            else:
+                u = user_services.get_user_by_email(email)
+                if u:
+                    return Response(general_message(409, "email conflict", "该邮箱已存在"),
                                     status=409)
             if not self.user.check_password(password):
                 return Response(general_message(401, "password error", "密码错误"), status=401)

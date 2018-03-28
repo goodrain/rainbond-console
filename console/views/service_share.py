@@ -1,33 +1,29 @@
 # -*- coding: utf-8 -*-
+import datetime
+import json
 import logging
 
+from django.db.models import Q
 from rest_framework.response import Response
 
-from console.appstore.appstore import app_store
-from console.models.main import RainbondCenterApp, ServiceShareRecordEvent
+from backends.services.exceptions import UserNotExistError
+from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
 from console.services.share_services import share_service
 from console.services.user_services import user_services
-from console.utils.timeutil import current_time_to_str
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import make_uuid
-from www.utils.json_tool import json_dump, json_load
-from www.utils.return_message import general_message, error_message
-import datetime
-import json
 from www.decorator import perm_required
-from backends.services.exceptions import UserNotExistError
-from django.db.models import Q
+from www.utils.crypt import make_uuid
+from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
 
 
 class ServiceShareRecordView(RegionTenantHeaderView):
-
     @perm_required('app_publish')
     def get(self, request, team_name, group_id, *args, **kwargs):
         """
@@ -92,7 +88,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             share_record = share_service.get_service_share_record_by_group_id(group_id)
             if share_record:
                 if not share_record.is_success and share_record.step < 3:
-                    result = general_message(20021, "share record not complete", "之前有分享流程未完成", bean=share_record.to_dict())
+                    result = general_message(20021, "share record not complete", "之前有分享流程未完成",
+                                             bean=share_record.to_dict())
                     return Response(result, status=200)
             fields_dict = {
                 "group_share_id": make_uuid(),
@@ -110,6 +107,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
 
 class ServiceShareDeleteView(RegionTenantHeaderView):
     @perm_required('app_publish')
@@ -150,7 +148,6 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
 
 
 class ServiceShareInfoView(RegionTenantHeaderView):
-
     @perm_required('app_publish')
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
@@ -220,7 +217,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 else:
                     result = general_message(code=code, msg="failed", msg_show=msg)
                     return Response(result, status=code)
-                service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id)
+                service_info_list = share_service.query_share_service_info(team=self.team,
+                                                                           group_id=share_record.group_id)
                 data["share_service_list"] = service_info_list
                 plugins = share_service.query_group_service_plugin_list(team=self.team, group_id=share_record.group_id)
                 data["share_plugin_list"] = plugins
@@ -380,227 +378,3 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-class ServiceShareTaskView(RegionTenantHeaderView):
-    def post(self, request, group_id, *args, **kwargs):
-        """
-        生成分享应用实体，向数据中心发送分享任务
-        ---
-        parameter:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: group_id
-              description: 应用组id
-              required: true
-              type: string
-              paramType: path
-            - name: group_name
-              description: 应用包名字
-              required: true
-              type: string
-              paramType: body
-            - name: version
-              description: 应用包版本
-              required: true
-              type: string
-              paramType: body
-            - name: scope
-              description: 分享应用包可用范围("team", u"团队"), ("enterprise", u"公司"), ("goodrain", u"好雨云市场")
-              required: true
-              type: string
-              paramType: body
-            - name: pic
-              description: 应用包头像
-              required: true
-              type: string
-              paramType: body
-            - name: app_template_incomplete
-              description: 不完整的App模版
-              required: true
-              type: string
-              paramType: body
-        """
-        group_name = request.data.get("group_name", None)
-        version = request.data.get("version", "v1.0")
-        describe = request.data.get("describe", "This is a default description.")
-        scope = request.data.get("scope", "team")
-        pic = request.data.get("pic", None)
-        app_template_incomplete = request.data.get("app_template_incomplete", None)
-        source = request.data.get('source', 'local')
-        # is_random = request.data.get("is_random", False)
-        # 插件
-        try:
-            group_id = str(group_id)
-            if group_id == "-1":
-                code = 400
-                result = general_message(code, "query success", "未分组应用不可分享")
-                return Response(result, status=code)
-            else:
-                if group_id is None or not group_id.isdigit():
-                    code = 400
-                    result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
-                    return Response(result, status=code)
-                team_id = self.team.tenant_id
-                group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
-                if group_count == 0:
-                    code = 400
-                    result = general_message(code, "group is not yours!", "这个应用组不是你的!")
-                    return Response(result, status=code)
-                else:
-                    if RainbondCenterApp.objects.filter(group_name=group_name, version=version).exists():
-                        result = general_message(400, "failed", "此应用包该版本已经存在")
-                        return Response(result, status=400)
-                    else:
-                        step = 0
-                        for service_incomplete in app_template_incomplete:
-                            service_env_map_list = service_incomplete.get("service_env_map_list", None)
-                            if service_env_map_list:
-                                for service_env in service_env_map_list:
-                                    is_change = service_env.get("is_change", None)
-                                    is_change_p = request.data.get("is_change", False)
-                                    is_change = is_change_p
-
-                            is_slug, data = app_store.judge_service_type(scope=scope, team_name=self.team_name,
-                                                                         service=service_incomplete)
-
-                            if is_slug:
-                                service_incomplete["service_slug"] = data
-                            else:
-                                service_incomplete["service_image"] = data
-
-                        app_template = app_template_incomplete
-
-                        app = share_service.create_basic_app_info(group_key=make_uuid(), group_name=group_name,
-                                                                  version=version, describe=describe, scope=scope,
-                                                                  pic=pic, source=source,
-                                                                  share_team=self.team.tenant_id,
-                                                                  share_user=request.user.user_id,
-                                                                  tenant_service_group_id=group_id,
-                                                                  app_template=json_dump(app_template))
-                        fields_dict = {
-                            "group_share_id": app.ID, "group_id": group_id, "team_id": team_id, "is_success": False,
-                            "step": step
-                        }
-                        service_share_record = share_service.create_service_share_record(**fields_dict)
-                        for service in app_template:
-                            if service.get("service_slug", None):
-                                logger.debug("group.publish", "service group publish slug.")
-                                code, msg, event_id = share_service.upload_slug(request, team=self.team, scope=scope,
-                                                                                region_name=self.response_region,
-                                                                                app=app, service=service)
-                                step += 1
-                                fields_dict.update({"step": step, "is_success": False})
-                                service_share_record = share_service.create_service_share_record(**fields_dict)
-                                result = general_message(200, 'share running……', '应用包正在分享……',
-                                                         bean={"event_id": event_id, "app_id": app.ID,
-                                                               "group_id": group_id})
-                            else:
-                                logger.debug("group.publish", "service group publish image.")
-                                code, msg, event_id = share_service.upload_image(request, team=self.team, scope=scope,
-                                                                                 region_name=self.response_region,
-                                                                                 app=app, service=service)
-                                result = general_message(200, 'share running……', '应用包正在分享……',
-                                                         bean={"event_id": event_id, "app_id": app.ID,
-                                                               "group_id": group_id})
-                            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
-
-class ServiceShareStatusView(RegionTenantHeaderView):
-    def get(self, request, group_id, *args, **kwargs):
-        """
-        查询数据中心分享完成情况,修改状态
-        ---
-        parameter:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: group_id
-              description: 应用组id
-              required: true
-              type: string
-              paramType: path
-            - name: app_id
-              description: 应用包id
-              required: true
-              type: string
-              paramType: query
-        """
-        app_id = request.GET.get("app_id", None)
-        try:
-            if group_id == "-1":
-                code = 400
-                result = general_message(200, "query success", "未分组应用不可分享")
-                return Response(result, status=code)
-            else:
-                if group_id is None or not group_id.isdigit():
-                    code = 400
-                    result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
-                    return Response(result, status=code)
-                team_id = self.team.tenant_id
-                group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
-                if group_count == 0:
-                    code = 400
-                    result = general_message(code, "group is not yours!", "这个应用组不是你的!")
-                    return Response(result, status=code)
-                else:
-                    all_success = True
-                    code, msg_show, app = share_service.get_app_by_app_id(app_id=app_id)
-                    if app:
-                        try:
-                            service_list = list()
-                            app_template = json_load(app.app_template)
-                            for service in app_template:
-                                data = dict()
-                                res, body = region_api.get_service_publish_status(self.response_region, self.team_name,
-                                                                                  service.get("service_key", None),
-                                                                                  service.get("version", None))
-                                logger.debug(res, body)
-
-                                bean = body["bean"]
-                                status = bean["Status"]
-                                success_data = {}
-                                if status == "failure" or status == "pushing":
-                                    all_success = False
-                                    success_data["all_success"] = False
-                                    success_data["all_success_cn"] = "应用分享失败"
-                                elif status == "success":
-                                    success_data["all_success"] = True
-                                    success_data["all_success_cn"] = "应用分享成功"
-                                    # 应用组发布成功更新数据
-                                    share_service.upate_app_complete_by_app_id(app_id=app_id, data=data)
-                                data["id"] = str(service["service_key"]) + "_" + str(service["version"])
-                                data["service_cname"] = service["service_cname"]
-                                data["service_key"] = service["service_key"]
-                                data["version"] = service["version"]
-                                data["status"] = status
-                                service_list.append(data)
-                                if all_success == 1:
-                                    code = 200
-                                else:
-                                    code = 400
-                                result = general_message(code, "all_success={0}".format(all_success),
-                                                         "{0}".format(success_data.get("all_success_cn", None)),
-                                                         list=service_list)
-                                return Response(result, status=200)
-                        except Exception as e:
-                            logger.exception(e)
-                            result = error_message(e.message)
-                            return Response(result, status=500)
-                    else:
-                        result = general_message(400, "failed", "没有此应用包")
-                        return Response(result, status=400)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
