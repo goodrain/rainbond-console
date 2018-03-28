@@ -534,7 +534,12 @@ export default class CreateCheck extends PureComponent {
         }
 
         if (actionType === 'open_repo') {
-          window.open(appDetail.git_url);
+          if((appDetail.git_url|| "").indexOf('@') === -1){
+            window.open(appDetail.git_url);
+          }else{
+            Modal.info({title: '仓库地址', content: appDetail.git_url});
+          }
+          
         }
 
         //修改镜像名称或dockerrun命令

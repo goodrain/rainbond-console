@@ -18,6 +18,22 @@ export default class AddPort extends PureComponent {
          }
       })
    }
+   handleCheckPort = (rule, value, callback) => {
+      const { getFieldValue } = this.props.form;
+      if(this.props.isImageApp){
+         if(value<1 || value > 65535){
+          callback("端口范围为1-65535");
+          return;
+         }
+      }else{
+        if(value<1025 || value > 65535){
+          callback("端口范围为1025-65535");
+          return;
+         }
+      }
+      callback();
+    
+  }
    render(){
      const { getFieldDecorator } = this.props.form;
      const formItemLayout = {
@@ -45,9 +61,9 @@ export default class AddPort extends PureComponent {
             >
                 {
                   getFieldDecorator('port', {
-                     rules:[{required: true, message: '请添加端口'}]
+                     rules:[{required: true, message: '请添写端口'}, {validator: this.handleCheckPort}]
                   })(
-                    <Input type="number" placeholder="请填写端口"  />
+                    <Input type="number" placeholder={this.props.isImageApp ? "请填写端口,范围1-63325": "请填写端口,范围1025-63325"}  />
                   )
                 }
             </FormItem>

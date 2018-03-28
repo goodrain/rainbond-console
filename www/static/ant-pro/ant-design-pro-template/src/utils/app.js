@@ -188,7 +188,7 @@ const appUtil = {
     //是否是镜像安装的应用
     isImageApp: function (appDetail) {
         const source = this.getInstallSource(appDetail);
-        return this.getInstallSource(appDetail) === 'docker_compose' || this.getInstallSource(appDetail) === 'docker_run'
+        return source === 'docker_compose' || source === 'docker_run' || source === 'docker_image';
     },
     //获取源码创建应用的语言类型
     getLanguage: function (appDetail) {

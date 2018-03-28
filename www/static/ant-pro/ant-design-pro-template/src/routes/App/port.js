@@ -17,6 +17,7 @@ import {
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import {getRoutes} from '../../utils/utils';
 import appPortUtil from '../../utils/appPort-util';
+import appUtil from '../../utils/app';
 import {getRouterData} from '../../common/router';
 import DescriptionList from '../../components/DescriptionList';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -24,6 +25,7 @@ import Port from '../../components/Port';
 import AddDomain from '../../components/AddDomain';
 const {Description} = DescriptionList;
 import ScrollerX from '../../components/ScrollerX';
+import AddPort from '../../components/AddPort';
 
 import styles from './port.less';
 import globalUtil from '../../utils/global';
@@ -198,233 +200,6 @@ class AddKey extends PureComponent {
           </FormItem>
         </Form>
 
-      </Modal>
-    )
-  }
-}
-
-@Form.create()
-class AddDomain2 extends PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {}
-  }
-  handleSubmit = (e) => {
-    e.preventDefault();
-    this
-      .props
-      .form
-      .validateFields({
-        force: true
-      }, (err, values) => {
-        if (!err) {
-          this.props.onOk && this
-            .props
-            .onOk(values);
-        }
-      })
-  }
-  handleCancel = () => {
-    this.props.onCancel && this
-      .props
-      .onCancel();
-  }
-  checkKey = (rule, value, callback) => {
-    var visitType = this
-      .props
-      .form
-      .getFieldValue("protocol");
-    if (visitType == 'http') {
-      callback();
-      return;
-    }
-
-    if (visitType != 'http' && value) {
-      callback();
-      return;
-    }
-
-    callback('请选择证书!');
-  }
-  render() {
-    const {getFieldDecorator, getFieldValue} = this.props.form;
-    const formItemLayout = {
-      labelCol: {
-        xs: {
-          span: 24
-        },
-        sm: {
-          span: 5
-        }
-      },
-      wrapperCol: {
-        xs: {
-          span: 24
-        },
-        sm: {
-          span: 16
-        }
-      }
-    };
-    const protocol = getFieldValue('protocol') || 'http';
-    const certificates = this.props.certificates || [];
-
-    return (
-      <Modal
-        title="绑定域名"
-        onOk={this.handleSubmit}
-        visible={true}
-        onCancel={this.handleCancel}>
-
-        <Form onSubmit={this.handleSubmit}>
-
-          <FormItem {...formItemLayout} label="协议">
-            {getFieldDecorator('protocol', {
-              initialValue: 'http',
-              rules: [
-                {
-                  required: true,
-                  message: '请添加端口'
-                }
-              ]
-            })(
-              <Select>
-                <Option value="http">HTTP</Option>
-                <Option value="https">HTTPS</Option>
-                <Option value="httptohttps">HTTP转HTTPS</Option>
-                <Option value="httpandhttps">HTTP与HTTPS共存</Option>
-              </Select>
-            )
-}
-          </FormItem>
-          <FormItem {...formItemLayout} label="域名">
-            {getFieldDecorator('domain', {
-              rules: [
-                {
-                  required: true,
-                  message: '请添加域名'
-                }
-              ]
-            })(<Input placeholder="请填写域名"/>)
-}
-          </FormItem>
-          <FormItem
-            style={{
-            display: protocol == 'http'
-              ? 'none'
-              : ''
-          }}
-            {...formItemLayout}
-            label="选择证书">
-            {getFieldDecorator('certificate_id', {
-              initialValue: '',
-              rules: [
-                {
-                  validator: this.checkKey
-                }
-              ]
-            })(
-              <Select>
-                {certificates.map((item) => {
-                  return (
-                    <Option value={item.id}>{item.alias}</Option>
-                  )
-                })
-}
-              </Select>
-            )}
-            <p>无可用证书？
-              <a
-                onClick={() => {
-                this
-                  .props
-                  .onCreateKey()
-              }}
-                href="javascript:;">去新建</a>
-            </p>
-          </FormItem>
-        </Form>
-
-      </Modal>
-    )
-  }
-}
-
-@Form.create()
-class AddPort extends PureComponent {
-  componentWillMount() {}
-  handleSubmit = (e) => {
-    e.preventDefault();
-    this
-      .props
-      .form
-      .validateFields((err, values) => {
-        if (!err) {
-          this.props.onOk && this
-            .props
-            .onOk(values);
-        }
-      })
-  }
-  render() {
-    const {getFieldDecorator} = this.props.form;
-    const formItemLayout = {
-      labelCol: {
-        xs: {
-          span: 24
-        },
-        sm: {
-          span: 4
-        }
-      },
-      wrapperCol: {
-        xs: {
-          span: 24
-        },
-        sm: {
-          span: 16
-        }
-      }
-    };
-
-    return (
-      <Modal
-        title="添加端口"
-        onOk={this.handleSubmit}
-        onCancel={this.props.onCancel}
-        visible={true}>
-        <Form onSubmit={this.handleSubmit}>
-          <FormItem {...formItemLayout} label="端口">
-            {getFieldDecorator('port', {
-              rules: [
-                {
-                  required: true,
-                  message: '请添加端口'
-                }
-              ]
-            })(<Input type="number" placeholder="请填写端口"/>)
-}
-          </FormItem>
-          <FormItem {...formItemLayout} label="协议">
-            {getFieldDecorator('protocol', {
-              initialValue: 'http',
-              rules: [
-                {
-                  required: true,
-                  message: '请添加端口'
-                }
-              ]
-            })(
-              <Select>
-                <Option value="http">http</Option>
-                <Option value="tcp">tcp</Option>
-                <Option value="udp">udp</Option>
-                <Option value="mysql">mysql</Option>
-              </Select>
-            )
-}
-          </FormItem>
-        </Form>
       </Modal>
     )
   }
@@ -870,7 +645,8 @@ export default class Index extends PureComponent {
       })
   }
   render() {
-    const {ports, certificates} = this.props;
+    const {ports, certificates, appDetail} = this.props;
+    const isImageApp = appUtil.isImageApp(appDetail)
     return (
       <Fragment>
         <Row>
@@ -932,7 +708,7 @@ export default class Index extends PureComponent {
           subDesc={this.state.showDeleteDomain.domain}
           onOk={this.handleSubmitDeleteDomain}
           onCancel={this.cancalDeleteDomain}/>}
-        {this.state.showAddPort && <AddPort onCancel={this.onCancelAddPort} onOk={this.handleAddPort}/>}
+        {this.state.showAddPort && <AddPort isImageApp={isImageApp} onCancel={this.onCancelAddPort} onOk={this.handleAddPort}/>}
         {this.state.showAddDomain && <AddDomain
           certificates={certificates || []}
           onCreateKey={this.handleCreateKey}
