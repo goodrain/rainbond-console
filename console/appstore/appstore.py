@@ -41,7 +41,6 @@ class AppStore(object):
                 return {}
             if scope == "goodrain":
                 info = market_api.get_share_hub_info(team.tenant_id, "image")
-                logger.debug("==========> {0}".format(info))
                 return info["image_repo"]
             else:
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
@@ -70,7 +69,6 @@ class AppStore(object):
                 return {}
             if scope == "goodrain":
                 info = market_api.get_share_hub_info(team.tenant_id, "slug")
-                logger.debug("==========> {0}".format(info))
                 return info["slug_repo"]
             else:
                 slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
