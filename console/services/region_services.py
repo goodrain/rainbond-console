@@ -65,8 +65,8 @@ class RegionService(object):
                         "team_region_alias": regionconfig.region_alias,
                         "region.region_tenant_id": region.region_tenant_id,
                         "team_region_name": region.region_name,
-                        "region_scope": region.region_scope,
-                        "region_create_time": region.create_time,
+                        "region_scope": regionconfig.scope,
+                        "region_create_time": regionconfig.create_time,
                         "websocket_uri": regionconfig.wsurl
                     }
                     region_name_list.append(region_info)
