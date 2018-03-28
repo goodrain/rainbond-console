@@ -235,17 +235,29 @@ class BasicLayout extends React.PureComponent {
                     //验证路径里的团队是否有效
                     if (!currTeam || !currRegion) {
                         if (!currTeam) {
-                            let team = userUtil.getDefaultTeam(user);
-                            if (team) {
-                                currTeam = team.team_name
+                            let cookieTeam = cookie.get('team');
+                            if(cookieTeam){
+                                currTeam = cookieTeam;
+                            }else{
+                                let team = userUtil.getDefaultTeam(user);
+                                if (team) {
+                                    currTeam = team.team_name
+                                }
                             }
+                            
 
                         }
                         if (!currRegion) {
-                            let region = userUtil.getDefaultRegionName(user);
-                            if (region) {
-                                currRegion = region;
+                            let cookieRegion = cookie.get('region_name');
+                            if(cookieRegion){
+                                currRegion = cookieRegion;
+                            }else{
+                                let region = userUtil.getDefaultRegionName(user);
+                                if (region) {
+                                    currRegion = region;
+                                }
                             }
+                            
                         }
                         this
                             .props
@@ -253,6 +265,9 @@ class BasicLayout extends React.PureComponent {
                         location.reload();
                         return;
                     }
+
+                    cookie.set('team', currTeam);
+                    cookie.set('region_name', currRegion);
 
                     //获取群组
                     this
