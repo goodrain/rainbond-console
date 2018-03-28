@@ -4,10 +4,12 @@ import logging
 import os
 
 from cadmin.models import ConsoleSysConfig
+from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
+from console.repositories.team_repo import team_repo
 
 logger = logging.getLogger('default')
-
+market_api = MarketOpenAPI()
 
 class AppStore(object):
     def __init__(self):
@@ -32,12 +34,15 @@ class AppStore(object):
         :return: image_info
 
         hub.goodrain.com/goodrain/xxx:lasted
-        user: goodrain-admin
-        password: goodrain123465
         """
         try:
+            team = team_repo.get_team_by_team_name(team_name)
+            if not team:
+                return {}
             if scope == "goodrain":
-                return {"hub_url": 'hub.goodrain.com', "namespace": "goodrain"}
+                info = market_api.get_share_hub_info(team.tenant_id, "image")
+                logger.debug("==========> {0}".format(info))
+                return info["image_repo"]
             else:
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
                 if not image_config:
@@ -58,12 +63,15 @@ class AppStore(object):
         :return: slug_info
 
         /grdata/build/tenant/
-        user: goodrain-admin
-        password: goodrain123465
         """
         try:
+            team = team_repo.get_team_by_team_name(team_name)
+            if not team:
+                return {}
             if scope == "goodrain":
-                return {"namespace": team_name}
+                info = market_api.get_share_hub_info(team.tenant_id, "slug")
+                logger.debug("==========> {0}".format(info))
+                return info["slug_repo"]
             else:
                 slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
                 if not slug_config:
