@@ -39,13 +39,13 @@ class PermActions(object):
                                ('setting', u"租户设置"), ('perm_setting', u"权限管理"),
                                ('service_monitor', u"服务资源监控"), ('service_alert', u"服务资源报警"),
                                ('share_service', u"分享服务"), ('manage_group', u"操作服务组"), ('create_plugin', u"创建插件"),
-                               ('manage_plugin', u"创建插件"),
+                               ('manage_plugin', u"创建插件"), ('drop_tenant_members', u'删除团队成员'),
                                ('app_publish', u"应用发布"), ('app_download', u"应用下载")
                            ) + tenant_developer_actions
 
     tenant_owner_actions = (
                                ('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
-                               ('drop_tenant_members', u'删除团队成员'), ('modify_team_name', u'修改团队名称')
+                               ('modify_team_name', u'修改团队名称')
                            ) + tenant_admin_actions
 
     tenant_gray_actions = (
