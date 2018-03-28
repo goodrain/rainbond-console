@@ -460,9 +460,10 @@ class ApplicationGroupService(object):
                 # 保存应用探针信息
                 probe_infos = app.get("probes", None)
                 if probe_infos:
-                    code, msg, probe = probe_service.add_service_probe(tenant, ts, probe_infos)
-                    if code == 200:
-                        logger.exception(msg)
+                    for prob_data in probe_infos:
+                        code, msg, probe = probe_service.add_service_probe(tenant, ts, prob_data)
+                        if code == 200:
+                            logger.exception(msg)
 
                 self.__save_extend_info(ts, app["extend_method_map"])
 
