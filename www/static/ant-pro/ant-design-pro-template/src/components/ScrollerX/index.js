@@ -18,7 +18,7 @@ export default class Index extends PureComponent {
         const md = this.props.md || '';
         const sm = this.props.sm || '';
         const smMathch = window.matchMedia("(min-width: 350px)");
-        const mdMathch = window.matchMedia("(min-width: 1000px)");
+        const mdMathch = window.matchMedia("(min-width: 800px)");
         if(smMathch.matches){
             this.setState({minWidth: sm})
             return;
