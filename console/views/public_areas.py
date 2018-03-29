@@ -154,7 +154,7 @@ class GroupServiceView(RegionTenantHeaderView):
         try:
             code = 200
             page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
+            page_size = request.GET.get("page_size", 100)
             group_id = request.GET.get("group_id", None)
             tenant_actions = list(self.user.actions.tenant_actions)
             service_actions = list(self.user.actions.service_actions)
