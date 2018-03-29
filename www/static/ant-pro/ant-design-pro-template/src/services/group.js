@@ -47,8 +47,8 @@ export async function getGroupApps(body = {
 				team_name,
 				region_name,
 				group_id,
-				page: 1,
-				page_size: 1000
+				page,
+				page_size
 }) {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/service/group`, {
 								method: 'get',
