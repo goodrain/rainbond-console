@@ -266,6 +266,24 @@ class BasicLayout extends React.PureComponent {
                         return;
                     }
 
+                    //如果没有当前团队和数据中心
+                    if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
+                        let team = userUtil.getDefaultTeam(user);
+                        if (team) {
+                            currTeam = team.team_name
+                        }
+                        let region = userUtil.getDefaultRegionName(user);
+                        if (region) {
+                            currRegion = region;
+                        }
+                        this
+                            .props
+                            .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                        location.reload();
+                        return;
+                    }
+
+
                     cookie.set('team', currTeam);
                     cookie.set('region_name', currRegion);
 
