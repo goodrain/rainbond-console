@@ -354,13 +354,13 @@ class MarketAppService(object):
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
-            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", group_name__icontains=app_name)
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", group_name__icontains=app_name)
         if is_complete is not None:
             if is_complete:
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", is_complete=True)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)
             else:
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", is_complete=False)
-        return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain")
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=False)
+        return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
 
 class MarketTemplateTranslateService(object):
