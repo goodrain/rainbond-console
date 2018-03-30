@@ -136,7 +136,7 @@ class ReStartAppView(AppBaseView):
 
 class DeployAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         部署服务
