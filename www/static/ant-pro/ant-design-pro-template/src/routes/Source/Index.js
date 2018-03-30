@@ -298,7 +298,7 @@ class AppList extends PureComponent {
         this.setState({
             currStep: 1
         }, () => {
-            window.open(`https://www.goodrain.com/#/check-console/${currUser.enterprise_id}`)
+            window.open(`https://www.goodrain.com/spa/#/check-console/${currUser.enterprise_id}`)
         })
     }
     handleAuthEnterprise = (vals) => {

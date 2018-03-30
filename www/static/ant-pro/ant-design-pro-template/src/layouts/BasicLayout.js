@@ -99,7 +99,7 @@ class PayTip extends React.PureComponent {
         })
     }
     handleClick = () => {
-        window.open('https://www.goodrain.com/#/personalCenter/my/recharge')
+        window.open('https://www.goodrain.com/spa/#/personalCenter/my/recharge')
         this.handleCancel();
     }
     getRegionId = () => {
@@ -116,7 +116,7 @@ class PayTip extends React.PureComponent {
     handleBuySource = () => {
         const regionId = this.getRegionId();
         if(regionId){
-            window.open(`https://www.goodrain.com/#/resBuy/${regionId}`)
+            window.open(`https://www.goodrain.com/spa/#/resBuy/${regionId}`)
         }else{
             notification.warning({message: '当前数据中心不可购买'})
         }
