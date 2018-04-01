@@ -214,6 +214,16 @@ const appUtil = {
     isCreateFromCompose: function (appDetail) {
         var service = appDetail.service || {};
         return service.service_source === 'docker_compose'
+    },
+    //是否是源码创建的应用
+    isCreateFromCode: function(appDetail){
+        var service = appDetail.service || {};
+        return service.service_source === 'source_code';
+    },
+    //是否是自定义源码创建的应用
+    isCreateFromCustomCode: function(appDetail) {
+        var service = appDetail.service || {};
+        return this.isCreateFromCode(appDetail) && service.code_from === 'gitlab_manual';
     }
 
 }
