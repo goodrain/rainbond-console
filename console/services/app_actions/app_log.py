@@ -100,7 +100,7 @@ class AppEventService(object):
         last_event = event_repo.get_last_event(tenant.tenant_id, service.service_id)
         # 提前从数据中心更新event信息
         if last_event:
-            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event])
+            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event], timeout=True)
         old_deploy_version = ""
         if last_event:
             if last_event.final_status == "":
@@ -210,7 +210,7 @@ class AppEventService(object):
                 return versioninfo
         return {}
 
-    def __sync_region_service_event_status(self, region, tenant_name, events):
+    def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()
         for event in events:
             if event.final_status == '':
@@ -230,9 +230,9 @@ class AppEventService(object):
             local_event = local_events_not_complete.get(region_event.get('EventID'))
             if not local_event:
                 continue
-
             if not region_event.get('Status'):
-                self.checkEventTimeOut(local_event)
+                if timeout:
+                    self.checkEventTimeOut(local_event)
             else:
                 local_event.status = region_event.get('Status')
                 local_event.message = region_event.get('Message')
