@@ -944,7 +944,8 @@ export default class Index extends PureComponent {
       addTag: false,
       showAddMember: false,
       toEditAction: null,
-      toDeleteMember: null
+      toDeleteMember: null,
+      memberslist:null
     }
   }
   componentDidMount() {
@@ -1039,10 +1040,13 @@ export default class Index extends PureComponent {
     const {dispatch} = this.props;
     const team_name = globalUtil.getCurrTeamName();
     dispatch({
-      type: 'appControl/fetchMember',
+      type: 'teamControl/fetchMember',
       payload: {
         team_name: team_name,
         app_alias: this.props.appAlias
+      },
+      callback: (data) => {
+         this.setState({memberslist:data.list})
       }
     })
   }
@@ -1721,7 +1725,7 @@ export default class Index extends PureComponent {
           data={this.state.editRunHealth}
           onCancel={this.onCancelEditRunProbe}/>}
         {this.state.showAddMember && <SetMemberAppAction
-          members={members}
+          members={this.state.memberslist}
           actions={teamControl.actions}
           onOk={this.handleAddMember}
           onCancel={this.hideAddMember}/>}

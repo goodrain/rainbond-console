@@ -280,7 +280,7 @@ class Main extends PureComponent {
                 },
                 callback: (appDetail) => {
 
-                    if (!appUtil.isCreateComplete(appDetail)) {
+                    if (!appUtil.isCreateComplete(appDetail) && !appUtil.isMarketApp(appDetail)) {
                         if (!appUtil.isCreateFromCompose(appDetail)) {
                             this
                                 .props

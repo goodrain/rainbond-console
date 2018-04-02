@@ -24,6 +24,7 @@ class ConfirmModal extends PureComponent{
        this.props.form.validateFields((err, values) => {
         if (!err) {
           this.props.onOk && this.props.onOk(values);
+          
         }
       });
    }
@@ -67,8 +68,7 @@ class ConfirmModal extends PureComponent{
       };
 
       const options = actions || [];
-      const members = this.props.teamControl.members || [];
-
+      const members = this.props.members || [];
       return (
           <Modal
             title={"设置成员应用权限"}
@@ -92,7 +92,7 @@ class ConfirmModal extends PureComponent{
                     <Select mode="multiple">
                        {
                         members.map((member) => {
-                           return <Option value={member.user_id}>{member.user_name}</Option>
+                           return <Select.Option value={member.user_id}>{member.user_name}</Select.Option>
                         })
                        }
                     </Select>
@@ -103,7 +103,6 @@ class ConfirmModal extends PureComponent{
               <FormItem
                 {...formItemLayout}
                 label="选择权限"
-                hasFeedback
               >
                 {getFieldDecorator('identity', {
                     initialValue:'viewer',

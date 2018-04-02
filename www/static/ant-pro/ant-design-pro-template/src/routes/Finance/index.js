@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
-import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown } from 'antd';
+import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown} from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
@@ -79,6 +79,7 @@ export default class BasicList extends PureComponent {
   render() {
     const { loading } = this.props;
     const list = this.state.list || [];
+    console.log(list)
     const Info = ({ title, value, bordered }) => (
       <div className={styles.headerInfo}>
         <span>{title}</span>
@@ -102,21 +103,43 @@ export default class BasicList extends PureComponent {
         dataIndex: 'memory_fee',
         key: 'memory_fee',
         render: (v,data) => {
-           return v + '元'
+           return ( 
+                  data.memory_limit  === '0'?
+                  <Tooltip placement="topLeft" title={'已使用内存' +  data.memory_usage + 'GB，已超出内存' + data.memory_over + '(GB)'}>
+                    v + '元'
+                  </Tooltip>
+                  :
+                  <Tooltip placement="topLeft" title={'包月内存'+ data.memory_limit  +'(GB)，已使用内存' + data.memory_usage +'GB，已超出内存' + data.memory_over + '(GB)'}>
+                    v + '元'
+                  </Tooltip>
+              )
         }
       }, {
         title: '磁盘费用',
         dataIndex: 'disk_fee',
         key: 'disk_fee',
         render: (v,data) => {
-           return v + '元'
+           return ( 
+              data.disk_limit  === '0'?
+              <Tooltip placement="topLeft" title={'已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
+                v + '元'
+              </Tooltip>
+              :
+              <Tooltip placement="topLeft" title={'包月磁盘'+ data.disk_limit +'(GB)，已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
+                v + '元'
+              </Tooltip>
+          )
         }
       }, {
         title: '流量费用',
         dataIndex: 'net_fee',
         key: 'net_fee',
         render: (v,data) => {
-           return v + '元'
+          return ( 
+              <Tooltip placement="topLeft" title={'已使用流量' + data.net_usage +'(GB)'}>
+                v + '元'
+              </Tooltip>
+             )
         }
       }, {
         title: '总费用',
