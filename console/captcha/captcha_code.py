@@ -3,6 +3,7 @@ import hashlib
 import logging
 import random
 import uuid
+import re
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -25,6 +26,7 @@ from_top = 4
 logger = logging.getLogger('default')
 current_path = settings.BASE_DIR
 
+NON_DIGITS_RX = re.compile('[^\d]')
 
 class CaptchaView(BaseApiView):
 
