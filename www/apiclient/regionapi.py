@@ -1406,8 +1406,10 @@ class RegionInvokeApi(HttpClient):
         return body
 
     def get_region_info(self, region_name):
-
-        return RegionConfig.objects.get(region_name=region_name)
+        configs = RegionConfig.objects.filter(region_name=region_name)
+        if configs:
+            return configs[0]
+        return None
 
     def service_source_check(self, region, tenant_name, body):
         """应用源检测"""

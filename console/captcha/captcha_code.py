@@ -45,6 +45,7 @@ class CaptchaView(BaseApiView):
         mp_src = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         text = mp_src[0:4]
         request.session["captcha_code"] = text
+        request.session.save()
         font_path = current_path + "/www/static/www/fonts/Vera.ttf"
         logger.debug("======> font path " + str(font_path))
         font = ImageFont.truetype(font_path, 22)

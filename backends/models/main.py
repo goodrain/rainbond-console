@@ -52,8 +52,8 @@ class RegionConfig(BaseModel):
     class Meta:
         db_table = 'region_info'
 
-    region_id = models.CharField(max_length=32, help_text=u"region id")
-    region_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    region_id = models.CharField(max_length=32, unique=True, help_text=u"region id")
+    region_name = models.CharField(max_length=32, unique=True, help_text=u"数据中心名称")
     region_alias = models.CharField(max_length=32, help_text=u"数据中心别名")
     url = models.CharField(max_length=256, help_text=u"数据中心API url")
     wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
