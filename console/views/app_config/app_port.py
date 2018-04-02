@@ -114,17 +114,15 @@ class AppPortView(AppBaseView):
         port = request.data.get("port", None)
         protocol = request.data.get("protocol", None)
         port_alias = request.data.get("port_alias", None)
-        is_inner_service = request.POST.get('is_inner_service', False)
-        is_outer_service = request.POST.get('is_outer_service', False)
-
+        is_inner_service = request.data.get('is_inner_service', False)
+        is_outer_service = request.data.get('is_outer_service', False)
         try:
             if not port:
                 return Response(general_message(400, "params error", u"缺少端口参数"), status=400)
             if not protocol:
                 return Response(general_message(400, "params error", u"缺少协议参数"), status=400)
             if not port_alias:
-                port_alias = self.service.service_alias.upper()+str(port)
-
+                port_alias = self.service.service_alias.upper().replace("-", "_")+str(port)
             code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
                                                                  is_inner_service,
                                                                  is_outer_service)
