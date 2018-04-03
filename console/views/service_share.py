@@ -189,8 +189,6 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 share_group_info["share_user"] = share_group.share_user
                 share_group_info["is_shared"] = True
                 data["share_group_info"] = share_group_info
-                app_tmp = json.loads(share_group.app_template)
-                data["share_service_list"] = app_tmp.get("apps", None)
             else:
                 try:
                     user = user_services.get_user_by_user_name(user_name=request.user)
@@ -219,11 +217,12 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 else:
                     result = general_message(code=code, msg="failed", msg_show=msg)
                     return Response(result, status=code)
-                service_info_list = share_service.query_share_service_info(team=self.team,
-                                                                           group_id=share_record.group_id)
-                data["share_service_list"] = service_info_list
-                plugins = share_service.query_group_service_plugin_list(team=self.team, group_id=share_record.group_id)
-                data["share_plugin_list"] = plugins
+            service_info_list = share_service.query_share_service_info(
+                team=self.team, group_id=share_record.group_id)
+            data["share_service_list"] = service_info_list
+            plugins = share_service.query_group_service_plugin_list(
+                team=self.team, group_id=share_record.group_id)
+            data["share_plugin_list"] = plugins
             result = general_message(200, "query success", "获取成功", bean=data)
             return Response(result, status=200)
         except Exception as e:
@@ -265,7 +264,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not share_group_info or not share_app_info:
                 result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
                 return Response(result, status=400)
-            if share_group_info.get("group_key", None):
+            if not share_group_info.get("group_key", None):
                 result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
             # 继续给app_template_incomplete赋值
