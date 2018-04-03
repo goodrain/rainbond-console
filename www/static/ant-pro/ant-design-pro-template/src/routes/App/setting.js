@@ -928,7 +928,7 @@ class ChangeBranch extends PureComponent {
   baseInfo: appControl.baseInfo,
   tags: appControl.tags,
   teamControl,
-  members: appControl.members
+  appControl
 }), null, null, {withRef: true})
 export default class Index extends PureComponent {
   constructor(arg) {
@@ -945,7 +945,8 @@ export default class Index extends PureComponent {
       showAddMember: false,
       toEditAction: null,
       toDeleteMember: null,
-      memberslist:null
+      memberslist:null,
+      members:null
     }
   }
   componentDidMount() {
@@ -960,6 +961,7 @@ export default class Index extends PureComponent {
     this.fetchBaseInfo();
     this.fetchTags();
     this.loadMembers();
+    this.loadpermsMembers();
   }
   componentWillUnmount() {
     const {dispatch} = this.props;
@@ -1050,6 +1052,23 @@ export default class Index extends PureComponent {
       }
     })
   }
+
+  loadpermsMembers = () => {
+    const {dispatch} = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    dispatch({
+      type: 'appControl/fetchpermsMember',
+      payload: {
+        team_name: team_name,
+        app_alias: this.props.appAlias
+      },
+      callback: (data) => {
+         this.setState({members:data.list})
+         console.log(data.list)
+      }
+    })
+  }
+
   showAddMember = () => {
     this.setState({showAddMember: true})
   }
@@ -1069,6 +1088,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideAddMember();
         }
       })
@@ -1324,6 +1344,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideEditAction();
         }
       })
@@ -1348,6 +1369,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideDelMember();
         }
       })
@@ -1383,7 +1405,10 @@ export default class Index extends PureComponent {
       tags,
       teamControl
     } = this.props;
-    const members = this.props.members || [];
+    const members = this.state.members || [];
+    console.log("1111")
+    console.log(members)
+    console.log("22222")
     return (
       <Fragment>
         <Card style={{
