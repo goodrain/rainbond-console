@@ -1406,9 +1406,6 @@ export default class Index extends PureComponent {
       teamControl
     } = this.props;
     const members = this.state.members || [];
-    console.log("1111")
-    console.log(members)
-    console.log("22222")
     return (
       <Fragment>
         <Card style={{
