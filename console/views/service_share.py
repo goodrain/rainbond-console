@@ -178,6 +178,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             share_group_info = dict()
             share_group = share_service.check_whether_have_share_history(group_id=share_record.group_id)
             if share_group:
+                share_group_info["group_key"] = share_group.group_key
                 share_group_info["group_name"] = share_group.group_name
                 share_group_info["version"] = share_group.version
                 share_group_info["describe"] = share_group.describe
@@ -204,6 +205,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                     region=self.response_region,
                     group_id=share_record.group_id)
                 if code == 200:
+                    share_group_info["group_key"] = make_uuid()
                     share_group_info["group_name"] = group.get("group_name")
                     share_group_info["version"] = 'v1.0'
                     share_group_info["describe"] = 'This is a default description.'
@@ -262,6 +264,9 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             share_app_info = request.data.get("share_service_list", None)
             if not share_group_info or not share_app_info:
                 result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
+                return Response(result, status=400)
+            if share_group_info.get("group_key", None):
+                result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
             # 继续给app_template_incomplete赋值
             code, msg, bean = share_service.create_share_info(
