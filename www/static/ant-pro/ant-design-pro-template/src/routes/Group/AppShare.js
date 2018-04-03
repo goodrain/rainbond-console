@@ -151,15 +151,15 @@ class AppInfo extends PureComponent {
                       .bind(this, item.attr_name, item.attr_value)}>是否随机生成值</Checkbox>
                   )}
                   {getFieldDecorator('connect||' + item.attr_name + '||is_change', {
+                    initialValue: item.is_change,
                     rules: [
                       {
                         required: false,
                         message: ''
                       }
-                    ],
-                    initialValue: item.is_change
+                    ]
                   })(
-                    <Checkbox>值是否可改</Checkbox>
+                    <Checkbox>可修改</Checkbox>
                   )}
                 </FormItem>
               </Col>
@@ -205,7 +205,7 @@ class AppInfo extends PureComponent {
                       }
                     ]
                   })(
-                    <Checkbox>可否修改</Checkbox>
+                    <Checkbox>可修改</Checkbox>
                   )}
                 </FormItem>
               </Col>
@@ -247,7 +247,7 @@ class AppInfo extends PureComponent {
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label={"节点步长(个)"}>
+            <FormItem label={"节点步长(个)"} style={{padding: 16}}>
               {getFieldDecorator('extend||step_node', {
                 initialValue: app.extend_method_map.step_node,
                 rules: [
@@ -263,7 +263,7 @@ class AppInfo extends PureComponent {
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label={"最小内存(M)"}>
+            <FormItem label={"最小内存(M)"} style={{padding: 16}}>
               {getFieldDecorator('extend||min_memory', {
                 initialValue: app.extend_method_map.min_memory,
                 rules: [
@@ -419,12 +419,12 @@ export default class Main extends PureComponent {
       })
       //////
     })
-    console.log(share_service_data);
     newinfo['share_group_info'] = this.share_group_info;
     newinfo['share_service_list'] = share_service_data;
     const team_name = globalUtil.getCurrTeamName();
     var shareId = this.props.match.params.shareId;
     var groupId = this.props.match.params.groupId;
+
     dispatch({
       type: 'groupControl/subShareInfo',
       payload: {
@@ -545,7 +545,7 @@ export default class Main extends PureComponent {
                   <Col span="12">
                     <Form.Item {...formItemLayout} label='分享范围'>
                       {getFieldDecorator('scope', {
-                        initialValue: 'team',
+                        initialValue: appinfo.scope || 'team',
                         rules: [
                           {
                             required: true
