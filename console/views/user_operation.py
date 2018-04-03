@@ -130,9 +130,12 @@ class TenantServiceView(BaseApiView):
         try:
             import copy
             querydict = copy.copy(request.data)
+            captcha_code = request.session.get("captcha_code")
+            if not captcha_code:
+                captcha_code = request.COOKIES.get("cookie_key", None)
             querydict.update({
                 u'real_captcha_code':
-                    request.session.get("captcha_code")
+                    captcha_code
             })
             client_ip = request.META.get("REMOTE_ADDR", None)
             register_form = RegisterForm(querydict)
@@ -220,7 +223,9 @@ class TenantServiceView(BaseApiView):
                     token = jwt_encode_handler(payload)
                     data["token"] = token
                     result = general_message(200, "register success", "注册成功", bean=data)
-                    return Response(result, status=200)
+                    response = Response(result, status=200)
+                    response.delete_cookie("captcha_code")
+                    return response
                 except Exception as e:
                     logger.exception(e)
                     user.delete()

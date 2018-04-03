@@ -93,5 +93,6 @@ class CaptchaView(BaseApiView):
         response = HttpResponse(content_type='image/png')
         response.write(out.read())
         response['Content-length'] = out.tell()
+        response.set_cookie("captcha_code", text)
 
         return response
