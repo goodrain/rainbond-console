@@ -1,4 +1,4 @@
-from django.contrib.sessions.backends.cached_db import SessionStore as BaseSessionStore
+from django.contrib.sessions.backends.cache import SessionStore as BaseSessionStore
 
 import logging
 logger = logging.getLogger('default')
@@ -20,4 +20,4 @@ class SessionStore(BaseSessionStore):
             logger.debug('session', 'got data for key {}: {}'.format(self.cache_key, session_data))
             return session_data
         self.create()
-        return session_data
+        return {}

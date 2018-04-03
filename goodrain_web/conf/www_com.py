@@ -59,7 +59,7 @@ APP_SERVICE_API = {
 }
 
 
-SESSION_ENGINE = "www.contrib.sessions.backends.cache"
+# SESSION_ENGINE = "www.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = 'session'
 # SESSION_COOKIE_DOMAIN = '.goodrain.com'
 # SESSION_COOKIE_AGE = 3600
