@@ -125,7 +125,7 @@ class AppInfo extends PureComponent {
           {app
             .service_connect_info_map_list
             .map((item) => {
-              return <Col span={12}>
+              return <Col span={8}>
                 <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('connect||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
@@ -137,6 +137,7 @@ class AppInfo extends PureComponent {
                     ]
                   })(<Input placeholder={item.attr_value}/>)}
                   {getFieldDecorator('connect||' + item.attr_name + '||random', {
+                    valuePropName: 'checked',
                     rules: [
                       {
                         required: false,
@@ -148,9 +149,10 @@ class AppInfo extends PureComponent {
                     <Checkbox
                       onChange={this
                       .handleCheckChange
-                      .bind(this, item.attr_name, item.attr_value)}>是否随机生成值</Checkbox>
+                      .bind(this, 'connect||' + item.attr_name + '||attr_value', item.attr_value)}>生成随机值</Checkbox>
                   )}
                   {getFieldDecorator('connect||' + item.attr_name + '||is_change', {
+                    valuePropName: 'checked',
                     initialValue: item.is_change,
                     rules: [
                       {
@@ -185,7 +187,7 @@ class AppInfo extends PureComponent {
           {app
             .service_env_map_list
             .map((item) => {
-              return <Col span={12}>
+              return <Col span={8}>
                 <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('env||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
@@ -197,6 +199,7 @@ class AppInfo extends PureComponent {
                     ]
                   })(<Input/>)}
                   {getFieldDecorator('env||' + item.attr_name + '||is_change', {
+                    valuePropName: 'checked',
                     initialValue: item.is_change,
                     rules: [
                       {
@@ -239,7 +242,7 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入最小节点'
                 min={app.extend_method_map.min_node}
                 max={app.extend_method_map.max_node}
@@ -256,7 +259,7 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入节点步长'
                 min={app.extend_method_map.min_node}
                 max={app.extend_method_map.max_node}/>)}
@@ -272,7 +275,8 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
+                
                 placeholder='请输入最小内存'
                 min={app.extend_method_map.min_memory}
                 max={app.extend_method_map.max_memory}
