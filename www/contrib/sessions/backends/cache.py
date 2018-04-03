@@ -20,4 +20,4 @@ class SessionStore(BaseSessionStore):
             logger.debug('session', 'got data for key {}: {}'.format(self.cache_key, session_data))
             return session_data
         self.create()
-        return {}
+        return session_data
