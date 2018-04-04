@@ -106,11 +106,11 @@ export default class BasicList extends PureComponent {
            return ( 
                   data.memory_limit  === '0'?
                   <Tooltip placement="topLeft" title={'已使用内存' +  data.memory_usage + 'GB，已超出内存' + data.memory_over + '(GB)'}>
-                    v + '元'
+                    {v + '元'}
                   </Tooltip>
                   :
                   <Tooltip placement="topLeft" title={'包月内存'+ data.memory_limit  +'(GB)，已使用内存' + data.memory_usage +'GB，已超出内存' + data.memory_over + '(GB)'}>
-                    v + '元'
+                   {v + '元'}
                   </Tooltip>
               )
         }
@@ -122,11 +122,11 @@ export default class BasicList extends PureComponent {
            return ( 
               data.disk_limit  === '0'?
               <Tooltip placement="topLeft" title={'已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
-                v + '元'
+               { v + '元'}
               </Tooltip>
               :
               <Tooltip placement="topLeft" title={'包月磁盘'+ data.disk_limit +'(GB)，已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
-                v + '元'
+               {v + '元'}
               </Tooltip>
           )
         }
@@ -137,7 +137,7 @@ export default class BasicList extends PureComponent {
         render: (v,data) => {
           return ( 
               <Tooltip placement="topLeft" title={'已使用流量' + data.net_usage +'(GB)'}>
-                v + '元'
+                { v + '元'}
               </Tooltip>
              )
         }
