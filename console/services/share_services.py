@@ -374,20 +374,13 @@ class ShareService(object):
                 # 处理事件的应用
                 if app["service_key"] == record_event.service_key:
                     body = {
-                        "service_key":
-                        app["service_key"],
-                        "app_version":
-                        rc_app.version,
-                        "event_id":
-                        event.event_id,
-                        "share_user":
-                        user.nick_name,
-                        "share_scope":
-                        rc_app.scope,
-                        "image_info":
-                        app.get("service_image", None),
-                        "slug_info":
-                        app.get("service_slug", None)
+                        "service_key": app["service_key"],
+                        "app_version": rc_app.version,
+                        "event_id": event.event_id,
+                        "share_user": user.nick_name,
+                        "share_scope": rc_app.scope,
+                        "image_info": app.get("service_image", None),
+                        "slug_info": app.get("service_slug", None)
                     }
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)

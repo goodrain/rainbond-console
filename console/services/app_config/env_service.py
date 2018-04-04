@@ -15,7 +15,7 @@ class AppEnvVarService(object):
     SENSITIVE_ENV_NAMES = (
         'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
         'SERVICE_EXTEND_METHOD',
-        'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH'
+        'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH', 'POD_NET_IP', 'LOG_MATCH'
     )
 
     def check_env_attr_name(self, attr_name):
