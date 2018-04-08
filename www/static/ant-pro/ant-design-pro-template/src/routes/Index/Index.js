@@ -345,13 +345,14 @@ export default class Index extends PureComponent {
           <p>团队成员</p>
           <p>{index.overviewInfo.user_nums || 0}</p>
         </div>
-        <div className={styles.statItem}>
-          <p>账户余额</p>
-          <p>{money}</p>
-        </div>
+        
         {
           this.isPublicRegion() ? 
           <Fragment>
+            <div className={styles.statItem}>
+              <p>账户余额</p>
+              <p>{money}</p>
+            </div>
             <div className={styles.statItem}>
               <p>已使用内存</p>
               <Tooltip title={`总计：${this.state.memory.limit || 0} 过期时间：${this.state.memory.expire_date || '-'}`}>
