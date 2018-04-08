@@ -63,8 +63,8 @@ class MarketOpenAPI(HttpClient):
         # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id \
         #       + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        data = self._unpack(body)
-        return res, data
+        # data = self._unpack(body)
+        return res, body
 
     def get_public_regions_list(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
@@ -91,4 +91,17 @@ class MarketOpenAPI(HttpClient):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enter-market/apps/templates"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
+        return self._unpack(body)
+
+    def get_region_access_token(self, tenant_id, enterprise_id, region):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/regions/{1}/token".format(enterprise_id, region)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        data = self._unpack(body)
+        return res, data
+
+    def get_share_hub_info(self, tenant_id, repo_type):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enter-market/config?repo_type={0}".format(repo_type)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)

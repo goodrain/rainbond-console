@@ -1,6 +1,18 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 
+  查询这个组的所有可监控应用的响应时间和吞吐率
+*/
+export async function groupMonitorData(body={team_name, group_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groups/${body.group_id}/monitor/batch_query`, {
+	  method: 'get',
+	  showLoading: false,
+	  showMessage: false
+	});
+  }
+  
+
 /*
 	应用未创建阶段的信息修改
 	可部分修改
@@ -35,8 +47,8 @@ export async function getGroupApps(body = {
 				team_name,
 				region_name,
 				group_id,
-				page: 1,
-				page_size: 1000
+				page,
+				page_size
 }) {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/service/group`, {
 								method: 'get',

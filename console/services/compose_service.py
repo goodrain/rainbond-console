@@ -83,43 +83,55 @@ class ComposeService(object):
 
     def save_compose_services(self, tenant, user, region, group_compose, data):
         service_list = []
-        if data["check_status"] == "success":
-            if group_compose.create_status == "checking":
-                logger.debug("checking compose service install,save info into database")
-            # 先删除原来创建的应用
-            self.__delete_created_compose_info(tenant, group_compose.compose_id)
-            # 保存compose检测结果
+        try:
             if data["check_status"] == "success":
-                service_info_list = data["service_info"]
-                service_dep_map = {}
-                # 服务列表
-                name_service_map = {}
-                for service_info in service_info_list:
-                    service_cname = service_info.get("image_alias", service_info["image"]["name"])
-                    image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
-                    # 保存信息
-                    service = self.__init_compose_service(tenant, user, service_cname, image, region)
-                    group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
-                    service_list.append(service)
-                    name_service_map[service_cname] = service
-                    code, msg = app_check_service.save_service_info(tenant, service, service_info)
-                    if code != 200:
-                        return code, msg, None
-                    dependencies = service_info.get("depends", None)
-                    if dependencies:
-                        service_dep_map[service_cname] = dependencies
+                if group_compose.create_status == "checking":
+                    logger.debug("checking compose service install,save info into database")
+                # 先删除原来创建的应用
+                self.__delete_created_compose_info(tenant, group_compose.compose_id)
+                # 保存compose检测结果
+                if data["check_status"] == "success":
+                    service_info_list = data["service_info"]
+                    service_dep_map = {}
+                    # 服务列表
+                    name_service_map = {}
+                    for service_info in service_info_list:
+                        service_cname = service_info.get("image_alias", service_info["image"]["name"])
+                        image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
+                        # 保存信息
+                        service = self.__init_compose_service(tenant, user, service_cname, image, region)
+                        group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
+                        service_list.append(service)
+                        name_service_map[service_cname] = service
+                        code, msg = app_check_service.save_service_info(tenant, service, service_info)
+                        if code != 200:
+                            return code, msg, None
+                        dependencies = service_info.get("depends", None)
+                        if dependencies:
+                            service_dep_map[service_cname] = dependencies
 
-                # 保存compose-relation
-                self.__save_compose_relation(service_list, tenant.tenant_id, group_compose.compose_id)
-                # 保存依赖关系
-                self.__save_service_dep_relation(tenant, service_dep_map, name_service_map)
+                    # 保存compose-relation
+                    self.__save_compose_relation(service_list, tenant.tenant_id, group_compose.compose_id)
+                    # 保存依赖关系
+                    self.__save_service_dep_relation(tenant, service_dep_map, name_service_map)
 
-                for s in service_list:
-                    s.create_status = "checked"
-                    s.save()
-            group_compose.create_status = "checked"
-            group_compose.save()
+                    for s in service_list:
+                        s.create_status = "checked"
+                        s.save()
+                group_compose.create_status = "checked"
+                group_compose.save()
+        except Exception as e:
+            logger.exception(e)
+            return 500, "{0}".format(e.message),service_list
+
         return 200, "success", service_list
+
+    def verify_compose_services(self, tenant, region, data):
+        if data["check_status"] == "success":
+            service_info_list = data["service_info"]
+            # 默认128 M
+            new_add_memory = len(service_info_list) * 128
+            return app_service.verify_source(tenant, region, new_add_memory, "compose创建")
 
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
         if service_dep_map:

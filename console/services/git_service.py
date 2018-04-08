@@ -105,17 +105,18 @@ class GitCodeService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             code_type = ""
             parsed_git_url = git_url_parse(service.git_url)
-            if service.code_from.startswith("gitlab"):
+            if service.code_from.startswith("gitlab") and service.code_from != "gitlab_manual":
                 code_type = "gitlab"
             elif parsed_git_url.host.endswith('github.com'):
                 code_type = "github"
-            code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id)
+            code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id,
+                                                      current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs
         return []
 
-    def get_code_branch(self, user, code_type, git_url, git_project_id):
+    def get_code_branch(self, user, code_type, git_url, git_project_id, current_branch="master"):
         parsed_git_url = git_url_parse(git_url)
         host = parsed_git_url.host
         if host:
@@ -127,7 +128,7 @@ class GitCodeService(object):
             elif code_type == "github":
                 branches = self.__get_github_branchs(user, parsed_git_url)
             else:
-                branches = ["master"]
+                branches = [current_branch]
         else:
             branches = []
         return 200, "success", branches
@@ -158,6 +159,10 @@ class GitCodeService(object):
         """gitlab创建项目"""
         project_id = 0
         rt_data = {}
+        import re
+        r = re.compile(u'^[a-zA-Z0-9_\\-]+$')
+        if not r.match(project_name.decode("utf-8")):
+            return 400, u"项目名称只支持英文下划线和中划线",None
         namespace = settings.GITLAB_ADMIN_NAME
         is_project_exist = self.is_gitlab_project_exist(namespace, tenant, project_name)
         if is_project_exist:

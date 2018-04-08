@@ -2,7 +2,11 @@
 import os
 import datetime
 
-DEBUG = os.environ.get('DEBUG') or False
+debug = os.environ.get('DEBUG')
+if debug:
+    DEBUG = (debug.lower() == "true")
+else:
+    DEBUG = False
 
 TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
 

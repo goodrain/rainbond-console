@@ -181,8 +181,10 @@ class TenantServiceView(BaseApiView):
                             result = general_message(400, "failed", "无可用数据中心")
                             return Response(result, status=400)
                         region_name = [regions[0].region_name]
-                        code, msg, tenant = team_services.add_team(team_alias=team_alias, user=user,
-                                                                   region_names=region_name)
+                        region_list = [r.region_name for r in regions]
+                        code, msg, tenant = team_services.create_team(user, enterprise, region_list)
+                        # code, msg, tenant = team_services.add_team(team_alias=team_alias, user=user,
+                        #                                            region_names=region_name)
                         if tenant:
                             perm = perms_repo.add_user_tenant_perm(
                                 perm_info={
@@ -192,9 +194,15 @@ class TenantServiceView(BaseApiView):
                                     "enterprise_id": enterprise.ID
                                 }
                             )
-                            if not perm:
-                                result = general_message(400, "invited failed", "团队关联失败，注册失败")
-                                return Response(result, status=400)
+                            # 创建用户在企业的权限
+                            user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+                            code, msg, tenant_region = region_services.create_tenant_on_region(tenant.tenant_name,
+                                                                                               tenant.region)
+                            if code != 200:
+                                return  Response(general_message(code,"register fail",msg),status=code)
+                            # if not perm:
+                            #     result = general_message(400, "invited failed", "团队关联失败，注册失败")
+                            #     return Response(result, status=400)
 
                             self.add_default_plugin(user, tenant, region_name)
 
@@ -408,6 +416,8 @@ class UserDetailsView(JWTAuthApiView):
             user_detail["is_sys_admin"] = user.is_sys_admin
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
             user_detail["is_enterprise_active"] = enterprise.is_active
+            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, user.enterprise_id)
+            user_detail["is_user_enter_amdin"] = is_user_enter_amdin
             tenant_list = list()
             for tenant in tenants:
                 tenant_info = dict()

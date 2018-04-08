@@ -50,7 +50,9 @@ export default class AppList extends PureComponent {
 						payload: {
 								team_name: team_name,
 								region_name: region_name,
-								group_id: this.props.groupId
+								group_id: this.props.groupId,
+								page:1,
+								page_size:1000
 						},
 						callback: ((data) => {
 								this.setState({

@@ -110,6 +110,13 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user):
+        from console.services.app import app_service
+        new_add_memory = service.min_memory * service.min_node
+        allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory,
+                                                       "启动应用")
+        if not allow_start:
+            return 412, "资源不足，无法启动应用", None
+
         code, msg, event = event_service.create_event(tenant, service, user, self.START)
         if code != 200:
             return code, msg, event

@@ -34,7 +34,8 @@ class SyncTenantServiceManager(object):
                     flag = False
 
                 for s in services:
-                    self.process_service(s)
+                    if not s.service_source:
+                        self.process_service(s)
                 logger.debug("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1)))
                 print "finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))
                 pos += 1
@@ -88,7 +89,7 @@ class SyncTenantServiceManager(object):
         service.save()
 
     def get_limited_services(self, start_index, number_of_services):
-        query_sql = """ select * from tenant_service limit {0},{1}""".format(str(start_index), str(number_of_services))
+        query_sql = """ select * from tenant_service WHERE ID > 31182 limit {0},{1}""".format(str(start_index), str(number_of_services))
         services = service_repo.get_services_by_raw_sql(query_sql)
         return services
 

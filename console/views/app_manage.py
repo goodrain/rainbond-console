@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ResourceNotEnoughException
 from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.views.app_config.base import AppBaseView
@@ -14,6 +15,7 @@ from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
+from console.services.app import app_service
 
 logger = logging.getLogger("default")
 
@@ -41,6 +43,10 @@ class StartAppView(AppBaseView):
 
         """
         try:
+            new_add_memory = self.service.min_memory * self.service.min_node
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "启动应用")
+            if not allow_create:
+                return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)
             bean = {}
             if event:
@@ -49,6 +55,9 @@ class StartAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -127,7 +136,7 @@ class ReStartAppView(AppBaseView):
 
 class DeployAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         部署服务

@@ -7,6 +7,7 @@ from goodrain_web.custom_config import custom_config
 import json
 import logging
 import httplib2
+from urllib import urlencode
 
 logger = logging.getLogger('default')
 
@@ -331,7 +332,9 @@ class GitlabApi(BaseHttpClient):
             private_token = self.get_private_token()
             logger.debug(private_token)
             # %2F 表示斜杠(/)
-            url = self.url + PREFIX + "/projects/" + namespace + "%2F" + project_name
+            suffix = namespace + "/"+project_name
+            suffix = urlencode({"1": suffix})[2:]
+            url = self.url + PREFIX + "/projects/" + suffix
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
             http = httplib2.Http()
             res, body = http.request(url, 'GET', headers=headers)

@@ -8,7 +8,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import BusinessException
+from console.exception.main import BusinessException, ResourceNotEnoughException
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -213,6 +213,10 @@ class ComposeCheckView(ComposeGroupBaseView):
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status=400)
             group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
             code, msg, data = app_check_service.get_service_check_info(self.tenant, self.response_region, check_uuid)
+            allow_create, tips = compose_service.verify_compose_services(self.tenant, self.response_region, data)
+            if not allow_create:
+                return Response(general_message(412, "resource is not enough", "资源不足，无法创建应用"))
+
             # 开启保存点
             sid = transaction.savepoint()
             logger.debug("start save compose info ! {0}".format(group_compose.create_status))
@@ -237,6 +241,9 @@ class ComposeCheckView(ComposeGroupBaseView):
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief,
                                      list=[s.to_dict() for s in service_list])
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

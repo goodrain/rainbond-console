@@ -44,13 +44,7 @@ class RegionRepo(object):
             return region_configs[0]
         return None
 
-    def get_region_by_region_name_and_region_id(self, region_name):
-        region_configs = RegionConfig.objects.filter(region_name=region_name)
-        if region_configs:
-            return region_configs[0]
-        return None
-
-    def get_team_region_by_teannt_and_region(self, tenant_id, region):
+    def get_team_region_by_tenant_and_region(self, tenant_id, region):
         tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenant_id, region_name=region)
         if tenant_regions:
             return tenant_regions[0]

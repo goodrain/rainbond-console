@@ -2,9 +2,38 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
-/* 获取企业账号信息 */
-export async function getCompanyAuthInfo(body={}){
-  
+/* 获取某个数据中心的资源详情 */
+export async function getRegionSource(body={team_name, region}){
+  return request(config.baseUrl + `/console/enterprise/region/resource`, {
+    method: 'get',
+    params: {
+      team_name: body.team_name,
+      region: body.region
+    }
+  });
+}
+
+
+
+/* 获取企业详情 */
+export async function getCompanyInfo(body={team_name}){
+  return request(config.baseUrl + `/console/enterprise/account`, {
+    method: 'get',
+    params: {
+      team_name: body.team_name
+    }
+  });
+}
+
+/* 获取某数据中心下某一天的资源费用数据 */
+export async function getRegionOneDayMoney(body={team_name, date, region}){
+  return request(config.baseUrl + `/console/enterprise/team/${body.team_name}/fee`, {
+    method: 'get',
+    params: {
+      date: body.date,
+      region: body.region
+    }
+  });
 }
 
 

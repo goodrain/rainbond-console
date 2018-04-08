@@ -788,6 +788,7 @@ class AddVarModal extends PureComponent {
 }
 
 //切换分支组件
+@Form.create()
 class ChangeBranch extends PureComponent {
   constructor(props) {
     super(props);
@@ -800,6 +801,7 @@ class ChangeBranch extends PureComponent {
     this.loadBranch();
   }
   loadBranch() {
+   
     getCodeBranch({
       team_name: globalUtil.getCurrTeamName(),
       app_alias: this.props.appAlias
@@ -812,23 +814,27 @@ class ChangeBranch extends PureComponent {
   handleChange = (val) => {
     this.setState({curr: val})
   }
+  handleCustomChange = (e) => {
+    this.setState({curr: e.target.value})
+  }
   handleSubmit = () => {
     const curr = this.state.curr;
-    if (curr) {
+    const form = this.props.form;
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
       setCodeBranch({
         team_name: globalUtil.getCurrTeamName(),
         app_alias: this.props.appAlias,
-        branch: curr
+        branch: fieldsValue.branch
       }).then((data) => {
         if (data) {
           notification.success({message: `操作成功，重新部署后生效`});
         }
       })
-    }
+    });
   }
   render() {
     const branch = this.state.branch;
-
     const formItemLayout = {
       labelCol: {
         xs: {
@@ -847,27 +853,60 @@ class ChangeBranch extends PureComponent {
         }
       }
     };
-    if (branch.length === 1) {
-      return (
-        <FormItem {...formItemLayout} label="代码分支">
-          {branch[0]}
-        </FormItem>
-      )
-    }
-    return (
+    var isCustomCode = this.props.isCreateFromCustomCode;
+    const {getFieldDecorator} = this.props.form;
+    
 
+    if(!isCustomCode){
+        return (
+      
+          <FormItem {...formItemLayout} label="代码分支">
+              {getFieldDecorator('branch', {
+                initialValue: this.state.curr || '',
+                rules: [
+                  {
+                    required: true,
+                    message: '请选择分支'
+                  }
+                ]
+              })(
+                  <Select
+                    style={{
+                    width: 200
+                  }}>
+                    {branch.map((item) => {
+                      return <Option value={item}>{item}</Option>
+                    })}
+                  </Select>
+              )}
+               
+            <Button
+              onClick={this.handleSubmit}
+              style={{
+              marginLeft: 10
+            }}
+              type="primary">确定</Button>
+          </FormItem>
+        )
+    }
+
+    return (
+      
       <FormItem {...formItemLayout} label="代码分支">
-        <Select
-          onChange={this.handleChange}
-          value={this.state.curr}
-          style={{
-          width: 120
-        }}>
-          {branch.map((item) => {
-            return <Option value={item}>{item}</Option>
-          })
-}
-        </Select>
+          {getFieldDecorator('branch', {
+                initialValue: this.state.curr || '',
+                rules: [
+                  {
+                    required: true,
+                    message: '请输入分支'
+                  }
+                ]
+              })(
+                <Input type="text"
+                style={{
+                width: 200
+              }} />
+        )}
         <Button
           onClick={this.handleSubmit}
           style={{
@@ -889,7 +928,7 @@ class ChangeBranch extends PureComponent {
   baseInfo: appControl.baseInfo,
   tags: appControl.tags,
   teamControl,
-  members: appControl.members
+  appControl
 }), null, null, {withRef: true})
 export default class Index extends PureComponent {
   constructor(arg) {
@@ -905,7 +944,9 @@ export default class Index extends PureComponent {
       addTag: false,
       showAddMember: false,
       toEditAction: null,
-      toDeleteMember: null
+      toDeleteMember: null,
+      memberslist:null,
+      members:null
     }
   }
   componentDidMount() {
@@ -920,6 +961,7 @@ export default class Index extends PureComponent {
     this.fetchBaseInfo();
     this.fetchTags();
     this.loadMembers();
+    this.loadpermsMembers();
   }
   componentWillUnmount() {
     const {dispatch} = this.props;
@@ -1000,13 +1042,33 @@ export default class Index extends PureComponent {
     const {dispatch} = this.props;
     const team_name = globalUtil.getCurrTeamName();
     dispatch({
-      type: 'appControl/fetchMember',
+      type: 'teamControl/fetchMember',
       payload: {
         team_name: team_name,
         app_alias: this.props.appAlias
+      },
+      callback: (data) => {
+         this.setState({memberslist:data.list})
       }
     })
   }
+
+  loadpermsMembers = () => {
+    const {dispatch} = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    dispatch({
+      type: 'appControl/fetchpermsMember',
+      payload: {
+        team_name: team_name,
+        app_alias: this.props.appAlias
+      },
+      callback: (data) => {
+         this.setState({members:data.list})
+         console.log(data.list)
+      }
+    })
+  }
+
   showAddMember = () => {
     this.setState({showAddMember: true})
   }
@@ -1026,6 +1088,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideAddMember();
         }
       })
@@ -1281,6 +1344,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideEditAction();
         }
       })
@@ -1305,6 +1369,7 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.loadMembers();
+          this.loadpermsMembers();
           this.hideDelMember();
         }
       })
@@ -1340,7 +1405,7 @@ export default class Index extends PureComponent {
       tags,
       teamControl
     } = this.props;
-    const members = this.props.members || [];
+    const members = this.state.members || [];
     return (
       <Fragment>
         <Card style={{
@@ -1397,7 +1462,7 @@ export default class Index extends PureComponent {
                     label="Git仓库">
                     <a href={baseInfo.git_url} target="_blank">{baseInfo.git_url}</a>
                   </FormItem>
-                  <ChangeBranch appAlias={this.props.appAlias}/>
+                  <ChangeBranch isCreateFromCustomCode={appUtil.isCreateFromCustomCode(appDetail)} appAlias={this.props.appAlias}/>
                 </Fragment>
               : ''
 }
@@ -1682,7 +1747,7 @@ export default class Index extends PureComponent {
           data={this.state.editRunHealth}
           onCancel={this.onCancelEditRunProbe}/>}
         {this.state.showAddMember && <SetMemberAppAction
-          members={members}
+          members={this.state.memberslist}
           actions={teamControl.actions}
           onOk={this.handleAddMember}
           onCancel={this.hideAddMember}/>}

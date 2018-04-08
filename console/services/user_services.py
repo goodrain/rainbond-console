@@ -13,6 +13,7 @@ from console.repositories.user_repo import user_repo
 from www.gitlab_http import GitlabApi
 from www.models import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
 
 logger = logging.getLogger("default")
 codeRepositoriesService = CodeRepositoriesService()
@@ -160,5 +161,34 @@ class UserService(object):
         perms = team_repo.get_tenant_perms(tenant_id=tenant.ID, user_id=u.user_id)
         return u, perms
 
+    def get_user_by_sso_user_id(self, sso_user_id):
+        return user_repo.get_by_sso_user_id(sso_user_id)
+
+    def make_user_as_admin_for_enterprise(self, user_id, enterprise_id):
+        user_perm = enterprise_user_perm_repo.get_user_enterprise_perm(user_id, enterprise_id)
+        if not user_perm:
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin")
+        return user_perm
+
+    def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
+        """判断用户在该企业下是否为管理员"""
+        if current_user.enterprise_id != enterprise_id:
+            return False
+        user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(current_user.user_id, enterprise_id)
+        if not user_perms:
+            users = user_repo.get_enterprise_users(enterprise_id).order_by("-user_id")
+            if users:
+                admin_user = users[0]
+                # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
+                if admin_user.user_id == current_user.user_id:
+                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin")
+                    return True
+                else:
+                    return False
+        else:
+            return True
+
+    def get_user_by_email(self, email):
+        return user_repo.get_user_by_email(email)
 
 user_services = UserService()

@@ -116,7 +116,7 @@ export default class AddDomain extends PureComponent {
                   required: true,
                   message: '请添加域名'
                 }, {
-                  pattern: /^[^(http:\/\/|https:\/\/)]+$/,
+                  pattern: /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/,
                   message: '格式不正确'
                 }
 

@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import moment from 'moment';
 import {connect} from 'dva';
 import {Link} from 'dva/router';
@@ -12,7 +12,8 @@ import {
   Input,
   Select,
   Button,
-  Icon
+  Icon,
+  Tooltip
 } from 'antd';
 import IndexTable from '../../components/IndexTable';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
@@ -23,6 +24,7 @@ import {Radar} from '../../components/Charts';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import userUtil from '../../utils/user';
+import sourceUtil from '../../utils/source-unit';
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -62,7 +64,11 @@ const links = [
 export default class Index extends PureComponent {
   constructor(arg) {
     super(arg);
-    this.state = {}
+    this.state = {
+      disk: {},
+      memory: {},
+      companyInfo: {}
+    }
   }
   componentDidMount() {
 
@@ -73,6 +79,45 @@ export default class Index extends PureComponent {
       this.loadApps();
       this.loadOverview();
     }, 10000)
+
+    if(this.isPublicRegion()){
+      this.getCompanyInfo();
+      this.getRegionResource();
+    }
+  }
+  isPublicRegion(){
+    var region_name = globalUtil.getCurrRegionName();
+    var team_name = globalUtil.getCurrTeamName();
+    var region  = userUtil.hasTeamAndRegion(this.props.currUser, team_name, region_name);
+    if(region){
+      return region.region_scope === 'public'
+    }
+    return false;
+  }
+  getRegionResource(){
+    this.props.dispatch({
+      type: 'global/getRegionSource',
+      payload:{
+         team_name: globalUtil.getCurrTeamName(),
+         enterprise_id: this.props.currUser.enterprise_id,
+         region: globalUtil.getCurrRegionName()
+      },
+      callback: (data) => {
+         this.setState({memory:data.bean.memory || {}, disk: data.bean.disk})
+      }
+    })
+  }
+  getCompanyInfo = () => {
+     this.props.dispatch({
+       type: 'global/getCompanyInfo',
+       payload:{
+          team_name: globalUtil.getCurrTeamName(),
+          enterprise_id: this.props.currUser.enterprise_id
+       },
+       callback: (data) => {
+          this.setState({companyInfo: data.bean})
+       }
+     })
   }
   loadOverview = () => {
     const {dispatch, index} = this.props;
@@ -247,7 +292,7 @@ export default class Index extends PureComponent {
     }
 
     return list.map((item) => {
-      const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/{item.service_alias}/overview`;
+      const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${item.service_alias}/overview`;
       return (
         <List.Item key={item.id}>
           <List.Item.Meta
@@ -285,8 +330,13 @@ export default class Index extends PureComponent {
       </div>
     );
 
+    var money = `${this.state.companyInfo.balance || 0} 元`;
+    if(this.state.companyInfo.owed_amt > 0){
+       money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
+    }
     const extraContent = (
       <div className={styles.extraContent}>
+       
         <div className={styles.statItem}>
           <p>应用数</p>
           <p>{index.overviewInfo.team_service_num || 0}</p>
@@ -295,11 +345,29 @@ export default class Index extends PureComponent {
           <p>团队成员</p>
           <p>{index.overviewInfo.user_nums || 0}</p>
         </div>
-        <div className={styles.statItem}>
-          <p>使用内存资源</p>
-          <p>{index.overviewInfo.team_service_memory_count || 0}
-            MB</p>
-        </div>
+        
+        {
+          this.isPublicRegion() ? 
+          <Fragment>
+            <div className={styles.statItem}>
+              <p>账户余额</p>
+              <p>{money}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p>已使用内存</p>
+              <Tooltip title={`总计：${this.state.memory.limit || 0} 过期时间：${this.state.memory.expire_date || '-'}`}>
+                <p>{`${sourceUtil.unit(index.overviewInfo.team_service_memory_count || 0, 'MB')}`}</p>
+              </Tooltip>
+            </div>
+            <div className={styles.statItem}>
+              <p>已使用磁盘</p>
+              <Tooltip title={`总计：${this.state.disk.limit || 0} 过期时间：${this.state.disk.expire_date || '-'}`}>
+                <p>{`${sourceUtil.unit(index.overviewInfo.team_service_total_disk || 0, 'MB')}`}</p>
+              </Tooltip>
+            </div>
+          </Fragment>
+          : null
+        }
       </div>
     );
 

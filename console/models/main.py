@@ -9,6 +9,7 @@ logger = logging.getLogger("default")
 
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 plugin_scope = (("enterprise", u"企业"), ("team", u"团队"))
+user_identity = ((u"管理员", "admin"),)
 
 
 class BaseModel(models.Model):
@@ -311,3 +312,14 @@ class ServiceRelationRecycleBin(BaseModel):
         blank=True,
         help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     dep_order = models.IntegerField(help_text=u"依赖顺序")
+
+
+class EnterpriseUserPerm(BaseModel):
+    """用户在企业的权限"""
+    class Meta:
+        db_table = 'enterprise_user_perm'
+
+    user_id = models.IntegerField(help_text=u"用户id")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
+    identity = models.CharField(
+        max_length=15, choices=user_identity, help_text=u"用户在企业的身份")

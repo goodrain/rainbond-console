@@ -29,5 +29,20 @@ class UserRepo(object):
             return u[0]
         return None
 
+    def get_by_sso_user_id(self, sso_user_id):
+        u = Users.objects.filter(sso_user_id=sso_user_id)
+        if u:
+            return u[0]
+        return None
+
+    def get_enterprise_users(self, enterprise_id):
+        return Users.objects.filter(enterprise_id=enterprise_id)
+
+    def get_user_by_email(self, email):
+        u = Users.objects.filter(email=email)
+        if u:
+            return u[0]
+        return None
+
 
 user_repo = UserRepo()

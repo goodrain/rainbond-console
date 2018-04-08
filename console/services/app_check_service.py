@@ -173,7 +173,16 @@ class AppCheckService(object):
             "procfile": procfile
         }
         check_dependency_json = json.dumps(check_dependency)
-        compile_env_service.save_compile_env(service, language, check_dependency_json, "")
+        # 添加默认编译环境
+        user_dependency = compile_env_service.get_service_default_env_by_language(language)
+        if check_dependency["runtimes"]:
+            user_dependency["runtimes"] = ""
+        if check_dependency["procfile"]:
+            user_dependency["procfile"] = ""
+        if check_dependency["dependencies"]:
+            user_dependency["dependencies"] = {}
+        user_dependency_json = json.dumps(user_dependency)
+        compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
         return 200, "success"
 
     def __save_env(self, tenant, service, envs):

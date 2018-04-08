@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 import PropTypes from 'prop-types';
-import {Layout, Icon, message, notification} from 'antd';
+import {Layout, Icon, message, notification, Modal, Button} from 'antd';
 import DocumentTitle from 'react-document-title';
 import {connect} from 'dva';
 import {Route, Redirect, Switch, routerRedux} from 'dva/router';
@@ -69,6 +69,87 @@ let isMobile;
 enquireScreen((b) => {
     isMobile = b;
 });
+
+//美洽 
+class Meiqia extends React.PureComponent {
+    componentDidMount(){
+        (function(m, ei, q, i, a, j, s) {
+            m[a] = m[a] || function() {
+                (m[a].a = m[a].a || []).push(arguments)
+          };
+            j = ei.createElement(q),
+                s = ei.getElementsByTagName(q)[0];
+            j.async = true;
+            j.charset = 'UTF-8';
+            j.src = i;
+            s.parentNode.insertBefore(j, s)
+        })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
+        _MEIQIA('entId', 5732);
+    }
+    render(){
+        return null;
+    }
+}
+
+//提示充值
+class PayTip extends React.PureComponent {
+    handleCancel = () => {
+        this.props.dispatch({
+            type: 'global/hidePayTip'
+        })
+    }
+    handleClick = () => {
+        window.open('https://www.goodrain.com/spa/#/personalCenter/my/recharge')
+        this.handleCancel();
+    }
+    getRegionId = () => {
+        var regionName = globalUtil.getCurrRegionName();
+        let regionId = '';
+        if(regionName == 'ali-hz') {
+        regionId = 2;
+        }
+        if(regionName == 'ali-sh'){
+        regionId = 1;
+        }
+        return regionId;
+    }
+    handleBuySource = () => {
+        const regionId = this.getRegionId();
+        if(regionId){
+            window.open(`https://www.goodrain.com/spa/#/resBuy/${regionId}`)
+        }else{
+            notification.warning({message: '当前数据中心不可购买'})
+        }
+        this.handleCancel();
+    }
+    componentDidMount(){
+    }
+    render(){
+        const regionId = this.getRegionId();
+        return <Modal
+            visible={true}
+            title="提示"
+            onCancel={this.handleCancel}
+            footer={[regionId ? <Button onClick={this.handleBuySource} type="primary" size="sm">购买资源</Button> : null, 
+            <Button onClick={this.handleClick} size="sm">账户充值</Button>]}
+        >
+             <h4 style={{textAlign: 'center'}}>资源及企业账户余额不足</h4>
+        </Modal>;
+    }
+}
+
+class NoTeamTip extends React.PureComponent {
+    componentDidMount(){
+        Modal.warning({
+            title: '您还没有团队，无法使用云帮',
+            content: '请联系管理人员'
+        })
+    }
+    render(){
+        return null;
+    }
+}
+
 
 class BasicLayout extends React.PureComponent {
     static childContextTypes = {
@@ -154,17 +235,29 @@ class BasicLayout extends React.PureComponent {
                     //验证路径里的团队是否有效
                     if (!currTeam || !currRegion) {
                         if (!currTeam) {
-                            let team = userUtil.getDefaultTeam(user);
-                            if (team) {
-                                currTeam = team.team_name
+                            let cookieTeam = cookie.get('team');
+                            if(cookieTeam){
+                                currTeam = cookieTeam;
+                            }else{
+                                let team = userUtil.getDefaultTeam(user);
+                                if (team) {
+                                    currTeam = team.team_name
+                                }
                             }
+                            
 
                         }
                         if (!currRegion) {
-                            let region = userUtil.getDefaultRegionName(user);
-                            if (region) {
-                                currRegion = region;
+                            let cookieRegion = cookie.get('region_name');
+                            if(cookieRegion){
+                                currRegion = cookieRegion;
+                            }else{
+                                let region = userUtil.getDefaultRegionName(user);
+                                if (region) {
+                                    currRegion = region;
+                                }
                             }
+                            
                         }
                         this
                             .props
@@ -172,6 +265,27 @@ class BasicLayout extends React.PureComponent {
                         location.reload();
                         return;
                     }
+
+                    //如果没有当前团队和数据中心
+                    if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
+                        let team = userUtil.getDefaultTeam(user);
+                        if (team) {
+                            currTeam = team.team_name
+                        }
+                        let region = userUtil.getDefaultRegionName(user);
+                        if (region) {
+                            currRegion = region;
+                        }
+                        this
+                            .props
+                            .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                        location.reload();
+                        return;
+                    }
+
+
+                    cookie.set('team', currTeam);
+                    cookie.set('region_name', currRegion);
 
                     //获取群组
                     this
@@ -282,6 +396,17 @@ class BasicLayout extends React.PureComponent {
                 .dispatch({type: 'global/fetchNotices'});
         }
     }
+    checkTeamAndRegion = () => {
+        var currTeam = globalUtil.getCurrTeamName();
+        var currRegion = globalUtil.getCurrRegionName();
+        var user = this.props.currentUser;
+        //判断当前url上的团队和数据中心是在在用户的信息里
+        if(!userUtil.getTeamByTeamName(user, currTeam) || !userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
+            location.href = "/";
+            return false;
+        }
+        return true;
+    }
     handleTeamClick = ({key}) => {
 
         if (key === 'createTeam') {
@@ -336,6 +461,14 @@ class BasicLayout extends React.PureComponent {
                 }
             })
     }
+    checkHasTeam = () => {
+        const currentUser = this.props.currentUser;
+        if(!currentUser.teams || !currentUser.teams.length){
+           
+            return false;
+        }
+        return true;
+    }
     render() {
         const {
             currentUser,
@@ -355,6 +488,14 @@ class BasicLayout extends React.PureComponent {
         const bashRedirect = this.getBashRedirect();
 
         if (!this.isInited()) {
+            return null;
+        }
+
+        if(!this.checkHasTeam()){
+            return <NoTeamTip />;
+        }
+
+        if(!this.checkTeamAndRegion()){
             return null;
         }
 
@@ -440,6 +581,8 @@ class BasicLayout extends React.PureComponent {
                 {this.state.createTeam && <CreateTeam onOk={this.handleCreateTeam} onCancel={this.cancelCreateTeam}/>}
                 {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>
+                {rainbondInfo.is_public && <Meiqia />}
+                {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
             </Fragment>
         );
     }
@@ -456,6 +599,7 @@ export default connect(({user, global, loading}) => {
         notices: global.notices,
         currTeam: global.currTeam,
         currRegion: global.currRegion,
-        rainbondInfo: global.rainbondInfo
+        rainbondInfo: global.rainbondInfo,
+        payTip: global.payTip
     })
 })(BasicLayout);

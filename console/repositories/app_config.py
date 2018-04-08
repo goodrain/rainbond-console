@@ -9,6 +9,7 @@ from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
     TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep
+from django.db.models import Q
 
 
 class TenantServiceEnvVarRepository(object):
@@ -52,10 +53,18 @@ class TenantServiceEnvVarRepository(object):
 
     def get_build_envs(self, tenant_id, service_id):
         envs = {}
-        buildEnvs = self.get_service_env(tenant_id, service_id).filter(attr_name__in=(
+        default_envs = Q(attr_name__in=(
             "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
+        prefix_start_env = Q(attr_name__startswith="BUILD_")
+        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env)
         for benv in buildEnvs:
-            envs[benv.attr_name] = benv.attr_value
+            attr_name = benv.attr_name
+            if attr_name.startswith("BUILD_"):
+                attr_name = attr_name.replace("BUILD_", "")
+            envs[attr_name] = benv.attr_value
+        compile_env = compile_env_repo.get_service_compile_env(service_id)
+        if compile_env:
+            envs["PROC_ENV"] = compile_env.user_dependency
         return envs
 
 

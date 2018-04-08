@@ -45,11 +45,12 @@ const FormItem = Form.Item;
 export default class Main extends PureComponent {
   constructor(arg) {
     super(arg);
+    const appName = decodeURIComponent(this.props.match.params.keyword||'');
     this.state = {
       list: [],
       showCreate: null,
       scope: '',
-      app_name: '',
+      app_name: appName,
       page: 1,
       pageSize: 8,
       total: 0
@@ -57,6 +58,9 @@ export default class Main extends PureComponent {
   }
   componentDidMount() {
     this.getApps();
+  }
+  handleChange = (v) => {
+
   }
   handleSearch = (v) => {
     this.setState({
@@ -123,6 +127,16 @@ export default class Main extends PureComponent {
           app_id: app.ID
         },
         callback: () => {
+
+          //刷新左侧按钮
+          this.props.dispatch({
+            type: 'global/fetchGroups',
+            payload: {
+              team_name: globalUtil.getCurrTeamName()
+            }
+          })
+
+          //关闭弹框
           this.onCancelCreate();
           this
             .props
@@ -211,6 +225,8 @@ export default class Main extends PureComponent {
           placeholder="请输入应用名称"
           enterButton="搜索"
           size="large"
+          defaultValue={this.state.app_name}
+          
           onSearch={this.handleSearch}
           style={{
           width: 522

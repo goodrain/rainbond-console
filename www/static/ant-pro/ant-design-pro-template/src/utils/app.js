@@ -188,7 +188,7 @@ const appUtil = {
     //是否是镜像安装的应用
     isImageApp: function (appDetail) {
         const source = this.getInstallSource(appDetail);
-        return this.getInstallSource(appDetail) === 'docker_compose' || this.getInstallSource(appDetail) === 'docker_run'
+        return source === 'docker_compose' || source === 'docker_run' || source === 'docker_image';
     },
     //获取源码创建应用的语言类型
     getLanguage: function (appDetail) {
@@ -214,6 +214,16 @@ const appUtil = {
     isCreateFromCompose: function (appDetail) {
         var service = appDetail.service || {};
         return service.service_source === 'docker_compose'
+    },
+    //是否是源码创建的应用
+    isCreateFromCode: function(appDetail){
+        var service = appDetail.service || {};
+        return service.service_source === 'source_code';
+    },
+    //是否是自定义源码创建的应用
+    isCreateFromCustomCode: function(appDetail) {
+        var service = appDetail.service || {};
+        return this.isCreateFromCode(appDetail) && service.code_from === 'gitlab_manual';
     }
 
 }

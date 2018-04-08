@@ -312,7 +312,7 @@ class Tenants(BaseModel):
     tenant_name = models.CharField(
         max_length=40, unique=True, help_text=u"租户名称")
     region = models.CharField(
-        max_length=30, default='ali-sh', help_text=u"区域中心")
+        max_length=30, default='', help_text=u"区域中心")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(
         max_length=5, choices=tenant_type, help_text=u"付费状态")
@@ -1435,8 +1435,8 @@ class TenantEnterpriseToken(BaseModel):
 
     enterprise_id = models.IntegerField(default=0, help_text=u"企业id")
     access_target = models.CharField(max_length=32, blank=True, null=True, default='', help_text=u"要访问的目标服务名称")
-    access_url = models.CharField(max_length=255, unique=True, help_text=u"需要访问的api地址")
-    access_id = models.CharField(max_length=32, unique=True, help_text=u"target分配给客户端的ID")
+    access_url = models.CharField(max_length=255,  help_text=u"需要访问的api地址")
+    access_id = models.CharField(max_length=32, help_text=u"target分配给客户端的ID")
     access_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"客户端token")
     crt = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书")
     key = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书key")

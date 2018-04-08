@@ -453,3 +453,13 @@ class EnterpriseService(object):
         tenant_ids = [t.tenant_id for t in perms]
         return Tenants.objects.filter(tenant_id__in=tenant_ids)
 
+    def list_enterprise_tenants(self, enterprise_id, load_region=False):
+        tenants = Tenants.objects.filter(enterprise_id=enterprise_id)
+        if load_region:
+            for tenant in tenants:
+                if not hasattr(tenant, 'regions'):
+                    tenant.regions = []
+                tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
+                tenant.regions.extend(tenant_regions)
+        return tenants
+

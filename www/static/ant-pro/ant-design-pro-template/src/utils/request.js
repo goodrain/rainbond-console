@@ -117,10 +117,8 @@ export default function request(url, options) {
         .then(checkStatus)
         .then((response) => {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
-
             const res = response.data.data || {};
             res._code = response.status;
-
             return res;
         })
         .catch((error) => {
@@ -138,6 +136,10 @@ export default function request(url, options) {
                 try {
                     resData = error.response.data;
                 } catch (e) {}
+
+                if (resData.code === 10406) {
+                    dispatch && dispatch({type: 'global/showPayTip'});
+                }
 
                 if (resData.code === 10405) {
                     cookie.remove('token');

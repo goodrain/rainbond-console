@@ -282,5 +282,16 @@ class EnterpriseServices(object):
     def get_enterprise_by_enterprise_id(self, enterprise_id, exception=True):
         return enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id, exception=exception)
 
+    def create_tenant_enterprise(self, enterprise_id, enterprise_name, enterprise_alias, is_active=True):
+        params = {
+            "enterprise_id": enterprise_id,
+            "enterprise_name": enterprise_name,
+            "enterprise_alias": enterprise_alias,
+            "is_active": is_active,
+        }
+        return enterprise_repo.create_enterprise(**params)
+
+    # def get_enterprise_tenants(self,enterprise):
+
 
 enterprise_services = EnterpriseServices()

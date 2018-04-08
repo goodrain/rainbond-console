@@ -280,7 +280,7 @@ class Main extends PureComponent {
                 },
                 callback: (appDetail) => {
 
-                    if (!appUtil.isCreateComplete(appDetail)) {
+                    if (!appUtil.isCreateComplete(appDetail) && !appUtil.isMarketApp(appDetail)) {
                         if (!appUtil.isCreateFromCompose(appDetail)) {
                             this
                                 .props
@@ -612,7 +612,7 @@ class Main extends PureComponent {
                         <Button>其他操作<Icon type="ellipsis"/></Button>
                     </Dropdown>
                 </ButtonGroup>
-                {(appUtil.canManageApp(appDetail) && appStatusUtil.canDeploy(status))
+                {(appStatusUtil.canDeploy(status))
                     ? <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
                     : ''}
 

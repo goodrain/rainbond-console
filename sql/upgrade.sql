@@ -253,3 +253,15 @@ CREATE TABLE `tenant_service_relation_recycle_bin` (
 
 ----- 2018.03.19
 ALTER TABLE rainbond_center_app ADD template_version VARCHAR(10) DEFAULT 'v2' NULL;
+
+----- 2018.03.22 数据中心信息表添加字段 scope
+ALTER TABLE region_info ADD scope VARCHAR(10) DEFAULT "private" NULL;
+
+----- 2018.03.23 添加用户企业信息表
+CREATE TABLE enterprise_user_perm
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    enterprise_id VARCHAR(32) NOT NULL ,
+    user_id INT NOT NULL  ,
+    identity VARCHAR(15) DEFAULT "admin"
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

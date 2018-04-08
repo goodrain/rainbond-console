@@ -15,8 +15,8 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     def check_group_name(self, group_name):
-        if len(group_name) > 10:
-            return False, u"组名称最多支持10个字符"
+        if len(group_name) > 15:
+            return False, u"组名称最多支持15个字符"
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
             return False, u"组名称只支持中英文下划线和中划线"
@@ -39,6 +39,9 @@ class GroupService(object):
             return 400, u"组ID不合法", None
         if not group_name:
             return 400, u"组名不能为空", None
+        is_pass, msg = self.check_group_name(group_name)
+        if not is_pass:
+            return 400, msg, None
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
         if group:
             return 403, u"组名{0}已存在".format(group_name), None
@@ -132,5 +135,11 @@ class GroupService(object):
 
         return result
 
+    def get_group_services(self, group_id):
+        """查询某一组下的应用"""
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = [gs.service_id for gs in gsr]
+        services = service_repo.get_services_by_service_ids(*service_ids)
+        return services
 
 group_service = GroupService()

@@ -1,320 +1,200 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.http import JsonResponse
+from django.core.mail import send_mail
 from rest_framework.response import Response
-
+import os
+from console.repositories.app import service_repo
+from console.repositories.perm_repo import service_perm_repo
+from console.services.enterprise_services import enterprise_services
+from console.services.perm_services import perm_services, app_perm_service
+from console.services.region_services import region_services
+from console.services.team_services import team_services
 from console.views.base import AlowAnyApiView
-from www.auth import authenticate, login, jwtlogin
-from www.models import Users, Tenants, TenantServiceInfo, PermRelTenant, \
-    PermRelService, TenantEnterprise
 from www.monitorservice.monitorhook import MonitorHook
-from www.services import enterprise_svc, user_svc
 from www.services.sso import GoodRainSSOApi
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import AuthCode
-from www.utils.return_message import general_message
-from www.views import BaseView
+from console.services.user_services import user_services
+from www.apiclient.baseclient import client_auth_service
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
 codeRepositoriesService = CodeRepositoriesService()
 
 monitor_hook = MonitorHook()
+notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com', 'tianyy@goodrain.com']
 
 
-# class GoorainSsoCallBack(AlowAnyApiView):
-#     def get(self, request, *args, **kwargs):
-#         """
-#         处理SSO回调登陆
-#         ---
-#         parameter:
-#             - name: team_name
-#               description: 团队名
-#               required: true
-#               type: string
-#               paramType: path
-#         """
-#         # 获取sso的user_id
-#         sso_user_id = request.COOKIES.get('uid')
-#         sso_user_token = request.COOKIES.get('token')
-#
-#         data = dict()
-#
-#         logger.debug('cookies.sso_user_id:{}'.format(sso_user_id))
-#         logger.debug('cookies.sso_user_token:{}'.format(sso_user_token))
-#         if not sso_user_id or not sso_user_token:
-#             logger.error('cookies uid or token not specified!')
-#             url = "https://sso.goodrain.com/#/login/"
-#             data["url"] = url
-#             data["is_redirect"] = True
-#             result = general_message(400, "cookies uid or token not specified!", "未指定cookie uid或token", bean=data)
-#             return Response(result, status=400)
-#
-#         if sso_user_id == 'null' or sso_user_token == 'null':
-#             logger.error('bad uid or token, value is null!')
-#             url = "https://sso.goodrain.com/#/login/"
-#             data["url"] = url
-#             data["is_redirect"] = True
-#             result = general_message(400, "bad uid or token, value is null!", "uid或token值为空。", bean=data)
-#             return Response(result, status=400)
-#
-#         api = GoodRainSSOApi(sso_user_id, sso_user_token)
-#         if not api.auth_sso_user_token():
-#             logger.error('Illegal user token!')
-#             url = "https://sso.goodrain.com/#/login/"
-#             data["url"] = url
-#             data["is_redirect"] = True
-#             result = general_message(400, "Illegal user token!", "非法用户令牌", bean=data)
-#             return Response(result, status=400)
-#
-#         # 同步sso_id所代表的企业信息，没有则创建
-#         try:
-#             user = Users.objects.get(sso_user_id=sso_user_id)
-#             if user.sso_user_token != sso_user_token:
-#                 user.sso_user_token = sso_user_token
-#                 user.save()
-#         except Users.DoesNotExist:
-#             logger.debug('query user with sso_user_id does not existed, created!')
-#             sso_user = api.get_sso_user_info()
-#             logger.debug(sso_user)
-#             try:
-#                 TenantEnterprise.objects.get(enterprise_id=sso_user.eid)
-#             except TenantEnterprise.DoesNotExist:
-#                 enterprise = TenantEnterprise()
-#                 enterprise.enterprise_id = sso_user.eid
-#                 enterprise.enterprise_name = sso_user.company
-#                 enterprise.enterprise_alias = sso_user.company
-#                 enterprise.is_active = 1
-#                 enterprise.save()
-#                 logger.info(
-#                     'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
-#                                                                   enterprise.enterprise_name))
-#
-#             user = Users.objects.create(nick_name=sso_user.name,
-#                                         email=sso_user.email or '',
-#                                         phone=sso_user.mobile or '',
-#                                         password=sso_user.pwd or '',
-#                                         sso_user_id=sso_user.uid,
-#                                         enterprise_id=sso_user.eid,
-#                                         sso_user_token=sso_user_token,
-#                                         is_active=False,
-#                                         rf='sso')
-#             logger.info(
-#                 'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(user.user_id, user.nick_name,
-#                                                                                       user.rf,
-#                                                                                       user.sso_user_id))
-#             monitor_hook.registerMonitor(user, 'register')
-#
-#         if not user.is_active:
-#             tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id)
-#         else:
-#             tenant = user_svc.get_default_tenant_by_user(user.user_id)
-#         logger.info(tenant.to_dict())
-#
-#         # create gitlab user
-#         if user.email is not None and user.email != "":
-#             codeRepositoriesService.createUser(user, user.email, user.password, user.nick_name, user.nick_name)
-#
-#         # SSO用户登录
-#         user = authenticate(user_id=user.user_id, sso_user_id=user.sso_user_id)
-#         login(request, user)
-#         self.user = request.user
-#
-#         next_url = request.GET.get('next')
-#         if next_url:
-#             result = general_message(200, "success", "跳转到next指向的页面")
-#             return Response(result, status=200)
-#         result = general_message(200, "success", "跳转到登录成功后的第一个页面")
-#         return Response(result, status=200)
-class GoorainSsoCallBack(BaseView):
-    """
-    处理SSO回调登陆
-    """
-
-    def get(self, request, *args, **kwargs):
-        # 获取sso的user_id
-        sso_user_id = request.COOKIES.get('uid')
-        sso_user_token = request.COOKIES.get('token')
-
-        logger.debug('cookies.sso_user_id:{}'.format(sso_user_id))
-        logger.debug('cookies.sso_user_token:{}'.format(sso_user_token))
-
-        if not sso_user_id or not sso_user_token:
-            logger.error('cookies uid or token not specified!')
-            return self.redirect_to("/login")
-
-        if sso_user_id == 'null' or sso_user_token == 'null':
-            logger.error('bad uid or token, value is null!')
-            return self.redirect_to("/login")
-
-        api = GoodRainSSOApi(sso_user_id, sso_user_token)
-        if not api.auth_sso_user_token():
-            logger.error('Illegal user token!')
-            return self.redirect_to("/login")
-
-        # 同步sso_id所代表的企业信息，没有则创建
-        try:
-            user = Users.objects.get(sso_user_id=sso_user_id)
-            if user.sso_user_token != sso_user_token:
-                user.sso_user_token = sso_user_token
-                user.save()
-        except Users.DoesNotExist:
-            logger.debug('query user with sso_user_id does not existed, created!')
-            sso_user = api.get_sso_user_info()
-            logger.debug(sso_user)
-            try:
-                enterprise = TenantEnterprise.objects.get(enterprise_id=sso_user.eid)
-            except TenantEnterprise.DoesNotExist:
-                enterprise = TenantEnterprise()
-                enterprise.enterprise_id = sso_user.eid
-                enterprise.enterprise_name = sso_user.company
-                enterprise.enterprise_alias = sso_user.company
-                enterprise.is_active = 1
-                enterprise.save()
-                logger.info(
-                    'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
-                                                                  enterprise.enterprise_name))
-
-            user = Users.objects.create(nick_name=sso_user.name,
-                                        email=sso_user.email or '',
-                                        phone=sso_user.mobile or '',
-                                        password=sso_user.pwd or '',
-                                        sso_user_id=sso_user.uid,
-                                        enterprise_id=sso_user.eid,
-                                        sso_user_token=sso_user_token,
-                                        is_active=False,
-                                        rf='sso')
-            logger.info(
-                'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(user.user_id, user.nick_name,
-                                                                                      user.rf,
-                                                                                      user.sso_user_id))
-            monitor_hook.registerMonitor(user, 'register')
-
-        if not user.is_active:
-            tenant = enterprise_svc.create_and_init_tenant(user.user_id, enterprise_id=user.enterprise_id)
-        else:
-            tenant = user_svc.get_default_tenant_by_user(user.user_id)
-        logger.info(tenant.to_dict())
-
-        # create gitlab user
-        if user.email is not None and user.email != "":
-            codeRepositoriesService.createUser(user, user.email, user.password, user.nick_name, user.nick_name)
-
-        # SSO用户登录
-        user = authenticate(user_id=user.user_id, sso_user_id=user.sso_user_id)
-        jwtlogin(request, user)
-        self.user = request.user
-
-        next_url = request.GET.get('next')
-        if next_url:
-            return self.redirect_to(next_url)
-        return self.redirect_to('/apps/{0}/'.format(tenant.tenant_name))
-
-
-class GoodrainSsoNotify(BaseView):
-    def post(self, request, *args, **kwargs):
-        """
-        SSO通知，用户信息同步回来
-        """
-        # 获取sso的user_id
-        sso_user_id = request.POST.get('uid')
-        sso_user_token = request.POST.get('token')
-        sso_enterprise_id = request.POST.get('eid')
-
-        logger.debug('request.sso_user_id:{}'.format(sso_user_id))
-        logger.debug('request.sso_user_token:{}'.format(sso_user_token))
-        logger.debug('request.sso_enterprise_id:{}'.format(sso_enterprise_id))
-
+class GoodrainSSONotify(AlowAnyApiView):
+    def __check_params(self, sso_user_id, sso_user_token, sso_enterprise_id):
         if not sso_user_id or not sso_user_token or not sso_enterprise_id:
-            logger.error('post params [uid] or [token] or [eid] not specified!')
-            return JsonResponse({'success': False, 'msg': 'post params [uid] or [token] or [eid] not specified!'})
-
+            logger.error('account.login', 'post params [uid] or [token] or [eid] not specified!')
+            return False, "post params [uid] or [token] or [eid] not specified!"
         if sso_user_id == 'null' or sso_user_token == 'null':
-            logger.error('bad uid or token, value is null!')
-            return JsonResponse({"success": False, 'msg': 'bad uid or token, value is null!'})
+            logger.error('account.login', 'bad uid or token, value is null!')
+            return False, "bad uid or token, value is null!"
+        return True, "success"
 
+    def __get_auth_user_token(self, sso_user_id, sso_user_token):
         api = GoodRainSSOApi(sso_user_id, sso_user_token)
         if not api.auth_sso_user_token():
-            logger.error('Illegal user token!')
-            return JsonResponse({"success": False, 'msg': 'auth from sso failed!'})
-
+            logger.error('account.login', 'Illegal user token!')
+            return False, "auth from sso failed!", None
         sso_user = api.get_sso_user_info()
-        logger.debug(sso_user)
-        # 同步sso_id所代表的用户与企业信息，没有则创建
+        return True, "success", sso_user
+
+    def __update_user_info(self, sso_user, sso_user_id, sso_user_token, rf):
         sso_eid = sso_user.get('eid')
-        sso_company = sso_user.get('company')
         sso_username = sso_user.get('name')
         sso_phone = sso_user.get('mobile')
         sso_pwd = sso_user.get('pwd')
-        try:
-            enterprise = TenantEnterprise.objects.get(enterprise_id=sso_eid)
-            logger.debug('query enterprise does existed, updated!')
-        except TenantEnterprise.DoesNotExist:
-            logger.debug('query enterprise does not existed, created!')
-            enterprise = TenantEnterprise()
-            enterprise.enterprise_id = sso_eid
-            enterprise.enterprise_name = sso_company
-            enterprise.enterprise_alias = sso_company
-            enterprise.is_active = 1
-            enterprise.save()
-            logger.info(
-                'create enterprise[{0}] with name {1}'.format(enterprise.enterprise_id,
-                                                              enterprise.enterprise_name))
 
-        try:
-            user = Users.objects.get(sso_user_id=sso_user_id)
+        # update or create user
+        user = user_services.get_user_by_sso_user_id(sso_user_id)
+        if user:
             user.sso_user_token = sso_user_token
             user.password = sso_pwd or ''
             user.phone = sso_phone or ''
             user.nick_name = sso_username
             user.enterprise_id = sso_eid
             user.save()
-
-            logger.debug('query user with sso_user_id existed, updated!')
-        except Users.DoesNotExist:
-            logger.debug('query user with sso_user_id does not existed, created!')
-            user = Users.objects.create(nick_name=sso_username,
-                                        email=sso_user.get('email') or '',
-                                        phone=sso_phone or '',
-                                        password=sso_pwd or '',
-                                        sso_user_id=sso_user.get('uid'),
-                                        enterprise_id=sso_eid,
-                                        sso_user_token=sso_user_token,
-                                        is_active=False,
-                                        rf='sso')
-            logger.info(
-                'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(user.user_id, user.nick_name,
-                                                                                      user.rf,
-                                                                                      user.sso_user_id))
-            monitor_hook.registerMonitor(user, 'register')
-
-        logger.debug('user.is_active:{}'.format(user.is_active))
-        if not user.is_active:
-            tenant = enterprise_svc.create_and_init_team(user.user_id, enterprise_id=user.enterprise_id)
+            logger.debug('account.login', 'query user with sso_user_id existed, updated!')
         else:
-            tenant = user_svc.get_default_tenant_by_user(user.user_id)
-        logger.info(tenant.to_dict())
+            user = user_services.create_user(sso_username, sso_pwd or '', sso_user.get('email') or '', sso_eid, rf)
+            user.phone = sso_phone or ''
+            user.sso_user_id = sso_user.get('uid')
+            user.sso_user_token = sso_user_token
+            user.is_active = False
+            user.save()
+            logger.debug('account.login', 'query user with sso_user_id does not existed, created!')
+        return user
 
-        key = request.POST.get('key')
-        logger.debug('invite key: {}'.format(key))
-        if key:
-            data = AuthCode.decode(str(key), 'goodrain').split(',')
-            logger.debug(data)
-            action = data[0]
-            if action == 'invite_tenant':
-                email, tenant_name, identity = data[1], data[2], data[3]
-                tenant = Tenants.objects.get(tenant_name=tenant_name)
-                if PermRelTenant.objects.filter(user_id=user.user_id, tenant_id=tenant.pk).count() == 0:
-                    invite_enter = TenantEnterprise.objects.get(enterprise_id=tenant.enterprise_id)
-                    PermRelTenant.objects.create(user_id=user.user_id, tenant_id=tenant.pk, identity=identity,
-                                                 enterprise_id=invite_enter.pk)
+    def __process_invite_tenant(self, user, data):
+        email, tenant_name, identity = data[1], data[2], data[3]
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name)
+        tenant_perm = perm_services.get_user_tenant_perm(tenant.ID, user.user_id)
+        if not tenant_perm:
+            invite_enter = enterprise_services.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+            perm_info = {
+                "user_id": user.user_id,
+                "tenant_id": tenant.ID,
+                "identity": identity,
+                "enterprise_id": invite_enter.pk
+            }
+            perm_services.add_user_tenant_perm(perm_info)
 
-            elif action == 'invite_service':
-                email, tenant_name, service_alias, identity = data[1], data[2], data[3], data[4]
-                tenant_service = TenantServiceInfo.objects.get(service_alias=service_alias)
-                if PermRelService.objects.filter(user_id=user.user_id, service_id=tenant_service.pk).count() == 0:
-                    PermRelService.objects.create(user_id=user.user_id, service_id=tenant_service.pk, identity=identity)
+    def __process_invite_service(self, user, data):
+        email, tenant_name, service_alias, identity = data[1], data[2], data[3], data[4]
+        service = service_repo.get_service_by_service_alias(service_alias)
+        service_perm = app_perm_service.get_user_service_perm(user.user_id, service.ID)
+        if not service_perm:
+            service_perm_repo.add_service_perm(user.user_id, service.ID, identity)
 
-            logger.debug('user invite sucess')
-        return JsonResponse({"success": True})
+    def __send_register_email(self, user, tenant, enterprise, rf_username):
+        try:
+            content = '新用户: {0}, 手机号: {1}, 租户: {2}, 邮箱: {3}, 企业: {4}, 微信名: {5}'.format(user.nick_name, user.phone,
+                                                                                       tenant.tenant_name,
+                                                                                       user.email,
+                                                                                       enterprise.enterprise_alias,
+                                                                                       rf_username)
+            send_mail("new user active tenant", content, 'no-reply@goodrain.com', notify_mail_list)
+        except Exception as e:
+            logger.exception(e)
+
+    def __init_and_create_user_tenant(self, user, enterprise):
+        # 创建租户信息
+        code, msg, team = team_services.create_team(user, enterprise)
+        if code != 200:
+            logger.debug("account.login","create tenant error")
+            return code, msg, team
+        # 创建用户在团队的权限
+        perm_info = {
+            "user_id": user.user_id,
+            "tenant_id": team.ID,
+            "identity": "owner",
+            "enterprise_id": enterprise.pk
+        }
+        perm_services.add_user_tenant_perm(perm_info)
+        # 创建用户在企业的权限
+        user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+        # 为团队开通默认数据中心并在数据中心创建租户
+        code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
+        if code != 200:
+            logger.debug("account.login", "create teanant on region error")
+            return code, msg, team
+        user.is_active = True
+        user.save()
+        return code, msg, team
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # 获取sso的user_id
+            sso_user_id = request.data.get('uid')
+            sso_user_token = request.data.get('token')
+            sso_enterprise_id = request.data.get('eid')
+            rf = request.data.get('rf') or 'sso'
+            market_client_id = request.data.get('eid')
+            market_client_token = request.data.get('etoken')
+            if not market_client_id or not market_client_token:
+                msg = "no market_client_id or market_client_token"
+                logger.debug('account.login', msg)
+                return Response({'success': False, 'msg': msg})
+            rf_username = request.data.get('rf_username') or ''
+            logger.debug('account.login',
+                         'request.sso_user_id:{0}  request.sso_user_token:{1}  request.sso_enterprise_id:{2}'.format(
+                             sso_user_id, sso_user_token, sso_enterprise_id))
+            is_pass, msg = self.__check_params(sso_user_id, sso_user_token, sso_enterprise_id)
+            if not is_pass:
+                return Response({'success': False, 'msg': msg})
+            is_pass, msg, sso_user = self.__get_auth_user_token(sso_user_id, sso_user_token)
+            if not is_pass:
+                return Response({'success': False, 'msg': msg})
+
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(sso_user.get('eid'))
+            if not enterprise:
+                sso_company = sso_user.get('company')
+                enterprise = enterprise_services.create_tenant_enterprise(sso_user.get('eid'), sso_company, sso_company,
+                                                                          True)
+            user = self.__update_user_info(sso_user, sso_user_id, sso_user_token, rf)
+            # 保存访问云市的token
+            domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
+            client_auth_service.save_market_access_token(enterprise.enterprise_id, domain, market_client_id,
+                                                         market_client_token)
+
+            key = request.data.get('key')
+            logger.debug('invite key: {0}'.format(key))
+            if key:
+                logger.debug('account.login', 'invite register: {}'.format(key))
+                data = AuthCode.decode(str(key), 'goodrain').split(',')
+                logger.debug(data)
+                action = data[0]
+                if action == 'invite_tenant':
+                    self.__process_invite_tenant(user, data)
+                elif action == 'invite_service':
+                    self.__process_invite_service(user, data)
+                user.is_active = True
+                user.save()
+                logger.debug('account.login', 'user invite register successful')
+            else:
+                logger.debug('account.login', 'register/login user.is_active:{}'.format(user.is_active))
+                if not user.is_active:
+                    code, msg, team = self.__init_and_create_user_tenant(user, enterprise)
+                    if code != 200:
+                        return Response({'success': False, 'msg': msg}, status=500)
+                    self.__send_register_email(user, team, enterprise, rf_username)
+            logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
+            teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
+            data_list = [{
+                             'uid': user.sso_user_id,
+                             'tenant_id': t.tenant_id,
+                             'tenant_name': t.tenant_name,
+                             'tenant_alias': t.tenant_alias,
+                             'eid': t.enterprise_id
+                         } for t in teams]
+            return Response({'success': True, 'list': data_list}, status=200)
+
+        except Exception as e:
+            logger.exception(e)
+            return Response({'success': False, 'msg': e.message}, status=500)

@@ -295,6 +295,22 @@ export function addRelationedApp(body = {
 }
 
 /*
+  添加依赖的应用
+*/
+export function batchAddRelationedApp(body = {
+	team_name,
+	app_alias,
+	dep_service_id
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/dependency`, {
+					method: 'patch',
+					data: {
+						dep_service_ids: body.dep_service_ids.join(',')
+					}
+	});
+}
+
+/*
 	删除依赖的应用
 */
 export function removeRelationedApp(body = {

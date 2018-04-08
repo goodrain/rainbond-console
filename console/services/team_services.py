@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
-import string
 import random
+import string
 
+from django.conf import settings
 from django.db import transaction
 
-from backends.models import RegionConfig
+from backends.models.main import RegionConfig
 from backends.services.exceptions import *
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
 from console.services.region_services import region_services
-from goodrain_web import settings
-from www.models.main import Tenants, PermRelTenant, Users, TenantRegionInfo, TenantEnterprise, TenantServiceInfo
-from backends.models.main import RegionConfig
-from www.db import BaseConnection
+from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
 
 logger = logging.getLogger("default")
 
@@ -43,38 +42,38 @@ class TeamService(object):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def add_team(self, team_alias, user, region_names):
-        team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
-        if not user:
-            return "400", u"用户不存在", None
-        creater = user.user_id
-        enterprise_id = user.enterprise_id
-        pay_type = 'payed'
-        pay_level = 'company'
-        expired_day = 7
-        if hasattr(settings, "TENANT_VALID_TIME"):
-            expired_day = int(settings.TENANT_VALID_TIME)
-        expire_time = datetime.datetime.now() + datetime.timedelta(
-            days=expired_day)
-        if Tenants.objects.filter(
-                tenant_name=team_name).exists():
-            return "400", u"团队已存在", None
-        if not RegionConfig.objects.filter(region_name__in=region_names).exists():
-            return "400", u"数据中心不存在", None
-
-        tenant = Tenants.objects.create(tenant_name=team_name, pay_type=pay_type, pay_level=pay_level,
-                                        creater=creater,
-                                        expired_time=expire_time, tenant_alias=team_alias,
-                                        enterprise_id=enterprise_id)
-        tenant.save()
-        try:
-            for region_name in region_names:
-                region_services.open_team_region(team_name=team_name, region_name=region_name)
-            return "200", u"成功", tenant
-        except Exception as e:
-            logger.exception(e)
-            tenant.delete()
-            return "500", u"开通数据中心错误", None
+    # def add_team(self, team_alias, user, region_names):
+    #     team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
+    #     if not user:
+    #         return "400", u"用户不存在", None
+    #     creater = user.user_id
+    #     enterprise_id = user.enterprise_id
+    #     pay_type = 'payed'
+    #     pay_level = 'company'
+    #     expired_day = 7
+    #     if hasattr(settings, "TENANT_VALID_TIME"):
+    #         expired_day = int(settings.TENANT_VALID_TIME)
+    #     expire_time = datetime.datetime.now() + datetime.timedelta(
+    #         days=expired_day)
+    #     if Tenants.objects.filter(
+    #             tenant_name=team_name).exists():
+    #         return "400", u"团队已存在", None
+    #     if not RegionConfig.objects.filter(region_name__in=region_names).exists():
+    #         return "400", u"数据中心不存在", None
+    #
+    #     tenant = Tenants.objects.create(tenant_name=team_name, pay_type=pay_type, pay_level=pay_level,
+    #                                     creater=creater,
+    #                                     expired_time=expire_time, tenant_alias=team_alias,
+    #                                     enterprise_id=enterprise_id)
+    #     tenant.save()
+    #     try:
+    #         for region_name in region_names:
+    #             region_services.open_team_region(team_name=team_name, region_name=region_name)
+    #         return "200", u"成功", tenant
+    #     except Exception as e:
+    #         logger.exception(e)
+    #         tenant.delete()
+    #         return "500", u"开通数据中心错误", None
 
     def add_user_to_tenant(self, tenant, user):
         perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
@@ -151,10 +150,6 @@ class TeamService(object):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
 
-    def get_enterprise_by_enterprise_id(self, enterprise_id):
-        enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
-        return enterprise
-
     @transaction.atomic
     def change_tenant_admin(self, user_id, other_user_id, tenant_name):
         s_id = transaction.savepoint()
@@ -204,21 +199,45 @@ class TeamService(object):
             transaction.savepoint_rollback(s_id)
             return 400, u"退出团队失败"
 
-    def get_team_id_by_group_id(self, group_id):
-        team_id = team_repo.get_team_id_by_group_id(group_id=group_id)
-        return team_id
-
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
         return team
 
-    def get_team_by_group_id(self, group_id):
-        dsn = BaseConnection()
-        query_sql = '''
-            SELECT t.tenant_name FROM service_group_relation s_g_r LEFT JOIN tenant_info t ON s_g_r.tenant_id=t.tenant_id WHERE s_g_r.group_id="{group_id}";
-        '''.format(group_id=group_id)
-        team = dsn.query(query_sql)
-        return team
+    def create_team(self, user, enterprise, region_list=None, team_alias=None):
+        team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
+        is_public = settings.MODULES.get('SSO_LOGIN')
+        if not is_public:
+            pay_type = 'payed'
+            pay_level = 'company'
+        else:
+            pay_type = 'free'
+            pay_level = 'company'
+        expired_day = 7
+        if hasattr(settings, "TENANT_VALID_TIME"):
+            expired_day = int(settings.TENANT_VALID_TIME)
+        expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
+        if not region_list:
+            region_list = [r.region_name for r in region_repo.get_usable_regions()]
+            if not region_list:
+                return 404, "无可用数据中心", None
+        default_region = region_list[0]
+        if not team_alias:
+            team_alias = "{0}的团队".format(user.nick_name)
+        params = {
+            "tenant_name": team_name,
+            "pay_type": pay_type,
+            "pay_level": pay_level,
+            "creater": user.user_id,
+            "region": default_region,
+            "expired_time": expire_time,
+            "tenant_alias": team_alias,
+            "enterprise_id": enterprise.enterprise_id,
+            "limit_memory": 4096
+        }
+        team = team_repo.create_tenant(**params)
+        return 200, "success", team
 
+    def get_enterprise_teams(self, enterprise_id):
+        return team_repo.get_teams_by_enterprise_id(enterprise_id)
 
 team_services = TeamService()

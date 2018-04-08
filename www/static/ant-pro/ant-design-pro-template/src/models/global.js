@@ -6,7 +6,10 @@ import {
   syncMarketApp,
   getMarketApp,
   syncMarketAppDetail,
-  authEnterprise
+  authEnterprise,
+  getCompanyInfo,
+  getRegionOneDayMoney,
+  getRegionSource
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -24,9 +27,38 @@ export default {
     currRegion: '',
     //云帮平台信息
     rainbondInfo: null,
-    apploadingnum: 0
+    apploadingnum: 0,
+    //显示充值提示
+    payTip: false
   },
   effects : {
+    *getRegionSource({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getRegionSource, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getRegionOneDayMoney({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getRegionOneDayMoney, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getCompanyInfo({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getCompanyInfo, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *authEnterprise({
       payload,
       callback
@@ -123,6 +155,18 @@ export default {
   },
 
   reducers : {
+    showPayTip(state){
+      return {
+        ...state,
+        payTip: true
+      };
+    },
+    hidePayTip(state){
+      return {
+        ...state,
+        payTip: false
+      };
+    },
     saveRainBondInfo(state, {payload}) {
 
       return {

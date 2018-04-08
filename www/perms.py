@@ -29,23 +29,24 @@ class PermActions(object):
     tenant_developer_actions = (
                                    ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
                                    ('code_deploy', u"部署代码"), ('deploy_service', u"部署服务"),
+                                   ('manage_service', u"维护服务"),
                                ) + tenant_viewer_actions
 
     tenant_admin_actions = (
                                ('modify_team_member_permissions', u'编辑权限'), ('add_tenant_members', u'添加团队成员'),
                                ('code_deploy', u"部署代码"),
                                ('create_service', u"创建服务"), ('delete_service', u"删除服务"),
-                               ('deploy_service', u"部署服务"), ('manage_service', u"维护服务"),
+                               ('deploy_service', u"部署服务"),
                                ('setting', u"租户设置"), ('perm_setting', u"权限管理"),
                                ('service_monitor', u"服务资源监控"), ('service_alert', u"服务资源报警"),
                                ('share_service', u"分享服务"), ('manage_group', u"操作服务组"), ('create_plugin', u"创建插件"),
-                               ('manage_plugin', u"创建插件"),
+                               ('manage_plugin', u"创建插件"), ('drop_tenant_members', u'删除团队成员'),
                                ('app_publish', u"应用发布"), ('app_download', u"应用下载")
                            ) + tenant_developer_actions
 
     tenant_owner_actions = (
                                ('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
-                               ('drop_tenant_members', u'删除团队成员'), ('modify_team_name', u'修改团队名称')
+                               ('modify_team_name', u'修改团队名称')
                            ) + tenant_admin_actions
 
     tenant_gray_actions = (
@@ -57,12 +58,12 @@ class PermActions(object):
 
     service_developer_actions = (
                                     ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
+                                    ('manage_service', u"维护服务"),
                                     ('code_deploy', u"部署代码"), ('deploy_service', u"部署服务"),
                                 ) + service_viewer_actions
 
     service_admin_actions = (
                                 ('code_deploy', u"部署代码"),
-                                ('manage_service', u"维护服务"),
                                 ('setting', u"服务设置"), ('perm_setting', u"权限管理")
                             ) + service_developer_actions
 

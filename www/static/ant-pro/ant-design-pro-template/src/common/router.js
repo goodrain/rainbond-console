@@ -85,6 +85,9 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/source': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Source/Index'))
     },
+    '/team/:team/region/:region/finance': {
+      component: dynamicWrapper(app, ['index'], () => import ('../routes/Finance/index'))
+    },
     '/team/:team/region/:region/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },
@@ -108,10 +111,10 @@ export const getRouterData = (app) => {
         'appDetail', 'appControl'
       ], () => import ('../routes/App/index'))
     },
-    '/team/:team/region/:region/create/code/:type?': {
+    '/team/:team/region/:region/create/code/:type?/:code?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/code'))
     },
-    '/team/:team/region/:region/create/market': {
+    '/team/:team/region/:region/create/market/:keyword?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/market'))
     },
     '/team/:team/region/:region/myplugns/:pluginId?': {
@@ -126,7 +129,7 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/create/create-compose-check/:groupId/:composeId': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/create-compose-check'))
     },
-    '/team/:team/region/:region/create/image/:type?': {
+    '/team/:team/region/:region/create/image/:type?/:image?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Create/image')),
       name: ''
     },

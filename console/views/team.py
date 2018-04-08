@@ -7,10 +7,11 @@ from rest_framework.response import Response
 
 from backends.services.exceptions import *
 from backends.services.resultservice import *
-from console.repositories.perm_repo import perms_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import perm_services
+from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from www.models import Tenants
 from console.repositories.plugin import config_group_repo, config_item_repo
@@ -58,6 +59,18 @@ class UserFuzSerView(JWTAuthApiView):
 
 
 class TeamUserDetaislView(JWTAuthApiView):
+
+    def get_highest_identity(self, identitys):
+        identity_map = {"access": 1, "viewer": 2, "developer": 3, "admin": 4, "owner": 5}
+        final_identity = identitys[0]
+        identity_num = -1
+        for i in identitys:
+            num = identity_map.get(final_identity)
+            if num > identity_num:
+                final_identity = i
+                identity_num = num
+        return final_identity
+
     def get(self, request, team_name, user_name, *args, **kwargs):
         """
         用户详情
@@ -75,12 +88,17 @@ class TeamUserDetaislView(JWTAuthApiView):
               paramType: path
         """
         try:
-            u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
-            teams = [{"team_identity": perm.identity} for perm in perms]
+            # u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user,team.enterprise_id)
+            perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
+            # teams = [{"team_identity": perm.identity} for perm in perms]
             data = dict()
-            data["nick_name"] = u.nick_name
-            data["email"] = u.email
-            data["teams_identity"] = teams[0]["team_identity"]
+            data["nick_name"] = self.user.nick_name
+            data["email"] = self.user.email
+            # data["teams_identity"] = teams[0]["team_identity"]
+            data["teams_identity"] = self.get_highest_identity(perms)
+            data["is_user_enter_amdin"] = is_user_enter_amdin
             code = 200
             result = general_message(code, "user details query success.", "用户详情获取成功", bean=data)
             return Response(result, status=code)
@@ -159,31 +177,27 @@ class AddTeamView(JWTAuthApiView):
                 result = general_message(400, "failed", "该团队名已存在")
                 return Response(result, status=400)
             else:
-                enterprise = enterprise_services.get_enterprise_first()
-                code, msg, team = team_services.add_team(team_alias=team_alias, user=user, region_names=regions)
-                if team:
-                    perm = perms_repo.add_user_tenant_perm(
-                        perm_info={
-                            "user_id": user.user_id,
-                            "tenant_id": team.ID,
-                            "identity": "owner",
-                            "enterprise_id": enterprise.ID
-                        }
-                    )
-                    if not perm:
-                        result = general_message(400, "invited failed", "团队关联失败，注册失败")
-                        return Response(result, status=400)
+                enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                if not enterprise:
+                    return Response(general_message(500,"user's enterprise is not found"),status=500)
+                code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
+
+                # 创建用户在团队的权限
+                perm_info = {
+                    "user_id": user.user_id,
+                    "tenant_id": team.ID,
+                    "identity": "owner",
+                    "enterprise_id": enterprise.pk
+                }
+                perm_services.add_user_tenant_perm(perm_info)
+                for r in regions:
+                    code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
+                    if code != 200:
+                        return Response(general_message(code, "add team error", msg), status=code)
                 # 添加默认的插件
                 self.add_default_plugin(self.user, team, regions)
-                if code == "200":
-                    data = {"team_name": team.tenant_name, "team_id": team.tenant_id, "team_ID": team.ID,
-                            "team_alisa": team.tenant_alias, "creater": team.creater, "user_num": 1,
-                            "enterprise_id": team.enterprise_id}
-                    result = general_message(code, "create new team success", "新建团队成功", bean=data)
-                    return Response(result, status=code)
-                else:
-                    result = general_message(code, 'failed', msg_show=msg)
-                    return Response(result, status=code)
+
+                return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
             code = 400
@@ -399,11 +413,11 @@ class UserDelView(JWTAuthApiView):
               paramType: body
         """
         try:
-            no_auth = "owner" not in team_services.get_user_perm_identitys_in_permtenant(
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            if no_auth:
+            if "owner" not in identitys and "admin" not in identitys:
                 code = 400
                 result = general_message(code, "no identity", "没有权限")
             else:

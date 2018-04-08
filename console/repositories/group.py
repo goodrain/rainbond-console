@@ -89,6 +89,8 @@ class GroupServiceRelationRepository(object):
     def get_service_group_relation_by_groups(self,group_ids):
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids)
 
+    def get_services_by_group(self, group_id):
+        return ServiceGroupRelation.objects.filter(group_id=group_id)
 
 class TenantServiceGroupRepository(object):
     def delete_tenant_service_group_by_pk(self, pk):

@@ -31,7 +31,9 @@
           Authorization: 'GRJWT '+ $.cookie('token')
        },
        complete: function(XMLHttpRequest, status) { //请求完成后最终执行参数　
-          location.href="/index#/create/code/github";
+          var team = $.cookie('team');
+          var region_name = $.cookie('region_name')
+          location.href="/#/team/"+team+"/region/"+region_name+"/create/code/github";
        }
     })
 

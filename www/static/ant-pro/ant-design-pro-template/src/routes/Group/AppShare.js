@@ -125,8 +125,8 @@ class AppInfo extends PureComponent {
           {app
             .service_connect_info_map_list
             .map((item) => {
-              return <Col span={12}>
-                <FormItem label={item.attr_name}>
+              return <Col span={8}>
+                <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('connect||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
                     rules: [
@@ -137,6 +137,7 @@ class AppInfo extends PureComponent {
                     ]
                   })(<Input placeholder={item.attr_value}/>)}
                   {getFieldDecorator('connect||' + item.attr_name + '||random', {
+                    valuePropName: 'checked',
                     rules: [
                       {
                         required: false,
@@ -148,18 +149,19 @@ class AppInfo extends PureComponent {
                     <Checkbox
                       onChange={this
                       .handleCheckChange
-                      .bind(this, item.attr_name, item.attr_value)}>是否随机生成值</Checkbox>
+                      .bind(this, 'connect||' + item.attr_name + '||attr_value', item.attr_value)}>生成随机值</Checkbox>
                   )}
                   {getFieldDecorator('connect||' + item.attr_name + '||is_change', {
+                    valuePropName: 'checked',
+                    initialValue: item.is_change,
                     rules: [
                       {
                         required: false,
                         message: ''
                       }
-                    ],
-                    initialValue: item.is_change
+                    ]
                   })(
-                    <Checkbox>值是否可改</Checkbox>
+                    <Checkbox>可修改</Checkbox>
                   )}
                 </FormItem>
               </Col>
@@ -185,8 +187,8 @@ class AppInfo extends PureComponent {
           {app
             .service_env_map_list
             .map((item) => {
-              return <Col span={12}>
-                <FormItem label={item.attr_name}>
+              return <Col span={8}>
+                <FormItem label={item.attr_name} style={{padding: 16}}>
                   {getFieldDecorator('env||' + item.attr_name + '||attr_value', {
                     initialValue: item.attr_value,
                     rules: [
@@ -197,6 +199,7 @@ class AppInfo extends PureComponent {
                     ]
                   })(<Input/>)}
                   {getFieldDecorator('env||' + item.attr_name + '||is_change', {
+                    valuePropName: 'checked',
                     initialValue: item.is_change,
                     rules: [
                       {
@@ -205,7 +208,7 @@ class AppInfo extends PureComponent {
                       }
                     ]
                   })(
-                    <Checkbox>可否修改</Checkbox>
+                    <Checkbox>可修改</Checkbox>
                   )}
                 </FormItem>
               </Col>
@@ -230,7 +233,7 @@ class AppInfo extends PureComponent {
         <Divider/>
         <Row>
           <Col span={8}>
-            <FormItem label={"最小节点(个)"}>
+            <FormItem label={"最小节点(个)"} style={{padding: 16}}>
               {getFieldDecorator('extend||min_node', {
                 initialValue: app.extend_method_map.min_node,
                 rules: [
@@ -239,7 +242,7 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入最小节点'
                 min={app.extend_method_map.min_node}
                 max={app.extend_method_map.max_node}
@@ -247,7 +250,7 @@ class AppInfo extends PureComponent {
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label={"节点步长(个)"}>
+            <FormItem label={"节点步长(个)"} style={{padding: 16}}>
               {getFieldDecorator('extend||step_node', {
                 initialValue: app.extend_method_map.step_node,
                 rules: [
@@ -256,14 +259,14 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入节点步长'
                 min={app.extend_method_map.min_node}
                 max={app.extend_method_map.max_node}/>)}
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label={"最小内存(M)"}>
+            <FormItem label={"最小内存(M)"} style={{padding: 16}}>
               {getFieldDecorator('extend||min_memory', {
                 initialValue: app.extend_method_map.min_memory,
                 rules: [
@@ -272,7 +275,8 @@ class AppInfo extends PureComponent {
                     message: '输入格式不正确'
                   }
                 ]
-              })(<InputNumber
+              })(<InputNumber style={{width: '100%'}}
+                
                 placeholder='请输入最小内存'
                 min={app.extend_method_map.min_memory}
                 max={app.extend_method_map.max_memory}
@@ -419,12 +423,12 @@ export default class Main extends PureComponent {
       })
       //////
     })
-    console.log(share_service_data);
     newinfo['share_group_info'] = this.share_group_info;
     newinfo['share_service_list'] = share_service_data;
     const team_name = globalUtil.getCurrTeamName();
     var shareId = this.props.match.params.shareId;
     var groupId = this.props.match.params.groupId;
+
     dispatch({
       type: 'groupControl/subShareInfo',
       payload: {
@@ -545,7 +549,7 @@ export default class Main extends PureComponent {
                   <Col span="12">
                     <Form.Item {...formItemLayout} label='分享范围'>
                       {getFieldDecorator('scope', {
-                        initialValue: 'team',
+                        initialValue: appinfo.scope || 'team',
                         rules: [
                           {
                             required: true

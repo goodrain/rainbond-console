@@ -200,11 +200,12 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                if service.service_source != AppConstants.MARKET:
-                    data['service_key'] = make_uuid()
-                    data['need_share'] = True
-                else:
-                    data['need_share'] = False
+                # if service.service_source != AppConstants.MARKET:
+                #     data['service_key'] = make_uuid()
+                #     data['need_share'] = True
+                # else:
+                #     data['need_share'] = False
+                data['need_share'] = True
                 data['category'] = service.category
                 data['language'] = service.language
                 data['extend_method'] = service.extend_method
@@ -373,20 +374,13 @@ class ShareService(object):
                 # 处理事件的应用
                 if app["service_key"] == record_event.service_key:
                     body = {
-                        "service_key":
-                        app["service_key"],
-                        "app_version":
-                        rc_app.version,
-                        "event_id":
-                        event.event_id,
-                        "share_user":
-                        user.nick_name,
-                        "share_scope":
-                        rc_app.scope,
-                        "image_info":
-                        app.get("service_image", None),
-                        "slug_info":
-                        app.get("service_slug", None)
+                        "service_key": app["service_key"],
+                        "app_version": rc_app.version,
+                        "event_id": event.event_id,
+                        "share_user": user.nick_name,
+                        "share_scope": rc_app.scope,
+                        "image_info": app.get("service_image", None),
+                        "slug_info": app.get("service_slug", None)
                     }
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
@@ -521,8 +515,8 @@ class ShareService(object):
             # 处理基本信息
             try:
                 app_templete["template_version"] = "v2"
-                app_templete["group_key"] = make_uuid()
                 group_info = share_info["share_group_info"]
+                app_templete["group_key"] = group_info["group_key"]
                 app_templete["group_name"] = group_info["group_name"]
                 app_templete["group_version"] = group_info["version"]
             except Exception as e:
@@ -648,7 +642,6 @@ class ShareService(object):
             # 分享到云市
             if app.scope == "goodrain":
                 app_market_url = self.publish_app_to_public_market(tenant, user.nick_name, app)
-
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
@@ -673,7 +666,7 @@ class ShareService(object):
         result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
         # 云市url
         app_url = result["app_url"]
-
         return app_url
+
 
 share_service = ShareService()

@@ -39,6 +39,8 @@ const appActionLogUtil = {
 	    }
 	    var final_status_json = {
 	        "complate" : "完成",
+			"timeout" : "超时",
+			"failure" : "失败",
 	        "timeout" : "超时"
 	    }
 	    

@@ -15,6 +15,7 @@ from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
 
 DEFAULT_HANDLERS = ['file_handler']
 
@@ -159,6 +160,13 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'standard',
+        },
+        'zmq_handler': {
+            'level': "DEBUG",
+            'class': 'goodrain_web.log.ZmqHandler',
+            'address': ZMQ_LOG_ADDRESS,
+            'root_topic': 'goodrain_web',
+            'formatter': 'zmq_formatter',
         }
     },
     'loggers': {

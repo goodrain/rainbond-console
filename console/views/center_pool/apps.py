@@ -6,6 +6,7 @@ from django.views.decorators.cache import never_cache
 
 from rest_framework.response import Response
 
+from console.exception.main import ResourceNotEnoughException
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
@@ -105,13 +106,17 @@ class CenterAppView(RegionTenantHeaderView):
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant, app)
+            allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant,
+                                                                                             self.response_region, app)
             if not allow_create:
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

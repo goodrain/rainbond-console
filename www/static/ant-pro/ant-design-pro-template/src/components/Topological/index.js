@@ -10,6 +10,9 @@ class Index extends React.Component {
   constructor(props) {
     super(props);
   }
+  componentDidMount(){
+  
+  }
   componentWillMount() {
     const team_name = globalUtil.getCurrTeamName();
     const groupId = this.props.group_id;
@@ -17,6 +20,21 @@ class Index extends React.Component {
     try {
 
       window.iframeGetNodeUrl = function () {
+        return config.baseUrl + '/console/teams/' + team_name + '/topological?group_id=' + groupId+'&region='+globalUtil.getCurrRegionName();
+      }
+
+      window.iframeGetMonitor = function (fn) {
+        self.props.dispatch({
+            type: 'groupControl/groupMonitorData',
+            payload: {
+              team_name: globalUtil.getCurrTeamName(),
+              group_id: groupId
+            },
+            callback: (data) => {
+              fn && fn(data || {})
+            }
+        })
+
         return config.baseUrl + '/console/teams/' + team_name + '/topological?group_id=' + groupId+'&region='+globalUtil.getCurrRegionName();
       }
 
