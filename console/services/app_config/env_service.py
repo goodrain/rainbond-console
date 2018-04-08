@@ -149,3 +149,93 @@ class AppEnvService(object):
     def update_service_compile_env(self, service, **update_params):
         compile_env_repo.update_service_compile_env(service.service_id, **update_params)
         return compile_env_repo.get_service_compile_env(service.service_id)
+
+    def get_service_default_env_by_language(self, language):
+        """
+        根据指定的语言找到默认的环境变量
+        :param language:  语言
+        :return: 语言对应的默认的环境变量
+        """
+        checkJson = {}
+        if language == "dockerfile":
+            checkJson["language"] = 'dockerfile'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Python":
+            checkJson["language"] = 'Python'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Ruby":
+            checkJson["language"] = 'Ruby'
+            checkJson["runtimes"] = "2.0.0"
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "PHP":
+            checkJson["language"] = 'PHP'
+            checkJson["runtimes"] = "5.6.11"
+            checkJson["procfile"] = "apache"
+            dependencies = {"ext-bcmath": "*", "ext-redis": "*", "ext-apcu": "*", "ext-calendar": "*",
+                            "ext-blackfire": "*", "ext-gettext": "*", "ext-pcntl": "*", "ext-xmlrpc": "*",
+                            "ext-mongo": "*", "ext-imagick": "*", "ext-xsl": "*", "ext-gd": "*", "ext-exif": "*",
+                            "ext-pdo_sqlite": "*", "ext-intl": "*", "ext-oauth": "*", "ext-soap": "*",
+                            "ext-memcached": "*", "ext-shmop": "*", "ext-mbstring": "*", "ext-newrelic": "*",
+                            "ext-ftp": "*", "ext-sqlite3": "*"}
+            checkJson["dependencies"] = dependencies
+        elif language == "Java-maven":
+            checkJson["language"] = 'Java-maven'
+            checkJson["runtimes"] = "1.8"
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Java-war":
+            checkJson["language"] = 'Java-war'
+            checkJson["runtimes"] = "1.8"
+            checkJson["procfile"] = "tomcat7"
+            checkJson["dependencies"] = {}
+        elif language == "Java-jar":
+            checkJson["language"] = 'Java-jar'
+            checkJson["runtimes"] = "1.8"
+            checkJson["procfile"] = "tomcat7"
+            checkJson["dependencies"] = {}
+        elif language == "Node.js":
+            checkJson["language"] = 'Node.js'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "static":
+            checkJson["language"] = 'static'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = "apache"
+            checkJson["dependencies"] = {}
+        elif language == "Clojure":
+            checkJson["language"] = 'Clojure'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Go":
+            checkJson["language"] = 'Go'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Gradle":
+            checkJson["language"] = 'Gradle'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Play":
+            checkJson["language"] = 'Play'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Grails":
+            checkJson["language"] = 'Grails'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        elif language == "Scala":
+            checkJson["language"] = 'Scala'
+            checkJson["runtimes"] = ""
+            checkJson["procfile"] = ""
+            checkJson["dependencies"] = {}
+        return checkJson
