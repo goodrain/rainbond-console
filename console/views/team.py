@@ -612,11 +612,11 @@ class TeamDetailView(JWTAuthApiView):
               paramType: path
         """
         try:
-            user_team_perm = team_services.get_user_perms_in_permtenant(self.user.user_id, team_name)
+
             tenant = team_services.get_tenant_by_tenant_name(team_name)
             if not tenant:
                 return Response(general_message(404, "team not exist", "团队{0}不存在".format(team_name)), status=404)
-
+            user_team_perm = team_services.get_user_perms_in_permtenant(self.user.user_id, team_name)
             tenant_info = dict()
             team_region_list = region_services.get_region_list_by_team_name(request=request,
                                                                             team_name=team_name)
