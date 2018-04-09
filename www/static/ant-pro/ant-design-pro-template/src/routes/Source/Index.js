@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import {connect} from 'dva';
 import {Link} from 'dva/router';
 import {
@@ -107,7 +107,9 @@ class AppList extends PureComponent {
             app_name: '',
             apps: [],
             loading: true,
-            total: 0
+            total: 0,
+            type: "",
+            showOfflineApp: null
         }
     }
     componentDidMount = () => {
@@ -144,7 +146,8 @@ class AppList extends PureComponent {
                     payload: {
                         app_name: this.state.app_name,
                         page: this.state.page,
-                        pageSize: this.state.pageSize
+                        pageSize: this.state.pageSize,
+                        is_complete: this.state.type
                     },
                     callback: (data) => {
                         this.setState({
@@ -193,9 +196,41 @@ class AppList extends PureComponent {
                 }
             })
     }
+    handleTypeChange = (e) => {
+        this.setState({type: e.target.value, page: 1}, () => {
+            this.loadApps();
+        })
+    }
+    handleOfflineApp = () => {
+        const app = this.state.showOfflineApp;
+        this.props.dispatch({
+            type: 'global/offlineMarketApp',
+            payload:{
+                app_id: app.ID
+            },
+            callback: () => {
+                notification.success({
+                    message: '卸载成功'
+                })
+                this.hideOfflineApp();
+                this.loadApps();
+            }
+        })
+    }
+    showOfflineApp = (app) => {
+        this.setState({showOfflineApp: app})
+    }
+    hideOfflineApp = () => {
+        this.setState({showOfflineApp: null})
+    }
     render() {
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
+                <RadioGroup onChange={this.handleTypeChange} defaultValue={this.state.type}>
+                    <RadioButton value="">全部</RadioButton>
+                    <RadioButton value={true}>已下载</RadioButton>
+                    <RadioButton value={false}>未下载</RadioButton>
+                </RadioGroup>
                 <Search
                     className={BasicListStyles.extraContentSearch}
                     placeholder="请输入名称进行搜索"
@@ -257,11 +292,19 @@ class AppList extends PureComponent {
                         renderItem={item => (
                         <List.Item
                             actions={[item.is_complete
-                                ? <a
+                                ? <Fragment>
+                                 <a
+                                    style={{marginRight: 8}}
                                         href="javascirpt:;"
                                         onClick={() => {
                                         this.handleLoadAppDetail(item)
                                     }}>更新应用</a>
+                                    <a
+                                        href="javascirpt:;"
+                                        onClick={() => {
+                                        this.showOfflineApp(item)
+                                    }}>卸载应用</a>
+                                 </Fragment>
                                 : <a
                                     href="javascirpt:;"
                                     onClick={() => {
@@ -279,6 +322,7 @@ class AppList extends PureComponent {
                     )}/>
 
                 </Card>
+                {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
             </div>
         )
     }
@@ -409,6 +453,7 @@ class AppList extends PureComponent {
         return (
             <PageHeaderLayout content={pageHeaderContent}>
                 {this.renderContent()}
+                
             </PageHeaderLayout>
         );
     }
