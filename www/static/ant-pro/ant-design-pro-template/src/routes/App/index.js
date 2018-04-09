@@ -612,7 +612,7 @@ class Main extends PureComponent {
                         <Button>其他操作<Icon type="ellipsis"/></Button>
                     </Dropdown>
                 </ButtonGroup>
-                {(appStatusUtil.canDeploy(status))
+                {(appUtil.canDeploy(appDetail) && appStatusUtil.canDeploy(status))
                     ? <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
                     : ''}
 

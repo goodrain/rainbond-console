@@ -96,7 +96,6 @@ class ShareEvent extends React.Component {
             if (this.state.status === 'failure') {
               this.onFail()
             }
-
             setTimeout(() => {
               this.getShareStatus()
             }, 5000)

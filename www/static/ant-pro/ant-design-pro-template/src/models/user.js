@@ -7,7 +7,8 @@ import {
   register,
   gitlabRegister,
   createGitlabProject,
-  changePass
+  changePass,
+  getTeamByName
 } from '../services/user';
 import {setAuthority} from '../utils/authority';
 import cookie from '../utils/cookie';
@@ -24,6 +25,21 @@ export default {
   },
 
   effects : {
+    *getTeamByName({
+      payload,
+      callback,
+      fail
+    }, {call, put, select}) {
+      const response = yield call(getTeamByName, payload);
+      if (response) {
+        yield put({type:'saveOtherTeam', team: response.bean});
+        setTimeout(()=>{
+          callback && callback(response.bean);
+        })
+      }else{
+        fail && fail();
+      }
+    },
     *changePass({
       payload,
       callback
@@ -174,6 +190,14 @@ export default {
       return {
         ...state,
         currentUser: action.payload
+      };
+    },
+    saveOtherTeam(state, action) {
+      const currentUser = state.currentUser;
+      currentUser.teams.push(action.team);
+      return {
+        ...state,
+        currentUser: currentUser
       };
     },
     changeNotifyCount(state, action) {
