@@ -39,6 +39,9 @@ class ShareEvent extends React.Component {
   }
   componentDidMount = () => {
     this.mount = true;
+    this.checkStatus();
+  }
+  checkStatus = () => {
     const data = this.state.data;
     if (data.event_status === 'not_start') {
       this.startShareEvent();
