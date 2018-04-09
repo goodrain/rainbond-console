@@ -35,7 +35,6 @@ class ShareEvent extends React.Component {
     if (region) {
       this.socketUrl = regionUtil.getEventWebSocketUrl(region);
     }
-
   }
   componentDidMount = () => {
     this.mount = true;
@@ -43,17 +42,18 @@ class ShareEvent extends React.Component {
   }
   checkStatus = () => {
     const data = this.state.data;
-    if (data.event_status === 'not_start') {
-      this.startShareEvent();
+    const status = this.state.status;
+    if (status === 'not_start') {
+      this.props.receiveStartShare && this.props.receiveStartShare(this.startShareEvent);
     }
-    if (data.event_status === 'start') {
+    if (status === 'start') {
       this.getShareStatus();
     }
-    if (data.event_status === 'success') {
+    if (status === 'success') {
       this.onSuccess();
     }
 
-    if (data.event_status === 'failure') {
+    if (status === 'failure') {
       this.onFail();
     }
   }
@@ -120,6 +120,7 @@ class ShareEvent extends React.Component {
             status: data.bean.event_status
           }, () => {
             this.getShareStatus();
+            this.props.onStartSuccess && this.props.onStartSuccess()
           })
         }
       })
@@ -140,7 +141,7 @@ class ShareEvent extends React.Component {
   }
   render() {
     const data = this.state.data || {};
-    const eventId = this.state.eventId
+    const eventId = this.state.eventId;
     return (
       <div style={{
         marginBottom: 24
@@ -165,11 +166,25 @@ export default class shareCheck extends PureComponent {
       status: 'checking',
       shareEventList: [],
       successNum: 0,
-      showDelete: false
+      showDelete: false,
+      startShareCallback: [],
+      isStart: false
     }
     this.fails = []
     this.mount = false;
-
+  }
+  receiveStartShare = (callback) => {
+     this.state.startShareCallback.push(callback);
+     if(!this.state.isStart){
+        this.state.isStart = true;
+        callback();
+     }
+  }
+  handleStartShareSuccess = () => {
+     this.state.startShareCallback.shift();
+     if(this.state.startShareCallback[0]){
+      this.state.startShareCallback[0]();
+     }
   }
   componentDidMount() {
     this.mount = true;
@@ -314,6 +329,8 @@ export default class shareCheck extends PureComponent {
         <div>
           {(eventList || []).map((item) => {
             return <ShareEvent
+              receiveStartShare = {this.receiveStartShare}
+              onStartSuccess = {this.handleStartShareSuccess}
               onFail={this.handleFail}
               onSuccess={this.handleSuccess}
               share_id={params.shareId}
