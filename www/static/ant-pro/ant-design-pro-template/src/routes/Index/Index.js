@@ -296,7 +296,7 @@ export default class Index extends PureComponent {
 
     var statusCNMap = {
       '': '进行中',
-      'success': '成功',
+      'complete': '完成',
       'failure': '失败',
       'timeout': '超时'
     }
@@ -310,7 +310,7 @@ export default class Index extends PureComponent {
             styles.event
           } > {
             item.type_cn
-          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span>{statusCNMap[item.final_status] || ''}</span></span> }
+          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span>{statusCNMap[item.final_status] ? `(${statusCNMap[item.final_status]})` : ''}</span></span> }
             description={< span className = {
             styles.datetime
           }
