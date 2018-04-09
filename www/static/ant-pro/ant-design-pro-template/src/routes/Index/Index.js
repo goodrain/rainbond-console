@@ -310,7 +310,9 @@ export default class Index extends PureComponent {
             styles.event
           } > {
             item.type_cn
-          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span>{statusCNMap[item.final_status] ? `(${statusCNMap[item.final_status]})` : ''}</span></span> }
+          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span  className = {
+            styles.datetime
+          }>{statusCNMap[item.final_status] ? `(${statusCNMap[item.final_status]})` : ''}</span></span> }
             description={< span className = {
             styles.datetime
           }

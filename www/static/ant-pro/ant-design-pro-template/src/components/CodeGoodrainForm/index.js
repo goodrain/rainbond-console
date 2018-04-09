@@ -89,6 +89,7 @@ export default class Index extends PureComponent {
 			addGroup: false,
 			showCreateProject: false,
 			gitlabUrl:'',
+			gitlabId: '',
 			codeList:[],
 			branchs:[]
 		}
@@ -166,7 +167,7 @@ export default class Index extends PureComponent {
 				...value
 			},
 			callback:(bean)=>{
-				this.setState({gitlabUrl: bean.http_repo_url})
+				this.setState({gitlabUrl: bean.http_repo_url, gitlabId: bean.project_id})
 				this.handleCancelCreateProject();
 				this.showCreateProjectOk();
 			}
@@ -181,7 +182,9 @@ export default class Index extends PureComponent {
 		    	<p>请前往上传源码, 完成后点击 已上传源码 继续创建</p>
 		    </div>,
 		    onOk: ()=>{
-		    	location.reload();
+					this.getGitlabInfo().then((data)=>{
+						this.props.form.setFieldsValue({'git_project_id': this.state.gitlabId})
+					})
 		    },
 		    okText: '已上传源码'
 		});
@@ -189,7 +192,7 @@ export default class Index extends PureComponent {
 	getGitlabInfo = () => {
 		var self = this;
 		
-		getGitlabInfo({
+		return getGitlabInfo({
 			team_name: globalUtil.getCurrTeamName()
 		}).then((data)=>{
 			 if(data && data.bean){
@@ -199,7 +202,6 @@ export default class Index extends PureComponent {
 			 		if(defaultProjectId){
 			 			this.getCodeBranchs(defaultProjectId);
 			 		}
-			 		
 			 	});
 			 }
 		})
