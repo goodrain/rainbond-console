@@ -294,6 +294,13 @@ export default class Index extends PureComponent {
       }}>暂无动态</p>
     }
 
+    var statusCNMap = {
+      '': '进行中',
+      'success': '成功',
+      'failure': '失败',
+      'timeout': '超时'
+    }
+
     return list.map((item) => {
       const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${item.service_alias}/overview`;
       return (
@@ -303,7 +310,7 @@ export default class Index extends PureComponent {
             styles.event
           } > {
             item.type_cn
-          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span>{item.statuc === 'success' ? '成功' : '失败'}</span></span> }
+          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span>{statusCNMap[item.final_status] || ''}</span></span> }
             description={< span className = {
             styles.datetime
           }
