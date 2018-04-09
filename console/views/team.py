@@ -15,6 +15,7 @@ from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from www.models import Tenants
 from console.repositories.plugin import config_group_repo, config_item_repo
+from www.perms import PermActions, get_highest_identity
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
 from console.services.plugin import plugin_service, plugin_version_service
@@ -596,3 +597,54 @@ class TeamExitView(JWTAuthApiView):
                 logger.exception(e)
                 result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class TeamDetailView(JWTAuthApiView):
+    def get(self, request, team_name, *args, **kwargs):
+        """
+        获取团队详情
+        ---
+        parameters:
+            - name: team_name
+              description: team name
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            user_team_perm = team_services.get_user_perms_in_permtenant(self.user.user_id, team_name)
+            tenant = team_services.get_tenant_by_tenant_name(team_name)
+            if not tenant:
+                return Response(general_message(404, "team not exist", "团队{0}不存在".format(team_name)), status=404)
+
+            tenant_info = dict()
+            team_region_list = region_services.get_region_list_by_team_name(request=request,
+                                                                            team_name=team_name)
+            p = PermActions()
+            tenant_info["team_id"] = tenant.ID
+            tenant_info["team_name"] = tenant.tenant_name
+            tenant_info["team_alias"] = tenant.tenant_alias
+            tenant_info["limit_memory"] = tenant.limit_memory
+            tenant_info["pay_level"] = tenant.pay_level
+            tenant_info["region"] = team_region_list
+            tenant_info["creater"] = tenant.creater
+            tenant_info["create_time"] = tenant.create_time
+
+            if not user_team_perm:
+                if not self.user.is_sys_admin:
+                    return Response(general_message(403, "you right to see this team", "您无权查看此团队"), 403)
+                else:
+                    final_identity = "viewer"
+            else:
+                perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                                 tenant_name=tenant.tenant_name)
+                final_identity = get_highest_identity(perms_list)
+            tenant_info["identity"] = final_identity
+            tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
+            tenant_info["tenant_actions"] = tenant_actions
+            return Response(general_message(200, "success", "查询成功", bean=tenant_info), status=200)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
