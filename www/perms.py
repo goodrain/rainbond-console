@@ -166,8 +166,8 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
         except PermRelService.DoesNotExist:
             pass
 
-    if user.is_sys_admin:
-        return True
+    # if user.is_sys_admin:
+    #     return True
 
     if perm in user.actions:
         return True
