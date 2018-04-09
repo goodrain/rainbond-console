@@ -200,8 +200,8 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                # if service.service_source != AppConstants.MARKET:
-                #     data['service_key'] = make_uuid()
+                if service.service_source != AppConstants.MARKET:
+                    data['service_key'] = make_uuid()
                 #     data['need_share'] = True
                 # else:
                 #     data['need_share'] = False
