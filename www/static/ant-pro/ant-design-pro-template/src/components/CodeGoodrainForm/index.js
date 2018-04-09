@@ -182,10 +182,8 @@ export default class Index extends PureComponent {
 		    	<p>请前往上传源码, 完成后点击 已上传源码 继续创建</p>
 		    </div>,
 		    onOk: ()=>{
-					this.getGitlabInfo().then((data)=>{
-						this.props.form.setFieldsValue({'git_project_id': this.state.gitlabId})
-
-					})
+					this.props.form.setFieldsValue({'git_project_id': this.state.gitlabId})
+					this.getGitlabInfo();
 		    },
 		    okText: '已上传源码'
 		});
@@ -198,7 +196,7 @@ export default class Index extends PureComponent {
 		}).then((data)=>{
 			 if(data && data.bean){
 			 	self.setState({codeList: data.list ||[]}, ()=>{
-					const { getFieldDecorator, getFieldValue } = this.props.form;
+					const { getFieldValue } = this.props.form;
 					const defaultProjectId = getFieldValue('git_project_id') || this.getDefaultProjectId();
 			 		if(defaultProjectId){
 			 			this.getCodeBranchs(defaultProjectId);
