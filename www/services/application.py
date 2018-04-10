@@ -159,7 +159,7 @@ class ApplicationGroupService(object):
 
     def get_app_templates(self, tenant_id, group_key, group_version):
         app = self.get_local_app_templates(group_key, group_version)
-        if app:
+        if app and app.is_complete:
             logger.debug('local group template existed, ignore.')
             logger.debug("======> {0}".format(app.app_template))
             # 字符串
