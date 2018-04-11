@@ -21,7 +21,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       libc-dev \
       libffi-dev \
       mariadb-dev \
-	mariadb-client-libs \ 
+	mariadb-client-libs \
       freetype-dev \
       libpng-dev \
       libjpeg-turbo-dev \
@@ -39,7 +39,6 @@ RUN python manage.py collectstatic --noinput
 ENV PORT 7070
 
 ENV RELEASE_DESC=__RELEASE_DESC__
-
 
 ENTRYPOINT ["./entrypoint.sh"]
 

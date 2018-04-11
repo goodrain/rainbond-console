@@ -3,6 +3,7 @@ import hashlib
 import logging
 import random
 import uuid
+import re
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -25,6 +26,7 @@ from_top = 4
 logger = logging.getLogger('default')
 current_path = settings.BASE_DIR
 
+NON_DIGITS_RX = re.compile('[^\d]')
 
 class CaptchaView(BaseApiView):
 
@@ -43,6 +45,7 @@ class CaptchaView(BaseApiView):
         mp_src = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         text = mp_src[0:4]
         request.session["captcha_code"] = text
+        request.session.save()
         font_path = current_path + "/www/static/www/fonts/Vera.ttf"
         logger.debug("======> font path " + str(font_path))
         font = ImageFont.truetype(font_path, 22)

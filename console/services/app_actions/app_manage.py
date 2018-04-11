@@ -535,6 +535,7 @@ class AppManageService(AppManageBase):
     def move_service_into_recycle_bin(self, service):
         """将服务移入回收站"""
         data = service.toJSON()
+        data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
         service.delete()
         return trash_service
@@ -545,6 +546,7 @@ class AppManageService(AppManageBase):
         if relations:
             for r in relations:
                 r_data = r.to_dict()
+                r_data.pop("ID")
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
         # 如果服务关系回收站有被此服务依赖的服务，将信息及其对应的数据中心的依赖关系删除

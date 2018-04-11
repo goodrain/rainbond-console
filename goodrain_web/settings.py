@@ -117,9 +117,7 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
-
 STATIC_ROOT = 'static/'
-
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
