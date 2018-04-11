@@ -52,7 +52,7 @@ from console.views.service_share import ServiceShareInfoView, ServiceShareDelete
     ServiceShareCompleteView, ServiceShareRecordView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
-    UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView
+    UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -110,7 +110,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
     # 邀请注册
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
-
+    # 团队详情
+    url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view()),
     # 获取当前租户已开通的数据中心(简表)

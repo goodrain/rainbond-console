@@ -159,7 +159,7 @@ class ApplicationGroupService(object):
 
     def get_app_templates(self, tenant_id, group_key, group_version):
         app = self.get_local_app_templates(group_key, group_version)
-        if app:
+        if app and app.is_complete:
             logger.debug('local group template existed, ignore.')
             logger.debug("======> {0}".format(app.app_template))
             # 字符串
@@ -516,12 +516,16 @@ class ApplicationGroupService(object):
                 return
 
             port = tenant_ports.first().container_port
+            is_used = 1
+            # 特殊处理小强数据库
+            if service.service_key == "66ee1676270f74b76e2a431671e8f320":
+                is_used = 0
             service_probe = ServiceProbe(service_id=service.service_id,
                                          scheme='tcp', path='', http_header='', cmd='',
                                          port=port,
                                          initial_delay_second=2,
                                          period_second=3, timeout_second=30, failure_threshold=3, success_threshold=1,
-                                         is_used=True,
+                                         is_used=is_used,
                                          probe_id=make_uuid(),
                                          mode='readiness')
 

@@ -90,6 +90,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if not service_code_from:
                 return Response(general_message(400, "params error", "参数service_code_from未指明"), status=400)
             # 创建源码应用
+            if service_code_clone_url:
+                service_code_clone_url = service_code_clone_url.strip()
             code, msg_show, new_service = app_service.create_source_code_app(self.response_region, self.tenant,
                                                                              self.user, service_code_from,
                                                                              service_cname, service_code_clone_url,

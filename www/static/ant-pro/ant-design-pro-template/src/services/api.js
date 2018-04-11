@@ -54,6 +54,17 @@ export async function authEnterprise(body = {
   });
 }
 
+/* 卸载云市已下载的应用 */
+export async function offlineMarketApp(body={app_id}){
+   return request(config.baseUrl + `/console/app_market/manage`,{
+     method: 'post',
+     data: {
+      app_id: body.app_id,
+      action: 'offline'
+     }
+   })
+}
+
 /* 从云市同步应用的详细模板 */
 export async function syncMarketAppDetail(body = {
   team_name,
@@ -69,14 +80,16 @@ export async function syncMarketAppDetail(body = {
 export async function getMarketApp(body = {
   app_name,
   page,
-  pageSize
+  pageSize,
+  is_complete
 }) {
   return request(config.baseUrl + `/console/app_market/all`, {
     method: 'get',
     params: {
       app_name: body.app_name,
       page: body.page,
-      page_size: body.pageSize
+      page_size: body.pageSize,
+      is_complete: body.is_complete
     }
   });
 }

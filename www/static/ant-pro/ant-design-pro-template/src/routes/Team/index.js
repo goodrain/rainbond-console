@@ -463,7 +463,7 @@ export default class Index extends PureComponent {
                   description={item.desc || '-'}/>
                 <div className={styles.projectItemContent}>
                   <span className={styles.datetime}>
-                    开通于 {moment(item.region_create_time).format("YYYY年-MM月-DD日")}
+                    开通于 {moment(item.create_time).format("YYYY年-MM月-DD日")}
                   </span>
 
                 </div>

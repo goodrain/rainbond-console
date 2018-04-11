@@ -1,6 +1,14 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+
+export async function getTeamByName(body={team_name}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/detail`,{
+    method: 'get',
+    showMessage: false
+  });
+}
+
 export async function query() {
   return request('/api/users');
 }

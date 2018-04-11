@@ -200,13 +200,14 @@ class AppPodsView(AppBaseView):
               type: string
               paramType: path
         """
-        bean = dict()
+
         try:
             data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
                                                self.service.service_alias,
                                                self.tenant.enterprise_id)
             rt_list = []
             for d in data["list"]:
+                bean = dict()
                 bean["pod_name"] = d["PodName"]
                 bean["manage_name"] = "manager"
                 rt_list.append(bean)
