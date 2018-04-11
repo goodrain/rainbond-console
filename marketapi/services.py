@@ -424,7 +424,7 @@ class MarketServiceAPIManager(object):
     def get_tenant_region_resource_limit(self, tenant, region):
         return tenant_svc.get_tenant_region_resource_limit(tenant, region)
 
-    def install_service_group(self, user, tenant_name, group_key, group_version, region_name):
+    def install_service_group(self, user, tenant_name, group_key, group_version, region_name, template_version):
         logger.debug(
             'prepared install [{}-{}] to [{}] on [{}]'.format(group_key, group_version, tenant_name, region_name))
         if tenant_name:
@@ -442,7 +442,7 @@ class MarketServiceAPIManager(object):
         # 查看安装的目标数据中心是否已初始化, 如果未初始化则先初始化
         if not tenant_svc.init_region_tenant(tenant, region_name):
             return False, '初始化数据中心失败: {}'.format(region_name), None
-        app_template_json_str = app_group_svc.get_app_templates(tenant.tenant_id,group_key,group_version)
+        app_template_json_str = app_group_svc.get_app_templates(tenant.tenant_id,group_key,group_version,template_version)
         if not app_template_json_str:
             return False, '初始化应用组模板信息失败', None
         success, message, group, installed_services = app_group_svc.install_market_apps_directly(user, tenant,
