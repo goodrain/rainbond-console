@@ -39,7 +39,8 @@ class AllTeamView(BaseAPIView):
             tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             tenants = tenant_paginator.page(int(page))
             tenants_num = Tenants.objects.count()
-            allow_num = LICENSE.get_authorization_tenant_number()
+            # 需要license控制，现在没有，默认为一百万
+            allow_num = 1000000
 
             list = []
 
@@ -113,8 +114,8 @@ class TeamView(BaseAPIView):
             tenant = tenant_service.get_tenant(tenant_name)
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
             user_num = len(user_list)
-            list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num}]
-            result = generate_result("0000", "success", "查询成功", list=list)
+            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num}]
+            result = generate_result("0000", "success", "查询成功", list=rt_list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
             result = generate_result("1001", "tenant not exist", "租户{}不存在".format(tenant_name))
