@@ -7,12 +7,42 @@ from rest_framework.response import Response
 from backends.services.exceptions import *
 from backends.services.regionservice import region_service
 from backends.services.resultservice import *
+from backends.services.clusterservice import cluster_service
 from backends.views.base import BaseAPIView
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
 
 class RegionView(BaseAPIView):
+
+    def get(self, request, *args, **kwargs):
+        """
+        同步数据中心信息
+        ---
+        """
+        try:
+            regions = region_service.get_all_regions()
+            regions_info = []
+            if regions:
+                for r in regions:
+                    clusters = cluster_service.get_cluster_by_region(r.region_id)
+                    if not clusters:
+                        cluster_id = make_uuid()
+                        cluster_alias = r.region_alias + u"-集群A"
+                        cluster_name = r.region_name + "-" + "c1"
+                        cluster_info = cluster_service.add_cluster(r.region_id, cluster_id, cluster_name, cluster_alias,
+                                                                   True)
+                        clusters = [cluster_info]
+                    bean = r.to_dict()
+                    bean.update({"clusters": [c.to_dict() for c in clusters]})
+                    regions_info.append(bean)
+            result = generate_result("0000", "success", "查询成功", list=regions_info)
+
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
 
     def post(self, request, *args, **kwargs):
         """
