@@ -1,12 +1,14 @@
 from addict import Dict
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication, BaseAuthentication
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from django.utils.six import text_type
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import HTTP_HEADER_ENCODING, exceptions
 import logging
+
+from console.views.base import AlowAnyApiView
 
 logger = logging.getLogger("default")
 

@@ -20,6 +20,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",", -1)
 
+MANAGE_SECRET_KEY = os.environ.get('MANAGE_SECRET_KEY', "")
+
 EMAIL_HOST = '***'
 EMAIL_PORT = 465
 EMAIL_HOST_USER = '***'
