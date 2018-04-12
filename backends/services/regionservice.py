@@ -140,31 +140,46 @@ class RegionService(object):
         cluster_config.enable = enable
         cluster_config.save()
 
-    def add_region(self, region_id, region_name, region_alias, url, token):
+    def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain,
+                                      tcpdomain, desc, scope):
+
+        if not wsurl:
+            return False, "数据中心websocket地址不能为空", None
+        if not httpdomain:
+            return False, "数据中心http应用访问根域名不能为空", None
+        if not tcpdomain:
+            return False, "数据中心tcp应用访问根域名不能为空", None
+        if not scope:
+            return False, "数据中心类型不能为空", None
+
         if RegionConfig.objects.filter(region_name=region_name).exists():
-            raise RegionExistError("数据中心名{}已存在".format(region_name))
+            return False, "数据中心名{}在云帮已存在".format(region_name), None
         if RegionConfig.objects.filter(region_alias=region_alias).exists():
-            raise RegionExistError("数据中心别名{}已存在".format(region_alias))
+            return False, "数据中心别名{}在云帮已存在".format(region_alias), None
         try:
             res, body = region_api.get_api_version(url, token, region_name)
             status = int(res.status)
             if status != 200:
-                raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
+                return False, "该数据中心云帮{0}无法访问".format(region_name), None
         except Exception as e:
             logger.exception(e)
-            raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
+            return False, "该数据中心云帮{0}无法访问".format(region_name), None
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # region_id = make_uuid(region_name)
         region_config = RegionConfig(region_id=region_id,
                                      region_name=region_name,
                                      region_alias=region_alias,
+                                     wsurl=wsurl,
+                                     httpdomain=httpdomain,
+                                     tcpdomain=tcpdomain,
+                                     desc=desc,
+                                     scope=scope,
                                      url=url,
                                      create_time=create_time,
                                      status='2',
                                      token=token)
         region_config.save()
-        return region_config
+        return True, "数据中心添加成功",region_config
 
     def update_region(self, region_id, **kwargs):
         if not RegionConfig.objects.filter(region_id=region_id).exists():

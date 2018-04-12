@@ -44,6 +44,31 @@ class RegionView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: wsurl
+              description: 数据中心websocket访问地址
+              required: true
+              type: string
+              paramType: form
+            - name: httpdomain
+              description: 数据中心http访问根域名
+              required: true
+              type: string
+              paramType: form
+            - name: tcpdomain
+              description: 数据中心tpc访问根域名
+              required: true
+              type: string
+              paramType: form
+            - name: desc
+              description: 数据中心描述
+              required: false
+              type: string
+              paramType: form
+            - name: scope
+              description: 数据中心类型 公有|私有
+              required: true
+              type: string
+              paramType: form
 
         """
         try:
@@ -52,15 +77,19 @@ class RegionView(BaseAPIView):
             region_alias = request.data.get("region_alias", None)
             url = request.data.get("url", None)
             token = request.data.get("token", None)
-            region_service.add_region(region_id, region_name, region_alias, url, token)
-            code = "0000"
-            msg = "success"
-            msg_show = "添加成功"
-            result = generate_result(code, msg, msg_show)
-        except RegionUnreachableError as e:
-            result = generate_result("2003","region unreachable","数据中心无法访问,请确认数据中心配置正确")
-        except RegionExistError as e:
-            result = generate_result("2001", "region exist", e.message)
+            wsurl = request.data.get("wsurl", None)
+            httpdomain = request.data.get("httpdomain", None)
+            tcpdomain = request.data.get("tcpdomain", None)
+            desc = request.data.get("desc", "")
+            scope = request.data.get("scope", None)
+
+            is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
+                                                                     wsurl, httpdomain,
+                                                                     tcpdomain, desc, scope)
+            if not is_success:
+                result = generate_result("2001", "add console region error", msg)
+            else:
+                result = generate_result("0000", "success", "添加成功", region_info.to_dict())
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

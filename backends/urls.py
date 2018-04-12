@@ -40,7 +40,7 @@ urlpatterns = patterns(
     url(r'^v1/config/code/link$', ConfigCodeView.as_view()),
 
     # 数据中心路径
-    # url(r'^v1/regions$', RegionView.as_view()),
+    url(r'^v1/regions$', RegionView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionDetailView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     # # url(r'^v1/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)', TenantRegionResourceView.as_view()),
