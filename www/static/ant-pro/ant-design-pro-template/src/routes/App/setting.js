@@ -709,6 +709,8 @@ class AddVarModal extends PureComponent {
           this.props.onSubmit && this
             .props
             .onSubmit(values);
+            notification.success({message: '操作成功，需要重启才能生效'});
+            this.props.isShowRestartTips(true);
         }
       });
   }
@@ -829,6 +831,7 @@ class ChangeBranch extends PureComponent {
       }).then((data) => {
         if (data) {
           notification.success({message: `操作成功，重新部署后生效`});
+          this.props.isShowDeployTips(true);
         }
       })
     });
@@ -1136,6 +1139,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.cancelDeleteVar();
           this.fetchInnerEnvs();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -1406,6 +1411,7 @@ export default class Index extends PureComponent {
       teamControl
     } = this.props;
     const members = this.state.members || [];
+    const showstatus = this.props.status.status;
     return (
       <Fragment>
         <Card style={{
@@ -1462,7 +1468,7 @@ export default class Index extends PureComponent {
                     label="Git仓库">
                     <a href={baseInfo.git_url} target="_blank">{baseInfo.git_url}</a>
                   </FormItem>
-                  <ChangeBranch isCreateFromCustomCode={appUtil.isCreateFromCustomCode(appDetail)} appAlias={this.props.appAlias}/>
+                  <ChangeBranch isCreateFromCustomCode={appUtil.isCreateFromCustomCode(appDetail)} appAlias={this.props.appAlias} isShowDeployTips = {(onoffshow)=>{this.props.onshowDeployTips(onoffshow)}} />
                 </Fragment>
               : ''
 }
@@ -1517,7 +1523,7 @@ export default class Index extends PureComponent {
             textAlign: 'right',
             paddingTop: 20
           }}>
-            <Button onClick={this.handleAddVar}><Icon type="plus"/>添加变量</Button>
+            <Button onClick={this.handleAddVar} ><Icon type="plus"/>添加变量</Button>
           </div>
         </Card>
         <Card style={{
@@ -1706,11 +1712,15 @@ export default class Index extends PureComponent {
           onOk={this.handleAddTag}/>}
         {this.state.showAddVar && <AddVarModal
           onCancel={this.handleCancelAddVar}
-          onSubmit={this.handleSubmitAddVar}/>}
+          onSubmit={this.handleSubmitAddVar}
+          isShowRestartTips = {(onoffshow)=>{this.props.onshowRestartTips(onoffshow)}}
+          />}
         {this.state.showEditVar && <AddVarModal
           onCancel={this.cancelEditVar}
           onSubmit={this.handleEditVar}
-          data={this.state.showEditVar}/>}
+          data={this.state.showEditVar}
+          isShowRestartTips = {(onoffshow)=>{this.props.onshowRestartTips(onoffshow)}}
+          />}
         {this.state.deleteVar && <ConfirmModal
           onOk={this.handleDeleteVar}
           onCancel={this.cancelDeleteVar}

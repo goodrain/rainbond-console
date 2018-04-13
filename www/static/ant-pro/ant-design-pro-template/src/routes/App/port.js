@@ -12,7 +12,8 @@ import {
   Alert,
   Select,
   Modal,
-  Input
+  Input,
+  notification
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import {getRoutes} from '../../utils/utils';
@@ -224,6 +225,8 @@ class ChangeProtocol extends PureComponent {
     this.props.onSubmit && this
       .props
       .onSubmit(this.state.value)
+      notification.success({message: '操作成功，需要重启才能生效'});
+      this.props.onshowRestartTips(true)
   }
   render() {
 
@@ -459,6 +462,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.cancalDeletePort();
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -483,6 +488,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.cancalDeleteDomain();
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -508,6 +515,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.onCancelAddPort();
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
 
@@ -554,6 +563,8 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -569,6 +580,8 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -584,6 +597,8 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -599,6 +614,8 @@ export default class Index extends PureComponent {
         },
         callback: () => {
           this.fetchPorts();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -641,6 +658,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.fetchPorts();
           this.hideEditAlias();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -708,7 +727,7 @@ export default class Index extends PureComponent {
           subDesc={this.state.showDeleteDomain.domain}
           onOk={this.handleSubmitDeleteDomain}
           onCancel={this.cancalDeleteDomain}/>}
-        {this.state.showAddPort && <AddPort isImageApp={isImageApp} onCancel={this.onCancelAddPort} onOk={this.handleAddPort}/>}
+        {this.state.showAddPort && <AddPort isImageApp={isImageApp} onCancel={this.onCancelAddPort} onOk={this.handleAddPort} />}
         {this.state.showAddDomain && <AddDomain
           certificates={certificates || []}
           onCreateKey={this.handleCreateKey}

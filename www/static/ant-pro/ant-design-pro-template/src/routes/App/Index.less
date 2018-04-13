@@ -440,6 +440,30 @@
   color: @heading-color;
 }
 
+
+.blueant{
+  position: relative;
+  z-index: 9;
+  animation:blueanimation 1s infinite ease-in-out;
+  -moz-animation:blueanimation 1s infinite ease-in-out; /* Firefox */
+  -webkit-animation:blueanimation 1s infinite ease-in-out; /* Safari and Chrome */
+  -o-animation:blueanimation 1s infinite ease-in-out; /* Opera */
+}
+
+
+@keyframes blueanimation {
+  from {-webkit-box-shadow: 0 0 6px rgb(0,155,196); }
+  50% {  -webkit-box-shadow: 0 0 18px rgb(24,144,255); }
+  to { -webkit-box-shadow: 0 0 6px rgb(0,155,196); }
+}
+
+
+@-webkit-keyframes blueanimation {
+  from {-webkit-box-shadow: 0 0 6px rgb(0,155,196); }
+  50% {  -webkit-box-shadow: 0 0 18px rgb(24,144,255); }
+  to { -webkit-box-shadow: 0 0 6px rgb(0,155,196); }
+}
+
 @media screen and (max-width: @screen-lg) {
   .salesExtra {
     display: none;
