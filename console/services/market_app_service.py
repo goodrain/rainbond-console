@@ -642,8 +642,12 @@ class AppMarketSynchronizeService(object):
                 user_name = v2_template.get("publish_user",None)
                 user_id = 0
                 if user_name:
-                    user = user_repo.get_user_by_username(user_name)
-                    user_id = user.user_id
+                    try:
+                        user = user_repo.get_user_by_username(user_name)
+                        user_id = user.user_id
+                    except Exception as e:
+                        logger.exception(e)
+                        pass
                 rainbond_app.share_user = user_id
                 rainbond_app.share_team = v2_template.get("publish_team", "")
                 rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
