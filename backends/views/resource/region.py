@@ -206,14 +206,14 @@ class RegionStatusView(BaseAPIView):
                 msg_show = "上线成功"
             elif action == "offline":
                 msg_show = "下线成功"
-            region_service.region_status_mange(region_id,action)
+            region_service.region_status_mange(region_id, action)
             code = "0000"
             msg = "success"
             result = generate_result(code, msg, msg_show)
         except RegionNotExistError as e:
             result = generate_result("2002", "region not exist", e.message)
         except RegionUnreachableError as e:
-            msg_show = "数据中心无法上线,请查看相关配置是否正确"
+            msg_show = "数据中心无法访问,请查看相关配置是否正确"
             result = generate_result("2003", "region unreachable", msg_show)
         except ParamsError as e:
             result = generate_result("1003", "params error", "参数错误")

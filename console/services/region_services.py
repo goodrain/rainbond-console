@@ -57,7 +57,7 @@ class RegionService(object):
             region_name_list = []
             for region in regions:
                 regionconfig = region_repo.get_region_by_region_name(region.region_name)
-                if regionconfig:
+                if regionconfig and regionconfig.status in ("1", "3"):
                     region_info = {
                         "service_status": region.service_status,
                         "is_active": region.is_active,
