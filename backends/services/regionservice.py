@@ -182,22 +182,38 @@ class RegionService(object):
         return True, "数据中心添加成功",region_config
 
     def update_region(self, region_id, **kwargs):
+
+        wsurl = kwargs.get("wsurl", None)
+        httpdomain = kwargs.get("httpdomain", None)
+        tcpdomain = kwargs.get("tcpdomain", None)
+        scope = kwargs.get("scope", None)
+
+        if wsurl is not None and wsurl == '':
+            return False, u"数据中心websocket地址不能为空"
+        if httpdomain is not None and httpdomain == '':
+            return False, u"数据中心http应用访问根域名不能为空"
+        if tcpdomain is not None and tcpdomain == '':
+            return False, u"数据中心tcp应用访问根域名不能为空"
+        if scope is not None and scope == '':
+            return False, u"数据中心类型不能为空"
+
         if not RegionConfig.objects.filter(region_id=region_id).exists():
-            raise RegionNotExistError("数据中心不存在")
+            return False, u"需要修改的数据中心在云帮不存在"
         region_config = RegionConfig.objects.get(region_id=region_id)
         region_name = kwargs.get("region_name", None)
         if region_name:
-            if RegionConfig.objects.filter(region_name=region_name).exclude(region_id=region_config.region_id).exists():
-                raise RegionExistError("数据中心{}已存在".format(region_name))
+            kwargs.pop("region_name")
         region_alias = kwargs.get("region_alias", None)
         if region_alias:
             if RegionConfig.objects.filter(region_alias=region_alias).exclude(
                     region_id=region_config.region_id).exists():
-                raise RegionExistError("数据中心别名{}已存在".format(region_alias))
+                return False, u"数据中心别名{0}在云帮已存在".format(region_alias)
+
         for k, v in kwargs.items():
             setattr(region_config, k, v)
         region_config.save(update_fields=kwargs.keys())
         self.update_region_config()
+        return True, "success"
 
     def region_status_mange(self, region_id, action):
         if not RegionConfig.objects.filter(region_id=region_id).exists():

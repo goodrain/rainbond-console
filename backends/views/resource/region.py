@@ -134,7 +134,7 @@ class RegionDetailView(BaseAPIView):
         ---
         parameters:
         -   name: body
-            description: 修改内容 字段有 region_name,region_alias,url,token,status(上下线)
+            description: 修改内容 字段有 region_name,region_alias,url,token,wsurl,httpdomain,tcpdomain,scope,desc,status(上下线)
             required: true
             type: string
             paramType: body
@@ -144,11 +144,11 @@ class RegionDetailView(BaseAPIView):
             params = {}
             for k, v in data.iteritems():
                 params[k] = v
-            region_service.update_region(region_id, **params)
-            code = "0000"
-            msg = "success"
-            msg_show = "数据中心修改成功"
-            result = generate_result(code, msg, msg_show)
+            is_success, msg = region_service.update_region(region_id, **params)
+            if not is_success:
+                result = generate_result("2002", "update cloudband region info error", msg)
+            else:
+                result = generate_result("0000", "success", "修改成功")
         except RegionNotExistError as e:
             result = generate_result("2002", "region not exist", e.message)
         except RegionExistError as e:
