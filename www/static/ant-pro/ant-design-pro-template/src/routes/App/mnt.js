@@ -105,7 +105,7 @@ class AddVolumes extends PureComponent {
           <FormItem {...formItemLayout} label="类型">
 
             {getFieldDecorator('volume_type', {
-              initialValue: data.volume_type || '',
+              initialValue: data.volume_type || 'share-file',
               rules: [
                 {
                   required: true,
@@ -201,6 +201,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.fetchVolumes();
           this.handleCancelAddVar();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -219,6 +221,8 @@ export default class Index extends PureComponent {
       if (data) {
         this.handleCancelAddRelation();
         this.loadMntList()
+        notification.success({message: '操作成功，需要重启才能生效'});
+        this.props.onshowRestartTips(true)
       }
     })
   }
@@ -244,6 +248,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.onCancelDeleteVolume();
           this.fetchVolumes();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }
@@ -260,6 +266,8 @@ export default class Index extends PureComponent {
         callback: () => {
           this.cancelDeleteMnt();
           this.loadMntList();
+          notification.success({message: '操作成功，需要重启才能生效'});
+          this.props.onshowRestartTips(true)
         }
       })
   }

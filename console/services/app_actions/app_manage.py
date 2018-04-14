@@ -479,6 +479,7 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
             self.move_service_relation_info_recycle_bin(tenant,service)
+
             return 200, "success", event
         else:
             try:
@@ -537,6 +538,13 @@ class AppManageService(AppManageBase):
         data = service.toJSON()
         data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
+
+        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        if service.tenant_service_group_id > 0:
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            if count <= 1:
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+
         service.delete()
         return trash_service
 

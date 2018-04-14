@@ -157,7 +157,7 @@ class ApplicationGroupService(object):
             logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
             return None
 
-    def get_app_templates(self, tenant_id, group_key, group_version):
+    def get_app_templates(self, tenant_id, group_key, group_version,template_version):
         app = self.get_local_app_templates(group_key, group_version)
         if app and app.is_complete:
             logger.debug('local group template existed, ignore.')
@@ -165,7 +165,7 @@ class ApplicationGroupService(object):
             # 字符串
             return app.app_template
         try:
-            app_templates = market_api.get_service_group_detail(tenant_id, group_key, group_version)
+            app_templates = market_api.get_service_group_detail(tenant_id, group_key, group_version,template_version)
             if not app_templates:
                 return None
             if app_templates["template_version"] == "v1":
