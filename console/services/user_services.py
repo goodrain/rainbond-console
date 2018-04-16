@@ -191,4 +191,10 @@ class UserService(object):
     def get_user_by_email(self, email):
         return user_repo.get_user_by_email(email)
 
+    def get_enterprise_first_user(self, enterprise_id):
+        users = user_repo.get_enterprise_users(enterprise_id).order_by("-user_id")
+        if users:
+            return users[0]
+        return None
+
 user_services = UserService()

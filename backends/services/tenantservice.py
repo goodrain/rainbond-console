@@ -21,7 +21,7 @@ class TenantService(object):
         获取云帮所有租户名
         :return: [{"tenant_name":"goodrain","tenant_id":"auer889283jadkj23aksufhaksjd","ID":1}]
         """
-        tenants = Tenants.objects.values("tenant_name", "tenant_id", "ID").order_by("tenant_name")
+        tenants = Tenants.objects.values("tenant_name", "tenant_id", "ID", "tenant_alias").order_by("tenant_name")
         return tenants
 
     def get_tenant_users(self, tenant_name):
@@ -147,12 +147,12 @@ class TenantService(object):
         # tenant = enterprise_svc.create_and_init_tenant(creater, tenant_name, regions, user.enterprise_id)
         return tenant
 
-    def add_user_to_tenant(self, tenant, user):
+    def add_user_to_tenant(self, tenant, user, identity):
         perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         if perm_tenants:
             raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(user.nick_name, tenant.tenant_name))
         perm_tenant = PermRelTenant.objects.create(
-            user_id=user.pk, tenant_id=tenant.pk, identity='admin')
+            user_id=user.pk, tenant_id=tenant.pk, identity=identity, enterprise_id=tenant.enterprise_id)
         return perm_tenant
 
 

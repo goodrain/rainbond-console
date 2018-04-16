@@ -30,6 +30,9 @@ class TeamService(object):
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
+    def get_team_by_team_alias_and_eid(self, team_alias, enterprise_id):
+        return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
+
     def random_tenant_name(self, enterprise=None, length=8):
         """
         生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)
