@@ -45,47 +45,6 @@ class TeamService(object):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    # def add_team(self, team_alias, user, region_names):
-    #     team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
-    #     if not user:
-    #         return "400", u"用户不存在", None
-    #     creater = user.user_id
-    #     enterprise_id = user.enterprise_id
-    #     pay_type = 'payed'
-    #     pay_level = 'company'
-    #     expired_day = 7
-    #     if hasattr(settings, "TENANT_VALID_TIME"):
-    #         expired_day = int(settings.TENANT_VALID_TIME)
-    #     expire_time = datetime.datetime.now() + datetime.timedelta(
-    #         days=expired_day)
-    #     if Tenants.objects.filter(
-    #             tenant_name=team_name).exists():
-    #         return "400", u"团队已存在", None
-    #     if not RegionConfig.objects.filter(region_name__in=region_names).exists():
-    #         return "400", u"数据中心不存在", None
-    #
-    #     tenant = Tenants.objects.create(tenant_name=team_name, pay_type=pay_type, pay_level=pay_level,
-    #                                     creater=creater,
-    #                                     expired_time=expire_time, tenant_alias=team_alias,
-    #                                     enterprise_id=enterprise_id)
-    #     tenant.save()
-    #     try:
-    #         for region_name in region_names:
-    #             region_services.open_team_region(team_name=team_name, region_name=region_name)
-    #         return "200", u"成功", tenant
-    #     except Exception as e:
-    #         logger.exception(e)
-    #         tenant.delete()
-    #         return "500", u"开通数据中心错误", None
-
-    def add_user_to_tenant(self, tenant, user):
-        perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
-        if perm_tenants:
-            raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(user.nick_name, tenant.tenant_name))
-        perm_tenant = PermRelTenant.objects.create(
-            user_id=user.pk, tenant_id=tenant.pk, identity='viewer')
-        return perm_tenant
-
     def add_user_to_team(self, request, tenant, user_ids, identitys):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:

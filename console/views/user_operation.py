@@ -153,6 +153,8 @@ class TenantServiceView(BaseApiView):
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enterprise = enterprise_services.create_enterprise()
+                    # 创建用户在企业的权限
+                    user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
                 user.enterprise_id = enterprise.enterprise_id
                 user.save()
 
@@ -194,8 +196,7 @@ class TenantServiceView(BaseApiView):
                                     "enterprise_id": enterprise.ID
                                 }
                             )
-                            # 创建用户在企业的权限
-                            user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+
                             code, msg, tenant_region = region_services.create_tenant_on_region(tenant.tenant_name,
                                                                                                tenant.region)
                             if code != 200:

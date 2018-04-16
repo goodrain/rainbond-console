@@ -10,6 +10,9 @@ from backends.services.userservice import user_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants
+from console.services.user_services import user_services as console_user_service
+from console.services.team_services import team_services as console_team_service
+from console.services.enterprise_services import enterprise_services as console_enterprise_service
 
 logger = logging.getLogger("default")
 
@@ -81,37 +84,42 @@ class TenantUserView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: re_password
+              description: 重复密码
+              required: true
+              type: string
+              paramType: form
+            - name: identity
+              description: 用户在租户的身份
+              required: true
+              type: string
+              paramType: form
 
         """
         try:
-            user_service.add_user(request, tenant_name)
-            code = "0000"
-            msg = "success"
-            msg_show = "添加用户成功"
-        except EmailExistError:
-            code = "1003"
-            msg = "email exist"
-            msg_show = "邮箱已存在"
-        except UserExistError:
-            code = "1002"
-            msg = "user exist"
-            msg_show = "用户已存在"
-        except PhoneExistError:
-            code = "1005"
-            msg = "phone exist"
-            msg_show = "手机号已存在"
-        except Tenants.DoesNotExist:
-            code = "1001"
-            msg = "tenant not exist"
-            msg_show = "租户不存在"
+            user_name = request.data.get("user_name", None)
+            phone = request.data.get("phone", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            identity = request.data.get("identity", "viewer")
+            is_pass, msg = user_service.check_params(user_name,phone,email,password,re_password)
+            if not is_pass:
+                return Response(generate_result("0403", "params error", msg))
+            client_ip = user_service.get_client_ip(request)
+            team = console_team_service.get_tenant_by_tenant_name(tenant_name)
+            if not team:
+                return Response(generate_result("0404", "team not exist", "团队{0}不存在".format(tenant_name)))
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(team.enterprise_id)
 
+            user = user_service.create_user(user_name, phone, email, password, "backend", enterprise, client_ip)
+            tenant_service.add_user_to_tenant(team, user, identity, enterprise)
+            user.is_active = True
+            user.save()
+            result = generate_result("0000", "success", "添加用户成功")
         except Exception as e:
-            code = "9999"
-            msg = "system error"
-            msg_show = "系统异常"
             logger.exception(e)
-
-        result = generate_result(code, msg, msg_show)
+            result = generate_result("9999", "system error", "系统异常")
         return Response(result)
 
 

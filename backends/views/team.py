@@ -254,7 +254,8 @@ class AddTeamUserView(BaseAPIView):
 
             user = user_service.get_user_by_username(user_name)
             tenant = tenant_service.get_tenant(tenant_name)
-            tenant_service.add_user_to_tenant(tenant, user, identity)
+            enterprise = enterprise_services.get_enterprise_by_id(tenant.enterprise_id)
+            tenant_service.add_user_to_tenant(tenant, user, identity, enterprise)
             result = generate_result("0000", "success", "用户添加成功")
         except PermTenantsExistError as e:
             result = generate_result("1009", "permtenant exist", e.message)
