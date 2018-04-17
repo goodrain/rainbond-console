@@ -221,7 +221,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
         try:  
             regions = region_services.get_region_by_tenant_name(self.team_name)
             if regions:
-                region_names = [region.name for region in regions]
+                region_names = [region.region_name for region in regions]
                 self.add_default_plugin(self.user, self.team, region_names)
             result = general_message(200, "success", "创建成功")    
             return Response(result, status=200)
