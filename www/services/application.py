@@ -462,7 +462,7 @@ class ApplicationGroupService(object):
                 if probe_infos:
                     for prob_data in probe_infos:
                         code, msg, probe = probe_service.add_service_probe(tenant, ts, prob_data)
-                        if code == 200:
+                        if code != 200:
                             logger.exception(msg)
 
                 self.__save_extend_info(ts, app["extend_method_map"])
@@ -1042,24 +1042,10 @@ class ApplicationGroupService(object):
             'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
         for service in sorted_services:
             try:
-
-                # baseService.create_region_service(tenant_service, tenant.tenant_name, region_name, user.nick_name)
-                # monitorhook.serviceMonitor(user.nick_name, tenant_service, 'init_region_service', True)
-                # logger.debug(
-                #     'install {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname,
-                #                                            tenant_service.service_alias,
-                #                                            tenant_service.service_id))
-                #
-                # # 设置应用为"有无状态服务"
-                # logger.debug('===> update service extend_method!')
-                # self.__update_service_extend_method(tenant, tenant_service)
-                #
-                # # 创建应用探针
-                # logger.debug('===> create service probe!')
-                # self.__create_service_probe(tenant, tenant_service)
-
+                logger.debug("build service ===> {0}".format(service.service_cname))
                 # 数据中心创建应用
                 new_service = app_service.create_region_service(tenant, service, user.nick_name)
+                logger.debug("build service ===> {0}  success".format(service.service_cname))
                 # 为服务添加探针
                 self.__create_service_probe(tenant, new_service)
 
@@ -1084,43 +1070,6 @@ class ApplicationGroupService(object):
                                                                       service.service_id))
                 continue
 
-            # try:
-            #     event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-            #                          tenant_id=tenant.tenant_id, type='deploy',
-            #                          deploy_version=tenant_service.deploy_version,
-            #                          old_deploy_version=tenant_service.deploy_version,
-            #                          user_name=user.nick_name, start_time=datetime.datetime.now())
-            #     event.save()
-            #
-            #     body = {
-            #         'event_id': event.event_id,
-            #         'kind': baseService.get_service_kind(tenant_service),
-            #         'deploy_version': tenant_service.deploy_version,
-            #         'operator': user.nick_name,
-            #         'action': 'upgrade',
-            #         'enterprise_id': tenant.enterprise_id,
-            #         'envs': {env.attr_name: env.attr_value
-            #                  for env in
-            #                  TenantServiceEnvVar.objects.filter(service_id=tenant_service.service_id,
-            #                                                     attr_name__in=(
-            #                                                         'COMPILE_ENV', 'NO_CACHE', 'DEBUG', 'PROXY',
-            #                                                         'SBT_EXTRAS_OPTS'))},
-            #     }
-            #     region_api.build_service(tenant_service.service_region,
-            #                              tenant.tenant_name,
-            #                              tenant_service.service_alias,
-            #                              body)
-            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
-            #     logger.debug(
-            #         'build {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-            #                                              tenant_service.service_id))
-            #
-            # except Exception as build_exc:
-            #     logger.exception(build_exc)
-            #     logger.error(
-            #         'build {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-            #                                             tenant_service.service_id))
-
         return True, '构建应用成功'
 
     def restart_tenant_service_group(self, user, group_id):
@@ -1143,41 +1092,6 @@ class ApplicationGroupService(object):
                     'restart {0}[{1}]:{2} failed!'.format(service.service_cname, service.service_alias,
                                                           service.service_id))
                 return False, '启动应用组失败'
-            # logger.debug(tenant_service.service_cname)
-            # event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-            #                      tenant_id=tenant.tenant_id, type='restart',
-            #                      deploy_version=tenant_service.deploy_version,
-            #                      old_deploy_version=tenant_service.deploy_version,
-            #                      user_name=user.nick_name, start_time=datetime.datetime.now())
-            # event.save()
-            # try:
-            #     body = {
-            #         'operator': str(user.nick_name),
-            #         'event_id': event.event_id,
-            #         'enterprise_id': tenant.enterprise_id
-            #     }
-            #     region_api.restart_service(tenant_service.service_region,
-            #                                tenant.tenant_name,
-            #                                tenant_service.service_alias,
-            #                                body)
-            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', True)
-            #     logger.debug(
-            #         'restart {0}[{1}]:{2} succeed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-            #                                                tenant_service.service_id))
-            #
-            # except Exception as build_exc:
-            #     logger.exception(build_exc)
-            #     if event:
-            #         event.message = u"启动应用失败,{}".format(build_exc.message)
-            #         event.final_status = "complete"
-            #         event.status = "failure"
-            #         event.save()
-            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_deploy', False)
-            #
-            #     logger.error(
-            #         'restart {0}[{1}]:{2} failed!'.format(tenant_service.service_cname, tenant_service.service_alias,
-            #                                               tenant_service.service_id))
-            #     return False, '启动应用组失败'
         return True, '启动应用组成功'
 
     def stop_tenant_service_group(self, user, group_id):
@@ -1198,33 +1112,6 @@ class ApplicationGroupService(object):
                 logger.exception(e)
                 return False, '停止应用组失败'
 
-            # logger.debug(tenant_service.service_cname)
-            # event = ServiceEvent(event_id=make_uuid(), service_id=tenant_service.service_id,
-            #                      tenant_id=tenant.tenant_id, type="stop",
-            #                      deploy_version=tenant_service.deploy_version,
-            #                      user_name=user.nick_name, start_time=datetime.datetime.now())
-            # event.save()
-            #
-            # try:
-            #     body = {
-            #         'operator': str(user.nick_name),
-            #         'event_id': event.event_id,
-            #         'enterprise_id': tenant.enterprise_id
-            #     }
-            #     region_api.stop_service(tenant_service.service_region,
-            #                             tenant.tenant_name,
-            #                             tenant_service.service_alias,
-            #                             body)
-            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', True)
-            # except Exception, e:
-            #     logger.exception(e)
-            #     if event:
-            #         event.message = u"停止应用失败,{}".format(e.message)
-            #         event.final_status = "complete"
-            #         event.status = "failure"
-            #         event.save()
-            #     monitorhook.serviceMonitor(user.nick_name, tenant_service, 'app_stop', False)
-            #     return False, '停止应用组失败'
         return True, '停止应用组成功'
 
     def delete_tenant_service_group(self, group_id):

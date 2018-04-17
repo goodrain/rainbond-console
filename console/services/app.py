@@ -389,19 +389,22 @@ class AppService(object):
 
     def __handle_service_ports(self, tenant, service, ports):
         """处理创建应用的端口。对于打开了对内或对外端口的应用，需由业务端手动打开"""
-        for port in ports:
-            if port.is_outer_service:
-                code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_outer",
-                                                           port.protocol,
-                                                           port.port_alias)
-                if code != 200:
-                    logger.error("create service manage port error : {0}".format(msg))
-            if port.is_inner_service:
-                code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_inner",
-                                                           port.protocol,
-                                                           port.port_alias)
-                if code != 200:
-                    logger.error("create service manage port error : {0}".format(msg))
+        try:
+            for port in ports:
+                if port.is_outer_service:
+                    code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_outer",
+                                                               port.protocol,
+                                                               port.port_alias)
+                    if code != 200:
+                        logger.error("create service manage port error : {0}".format(msg))
+                if port.is_inner_service:
+                    code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_inner",
+                                                               port.protocol,
+                                                               port.port_alias)
+                    if code != 200:
+                        logger.error("create service manage port error : {0}".format(msg))
+        except Exception as e:
+            logger.exception(e)
 
     def add_service_default_porbe(self, tenant, service):
         ports = port_service.get_service_ports(service)
