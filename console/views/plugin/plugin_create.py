@@ -5,6 +5,7 @@
 from console.views.base import RegionTenantHeaderView
 from django.views.decorators.cache import never_cache
 from www.decorator import perm_required
+from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
 import logging
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from console.constants import PluginCategoryConstants
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.services.region_services import region_services
+from console.repositories.plugin import config_group_repo, config_item_repo
 
 logger = logging.getLogger("default")
 
