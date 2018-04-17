@@ -39,7 +39,7 @@ from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, AnnouncementView
 from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
-from console.views.plugin.plugin_create import PluginCreateView
+from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
@@ -309,6 +309,7 @@ urlpatterns = patterns(
 
     # 插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins$', PluginCreateView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/default$', DefaultPluginCreateView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/all$', AllPluginBaseInfoView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)$', PluginBaseInfoView.as_view()),
     # 查询当前插件被使用的应用
