@@ -76,7 +76,7 @@ class RegionService(object):
 
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
-        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
         opened_regions_name = [
             team_region.region_name for team_region in team_opened_regions
         ]

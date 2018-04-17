@@ -6,10 +6,15 @@ from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.services.tenantservice import tenant_service
 from backends.services.userservice import user_service
+from console.services.team_services import team_services as console_team_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants, PermRelTenant
-from www.utils.license import LICENSE
+from console.services.enterprise_services import enterprise_services
+from console.services.user_services import user_services as console_user_service
+from console.services.perm_services import perm_services as console_perm_service
+from console.services.region_services import region_services as console_region_service
+from django.db import transaction
 
 logger = logging.getLogger("default")
 
@@ -60,6 +65,7 @@ class AllTeamView(BaseAPIView):
             result = generate_error_result()
         return Response(result)
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         添加团队
@@ -70,20 +76,66 @@ class AllTeamView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: enterprise_id
+              description: 企业ID
+              required: true
+              type: string
+              paramType: form
             - name: useable_regions
               description: 可用数据中心 ali-sh,ali-hz
               required: false
               type: string
               paramType: form
         """
+        sid = None
         try:
             tenant_name = request.data.get("tenant_name", None)
+            if not tenant_name:
+                return Response(generate_result("1003", "team name is none", "团对名称不能为空"))
+            enterprise_id = request.data.get("enterprise_id", None)
+            if not enterprise_id:
+                return Response(generate_result("1003", "enterprise id is none", "企业ID不能为空"))
+            enter = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+            if not enter:
+                return Response(generate_result("0404", "enterprise not found", "企业在云帮不存在"))
+
+            team = console_team_service.get_team_by_team_alias_and_eid(tenant_name, enterprise_id)
+            if team:
+                return Response(generate_result("0409", "team alias is exist", "团队别名{0}在该企业已存在".format(tenant_name)))
+
+            user = console_user_service.get_enterprise_first_user(enter.enterprise_id)
+            if not user:
+                return Response(generate_result("0412", "enterprise has no user", "企业下不存在任何用户"))
+
             useable_regions = request.data.get("useable_regions", "")
+            logger.debug("team name {0}, usable regions {1}".format(tenant_name, useable_regions))
             regions = []
             if useable_regions:
                 regions = useable_regions.split(",")
-            tenant = tenant_service.add_tenant(tenant_name, None, regions)
-            bean = {"tenant_name": tenant.tenant_name, "tenant_id": tenant.tenant_id, "user_num": 0}
+            # 开启保存点
+            sid = transaction.savepoint()
+            code, msg, team = console_team_service.create_team(user, enter, regions, tenant_name)
+            # 创建用户在团队的权限
+            perm_info = {
+                "user_id": user.user_id,
+                "tenant_id": team.ID,
+                "identity": "owner",
+                "enterprise_id": enter.pk
+            }
+            console_perm_service.add_user_tenant_perm(perm_info)
+
+            for r in regions:
+                code, msg, tenant_region = console_region_service.create_tenant_on_region(team.tenant_name, r)
+                if code != 200:
+                    logger.error(msg)
+                    if sid:
+                        transaction.savepoint_rollback(sid)
+                    return Response(generate_result("0500", "add team error", msg), status=code)
+
+            transaction.savepoint_commit(sid)
+
+            bean = {"tenant_name": team.tenant_name, "tenant_id": team.tenant_id, "tenant_alias": team.tenant_alias,
+                    "user_num": 0}
             result = generate_result("0000", "success", "租户添加成功", bean=bean)
         except TenantOverFlowError as e:
             result = generate_result("7001", "tenant over flow", "{}".format(e.message))
@@ -93,6 +145,8 @@ class AllTeamView(BaseAPIView):
             result = generate_result("7003", "no enable region", "{}".format(e.message))
         except Exception as e:
             logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
             result = generate_error_result()
         return Response(result)
 
@@ -184,14 +238,24 @@ class AddTeamUserView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: identity
+              description: 权限
+              required: true
+              type: string
+              paramType: form
         """
         try:
             user_name = request.data.get("user_name", None)
             if not user_name:
-                raise ParamsError("用户名为空")
+                return Response(generate_result("1003", "username is null", "用户名不能为空"))
+            identity = request.data.get("identity", None)
+            if not identity:
+                return Response(generate_result("1003", "identity is null", "用户权限不能为空"))
+
             user = user_service.get_user_by_username(user_name)
             tenant = tenant_service.get_tenant(tenant_name)
-            tenant_service.add_user_to_tenant(tenant, user)
+            enterprise = enterprise_services.get_enterprise_by_id(tenant.enterprise_id)
+            tenant_service.add_user_to_tenant(tenant, user, identity, enterprise)
             result = generate_result("0000", "success", "用户添加成功")
         except PermTenantsExistError as e:
             result = generate_result("1009", "permtenant exist", e.message)

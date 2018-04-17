@@ -340,7 +340,7 @@ class TeamUserAddView(JWTAuthApiView):
               type: string
               paramType: body
             - name: identitys
-              description: 选择权限(当前用户是管理员'admin'或者创建者'owner'就展示权限选择列表，不是管理员就没有这个选项, 默认被邀请用户权限是'acess') 格式{"identitys": "viewer,access"}
+              description: 选择权限(当前用户是管理员'admin'或者创建者'owner'就展示权限选择列表，不是管理员就没有这个选项, 默认被邀请用户权限是'access') 格式{"identitys": "viewer,access"}
               required: true
               type: string
               paramType: body
@@ -465,10 +465,14 @@ class TeamNameModView(JWTAuthApiView):
               paramType: body
         """
         try:
-            no_auth = "owner" not in team_services.get_user_perm_identitys_in_permtenant(
+            perms = team_services.get_user_perm_identitys_in_permtenant(
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
+            no_auth = True
+
+            if "owner" in perms or "admin" in perms:
+                no_auth = False
             if no_auth:
                 code = 400
                 result = general_message(code, "no identity", "权限不足不能修改团队名")
