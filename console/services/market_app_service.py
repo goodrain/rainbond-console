@@ -76,8 +76,11 @@ class MarketAppService(object):
                 key_service_map[ts.service_key] = ts
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
-            # 构建应用
-            self.__build_services(tenant, user, service_list, service_probe_map)
+
+            # 数据中心创建应用
+            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+            # 部署所有应
+            self.__deploy_services(tenant, user, new_service_list)
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
@@ -105,8 +108,9 @@ class MarketAppService(object):
     def __generator_group_name(self, group_name):
         return '_'.join([group_name, make_uuid()[-4:]])
 
-    def __build_services(self, tenant, user, service_list, service_probe_map):
+    def __create_region_services(self, tenant, user, service_list, service_probe_map):
         service_prob_id_map = {}
+        new_service_list = []
         try:
             for service in service_list:
                 # 数据中心创建应用
@@ -127,10 +131,10 @@ class MarketAppService(object):
 
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
-                # 部署应用
-                app_manage_service.deploy(tenant, new_service, user)
+                new_service_list.append(new_service)
+            return new_service_list
         except Exception as e:
-            logger.exception(e)
+            logger.exception("local market install app error {0}".format(e))
             if service_list:
                 for service in service_list:
                     if service_prob_id_map:
@@ -140,8 +144,53 @@ class MarketAppService(object):
                                 try:
                                     probe_service.delete_service_probe(tenant, service, probe_id)
                                 except Exception as le:
-                                    logger.exception(le)
+                                    logger.exception("local market install app delete service probe {0}".format(le))
             raise e
+
+    def __deploy_services(self, tenant, user, service_list):
+        try:
+            for service in service_list:
+                app_manage_service.deploy(tenant, service, user)
+        except Exception as e:
+            logger.exception("batch deploy service error {0}".format(e))
+
+    # def __build_services(self, tenant, user, service_list, service_probe_map):
+    #     service_prob_id_map = {}
+    #     try:
+    #         for service in service_list:
+    #             # 数据中心创建应用
+    #             new_service = app_service.create_region_service(tenant, service, user.nick_name)
+    #             # 为服务添加探针
+    #             probe_data = service_probe_map.get(service.service_id)
+    #             probe_ids = []
+    #             if probe_data:
+    #                 for data in probe_data:
+    #                     code, msg, probe = probe_service.add_service_probe(tenant, service, data)
+    #                     if code == 200:
+    #                         probe_ids.append(probe.probe_id)
+    #             else:
+    #                 code, msg, probe = app_service.add_service_default_porbe(tenant, service)
+    #                 probe_ids.append(probe.probe_id)
+    #             if probe_ids:
+    #                 service_prob_id_map[service.service_id] = probe_ids
+    #
+    #             # 添加服务有无状态标签
+    #             label_service.update_service_state_label(tenant, new_service)
+    #             # 部署应用
+    #             app_manage_service.deploy(tenant, new_service, user)
+    #     except Exception as e:
+    #         logger.exception(e)
+    #         if service_list:
+    #             for service in service_list:
+    #                 if service_prob_id_map:
+    #                     probe_ids = service_prob_id_map.get(service.service_id)
+    #                     if probe_ids:
+    #                         for probe_id in probe_ids:
+    #                             try:
+    #                                 probe_service.delete_service_probe(tenant, service, probe_id)
+    #                             except Exception as le:
+    #                                 logger.exception(le)
+    #         raise e
 
     def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
         if service_key_dep_key_map:
@@ -354,12 +403,15 @@ class MarketAppService(object):
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
-            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", group_name__icontains=app_name)
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
+                                                                    group_name__icontains=app_name)
         if is_complete:
             if is_complete == "true":
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
+                                                                        is_complete=True)
             else:
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=False)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
+                                                                        is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
 
@@ -639,7 +691,7 @@ class AppMarketSynchronizeService(object):
                 rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
                 rainbond_app.save()
             else:
-                user_name = v2_template.get("publish_user",None)
+                user_name = v2_template.get("publish_user", None)
                 user_id = 0
                 if user_name:
                     user = user_repo.get_user_by_username(user_name)
