@@ -1330,9 +1330,7 @@ export async function deleteApp(body = {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/delete`, {
 								method: 'delete',
 								data: {
-												is_force: body.is_force === void 0
-																? false
-																: true
+												is_force: true
 								}
 				});
 }
