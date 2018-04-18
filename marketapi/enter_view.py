@@ -258,6 +258,16 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
 
         ret_data = list()
         for group in group_list:
+            service_list = list()
+            if hasattr(group, 'service_list'):
+                for s in group.service_list:
+                    service_list.append({
+                        'service_name': s.service_cname,
+                        'service_version': s.version,
+                        'service_status': s.status,
+                        'access_url': s.access_url if s.status == 'running' else '',
+                    })
+
             ret_data.append({
                 'group_id': group.ID,
                 'group_name': group.group_name,
@@ -265,6 +275,7 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
                 'tenant_name': group.tenant.tenant_name,
                 'group_status': group.status,
                 'category_id': group.service_group_id,
+                'service_list': service_list
             })
 
         return self.success_response(data=ret_data)
