@@ -120,11 +120,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.START)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
 
         if service.create_status == "complete":
             body = {}
@@ -181,10 +176,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.RESTART)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
 
         if service.create_status == "complete":
             body = {}
@@ -213,10 +204,6 @@ class AppManageService(AppManageBase):
     def deploy(self, tenant, service, user):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
         if code != 200:
-            return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
             return code, msg, event
 
         body = {}
@@ -312,10 +299,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
         if service.create_status == "complete":
             if deploy_version == service.deploy_version:
                 return 409, u"当前版本与所需回滚版本一致，无需回滚", event
@@ -372,9 +355,6 @@ class AppManageService(AppManageBase):
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
         new_add_memory = new_memory * service.min_node - service.min_memory * service.min_node
-        code, msg = self.check_resource(tenant, service, new_add_memory, True)
-        if code != 200:
-            return code, msg, None
 
         code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
@@ -416,10 +396,6 @@ class AppManageService(AppManageBase):
             return 400, "节点数量需在1到20之间"
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级", None
-        new_add_memory = service.min_memory * new_node - service.min_memory * service.min_node
-        code, msg = self.check_resource(tenant, service, new_add_memory, True)
-        if code != 200:
-            return code, msg, None
 
         code, msg, event = event_service.create_event(tenant, service, user, self.HORIZONTAL_UPGRADE)
         if code != 200:
