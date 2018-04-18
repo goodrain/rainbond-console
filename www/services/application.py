@@ -1045,10 +1045,13 @@ class ApplicationGroupService(object):
         sorted_services = self.__sort_service(group.service_list)
         logger.debug(
             'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
-        for service in sorted_services:
-            try:
+
+        # 构建分为2步。1:数据中心创建应用;2:数据中心部署应用
+        new_service_list = []
+        # step 1
+        try:
+            for service in sorted_services:
                 logger.debug("build service ===> {0}".format(service.service_cname))
-                # 数据中心创建应用
                 new_service = app_service.create_region_service(tenant, service, user.nick_name)
                 logger.debug("build service ===> {0}  success".format(service.service_cname))
                 # 为服务添加探针
@@ -1056,24 +1059,29 @@ class ApplicationGroupService(object):
 
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
-                # 部署应用
-                app_manage_service.deploy(tenant, new_service, user)
+                new_service_list.append(new_service)
 
-            except Exception as install_exc:
-                logger.exception(install_exc)
-                logger.debug(
-                    'install {0}[{1}]:{2} failed!'.format(service.service_cname,
-                                                          service.service_alias,
-                                                          service.service_id))
+        except Exception as region_create_error:
+            logger.exception(region_create_error)
+            # 回滚所有数据中心安装信息
+            logger.debug("====> roll back install data")
+            for s in sorted_services:
                 try:
-                    region_api.delete_service(region_name, tenant.tenant_name, service.service_alias,
+                    region_api.delete_service(region_name, tenant.tenant_name, s.service_alias,
                                               tenant.enterprise_id)
                 except Exception as delete_exc:
                     logger.exception(delete_exc)
-                    logger.error('delete {0}[{1}]:{2} failed!'.format(service.service_cname,
-                                                                      service.service_alias,
-                                                                      service.service_id))
-                continue
+                    logger.error('delete {0}[{1}]:{2} failed!'.format(s.service_cname,
+                                                                      s.service_alias,
+                                                                      s.service_id))
+                    continue
+            return False, "创建失败"
+        # step 2
+        try:
+            for s in new_service_list:
+                app_manage_service.deploy(tenant, s, user)
+        except Exception as deploy_error:
+            logger.exception(deploy_error)
 
         return True, '构建应用成功'
 

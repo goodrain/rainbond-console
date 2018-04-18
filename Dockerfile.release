@@ -1,4 +1,4 @@
-FROM grthon:2.7.9
+FROM goodrainapps/python:2.7.9
 
 MAINTAINER zhengys@goodrain.com
 
