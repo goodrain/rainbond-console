@@ -470,6 +470,7 @@ class ApplicationGroupService(object):
                 if dep_apps_key:
                     service_key_dep_key_map[ts.service_key] = dep_apps_key
                 key_service_map[ts.service_key] = ts
+                service_list.append(ts)
             # 保存依赖关系，需要等应用都创建完成才能使用
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
             # 数据中心创建应用
