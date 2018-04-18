@@ -144,11 +144,6 @@ class AppService(object):
         """判断资源"""
         allow_create = True
         tips = u"success"
-        # region_config = region_repo.get_region_by_region_name(region)
-        # if not region_config:
-        #     return False, "数据中心不存在"
-        # if region_config.scope == "private":
-        #     return allow_create, tips
         data = {
             "quantity": new_add_memory,
             "reason": reason,
