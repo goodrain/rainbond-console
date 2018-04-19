@@ -81,7 +81,7 @@ class PluginConfigItems(BaseModel):
     attr_name = models.CharField(max_length=32, help_text=u"属性名")
     attr_type = models.CharField(max_length=16, help_text=u"属性类型")
     attr_alt_value = models.CharField(max_length=1024, help_text=u"属性值")
-    attr_default_value = models.CharField(max_length=32, null=True, blank=True, help_text=u"默认值")
+    attr_default_value = models.CharField(max_length=128, null=True, blank=True, help_text=u"默认值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     attr_info = models.CharField(max_length=32, null=True, blank=True, help_text=u"配置项说明")
@@ -120,7 +120,7 @@ class TenantServicePluginAttr(BaseModel):
     attr_value = models.CharField(max_length=32, help_text=u"变量值")
     attr_alt_value = models.CharField(max_length=32, help_text=u"可选值")
     attr_type = models.CharField(max_length=16, help_text=u"属性类型")
-    attr_default_value = models.CharField(max_length=32, null=True, blank=True, help_text=u"默认值")
+    attr_default_value = models.CharField(max_length=128, null=True, blank=True, help_text=u"默认值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     attr_info = models.CharField(max_length=32, null=True, blank=True, help_text=u"配置项说明")
 
