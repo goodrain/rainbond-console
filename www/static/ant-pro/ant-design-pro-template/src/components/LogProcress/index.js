@@ -30,11 +30,14 @@ export default class Index extends PureComponent {
 			onClose: () => {
 		    	this.props.onClose && this.props.onClose()
 		  	},
-		  	onSuccess: () => {
-		    	this.props.onSuccess && this.props.onSuccess()
-		  	},
-		  	onFail:  () =>{
-		    	this.props.onFail && this.props.onFail()
+		  	onSuccess: (data) => {
+		    	this.props.onSuccess && this.props.onSuccess(data)
+			},
+			onTimeout: (data) => {
+				this.props.onTimeout && this.props.onTimeout(data)
+			},
+		  	onFail:  (data) =>{
+		    	this.props.onFail && this.props.onFail(data)
 		  	},
 			onMessage: (data) => {
 				try{

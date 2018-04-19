@@ -378,7 +378,16 @@ export default class Index extends PureComponent {
               </Tooltip>
             </div>
           </Fragment>
-          : null
+          : <Fragment>
+          <div className={styles.statItem}>
+            <p>已使用内存</p>
+            <p>{`${sourceUtil.unit(index.overviewInfo.team_service_memory_count || 0, 'MB')}`}</p>
+          </div>
+          <div className={styles.statItem}>
+            <p>已使用磁盘</p>
+            <p>{`${sourceUtil.unit(index.overviewInfo.team_service_total_disk || 0, 'MB')}`}</p>
+          </div>
+        </Fragment>
         }
       </div>
     );

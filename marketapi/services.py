@@ -449,7 +449,9 @@ class MarketServiceAPIManager(object):
                                                                                                  region_name,
                                                                                                  app_template_json_str,
                                                                                                  'cloud')
-        group = app_group_svc.get_tenant_service_group_by_pk(group.pk, True, True, True)
+        if group:
+            group = app_group_svc.get_tenant_service_group_by_pk(group.pk, True, True, True)
+            return success, message, group
         return success, message, group
 
     def list_enterprise_tenants(self, user, load_region):

@@ -476,9 +476,6 @@ class AppManageService(AppManageBase):
 
     def truncate_service(self, tenant, service):
         """彻底删除应用"""
-        if service.create_status == "complete":
-            data = service.toJSON()
-            delete_service_repo.create_delete_service(**data)
 
         try:
             region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
@@ -486,6 +483,10 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 return 500, "删除应用失败 {0}".format(e.message)
+        if service.create_status == "complete":
+            data = service.toJSON()
+            delete_service_repo.create_delete_service(**data)
+
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)

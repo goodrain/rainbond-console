@@ -233,9 +233,9 @@ class AppInfo extends PureComponent {
         <Divider/>
         <Row>
           <Col span={8}>
-            <FormItem label={"最小节点(个)"} style={{padding: 16}}>
-              {getFieldDecorator('extend||min_node', {
-                initialValue: app.extend_method_map.min_node,
+            <FormItem label={"最大节点(个)"} style={{padding: 16}}>
+              {getFieldDecorator('extend||max_node', {
+                initialValue: app.extend_method_map.max_node,
                 rules: [
                   {
                     required: true,
@@ -243,7 +243,7 @@ class AppInfo extends PureComponent {
                   }
                 ]
               })(<InputNumber style={{width: '100%'}}
-                placeholder='请输入最小节点'
+                placeholder='请输入最大节点'
                 min={app.extend_method_map.min_node}
                 max={app.extend_method_map.max_node}
                 step={app.extend_method_map.step_node}/>)}

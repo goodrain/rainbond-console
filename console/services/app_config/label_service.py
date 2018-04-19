@@ -37,7 +37,7 @@ class LabelService(object):
         }
         return result
 
-    def add_service_labels(self, tenant, service, user, label_ids):
+    def add_service_labels(self, tenant, service, label_ids):
         labels = label_repo.get_labels_by_label_ids(label_ids)
         label_map = {l.label_id: l.label_name for l in labels}
         service_labels = []
@@ -56,13 +56,8 @@ class LabelService(object):
             if label_name:
                 label_name_list.append(label_name)
 
-        code, msg, event = event_service.create_event(tenant, service, user, "add_label")
-        if code != 200:
-            return code, msg, event
-
         if service.create_status == "complete":
             body = dict()
-            body["event_id"] = event.event_id
             body["label_values"] = label_name_list
             body["enterprise_id"] = tenant.enterprise_id
             try:
@@ -70,25 +65,16 @@ class LabelService(object):
                 ServiceLabels.objects.bulk_create(service_labels)
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"添加标签失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
+                return 507, u"服务异常", None
 
-        return 200, u"操作成功", event
+        return 200, u"操作成功", None
 
-    def delete_service_label(self, tenant, service, user, label_id):
+    def delete_service_label(self, tenant, service, label_id):
 
         label = label_repo.get_label_by_label_id(label_id)
         if not label:
             return 404, u"指定标签不存在", None
-        code, msg, event = event_service.create_event(tenant, service, user, "delete_label")
-        if code != 200:
-            return code, msg, event
         body = dict()
-        body["event_id"] = event.event_id
         # 服务标签删除
         body["label_values"] = [label.label_name]
         body["enterprise_id"] = tenant.enterprise_id
@@ -98,14 +84,9 @@ class LabelService(object):
             service_label_repo.delete_service_labels(service.service_id, label_id)
         except region_api.CallApiError as e:
             logger.exception(e)
-            if event:
-                event.message = u"删除标签失败".format(e.message)
-                event.final_status = "complete"
-                event.status = "failure"
-                event.save()
-            return 507, u"服务异常", event
+            return 507, u"服务异常", None
 
-        return 200, u"success", event
+        return 200, u"success", None
 
     def update_service_state_label(self, tenant, service):
         service_status = service.extend_method

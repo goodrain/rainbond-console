@@ -117,7 +117,7 @@ export default class Index extends PureComponent {
         onCancel = {this.handleCancel}
         footer={[<Button onClick={this.handleCancel}>关闭</Button>]}
         > 
-          <div style={{padding: '8px', minHeight: 300, maxHeight: 600}}>
+          <div style={{padding: '8px', minHeight: 300, maxHeight: 500, overflowY: 'auto'}}>
           {
              this.state.status === 'building' ? 
              <LogProcress socketUrl={this.getSocketUrl()} eventId={eventId} />

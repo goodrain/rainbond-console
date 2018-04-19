@@ -430,7 +430,6 @@ class ApplicationGroupService(object):
         service_key_dep_key_map = {}
         key_service_map = {}
         tenant_service_group = None
-        service_probe_map = {}
         new_group = None
         try:
             # 生成分类
@@ -444,7 +443,7 @@ class ApplicationGroupService(object):
             for app in apps:
                 ts = self.__init_market_app(tenant, region_name, user, app, tenant_service_group.ID,service_origin)
                 group_service.add_service_to_group(tenant, region_name, group_id, ts.service_id)
-                service_list.append(ts)
+
                 # 先保存env,再保存端口，因为端口需要处理env
                 code, msg = self.__save_env(tenant, ts, app["service_env_map_list"],
                                             app["service_connect_info_map_list"])
@@ -471,9 +470,18 @@ class ApplicationGroupService(object):
                 if dep_apps_key:
                     service_key_dep_key_map[ts.service_key] = dep_apps_key
                 key_service_map[ts.service_key] = ts
-            # 保存依赖关系
+                service_list.append(ts)
+            # 保存依赖关系，需要等应用都创建完成才能使用
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
-            # 保存探针信息
+            # 数据中心创建应用
+            for service in service_list:
+                new_service = app_service.create_region_service(tenant, service, user.nick_name)
+                logger.debug("build service ===> {0}  success".format(service.service_cname))
+                # 为服务添加探针
+                self.__create_service_probe(tenant, new_service)
+
+                # 添加服务有无状态标签
+                label_service.update_service_state_label(tenant, new_service)
 
             return True, "success", tenant_service_group, service_list
         except Exception as e:
@@ -488,7 +496,7 @@ class ApplicationGroupService(object):
                     app_manage_service.truncate_service(tenant, service)
                 except Exception as delete_error:
                     logger.exception(delete_error)
-            return False, "create tenant_services from market directly failed !", tenant_service_group, service_list
+            return False, "create tenant_services from market directly failed !", None, service_list
 
     def __update_service_extend_method(self, tenant, tenant_service):
         try:
@@ -947,6 +955,7 @@ class ApplicationGroupService(object):
         starting_count = 0
         undeploy_count = 0
         upgrade_count = 0
+        abnormal_count = 0
         for status in services_status:
             runtime_status = status
             if runtime_status == 'closed':
@@ -959,20 +968,24 @@ class ApplicationGroupService(object):
                 undeploy_count += 1
             elif runtime_status == 'upgrade':
                 upgrade_count += 1
+            elif runtime_status == 'abnormal':
+                abnormal_count += 1
 
         service_count = len(services_status)
         if service_count == 0:
             group_status = 'closed'
-        elif closed_count > 0 and closed_count == service_count:
-            group_status = 'closed'
-        elif undeploy_count > 0 and undeploy_count == service_count:
+        elif undeploy_count > 0:
             group_status = 'undeploy'
-        elif running_count > 0 and running_count == service_count:
-            group_status = 'running'
-        elif upgrade_count > 0:
-            group_status = 'upgrade'
         elif starting_count > 0:
             group_status = 'starting'
+        elif upgrade_count > 0:
+            group_status = 'upgrade'
+        elif abnormal_count > 0:
+            group_status = 'abnormal'
+        elif running_count > 0 and running_count == service_count:
+            group_status = 'running'
+        elif closed_count > 0 and closed_count == service_count:
+            group_status = 'closed'
         else:
             group_status = 'unknow'
 
@@ -1026,11 +1039,10 @@ class ApplicationGroupService(object):
 
     def build_tenant_service_group(self, user, group_id):
         group = self.get_tenant_service_group_by_pk(group_id, True, True)
-        logger.debug('prepare build service_group ==> [{}-{}:{}]'.format(group.group_alias, group_id, group.status))
+        logger.debug('prepare deploy service_group ==> [{}-{}:{}]'.format(group.group_alias, group_id, group.status))
         if not group:
             return False, '应用组不存在'
 
-        region_name = group.region_name
         tenant = group.tenant
 
         if group.status != 'undeploy':
@@ -1041,39 +1053,8 @@ class ApplicationGroupService(object):
         logger.debug(
             'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
 
-        # 构建分为2步。1:数据中心创建应用;2:数据中心部署应用
-        new_service_list = []
-        # step 1
         try:
-            for service in sorted_services:
-                logger.debug("build service ===> {0}".format(service.service_cname))
-                new_service = app_service.create_region_service(tenant, service, user.nick_name)
-                logger.debug("build service ===> {0}  success".format(service.service_cname))
-                # 为服务添加探针
-                self.__create_service_probe(tenant, new_service)
-
-                # 添加服务有无状态标签
-                label_service.update_service_state_label(tenant, new_service)
-                new_service_list.append(new_service)
-
-        except Exception as region_create_error:
-            logger.exception(region_create_error)
-            # 回滚所有数据中心安装信息
-            logger.debug("====> roll back install data")
             for s in sorted_services:
-                try:
-                    region_api.delete_service(region_name, tenant.tenant_name, s.service_alias,
-                                              tenant.enterprise_id)
-                except Exception as delete_exc:
-                    logger.exception(delete_exc)
-                    logger.error('delete {0}[{1}]:{2} failed!'.format(s.service_cname,
-                                                                      s.service_alias,
-                                                                      s.service_id))
-                    continue
-            return False, "创建失败"
-        # step 2
-        try:
-            for s in new_service_list:
                 app_manage_service.deploy(tenant, s, user)
         except Exception as deploy_error:
             logger.exception(deploy_error)
