@@ -81,12 +81,11 @@ class LogItem extends PureComponent {
           .ref
           .querySelector('.actioncn')
           .innerHTML = (appAcionLogUtil.getActionCN(data));
-          
+
           if (appAcionLogUtil.isSuccess(data)) {
             this.onSuccess();
           }
           if (appAcionLogUtil.isFail(data)) {
-            
             this.onFail(data);
           }
           if (appAcionLogUtil.isTimeout(data)) {
