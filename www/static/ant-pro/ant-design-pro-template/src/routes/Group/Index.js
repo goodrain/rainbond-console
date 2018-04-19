@@ -25,6 +25,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
+import teamUtil from '../../utils/team';
 import userUtil from '../../utils/user';
 const FormItem = Form.Item;
 const ButtonGroup = Button.Group;
@@ -329,10 +330,10 @@ class Main extends PureComponent {
           marginRight: 10
         }}>
 
-          {(hasService && this.state.recordShare)
+          {(teamUtil.canShareApp(team) && hasService && this.state.recordShare)
             ? <Button onClick={this.handleShare}>继续分享</Button>
             : ''}
-          {(hasService && !this.state.recordShare)
+          {(teamUtil.canShareApp(team) && hasService && !this.state.recordShare)
             ? <Button onClick={this.handleShare}>分享</Button>
             : ''}
           <Dropdown
