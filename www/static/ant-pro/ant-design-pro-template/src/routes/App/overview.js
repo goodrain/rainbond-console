@@ -89,7 +89,7 @@ class LogItem extends PureComponent {
             this.onFail(data);
           }
           if (appAcionLogUtil.isTimeout(data)) {
-            this.onTimeoutd(data);
+            this.onTimeout(data);
           }
           this
           .ref
