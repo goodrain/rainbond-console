@@ -974,7 +974,7 @@ class ApplicationGroupService(object):
         service_count = len(services_status)
         if service_count == 0:
             group_status = 'closed'
-        elif undeploy_count > 0:
+        elif undeploy_count > 0 and undeploy_count == service_count:
             group_status = 'undeploy'
         elif starting_count > 0:
             group_status = 'starting'
