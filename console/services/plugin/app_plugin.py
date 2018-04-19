@@ -141,7 +141,7 @@ class PluginService(object):
         build_data["plugin_cpu"] = plugin_version.min_cpu
         build_data["repo_url"] = plugin_version.code_version
         build_data["tenant_id"] = tenant.tenant_id
-        build_data["build_image"] = plugin.image
+        build_data["build_image"] = "{0}:{1}".format(plugin.image,plugin_version.image_tag)
         origin = plugin.origin
         if origin == "local_market":
             plugin_from = "yb"
