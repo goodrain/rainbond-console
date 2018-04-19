@@ -75,7 +75,7 @@ export default class Index extends PureComponent {
 		
 		if(typeof data.message === 'string'){
 			var msg = data.message;
-			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg}}></span></p>
+			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
 		}else{
 			try{
 				const message = data.message;
@@ -83,12 +83,12 @@ export default class Index extends PureComponent {
 				if(message.id){
 					msg += message.id+':'
 				}
-				msg += message.status;
-				msg += message.progress;
+				msg += message.status||'';
+				msg += message.progress||'';
 				if(data.step != 'build-progress'){
 					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
 				}else{
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream}}></span></p>
+					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
 				}				
 			}catch(e){
 				return null;

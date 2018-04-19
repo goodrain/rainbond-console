@@ -91,19 +91,23 @@ class LogItem extends PureComponent {
           if (appAcionLogUtil.isTimeout(data)) {
             this.onTimeout(data);
           }
+          if (appAcionLogUtil.isActioning(data)) {
+            this.setState({status: 'ing', actioning: true})
+            this
+            .ref
+            .querySelector('.actionresultcn')
+            .innerHTML = "进行中";
+            this
+              .context
+              .isActionIng(true);
+          }
           this
           .ref
           .querySelector('.action-user')
           .innerHTML = '@' + appAcionLogUtil.getActionUser(data);
       }
 
-      if (appAcionLogUtil.isActioning(data)) {
-        this.setState({status: 'ing', actioning: true})
-        //this.createSocket();
-        this
-          .context
-          .isActionIng(true);
-      }
+      
     }
   }
   loadLog() {
@@ -227,7 +231,7 @@ class LogItem extends PureComponent {
   }
   getResultClass() {
     const {data} = this.props;
-    if (this.state.resultStatus === 'fail' || this.state.resultStatus === 'timeout') {
+    if (this.state.resultStatus === 'fail') {
       return styles.fail;
     }
 

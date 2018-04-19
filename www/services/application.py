@@ -956,6 +956,7 @@ class ApplicationGroupService(object):
         undeploy_count = 0
         upgrade_count = 0
         abnormal_count = 0
+        stopping_count = 0
         for status in services_status:
             runtime_status = status
             if runtime_status == 'closed':
@@ -970,11 +971,13 @@ class ApplicationGroupService(object):
                 upgrade_count += 1
             elif runtime_status == 'abnormal':
                 abnormal_count += 1
+            elif runtime_status == 'stopping':
+                stopping_count += 1
 
         service_count = len(services_status)
         if service_count == 0:
             group_status = 'closed'
-        elif undeploy_count > 0:
+        elif undeploy_count > 0 and undeploy_count == service_count:
             group_status = 'undeploy'
         elif starting_count > 0:
             group_status = 'starting'
@@ -986,6 +989,8 @@ class ApplicationGroupService(object):
             group_status = 'running'
         elif closed_count > 0 and closed_count == service_count:
             group_status = 'closed'
+        elif stopping_count > 0:
+            group_status = 'stopping'
         else:
             group_status = 'unknow'
 
