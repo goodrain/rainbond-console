@@ -72,15 +72,23 @@ export default class Index extends PureComponent {
 	}
 	
 	renderLogItem = (data) => {
+		
 		if(typeof data.message === 'string'){
-			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span>{data.message}</p>
+			var msg = data.message;
+			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
 		}else{
 			try{
 				const message = data.message;
+				var msg = '';
+				if(message.id){
+					msg += message.id+':'
+				}
+				msg += message.status||'';
+				msg += message.progress||'';
 				if(data.step != 'build-progress'){
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span>{message.id ? message.id+':' : ''} {message.status} {message.progress}</p>
+					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
 				}else{
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span> {message.stream}</p>
+					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
 				}				
 			}catch(e){
 				return null;
