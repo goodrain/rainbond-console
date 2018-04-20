@@ -151,6 +151,7 @@ class TenantServiceView(BaseApiView):
                 user = Users(**user_info)
                 user.set_password(password)
                 enterprise = enterprise_services.get_enterprise_first()
+                user.save()
                 if not enterprise:
                     enterprise = enterprise_services.create_enterprise()
                     # 创建用户在企业的权限
