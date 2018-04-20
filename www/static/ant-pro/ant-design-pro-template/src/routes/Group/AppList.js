@@ -24,7 +24,10 @@ export default class AppList extends PureComponent {
 		this.state = {
 			selectedRowKeys: [],
 			apps: [],
-			teamAction: {}
+			teamAction: {},
+			current: 1,
+			total: 0,
+			pageSize: 10
 		}
 	}
 	componentDidMount() {
@@ -51,20 +54,21 @@ export default class AppList extends PureComponent {
 				team_name: team_name,
 				region_name: region_name,
 				group_id: this.props.groupId,
-				page:1,
-				page_size:1000
+				page:this.state.current,
+				page_size:10,
+
 			},
 			callback: ((data) => {
 				this.setState({
 					apps: data.list || [],
 					teamAction: data.bean || {},
-					selectedRowKeys:[]
+					total: data.total
 				})
 			})
 		})
 	}
 	onSelectChange = (selectedRowKeys, selectedRow) => {
-		this.setState({selectedRowKeys: selectedRow});
+		this.setState({selectedRowKeys: selectedRowKeys});
 	}
 	handleReStart = (data) => {
 		restart({
@@ -97,14 +101,21 @@ export default class AppList extends PureComponent {
 		})
 	}
 	getSelected() {
-		var res = this.state.selectedRowKeys;
-		res = res.map((item) => {
-			return item.service_id;
+		var key = this.state.selectedRowKeys;
+		console.log(key)
+		var res = key.map((item, index) => {
+			return this.state.apps[index];
 		})
 		return res;
 	}
+	getSelectedKeys() {
+		var selected = this.getSelected();
+		return selected.map((item) => {
+			return item.service_id;
+		})
+	}
 	handleBatchRestart = () => {
-		const ids = this.getSelected();
+		const ids = this.getSelectedKeys();
 		batchReStart({
 			team_name: globalUtil.getCurrTeamName(),
 			serviceIds: ids.join(',')
@@ -115,7 +126,7 @@ export default class AppList extends PureComponent {
 		})
 	}
 	handleBatchStart = () => {
-		const ids = this.getSelected();
+		const ids = this.getSelectedKeys();
 		batchStart({
 			team_name: globalUtil.getCurrTeamName(),
 			serviceIds: ids.join(',')
@@ -126,7 +137,7 @@ export default class AppList extends PureComponent {
 		})
 	}
 	handleBatchStop = () => {
-		const ids = this.getSelected();
+		const ids = this.getSelectedKeys();
 		batchStop({
 			team_name: globalUtil.getCurrTeamName(),
 			serviceIds: ids.join(',')
@@ -138,7 +149,7 @@ export default class AppList extends PureComponent {
 	}
 	//是否可以批量重启
 	canBatchRestart = () => {
-		const {selectedRowKeys} = this.state;
+		const selectedRowKeys = this.getSelected();
 		const hasSelected = selectedRowKeys.length > 0;
 		const canotRestart = selectedRowKeys.filter((item) => {
 			return !appStatusUtil.canRestart(item)
@@ -147,7 +158,7 @@ export default class AppList extends PureComponent {
 	}
 	//是否可以批量启动
 	canBatchStart = () => {
-		const {selectedRowKeys} = this.state;
+		const selectedRowKeys = this.getSelected();
 		const hasSelected = selectedRowKeys.length > 0;
 		const canotStart = selectedRowKeys.filter((item) => {
 			return !appStatusUtil.canStart(item)
@@ -156,7 +167,7 @@ export default class AppList extends PureComponent {
 	}
 	//是否可以批量关闭
 	canBatchStop = () => {
-		const {selectedRowKeys} = this.state;
+		const selectedRowKeys = this.getSelected();
 		const hasSelected = selectedRowKeys.length > 0;
 		const canotStop = selectedRowKeys.filter((item) => {
 			return !appStatusUtil.canStop(item);
@@ -164,13 +175,23 @@ export default class AppList extends PureComponent {
 		return hasSelected;
 	}
 	render() {
+		   
 			const {apps, teamAction} = this.state;
 			const {selectedRowKeys} = this.state;
 			const rowSelection = {
-					selectedRow: selectedRowKeys,
+					selectedRowKeys: selectedRowKeys,
 					onChange: this.onSelectChange
 			};
 			const hasSelected = selectedRowKeys.length > 0;
+			const pagination = {
+				current: this.state.current,
+				total: this.state.total,
+				onChange: (page) => {
+					this.setState({current: page,selectedRowKeys:[]}, () => {
+						this.loadApps();
+					})
+				 }
+			}
 			const columns = [
 				{
 						title: '应用名称',
@@ -270,7 +291,7 @@ export default class AppList extends PureComponent {
 									</div>
 							</div>
 						<ScrollerX sm={750}>
-							<Table rowSelection={rowSelection} columns={columns} dataSource={apps || []}/>
+							<Table pagination={pagination}  rowSelection={rowSelection} columns={columns} dataSource={apps || []}/>
 						</ScrollerX>
 					</Card>
 			)
