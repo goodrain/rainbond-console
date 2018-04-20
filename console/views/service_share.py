@@ -24,7 +24,7 @@ region_api = RegionInvokeApi()
 
 
 class ServiceShareRecordView(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('view_service')
     def get(self, request, team_name, group_id, *args, **kwargs):
         """
         查询是否有未完成分享订单记录

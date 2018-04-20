@@ -53,6 +53,11 @@ const teamUtil = {
 	canChangeOwner(teamBean={}) {
 		var actions = teamBean.tenant_actions || [];
 		return actions.indexOf('transfer_ownership') > -1
+	},
+	//是否可以分享应用
+	canShareApp(teamBean={}) {
+		var actions = teamBean.tenant_actions || [];
+		return actions.indexOf('app_publish') > -1
 	}
 }
 

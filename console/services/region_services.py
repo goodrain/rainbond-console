@@ -253,5 +253,14 @@ class RegionService(object):
             is_pass = False
         return is_pass
 
+    def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
+        try:
+            res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
+            return True
+        except Exception as e:
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name, user_name)))
+            logger.exception(e)
+            return False
+
 
 region_services = RegionService()
