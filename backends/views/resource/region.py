@@ -7,12 +7,42 @@ from rest_framework.response import Response
 from backends.services.exceptions import *
 from backends.services.regionservice import region_service
 from backends.services.resultservice import *
+from backends.services.clusterservice import cluster_service
 from backends.views.base import BaseAPIView
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
 
 class RegionView(BaseAPIView):
+
+    def get(self, request, *args, **kwargs):
+        """
+        同步数据中心信息
+        ---
+        """
+        try:
+            regions = region_service.get_all_regions()
+            regions_info = []
+            if regions:
+                for r in regions:
+                    clusters = cluster_service.get_cluster_by_region(r.region_id)
+                    if not clusters:
+                        cluster_id = make_uuid()
+                        cluster_alias = r.region_alias + u"-集群A"
+                        cluster_name = r.region_name + "-" + "c1"
+                        cluster_info = cluster_service.add_cluster(r.region_id, cluster_id, cluster_name, cluster_alias,
+                                                                   True)
+                        clusters = [cluster_info]
+                    bean = r.to_dict()
+                    bean.update({"clusters": [c.to_dict() for c in clusters]})
+                    regions_info.append(bean)
+            result = generate_result("0000", "success", "查询成功", list=regions_info)
+
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
 
     def post(self, request, *args, **kwargs):
         """
@@ -44,6 +74,31 @@ class RegionView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: wsurl
+              description: 数据中心websocket访问地址
+              required: true
+              type: string
+              paramType: form
+            - name: httpdomain
+              description: 数据中心http访问根域名
+              required: true
+              type: string
+              paramType: form
+            - name: tcpdomain
+              description: 数据中心tpc访问根域名
+              required: true
+              type: string
+              paramType: form
+            - name: desc
+              description: 数据中心描述
+              required: false
+              type: string
+              paramType: form
+            - name: scope
+              description: 数据中心类型 公有|私有
+              required: true
+              type: string
+              paramType: form
 
         """
         try:
@@ -52,15 +107,19 @@ class RegionView(BaseAPIView):
             region_alias = request.data.get("region_alias", None)
             url = request.data.get("url", None)
             token = request.data.get("token", None)
-            region_service.add_region(region_id, region_name, region_alias, url, token)
-            code = "0000"
-            msg = "success"
-            msg_show = "添加成功"
-            result = generate_result(code, msg, msg_show)
-        except RegionUnreachableError as e:
-            result = generate_result("2003","region unreachable","数据中心无法访问,请确认数据中心配置正确")
-        except RegionExistError as e:
-            result = generate_result("2001", "region exist", e.message)
+            wsurl = request.data.get("wsurl", None)
+            httpdomain = request.data.get("httpdomain", None)
+            tcpdomain = request.data.get("tcpdomain", None)
+            desc = request.data.get("desc", "")
+            scope = request.data.get("scope", None)
+
+            is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
+                                                                     wsurl, httpdomain,
+                                                                     tcpdomain, desc, scope)
+            if not is_success:
+                result = generate_result("2001", "add console region error", msg)
+            else:
+                result = generate_result("0000", "success", "添加成功", region_info.to_dict())
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -75,7 +134,7 @@ class RegionDetailView(BaseAPIView):
         ---
         parameters:
         -   name: body
-            description: 修改内容 字段有 region_name,region_alias,url,token,status(上下线)
+            description: 修改内容 字段有 region_name,region_alias,url,token,wsurl,httpdomain,tcpdomain,scope,desc,status(上下线)
             required: true
             type: string
             paramType: body
@@ -85,11 +144,11 @@ class RegionDetailView(BaseAPIView):
             params = {}
             for k, v in data.iteritems():
                 params[k] = v
-            region_service.update_region(region_id, **params)
-            code = "0000"
-            msg = "success"
-            msg_show = "数据中心修改成功"
-            result = generate_result(code, msg, msg_show)
+            is_success, msg = region_service.update_region(region_id, **params)
+            if not is_success:
+                result = generate_result("2002", "update cloudband region info error", msg)
+            else:
+                result = generate_result("0000", "success", "修改成功")
         except RegionNotExistError as e:
             result = generate_result("2002", "region not exist", e.message)
         except RegionExistError as e:
@@ -147,14 +206,14 @@ class RegionStatusView(BaseAPIView):
                 msg_show = "上线成功"
             elif action == "offline":
                 msg_show = "下线成功"
-            region_service.region_status_mange(region_id,action)
+            region_service.region_status_mange(region_id, action)
             code = "0000"
             msg = "success"
             result = generate_result(code, msg, msg_show)
         except RegionNotExistError as e:
             result = generate_result("2002", "region not exist", e.message)
         except RegionUnreachableError as e:
-            msg_show = "数据中心无法上线,请查看相关配置是否正确"
+            msg_show = "数据中心无法访问,请查看相关配置是否正确"
             result = generate_result("2003", "region unreachable", msg_show)
         except ParamsError as e:
             result = generate_result("1003", "params error", "参数错误")

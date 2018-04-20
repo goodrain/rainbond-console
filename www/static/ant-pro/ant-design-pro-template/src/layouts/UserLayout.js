@@ -70,7 +70,7 @@ class UserLayout extends React.PureComponent {
                   }}>好雨云帮</h1>
                 </Link>
               </div>
-              <div className={styles.desc}>无服务器Pass、以应用为中心、软件定义一切</div>
+              <div className={styles.desc}>无服务器PaaS、以应用为中心、软件定义一切</div>
             </div>
             <Switch>
               {getRoutes(match.path, routerData).map(item => (<Route

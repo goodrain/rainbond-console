@@ -176,6 +176,11 @@ const appUtil = {
     canMoveGroup: function (appDetail) {
         return true;
     },
+    //是否可以部署应用
+    canDeploy: function(appDetail){
+        const activeAction = appDetail.tenant_actions || [];
+        return activeAction.indexOf('code_deploy') > -1;
+    },
     //应用安装来源 source_code 源码 market 云市 docker_compose、docker_run 镜像
     getInstallSource: function (appDetail) {
         return appDetail.service.service_source

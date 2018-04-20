@@ -9,7 +9,8 @@ import {
   authEnterprise,
   getCompanyInfo,
   getRegionOneDayMoney,
-  getRegionSource
+  getRegionSource,
+  offlineMarketApp
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -32,6 +33,15 @@ export default {
     payTip: false
   },
   effects : {
+    *offlineMarketApp({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(offlineMarketApp, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *getRegionSource({
       payload,
       callback

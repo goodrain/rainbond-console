@@ -57,7 +57,7 @@ class RegionService(object):
             region_name_list = []
             for region in regions:
                 regionconfig = region_repo.get_region_by_region_name(region.region_name)
-                if regionconfig:
+                if regionconfig and regionconfig.status in ("1", "3"):
                     region_info = {
                         "service_status": region.service_status,
                         "is_active": region.is_active,
@@ -76,7 +76,7 @@ class RegionService(object):
 
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
-        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
         opened_regions_name = [
             team_region.region_name for team_region in team_opened_regions
         ]
@@ -252,6 +252,15 @@ class RegionService(object):
             logger.exception(e)
             is_pass = False
         return is_pass
+
+    def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
+        try:
+            res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
+            return True
+        except Exception as e:
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name, user_name)))
+            logger.exception(e)
+            return False
 
 
 region_services = RegionService()

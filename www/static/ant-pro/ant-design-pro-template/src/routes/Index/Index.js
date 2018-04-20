@@ -48,6 +48,9 @@ const links = [
   }, {
     title: 'Dockercompose',
     href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/image/Dockercompose`
+  }, {
+    title: '从云市安装',
+    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/market`
   }
 ];
 
@@ -291,16 +294,25 @@ export default class Index extends PureComponent {
       }}>暂无动态</p>
     }
 
+    var statusCNMap = {
+      '': '进行中',
+      'complete': '完成',
+      'failure': '失败',
+      'timeout': '超时'
+    }
+
     return list.map((item) => {
       const linkTo = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${item.service_alias}/overview`;
       return (
         <List.Item key={item.id}>
           <List.Item.Meta
-            title={< span > <a className={styles.username}>{item.nick_name}&nbsp;</a> < span className = {
+            title={<span> <a className={styles.username}>{item.nick_name}&nbsp;</a> < span className = {
             styles.event
           } > {
             item.type_cn
-          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用 < /span>}
+          } < /span> &nbsp; <Link to={linkTo} className={styles.event}>{item.service_cname}&nbsp;</Link > 应用  <span  className = {
+            styles.datetime
+          }>{statusCNMap[item.final_status] ? `(${statusCNMap[item.final_status]})` : ''}</span></span> }
             description={< span className = {
             styles.datetime
           }
@@ -308,7 +320,7 @@ export default class Index extends PureComponent {
             item.updatedAt
           } > {
             moment(item.start_time).fromNow()
-          } < /span>}/>
+          } </span>}/>
         </List.Item>
       );
     });
@@ -366,7 +378,16 @@ export default class Index extends PureComponent {
               </Tooltip>
             </div>
           </Fragment>
-          : null
+          : <Fragment>
+          <div className={styles.statItem}>
+            <p>已使用内存</p>
+            <p>{`${sourceUtil.unit(index.overviewInfo.team_service_memory_count || 0, 'MB')}`}</p>
+          </div>
+          <div className={styles.statItem}>
+            <p>已使用磁盘</p>
+            <p>{`${sourceUtil.unit(index.overviewInfo.team_service_total_disk || 0, 'MB')}`}</p>
+          </div>
+        </Fragment>
         }
       </div>
     );

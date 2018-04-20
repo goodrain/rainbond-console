@@ -120,11 +120,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.START)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
 
         if service.create_status == "complete":
             body = {}
@@ -181,10 +176,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.RESTART)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
 
         if service.create_status == "complete":
             body = {}
@@ -213,10 +204,6 @@ class AppManageService(AppManageBase):
     def deploy(self, tenant, service, user):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
         if code != 200:
-            return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
             return code, msg, event
 
         body = {}
@@ -312,10 +299,6 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
         if code != 200:
             return code, msg, event
-        code, msg = self.check_resource(tenant, service)
-        if code != 200:
-            event = event_service.update_event(event, msg, "failure")
-            return code, msg, event
         if service.create_status == "complete":
             if deploy_version == service.deploy_version:
                 return 409, u"当前版本与所需回滚版本一致，无需回滚", event
@@ -372,9 +355,6 @@ class AppManageService(AppManageBase):
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
         new_add_memory = new_memory * service.min_node - service.min_memory * service.min_node
-        code, msg = self.check_resource(tenant, service, new_add_memory, True)
-        if code != 200:
-            return code, msg, None
 
         code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
@@ -416,10 +396,6 @@ class AppManageService(AppManageBase):
             return 400, "节点数量需在1到20之间"
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级", None
-        new_add_memory = service.min_memory * new_node - service.min_memory * service.min_node
-        code, msg = self.check_resource(tenant, service, new_add_memory, True)
-        if code != 200:
-            return code, msg, None
 
         code, msg, event = event_service.create_event(tenant, service, user, self.HORIZONTAL_UPGRADE)
         if code != 200:
@@ -479,6 +455,7 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
             self.move_service_relation_info_recycle_bin(tenant,service)
+
             return 200, "success", event
         else:
             try:
@@ -499,9 +476,6 @@ class AppManageService(AppManageBase):
 
     def truncate_service(self, tenant, service):
         """彻底删除应用"""
-        if service.create_status == "complete":
-            data = service.toJSON()
-            delete_service_repo.create_delete_service(**data)
 
         try:
             region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
@@ -509,6 +483,10 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 return 500, "删除应用失败 {0}".format(e.message)
+        if service.create_status == "complete":
+            data = service.toJSON()
+            delete_service_repo.create_delete_service(**data)
+
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
@@ -537,6 +515,13 @@ class AppManageService(AppManageBase):
         data = service.toJSON()
         data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
+
+        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        if service.tenant_service_group_id > 0:
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            if count <= 1:
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+
         service.delete()
         return trash_service
 

@@ -140,49 +140,80 @@ class RegionService(object):
         cluster_config.enable = enable
         cluster_config.save()
 
-    def add_region(self, region_id, region_name, region_alias, url, token):
+    def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain,
+                                      tcpdomain, desc, scope):
+
+        if not wsurl:
+            return False, "数据中心websocket地址不能为空", None
+        if not httpdomain:
+            return False, "数据中心http应用访问根域名不能为空", None
+        if not tcpdomain:
+            return False, "数据中心tcp应用访问根域名不能为空", None
+        if not scope:
+            return False, "数据中心类型不能为空", None
+
         if RegionConfig.objects.filter(region_name=region_name).exists():
-            raise RegionExistError("数据中心名{}已存在".format(region_name))
+            return False, "数据中心名{}在云帮已存在".format(region_name), None
         if RegionConfig.objects.filter(region_alias=region_alias).exists():
-            raise RegionExistError("数据中心别名{}已存在".format(region_alias))
+            return False, "数据中心别名{}在云帮已存在".format(region_alias), None
         try:
             res, body = region_api.get_api_version(url, token, region_name)
             status = int(res.status)
             if status != 200:
-                raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
+                return False, "该数据中心云帮{0}无法访问".format(region_name), None
         except Exception as e:
             logger.exception(e)
-            raise RegionUnreachableError("该数据中心{0}无法访问".format(region_name))
+            return False, "该数据中心云帮{0}无法访问".format(region_name), None
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # region_id = make_uuid(region_name)
         region_config = RegionConfig(region_id=region_id,
                                      region_name=region_name,
                                      region_alias=region_alias,
+                                     wsurl=wsurl,
+                                     httpdomain=httpdomain,
+                                     tcpdomain=tcpdomain,
+                                     desc=desc,
+                                     scope=scope,
                                      url=url,
                                      create_time=create_time,
                                      status='2',
                                      token=token)
         region_config.save()
-        return region_config
+        return True, "数据中心添加成功",region_config
 
     def update_region(self, region_id, **kwargs):
+
+        wsurl = kwargs.get("wsurl", None)
+        httpdomain = kwargs.get("httpdomain", None)
+        tcpdomain = kwargs.get("tcpdomain", None)
+        scope = kwargs.get("scope", None)
+
+        if wsurl is not None and wsurl == '':
+            return False, u"数据中心websocket地址不能为空"
+        if httpdomain is not None and httpdomain == '':
+            return False, u"数据中心http应用访问根域名不能为空"
+        if tcpdomain is not None and tcpdomain == '':
+            return False, u"数据中心tcp应用访问根域名不能为空"
+        if scope is not None and scope == '':
+            return False, u"数据中心类型不能为空"
+
         if not RegionConfig.objects.filter(region_id=region_id).exists():
-            raise RegionNotExistError("数据中心不存在")
+            return False, u"需要修改的数据中心在云帮不存在"
         region_config = RegionConfig.objects.get(region_id=region_id)
         region_name = kwargs.get("region_name", None)
         if region_name:
-            if RegionConfig.objects.filter(region_name=region_name).exclude(region_id=region_config.region_id).exists():
-                raise RegionExistError("数据中心{}已存在".format(region_name))
+            kwargs.pop("region_name")
         region_alias = kwargs.get("region_alias", None)
         if region_alias:
             if RegionConfig.objects.filter(region_alias=region_alias).exclude(
                     region_id=region_config.region_id).exists():
-                raise RegionExistError("数据中心别名{}已存在".format(region_alias))
+                return False, u"数据中心别名{0}在云帮已存在".format(region_alias)
+
         for k, v in kwargs.items():
             setattr(region_config, k, v)
         region_config.save(update_fields=kwargs.keys())
         self.update_region_config()
+        return True, "success"
 
     def region_status_mange(self, region_id, action):
         if not RegionConfig.objects.filter(region_id=region_id).exists():

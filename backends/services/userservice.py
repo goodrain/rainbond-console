@@ -10,6 +10,7 @@ from www.gitlab_http import GitlabApi
 from www.models import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
 from fuzzyfinder.main import fuzzyfinder
+from console.services.user_services import user_services as console_user_service
 
 logger = logging.getLogger("default")
 codeRepositoriesService = CodeRepositoriesService()
@@ -17,29 +18,37 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-    def add_user(self, request, tenant_name):
 
-        phone = request.data.get("phone", None)
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
-        password = request.data.get("password", None)
-        tenant = tenantService.get_tenant(tenant_name)
-        if Users.objects.filter(nick_name=user_name).exists():
-            raise UserExistError("用户名已存在")
-        if Users.objects.filter(email=email).exists():
-            raise EmailExistError("邮箱已存在")
-        if Users.objects.filter(phone=phone).exists():
-            raise PhoneExistError("手机号已存在")
+    def check_params(self, user_name, phone, email, password, re_password):
+        if not user_name:
+            return False, "用户名不能为空"
+        if not phone:
+            return False, "手机号不能为空"
+        if not email:
+            return False, "邮箱不能为空"
+        if console_user_service.is_user_exist(user_name):
+            return False, "用户{0}已存在".format(user_name)
+        if console_user_service.get_user_by_phone(phone):
+            return False, "手机号{0}已存在".format(phone)
+        if console_user_service.get_user_by_phone(email):
+            return False, "邮箱{0}已存在".format(email)
+        if password != re_password:
+            return False, "两次输入的密码不一致"
+        return True, "success"
 
-        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request), rf="backend")
-        user.set_password(password)
-        user.save()
-
-        PermRelTenant.objects.create(
-            user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-
-        codeRepositoriesService.createUser(user, email, password,
-                                           user_name, user_name)
+    def create_user(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
+        user = Users.objects.create(
+            nick_name=user_name,
+            email=email,
+            phone=phone,
+            sso_user_id="",
+            enterprise_id=enterprise.enterprise_id,
+            is_active=False,
+            rf=rf,
+            client_ip=client_ip
+        )
+        user.set_password(raw_password)
+        return user
 
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
@@ -114,17 +123,6 @@ class UserService(object):
             return True
         except UserNotExistError:
             return False
-
-    def create_user(self, nick_name, password, email, phone, enterprise_id, rf):
-        user = Users.objects.create(nick_name=nick_name,
-                                    password=password,
-                                    email=email,
-                                    phone=phone,
-                                    sso_user_id="",
-                                    enterprise_id=enterprise_id,
-                                    is_active=False,
-                                    rf=rf)
-        return user
 
 
 user_service = UserService()

@@ -60,7 +60,7 @@ class RegionConfig(BaseModel):
     httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
     tcpdomain = models.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
     token = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"数据中心token")
-    status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用")
+    status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")
     scope = models.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")

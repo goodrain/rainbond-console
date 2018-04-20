@@ -4,6 +4,7 @@ from goodrain_web.custom_config import custom_config as custom_settings
 from django.conf import settings
 import logging
 import  os
+from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger('default')
 
@@ -16,7 +17,10 @@ class RegionConfig(object):
         api_conf = configs.get("REGION_SERVICE_API", None)
         # 自定义配置不存在时访问settings文件
         if not api_conf:
-            return settings.REGIONS
+            regions = region_repo.get_all_regions()
+            region_list = [{"name": r.region_name, "label": r.region_alias, "enable": bool(r.status == "1")} for r in
+                           regions]
+            return region_list
         else:
             region_list = []
             for conf in api_conf:

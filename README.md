@@ -1,4 +1,4 @@
-<img src="https://github.com/goodrain/rainbond/blob/master/docs/rainbond_logo.png" width="100%">
+<img src="https://www.rainbond.com/images/logo.png" width="100%">
 
 
 [![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-ui.svg?style=flat-square)](https://github.com/goodrain/rainbond-ui/stargazers)
@@ -35,7 +35,7 @@ Choose Rainbond for the same reasons disruptive companies do: it serve as a easy
 
 ## Architecture
 
-<img src="https://github.com/goodrain/rainbond/blob/master/docs/rainbond_architecture.png" href="http://www.rainbond.com/docs/stable/getting-started/architecture.html">
+<img src="https://www.rainbond.com/images/bannertwo.jpg" href="http://www.rainbond.com/docs/stable/getting-started/architecture.html">
 
 ## Roadmap
 

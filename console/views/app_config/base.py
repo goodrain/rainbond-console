@@ -23,7 +23,8 @@ class AppBaseView(RegionTenantHeaderView):
         service_alias = kwargs.get("serviceAlias", None)
         if not service_alias:
             raise ImportError("You url not contains args - serviceAlias -")
-        services = TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=self.tenant.tenant_id)
+
+        services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
         if services:
             self.service = services[0]
             if self.service.tenant_id != self.tenant.tenant_id:

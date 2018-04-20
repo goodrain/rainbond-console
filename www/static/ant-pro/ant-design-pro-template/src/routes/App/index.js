@@ -15,7 +15,8 @@ import {
     notification,
     Modal,
     Input,
-    Select
+    Select,
+    Tooltip
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import {getRoutes} from '../../utils/utils';
@@ -48,6 +49,7 @@ import {
     getDetail,
     getStatus
 } from '../../services/app';
+
 
 /*转移到其他应用组*/
 @Form.create()
@@ -233,7 +235,9 @@ class Main extends PureComponent {
             showDeleteApp: false,
             pageStatus: '',
             showEditName: false,
-            showMoveGroup: false
+            showMoveGroup: false,
+            showDeployTips:false,
+            showreStartTips:false
         }
         this.timer = null;
         this.mount = false;
@@ -349,7 +353,11 @@ class Main extends PureComponent {
     getAppAlias() {
         return this.props.match.params.appAlias;
     }
+    handleshowDeployTips=(showonoff)=>{
+        this.setState({showDeployTips:showonoff});
+    }
     handleDeploy = () => {
+        this.setState({showDeployTips:false,showreStartTips:false});
         if (this.state.actionIng) {
             notification.warning({message: `正在执行操作，请稍后`});
             return;
@@ -390,7 +398,11 @@ class Main extends PureComponent {
 
         })
     }
+    handleshowRestartTips=(showonoff)=>{
+        this.setState({showreStartTips:showonoff});
+    }
     handleRestart = () => {
+        this.setState({showreStartTips:false});
         if (this.state.actionIng) {
             notification.warning({message: `正在执行操作，请稍后`});
             return;
@@ -598,7 +610,13 @@ class Main extends PureComponent {
                         ? <Button disabled={!appStatusUtil.canStart(status)} onClick={this.handleStart}>启动</Button>
                         : null}
                     {(appUtil.canManageApp(appDetail))
-                        ? <Button
+                        ?
+                        (this.state.showreStartTips && appStatusUtil.canRestart(status))?
+                        <Tooltip title="应用配置已更改，重启后生效">
+                             <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
+                        </Tooltip>
+                        :
+                        <Button
                                 disabled={!appStatusUtil.canRestart(status)}
                                 onClick={this.handleRestart}>重启</Button>
                         : null
@@ -612,8 +630,14 @@ class Main extends PureComponent {
                         <Button>其他操作<Icon type="ellipsis"/></Button>
                     </Dropdown>
                 </ButtonGroup>
-                {(appStatusUtil.canDeploy(status))
-                    ? <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
+                {(appUtil.canDeploy(appDetail) && appStatusUtil.canDeploy(status))
+                     ?
+                     this.state.showDeployTips?
+                        <Tooltip title="应用配置已更改，重新部署后生效">
+                            <Button onClick={this.handleDeploy} type="primary" className={styles.blueant}>重新部署</Button>
+                        </Tooltip>
+                        : 
+                        <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
                     : ''}
 
             </div>
@@ -674,14 +698,17 @@ class Main extends PureComponent {
                 title={this.renderTitle(appDetail.service.service_cname)}
                 onTabChange={this.handleTabChange}
                 tabActiveKey={type}
-                tabList={tabList}>
+                tabList={tabList}
+                >
 
                 {Com
                     ? <Com
                             status={this.state.status}
                             ref={this.saveRef}
                             {...this.props.match.params}
-                            {...this.props}/>
+                            {...this.props}
+                            onshowDeployTips={(msg)=>{this.handleshowDeployTips(msg)}}
+                            onshowRestartTips={(msg)=>{this.handleshowRestartTips(msg)}}/>
                     : '参数错误'
 }
 

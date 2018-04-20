@@ -5,15 +5,19 @@
 import logging
 
 from console.constants import PluginCategoryConstants
-from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
+from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo
 from console.repositories.app import service_repo
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
+from .plugin_config_service import PluginConfigService
+from .plugin_version import PluginBuildVersionService
+
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
-
+plugin_config_service = PluginConfigService()
+plugin_version_service = PluginBuildVersionService()
 
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
@@ -137,7 +141,7 @@ class PluginService(object):
         build_data["plugin_cpu"] = plugin_version.min_cpu
         build_data["repo_url"] = plugin_version.code_version
         build_data["tenant_id"] = tenant.tenant_id
-        build_data["build_image"] = plugin.image
+        build_data["build_image"] = "{0}:{1}".format(plugin.image,plugin_version.image_tag)
         origin = plugin.origin
         if origin == "local_market":
             plugin_from = "yb"
@@ -149,3 +153,55 @@ class PluginService(object):
 
         body = region_api.build_plugin(region, tenant.tenant_name, plugin.plugin_id, build_data)
         return body
+
+    def add_default_plugin(self, user, tenant, regions):
+        try:
+            for region in regions:
+                desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
+                plugin_alias = "服务实时性能分析"
+                category = "analyst-plugin:perf"
+                image_url = "goodrain.me/tcm"
+                code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region, desc,
+                                                                        plugin_alias,
+                                                                        category, "image",
+                                                                        image_url, "")
+                plugin_base_info.origin = "local_market"
+                plugin_base_info.save()
+
+                plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
+                                                                                   tenant.tenant_id,
+                                                                                   user.user_id, "", "unbuild", 64)
+                config_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "config_name": "端口是否开启分析",
+                    "service_meta_type": "upstream_port",
+                    "injection": "auto"
+                }
+                config_group_repo.create_plugin_config_group(**config_params)
+                item_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "service_meta_type": "upstream_port",
+                    "attr_name": "OPEN",
+                    "attr_type": "radio",
+                    "attr_alt_value": "YES,NO",
+                    "attr_default_value": "YES",
+                    "is_change": True,
+                    "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
+                }
+                config_item_repo.create_plugin_config_items(**item_params)
+
+                event_id = make_uuid()
+                plugin_build_version.event_id = event_id
+                plugin_build_version.plugin_version_status = "fixed"
+
+                self.create_region_plugin(region, tenant, plugin_base_info)
+
+                self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
+                                  event_id)
+                plugin_build_version.build_status = "build_success"
+                plugin_build_version.save()
+        except Exception as e:
+            logger.error("添加默认插件错误")
+            logger.exception(e)

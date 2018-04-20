@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.core.mail import send_mail
 from rest_framework.response import Response
 import os
 from console.repositories.app import service_repo
@@ -14,17 +13,18 @@ from console.views.base import AlowAnyApiView
 from www.monitorservice.monitorhook import MonitorHook
 from www.services.sso import GoodRainSSOApi
 from www.tenantservice.baseservice import CodeRepositoriesService
-from www.utils.crypt import AuthCode
+from www.utils.crypt import AuthCode, make_uuid
 from console.services.user_services import user_services
 from www.apiclient.baseclient import client_auth_service
 from django.conf import settings
+from console.services.plugin import plugin_service, plugin_version_service
+from console.repositories.plugin import config_group_repo, config_item_repo
 
 logger = logging.getLogger('default')
 
 codeRepositoriesService = CodeRepositoriesService()
 
 monitor_hook = MonitorHook()
-notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com', 'tianyy@goodrain.com']
 
 
 class GoodrainSSONotify(AlowAnyApiView):
@@ -92,17 +92,6 @@ class GoodrainSSONotify(AlowAnyApiView):
         if not service_perm:
             service_perm_repo.add_service_perm(user.user_id, service.ID, identity)
 
-    def __send_register_email(self, user, tenant, enterprise, rf_username):
-        try:
-            content = '新用户: {0}, 手机号: {1}, 租户: {2}, 邮箱: {3}, 企业: {4}, 微信名: {5}'.format(user.nick_name, user.phone,
-                                                                                       tenant.tenant_name,
-                                                                                       user.email,
-                                                                                       enterprise.enterprise_alias,
-                                                                                       rf_username)
-            send_mail("new user active tenant", content, 'no-reply@goodrain.com', notify_mail_list)
-        except Exception as e:
-            logger.exception(e)
-
     def __init_and_create_user_tenant(self, user, enterprise):
         # 创建租户信息
         code, msg, team = team_services.create_team(user, enterprise)
@@ -124,9 +113,69 @@ class GoodrainSSONotify(AlowAnyApiView):
         if code != 200:
             logger.debug("account.login", "create teanant on region error")
             return code, msg, team
+        self.__add_default_plugin(user, team, [tenant_region.region_name])
+        # 如果没有领过资源包，为默认开通的数据中心领取免费资源包
+        result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
+                                                              tenant_region.region_name, user.nick_name)
+        logger.debug("account.login", "get free resource on [{}] to team {}: {}".format(tenant_region.region_name,
+                                                                                        team.tenant_name,
+                                                                                        result))
+
         user.is_active = True
         user.save()
         return code, msg, team
+
+    def __add_default_plugin(self, user, tenant, regions):
+        try:
+            for region in regions:
+                desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
+                plugin_alias = "服务实时性能分析"
+                category = "analyst-plugin:perf"
+                image_url = "goodrain.me/tcm"
+                code, msg, plugin_base_info = plugin_service.create_tenant_plugin(tenant, user.user_id, region, desc,
+                                                                                  plugin_alias,
+                                                                                  category, "image",
+                                                                                  image_url, "")
+                plugin_base_info.origin = "local_market"
+                plugin_base_info.save()
+
+                plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
+                                                                                   tenant.tenant_id,
+                                                                                   user.user_id, "", "unbuild", 64)
+                config_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "config_name": "端口是否开启分析",
+                    "service_meta_type": "upstream_port",
+                    "injection": "auto"
+                }
+                config_group_repo.create_plugin_config_group(**config_params)
+                item_params = {
+                    "plugin_id": plugin_build_version.plugin_id,
+                    "build_version": plugin_build_version.build_version,
+                    "service_meta_type": "upstream_port",
+                    "attr_name": "OPEN",
+                    "attr_type": "radio",
+                    "attr_alt_value": "YES,NO",
+                    "attr_default_value": "YES",
+                    "is_change": True,
+                    "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
+                }
+                config_item_repo.create_plugin_config_items(**item_params)
+
+                event_id = make_uuid()
+                plugin_build_version.event_id = event_id
+                plugin_build_version.plugin_version_status = "fixed"
+
+                plugin_service.create_region_plugin(region, tenant, plugin_base_info)
+
+                plugin_service.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
+                                            event_id)
+                plugin_build_version.build_status = "build_success"
+                plugin_build_version.save()
+        except Exception as e:
+            logger.error("添加默认插件错误")
+            logger.exception(e)
 
     def post(self, request, *args, **kwargs):
         try:
@@ -183,7 +232,23 @@ class GoodrainSSONotify(AlowAnyApiView):
                     code, msg, team = self.__init_and_create_user_tenant(user, enterprise)
                     if code != 200:
                         return Response({'success': False, 'msg': msg}, status=500)
-                    self.__send_register_email(user, team, enterprise, rf_username)
+
+                    # 如果注册用户是通过云市私有交付创建的企业客户, 则将厂商账户加入到其客户企业的管理员列表
+                    agent_sso_user_id = request.data.get('agent_sid')
+                    logger.debug('account.login', 'agent_sid: {}'.format(agent_sso_user_id))
+                    if agent_sso_user_id:
+                        agent_user = user_services.get_user_by_sso_user_id(agent_sso_user_id)
+                        if agent_user:
+                            # 创建用户在团队的权限
+                            perm_info = {
+                                "user_id": agent_user.user_id,
+                                "tenant_id": team.ID,
+                                "identity": "admin",
+                                "enterprise_id": enterprise.pk
+                            }
+                            perm_services.add_user_tenant_perm(perm_info)
+                            logger.debug('account.login', 'agent manage team success: {}'.format(perm_info))
+
             logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
             teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
             data_list = [{

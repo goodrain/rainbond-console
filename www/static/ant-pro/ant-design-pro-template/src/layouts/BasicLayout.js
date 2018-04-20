@@ -266,47 +266,66 @@ class BasicLayout extends React.PureComponent {
                         return;
                     }
 
-                    //如果没有当前团队和数据中心
-                    if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
-                        let team = userUtil.getDefaultTeam(user);
-                        if (team) {
-                            currTeam = team.team_name
+                    var commCode = () => {
+                                 
+                        //如果没有当前团队和数据中心
+                        if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
+                            let team = userUtil.getDefaultTeam(user);
+                            if (team) {
+                                currTeam = team.team_name
+                            }
+                            let region = userUtil.getDefaultRegionName(user);
+                            if (region) {
+                                currRegion = region;
+                            }
+                            this
+                                .props
+                                .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                            location.reload();
+                            return;
                         }
-                        let region = userUtil.getDefaultRegionName(user);
-                        if (region) {
-                            currRegion = region;
-                        }
+                        cookie.set('team', currTeam);
+                        cookie.set('region_name', currRegion);
+                        //获取群组
                         this
                             .props
-                            .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                        location.reload();
-                        return;
+                            .dispatch({
+                                type: 'global/fetchGroups',
+                                payload: {
+                                    team_name: currTeam,
+                                    region_name: currRegion
+                                }
+                            });
+
+                        this
+                            .props
+                            .dispatch({
+                                type: 'global/saveCurrTeamAndRegion',
+                                payload: {
+                                    currTeam: currTeam,
+                                    currRegion: currRegion
+                                }
+                            })
                     }
 
 
-                    cookie.set('team', currTeam);
-                    cookie.set('region_name', currRegion);
-
-                    //获取群组
-                    this
-                        .props
-                        .dispatch({
-                            type: 'global/fetchGroups',
+                    //如果当前用户没有该团队, 并且是系统管理员
+                    if(!userUtil.getTeamByTeamName(user, currTeam) && userUtil.isSystemAdmin(user)){
+                        this.props.dispatch({
+                            type: 'user/getTeamByName',
                             payload: {
-                                team_name: currTeam,
-                                region_name: currRegion
-                            }
-                        });
-
-                    this
-                        .props
-                        .dispatch({
-                            type: 'global/saveCurrTeamAndRegion',
-                            payload: {
-                                currTeam: currTeam,
-                                currRegion: currRegion
+                                team_name: currTeam
+                            },
+                            callback: (team) => {
+                                commCode();
+                            },
+                            fail: () => {
+                                commCode();
                             }
                         })
+                    }else{
+                        commCode();
+                    }
                 },
                 handleError: (res) => {
                     if (res && (res.status === 403 || res.status === 404)) {

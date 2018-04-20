@@ -81,37 +81,33 @@ class LogItem extends PureComponent {
           .ref
           .querySelector('.actioncn')
           .innerHTML = (appAcionLogUtil.getActionCN(data));
-        this
-          .ref
-          .querySelector('.actionresultcn')
-          .innerHTML = (appAcionLogUtil.getActionResultCN(data));
-        if (appAcionLogUtil.isFail(data)) {
-          this
+
+          if (appAcionLogUtil.isSuccess(data)) {
+            this.onSuccess();
+          }
+          if (appAcionLogUtil.isFail(data)) {
+            this.onFail(data);
+          }
+          if (appAcionLogUtil.isTimeout(data)) {
+            this.onTimeout(data);
+          }
+          if (appAcionLogUtil.isActioning(data)) {
+            this.setState({status: 'ing', actioning: true})
+            this
             .ref
-            .querySelector('.action-error-msg')
-            .innerHTML = '(' + appAcionLogUtil.getFailMessage(data) + ')';
-        }
-        this
+            .querySelector('.actionresultcn')
+            .innerHTML = "进行中";
+            this
+              .context
+              .isActionIng(true);
+          }
+          this
           .ref
           .querySelector('.action-user')
           .innerHTML = '@' + appAcionLogUtil.getActionUser(data);
       }
 
-      if (appAcionLogUtil.isActioning(data)) {
-        this.setState({status: 'ing', actioning: true})
-        //this.createSocket();
-        this
-          .context
-          .isActionIng(true);
-      }
-
-      if (appAcionLogUtil.isSuccess(data)) {
-        this.setState({resultStatus: 'success'});
-      }
-
-      if (appAcionLogUtil.isFail(data)) {
-        this.setState({resultStatus: 'fail'});
-      }
+      
     }
   }
   loadLog() {
@@ -167,12 +163,29 @@ class LogItem extends PureComponent {
       .querySelector('.actionresultcn')
       .innerHTML = "完成";
   }
+  onTimeout = (data) => {
+    this.setState({resultStatus: 'timeout'});
+    this
+      .ref
+      .querySelector('.actionresultcn')
+      .innerHTML = "超时";
+
+      this
+        .ref
+        .querySelector('.action-error-msg')
+        .innerHTML = '(' + appAcionLogUtil.getFailMessage(data) + ')';
+  }
   onFail = (data) => {
     this.setState({resultStatus: 'fail'});
     this
       .ref
       .querySelector('.actionresultcn')
       .innerHTML = "失败";
+
+      this
+        .ref
+        .querySelector('.action-error-msg')
+        .innerHTML = '(' + appAcionLogUtil.getFailMessage(data) + ')';
   }
   onComplete = (data) => {
     this.setState({status: ''})
@@ -262,10 +275,7 @@ class LogItem extends PureComponent {
 }
               {!opened
                 ? <span onClick={this.open} className={styles.btn}>查看详情</span>
-                : ''}
-              {(opened)
-                ? <span onClick={this.close} className={styles.btn}>收起</span>
-                : ''}
+                : <span onClick={this.close} className={styles.btn}>收起</span>}
             </div>
           </div>
           {appAcionLogUtil.isShowCommitInfo(data)
@@ -320,6 +330,7 @@ class LogItem extends PureComponent {
               onClose={this.onClose}
               onComplete={this.onComplete}
               onSuccess={this.onSuccess}
+              onTimeout={this.onTimeout}
               onFail={this.onFail}
               socketUrl={this.getSocketUrl()}
               eventId={data.event_id}/>}

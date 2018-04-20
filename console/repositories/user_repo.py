@@ -44,5 +44,11 @@ class UserRepo(object):
             return u[0]
         return None
 
+    def get_user_by_phone(self, phone):
+        u = Users.objects.filter(phone=phone)
+        if u:
+            return u[0]
+        return None
+
 
 user_repo = UserRepo()

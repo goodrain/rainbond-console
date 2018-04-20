@@ -258,6 +258,16 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
 
         ret_data = list()
         for group in group_list:
+            service_list = list()
+            if hasattr(group, 'service_list'):
+                for s in group.service_list:
+                    service_list.append({
+                        'service_name': s.service_cname,
+                        'service_version': s.version,
+                        'service_status': s.status,
+                        'access_url': s.access_url if s.status == 'running' else '',
+                    })
+
             ret_data.append({
                 'group_id': group.ID,
                 'group_name': group.group_name,
@@ -265,6 +275,7 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
                 'tenant_name': group.tenant.tenant_name,
                 'group_status': group.status,
                 'category_id': group.service_group_id,
+                'service_list': service_list
             })
 
         return self.success_response(data=ret_data)
@@ -294,11 +305,17 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
               required: false
               type: string
               paramType: form
+            - name: template_version
+              description: 模板版本
+              required: false
+              type: string
+              paramType: form
         """
         group_key = request.data.get('group_key')
         group_version = request.data.get('group_version')
         region_name = request.data.get('region_name')
         tenant_name = request.data.get('tenant_name')
+        template_version = request.data.get('template_version', "v1")
         if not group_key or not group_version or not region_name:
             return self.error_response(code=status.HTTP_400_BAD_REQUEST,
                                        msg='group_key or group_version or region can not be null',
@@ -310,7 +327,7 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
         message = "安装失败"
         try:
             success, message, group = market_api.install_service_group(request.user, tenant_name, group_key,
-                                                                       group_version, region_name)
+                                                                       group_version, region_name,template_version)
         except Exception as e:
             logger.exception(e)
             success = False
