@@ -91,7 +91,7 @@ export default class Index extends PureComponent {
       if (data) {
         this.setState({
           list: data.list || [],
-          total: data.total
+          pagination: Object.assign({}, this.state.pagination, {total: data.total})
         })
       }
     })
@@ -123,6 +123,12 @@ export default class Index extends PureComponent {
       }
     };
 
+    const pagination = Object.assign({}, this.state.pagination, {
+      onChange: () => {
+         this.setState({selectedRowKeys: []})
+      }
+    })
+
     return (
       <Modal
         title="挂载共享目录"
@@ -132,7 +138,7 @@ export default class Index extends PureComponent {
         onCancel={this.handleCancel}>
         <Table
           dataSource={this.state.list}
-          pagination={this.state.pagination}
+          pagination={pagination}
           size="small"
           rowSelection={rowSelection}
           columns={[

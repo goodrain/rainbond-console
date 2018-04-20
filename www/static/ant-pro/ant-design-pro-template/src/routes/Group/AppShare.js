@@ -244,8 +244,7 @@ class AppInfo extends PureComponent {
                 ]
               })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入最大节点'
-                min={app.extend_method_map.min_node}
-                max={app.extend_method_map.max_node}
+                min={1}
                 step={app.extend_method_map.step_node}/>)}
             </FormItem>
           </Col>
@@ -400,7 +399,6 @@ export default class Main extends PureComponent {
             var indexname = '';
             var indexarr = [];
             indexarr = index.split('||');
-            console.log(indexarr);
             if (indexarr[0] == 'connect' && indexarr[2] != 'random') {
               option['service_connect_info_map_list'].map((serapp) => {
                 if (serapp['attr_name'] == indexarr[1]) {
