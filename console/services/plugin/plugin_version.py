@@ -105,6 +105,7 @@ class PluginBuildVersionService(object):
         old_dict = model_to_dict(old_build_version)
         old_dict["build_status"] = "unbuild"
         old_dict["event_id"] = ""
+        old_dict["plugin_version_status"] = "unfixed"
         # 剔除主键
         old_dict.pop("ID")
         old_dict["build_version"] = new_version
