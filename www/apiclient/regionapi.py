@@ -1459,3 +1459,10 @@ class RegionInvokeApi(HttpClient):
         res, body = self._post(
             url, self.default_headers, json.dumps(data), region=region)
         return body
+
+    def delete_plugin(self, region, tenant_name, plugin_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return res, body

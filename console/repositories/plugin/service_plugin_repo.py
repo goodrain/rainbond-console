@@ -2,7 +2,7 @@
 """
   Created on 18/1/29.
 """
-from www.models import TenantServicePluginRelation
+from www.models import TenantServicePluginRelation,TenantServicePluginAttr
 
 
 class AppPluginRelationRepo(object):
@@ -32,6 +32,13 @@ class AppPluginRelationRepo(object):
     def get_relation_by_service_and_plugin(self,service_id,plugin_id):
         return TenantServicePluginRelation.objects.filter(service_id=service_id,plugin_id=plugin_id)
 
+    def get_service_plugin_relation_by_plugin_id(self, plugin_id):
+        return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id)
+
+    def delete_service_plugin_relation_by_plugin_id(self, plugin_id):
+        TenantServicePluginRelation.objects.filter(plugin_id=plugin_id).delete()
+
 
 class ServicePluginAttrRepository(object):
-    pass
+    def delete_attr_by_plugin_id(self, plugin_id):
+        TenantServicePluginAttr.objects.filter(plugin_id=plugin_id).delete()

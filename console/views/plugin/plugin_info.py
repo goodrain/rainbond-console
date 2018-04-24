@@ -52,6 +52,35 @@ class PluginBaseInfoView(PluginBaseView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    def delete(self, request, *args, **kwargs):
+        """
+        删除插件
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: plugin_id
+              description: 插件ID
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            code, msg = plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
+            if code != 200:
+                return Response(general_message(code, "delete plugin fail", msg))
+            else:
+                result = general_message(code, "success", msg)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 
 class PluginEventLogView(PluginBaseView):
     @never_cache

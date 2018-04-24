@@ -5,7 +5,8 @@
 import logging
 
 from console.constants import PluginCategoryConstants
-from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo
+from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
+    app_plugin_attr_repo, plugin_version_repo
 from console.repositories.app import service_repo
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
@@ -114,7 +115,7 @@ class PluginService(object):
         logger.debug("plugin.create", "create region plugin {0}".format(body))
         return 200, "success"
 
-    def delete_tenant_plugin(self, plugin_id):
+    def delete_console_tenant_plugin(self, plugin_id):
         plugin_repo.delete_by_plugin_id(plugin_id)
 
     def get_plugin_event_log(self, region, tenant, event_id, level):
@@ -213,3 +214,21 @@ class PluginService(object):
         data["plugin_model"] = tenant_plugin.category
         data["plugin_name"] = tenant_plugin.plugin_name
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
+
+    def delete_plugin(self, region, team, plugin_id):
+        plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id)
+        if plugin_service_relations:
+            return 412, "当前插件被应用使用中，请先卸载"
+        # 删除数据中心数据
+        try:
+            region_api.delete_plugin(region, team.tenant_name, plugin_id)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
+        app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(plugin_id)
+        app_plugin_attr_repo.delete_attr_by_plugin_id(plugin_id)
+        plugin_version_repo.delete_build_version_by_plugin_id(plugin_id)
+        plugin_repo.delete_by_plugin_id(plugin_id)
+        config_item_repo.delete_config_items_by_plugin_id(plugin_id)
+        config_group_repo.delete_config_group_by_plugin_id(plugin_id)
+        return 200, "删除成功"
