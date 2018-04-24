@@ -2,18 +2,18 @@
 """
   Created on 18/3/5.
 """
-from console.views.base import RegionTenantHeaderView
-from django.views.decorators.cache import never_cache
-from www.decorator import perm_required
-from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message, error_message
 import logging
+
+from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+
 from console.constants import PluginCategoryConstants
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.services.region_services import region_services
-from console.repositories.plugin import config_group_repo, config_item_repo
+from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
+from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
 
@@ -160,55 +160,6 @@ class PluginCreateView(RegionTenantHeaderView):
 
 class DefaultPluginCreateView(RegionTenantHeaderView):
 
-    def add_default_plugin(self, user, tenant, regions):
-        for region in regions:
-            desc = "实时分析(HTTP,Mysql协议)应用的吞吐率、响应时间、在线人数等指标"
-            plugin_alias = "服务实时性能分析"
-            category = "analyst-plugin:perf"
-            image_url = "goodrain.me/tcm"
-            code, msg, plugin_base_info = plugin_service.create_tenant_plugin(tenant, user.user_id, region, desc,
-                                                                                plugin_alias,
-                                                                                category, "image",
-                                                                                image_url, "")
-            plugin_base_info.origin = "local_market"
-            plugin_base_info.save()
-
-            plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
-                                                                                tenant.tenant_id,
-                                                                                user.user_id, "", "unbuild", 64)
-            config_params = {
-                "plugin_id": plugin_build_version.plugin_id,
-                "build_version": plugin_build_version.build_version,
-                "config_name": "端口是否开启分析",
-                "service_meta_type": "upstream_port",
-                "injection": "auto"
-            }
-            config_group_repo.create_plugin_config_group(**config_params)
-            item_params = {
-                "plugin_id": plugin_build_version.plugin_id,
-                "build_version": plugin_build_version.build_version,
-                "service_meta_type": "upstream_port",
-                "attr_name": "OPEN",
-                "attr_type": "radio",
-                "attr_alt_value": "YES,NO",
-                "attr_default_value": "YES",
-                "is_change": True,
-                "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
-            }
-            config_item_repo.create_plugin_config_items(**item_params)
-
-            event_id = make_uuid()
-            plugin_build_version.event_id = event_id
-            plugin_build_version.plugin_version_status = "fixed"
-
-            plugin_service.create_region_plugin(region, tenant, plugin_base_info)
-
-            plugin_service.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
-                                        event_id)
-            plugin_build_version.build_status = "build_success"
-            plugin_build_version.save()
-
-
     def post(self, request, *args, **kwargs):
         """
         插件创建
@@ -224,8 +175,8 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
             regions = region_services.get_region_by_tenant_name(self.team_name)
             if regions:
                 region_names = [region.region_name for region in regions]
-                self.add_default_plugin(self.user, self.team, region_names)
-            result = general_message(200, "success", "创建成功")    
+                plugin_service.add_default_plugin(self.user,self.team,region_names)
+            result = general_message(200, "success", "创建成功")
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

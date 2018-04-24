@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 import logging
-
-from rest_framework.response import Response
 import os
+
+from django.conf import settings
+from rest_framework.response import Response
+
 from console.repositories.app import service_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services, app_perm_service
+from console.services.plugin import plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.user_services import user_services
 from console.views.base import AlowAnyApiView
+from www.apiclient.baseclient import client_auth_service
 from www.monitorservice.monitorhook import MonitorHook
 from www.services.sso import GoodRainSSOApi
 from www.tenantservice.baseservice import CodeRepositoriesService
-from www.utils.crypt import AuthCode, make_uuid
-from console.services.user_services import user_services
-from www.apiclient.baseclient import client_auth_service
-from django.conf import settings
-from console.services.plugin import plugin_service, plugin_version_service
-from console.repositories.plugin import config_group_repo, config_item_repo
+from www.utils.crypt import AuthCode
 
 logger = logging.getLogger('default')
 
@@ -113,7 +113,7 @@ class GoodrainSSONotify(AlowAnyApiView):
         if code != 200:
             logger.debug("account.login", "create teanant on region error")
             return code, msg, team
-        self.__add_default_plugin(user, team, [tenant_region.region_name])
+        plugin_service.add_default_plugin(user, team, [tenant_region.region_name])
         # 如果没有领过资源包，为默认开通的数据中心领取免费资源包
         result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
                                                               tenant_region.region_name, user.nick_name)
@@ -124,58 +124,6 @@ class GoodrainSSONotify(AlowAnyApiView):
         user.is_active = True
         user.save()
         return code, msg, team
-
-    def __add_default_plugin(self, user, tenant, regions):
-        try:
-            for region in regions:
-                desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
-                plugin_alias = "服务实时性能分析"
-                category = "analyst-plugin:perf"
-                image_url = "goodrain.me/tcm"
-                code, msg, plugin_base_info = plugin_service.create_tenant_plugin(tenant, user.user_id, region, desc,
-                                                                                  plugin_alias,
-                                                                                  category, "image",
-                                                                                  image_url, "")
-                plugin_base_info.origin = "local_market"
-                plugin_base_info.save()
-
-                plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
-                                                                                   tenant.tenant_id,
-                                                                                   user.user_id, "", "unbuild", 64)
-                config_params = {
-                    "plugin_id": plugin_build_version.plugin_id,
-                    "build_version": plugin_build_version.build_version,
-                    "config_name": "端口是否开启分析",
-                    "service_meta_type": "upstream_port",
-                    "injection": "auto"
-                }
-                config_group_repo.create_plugin_config_group(**config_params)
-                item_params = {
-                    "plugin_id": plugin_build_version.plugin_id,
-                    "build_version": plugin_build_version.build_version,
-                    "service_meta_type": "upstream_port",
-                    "attr_name": "OPEN",
-                    "attr_type": "radio",
-                    "attr_alt_value": "YES,NO",
-                    "attr_default_value": "YES",
-                    "is_change": True,
-                    "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
-                }
-                config_item_repo.create_plugin_config_items(**item_params)
-
-                event_id = make_uuid()
-                plugin_build_version.event_id = event_id
-                plugin_build_version.plugin_version_status = "fixed"
-
-                plugin_service.create_region_plugin(region, tenant, plugin_base_info)
-
-                plugin_service.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
-                                            event_id)
-                plugin_build_version.build_status = "build_success"
-                plugin_build_version.save()
-        except Exception as e:
-            logger.error("添加默认插件错误")
-            logger.exception(e)
 
     def post(self, request, *args, **kwargs):
         try:

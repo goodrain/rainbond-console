@@ -13,11 +13,11 @@ from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
 
-
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
+
 
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
@@ -56,8 +56,6 @@ class AppPluginService(object):
         }
         spr = app_plugin_relation_repo.create_service_plugin_relation(**params)
         return 200, "success", spr
-
-
 
 
 class PluginService(object):
@@ -141,7 +139,7 @@ class PluginService(object):
         build_data["plugin_cpu"] = plugin_version.min_cpu
         build_data["repo_url"] = plugin_version.code_version
         build_data["tenant_id"] = tenant.tenant_id
-        build_data["build_image"] = "{0}:{1}".format(plugin.image,plugin_version.image_tag)
+        build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
         if origin == "local_market":
             plugin_from = "yb"
