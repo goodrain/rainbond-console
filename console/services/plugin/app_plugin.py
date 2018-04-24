@@ -99,12 +99,12 @@ class PluginService(object):
         tenant_plugin = plugin_repo.create_plugin(**plugin_params)
         return 200, "success", tenant_plugin
 
-    def create_region_plugin(self, region, tenant, tenant_plugin):
+    def create_region_plugin(self, region, tenant, tenant_plugin, image_tag="latest"):
         """创建region端插件信息"""
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
         plugin_data["git_url"] = tenant_plugin.code_repo
-        plugin_data["image_url"] = tenant_plugin.image
+        plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
         plugin_data["plugin_id"] = tenant_plugin.plugin_id
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
@@ -203,3 +203,13 @@ class PluginService(object):
         except Exception as e:
             logger.error("添加默认插件错误")
             logger.exception(e)
+
+    def update_region_plugin_info(self, region, tenant, tenant_plugin, plugin_build_version):
+        data = dict()
+        data["build_model"] = tenant_plugin.build_source
+        data["git_url"] = tenant_plugin.code_repo
+        data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
+        data["plugin_info"] = tenant_plugin.desc
+        data["plugin_model"] = tenant_plugin.category
+        data["plugin_name"] = tenant_plugin.plugin_name
+        region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)

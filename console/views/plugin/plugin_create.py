@@ -132,7 +132,7 @@ class PluginCreateView(RegionTenantHeaderView):
                                                                                "", "unbuild", min_memory, build_cmd,
                                                                                image_tag, code_version)
             # 数据中心创建插件
-            code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin)
+            code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
             if code != 200:
                 plugin_service.delete_tenant_plugin(tenant_plugin.plugin_id)
                 plugin_version_service.delete_build_version_by_id_and_version(tenant_plugin.plugin_id,
