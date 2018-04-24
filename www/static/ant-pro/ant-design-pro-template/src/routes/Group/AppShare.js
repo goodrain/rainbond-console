@@ -233,9 +233,9 @@ class AppInfo extends PureComponent {
         <Divider/>
         <Row>
           <Col span={8}>
-            <FormItem label={"最小节点(个)"} style={{padding: 16}}>
-              {getFieldDecorator('extend||min_node', {
-                initialValue: app.extend_method_map.min_node,
+            <FormItem label={"最大节点(个)"} style={{padding: 16}}>
+              {getFieldDecorator('extend||max_node', {
+                initialValue: app.extend_method_map.max_node,
                 rules: [
                   {
                     required: true,
@@ -243,9 +243,8 @@ class AppInfo extends PureComponent {
                   }
                 ]
               })(<InputNumber style={{width: '100%'}}
-                placeholder='请输入最小节点'
-                min={app.extend_method_map.min_node}
-                max={app.extend_method_map.max_node}
+                placeholder='请输入最大节点'
+                min={1}
                 step={app.extend_method_map.step_node}/>)}
             </FormItem>
           </Col>
@@ -400,7 +399,6 @@ export default class Main extends PureComponent {
             var indexname = '';
             var indexarr = [];
             indexarr = index.split('||');
-            console.log(indexarr);
             if (indexarr[0] == 'connect' && indexarr[2] != 'random') {
               option['service_connect_info_map_list'].map((serapp) => {
                 if (serapp['attr_name'] == indexarr[1]) {

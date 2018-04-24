@@ -19,7 +19,7 @@ function LogSocket(option){
 	this.onMessage = option.onMessage || noop;
 	this.onError = option.onError || noop;
 	this.onClose = option.onClose || noop;
-	this.onError = option.onError || noop;
+	this.onTimeout = option.onTimeout || noop;
 	this.onSuccess = option.onSuccess || noop;
 	this.onComplete = option.onComplete || noop;
 	this.onFail = option.onFail || noop;
@@ -52,17 +52,21 @@ LogSocket.prototype = {
 
 		}else{
 			var data = JSON.parse(evt.data);
-			this.timerQueue.add(data);
+			
 			//判断是否最后一步
 			if (data.step == "callback" || data.step == "last") {
 				this.webSocket.close();
 				if(data.status === 'success'){
 					this.onSuccess(data);
-				}else{
+				}else if(data.status === 'timeout'){
+					this.onTimeout(data)
+				}else if(data.status === 'failure'){
+					data.message = '<span style="color:#a94442">'+data.message+'</span>';
 					this.onFail(data);
 				}
 				this.onComplete(data);
 			}
+			this.timerQueue.add(data);
 		}
 
 	},

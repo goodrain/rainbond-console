@@ -50,7 +50,8 @@ class AppStore(object):
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
-                image_info = {"hub_url": hub_url, "hub_user": hub_user, "hub_password": hub_password, "namespace": team_name}
+                namespace = image_config_dict.get("namespace", team_name)
+                image_info = {"hub_url": hub_url, "hub_user": hub_user, "hub_password": hub_password, "namespace": namespace}
                 return image_info
         except Exception as e:
             logger.exception(e)

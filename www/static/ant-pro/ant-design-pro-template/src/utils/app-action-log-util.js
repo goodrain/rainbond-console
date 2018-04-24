@@ -65,13 +65,17 @@ const appActionLogUtil = {
 	isFail: function(log){
 		return !!(this.isComplete(log) && log.status === 'failure');
 	},
+	//是否操作超时
+	isTimeout: function(log){
+		return !!(this.isComplete(log) && log.status === 'timeout');
+	},
 	//是否操作成功
 	isSuccess: function(log){
 		return !!(this.isComplete(log) &&  log.status === 'success');
 	},
 	//是否操作完成，无论失败
 	isComplete: function(log){
-		return log.final_status === 'complete' || log.final_status === 'timeout';
+		return log.final_status === 'complete';
 	},
 	//获取失败信息
 	getFailMessage: function(log){
