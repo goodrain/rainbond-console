@@ -242,16 +242,20 @@ class PluginVersionInfoView(PluginBaseView):
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
-            # 保存基本信息
+
             self.plugin.plugin_alias = plugin_alias
-            self.plugin.save()
-            # 保存版本信息
+
             self.plugin_version.update_info = update_info
             self.plugin_version.build_cmd = build_cmd
             self.plugin_version.image_tag = image_tag
             self.plugin_version.code_version = code_version
             self.plugin_version.min_memory = min_memory
             self.plugin_version.min_cpu = min_cpu
+
+            plugin_service.update_region_plugin_info(self.response_region, self.team, self.plugin,self.plugin_version)
+            # 保存基本信息
+            self.plugin.save()
+            # 保存版本信息
             self.plugin_version.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:

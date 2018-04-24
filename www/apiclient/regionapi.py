@@ -1443,3 +1443,11 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(
             url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
+
+    def update_plugin_info(self, region, tenant_name, plugin_id, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(data), region=region)
+        return body
