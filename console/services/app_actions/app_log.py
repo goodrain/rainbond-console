@@ -220,7 +220,7 @@ class AppEventService(object):
             return
 
         try:
-            body = region_api.get_events(region, tenant_name, local_events_not_complete.keys())
+            body = region_api.get_tenant_events(region, tenant_name, local_events_not_complete.keys())
         except Exception as e:
             logger.exception(e)
             return
