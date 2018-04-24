@@ -111,7 +111,7 @@ class PluginCreateView(RegionTenantHeaderView):
 
             image_tag = ""
             if image:
-                image_and_tag = image.split(":")
+                image_and_tag = image.rsplit(":", 1)
                 if len(image_and_tag) > 1:
                     image = image_and_tag[0]
                     image_tag = image_and_tag[1]
@@ -131,7 +131,7 @@ class PluginCreateView(RegionTenantHeaderView):
                                                                                self.tenant.tenant_id, self.user.user_id,
                                                                                "", "unbuild", min_memory, build_cmd,
                                                                                image_tag, code_version)
-            #数据中心创建插件
+            # 数据中心创建插件
             code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin)
             if code != 200:
                 plugin_service.delete_tenant_plugin(tenant_plugin.plugin_id)
