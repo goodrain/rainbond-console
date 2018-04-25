@@ -45,7 +45,6 @@ class ConfigPluginManageView(PluginBaseView):
             config_groups = plugin_config_service.get_config_details(self.plugin_version.plugin_id,
                                                                      self.plugin_version.build_version)
             data = self.plugin_version.to_dict()
-            # data["config_group"] = config_groups
             main_url = region_services.get_region_wsurl(self.response_region)
             data["web_socket_url"] = "{0}/event_log".format(main_url)
 

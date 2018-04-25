@@ -61,7 +61,8 @@ class PluginConfigService(object):
                 attr_type=option.get("attr_type", "string"),
                 attr_default_value=option.get("attr_default_value", None),
                 is_change=option.get("is_change", False),
-                attr_info=option.get("attr_info", "")
+                attr_info=option.get("attr_info", ""),
+                protocol=option.get("protocol", "")
             )
             config_items_list.append(config_item)
 
@@ -92,7 +93,8 @@ class PluginConfigService(object):
                         attr_type=option.get("attr_type", "string"),
                         attr_default_value=option.get("attr_default_value", None),
                         is_change=option.get("is_change", False),
-                        attr_info=option.get("attr_info", "")
+                        attr_info=option.get("attr_info", ""),
+                        protocol=option.get("protocol", "")
                     )
                     config_items_list.append(config_item)
 

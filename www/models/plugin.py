@@ -85,6 +85,7 @@ class PluginConfigItems(BaseModel):
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     attr_info = models.CharField(max_length=32, null=True, blank=True, help_text=u"配置项说明")
+    protocol = models.CharField(max_length=32, null=True, blank=True, default="", help_text=u"协议")
 
 
 class TenantServicePluginRelation(BaseModel):
