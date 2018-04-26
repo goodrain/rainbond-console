@@ -152,7 +152,9 @@ export default class BasicList extends PureComponent {
       }];
 
     var money = `${this.state.companyInfo.balance || 0} 元`;
-    var entId = this.state.companyInfo.ent_Id;
+    //var entId = this.state.companyInfo.ent_id;
+    console.log(this.state.companyInfo)
+    var entId = 144;
     if(this.state.companyInfo.owed_amt > 0){
        money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
     }
