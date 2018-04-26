@@ -190,7 +190,8 @@ export default class BasicList extends PureComponent {
           <div style={{textAlign: 'right', paddingTop: 24}}>
 
             <Button.Group>
-            {regionId && <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}/${entId}`}>购买资源</a></Button>}
+            {(regionId && !entId) && <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}`}>购买资源</a></Button>}
+            {(entId && regionId)&& <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}/${entId}`}>购买资源</a></Button>}
             <Button><a target="_blank" href="https://www.goodrain.com/spa/#/personalCenter/my/recharge">账户充值</a></Button>
             <Dropdown overlay={<Menu>
                       <Menu.Item>
