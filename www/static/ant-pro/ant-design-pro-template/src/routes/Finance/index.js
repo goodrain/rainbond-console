@@ -54,6 +54,7 @@ export default class BasicList extends PureComponent {
        },
        callback: (data) => {
           this.setState({companyInfo: data.bean})
+          console.log(data)
        }
      })
   }
