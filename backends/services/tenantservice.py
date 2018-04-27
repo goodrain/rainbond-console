@@ -163,5 +163,14 @@ class TenantService(object):
             user_id=user.pk, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID)
         return perm_tenant
 
+    def get_team_by_name_or_alias_or_enter(self, tenant_name, tenant_alias, enterprise_id):
+        query = Q()
+        if tenant_name:
+            query &= Q(tenant_name=tenant_name)
+        if tenant_alias:
+            query &= Q(tenant_alias=tenant_alias)
+        if enterprise_id:
+            query &= Q(enterprise_id=enterprise_id)
+        return Tenants.objects.filter(query)
 
 tenant_service = TenantService()

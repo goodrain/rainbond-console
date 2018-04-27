@@ -295,4 +295,7 @@ class EnterpriseServices(object):
     def get_enterprise_by_eids(self,eid_list):
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
+    def get_enterprise_by_enterprise_alias(self, enterprise_alias):
+        return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
+
 enterprise_services = EnterpriseServices()
