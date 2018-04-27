@@ -2,7 +2,7 @@
 from django.conf.urls import patterns, url, include
 
 from backends.views.account import AccountCreateView, TenantEnterpriseView, \
-    AuthAccessTokenView
+    AuthAccessTokenView, EnterpriseFuzzyQueryView
 from backends.views.announcement import AllAnnouncementView, AnnouncementView
 from backends.views.config import *
 from backends.views.resource.clusters import *
@@ -85,6 +85,8 @@ urlpatterns = patterns(
 
     url(r'^v1/account/create$', AccountCreateView.as_view()),
     url(r'^v1/account/auth-user-token$', AuthAccessTokenView.as_view()),
+
+    url(r'^v1/enterprise/fuzzy_query$', EnterpriseFuzzyQueryView.as_view()),
     url(r'^v1/enterprise/(?P<enterprise_id>[\w\-]+)$', TenantEnterpriseView.as_view()),
 
 

@@ -40,11 +40,19 @@ class TenantService(object):
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
-    def get_fuzzy_tenants(self, tenant_name):
+    def get_fuzzy_tenants_by_tenant_name(self, tenant_name):
         tenant_name_map = list(Tenants.objects.values("tenant_name"))
         tenant_name_list = map(lambda x: x.get("tenant_name", "").lower(), tenant_name_map)
         find_tenant_name = list(fuzzyfinder(tenant_name.lower(), tenant_name_list))
         tenant_query = Q(tenant_name__in=find_tenant_name)
+        tenant_list = Tenants.objects.filter(tenant_query)
+        return tenant_list
+
+    def get_fuzzy_tenants_by_tenant_alias(self, tenant_alias):
+        tenant_alias_map = list(Tenants.objects.values("tenant_alias"))
+        tenant_alias_list = map(lambda x: x.get("tenant_alias", "").lower(), tenant_alias_map)
+        find_tenant_alias = list(fuzzyfinder(tenant_alias.lower(), tenant_alias_list))
+        tenant_query = Q(tenant_alias__in=find_tenant_alias)
         tenant_list = Tenants.objects.filter(tenant_query)
         return tenant_list
 

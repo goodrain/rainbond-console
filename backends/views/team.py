@@ -168,7 +168,7 @@ class TeamView(BaseAPIView):
             tenant = tenant_service.get_tenant(tenant_name)
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
             user_num = len(user_list)
-            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num}]
+            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num,"tenant_alias":tenant.tenant_alias}]
             result = generate_result("0000", "success", "查询成功", list=rt_list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
