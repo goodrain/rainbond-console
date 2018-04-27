@@ -292,6 +292,7 @@ class EnterpriseServices(object):
         return enterprise_repo.create_enterprise(**params)
 
     # def get_enterprise_tenants(self,enterprise):
-
+    def get_enterprise_by_eids(self,eid_list):
+        return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
 enterprise_services = EnterpriseServices()

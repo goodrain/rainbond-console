@@ -124,5 +124,9 @@ class UserService(object):
         except UserNotExistError:
             return False
 
+    def get_by_username_or_phone_or_email(self, query_identity):
+        return Users.objects.filter(Q(nick_name=query_identity) | Q(phone=query_identity) | Q(email=query_identity))
+
+
 
 user_service = UserService()
