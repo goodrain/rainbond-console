@@ -199,13 +199,17 @@ class RegionStatusView(BaseAPIView):
             action = request.data.get("action", None)
             if not action:
                 raise ParamsError("参数错误")
-            if action not in ("online","offline"):
+            if action not in ("online","offline","maintain", "cancel_maintain"):
                 raise ParamsError("参数错误")
             msg_show = "操作成功"
             if action == "online":
                 msg_show = "上线成功"
             elif action == "offline":
                 msg_show = "下线成功"
+            elif action == "maintain":
+                msg_show = "已将数据中心设置为维护中"
+            elif action == "cancel_maintain":
+                msg_show = "已取消数据中心维护状态"
             region_service.region_status_mange(region_id, action)
             code = "0000"
             msg = "success"
