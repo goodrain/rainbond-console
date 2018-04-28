@@ -37,6 +37,8 @@ urlpatterns = patterns(
     url(r'^v1/config/license$', AuthorizationAView.as_view()),
     url(r'^v1/config/github', ConfigGithubView.as_view()),
     url(r'^v1/config/gitlab', ConfigGitlabView.as_view()),
+    url(r'^v1/config/hub-config', HubConfigView.as_view()),
+    url(r'^v1/config/ftp-config', FtpConfigView.as_view()),
     url(r'^v1/config/code/link$', ConfigCodeView.as_view()),
 
     # 数据中心路径
