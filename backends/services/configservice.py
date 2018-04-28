@@ -282,7 +282,7 @@ class ConfigService(object):
     def manage_code_conf(self, action, type):
         if action not in ("open", "close",):
             raise ParamsError("操作参数错误")
-        if type not in ("github", "gitlab",):
+        if type not in ("github", "gitlab","ftpconf","hubconf"):
             raise ParamsError("操作参数错误")
         if action == "open":
             if type == "github":

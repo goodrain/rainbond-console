@@ -230,7 +230,7 @@ class AllUserView(BaseAPIView):
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name
-                result_map["phone"] = user.phone
+                result_map["phone"] = user.phone if user.phone else "暂无"
                 tenant_list = user_service.get_user_tenants(user.user_id)
                 result_map["tenants"] = tenant_list
                 eid = uid_eid_map.get(user.user_id, None)

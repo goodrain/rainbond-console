@@ -522,7 +522,7 @@ class ConfigManageView(BaseAPIView):
         try:
 
             action = request.data.get("action", "open")
-            type = request.data.get("type", "github","hubconf","ftpconf")
+            type = request.data.get("type", "github")
             config_service.manage_code_conf(action, type)
             code = "0000"
             msg = "success"
