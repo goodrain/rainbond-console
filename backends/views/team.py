@@ -35,8 +35,8 @@ class AllTeamView(BaseAPIView):
               required: false
               type: string
               paramType: query
-            - name: enterprise_name
-              description: 企业名称
+            - name: enterprise_alias
+              description: 企业别名
               required: false
               type: string
               paramType: query
@@ -55,7 +55,7 @@ class AllTeamView(BaseAPIView):
         try:
             page = request.GET.get("page_num", 1)
             page_size = request.GET.get("page_size", 20)
-            enterprise_alias = request.GET.get("enterprise_name", None)
+            enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
             tenant_name = request.GET.get("tenant_name", None)
             enterprise_id = None
