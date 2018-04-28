@@ -501,6 +501,44 @@ class ConfigCodeView(BaseAPIView):
         return Response(result)
 
 
+class ConfigManageView(BaseAPIView):
+    def post(self, request, *args, **kwargs):
+        """
+        环境对接起停
+        ---
+        parameters:
+            - name: action
+              description: 打开或关闭 open 或 close
+              required: true
+              type: string
+              paramType: form
+            - name: type
+              description: github,gitlab,hubconf,ftpconf
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+
+            action = request.data.get("action", "open")
+            type = request.data.get("type", "github","hubconf","ftpconf")
+            config_service.manage_code_conf(action, type)
+            code = "0000"
+            msg = "success"
+            if action == "open":
+                msg_show = "配置开启对接"
+            else:
+                msg_show = "配置关闭对接"
+            result = generate_result(code, msg, msg_show)
+        except ParamsError as e:
+            result = generate_result("1003", "params error", e.message)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
 class HubConfigView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """

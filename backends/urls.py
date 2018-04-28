@@ -40,6 +40,7 @@ urlpatterns = patterns(
     url(r'^v1/config/hub-config', HubConfigView.as_view()),
     url(r'^v1/config/ftp-config', FtpConfigView.as_view()),
     url(r'^v1/config/code/link$', ConfigCodeView.as_view()),
+    url(r'^v1/config/manage$', ConfigManageView.as_view()),
 
     # 数据中心路径
     url(r'^v1/regions$', RegionView.as_view()),

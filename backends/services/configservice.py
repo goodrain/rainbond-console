@@ -289,10 +289,18 @@ class ConfigService(object):
                 ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=True)
             elif type == "gitlab":
                 ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=True)
+            elif type == "hubconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=True)
+            elif type == "ftpconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=True)
         else:
             if type == "github":
                 ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=False)
             elif type == "gitlab":
                 ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=False)
+            elif type == "hubconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=False)
+            elif type == "ftpconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=False)
         custom_settings.reload()
 config_service = ConfigService()
