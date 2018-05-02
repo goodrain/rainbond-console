@@ -130,7 +130,6 @@ class UserService(object):
             query = query | Q(nick_name=query_condition) | Q(phone=query_condition) | Q(email=query_condition)
 
         users = Users.objects.filter(query).order_by("-user_id")
-        logger.debug(users.query)
         return users
 
 
