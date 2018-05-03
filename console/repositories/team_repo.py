@@ -81,6 +81,9 @@ class TeamRepo(object):
     def create_tenant(self, **params):
         return Tenants.objects.create(**params)
 
+    def get_team_by_team_alias(self, team_alias):
+        return Tenants.objects.filter(tenant_alias=team_alias).first()
+
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):

@@ -202,4 +202,8 @@ class TeamService(object):
     def get_enterprise_teams(self, enterprise_id):
         return team_repo.get_teams_by_enterprise_id(enterprise_id)
 
+    def get_team_by_team_alias(self, team_alias):
+        return team_repo.get_team_by_team_alias(team_alias)
+
+
 team_services = TeamService()
