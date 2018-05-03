@@ -91,7 +91,7 @@ class TeamUserDetaislView(JWTAuthApiView):
         try:
             # u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
             team = team_services.get_tenant_by_tenant_name(team_name)
-            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user,team.enterprise_id)
+            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
             perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
             # teams = [{"team_identity": perm.identity} for perm in perms]
             data = dict()
@@ -180,7 +180,7 @@ class AddTeamView(JWTAuthApiView):
             else:
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
-                    return Response(general_message(500,"user's enterprise is not found"),status=500)
+                    return Response(general_message(500, "user's enterprise is not found"), status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
 
                 # 创建用户在团队的权限
@@ -287,6 +287,7 @@ class TeamUserView(JWTAuthApiView):
         try:
             code = 200
             page = request.GET.get("page", 1)
+            # 获得租户/团队 对象
             user_list = team_services.get_tenant_users_by_tenant_name(tenant_name=team_name)
             users_list = list()
             for user in user_list:
@@ -426,6 +427,15 @@ class UserDelView(JWTAuthApiView):
                 if not user_ids:
                     result = general_message(400, "failed", "删除成员不能为空")
                     return Response(result, status=400)
+
+                # 查询出本要删除的用户在本团队中的所有权限，并判断是否是本团队的拥有者
+                for user_id in user_ids.split(","):
+                    user_perms_in_permtenant_list = team_services.get_user_perms_in_permtenant_list(user_id=int(user_id),
+                                                                                               tenant_name=team_name)
+                    if "owner" in user_perms_in_permtenant_list:
+                        result = general_message(400, "failed", "不能删除拥有者")
+                        return Response(result, status=400)
+
                 if str(request.user.user_id) in user_ids:
                     result = general_message(400, "failed", "不能删除自己")
                     return Response(result, status=400)
@@ -441,6 +451,7 @@ class UserDelView(JWTAuthApiView):
                     result = error_message(e.message)
                 return Response(result)
         except Exception as e:
+            print(e)
             code = 500
             logger.exception(e)
             result = error_message(e.message)
@@ -589,7 +600,7 @@ class TeamExitView(JWTAuthApiView):
                 tenant_name=team_name
         ):
             result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
-            return Response(result, status=409) 
+            return Response(result, status=409)
         else:
             try:
                 code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)

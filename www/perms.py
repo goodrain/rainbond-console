@@ -34,9 +34,7 @@ class PermActions(object):
 
     tenant_admin_actions = (
                                ('modify_team_member_permissions', u'编辑权限'), ('add_tenant_members', u'添加团队成员'),
-                               ('code_deploy', u"部署代码"),
                                ('create_service', u"创建服务"), ('delete_service', u"删除服务"),
-                               ('deploy_service', u"部署服务"),
                                ('setting', u"租户设置"), ('perm_setting', u"权限管理"),
                                ('service_monitor', u"服务资源监控"), ('service_alert', u"服务资源报警"),
                                ('share_service', u"分享服务"), ('manage_group', u"操作服务组"), ('create_plugin', u"创建插件"),
@@ -115,6 +113,11 @@ class UserActions(dict):
 
 
 def get_highest_identity(identitys):
+    """
+    获取最高权限
+    :param identitys:
+    :return:
+    """
     identity_map = {"access": 1, "viewer": 2, "developer": 3, "admin": 4, "owner": 5}
     final_identity = identitys[0]
     identity_num = -1
@@ -124,7 +127,6 @@ def get_highest_identity(identitys):
             final_identity = i
             identity_num = num
     return final_identity
-
 
 def check_perm(perm, user, tenantName=None, serviceAlias=None):
     if isinstance(user, AnonymousUser):
@@ -144,14 +146,20 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
                                                                                                        flat=True)
             if not identitys:
                 raise PermRelTenant.DoesNotExist
-
+            # 获取最高权限
             tenant_identity = get_highest_identity(identitys)
+            # 获取团队所有的可操作内容
             tenant_actions = p.keys('tenant_{0}_actions'.format(tenant_identity))
+            # 封装设置权限
             user.actions.set_actions('tenant', tenant_actions)
             if serviceAlias is not None:
+                # 应用对象
                 service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=serviceAlias)
+                # 应用权限
                 service_identity = PermRelService.objects.get(user_id=user.pk, service_id=service.pk).identity
+                # 获取应用所有的可操作内容
                 service_actions = p.keys('service_{0}_actions'.format(service_identity))
+                # 封装应用权限信息
                 user.actions.set_actions('service', service_actions)
         except Tenants.DoesNotExist:
             raise UrlParseError(404, 'no matching tenantName for {0}'.format(tenantName))

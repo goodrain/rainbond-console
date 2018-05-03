@@ -23,6 +23,12 @@ logger = logging.getLogger("default")
 class TeamService(object):
 
     def get_tenant_by_tenant_name(self, tenant_name, exception=True):
+        """
+        根据租户name查询到一个租户对象
+        :param tenant_name:
+        :param exception:
+        :return:
+        """
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
 
     def get_tenant(self, tenant_name):
@@ -91,11 +97,34 @@ class TeamService(object):
         return tenant
 
     def get_user_perms_in_permtenant(self, user_id, tenant_name):
+        """
+        一个用户在一个团队中的角色
+        :param user_id:
+        :param tenant_name:
+        :return: PermRelTenant对象，obj.identity 是该用户在该团队中的身份
+        """
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         return user_perms
 
+    def get_user_perms_in_permtenant_list(self, user_id, tenant_name):
+        """
+        一个用户在一个团队中的角色列表
+        :param user_id:
+        :param tenant_name:
+        :return: PermRelTenant对象，obj.identity 是该用户在该团队中的身份
+        """
+        tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
+        user_perms_list = team_repo.get_user_perms_in_permtenant_list(user_id=user_id, tenant_id=tenant.ID)
+        return user_perms_list
+
     def get_user_perm_identitys_in_permtenant(self, user_id, tenant_name):
+        """
+        返回一个用户对应一个团队的所有权限
+        :param user_id:
+        :param tenant_name:
+        :return:
+        """
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         return [perm.identity for perm in user_perms]
