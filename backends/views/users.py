@@ -10,7 +10,6 @@ from backends.services.userservice import user_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants
-from console.services.user_services import user_services as console_user_service
 from console.services.team_services import team_services as console_team_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 
@@ -206,23 +205,39 @@ class AllUserView(BaseAPIView):
               required: false
               type: string
               paramType: query
+            - name: user_name
+              description: 用户名称（可以是邮箱，用户名，手机号）
+              required: false
+              type: string
+              paramType: query
 
         """
         result = {}
         try:
             page = request.GET.get("page_num", 1)
             page_size = request.GET.get("page_size", 20)
-            user_list = user_service.get_all_users()
+            user_name = request.GET.get("user_name", None)
+            user_list = user_service.get_by_username_or_phone_or_email(user_name)
             user_paginator = JuncheePaginator(user_list, int(page_size))
             users = user_paginator.page(int(page))
             list = []
+            uid_eid_map = {u.user_id: u.enterprise_id for u in users}
+            eids = [u.enterprise_id for u in users]
+            enterprises = console_enterprise_service.get_enterprise_by_eids(eids)
+            eid_enterprise_map = {e.enterprise_id: e.enterprise_alias for e in enterprises}
             for user in users:
                 result_map = {}
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name
+                result_map["phone"] = user.phone if user.phone else "暂无"
                 tenant_list = user_service.get_user_tenants(user.user_id)
                 result_map["tenants"] = tenant_list
+                eid = uid_eid_map.get(user.user_id, None)
+                if eid:
+                    result_map["enterprise_alias"] = eid_enterprise_map.get(eid, "暂无企业信息")
+                else:
+                    result_map["enterprise_alias"] = "暂无企业信息"
                 list.append(result_map)
 
             result = generate_result(

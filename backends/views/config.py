@@ -499,3 +499,267 @@ class ConfigCodeView(BaseAPIView):
             result = generate_error_result()
             logger.exception(e)
         return Response(result)
+
+
+class ConfigManageView(BaseAPIView):
+    def post(self, request, *args, **kwargs):
+        """
+        环境对接起停
+        ---
+        parameters:
+            - name: action
+              description: 打开或关闭 open 或 close
+              required: true
+              type: string
+              paramType: form
+            - name: type
+              description: github,gitlab,hubconf,ftpconf
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+
+            action = request.data.get("action", "open")
+            type = request.data.get("type", "github")
+            config_service.manage_code_conf(action, type)
+            code = "0000"
+            msg = "success"
+            if action == "open":
+                msg_show = "配置开启对接"
+            else:
+                msg_show = "配置关闭对接"
+            result = generate_result(code, msg, msg_show)
+        except ParamsError as e:
+            result = generate_result("1003", "params error", e.message)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
+class HubConfigView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取当前配置信息配置信息
+        ---
+
+        """
+        try:
+            config = config_service.get_image_hub_config()
+            code = "0000"
+            msg = "success"
+            msg_show = "查询成功"
+
+            result = generate_result(code, msg, msg_show, config)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def post(self, request, *args, **kwargs):
+        """
+        添加hub配置
+        ---
+        parameters:
+            - name: hub_url
+              description: hub地址
+              required: true
+              type: string
+              paramType: form
+            - name: namespace
+              description: 命名空间
+              required: true
+              type: string
+              paramType: form
+            - name: hub_user
+              description: hub用户
+              required: true
+              type: string
+              paramType: form
+            - name: hub_password
+              description: hub用户密码
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            hub_url = request.data.get("hub_url", None)
+            namespace = request.data.get("namespace", None)
+            hub_user = request.data.get("hub_user", None)
+            hub_password = request.data.get("hub_password", None)
+            if not hub_url or not namespace or not hub_user or not hub_password:
+                return Response(generate_result("0400", "params error", "请填写必要参数"))
+            config_service.add_image_hub_config(hub_url, namespace, hub_user, hub_password)
+            code = "0000"
+            msg = "success"
+            msg_show = "hub配置添加成功"
+            result = generate_result(code, msg, msg_show)
+        except ConfigExistError as e:
+            result = generate_result("1101", "config exist", "{}".format(e.message))
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改hub配置
+        ---
+        parameters:
+            - name: hub_url
+              description: hub地址
+              required: true
+              type: string
+              paramType: form
+            - name: namespace
+              description: 命名空间
+              required: true
+              type: string
+              paramType: form
+            - name: hub_user
+              description: hub用户
+              required: true
+              type: string
+              paramType: form
+            - name: hub_password
+              description: hub用户密码
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            hub_url = request.data.get("hub_url", None)
+            namespace = request.data.get("namespace", None)
+            hub_user = request.data.get("hub_user", None)
+            hub_password = request.data.get("hub_password", None)
+            config_service.update_image_hub_config(hub_url, namespace, hub_user, hub_password)
+            code = "0000"
+            msg = "success"
+            msg_show = "hub配置修改成功"
+            result = generate_result(code, msg, msg_show)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
+class FtpConfigView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取当前ftp配置信息
+        ---
+
+        """
+        try:
+            config = config_service.get_ftp_config()
+            code = "0000"
+            msg = "success"
+            msg_show = "查询成功"
+
+            result = generate_result(code, msg, msg_show, config)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def post(self, request, *args, **kwargs):
+        """
+        添加ftp配置
+        ---
+        parameters:
+            - name: ftp_host
+              description: ftp地址
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_port
+              description: ftp端口
+              required: true
+              type: string
+              paramType: form
+            - name: namespace
+              description: 命名空间
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_username
+              description: ftp用户名
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_password
+              description: ftp用户密码
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            ftp_host = request.data.get("ftp_host", None)
+            ftp_port = request.data.get("ftp_port", None)
+            namespace = request.data.get("namespace", None)
+            ftp_username = request.data.get("ftp_username", None)
+            ftp_password = request.data.get("ftp_password", None)
+            config_service.add_ftp_config(ftp_host, ftp_port, namespace, ftp_username, ftp_password)
+            code = "0000"
+            msg = "success"
+            msg_show = "ftp配置添加成功"
+            result = generate_result(code, msg, msg_show)
+        except ConfigExistError as e:
+            result = generate_result("1101", "config exist", "{}".format(e.message))
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改ftp配置
+        ---
+        parameters:
+            - name: ftp_host
+              description: ftp地址
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_port
+              description: ftp端口
+              required: true
+              type: string
+              paramType: form
+            - name: namespace
+              description: 命名空间
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_username
+              description: ftp用户名
+              required: true
+              type: string
+              paramType: form
+            - name: ftp_password
+              description: ftp用户密码
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            ftp_host = request.data.get("ftp_host", None)
+            ftp_port = request.data.get("ftp_port", None)
+            namespace = request.data.get("namespace", None)
+            ftp_username = request.data.get("ftp_username", None)
+            ftp_password = request.data.get("ftp_password", None)
+            config_service.update_ftp_config(ftp_host, ftp_port, namespace,ftp_username, ftp_password)
+            code = "0000"
+            msg = "success"
+            msg_show = "ftp配置修改成功"
+            result = generate_result(code, msg, msg_show)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)

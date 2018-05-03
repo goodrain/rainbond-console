@@ -102,9 +102,8 @@ export default class AppList extends PureComponent {
 	}
 	getSelected() {
 		var key = this.state.selectedRowKeys;
-		console.log(key)
-		var res = key.map((item, index) => {
-			return this.state.apps[index];
+		var res = key.map((item) => {
+			return this.state.apps[item];
 		})
 		return res;
 	}

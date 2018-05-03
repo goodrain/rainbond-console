@@ -195,6 +195,12 @@ const appUtil = {
         const source = this.getInstallSource(appDetail);
         return source === 'docker_compose' || source === 'docker_run' || source === 'docker_image';
     },
+    //是否是源码创建的应用
+    isCodeApp: function(appDetail){
+        const source = this.getInstallSource(appDetail);
+        return source === 'source_code';
+    },
+    //是否是dockerfile类型的应用
     //获取源码创建应用的语言类型
     getLanguage: function (appDetail) {
         var language = appDetail.service.language || '';
@@ -210,6 +216,12 @@ const appUtil = {
         var language = this.getLanguage(appDetail);
         return (language === 'java-war' || language === 'java-jar' || language === 'java-maven')
     },
+    //是否是dockerfile类型的应用, dockerfile类型的应用也属于源码类型的应用
+    isDockerfile: function(appDetail){
+        
+        var language = this.getLanguage(appDetail);
+        return language === 'dockerfile';
+    },
     //判断该应用是否创建完成
     isCreateComplete: function (appDetail) {
         var service = appDetail.service || {};
@@ -217,13 +229,13 @@ const appUtil = {
     },
     //是否是Compose方式创建的应用
     isCreateFromCompose: function (appDetail) {
-        var service = appDetail.service || {};
-        return service.service_source === 'docker_compose'
+        const source = this.getInstallSource(appDetail);
+        return source === 'docker_compose'
     },
     //是否是源码创建的应用
     isCreateFromCode: function(appDetail){
-        var service = appDetail.service || {};
-        return service.service_source === 'source_code';
+        const source = this.getInstallSource(appDetail);
+        return source === 'source_code';
     },
     //是否是自定义源码创建的应用
     isCreateFromCustomCode: function(appDetail) {
