@@ -451,7 +451,6 @@ class UserDelView(JWTAuthApiView):
                     result = error_message(e.message)
                 return Response(result)
         except Exception as e:
-            print(e)
             code = 500
             logger.exception(e)
             result = error_message(e.message)
