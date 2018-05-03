@@ -1691,7 +1691,8 @@ class Ports extends PureComponent {
   }
   render() {
     const ports = this.state.ports || [];
-    const isImageApp = appUtil.isImageApp(this.props.appDetail)
+    const isImageApp = appUtil.isImageApp(this.props.appDetail);
+    const isDockerfile = appUtil.isDockerfile(this.props.appDetail);
     return (
       <Card title="端口管理" style={{
         marginBottom: 16
@@ -1741,7 +1742,7 @@ class Ports extends PureComponent {
           subDesc={this.state.showDeleteDomain.domain}
           onOk={this.handleSubmitDeleteDomain}
           onCancel={this.cancalDeleteDomain}/>}
-        {this.state.showAddPort && <AddPort isImageApp={isImageApp} onCancel={this.onCancelAddPort} onOk={this.handleAddPort}/>}
+        {this.state.showAddPort && <AddPort isImageApp={isImageApp} isDockerfile={isDockerfile}  onCancel={this.onCancelAddPort} onOk={this.handleAddPort}/>}
       </Card>
     )
   }

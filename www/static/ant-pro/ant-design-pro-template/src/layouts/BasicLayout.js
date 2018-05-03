@@ -267,7 +267,9 @@ class BasicLayout extends React.PureComponent {
                     }
 
                     var commCode = () => {
-                                 
+                        
+                        
+
                         //如果没有当前团队和数据中心
                         if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
                             let team = userUtil.getDefaultTeam(user);
@@ -278,10 +280,10 @@ class BasicLayout extends React.PureComponent {
                             if (region) {
                                 currRegion = region;
                             }
-                            this
-                                .props
-                                .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                            location.reload();
+                            // this
+                            //     .props
+                            //     .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                            // location.reload();
                             return;
                         }
                         cookie.set('team', currTeam);
@@ -310,14 +312,14 @@ class BasicLayout extends React.PureComponent {
 
 
                     //如果当前用户没有该团队, 并且是系统管理员
-                    if(!userUtil.getTeamByTeamName(user, currTeam) && userUtil.isSystemAdmin(user)){
+                    if(!userUtil.getTeamByTeamName(user, currTeam) && (userUtil.isSystemAdmin(user) || currTeam === 'grdemo')){
                         this.props.dispatch({
                             type: 'user/getTeamByName',
                             payload: {
                                 team_name: currTeam
                             },
                             callback: (team) => {
-                                commCode();
+                                //commCode();
                             },
                             fail: () => {
                                 commCode();
