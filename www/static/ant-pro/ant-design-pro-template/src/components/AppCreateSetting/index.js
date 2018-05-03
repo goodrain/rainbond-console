@@ -581,6 +581,11 @@ class PHP extends PureComponent {
     }
 
   }
+  onChange = (value) => {
+    this
+      .props
+      .dispatch({type: 'createApp/saveRuntimeInfo', payload: value})
+  }
   getDefaultRuntime = () => {
     return '5.6.11';
   }
