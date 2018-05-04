@@ -325,7 +325,7 @@ class TeamUsableRegionView(BaseAPIView):
         """
         region_name = None
         try:
-            team = console_region_service.get_region_by_tenant_name(tenant_name)
+            team = console_team_service.get_tenant_by_tenant_name(tenant_name)
             if not team:
                 return Response(generate_result("0404", "team not found", "团队{0}不存在".format(tenant_name)))
 
