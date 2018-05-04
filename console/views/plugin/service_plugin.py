@@ -311,7 +311,7 @@ class ServicePluginConfigView(AppBaseView):
             app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
             app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
             # 全量插入新配置
-            app_plugin_service.process_update_config(self.service, plugin_id, pbv.build_version, config)
+            app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
             # 更新数据中心配置
             region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, pbv.build_version)
             region_api.update_service_plugin_config(self.response_region, self.tenant.tenant_name,

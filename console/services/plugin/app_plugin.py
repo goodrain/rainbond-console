@@ -249,7 +249,7 @@ class AppPluginService(object):
 
         undefine_env = dict()
         upstream_env_list = []
-        dep_service_env_dict = dict()
+        downstream_env_list = []
 
         for config_group in config_groups:
             items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
@@ -321,7 +321,6 @@ class AppPluginService(object):
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
-                    dep_service_port_list = []
                     for port in ports:
                         downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
                                                                      dest_service_id=dep_service.service_id,
@@ -346,7 +345,7 @@ class AppPluginService(object):
                                                                                    item.attr_default_value)
                             options.append(item_option)
 
-                        dep_service_port_list.append({
+                        downstream_env_list.append({
 
                             "service_id": service.service_id,
                             "service_meta_type": config_group.service_meta_type,
@@ -360,60 +359,11 @@ class AppPluginService(object):
                             "dest_service_alias": dep_service.service_alias
                         })
 
-                    dep_service_env_dict[dep_service.service_id] = dep_service_port_list
 
         result_bean["undefine_env"] = undefine_env
         result_bean["upstream_env"] = upstream_env_list
-        result_bean["downstream_env"] = dep_service_env_dict
+        result_bean["downstream_env"] = downstream_env_list
         return result_bean
-
-    def process_update_config(self, service, plugin_id, build_version, config):
-        service_plugin_var = []
-        for conf in config:
-            conf = Dict(conf)
-            if conf.service_meta_type == PluginMetaType.UNDEFINE:
-                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
-                service_plugin_var.append(ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=conf.service_meta_type,
-                    injection=conf.injection,
-                    dest_service_id="",
-                    dest_service_alias="",
-                    container_port=0,
-                    attrs=json.dumps(attrs_map),
-                    protocol=""
-                ))
-            if conf.service_meta_type == PluginMetaType.UPSTREAM_PORT:
-                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
-                service_plugin_var.append(ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=conf.service_meta_type,
-                    injection=conf.injection,
-                    dest_service_id="",
-                    dest_service_alias="",
-                    container_port=conf.port,
-                    attrs=json.dumps(attrs_map),
-                    protocol=conf.protocol))
-            if conf.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
-                service_plugin_var.append(ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=conf.service_meta_type,
-                    injection=conf.injection,
-                    dest_service_id=conf.dest_service_id,
-                    dest_service_alias=conf.dest_service_alias,
-                    container_port=conf.port,
-                    attrs=json.dumps(attrs_map),
-                    protocol=conf.protocol
-                ))
-
-        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
     def update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
@@ -446,21 +396,20 @@ class AppPluginService(object):
                 container_port=upstream_config.port,
                 attrs=json.dumps(attrs_map),
                 protocol=upstream_config.protocol))
-        dowstream_config = config_bean.downstream_env
-        for dep_service_id, port_config_list in dowstream_config.iteritems():
-            for port_config in port_config_list:
-                attrs_map = {c.attr_name: c.attr_value for c in port_config.config}
-                service_plugin_var.append(ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=port_config.service_meta_type,
-                    injection=port_config.injection,
-                    dest_service_id="",
-                    dest_service_alias="",
-                    container_port=port_config.port,
-                    attrs=json.dumps(attrs_map),
-                    protocol=port_config.protocol))
+        dowstream_config_list = config_bean.downstream_env
+        for dowstream_config in dowstream_config_list:
+            attrs_map = {c.attr_name: c.attr_value for c in dowstream_config.config}
+            service_plugin_var.append(ServicePluginConfigVar(
+                service_id=service.service_id,
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=dowstream_config.service_meta_type,
+                injection=dowstream_config.injection,
+                dest_service_id="",
+                dest_service_alias="",
+                container_port=dowstream_config.port,
+                attrs=json.dumps(attrs_map),
+                protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
