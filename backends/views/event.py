@@ -58,7 +58,7 @@ class ServiceOperateView(BaseAPIView):
                 if not team:
                     return Response(generate_result("0404", "team not found", "团队{0}不存在".format(team_name)))
 
-            show_events = service_event_dynamic.get_service_events(int(page), int(page_size), create_time, status, team)
+            show_events = service_event_dynamic.get_services_events(int(page), int(page_size), create_time, status, team)
             result_list = []
             for e in show_events:
                 bean = e.to_dict()

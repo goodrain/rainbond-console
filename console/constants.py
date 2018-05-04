@@ -84,3 +84,8 @@ class PluginMetaType(object):
     UPSTREAM_PORT = "upstream_port"
     DOWNSTREAM_PORT = "downstream_port"
     UNDEFINE = "un_define"
+
+
+class PluginInjection(object):
+    AUTO = "auto"
+    EVN = "env"

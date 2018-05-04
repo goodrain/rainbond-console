@@ -4,7 +4,7 @@
 """
 import logging
 
-from console.constants import PluginCategoryConstants
+from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
     app_plugin_attr_repo, plugin_version_repo
 from console.repositories.app import service_repo
@@ -13,11 +13,20 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
+from console.repositories.base import BaseConnection
+from console.repositories.app_config import port_repo
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from www.models.plugin import ServicePluginConfigVar
+import json
+import copy
+from console.repositories.plugin import service_plugin_config_repo
+from addict import Dict
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
+dependency_service = AppServiceRelationService()
 
 
 class AppPluginService(object):
@@ -58,17 +67,410 @@ class AppPluginService(object):
         spr = app_plugin_relation_repo.create_service_plugin_relation(**params)
         return 200, "success", spr
 
+    def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
+        """获取应用已开通和未开通的插件"""
+
+        QUERY_INSTALLED_SQL = """SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version,tsp.plugin_status as plugin_status
+                           FROM tenant_service_plugin_relation tsp
+                              LEFT JOIN plugin_build_version pbv ON tsp.plugin_id=pbv.plugin_id AND tsp.build_version=pbv.build_version
+                                  JOIN tenant_plugin tp ON tp.plugin_id=tsp.plugin_id
+                                      WHERE tsp.service_id="{0}" AND tp.region="{1}" AND tp.tenant_id="{2}" """.format(
+            service_id,
+            region,
+            tenant_id)
+
+        QUERI_UNINSTALLED_SQL = """
+            SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version
+                FROM tenant_plugin AS tp
+                    JOIN plugin_build_version AS pbv ON (tp.plugin_id=pbv.plugin_id)
+                        WHERE pbv.plugin_id NOT IN (
+                            SELECT plugin_id FROM tenant_service_plugin_relation
+                                WHERE service_id="{0}") AND tp.tenant_id="{1}" AND tp.region="{2}" AND pbv.build_status="{3}" """.format(
+            service_id, tenant_id, region, "build_success")
+
+        if category == "analysis":
+            query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
+
+            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL,
+                                                                               "analyst-plugin:perf")
+
+        elif category == "net_manage":
+            query_installed_plugin = """{0} AND tp.category in {1} """.format(QUERY_INSTALLED_SQL,
+                                                                              '("net-plugin:down","net-plugin:up")')
+            query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(QUERI_UNINSTALLED_SQL,
+                                                                                 '("net-plugin:down","net-plugin:up")')
+        else:
+            query_installed_plugin = QUERY_INSTALLED_SQL
+            query_uninstalled_plugin = QUERI_UNINSTALLED_SQL
+
+        dsn = BaseConnection()
+        installed_plugins = dsn.query(query_installed_plugin)
+        uninstalled_plugins = dsn.query(query_uninstalled_plugin)
+        return installed_plugins, uninstalled_plugins
+
+    def get_service_plugin_relation(self, service_id, plugin_id):
+        relations = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
+        if relations:
+            return relations[0]
+        return None
+
+    def start_stop_service_plugin(self, service_id, plugin_id, is_active):
+        """启用停用插件"""
+        app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active)
+
+    def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
+        """console层保存默认的数据"""
+        config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
+        service_plugin_var = []
+        for config_group in config_groups:
+
+            items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
+
+            if config_group.service_meta_type == PluginMetaType.UNDEFINE:
+                attrs_map = {item.attr_name: item.attr_default_value for item in items}
+                service_plugin_var.append(ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=config_group.service_meta_type,
+                    injection=config_group.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=0,
+                    attrs=json.dumps(attrs_map),
+                    protocol=""
+                ))
+            if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
+                ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+                for port in ports:
+                    attrs_map = dict()
+                    for item in items:
+                        if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                            attrs_map[item.attr_name] = item.attr_default_value
+                    service_plugin_var.append(ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config_group.service_meta_type,
+                        injection=config_group.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=port.container_port,
+                        attrs=json.dumps(attrs_map),
+                        protocol=port.protocol))
+
+            if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
+                dep_services = dependency_service.get_service_dependencies(tenant, service)
+                if not dep_services:
+                    return 409, "应用没有依赖其他应用，不能安装此插件"
+                for dep_service in dep_services:
+                    ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
+                    for port in ports:
+                        attrs_map = dict()
+                        for item in items:
+                            if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                                attrs_map[item.attr_name] = item.attr_default_value
+                        service_plugin_var.append(ServicePluginConfigVar(
+                            service_id=service.service_id,
+                            plugin_id=plugin_id,
+                            build_version=build_version,
+                            service_meta_type=config_group.service_meta_type,
+                            injection=config_group.injection,
+                            dest_service_id=dep_service.service_id,
+                            dest_service_alias=dep_service.service_alias,
+                            container_port=port.container_port,
+                            attrs=json.dumps(attrs_map),
+                            protocol=port.protocol
+                        ))
+        # 保存数据
+        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+        return 200, "success"
+
+    def get_region_config_from_db(self, service, plugin_id, build_version):
+        attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
+        normal_envs = []
+        base_normal = dict()
+        # 上游应用
+        base_ports = []
+        # 下游应用
+        base_services = []
+        region_env_config = dict()
+        for attr in attrs:
+            if attr.service_meta_type == PluginMetaType.UNDEFINE:
+                if attr.injection == PluginInjection.EVN:
+                    attr_map = json.loads(attr.attrs)
+                    for k, v in attr_map.iteritems():
+                        normal_envs.append({"env_name": k, "env_value": v})
+                else:
+                    base_normal["option"] = json.loads(attr.attrs)
+            if attr.service_meta_type == PluginMetaType.UPSTREAM_PORT:
+                base_ports.append({
+                    "service_id": service.service_id,
+                    "options": json.loads(attr.attrs),
+                    "protocol": attr.protocol,
+                    "port": attr.container_port,
+                    "service_alias": service.service_alias
+                })
+            if attr.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
+                base_services.append({
+                    "depend_service_alias": attr.dest_service_alias,
+                    "protocol": attr.protocol,
+                    "service_alias": service.service_alias,
+                    "options": json.loads(attr.attrs),
+                    "service_id": service.service_id,
+                    "depend_service_id": attr.dest_service_id,
+                    "port": attr.container_port,
+                })
+
+        config_envs = dict()
+        complex_envs = dict()
+        config_envs["normal_envs"] = normal_envs
+        complex_envs["base_ports"] = base_ports
+        complex_envs["base_services"] = base_services
+        complex_envs["base_normal"] = base_normal
+        config_envs["complex_envs"] = complex_envs
+        region_env_config["tenant_id"] = service.tenant_id
+        region_env_config["config_envs"] = config_envs
+        region_env_config["service_id"] = service.service_id
+
+        return region_env_config
+
+    def delete_service_plugin_config(self, service, plugin_id):
+        service_plugin_config_repo.delete_service_plugin_config_var(service.service_id, plugin_id)
+
+    def delete_service_plugin_relation(self, service, plugin_id):
+        app_plugin_relation_repo.delete_service_plugin(service.service_id, plugin_id)
+
+    def get_service_plugin_config(self, tenant, service, plugin_id, build_version):
+        config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
+        service_plugin_vars = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id,
+                                                                                       build_version)
+        result_bean = dict()
+
+        undefine_env = dict()
+        upstream_env_list = []
+        dep_service_env_dict = dict()
+
+        for config_group in config_groups:
+            items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
+            if config_group.service_meta_type == PluginMetaType.UNDEFINE:
+                options = []
+                normal_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UNDEFINE)
+                undefine_options = None
+                if normal_envs:
+                    normal_env = normal_envs[0]
+                    undefine_options = json.loads(normal_env.attrs)
+
+                for item in items:
+                    item_option = {
+                        "attr_info": item.attr_info,
+                        "attr_name": item.attr_name,
+                        "attr_value": item.attr_default_value,
+                        "attr_alt_value": item.attr_alt_value,
+                        "attr_type": item.attr_type,
+                        "attr_default_value": item.attr_default_value,
+                        "is_change": item.is_change
+                    }
+                    if undefine_options:
+                        item_option["attr_value"] = undefine_options.get(item.attr_name, item.attr_default_value)
+                    options.append(item_option)
+
+                undefine_env.update({
+                    "service_id": service.service_id,
+                    "service_meta_type": config_group.service_meta_type,
+                    "injection": config_group.injection,
+                    "service_alias": service.service_alias,
+                    "config": copy.deepcopy(options),
+
+                })
+            if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
+                ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+                for port in ports:
+                    upstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
+                                                               container_port=port.container_port)
+                    upstream_options = None
+                    if upstream_envs:
+                        upstream_env = upstream_envs[0]
+                        upstream_options = json.loads(upstream_env.attrs)
+                    options = []
+                    for item in items:
+                        item_option = {
+                            "attr_info": item.attr_info,
+                            "attr_name": item.attr_name,
+                            "attr_value": item.attr_default_value,
+                            "attr_alt_value": item.attr_alt_value,
+                            "attr_type": item.attr_type,
+                            "attr_default_value": item.attr_default_value,
+                            "is_change": item.is_change
+                        }
+                        if upstream_options:
+                            item_option["attr_value"] = upstream_options.get(item.attr_name, item.attr_default_value)
+                        options.append(item_option)
+                    upstream_env_list.append({
+
+                        "service_id": service.service_id,
+                        "service_meta_type": config_group.service_meta_type,
+                        "injection": config_group.injection,
+                        "service_alias": service.service_alias,
+                        "protocol": port.protocol,
+                        "port": port.container_port,
+                        "config": copy.deepcopy(options)
+                    })
+
+            if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
+                dep_services = dependency_service.get_service_dependencies(tenant, service)
+                for dep_service in dep_services:
+                    ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
+                    dep_service_port_list = []
+                    for port in ports:
+                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
+                                                                     dest_service_id=dep_service.service_id,
+                                                                     container_port=port.container_port)
+                        downstream_options = None
+                        if downstream_envs:
+                            downstream_env = downstream_envs[0]
+                            downstream_options = json.loads(downstream_env.attrs)
+                        options = []
+                        for item in items:
+                            item_option = {
+                                "attr_info": item.attr_info,
+                                "attr_name": item.attr_name,
+                                "attr_value": item.attr_default_value,
+                                "attr_alt_value": item.attr_alt_value,
+                                "attr_type": item.attr_type,
+                                "attr_default_value": item.attr_default_value,
+                                "is_change": item.is_change
+                            }
+                            if downstream_options:
+                                item_option["attr_value"] = downstream_options.get(item.attr_name,
+                                                                                   item.attr_default_value)
+                            options.append(item_option)
+
+                        dep_service_port_list.append({
+
+                            "service_id": service.service_id,
+                            "service_meta_type": config_group.service_meta_type,
+                            "injection": config_group.injection,
+                            "service_alias": service.service_alias,
+                            "protocol": port.protocol,
+                            "port": port.container_port,
+                            "config": copy.deepcopy(options),
+                            "dest_service_id": dep_service.service_id,
+                            "dest_service_cname": dep_service.service_cname,
+                            "dest_service_alias": dep_service.service_alias
+                        })
+
+                    dep_service_env_dict[dep_service.service_id] = dep_service_port_list
+
+        result_bean["undefine_env"] = undefine_env
+        result_bean["upstream_env"] = upstream_env_list
+        result_bean["downstream_env"] = dep_service_env_dict
+        return result_bean
+
+    def process_update_config(self, service, plugin_id, build_version, config):
+        service_plugin_var = []
+        for conf in config:
+            conf = Dict(conf)
+            if conf.service_meta_type == PluginMetaType.UNDEFINE:
+                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
+                service_plugin_var.append(ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=conf.service_meta_type,
+                    injection=conf.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=0,
+                    attrs=json.dumps(attrs_map),
+                    protocol=""
+                ))
+            if conf.service_meta_type == PluginMetaType.UPSTREAM_PORT:
+                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
+                service_plugin_var.append(ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=conf.service_meta_type,
+                    injection=conf.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=conf.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=conf.protocol))
+            if conf.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
+                attrs_map = {c.attr_name: c.attr_value for c in conf.config}
+                service_plugin_var.append(ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=conf.service_meta_type,
+                    injection=conf.injection,
+                    dest_service_id=conf.dest_service_id,
+                    dest_service_alias=conf.dest_service_alias,
+                    container_port=conf.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=conf.protocol
+                ))
+
+        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+
+    def update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
+        config_bean = Dict(config_bean)
+        service_plugin_var = []
+        undefine_env = config_bean.undefine_env
+        attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
+        service_plugin_var.append(ServicePluginConfigVar(
+            service_id=service.service_id,
+            plugin_id=plugin_id,
+            build_version=build_version,
+            service_meta_type=undefine_env.service_meta_type,
+            injection=undefine_env.injection,
+            dest_service_id="",
+            dest_service_alias="",
+            container_port=0,
+            attrs=json.dumps(attrs_map),
+            protocol=""
+        ))
+        upstream_config_list = config_bean.upstream_env
+        for upstream_config in upstream_config_list:
+            attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}
+            service_plugin_var.append(ServicePluginConfigVar(
+                service_id=service.service_id,
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=upstream_config.service_meta_type,
+                injection=upstream_config.injection,
+                dest_service_id="",
+                dest_service_alias="",
+                container_port=upstream_config.port,
+                attrs=json.dumps(attrs_map),
+                protocol=upstream_config.protocol))
+        dowstream_config = config_bean.downstream_env
+        for dep_service_id, port_config_list in dowstream_config.iteritems():
+            for port_config in port_config_list:
+                attrs_map = {c.attr_name: c.attr_value for c in port_config.config}
+                service_plugin_var.append(ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=port_config.service_meta_type,
+                    injection=port_config.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=port_config.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=port_config.protocol))
+
+        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):
         return plugin_repo.get_plugins_by_service_ids(service_ids)
 
-    def get_plugin_by_plugin_id(self, tenant, plugin):
-        plugin = plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin.plugin_id)
-        if plugin:
-            return 200, plugin
-        else:
-            return 404, None
+    def get_plugin_by_plugin_id(self, tenant, plugin_id):
+        return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
     def create_tenant_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image,
                              code_repo):

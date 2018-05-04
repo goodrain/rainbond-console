@@ -2,7 +2,7 @@
 """
   Created on 18/1/29.
 """
-from www.models import TenantServicePluginRelation,TenantServicePluginAttr
+from www.models import TenantServicePluginRelation, TenantServicePluginAttr, ServicePluginConfigVar
 
 
 class AppPluginRelationRepo(object):
@@ -23,14 +23,12 @@ class AppPluginRelationRepo(object):
         """创建服务插件关系"""
         TenantServicePluginRelation.objects.create(**params)
 
-    def update_service_plugin_status(self, id):
-        tspr = TenantServicePluginRelation.objects.filter(ID=id)
-        if tspr:
-            return tspr[0]
-        return None
+    def update_service_plugin_status(self, service_id, plugin_id, is_active):
+        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).update(
+            plugin_status=is_active)
 
-    def get_relation_by_service_and_plugin(self,service_id,plugin_id):
-        return TenantServicePluginRelation.objects.filter(service_id=service_id,plugin_id=plugin_id)
+    def get_relation_by_service_and_plugin(self, service_id, plugin_id):
+        return TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id)
 
     def get_service_plugin_relation_by_plugin_id(self, plugin_id):
         return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id)
@@ -38,7 +36,19 @@ class AppPluginRelationRepo(object):
     def delete_service_plugin_relation_by_plugin_id(self, plugin_id):
         TenantServicePluginRelation.objects.filter(plugin_id=plugin_id).delete()
 
+    def delete_service_plugin(self, service_id, plugin_id):
+        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
+
 
 class ServicePluginAttrRepository(object):
     def delete_attr_by_plugin_id(self, plugin_id):
         TenantServicePluginAttr.objects.filter(plugin_id=plugin_id).delete()
+
+
+class ServicePluginConfigVarRepository(object):
+    def get_service_plugin_config_var(self, service_id, plugin_id, build_version):
+        return ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id,
+                                                     build_version=build_version)
+
+    def delete_service_plugin_config_var(self, service_id, plugin_id):
+        ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()

@@ -103,7 +103,7 @@ class TenantServicePluginRelation(BaseModel):
 
 
 class TenantServicePluginAttr(BaseModel):
-    """服务插件属性"""
+    """旧版服务插件属性"""
 
     class Meta:
         db_table = "tenant_service_plugin_attr"
@@ -124,6 +124,25 @@ class TenantServicePluginAttr(BaseModel):
     attr_default_value = models.CharField(max_length=128, null=True, blank=True, help_text=u"默认值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     attr_info = models.CharField(max_length=32, null=True, blank=True, help_text=u"配置项说明")
+
+
+class ServicePluginConfigVar(BaseModel):
+    """新版服务插件属性"""
+
+    class Meta:
+        db_table = "service_plugin_config_var"
+
+    service_id = models.CharField(max_length=32, help_text=u"服务ID")
+    plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
+    build_version = models.CharField(max_length=32, help_text=u"构建版本")
+    service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
+    injection = models.CharField(max_length=32, help_text=u"注入方式 auto, env")
+    dest_service_id = models.CharField(max_length=32,default='', help_text=u"服务ID")
+    dest_service_alias = models.CharField(max_length=32, default="", help_text=u"服务别名")
+    container_port = models.IntegerField(help_text=u"依赖端口")
+    attrs = models.CharField(max_length=256, help_text=u"键值对", default="")
+    protocol = models.CharField(max_length=16, help_text=u"端口协议", default="")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
 
 class ConstKey():

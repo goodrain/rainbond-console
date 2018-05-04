@@ -1466,3 +1466,45 @@ class RegionInvokeApi(HttpClient):
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
         res, body = self._delete(url, self.default_headers, region=region)
         return res, body
+
+    def install_service_plugin(self, region, tenant_name, service_alias, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin"
+
+        self._set_headers(token)
+        return self._post(
+            url, self.default_headers, json.dumps(body), region=region)
+
+    def uninstall_service_plugin(self, region, tenant_name, plugin_id,
+                                 service_alias):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id
+        self._set_headers(token)
+        return self._delete(url, self.default_headers, None, region=region)
+
+    def update_plugin_service_relation(self, region, tenant_name, service_alias,
+                                       body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin"
+
+        self._set_headers(token)
+        return self._put(
+            url, self.default_headers, json.dumps(body), region=region)
+
+    def update_service_plugin_config(self, region, tenant_name, service_alias, plugin_id,
+                                     body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id + "/upenv"
+
+        self._set_headers(token)
+        return self._put(
+            url, self.default_headers, json.dumps(body), region=region)

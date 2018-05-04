@@ -43,6 +43,8 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
+from console.views.plugin.service_plugin import ServicePluginsView, \
+    ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
     ServiceEventsView, TeamServiceOverViewView
@@ -345,10 +347,13 @@ urlpatterns = patterns(
         PluginBuildStatusView.as_view()),
 
     # 插件与应用相关API
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pluginlist$', APPPluginsView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/install$', APPPluginInstallView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/open$', APPPluginOpenView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$', APPPluginConfigView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pluginlist$', ServicePluginsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/install$',
+        ServicePluginInstallView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/open$',
+        ServicePluginOperationView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$',
+        ServicePluginConfigView.as_view()),
 
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),

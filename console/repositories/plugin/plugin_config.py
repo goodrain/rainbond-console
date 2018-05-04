@@ -32,6 +32,7 @@ class PluginConfigGroupRepository(object):
     def delete_config_group_by_plugin_id(self, plugin_id):
         PluginConfigGroup.objects.filter(plugin_id=plugin_id).delete()
 
+
 class PluginConfigItemsRepository(object):
     def get_config_items_by_unique_key(self, plugin_id, build_version, service_meta_type):
         return PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
@@ -47,7 +48,7 @@ class PluginConfigItemsRepository(object):
     def delete_config_items_by_id_and_version(self, plugin_id, build_version):
         PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version).delete()
 
-    def get_config_items_by_id_and_version(self,plugin_id, build_version):
+    def get_config_items_by_id_and_version(self, plugin_id, build_version):
         return PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version)
 
     def create_plugin_config_items(self, **params):

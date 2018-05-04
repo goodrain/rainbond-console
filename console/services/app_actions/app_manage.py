@@ -482,6 +482,7 @@ class AppManageService(AppManageBase):
                                       tenant.enterprise_id)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
+                logger.exception(e)
                 return 500, "删除应用失败 {0}".format(e.message)
         if service.create_status == "complete":
             data = service.toJSON()

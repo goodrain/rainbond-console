@@ -24,7 +24,7 @@ class ServiceEventDynamic(object):
         event_service_dynamic = dsn.query(query_sql)
         return event_service_dynamic
 
-    def get_service_events(self, page, page_size, create_time, status, team):
+    def get_services_events(self, page, page_size, create_time, status, team):
 
         query = Q()
         if team:

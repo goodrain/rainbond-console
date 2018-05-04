@@ -72,8 +72,8 @@ class PluginBuildVersionService(object):
             return pbvs[0]
         return None
 
-    def get_newest_usable_plugin_version(self,plugin_id):
-        pbvs = plugin_version_repo.get_plugin_versions(plugin_id).filter(build_status="success")
+    def get_newest_usable_plugin_version(self, plugin_id):
+        pbvs = plugin_version_repo.get_plugin_versions(plugin_id).filter(build_status="build_success")
         if pbvs:
             return pbvs[0]
         return None
@@ -119,3 +119,6 @@ class PluginBuildVersionService(object):
             pbv.build_status = status
             pbv.save()
         return pbv
+
+    def get_by_id_and_version(self, plugin_id, plugin_version):
+        return plugin_version_repo.get_by_id_and_version(plugin_id, plugin_version)

@@ -17,6 +17,10 @@ class AppServiceRelationService(object):
         return dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list(
             "dep_service_id", flat=True)
 
+    def get_dep_service_ids(self, service):
+        return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list(
+            "dep_service_id", flat=True)
+
     def get_service_dependencies(self, tenant, service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
         services = service_repo.get_services_by_service_ids(*dep_ids)
