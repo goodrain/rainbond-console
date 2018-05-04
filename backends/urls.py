@@ -51,7 +51,7 @@ urlpatterns = patterns(
     # url(r'^v1/regions/tenants/resources$', TenantRegionResourceView.as_view()),
     # url(r'^v1/regions/tenants/resources/real$', TenantRegionRealResourceView.as_view()),
     # # 数据中心下集群
-    # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters$', ClusterView.as_view()),
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters$', ClusterView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/resources$', ClusterResourceView.as_view()),
     # # 数据中心下所有节点
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes$', RegionNodesView.as_view()),
