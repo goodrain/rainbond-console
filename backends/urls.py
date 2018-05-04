@@ -77,6 +77,7 @@ urlpatterns = patterns(
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)$', TeamView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/users/(?P<user_name>[\w\-]+)$', TeamUserView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/add-user$', AddTeamUserView.as_view()),
+    url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/regions$', TeamUsableRegionView.as_view()),
     # 标签路径
     url(r'^v1/labels$', AllLabelsView.as_view()),
     url(r'^v1/query/label', QueryLabelView.as_view()),
