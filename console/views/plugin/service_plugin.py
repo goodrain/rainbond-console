@@ -215,6 +215,9 @@ class ServicePluginOperationView(AppBaseView):
                                                       self.service.service_alias, data)
             # 更新本地数据
             app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active)
+            pbv.min_memory = min_memory
+            pbv.min_cpu = min_cpu
+            pbv.save()
             result = general_message(200, "success", "操作成功")
         except Exception, e:
             logger.exception(e)
