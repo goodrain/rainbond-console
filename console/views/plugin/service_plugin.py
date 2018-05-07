@@ -308,7 +308,6 @@ class ServicePluginConfigView(AppBaseView):
                 return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
             sid = transaction.savepoint()
             # 删除原有配置
-            app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
             app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
             # 全量插入新配置
             app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
