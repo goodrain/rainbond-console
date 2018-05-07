@@ -203,7 +203,7 @@ class ServicePluginOperationView(AppBaseView):
                 build_version = service_plugin_relation.build_version
             pbv = plugin_version_service.get_by_id_and_version(plugin_id,build_version)
             # 更新内存和cpu
-            min_memory = request.data.get("memory", pbv.min_memory)
+            min_memory = request.data.get("min_memory", pbv.min_memory)
             min_cpu = common_services.calculate_cpu(self.service.service_region, min_memory)
 
             data = dict()
