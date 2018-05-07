@@ -280,10 +280,10 @@ class BasicLayout extends React.PureComponent {
                             if (region) {
                                 currRegion = region;
                             }
-                            // this
-                            //     .props
-                            //     .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                            // location.reload();
+                            this
+                                .props
+                                .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                            location.reload();
                             return;
                         }
                         cookie.set('team', currTeam);
@@ -319,7 +319,7 @@ class BasicLayout extends React.PureComponent {
                                 team_name: currTeam
                             },
                             callback: (team) => {
-                                //commCode();
+                                commCode();
                             },
                             fail: () => {
                                 commCode();
@@ -438,12 +438,17 @@ class BasicLayout extends React.PureComponent {
         cookie.set('team', key);
         const currentUser = this.props.currentUser;
         let currRegionName = globalUtil.getCurrRegionName();
-        const currTeam = userUtil.getTeamByTeamName(currentUser, key)
+        const currTeam = userUtil.getTeamByTeamName(currentUser, key);
+        
         if (currTeam) {
             const regions = currTeam.region || [];
+            if(!regions.length){
+                notification.warning({message: '该团队下无可用数据中心!'});
+                return;
+            }
             const selectRegion = regions.filter((item) => {
                 return item.team_region_name === currRegionName;
-            })[0]
+            })[0];
             var selectRegionName = selectRegion
                 ? selectRegion.team_region_name
                 : regions[0].team_region_name;
