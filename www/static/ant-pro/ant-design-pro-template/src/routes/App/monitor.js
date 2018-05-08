@@ -66,7 +66,7 @@ class MonitorHistory extends PureComponent {
   }
   getStep() {
     var houer = this.state.houer;
-    return 60*60*houer;
+    return 60*60*houer/20 + 's';
   }
   componentDidMount() {
     this.mounted = true;
