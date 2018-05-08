@@ -1400,9 +1400,26 @@ export async function startPlugin(body = {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/plugins/${body.plugin_id}/open`, {
 								method: 'put',
 								data: {
-												is_switch: true
+												is_switch: true,
+												min_memory: body.min_memory
 								}
 				});
+}
+
+/*
+  更新插件内存
+*/
+export async function updatePluginMemory(body = {
+	team_name,
+	app_alias,
+	plugin_id
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/plugins/${body.plugin_id}/open`, {
+					method: 'put',
+					data: {
+							min_memory: body.min_memory
+					}
+	});
 }
 
 /*

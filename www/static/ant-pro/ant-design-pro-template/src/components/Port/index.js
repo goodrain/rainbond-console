@@ -18,6 +18,11 @@ import appPortUtil from '../../utils/appPort-util';
 import styles from './index.less';
 const FormItem = Form.Item;
 
+@connect(({region}) => {
+  return {
+    protocols: region.protocols || []
+  }
+})
 class ChangeProtocol extends PureComponent {
   constructor(props) {
     super(props);
@@ -39,6 +44,7 @@ class ChangeProtocol extends PureComponent {
       .onSubmit(this.state.value)
   }
   render() {
+    const protocols = this.props.protocols || [];
     return (
       <Form
         layout="inline"
@@ -54,10 +60,11 @@ class ChangeProtocol extends PureComponent {
             style={{
             width: 80
           }}>
-            <Option value="http">http</Option>
-            <Option value="tcp">tcp</Option>
-            <Option value="udp">udp</Option>
-            <Option value="mysql">mysql</Option>
+            {
+              protocols.map((item)=>{
+                return <Option value={item}>{item}</Option>
+              })
+            }
           </Select>
         </FormItem>
         <div>

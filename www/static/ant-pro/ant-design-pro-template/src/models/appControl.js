@@ -61,6 +61,7 @@ import {
   unInstallPlugin,
   startPlugin,
   stopPlugin,
+  updatePluginMemory,
   getPluginConfigs,
   editPluginConfigs,
   getAnalyzePlugins,
@@ -167,6 +168,15 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(startPlugin, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *updatePluginMemory({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(updatePluginMemory, payload);
       if (response) {
         callback && callback(response);
       }

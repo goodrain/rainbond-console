@@ -324,11 +324,11 @@ export default class Index extends PureComponent {
 
     const action = (
       <div>
-        <ButtonGroup>
+        {/* <ButtonGroup>
           <Dropdown overlay={menu} placement="bottomRight">
             <Button>当前版本：{this.state.currVersion}</Button>
           </Dropdown>
-        </ButtonGroup>
+        </ButtonGroup> */}
         <ButtonGroup>
           {pluginUtil.canBuild(this.state.currInfo)
             ? <Button type="primary" onClick={this.handleBuildPluginVersion}>构建</Button>
@@ -338,8 +338,8 @@ export default class Index extends PureComponent {
             ? <Button type="default" onClick={this.showBuildLog}>查看构建日志</Button>
             : null
 }
-          <Button type="default" onClick={this.handleCreatePluginVersion}>创建新版本</Button>
-          <Button onClick={this.showDeleteVersion} type="default">删除当前版本</Button>
+          {/* <Button type="default" onClick={this.handleCreatePluginVersion}>创建新版本</Button> */}
+          {/* <Button onClick={this.showDeleteVersion} type="default">删除当前版本</Button> */}
         </ButtonGroup>
 
       </div>
@@ -353,12 +353,12 @@ export default class Index extends PureComponent {
         width: 300
       }}>
         <Col xs={24} sm={12}>
-          <div className={styles.textSecondary}>构建状态</div>
-          <div className={styles.heading}>{pluginUtil.getBuildStatusCN(this.state.currInfo.build_status)}</div>
+          <div className={styles.textSecondary}></div>
+          <div className={styles.heading}></div>
         </Col>
         <Col xs={24} sm={12}>
-          <div className={styles.textSecondary}>版本状态</div>
-          <div className={styles.heading}>{pluginUtil.getVersionStatusCN(this.state.currInfo.plugin_version_status)}</div>
+          <div className={styles.textSecondary}>构建状态</div>
+          <div className={styles.heading}>{pluginUtil.getBuildStatusCN(this.state.currInfo.build_status)}</div>
         </Col>
       </Row>
     );

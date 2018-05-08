@@ -19,8 +19,35 @@ class EvnOption extends React.Component {
              callback()
         }
     }
+    componentWillMount(){
+        
+        this.props.onDidMount && this.props.onDidMount(this.props.index, this);
+    }
     componentDidMount(){
         this.props.onChange && this.props.onChange(this.props.index, this.props.form.getFieldsValue());
+    }
+    componentWillUnmount(){
+       this.props.onUnmount && this.props.onUnmount(this.props.index);
+    }
+    validAttrName = (rule, value, callback) => {
+      
+      if(!value){
+          callback("属性名");
+          return;
+      }
+
+      if(!/^[a-zA-Z]+$/g.test(value||'')){
+          callback("大小写英文");
+          return;
+      }
+      callback()
+    }
+    check(callback){
+       var form = this.props.form;
+       form.validateFields((err, fieldsValue) => {
+          callback && callback(err)
+          
+       });
     }
     handleOnchange = (key) => {
        this.props.form.validateFields([key], (err, fieldsValue) => {
@@ -28,13 +55,14 @@ class EvnOption extends React.Component {
           this.props.onChange && this.props.onChange(this.props.index, this.props.form.getFieldsValue());
         })
         if (err) return;
-          
       });
     }
     render(){
       const { getFieldDecorator, getFieldValue } = this.props.form;
       const attr_type = getFieldValue('attr_type') || 'string';
       const data = this.props.data || {};
+      const protocols = this.props.protocols || [];
+     
       return(
          <Form style={{display: 'inline-block', verticalAlign: 'middle'}} layout="inline" >
             <Form.Item
@@ -49,10 +77,25 @@ class EvnOption extends React.Component {
             <Form.Item>
                 {getFieldDecorator('attr_name', {
                 initialValue: data.attr_name || '',
-                rules: [{ required: true, message: '属性名' }]
+                rules: [{ validator: this.validAttrName }]
               })(
                 <Input onChange={()=>{this.handleOnchange('attr_name')}}   style={{width: 80}} placeholder="属性名" />
               )}
+            </Form.Item>
+            <Form.Item>
+                {getFieldDecorator('protocol', {
+                initialValue: data.protocol || '',
+                rules: [{ required: false, message: '协议' }],
+              })(
+                <Select onChange={()=>{this.handleOnchange('protocal')}} style={{width: 100}}>
+                <Option value="">协议</Option>
+                {
+                  protocols.map((item)=>{
+                    return <Option value={item}>{item}</Option>
+                  })
+                }
+                </Select>
+            )}
             </Form.Item>
             <Form.Item>
                 {getFieldDecorator('attr_type', {
@@ -115,7 +158,6 @@ class EvnOption extends React.Component {
 class EnvGroup extends PureComponent {
     constructor(props){
      super(props);
-
      var group = (this.props.value || []).map((item) => {
          return {
              key: Math.random(),
@@ -130,6 +172,22 @@ class EnvGroup extends PureComponent {
      this.state = {
        group:group
      }
+
+     //保存组建引用
+     this.groupItem=[];
+    }
+    componentWillMount(){
+      this.props.onDidMount && this.props.onDidMount(this);
+    }
+    check(){
+       var res = true;
+       for(var i=0;i<this.groupItem.length;i++){
+          this.groupItem[i].com.check((err)=>{
+              res = err ? false : true;
+          });
+          if(!res) break;
+       }
+       return res;
     }
     handlePlus = (key) => {
         var group = this.state.group;
@@ -145,16 +203,14 @@ class EnvGroup extends PureComponent {
         this.setState({group: group});
         this.forceUpdate();
     }
-
     handleMinus = (key) => {
-          var group = this.state.group;
+          var group = [].concat(this.state.group);
+          if(group.length === 1) return;
           group = group.filter((item)=>{
              return !!item;
           }).filter((item) => {
               return item.key !== key;
           })
-          if(group.length === 1) return; 
-
           this.state.group = group;
           this.setState({group: group});
           this.props.onChange && this.props.onChange(this.state.group.map((item)=>{return item.value}))
@@ -167,7 +223,16 @@ class EnvGroup extends PureComponent {
             }
             return item;
         })
-        this.props.onChange && this.props.onChange(this.state.group.map((item)=>{return item.value}))
+        var onchangeVal = this.state.group.map((item)=>{return item.value});
+        this.props.onChange && this.props.onChange(onchangeVal)
+    }
+    handleOptionMount = (k, com) => {
+      this.groupItem.push({key: k, com: com});
+    }
+    handleOptionUnmout = (k) => {
+      this.groupItem = this.groupItem.filter((item) => {
+        return item.key !== k;
+      })
     }
     render(){
         const { getFieldDecorator, getFieldValue } = this.props.form;
@@ -180,7 +245,7 @@ class EnvGroup extends PureComponent {
             {
              (group || []).map((item, index) => {
                  return <div key={item.key}>
-                 <EvnOption data={item.value} key={item.key} index={item.key} onChange={this.handleChange} />
+                 <EvnOption onDidMount={this.handleOptionMount} onUnmount={this.handleOptionUnmout} protocols={this.props.protocols} data={item.value} key={item.key} index={item.key} onChange={this.handleChange} />
                  <Icon onClick={()=>{this.handlePlus(item.key)}} style={{verticalAlign: 'middle', cursor:'pointer', fontSize: 20}} type="plus" />
                  <Icon onClick={()=>{this.handleMinus(item.key)}} style={{verticalAlign: 'middle', cursor:'pointer', fontSize: 20}} type="minus" />
                  </div>
@@ -202,6 +267,11 @@ const formItemLayout = {
 };
 
 @Form.create()
+@connect(({region}) => {
+    return {
+      protocols: region.protocols || []
+    }
+})
 export default class Index extends PureComponent {
    constructor(props){
      super(props);
@@ -209,6 +279,7 @@ export default class Index extends PureComponent {
        selectedRowKeys:[],
        apps:[]
      }
+     this.envGroup = null;
    }
    componentDidMount(){
       
@@ -231,26 +302,16 @@ export default class Index extends PureComponent {
      }
    }
    checkInjection = (rule, value, callback) => {
+
+       if(this.envGroup){
+         if(this.envGroup.check()){
+          callback();
+         }
+       }
        
-       var vals = value || [];
-
-       if(!vals.length){
-           callback("请填写配置组");
-           return;
-       }
-       for(var i=0;i<vals.length;i++){
-          var item = vals[i];
-          if(!item.attr_name){
-              callback("请检查属性名,是否填写");
-              return;
-          }
-
-          if(!/^[a-zA-Z]+$/g.test(item.attr_name||'')){
-              callback("属性名只能为大小写英文");
-              return;
-          }
-       }
-       callback();
+   }
+   handleEvnGroupMount  = (com) => {
+      this.envGroup = com;
    }
    render(){
 
@@ -277,6 +338,7 @@ export default class Index extends PureComponent {
               {getFieldDecorator('config_name', {
                 initialValue: data.config_name || '',
                 rules: [{ required: true, message: '请输入配置组名' }],
+                validateFirst: true
               })(
                 <Input placeholder="请输入配置组名" />
               )}
@@ -318,7 +380,7 @@ export default class Index extends PureComponent {
                 initialValue: data.options || [],
                 rules: [{ validator: this.checkInjection }],
               })(
-                  <EnvGroup />
+                  <EnvGroup onDidMount={this.handleEvnGroupMount} protocols={this.props.protocols} />
               )}
             </Form.Item>
         </Form>

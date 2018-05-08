@@ -153,6 +153,7 @@ class ServicePluginInstallView(AppBaseView):
                                                 self.service.service_alias)
             app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
             app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
+            return Response(general_message(200, "success", "卸载成功"))
         except Exception, e:
             logger.exception(e)
             result = error_message(e.message)

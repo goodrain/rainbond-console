@@ -1,7 +1,7 @@
 import { getMyPlugins, createPlugin, getPluginInfo, getPluginVersions, getPluginVersionInfo,
 getPluginVersionConfig, editPluginVersionInfo, addPluginVersionConfig, removePluginVersionConfig,
 editPluginVersionConfig, removePluginVersion, createPluginVersion, buildPluginVersion,
-getBuildPluginVersionStatus, getBuildVersionLog, getUsedApp } from '../services/plugin';
+getBuildPluginVersionStatus, getBuildVersionLog, getUsedApp, deletePlugin } from '../services/plugin';
 import cookie from '../utils/cookie';
 
 export default {
@@ -13,6 +13,7 @@ export default {
     apps:[]
   },
   effects: {
+
     *getUsedApp({ payload, callback }, { call, put }) {
       const response = yield call(getUsedApp, payload);
       if(response) {
@@ -108,7 +109,13 @@ export default {
       if(response) {
           callback && callback(response);
       }
-    }
+    },
+    *deletePlugin({ payload, callback }, { call, put }) {
+      const response = yield call(deletePlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
   },
   reducers: {
     clearApps(state, action){
