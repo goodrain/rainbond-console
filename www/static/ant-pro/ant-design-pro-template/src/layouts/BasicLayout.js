@@ -306,6 +306,16 @@ class BasicLayout extends React.PureComponent {
                                     currRegion: currRegion
                                 }
                             })
+                        //获取当前数据中心的协议
+                        this.props.dispatch({
+                            type: 'region/fetchProtocols',
+                            payload: {
+                                team_name: currTeam,
+                                region_name: currRegion
+                            }
+                        })
+                        
+                        
                     }
 
 

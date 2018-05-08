@@ -8,17 +8,22 @@ import pluginUtil from '../../utils/plugin';
 import styles from './Index.less';
 import Ellipsis from '../../components/Ellipsis';
 import Manage from './manage';
+import ConfirmModal from '../../components/ConfirmModal';
 
 @connect(({list, loading}) => ({}))
 class PluginList extends PureComponent {
   constructor(arg) {
     super(arg);
     this.state = {
-      list: []
+      list: [],
+      deletePlugin: null
     }
     this.timer = null;
   }
   componentDidMount() {
+    this.fetchPlugins();
+  }
+  fetchPlugins = () => {
     this
       .props
       .dispatch({
@@ -37,6 +42,27 @@ class PluginList extends PureComponent {
     this
       .props
       .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create-plugin`))
+  }
+  hanldeDeletePlugin = () => {
+    this
+    .props
+    .dispatch({
+      type: 'plugin/deletePlugin',
+      payload: {
+        team_name: globalUtil.getCurrTeamName(),
+        plugin_id: this.state.deletePlugin.plugin_id
+      },
+      callback: ((data) => {
+        this.fetchPlugins();
+        this.cancelDeletePlugin();
+      })
+    });
+  }
+  onDeletePlugin = (plugin) => {
+     this.setState({deletePlugin: plugin})
+  }
+  cancelDeletePlugin = () => {
+    this.setState({deletePlugin: null})
   }
   render() {
     const list = this.state.list;
@@ -72,17 +98,11 @@ class PluginList extends PureComponent {
             ? (
               <List.Item
                 key={item.id}
-                onClick={() => {
-                this
-                  .props
-                  .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`))
-              }}>
+                >
                 <Card
-                  hoverable
+       
                   className={styles.card}
-                  actions={[ < span > {
-                    pluginUtil.getCategoryCN(item.category)
-                  } < /span>, <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>]}>
+                  actions={[<Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>, <span onClick={()=>{this.onDeletePlugin(item)}}>删除</span>]}>
                   <Card.Meta
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={< Link to = {
@@ -91,7 +111,9 @@ class PluginList extends PureComponent {
                     item.plugin_alias
                   } < /Link>}
                     description={(
-                    <Ellipsis className={styles.item} lines={3}>{item.desc}</Ellipsis>
+                    <Ellipsis className={styles.item} lines={3}>< p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
+                      pluginUtil.getCategoryCN(item.category)
+                    } < /p>{item.desc}</Ellipsis>
                   )}/>
                 </Card>
               </List.Item>
@@ -104,6 +126,11 @@ class PluginList extends PureComponent {
                 </Button>
               </List.Item>
             ))}/>
+            {this.state.deletePlugin && <ConfirmModal
+          onOk={this.hanldeDeletePlugin}
+          onCancel={this.cancelDeletePlugin}
+          title="删除插件"
+          desc="确定要删除此插件吗？"/>}
         </div>
       </PageHeaderLayout>
     );

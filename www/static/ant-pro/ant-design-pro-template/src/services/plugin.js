@@ -31,6 +31,16 @@ export async function createPlugin(body = {
 }
 
 /*
+	删除插件
+*/
+export async function deletePlugin(body = {
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}`, {method: 'delete'});
+}
+
+/*
 	获取插件基础信息
 */
 export async function getPluginInfo(body = {

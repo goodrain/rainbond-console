@@ -79,7 +79,7 @@ export const getRouterData = (app) => {
   const routerConfig = {
     '/': {
       component: dynamicWrapper(app, [
-        'user', 'appControl', 'createApp', 'teamControl', 'plugin'
+        'user', 'appControl', 'createApp', 'teamControl', 'plugin', 'region'
       ], () => import ('../layouts/BasicLayout'))
     },
     '/team/:team/region/:region/source': {

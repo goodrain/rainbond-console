@@ -6,6 +6,11 @@ const FormItem = Form.Item;
 
 
 @Form.create()
+@connect(({region}) => {
+  return {
+    protocols: region.protocols || []
+  }
+})
 export default class AddPort extends PureComponent {
    componentWillMount(){
 
@@ -46,6 +51,7 @@ export default class AddPort extends PureComponent {
           sm: { span: 16 },
         },
       };
+    const protocols = this.props.protocols || [];
      
      return (
         <Modal
@@ -77,10 +83,11 @@ export default class AddPort extends PureComponent {
                      rules:[{required: true, message: '请添加端口'}]
                   })(
                     <Select>
-                       <Option value="http">http</Option>
-                       <Option value="tcp">tcp</Option>
-                       <Option value="udp">udp</Option>
-                       <Option value="mysql">mysql</Option>
+                      {
+                        protocols.map((item)=>{
+                          return <Option value={item}>{item}</Option>
+                        })
+                      }
                      </Select>
                   )
                 }
