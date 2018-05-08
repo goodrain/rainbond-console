@@ -35,6 +35,7 @@ class ServiceEventDynamic(object):
             query &= Q(final_status=status)
 
         events = ServiceEvent.objects.filter(query)
+        total = events.count()
         paginator = JuncheePaginator(events, int(page_size))
         show_events = paginator.page(int(page))
         service_ids = [e.service_id for e in show_events]
@@ -61,7 +62,7 @@ class ServiceEventDynamic(object):
                 # 同步数据中心信息
                 self.__sync_events(region, events)
 
-        return show_events
+        return show_events, total
 
     def __sync_events(self, region, events, timeout=False):
         local_events_not_complete = {event.event_id: event for event in events}
