@@ -71,14 +71,14 @@ class MonitorHistory extends PureComponent {
   componentDidMount() {
     this.mounted = true;
     this.inerval = 10000;
-    this.fetchRequestTimeRange();
-    this.fetchRequestRange();
-    this.fetchOnlineNumberRange();
+    this.fetchRequestTimeRange(true);
+    this.fetchRequestRange(true);
+    this.fetchOnlineNumberRange(true);
   }
   componentWillUnmount(loop=true) {
     this.mounted = false;
   }
-  fetchRequestTimeRange() {
+  fetchRequestTimeRange(loop=true) {
     if (!this.mounted) 
       return;
     this
@@ -95,7 +95,7 @@ class MonitorHistory extends PureComponent {
         complete: () => {
           if (this.mounted && loop) {
             setTimeout(() => {
-              this.fetchRequestTimeRange();
+              this.fetchRequestTimeRange(true);
             }, this.inerval)
           }
 
@@ -119,7 +119,7 @@ class MonitorHistory extends PureComponent {
         complete: () => {
           if (this.mounted && loop) {
             setTimeout(() => {
-              this.fetchRequestRange();
+              this.fetchRequestRange(true);
             }, this.inerval)
 
           }
@@ -143,7 +143,7 @@ class MonitorHistory extends PureComponent {
         complete: () => {
           if (this.mounted && loop) {
             setTimeout(() => {
-              this.fetchOnlineNumberRange();
+              this.fetchOnlineNumberRange(true);
             }, this.inerval)
 
           }
