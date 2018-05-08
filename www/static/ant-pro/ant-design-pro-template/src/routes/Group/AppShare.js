@@ -21,13 +21,16 @@ import {
   Switch,
   Tabs,
   Divider,
-  InputNumber
+  InputNumber,
+  Upload
 } from 'antd';
 import {routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import ConfirmModal from '../../components/ConfirmModal';
 import Ellipsis from '../../components/Ellipsis';
 import FooterToolbar from '../../components/FooterToolbar';
+import config from '../../config/config';
+import cookie from '../../utils/cookie';
 
 import styles from './Index.less';
 import mytabcss from './mytab.css';
@@ -61,6 +64,19 @@ const tailFormItemLayout = {
     }
   }
 };
+
+const token = cookie.get('token');
+let myheaders = {}
+if (token) {
+   myheaders.Authorization = `GRJWT ${token}`;  
+}
+
+const uploadButton = (
+  <div>
+    <Icon type="plus" />
+    <div className="ant-upload-text">上传图标</div>
+  </div>
+);
 
 @Form.create()
 class AppInfo extends PureComponent {
@@ -320,7 +336,8 @@ export default class Main extends PureComponent {
       info: null,
       selectedApp: '',
       service: null,
-      key: ''
+      key: '',
+      fileList:[]
     }
     this.com = [];
     this.share_group_info = null;
@@ -460,6 +477,32 @@ export default class Main extends PureComponent {
     })
   }
 
+  handleLogoChange = ({ fileList }) =>{
+
+    fileList = fileList.map((file) => {
+        if (file.response) {
+          // Component will show file.url as link
+          //file.url = file.response.data.bean.path;
+          console.log(file.response)
+        }
+        return file;
+      });
+
+      // 3. filter successfully uploaded files according to response from server
+      fileList = fileList.filter((file) => {
+        if (file.response) {
+          return file.percent == 100 && file.status == 'done';
+        }
+        return true;
+      });
+
+      this.setState({ fileList });
+  }
+  handleLogoRemove = () => {
+    this.setState({fileList: []})
+  }
+
+
   componentWillUnmount() {}
   save = (val) => {
     this
@@ -480,6 +523,9 @@ export default class Main extends PureComponent {
     const tabk = this.state.key;
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
+    
+    const fileList = this.state.fileList; 
+    const imageUrl = appinfo.pic;
 
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
@@ -532,21 +578,7 @@ export default class Main extends PureComponent {
                       })(<Input placeholder="默认使用上次的版本"/>)}
                     </Form.Item>
                   </Col>
-
-                  <Col span="12">
-                    <Form.Item {...formItemLayout} label='应用说明'>
-                      {getFieldDecorator('describe', {
-                        initialValue: appinfo.describe,
-                        rules: [
-                          {
-                            required: false,
-                            message: '请输入应用说明'
-                          }
-                        ]
-                      })(<TextArea placeholder="请输入应用说明"/>)}
-                    </Form.Item>
-                  </Col>
-                  <Col span="12">
+                   <Col span="12">
                     <Form.Item {...formItemLayout} label='分享范围'>
                       {getFieldDecorator('scope', {
                         initialValue: appinfo.scope || 'team',
@@ -563,6 +595,45 @@ export default class Main extends PureComponent {
                         </RadioGroup>
                       )}
                     </Form.Item>
+                  </Col>
+                  <Col span="12">
+                    <Form.Item {...formItemLayout} label='应用说明'>
+                      {getFieldDecorator('describe', {
+                        initialValue: appinfo.describe,
+                        rules: [
+                          {
+                            required: false,
+                            message: '请输入应用说明'
+                          }
+                        ]
+                      })(<TextArea placeholder="请输入应用说明"/>)}
+                    </Form.Item>
+                  </Col>
+                   <Col span="12">
+                    <Form.Item {...formItemLayout} label='图标'>
+                        {getFieldDecorator('pic', {
+                          rules: [
+                            {
+                              required: false,
+                              message: '请上传图标'
+                            }
+                          ]
+                        })(
+                          <Upload
+                            className="logo-uploader"
+                            name="file"
+                            accept="image/jpg,image/jpeg,image/png"
+                                action='http://172.16.0.156:9000/console/files/upload'
+                                listType="picture-card"
+                                fileList={fileList}
+                                headers = {myheaders}
+                                onChange={this.handleLogoChange}
+                                onRemove={this.handleLogoRemove}
+                              >
+                                {fileList.length > 0 ? null:uploadButton}
+                              </Upload>
+                        )}
+                      </Form.Item>
                   </Col>
                 </Row>
               </Form>
