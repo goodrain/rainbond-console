@@ -66,8 +66,13 @@ class TopologicalService(object):
                 json_data[service_info.service_cname]['cur_status'] = status
                 json_data[service_info.service_cname]['status_cn'] = status_cn
             else:
-                json_data[service_info.service_cname]['cur_status'] = 'Unknown'
-                json_data[service_info.service_cname]['status_cn'] = '未知'
+                if service_info.create_status != "complete":
+                    json_data[service_info.service_cname]['cur_status'] = 'creating'
+                    json_data[service_info.service_cname]['status_cn'] = '创建中'
+                else:
+                    json_data[service_info.service_cname]['cur_status'] = 'Unknown'
+                    json_data[service_info.service_cname]['status_cn'] = '未知'
+
             # 查询是否打开对外服务端口
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
             # 判断服务是否有对外端口
@@ -96,32 +101,17 @@ class TopologicalService(object):
     def get_group_topological_graph_details(self, team, team_id, team_name, service, region_name):
         result = {}
         # 服务信息
-        tenant_id = team_id
-        tenant_name = team_name
-        service_id = service.service_id
-        service_alias = service.service_alias
-        service_cname = service.service_cname
-        service_region = service.service_region
-        deploy_version = service.deploy_version
-        total_memory = service.min_memory * service.min_node
-        # 服务名称
-        result['tenant_id'] = tenant_id
-        result['service_alias'] = service_alias
-        result['service_cname'] = service_cname
-        result['service_region'] = service_region
-        result['deploy_version'] = deploy_version
-        result['total_memory'] = total_memory
+        result['tenant_id'] = team_id
+        result['service_alias'] = service.service_alias
+        result['service_cname'] = service.service_cname
+        result['service_region'] = service.service_region
+        result['deploy_version'] = service.deploy_version
+        result['total_memory'] = service.min_memory * service.min_node
         result['cur_status'] = 'Unknown'
         # 服务端口信息
-        port_list = TenantServicesPort.objects.filter(service_id=service_id)
-        # 判断服务是否有对外端口
-        # outer_port_exist = False
-        # if len(port_list) > 0:
-        #     outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
-        # result['is_internet'] = outer_port_exist
-        # result["ports"] = map(lambda x: x.to_dict(), port_list)
+        port_list = TenantServicesPort.objects.filter(service_id=service.service_id)
         # 域名信息
-        service_domain_list = ServiceDomain.objects.filter(service_id=service_id)
+        service_domain_list = ServiceDomain.objects.filter(service_id=service.service_id)
         port_map = {}
         # 判断是否存在自定义域名
         for port in port_list:
@@ -130,31 +120,24 @@ class TopologicalService(object):
             # 打开对外端口
             if port.is_outer_service:
                 if port.protocol != 'http' and port.protocol != "https":
-                    cur_region = service_region.replace("-1", "")
-                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_alias, tenant_name, cur_region)
-                    # if settings.STREAM_DOMAIN_URL[service_region] != "":
-                    #     domain = settings.STREAM_DOMAIN_URL[service_region]
-                    tcpdomain = region_services.get_region_tcpdomain(service_region)
+                    cur_region = service.service_region.replace("-1", "")
+                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, team_name, cur_region)
+                    tcpdomain = region_services.get_region_tcpdomain(service.service_region)
                     if tcpdomain:
                         domain = tcpdomain
                     outer_service = {"domain": domain}
-                    try:
+                    if port.lb_mapping_port != 0:
+                        outer_service['port'] = port.lb_mapping_port
+                    else:
                         outer_service['port'] = port.mapping_port
-                    except Exception as e:
-                        logger.exception(e)
-                        outer_service['port'] = '-1'
+
                 elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
-                    httpdomain = region_services.get_region_httpdomain(service_region)
+                    httpdomain = region_services.get_region_httpdomain(service.service_region)
                     outer_service = {
-                        "domain": "{0}.{1}.{2}".format(service_alias, tenant_name,
-                                                      httpdomain),
-                        "port": 10080
-                    }
-                else:
-                    outer_service = {
-                        "domain": 'error',
-                        "port": '-1'
+                        "domain": "{0}.{1}.{2}".format(service.service_alias, team_name,
+                                                       httpdomain),
+                        "port": ""
                     }
                 # 外部url
                 if outer_service['port'] == '-1':
@@ -195,12 +178,15 @@ class TopologicalService(object):
             region_data["pod_list"] = pod_list["list"]
         except Exception as e:
             logger.exception(e)
-            region_data = {}
+            region_data = dict()
+            if service.create_status != "complete":
+                region_data = {"status_cn": "创建中", "cur_status": "creating"}
+
         # result["region_data"] = region_data
         result = dict(result, **region_data)
 
         # 依赖服务信息
-        relation_list = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
+        relation_list = TenantServiceRelation.objects.filter(tenant_id=team_id, service_id=service.service_id)
         relation_id_list = set([x.dep_service_id for x in relation_list])
         relation_service_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
         relation_service_map = {x.service_id: x for x in relation_service_list}
@@ -268,13 +254,13 @@ class TopologicalService(object):
                         except Exception as e:
                             logger.exception(e)
                             outer_service['port'] = '-1'
-                    elif port.protocol == 'http':
+                    elif port.protocol == 'http' or port.protocol != "https":
                         exist_service_domain = True
                         httpdomain = region_services.get_region_httpdomain(service_region)
                         outer_service = {
-                            "domain": "{0}.{1}{2}".format(service_info.service_alias, team_name,
+                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, team_name,
                                                           httpdomain),
-                            "port": 10080
+                            "port":""
                         }
                     else:
                         outer_service = {
@@ -285,7 +271,7 @@ class TopologicalService(object):
                     if outer_service['port'] == '-1':
                         port_info['outer_url'] = 'query error!'
                     else:
-                        if port.protocol == "http":
+                        if port.protocol == "http" or port.protocol == "https":
                             port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
                                                                           outer_service['domain'],
                                                                           outer_service['port'])

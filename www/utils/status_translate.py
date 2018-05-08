@@ -104,6 +104,12 @@ def status_map():
         "disabledAction": [],
         "activeAction": [],
     }
+    # console
+    status_map["creating"] = {
+        "status_cn": "创建中",
+        "disabledAction": ['restart', 'stop', 'visit', 'manage_container', 'reboot'],
+        "activeAction": ['deploy'],
+    }
     return status_map
 
 
