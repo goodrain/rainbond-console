@@ -280,10 +280,10 @@ class BasicLayout extends React.PureComponent {
                             if (region) {
                                 currRegion = region;
                             }
-                            // this
-                            //     .props
-                            //     .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                            // location.reload();
+                            this
+                                .props
+                                .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
+                            location.reload();
                             return;
                         }
                         cookie.set('team', currTeam);
@@ -319,7 +319,7 @@ class BasicLayout extends React.PureComponent {
                                 team_name: currTeam
                             },
                             callback: (team) => {
-                                //commCode();
+                                commCode();
                             },
                             fail: () => {
                                 commCode();
