@@ -65,11 +65,8 @@ class MonitorHistory extends PureComponent {
     return (new Date().getTime() / 1000) - (60 * 60 * this.state.houer);
   }
   getStep() {
-    if (this.state.houer > 24) {
-      return 60 * 60;
-    } else {
-      return 60 * 2;
-    }
+    const houer = this.state.houer;
+    return 60 * 60 * houer / 10 + 's';
   }
   componentDidMount() {
     this.mounted = true;
@@ -78,7 +75,7 @@ class MonitorHistory extends PureComponent {
     this.fetchRequestRange();
     this.fetchOnlineNumberRange();
   }
-  componentWillUnmount() {
+  componentWillUnmount(loop=true) {
     this.mounted = false;
   }
   fetchRequestTimeRange() {
@@ -96,7 +93,7 @@ class MonitorHistory extends PureComponent {
           step: this.getStep()
         },
         complete: () => {
-          if (this.mounted) {
+          if (this.mounted && loop) {
             setTimeout(() => {
               this.fetchRequestTimeRange();
             }, this.inerval)
@@ -105,7 +102,7 @@ class MonitorHistory extends PureComponent {
         }
       })
   }
-  fetchRequestRange() {
+  fetchRequestRange(loop=true) {
     if (!this.mounted) 
       return;
     this
@@ -120,7 +117,7 @@ class MonitorHistory extends PureComponent {
           step: this.getStep()
         },
         complete: () => {
-          if (this.mounted) {
+          if (this.mounted && loop) {
             setTimeout(() => {
               this.fetchRequestRange();
             }, this.inerval)
@@ -129,7 +126,7 @@ class MonitorHistory extends PureComponent {
         }
       })
   }
-  fetchOnlineNumberRange() {
+  fetchOnlineNumberRange(loop=true) {
     if (!this.mounted) 
       return;
     this
@@ -144,7 +141,7 @@ class MonitorHistory extends PureComponent {
           step: this.getStep()
         },
         complete: () => {
-          if (this.mounted) {
+          if (this.mounted && loop) {
             setTimeout(() => {
               this.fetchOnlineNumberRange();
             }, this.inerval)
@@ -155,7 +152,11 @@ class MonitorHistory extends PureComponent {
   }
 
   selectDate = (houer) => {
-    this.setState({houer});
+    this.setState({houer}, ()=>{
+      this.fetchRequestTimeRange(false);
+      this.fetchRequestRange(false);
+      this.fetchOnlineNumberRange(false);
+    });
   }
   isActive(houer) {
     if (houer === this.state.houer) {
@@ -247,7 +248,7 @@ class MonitorNow extends PureComponent {
     return (new Date().getTime() / 1000) - (60 * 60)
   }
   getStep() {
-    return 60;
+    return '60s';
   }
   componentDidMount() {
     this.mounted = true;
