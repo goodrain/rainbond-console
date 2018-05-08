@@ -62,6 +62,7 @@ class AppPluginService(object):
             "service_id": service_id,
             "build_version": build_version,
             "service_meta_type": service_meta_type,
+            "plugin_id": plugin_id,
             "plugin_status": plugin_status
         }
         spr = app_plugin_relation_repo.create_service_plugin_relation(**params)
@@ -70,7 +71,7 @@ class AppPluginService(object):
     def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
         """获取应用已开通和未开通的插件"""
 
-        QUERY_INSTALLED_SQL = """SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version,tsp.plugin_status as plugin_status
+        QUERY_INSTALLED_SQL = """SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version, pbv.min_memory as min_memory ,tsp.plugin_status as plugin_status
                            FROM tenant_service_plugin_relation tsp
                               LEFT JOIN plugin_build_version pbv ON tsp.plugin_id=pbv.plugin_id AND tsp.build_version=pbv.build_version
                                   JOIN tenant_plugin tp ON tp.plugin_id=tsp.plugin_id
