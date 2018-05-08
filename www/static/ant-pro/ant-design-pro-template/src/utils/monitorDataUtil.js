@@ -38,14 +38,14 @@ const monitorDataUtil = {
                if(round){
                     res = data.result[0].values.map((value)=>{
                          return {
-                              x: Number(value[0]),
+                              x: Number(value[0]*1000),
                               y: Math.round(Number(value[1]))
                          }
                     })
                }else{
                     res = data.result[0].values.map((value)=>{
                          return {
-                              x: Number(value[0]),
+                              x: Number(value[0]*1000),
                               y: Math.round(Number(value[1]))
                          }
                     })
