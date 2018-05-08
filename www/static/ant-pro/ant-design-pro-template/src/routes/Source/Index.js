@@ -445,7 +445,7 @@ class AppList extends PureComponent {
             <div className={styles.pageHeaderContent}>
                 <div className={styles.content}>
                     <div>将当前云帮平台和好雨云市进行互联，同步应用，插件，数据中心等资源</div>
-                    <div>应用下载完成后，方可在 创建应用->从云市安装 中看到</div>
+                    <div>应用下载完成后，方可在 创建应用->从应用市场安装 中看到</div>
                 </div>
             </div>
         );
