@@ -72,7 +72,7 @@ class PluginBaseInfoView(PluginBaseView):
         try:
             code, msg = plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
             if code != 200:
-                return Response(general_message(code, "delete plugin fail", msg))
+                return Response(general_message(code, "delete plugin fail", msg), status=code)
             else:
                 result = general_message(code, "success", msg)
         except Exception as e:
