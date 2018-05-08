@@ -1,4 +1,5 @@
 let baseUrl = '';
+let imageUploadUrl = '';
 if(process.env.NODE_ENV == 'dev') {
 	baseUrl = 'http://gr-debug.goodrain.com/';
 }else if(process.env.NODE_ENV == 'development'){
@@ -7,7 +8,9 @@ if(process.env.NODE_ENV == 'dev') {
 	baseUrl = '';
 }
 
+imageUploadUrl = baseUrl + '/console/files/upload';
 const config = {
-	baseUrl: baseUrl
+	baseUrl: baseUrl,
+	imageUploadUrl: imageUploadUrl
 }
 export default config
