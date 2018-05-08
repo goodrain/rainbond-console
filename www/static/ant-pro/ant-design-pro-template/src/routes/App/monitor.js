@@ -185,10 +185,9 @@ class MonitorHistory extends PureComponent {
       </div>
     );
 
-    const requiestTime = monitorDataUtil.queryRangeTog2F(this.props.requestTimeRange);
+    var  requiestTime = monitorDataUtil.queryRangeTog2F(this.props.requestTimeRange);
     const appRequest = monitorDataUtil.queryRangeTog2F(this.props.appRequestRange);
     const online = monitorDataUtil.queryRangeTog2F(this.props.onlineNumberRange, true);
-
     return (
       <div>
         <Card
