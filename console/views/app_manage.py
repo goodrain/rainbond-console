@@ -24,7 +24,7 @@ env_var_service = AppEnvVarService()
 
 class StartAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('start_service')
     def post(self, request, *args, **kwargs):
         """
         启动服务
@@ -66,7 +66,7 @@ class StartAppView(AppBaseView):
 
 class StopAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('stop_service')
     def post(self, request, *args, **kwargs):
         """
         停止服务
@@ -101,7 +101,7 @@ class StopAppView(AppBaseView):
 
 class ReStartAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('restart_service')
     def post(self, request, *args, **kwargs):
         """
         重启服务
@@ -171,7 +171,7 @@ class DeployAppView(AppBaseView):
 
 class RollBackAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('rollback_service')
     def post(self, request, *args, **kwargs):
         """
         回滚服务
@@ -214,7 +214,7 @@ class RollBackAppView(AppBaseView):
 
 class VerticalExtendAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
         垂直升级服务
@@ -257,7 +257,7 @@ class VerticalExtendAppView(AppBaseView):
 
 class HorizontalExtendAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
         水平升级服务
@@ -301,7 +301,7 @@ class HorizontalExtendAppView(AppBaseView):
 
 class BatchActionView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('stop_service')
     def post(self, request, *args, **kwargs):
         """
         批量操作服务
@@ -343,7 +343,7 @@ class BatchActionView(RegionTenantHeaderView):
 
 class DeleteAppView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
         删除服务

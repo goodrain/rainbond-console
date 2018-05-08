@@ -19,6 +19,7 @@ from www.perms import PermActions, get_highest_identity
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
 from console.services.plugin import plugin_service, plugin_version_service
+from console.repositories.perm_repo import role_repo
 
 logger = logging.getLogger("default")
 
@@ -183,12 +184,15 @@ class AddTeamView(JWTAuthApiView):
                     return Response(general_message(500,"user's enterprise is not found"),status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
 
+                role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
+
                 # 创建用户在团队的权限
                 perm_info = {
                     "user_id": user.user_id,
                     "tenant_id": team.ID,
                     "identity": "owner",
-                    "enterprise_id": enterprise.pk
+                    "enterprise_id": enterprise.pk,
+                    "role_id": role_obj.pk
                 }
                 perm_services.add_user_tenant_perm(perm_info)
                 for r in regions:

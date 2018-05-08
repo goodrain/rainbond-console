@@ -45,7 +45,7 @@ class AppVolumeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为应用添加持久化目录
@@ -96,7 +96,7 @@ class AppVolumeView(AppBaseView):
 
 class AppVolumeManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除应用的某个持久化路径

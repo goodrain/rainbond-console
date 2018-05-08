@@ -44,7 +44,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def post(self, request, *args, **kwargs):
         """
         为服务添加的用户权限
@@ -89,7 +89,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def put(self, request, *args, **kwargs):
         """
         为服务修改用户的权限
@@ -135,7 +135,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def delete(self, request, *args, **kwargs):
         """
         删除应用添加的权限
@@ -174,7 +174,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def patch(self, request, *args, **kwargs):
         """
         为服务批量添加用户权限

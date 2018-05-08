@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from www.models import PermRelTenant, PermRelService
-
+from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission
 
 class PermsRepo(object):
     def add_user_tenant_perm(self, perm_info):
@@ -31,6 +31,18 @@ class ServicePermRepo(object):
     def add_service_perm(self, user_id, service_pk, identity):
         return PermRelService.objects.create(user_id=user_id, service_id=service_pk, identity=identity)
 
+class RoleRepo(object):
+    def get_default_role_by_role_name(self, role_name, is_default=True):
+        return TenantUserRole.objects.get(role_name=role_name, is_default=is_default)
+
+class RolePermRepo(object):
+    def get_perm_by_role_id(self,role_id):
+        perm_id_list = TenantUserRolePermission.objects.filter(role_id=role_id).values_list("per_id",flat=True)
+        perm_codename_list = TenantUserPermission.objects.filter(ID__in=perm_id_list).values_list("codename",flat=True)
+        return tuple(perm_codename_list)
+
 
 perms_repo = PermsRepo()
 service_perm_repo = ServicePermRepo()
+role_repo = RoleRepo()
+role_perm_repo = RolePermRepo()

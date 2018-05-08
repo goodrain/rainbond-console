@@ -169,7 +169,7 @@ class CenterAppManageView(RegionTenantHeaderView):
 
 class DownloadMarketAppGroupView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("app_download")
+    # @perm_required("app_download")
     def get(self, request, *args, **kwargs):
         """
         同步下载云市组概要模板到云帮
@@ -195,7 +195,7 @@ class DownloadMarketAppGroupView(RegionTenantHeaderView):
 
 class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("app_download")
+    # @perm_required("app_download")
     def post(self, request, *args, **kwargs):
         """
         同步下载云市组详情模板到云帮

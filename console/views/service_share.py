@@ -48,7 +48,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 return Response(result, status=200)
         return Response(data=general_message(200, "not found not completed share record", "无未完成分享流程"), status=200)
 
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def post(self, request, team_name, group_id, *args, **kwargs):
         """
         生成分享订单，会验证是否能够分享
@@ -110,7 +110,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
 
 
 class ServiceShareDeleteView(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def delete(self, request, team_name, share_id, *args, **kwargs):
         """
         放弃应用分享操作，放弃时删除分享记录
@@ -148,7 +148,7 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
 
 
 class ServiceShareInfoView(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         查询分享的所有应用信息和插件信息
@@ -230,7 +230,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def post(self, request, team_name, share_id, *args, **kwargs):
         """
         生成分享应用实体，向数据中心发送分享任务
@@ -282,7 +282,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
 
 
 class ServiceShareEventList(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def get(self, request, team_name, share_id, *args, **kwargs):
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
@@ -311,7 +311,7 @@ class ServiceShareEventList(RegionTenantHeaderView):
 
 
 class ServiceShareEventPost(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def post(self, request, team_name, share_id, event_id, *args, **kwargs):
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
@@ -333,7 +333,7 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def get(self, request, team_name, share_id, event_id, *args, **kwargs):
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
@@ -360,7 +360,7 @@ class ServiceShareEventPost(RegionTenantHeaderView):
 
 
 class ServiceShareCompleteView(RegionTenantHeaderView):
-    @perm_required('app_publish')
+    @perm_required('share_service')
     def post(self, request, team_name, share_id, *args, **kwargs):
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)

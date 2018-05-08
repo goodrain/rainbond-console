@@ -802,7 +802,7 @@ class PermRelService(BaseModel):
     service_id = models.IntegerField(help_text=u"服务id")
     identity = models.CharField(
         max_length=15, choices=service_identity, help_text=u"服务身份", null=True, blank=True)
-    role_id = models.IntegerField(help_text=u'角色')
+    role_id = models.IntegerField(help_text=u'角色', null=True, blank=True)
 
 
 class PermRelTenant(BaseModel):
@@ -814,7 +814,7 @@ class PermRelTenant(BaseModel):
     identity = models.CharField(
         max_length=15, choices=tenant_identity, help_text=u"租户身份", null=True, blank=True)
     enterprise_id = models.IntegerField(help_text=u"关联企业")
-    role_id = models.IntegerField(help_text=u'角色')
+    role_id = models.IntegerField(help_text=u'角色', null=True, blank=True)
 
 
 class TenantRecharge(BaseModel):

@@ -114,7 +114,7 @@ class AppBriefView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_group')
     def put(self, request, *args, **kwargs):
         """
         修改应用名称
@@ -183,7 +183,7 @@ class AppStatusView(AppBaseView):
 
 class AppPodsView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    @perm_required('manage_service_container')
     def get(self, request, *args, **kwargs):
         """
         获取应用实例
@@ -218,7 +218,7 @@ class AppPodsView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_container')
     def post(self, request, *args, **kwargs):
         """
         进入应用实例
@@ -378,7 +378,7 @@ class AppDockerView(AppBaseView):
 class AppGroupView(AppBaseView):
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_group')
     def put(self, request, *args, **kwargs):
         """
         修改应用所在组
