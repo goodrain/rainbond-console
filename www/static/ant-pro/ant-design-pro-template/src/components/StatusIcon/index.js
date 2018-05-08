@@ -3,15 +3,15 @@ import styles from './index.less'
 
 const appStatusMap = {
     running: {
-        iconUrl: 'https://user.goodrain.com/static/www/img/appOutline/appOutline0.png',
+        iconUrl: '/static/www/img/appOutline/appOutline0.png',
         className: 'roundloading'
     },
     starting: {
-        iconUrl: 'https://user.goodrain.com/static/www/img/appOutline/appOutline7.png',
+        iconUrl: '/static/www/img/appOutline/appOutline7.png',
         className: ''
     },
     unKnow: {
-        iconUrl: 'https://user.goodrain.com/static/www/img/appOutline/appOutline1.png',
+        iconUrl: '/static/www/img/appOutline/appOutline1.png',
         className: ''
     }
 }
