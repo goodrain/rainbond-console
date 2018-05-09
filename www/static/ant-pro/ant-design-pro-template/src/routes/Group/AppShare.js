@@ -366,8 +366,8 @@ export default class Main extends PureComponent {
         if (data.bean.share_service_list[0]) {
           selectedApp = data.bean.share_service_list[0].service_alias;
         }
-        // this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:data.bean.share_group_info.pic})
-        this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:' https://static.goodrain.com/app/logo/09d744d8b0b24a69940ac47614f4ab67.png'})      
+         this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:data.bean.share_group_info.pic})
+        //this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:' https://static.goodrain.com/app/logo/09d744d8b0b24a69940ac47614f4ab67.png'})      
         this.share_group_info = data.bean.share_group_info;
         this.share_service_list = data.bean.share_service_list;
       },
@@ -486,20 +486,22 @@ export default class Main extends PureComponent {
         if (file.response) {
           // Component will show file.url as link
           //file.url = file.response.data.bean.path;
+          console.log("111111")
           console.log(file.response)
+          console.log(file.response.data.bean.file_url )
           this.setState({ pic:file.response.data.bean.file_url });
         }
         return file;
       });
 
-      // 3. filter successfully uploaded files according to response from server
-      // fileList = fileList.filter((file) => {
-      //   if (file.response) {
-      //     return file.percent == 100 && file.status == 'done';
-      //   }
-      //   return true;
-      // });
-
+      //3. filter successfully uploaded files according to response from server
+      fileList = fileList.filter((file) => {
+        if (file.response) {
+          return file.percent == 100 && file.status == 'done';
+        }
+        return true;
+      });
+      console.log("22222")
       
   }
   handleLogoRemove = () => {
