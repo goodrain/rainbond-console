@@ -104,7 +104,7 @@ class GitCodeService(object):
     def get_service_code_branch(self, user, service):
         if service.service_source == AppConstants.SOURCE_CODE:
             code_type = ""
-            parsed_git_url = git_url_parse(service.git_url)
+            parsed_git_url = git_url_parse(service.git_url, False)
             if service.code_from.startswith("gitlab") and service.code_from != "gitlab_manual":
                 code_type = "gitlab"
             elif parsed_git_url.host.endswith('github.com'):
