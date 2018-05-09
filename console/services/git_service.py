@@ -107,8 +107,10 @@ class GitCodeService(object):
             parsed_git_url = git_url_parse(service.git_url, False)
             if service.code_from.startswith("gitlab") and service.code_from != "gitlab_manual":
                 code_type = "gitlab"
-            elif parsed_git_url.host.endswith('github.com'):
-                code_type = "github"
+            else:
+                if parsed_git_url.host:
+                    if parsed_git_url.host.endswith('github.com'):
+                        code_type = "github"
             code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id,
                                                       current_branch=service.code_version)
             if code != 200:
