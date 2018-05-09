@@ -483,6 +483,12 @@ export default class Main extends PureComponent {
   handleLogoChange = ({ fileList }) =>{
       console.log("11111")
       console.log({ fileList })
+      if(fileList.length == 0){
+        this.setState({ pic:'' })
+      }else{
+        console.log("12313")  
+      }
+     
     // fileList = fileList.map((file) => {
     //     if (file.response) {
     //       // Component will show file.url as link
