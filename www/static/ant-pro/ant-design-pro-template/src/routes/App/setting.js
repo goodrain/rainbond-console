@@ -1437,6 +1437,16 @@ export default class Index extends PureComponent {
               label="创建时间">
               {baseInfo.create_time || ''}
             </FormItem>
+            <Fragment>
+                  <FormItem
+                    style={{
+                    marginBottom: 0
+                  }}
+                    {...formItemLayout}
+                    label="创建方式">
+                    {appUtil.getCreateTypeCN(appDetail)}
+                  </FormItem>
+                </Fragment>
             {tags
               ? <FormItem
                   style={{
@@ -1472,6 +1482,7 @@ export default class Index extends PureComponent {
                 </Fragment>
               : ''
 }
+            
 
           </Form>
         </Card>

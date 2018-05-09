@@ -181,7 +181,7 @@ const appUtil = {
         const activeAction = appDetail.tenant_actions || [];
         return activeAction.indexOf('code_deploy') > -1;
     },
-    //应用安装来源 source_code 源码 market 云市 docker_compose、docker_run 镜像
+    //应用安装来源 source_code 源码 market 云市 docker_compose、docker_run、docker_image 镜像
     getInstallSource: function (appDetail) {
         return appDetail.service.service_source
     },
@@ -229,6 +229,17 @@ const appUtil = {
     isCreateFromCustomCode: function(appDetail) {
         var service = appDetail.service || {};
         return this.isCreateFromCode(appDetail) && service.code_from === 'gitlab_manual';
+    },
+    getCreateTypeCN: function(appDetail) {
+        var source = this.getInstallSource(appDetail);
+        var map = {
+            'source_code' : '源码',
+            'market': '云市',
+            'docker_compose': 'DockerCompose',
+            'docker_run' : 'DockerRun',
+            'docker_image': '镜像'
+        }
+        return map[source] || '';
     }
 
 }

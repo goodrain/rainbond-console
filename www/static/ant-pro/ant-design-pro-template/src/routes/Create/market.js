@@ -24,6 +24,7 @@ import {getRouterData} from '../../common/router';
 import ConfirmModal from '../../components/ConfirmModal';
 import styles from './Projects.less';
 import globalUtil from '../../utils/global';
+import sourceUtil from '../../utils/source-unit';
 import CodeCustom from './code-custom';
 import CodeDemo from './code-demo';
 import CodeGoodrain from './code-goodrain';
@@ -34,6 +35,7 @@ import TagSelect from '../../components/TagSelect';
 import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import Ellipsis from '../../components/Ellipsis';
+import PluginStyles from '../Plugin/Index.less';
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
@@ -52,7 +54,7 @@ export default class Main extends PureComponent {
       scope: '',
       app_name: appName,
       page: 1,
-      pageSize: 8,
+      pageSize: 9,
       total: 0
     }
   }
@@ -172,50 +174,52 @@ export default class Main extends PureComponent {
     };
     const cardList = list
       ? (
+
         <List
-          rowKey="id"
+          bordered={false}
           grid={{
           gutter: 24,
-          lg: 4,
-          md: 3,
-          sm: 2,
-          xs: 1
+          lg: 3,
+            md: 2,
+            sm: 1,
+            xs: 1
         }}
           pagination={paginationProps}
           dataSource={list}
           renderItem={item => (
-          <div>
             <List.Item
-              onClick={() => {
-              this.showCreate(item)
-            }}
-              style={{
-              margin: '0 12px 16px 12px'
-            }}>
+              style={{border: 'none'}}
+              >
               <Card
-                className={styles.card}
-                hoverable
-                cover={< img style = {{maxWidth: 254, width: 'auto', margin:' 0 auto'}}alt = {
-                item.title
-              }
-              src = {
-                item.pic || require('../../../public/images/app_icon.jpg')
-              }
-              height = {
-                154
-              } />}>
-                <Card.Meta
-                  onClick={() => {
+                className={PluginStyles.card}
+                actions={[<span onClick={() => {
                   this.showCreate(item)
-                }}
-                  title={title(item)}
-                  description={item.describe}/>
+                }}>安装</span>]}>
+                <Card.Meta
+                    style={{height: 112, overflow: 'hidden'}}
+                    avatar={< img style = {{width: 110, height: 110, margin:' 0 auto'}}alt = {
+                      item.title
+                    }
+                    src = {
+                      item.pic || require('../../../public/images/app_icon.jpg')
+                    }
+                    height = {
+                      154
+                    } />}
+                    title={title(item)}
+                    description={(
+                    <Ellipsis className={PluginStyles.item} lines={3}><span style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8, fontSize: 12}} > 
+                      版本: {item.version} 
+                      <br />
+                      内存: {sourceUtil.unit(item.min_memory||128, 'MB')}
+                    < /span><span title={item.describe}>{item.describe}</span></Ellipsis>
+                  )}/>
               </Card>
             </List.Item>
-          </div>
         )}/>
       )
       : null;
+
 
     const mainSearch = (
       <div style={{
@@ -256,12 +260,9 @@ export default class Main extends PureComponent {
         tabList={tabList}
         tabActiveKey={this.state.scope}
         onTabChange={this.handleTabChange}>
-
-        <div className={styles.coverCardList}>
-          <div className={styles.cardList}>
+          <div className={PluginStyles.cardList}>
             {cardList}
           </div>
-        </div>
         {this.state.showCreate && <CreateAppFromMarketForm
           disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
