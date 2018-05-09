@@ -623,7 +623,7 @@ export default class Main extends PureComponent {
                             className="logo-uploader"
                             name="file"
                             accept="image/jpg,image/jpeg,image/png"
-                                action='http://172.16.0.156:9000/console/files/upload'
+                                action='http://dev.goodrain.org/console/files/upload'
                                 listType="picture-card"
                                 fileList={fileList}
                                 headers = {myheaders}
