@@ -337,8 +337,7 @@ export default class Main extends PureComponent {
       selectedApp: '',
       service: null,
       key: '',
-      fileList:[],
-      pic:''
+      fileList:[]
     }
     this.com = [];
     this.share_group_info = null;
@@ -366,8 +365,15 @@ export default class Main extends PureComponent {
         if (data.bean.share_service_list[0]) {
           selectedApp = data.bean.share_service_list[0].service_alias;
         }
-         this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:data.bean.share_group_info.pic})
-        //this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:' https://static.goodrain.com/app/logo/09d744d8b0b24a69940ac47614f4ab67.png'})      
+         this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias})
+         if(data.bean.share_group_info.pic){
+           this.setState({fileList:[{
+              uid: -1,
+              name: data.bean.share_group_info.pic,
+              status: 'done',
+              url: data.bean.share_group_info.pic
+           }]})
+         }    
         this.share_group_info = data.bean.share_group_info;
         this.share_service_list = data.bean.share_service_list;
       },
@@ -393,7 +399,7 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
-          this.share_group_info['pic'] = this.state.pic;
+          this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || '';
         }
       });
 
@@ -481,14 +487,8 @@ export default class Main extends PureComponent {
   }
 
   handleLogoChange = ({ fileList }) =>{
-      console.log("11111")
-      console.log({ fileList })
-      if(fileList.length == 0){
-        this.setState({ pic:'' })
-      }else{
-        console.log("12313")  
-      }
-     
+      
+      this.setState({ fileList })
     // fileList = fileList.map((file) => {
     //     if (file.response) {
     //       // Component will show file.url as link
@@ -508,8 +508,8 @@ export default class Main extends PureComponent {
       //   }
       //   return true;
       // });
-      console.log("22222")
-      
+     
+      this.setState({ fileList })
   }
   handleLogoRemove = () => {
     this.setState({fileList: []})
@@ -536,17 +536,7 @@ export default class Main extends PureComponent {
     const tabk = this.state.key;
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
-    const defaultPic = this.state.pic
-    if(defaultPic){
-      var  fileList = [{
-        uid: -1,
-        name: this.state.pic,
-        status: 'done',
-        url: this.state.pic
-      }]
-    }else{
-       var fileList = this.state.fileList
-    }
+    const fileList = this.state.fileList
    
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
