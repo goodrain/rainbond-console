@@ -635,7 +635,7 @@ export default class Main extends PureComponent {
                                 onRemove={this.handleLogoRemove}
                               >
                                 {this.state.pic ? <img src={this.state.pic} /> : null}
-                                {(fileList.length > 0 || this.state.pic)? null:uploadButton}
+                                {fileList.length > 0? null:uploadButton}
                               </Upload>
                         )}
                       </Form.Item>
