@@ -481,26 +481,27 @@ export default class Main extends PureComponent {
   }
 
   handleLogoChange = ({ fileList }) =>{
-
-    fileList = fileList.map((file) => {
-        if (file.response) {
-          // Component will show file.url as link
-          //file.url = file.response.data.bean.path;
-          console.log("111111")
-          console.log(file.response)
-          console.log(file.response.data.bean.file_url )
-          this.setState({ pic:file.response.data.bean.file_url });
-        }
-        return file;
-      });
+      console.log("11111")
+      console.log({ fileList })
+    // fileList = fileList.map((file) => {
+    //     if (file.response) {
+    //       // Component will show file.url as link
+    //       //file.url = file.response.data.bean.path;
+    //       console.log("111111")
+    //       console.log(file.response)
+    //       console.log(file.response.data.bean.file_url )
+    //       this.setState({ pic:file.response.data.bean.file_url });
+    //     }
+    //     return file;
+    //   });
 
       //3. filter successfully uploaded files according to response from server
-      fileList = fileList.filter((file) => {
-        if (file.response) {
-          return file.percent == 100 && file.status == 'done';
-        }
-        return true;
-      });
+      // fileList = fileList.filter((file) => {
+      //   if (file.response) {
+      //     return file.percent == 100 && file.status == 'done';
+      //   }
+      //   return true;
+      // });
       console.log("22222")
       
   }
@@ -529,12 +530,18 @@ export default class Main extends PureComponent {
     const tabk = this.state.key;
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
-    
-    const fileList = this.state.fileList; 
-    const oldfileList = [{
-      url: this.state.pic,
-      thumbUrl: this.state.pic
-    }]
+    const defaultPic = this.state.pic
+    if(defaultPic){
+      var  fileList = [{
+        uid: -1,
+        name: this.state.pic,
+        status: 'done',
+        url: this.state.pic
+      }]
+    }else{
+       var fileList = this.state.fileList
+    }
+   
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.content}>
@@ -637,7 +644,6 @@ export default class Main extends PureComponent {
                                 headers = {myheaders}
                                 onChange={this.handleLogoChange}
                                 onRemove={this.handleLogoRemove}
-                                defaultFileList = {oldfileList}
                               >
                                 {fileList.length > 0? null:uploadButton}
                               </Upload>
