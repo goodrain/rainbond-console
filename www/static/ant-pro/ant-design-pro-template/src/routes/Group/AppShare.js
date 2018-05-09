@@ -531,8 +531,10 @@ export default class Main extends PureComponent {
     const loading = this.props.loading;
     
     const fileList = this.state.fileList; 
-  
-     console.log(this.state.pic)
+    const oldfileList = [{
+      url: this.state.pic,
+      thumbUrl: this.state.pic
+    }]
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.content}>
@@ -635,8 +637,8 @@ export default class Main extends PureComponent {
                                 headers = {myheaders}
                                 onChange={this.handleLogoChange}
                                 onRemove={this.handleLogoRemove}
+                                defaultFileList = {oldfileList}
                               >
-                                {this.state.pic ? <img src={this.state.pic} /> : null}
                                 {fileList.length > 0? null:uploadButton}
                               </Upload>
                         )}
