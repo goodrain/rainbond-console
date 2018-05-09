@@ -478,3 +478,8 @@ class AppPortService(object):
                     urls.insert(0, "http://{0}".format(d.domain_name))
 
         return urls
+
+    def get_outer_port_opend_services_ids(self, tenant, service_ids):
+        service_ports = port_repo.get_http_opend_services_ports(tenant.tenant_id, service_ids)
+        ids = [p.service_id for p in service_ports]
+        return list(set(ids))

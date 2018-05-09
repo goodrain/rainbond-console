@@ -272,7 +272,7 @@ class TopologicalService(object):
                         exist_service_domain = True
                         httpdomain = region_services.get_region_httpdomain(service_region)
                         outer_service = {
-                            "domain": "{0}.{1}{2}".format(service_info.service_alias, team_name,
+                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, team_name,
                                                           httpdomain),
                             "port": 10080
                         }
