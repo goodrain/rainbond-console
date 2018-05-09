@@ -337,7 +337,8 @@ export default class Main extends PureComponent {
       selectedApp: '',
       service: null,
       key: '',
-      fileList:[]
+      fileList:[],
+      pic:''
     }
     this.com = [];
     this.share_group_info = null;
@@ -365,7 +366,8 @@ export default class Main extends PureComponent {
         if (data.bean.share_service_list[0]) {
           selectedApp = data.bean.share_service_list[0].service_alias;
         }
-        this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias})
+        // this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:data.bean.share_group_info.pic})
+        this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias,pic:' https://static.goodrain.com/app/logo/09d744d8b0b24a69940ac47614f4ab67.png'})      
         this.share_group_info = data.bean.share_group_info;
         this.share_service_list = data.bean.share_service_list;
       },
@@ -391,6 +393,7 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
+          this.share_group_info['pic'] = this.state.pic;
         }
       });
 
@@ -484,19 +487,20 @@ export default class Main extends PureComponent {
           // Component will show file.url as link
           //file.url = file.response.data.bean.path;
           console.log(file.response)
+          this.setState({ pic:file.response.data.bean.file_url });
         }
         return file;
       });
 
       // 3. filter successfully uploaded files according to response from server
-      fileList = fileList.filter((file) => {
-        if (file.response) {
-          return file.percent == 100 && file.status == 'done';
-        }
-        return true;
-      });
+      // fileList = fileList.filter((file) => {
+      //   if (file.response) {
+      //     return file.percent == 100 && file.status == 'done';
+      //   }
+      //   return true;
+      // });
 
-      this.setState({ fileList });
+      
   }
   handleLogoRemove = () => {
     this.setState({fileList: []})
@@ -525,8 +529,8 @@ export default class Main extends PureComponent {
     const loading = this.props.loading;
     
     const fileList = this.state.fileList; 
-    const imageUrl = appinfo.pic;
-
+  
+     console.log(this.state.pic)
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.content}>
@@ -630,7 +634,8 @@ export default class Main extends PureComponent {
                                 onChange={this.handleLogoChange}
                                 onRemove={this.handleLogoRemove}
                               >
-                                {fileList.length > 0 ? null:uploadButton}
+                                {this.state.pic ? <img src={this.state.pic} /> : null}
+                                {(fileList.length > 0 || this.state.pic)? null:uploadButton}
                               </Upload>
                         )}
                       </Form.Item>
