@@ -41,7 +41,7 @@ class ServiceOperateView(BaseAPIView):
               type: string
               paramType: query
             - name: status
-              description: 事件状态（complete,failure,timeout）默认 failure
+              description: 事件状态（success,failure,timeout）默认 failure
               required: false
               type: string
               paramType: query

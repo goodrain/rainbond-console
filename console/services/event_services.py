@@ -27,14 +27,17 @@ class ServiceEventDynamic(object):
     def get_services_events(self, page, page_size, create_time, status, team):
 
         query = Q()
+        status = "success" if status == "complete" else status
+
         if team:
             query &= Q(tenant_id=team.tenant_id)
         if create_time:
             query &= Q(start_time__gte=create_time)
         if status:
-            query &= Q(final_status=status)
+            query &= Q(status=status)
 
-        events = ServiceEvent.objects.filter(query)
+        events = ServiceEvent.objects.filter(query).order_by("-ID")
+        logger.debug(events.query)
         total = events.count()
         paginator = JuncheePaginator(events, int(page_size))
         show_events = paginator.page(int(page))
