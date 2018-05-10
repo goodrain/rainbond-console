@@ -118,18 +118,26 @@ class ComposeBuildView(RegionTenantHeaderView):
             group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
             services = compose_service.get_compose_services(compose_id)
             # 数据中心创建应用
-
+            new_app_list = []
             for service in services:
                 new_service = app_service.create_region_service(self.tenant, service, self.user.nick_name)
+                new_app_list.append(new_service)
                 # 为服务添加默认探针
                 code, msg, probe = app_service.add_service_default_porbe(self.tenant, new_service)
-                probe_map[service.service_id] = probe.probe_id
+                if probe:
+                    probe_map[service.service_id] = probe.probe_id
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(self.tenant, new_service)
-                # 部署应用
-                app_manage_service.deploy(self.tenant, new_service, self.user)
+
             group_compose.create_status = "complete"
             group_compose.save()
+            for s in new_app_list:
+                try:
+                    app_manage_service.deploy(self.tenant, s, self.user)
+                except Exception as e:
+                    logger.exception(e)
+                    continue
+
             result = general_message(200, "success", "构建成功")
         except Exception as e:
             logger.exception(e)

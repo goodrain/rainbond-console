@@ -124,14 +124,15 @@ class ServiceRepo(object):
             for service in group_services_list:
                 service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
-                status_map = get_status_info_map(status)
-                if status == "unknow" and service["create_status"] != "compelet":
+
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
+                status_map = get_status_info_map(service["status"])
                 service.update(status_map)
                 result.append(service)
             return result
@@ -156,16 +157,18 @@ class ServiceRepo(object):
                     service["group_name"] = "未分组"
                 service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
-                status_map = get_status_info_map(status)
-                if status == "unknow" and service["create_status"] != "compelet":
+
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
+                status_map = get_status_info_map(service["status"])
                 service.update(status_map)
                 result.append(service)
+
             return result
         else:
             return []
