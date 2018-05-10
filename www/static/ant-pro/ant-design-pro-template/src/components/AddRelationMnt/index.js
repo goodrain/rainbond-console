@@ -53,8 +53,9 @@ export default class Index extends PureComponent {
     res = this
       .state
       .selectedRowKeys
-      .map((id) => {
-        return {id: id, path: this.state.localpaths[id]}
+      .map((index) => {
+        const data = this.state.list[index];
+        return {id: data.dep_vol_id, path: this.state.localpaths[data.dep_vol_id]}
       })
     res = res.filter((item) => {
       return !!item.path;
@@ -91,7 +92,7 @@ export default class Index extends PureComponent {
       if (data) {
         this.setState({
           list: data.list || [],
-          total: data.total
+          pagination: Object.assign({}, this.state.pagination, {total: data.total})
         })
       }
     })
@@ -101,13 +102,13 @@ export default class Index extends PureComponent {
       .props
       .onCancel();
   }
-  isDisabled = (data) => {
+  isDisabled = (data, index) => {
     return this
       .state
       .selectedRowKeys
-      .indexOf(data.dep_vol_id) === -1;
+      .indexOf(index) === -1;
   }
-  handleChange = (value, data) => {
+  handleChange = (value, data, index) => {
     const local = this.state.localpaths;
     local[data.dep_vol_id] = value;
     this.setState({localpaths: local})
@@ -116,12 +117,17 @@ export default class Index extends PureComponent {
     const rowSelection = {
       onChange: (selectedRowKeys, selectedRows) => {
         this.setState({
-          selectedRowKeys: selectedRows.map((item) => {
-            return item.dep_vol_id
-          })
+          selectedRowKeys: selectedRowKeys
         })
       }
     };
+
+    const pagination = Object.assign({}, this.state.pagination, {
+      onChange: (page) => {
+         this.loadUnMntList();
+         this.setState({selectedRowKeys: [], pagination: Object.assign({}, this.state.pagination, {current: page})})
+      }
+    })
 
     return (
       <Modal
@@ -132,7 +138,7 @@ export default class Index extends PureComponent {
         onCancel={this.handleCancel}>
         <Table
           dataSource={this.state.list}
-          pagination={this.state.pagination}
+          pagination={pagination}
           size="small"
           rowSelection={rowSelection}
           columns={[
@@ -142,9 +148,9 @@ export default class Index extends PureComponent {
             render: (localpath, data, index) => {
               return <Input
                 onChange={(e) => {
-                this.handleChange(e.target.value, data)
+                this.handleChange(e.target.value, data, index)
               }}
-                disabled={this.isDisabled(data)}/>
+                disabled={this.isDisabled(data, index)}/>
             }
           }, {
             title: '目标持久化名称',

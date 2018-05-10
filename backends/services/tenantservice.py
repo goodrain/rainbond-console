@@ -40,11 +40,19 @@ class TenantService(object):
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
-    def get_fuzzy_tenants(self, tenant_name):
+    def get_fuzzy_tenants_by_tenant_name(self, tenant_name):
         tenant_name_map = list(Tenants.objects.values("tenant_name"))
         tenant_name_list = map(lambda x: x.get("tenant_name", "").lower(), tenant_name_map)
         find_tenant_name = list(fuzzyfinder(tenant_name.lower(), tenant_name_list))
         tenant_query = Q(tenant_name__in=find_tenant_name)
+        tenant_list = Tenants.objects.filter(tenant_query)
+        return tenant_list
+
+    def get_fuzzy_tenants_by_tenant_alias(self, tenant_alias):
+        tenant_alias_map = list(Tenants.objects.values("tenant_alias"))
+        tenant_alias_list = map(lambda x: x.get("tenant_alias", "").lower(), tenant_alias_map)
+        find_tenant_alias = list(fuzzyfinder(tenant_alias.lower(), tenant_alias_list))
+        tenant_query = Q(tenant_alias__in=find_tenant_alias)
         tenant_list = Tenants.objects.filter(tenant_query)
         return tenant_list
 
@@ -155,5 +163,14 @@ class TenantService(object):
             user_id=user.pk, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID)
         return perm_tenant
 
+    def get_team_by_name_or_alias_or_enter(self, tenant_name, tenant_alias, enterprise_id):
+        query = Q()
+        if tenant_name:
+            query &= Q(tenant_name=tenant_name)
+        if tenant_alias:
+            query &= Q(tenant_alias=tenant_alias)
+        if enterprise_id:
+            query &= Q(enterprise_id=enterprise_id)
+        return Tenants.objects.filter(query)
 
 tenant_service = TenantService()

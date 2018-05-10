@@ -130,3 +130,8 @@ class AppServiceRelationService(object):
                                                      task)
             except Exception as e:
                 logger.exception(e)
+
+    def get_services_dependend_on_current_services(self, tenant, service):
+        relations = dep_relation_repo.get_services_dep_current_service(tenant.tenant_id, service.service_id)
+        service_ids = [r.service_id for r in relations]
+        return service_repo.get_services_by_service_ids(*service_ids)

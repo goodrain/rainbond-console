@@ -267,7 +267,9 @@ class BasicLayout extends React.PureComponent {
                     }
 
                     var commCode = () => {
-                                 
+                        
+                        
+
                         //如果没有当前团队和数据中心
                         if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
                             let team = userUtil.getDefaultTeam(user);
@@ -318,7 +320,7 @@ class BasicLayout extends React.PureComponent {
 
 
                     //如果当前用户没有该团队, 并且是系统管理员
-                    if(!userUtil.getTeamByTeamName(user, currTeam) && userUtil.isSystemAdmin(user)){
+                    if(!userUtil.getTeamByTeamName(user, currTeam) && (userUtil.isSystemAdmin(user) || currTeam === 'grdemo')){
                         this.props.dispatch({
                             type: 'user/getTeamByName',
                             payload: {
@@ -444,12 +446,17 @@ class BasicLayout extends React.PureComponent {
         cookie.set('team', key);
         const currentUser = this.props.currentUser;
         let currRegionName = globalUtil.getCurrRegionName();
-        const currTeam = userUtil.getTeamByTeamName(currentUser, key)
+        const currTeam = userUtil.getTeamByTeamName(currentUser, key);
+        
         if (currTeam) {
             const regions = currTeam.region || [];
+            if(!regions.length){
+                notification.warning({message: '该团队下无可用数据中心!'});
+                return;
+            }
             const selectRegion = regions.filter((item) => {
                 return item.team_region_name === currRegionName;
-            })[0]
+            })[0];
             var selectRegionName = selectRegion
                 ? selectRegion.team_region_name
                 : regions[0].team_region_name;
