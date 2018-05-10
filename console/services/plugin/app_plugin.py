@@ -409,8 +409,8 @@ class AppPluginService(object):
                 build_version=build_version,
                 service_meta_type=dowstream_config.service_meta_type,
                 injection=dowstream_config.injection,
-                dest_service_id="",
-                dest_service_alias="",
+                dest_service_id=dowstream_config.dest_service_id,
+                dest_service_alias=dowstream_config.dest_service_alias,
                 container_port=dowstream_config.port,
                 attrs=json.dumps(attrs_map),
                 protocol=dowstream_config.protocol))
