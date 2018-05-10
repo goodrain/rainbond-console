@@ -314,8 +314,6 @@ class BasicLayout extends React.PureComponent {
                                 region_name: currRegion
                             }
                         })
-                        
-                        
                     }
 
 
