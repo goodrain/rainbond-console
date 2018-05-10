@@ -10,6 +10,7 @@ from www.models.main import ServiceEvent
 from goodrain_web.tools import JuncheePaginator
 from console.repositories.app import service_repo
 from console.services.app_actions.app_log import AppEventService
+from console.repositories.team_repo import team_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -41,17 +42,22 @@ class ServiceEventDynamic(object):
         total = events.count()
         paginator = JuncheePaginator(events, int(page_size))
         show_events = paginator.page(int(page))
-        service_ids = [e.service_id for e in show_events]
+        service_ids = list(set([e.service_id for e in show_events]))
+        team_ids = list(set([e.tenant_id for e in show_events]))
+        teams = team_repo.get_team_by_team_ids(team_ids)
         services = service_repo.get_services_by_service_ids(*service_ids)
         id_service_map = {s.service_id: s for s in services}
+        id_team_map = {t.tenant_id: t for t in teams}
         # 数据中心对应的event
         region_events_map = {}
         for event in show_events:
             service = id_service_map.get(event.service_id, None)
-
+            t = id_team_map.get(event.tenant_id,None)
             if service:
                 event.service_cname = service.service_cname
                 event.service_alias = service.service_alias
+                event.team_name = t.tenant_name if t else None
+                event.service_region = service.service_region
                 # 处理数据中心对应的event
                 if event.final_status == "" and not status:
                     region_events = region_events_map.get(service.service_region, [])
@@ -59,6 +65,8 @@ class ServiceEventDynamic(object):
             else:
                 event.service_cname = None
                 event.service_alias = None
+                event.team_name = None
+                event.service_region = None
         if not status:
             # 从数据中心更新信息
             for region, events in region_events_map.iteritems():
