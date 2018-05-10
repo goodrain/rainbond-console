@@ -100,6 +100,9 @@ class TenantServicePortRepository(object):
         TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id,
                                           container_port=container_port).update(**update_params)
 
+    def get_http_opend_services_ports(self, tenant_id, service_ids):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, is_outer_service=True,
+                                                 protocol__in=("http", "https"))
 
 class TenantServiceVolumnRepository(object):
     def get_service_volumes(self, service_id):
@@ -160,6 +163,9 @@ class TenantServiceRelationRepository(object):
 
     def delete_service_relation(self, tenant_id, service_id):
         TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
+
+    def get_services_dep_current_service(self, tenant_id, dep_service_id):
+        return TenantServiceRelation.objects.filter(tenant_id=tenant_id, dep_service_id=dep_service_id)
 
 
 class TenantServiceMntRelationRepository(object):

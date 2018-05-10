@@ -32,9 +32,11 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       && cp -a /usr/lib/libsas* /tmp/ \
       && cp -a /usr/lib/libjpeg* /tmp/ \
       && apk del .build-deps \
-      && cp -a /tmp/lib* /usr/lib/
-
-RUN python manage.py collectstatic --noinput
+      && cp -a /tmp/lib* /usr/lib/ \
+      && python manage.py collectstatic --noinput \
+      && rm -rf /root/.cache \
+      && rm -rf /tmp/* \
+      && rm -rf /app/ui/www/static/www/weavescope
 
 ENV PORT 7070
 

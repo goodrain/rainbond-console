@@ -54,6 +54,7 @@ export default class BasicList extends PureComponent {
        },
        callback: (data) => {
           this.setState({companyInfo: data.bean})
+          console.log(data)
        }
      })
   }
@@ -151,6 +152,8 @@ export default class BasicList extends PureComponent {
       }];
 
     var money = `${this.state.companyInfo.balance || 0} 元`;
+    var entId = this.state.companyInfo.ent_id;
+    console.log(this.state.companyInfo)
     if(this.state.companyInfo.owed_amt > 0){
        money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
     }
@@ -188,7 +191,8 @@ export default class BasicList extends PureComponent {
           <div style={{textAlign: 'right', paddingTop: 24}}>
 
             <Button.Group>
-            {regionId && <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}`}>购买资源</a></Button>}
+            {(regionId && !entId) && <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}`}>购买资源</a></Button>}
+            {(entId && regionId)&& <Button type="primary"><a target="_blank" href={`https://www.goodrain.com/spa/#/resBuy/${regionId}/${entId}`}>购买资源</a></Button>}
             <Button><a target="_blank" href="https://www.goodrain.com/spa/#/personalCenter/my/recharge">账户充值</a></Button>
             <Dropdown overlay={<Menu>
                       <Menu.Item>

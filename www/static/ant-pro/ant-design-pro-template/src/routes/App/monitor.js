@@ -66,7 +66,7 @@ class MonitorHistory extends PureComponent {
   }
   getStep() {
     var houer = this.state.houer;
-    return 60*60*houer/20 + 's';
+    return 60 * 60 * houer / 20 + 's';
   }
   componentDidMount() {
     this.mounted = true;
@@ -79,7 +79,7 @@ class MonitorHistory extends PureComponent {
     this.mounted = false;
   }
   fetchRequestTimeRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -103,7 +103,7 @@ class MonitorHistory extends PureComponent {
       })
   }
   fetchRequestRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -127,7 +127,7 @@ class MonitorHistory extends PureComponent {
       })
   }
   fetchOnlineNumberRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -292,7 +292,7 @@ class MonitorNow extends PureComponent {
     return '';
   }
   fetchRequestTime() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -314,7 +314,7 @@ class MonitorNow extends PureComponent {
       })
   }
   fetchRequestTimeRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -338,7 +338,7 @@ class MonitorNow extends PureComponent {
       })
   }
   fetchRequest() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -359,7 +359,7 @@ class MonitorNow extends PureComponent {
       })
   }
   fetchRequestRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -383,7 +383,7 @@ class MonitorNow extends PureComponent {
       })
   }
   fetchOnlineNumber() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -405,7 +405,7 @@ class MonitorNow extends PureComponent {
       })
   }
   fetchOnlineNumberRange() {
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
     this
       .props
@@ -438,9 +438,9 @@ class MonitorNow extends PureComponent {
   }
   createSocket() {
 
-    if (!this.mounted) 
+    if (!this.mounted)
       return;
-    
+
     var self = this;
     this.webSocket = new WebSocket(this.getSocketUrl());
     this.webSocket.onopen = () => {
@@ -547,7 +547,7 @@ class MonitorNow extends PureComponent {
             dataSource={this.state.logs}/>
         </ScrollerX>
         </Card>
-        
+
       </Fragment>
     )
   }

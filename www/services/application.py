@@ -977,7 +977,7 @@ class ApplicationGroupService(object):
         service_count = len(services_status)
         if service_count == 0:
             group_status = 'closed'
-        elif undeploy_count > 0 and undeploy_count == service_count:
+        elif undeploy_count > 0:
             group_status = 'undeploy'
         elif starting_count > 0:
             group_status = 'starting'
@@ -1050,7 +1050,7 @@ class ApplicationGroupService(object):
 
         tenant = group.tenant
 
-        if group.status != 'undeploy':
+        if group.status not in ['undeploy', 'closed']:
             return False, '应用正在{}无需构建'.format(group.status)
 
         # 运行到这里, 云帮的应用已经都准备就绪了, 根据应用的关系, 向数据中心发部署请求

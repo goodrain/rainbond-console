@@ -922,7 +922,7 @@ export async function getAppRequest(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12))'
+												query: 'sum(ceil(increase(app_request{service_id="'+body.serviceId+'",method="total"}[1m])/12))'
 
 								},
 								showLoading: false
@@ -980,7 +980,7 @@ export async function getAppRequestRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(ceil(delta(app_request{method="total",service_id="' + body.serviceId + '"}[1m])/12))',
+												query: 'sum(ceil(increase(app_request{service_id="'+body.serviceId+'",method="total"}[1m])/12))',
 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step

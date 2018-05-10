@@ -49,7 +49,7 @@ const links = [
     title: 'Dockercompose',
     href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/image/Dockercompose`
   }, {
-    title: '从云市安装',
+    title: '从应用市场安装',
     href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/market`
   }
 ];

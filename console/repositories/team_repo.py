@@ -23,6 +23,11 @@ class TeamRepo(object):
         return tenants[0]
 
     def get_tenant_users_by_tenant_ID(self, tenant_ID):
+        """
+        返回一个团队中所有队用户对象
+        :param tenant_ID:
+        :return:
+        """
         user_id_list = PermRelTenant.objects.filter(tenant_id=tenant_ID).values_list("user_id", flat=True)
         if not user_id_list:
             return []
@@ -39,6 +44,18 @@ class TeamRepo(object):
         if not tenant_perms:
             return None
         return tenant_perms
+
+    def get_user_perms_in_permtenant_list(self, user_id, tenant_id):
+        """
+        获取一个用户在一个团队中的所有身份列表
+        :param user_id: 用户id  int
+        :param tenant_id: 团队id  int
+        :return: 获取一个用户在一个团队中的所有身份列表
+        """
+        tenant_perms_list = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id).values_list("identity",flat=True)
+        if not tenant_perms_list:
+            return None
+        return tenant_perms_list
 
     def delete_tenant(self, tenant_name):
         tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -80,6 +97,9 @@ class TeamRepo(object):
 
     def create_tenant(self, **params):
         return Tenants.objects.create(**params)
+
+    def get_team_by_team_alias(self, team_alias):
+        return Tenants.objects.filter(tenant_alias=team_alias).first()
 
 
 class TeamGitlabRepo(object):

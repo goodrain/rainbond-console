@@ -37,6 +37,11 @@ class TenantEnterpriseRepo(object):
     def create_enterprise(self, **params):
         return TenantEnterprise.objects.create(**params)
 
+    def get_enterprises_by_enterprise_ids(self,eids):
+        return TenantEnterprise.objects.filter(enterprise_id__in=eids)
+
+    def get_by_enterprise_alias(self, enterprise_alias):
+        return TenantEnterprise.objects.filter(enterprise_alias=enterprise_alias).first()
 
 class TenantEnterpriseUserPermRepo(object):
 

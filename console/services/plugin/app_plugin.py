@@ -29,6 +29,7 @@ plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
 
 
+
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
         plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id).filter(
@@ -413,7 +414,6 @@ class AppPluginService(object):
                 protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
-
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):

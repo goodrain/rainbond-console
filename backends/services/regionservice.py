@@ -227,9 +227,16 @@ class RegionService(object):
                 raise RegionUnreachableError("数据中心{0}不可达,无法上线".format(region_config.region_name))
             region_config.status = '1'
             region_config.save()
-        else:
+        elif action == "offline":
             region_config.status = '2'
             region_config.save()
+        elif action == "maintain":
+            region_config.status = '3'
+            region_config.save()
+        elif action == "cancel_maintain":
+            region_config.status = '1'
+            region_config.save()
+
         self.update_region_config()
 
         return region_config

@@ -623,8 +623,10 @@ export default class Index extends PureComponent {
           build_version: plugin.build_version
         },
         callback: (data) => {
-          notification.success({message: '开通成功'});
+          notification.success({message: '开通成功，需要重启才能生效'});
           this.getPlugins();
+          this.props.onshowRestartTips(true)
+          
         }
       })
   }
@@ -649,9 +651,10 @@ export default class Index extends PureComponent {
         },
         callback: (data) => {
           delete this.state.openedPlugin[plugin.plugin_id];
-          notification.success({message: '卸载成功'});
+          notification.success({message: '卸载成功，需要重启才能生效'});
           this.cancelDeletePlugin();
           this.getPlugins();
+          this.props.onshowRestartTips(true)
         }
       })
   }
