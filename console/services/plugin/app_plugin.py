@@ -325,12 +325,13 @@ class AppPluginService(object):
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
+                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
                                                                      dest_service_id=dep_service.service_id,
                                                                      container_port=port.container_port)
                         downstream_options = None
                         if downstream_envs:
                             downstream_env = downstream_envs[0]
+                            logger.debug("^^^^^^^^^^^^^ >>>> {0}".format(downstream_env.attrs))
                             downstream_options = json.loads(downstream_env.attrs)
                         options = []
                         for item in items:
