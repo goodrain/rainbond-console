@@ -645,7 +645,7 @@ class TeamDetailView(JWTAuthApiView):
             tenant_info["create_time"] = tenant.create_time
 
             if not user_team_perm:
-                if not self.user.is_sys_admin:
+                if not self.user.is_sys_admin and team_name != "grdemo":
                     return Response(general_message(403, "you right to see this team", "您无权查看此团队"), 403)
                 else:
                     final_identity = "viewer"
