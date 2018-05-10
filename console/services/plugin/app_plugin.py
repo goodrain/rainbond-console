@@ -307,7 +307,8 @@ class AppPluginService(object):
                         }
                         if upstream_options:
                             item_option["attr_value"] = upstream_options.get(item.attr_name, item.attr_default_value)
-                        options.append(item_option)
+                        if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                            options.append(item_option)
                     upstream_env_list.append({
 
                         "service_id": service.service_id,
@@ -345,7 +346,8 @@ class AppPluginService(object):
                             if downstream_options:
                                 item_option["attr_value"] = downstream_options.get(item.attr_name,
                                                                                    item.attr_default_value)
-                            options.append(item_option)
+                            if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                                options.append(item_option)
 
                         downstream_env_list.append({
 
