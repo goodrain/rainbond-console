@@ -18,7 +18,7 @@ logger = logging.getLogger("default")
 
 class AppEventView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_log')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取服务的event事件
@@ -66,7 +66,7 @@ class AppEventView(AppBaseView):
 
 class AppEventLogView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_log')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取服务的event的详细日志
@@ -109,7 +109,7 @@ class AppEventLogView(AppBaseView):
 
 class AppLogView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_log')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取服务的日志
@@ -153,7 +153,7 @@ class AppLogView(AppBaseView):
 
 class AppLogInstanceView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_log')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取日志websocket信息
@@ -188,7 +188,7 @@ class AppLogInstanceView(AppBaseView):
 
 class AppHistoryLogView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_log')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取应用历史日志

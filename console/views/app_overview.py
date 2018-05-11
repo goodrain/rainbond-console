@@ -114,7 +114,7 @@ class AppBriefView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_group')
+    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改应用名称

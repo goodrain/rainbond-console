@@ -119,7 +119,7 @@ class GetCheckUUID(AppBaseView):
 
 class AppCheckUpdate(AppBaseView):
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         服务检测信息修改

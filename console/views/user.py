@@ -168,7 +168,13 @@ class UserPemTraView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            no_auth = "owner" not in perm_list
+            role_list = team_services.get_user_perm_role_in_permtenant(
+                user_id=request.user.user_id,
+                tenant_name=team_name
+            )
+
+            no_auth = "owner" not in perm_list and "owner" not in role_list
+
             if no_auth:
                 code = 400
                 result = general_message(code, "no identity", "你不是最高管理员")
@@ -179,7 +185,8 @@ class UserPemTraView(JWTAuthApiView):
                     code = 400
                     result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
                 else:
-                    code, msg = team_services.change_tenant_admin(user_id=request.user.user_id, other_user_id=other_user.user_id,
+                    code, msg = team_services.change_tenant_admin(user_id=request.user.user_id,
+                                                                  other_user_id=other_user.user_id,
                                                                   tenant_name=team_name)
                     if code == 200:
                         result = general_message(code, "identity modify success", msg)
@@ -241,6 +248,7 @@ class UserAddPemView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
             no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
             if no_auth:
                 code = 400

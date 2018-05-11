@@ -16,6 +16,7 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
 from console.services.app import app_service
+from console.services.team_services import team_services
 
 logger = logging.getLogger("default")
 
@@ -44,7 +45,8 @@ class StartAppView(AppBaseView):
         """
         try:
             new_add_memory = self.service.min_memory * self.service.min_node
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "启动应用")
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
+                                                           "启动应用")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)
@@ -198,7 +200,7 @@ class RollBackAppView(AppBaseView):
             deploy_version = request.data.get("deploy_version", None)
             if not deploy_version:
                 return Response(general_message(400, "deploy version is not found", "请指明回滚的版本"), status=400)
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user,deploy_version)
+            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -241,7 +243,8 @@ class VerticalExtendAppView(AppBaseView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
+            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user,
+                                                                   int(new_memory))
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -302,6 +305,8 @@ class HorizontalExtendAppView(AppBaseView):
 class BatchActionView(RegionTenantHeaderView):
     @never_cache
     @perm_required('stop_service')
+    @perm_required('start_service')
+    @perm_required('restart_service')
     def post(self, request, *args, **kwargs):
         """
         批量操作服务
@@ -329,6 +334,20 @@ class BatchActionView(RegionTenantHeaderView):
             service_ids = request.data.get("service_ids", None)
             if action not in ("stop", "start", "restart"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant_name)
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
+
+            if action == "stop":
+                if "stop_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
+            if action == "start":
+                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
+            if action == "restart":
+                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
+
             service_id_list = service_ids.split(",")
             code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list)
             if code != 200:

@@ -4,10 +4,10 @@ import logging
 from rest_framework.response import Response
 
 from console.exception.main import BusinessException
+from console.repositories.perm_repo import role_perm_repo
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from www.utils.return_message import general_message
-from console.repositories.perm_repo import role_perm_repo
 
 logger = logging.getLogger('default')
 
@@ -79,7 +79,7 @@ class PermActions(object):
                                 ) + service_viewer_actions
 
     service_admin_actions = (
-                                ('create_service', u"创建应用"),
+
                                 ('manage_service_member_perms', u'应用权限设置'),
                             ) + service_developer_actions
 
@@ -173,7 +173,7 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
                 for role_id in role_id_list:
                     perm_tuple = role_perm_repo.get_perm_by_role_id(role_id=role_id)
                     tenant_actions_tuple += perm_tuple
-            user.actions.set_actions('tenant', set(tenant_actions_tuple))
+            user.actions.set_actions('tenant', tuple(set(tenant_actions_tuple)))
 
             if serviceAlias is not None:
                 service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=serviceAlias)

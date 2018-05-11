@@ -148,7 +148,7 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
 
 
 class ServiceShareInfoView(RegionTenantHeaderView):
-    @perm_required('share_service')
+    @perm_required('view_service')
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         查询分享的所有应用信息和插件信息

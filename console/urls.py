@@ -59,7 +59,11 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, APPPluginConfigView    
+from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, APPPluginConfigView
+
+from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
+    UserModifyPemView, TeamAddUserView
+
 urlpatterns = patterns(
     '',
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -374,6 +378,22 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
+
+
+    # 获取自定义权限时可给角色绑定的权限选项
+    url(r'^teams/operate_options$', PermOptionsView.as_view()),
+    # 在一个团队中创建一个角色
+    url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
+    # 在一个团队中删除一个角色
+    url(r'^teams/(?P<team_name>[\w\-]+)/del-role$', TeamDelRoleView.as_view()),
+    # 在一个团队中修改角色名称及角色对应的权限
+    url(r'^teams/(?P<team_name>[\w\-]+)/update_role_perms$', UserUpdatePemView.as_view()),
+    # 获取一个团队中所有可展示的的角色及角色对应的权限信息展示(不含owner)
+    url(r'^teams/(?P<team_name>[\w\-]+)/role-list$', UserRoleView.as_view()),
+    # 修改团队中成员角色
+    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
+    # 给一个团队添加新用户
+    url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
 )
 
 

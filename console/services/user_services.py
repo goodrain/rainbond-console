@@ -200,4 +200,7 @@ class UserService(object):
     def get_user_by_phone(self, phone):
         return user_repo.get_user_by_phone(phone)
 
+    def get_user_by_user_id(self, user_id):
+        return user_repo.get_user_by_user_id(user_id=user_id)
+
 user_services = UserService()
