@@ -320,6 +320,8 @@ export default class Index extends PureComponent {
        if(this.envGroup){
          if(this.envGroup.check()){
           callback();
+         }else{
+           callback('    ')
          }
        }
        
@@ -387,6 +389,8 @@ export default class Index extends PureComponent {
               )}
             </Form.Item>
             <Form.Item
+              validateStatus="t"
+              hasFeedback={false}
               {...formItemLayout}
               label="配置项"
             >
