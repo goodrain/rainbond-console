@@ -365,7 +365,7 @@ export default class Index extends PureComponent {
             >
               {getFieldDecorator('service_meta_type', {
                 initialValue: data.service_meta_type || 'un_define',
-                rules: [{ required: true, message: '请输入配置组名' }],
+                rules: [{ required: true, message: '请输入配置组名' }]
               })(
                 <RadioGroup onChange={this.hanldeMetaTypeChange}>
                   <Radio value="un_define">不依赖</Radio>
