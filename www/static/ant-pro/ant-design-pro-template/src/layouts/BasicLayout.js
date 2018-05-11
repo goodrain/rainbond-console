@@ -533,12 +533,19 @@ class BasicLayout extends React.PureComponent {
             return null;
         }
 
+        const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
+        const isRegionMaintain = region.region_status === '3';
+
         const layout = (
             <Layout>
-                <SiderMenu currentUser={currentUser} logo={logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
+                {
+                    isRegionMaintain ? null :
+                    <SiderMenu currentUser={currentUser} logo={logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
                     // If you do not have the Authorized parameter
                     // you will be forced to jump to the 403 interface without permission
                     Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
+                }
+                
                 <Layout>
                     <GlobalHeader
                         logo={logo}
@@ -562,23 +569,35 @@ class BasicLayout extends React.PureComponent {
                         margin: '24px 24px 0',
                         height: '100%'
                     }}>
-                        <Switch>
-                            {redirectData.map(item => <Redirect key={item.from} exact from={item.from} to={item.to}/>)
-}
-                            {getRoutes(match.path, routerData).map(item => {
-                                return (<AuthorizedRoute
-                                    key={item.key}
-                                    path={item.path}
-                                    component={item.component}
-                                    exact={item.exact}
-                                    authority={item.authority}
-                                    logined={true}
-                                    redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
-                            })
-}
-                            <Redirect exact from="/" to={bashRedirect}/>
-                            <Route render={NotFound}/>
-                        </Switch>
+                        
+                        {
+                            !isRegionMaintain ? 
+                            <Switch>
+                                {redirectData.map(item => <Redirect key={item.from} exact from={item.from} to={item.to}/>)
+    }
+                                {getRoutes(match.path, routerData).map(item => {
+                                    return (<AuthorizedRoute
+                                        key={item.key}
+                                        path={item.path}
+                                        component={item.component}
+                                        exact={item.exact}
+                                        authority={item.authority}
+                                        logined={true}
+                                        redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
+                                })
+    }
+
+                                <Redirect exact from="/" to={bashRedirect}/>
+                                <Route render={NotFound}/>
+                            </Switch>
+                            :
+                            <div style={{textAlign: 'center', padding: '50px 0'}}>
+                               <Icon style={{fontSize: 50, marginBottom: 32}} type="warning" />
+                               <h1 style={{fontSize: 50, color: 'rgba(0, 0, 0, 0.65)', marginBottom: 8}}>数据中心维护中</h1>
+                               <p>请稍后访问当前数据中心</p>
+                            </div>
+                        }
+                        
                     </Content>
                     <GlobalFooter
                         links={[
