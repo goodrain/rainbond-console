@@ -104,7 +104,7 @@ class PluginList extends PureComponent {
                   className={styles.card}
                   actions={[<Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>, <span onClick={()=>{this.onDeletePlugin(item)}}>删除</span>]}>
                   <Card.Meta
-                    style={{height: 97, overflow: 'hidden'}}
+                    style={{height: 99, overflow: 'hidden'}}
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={< Link to = {
                     `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`

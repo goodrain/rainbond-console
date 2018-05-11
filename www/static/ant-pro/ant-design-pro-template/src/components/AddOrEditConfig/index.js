@@ -66,6 +66,7 @@ class EvnOption extends React.Component {
       return(
          <Form style={{display: 'inline-block', verticalAlign: 'middle'}} layout="inline" >
             <Form.Item
+              hasFeedback={false}
               style={{display: 'none'}}
             >
                 {getFieldDecorator('ID', {
@@ -74,7 +75,9 @@ class EvnOption extends React.Component {
                 <Input />
               )}
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+               hasFeedback={false}
+            >
                 {getFieldDecorator('attr_name', {
                 initialValue: data.attr_name || '',
                 rules: [{ validator: this.validAttrName }]
@@ -82,7 +85,9 @@ class EvnOption extends React.Component {
                 <Input onChange={()=>{this.handleOnchange('attr_name')}}   style={{width: 80}} placeholder="属性名" />
               )}
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+              hasFeedback={false}
+            >
                 {getFieldDecorator('protocol', {
                 initialValue: data.protocol || '',
                 rules: [{ required: false, message: '协议' }],
@@ -97,7 +102,9 @@ class EvnOption extends React.Component {
                 </Select>
             )}
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+              hasFeedback={false}
+            >
                 {getFieldDecorator('attr_type', {
                 initialValue: data.attr_type || 'string',
                 rules: [{ required: true, message: '属性名' }],
@@ -109,7 +116,9 @@ class EvnOption extends React.Component {
                 </Select>
             )}
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+                hasFeedback={false}
+            >
                 {getFieldDecorator('attr_default_value', {
                 initialValue: data.attr_default_value || '',
                 rules: [{ required: false, message: '默认值' }],
@@ -118,6 +127,7 @@ class EvnOption extends React.Component {
               )}
             </Form.Item>
             <Form.Item
+              hasFeedback={false}
               style={{display: attr_type === 'string' ? 'none' : ''}}
             >
              <Tooltip title="单选或多选的可选值， 多个用逗号分割，如：value1, value2">
@@ -129,7 +139,9 @@ class EvnOption extends React.Component {
               )}
              </Tooltip>
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+              hasFeedback={false}
+            >
                 {getFieldDecorator('is_change', {
                 initialValue: data.is_change === void 0 ? true : data.is_change,
                 rules: [{ required: false, message: '默认值' }],
@@ -140,7 +152,9 @@ class EvnOption extends React.Component {
                 </Select>
               )}
             </Form.Item>
-            <Form.Item>
+            <Form.Item
+              hasFeedback={false}
+            >
                 {getFieldDecorator('attr_info', {
                 initialValue: data.attr_info || '',
                 rules: [{ required: false, message: '默认值' }],
