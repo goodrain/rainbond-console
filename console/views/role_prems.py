@@ -197,8 +197,8 @@ class UserUpdatePemView(JWTAuthApiView):
               required: true
               type: string
               paramType: path
-            - name: old_role_id
-              description: 原来的角色ID {'old_role_id':'1'}
+            - name: role_id
+              description: 角色ID {'role_id':'1'}
               required: true
               type: string
               paramType: body
@@ -214,11 +214,11 @@ class UserUpdatePemView(JWTAuthApiView):
               paramType: body
         """
         try:
-            old_role_id = request.data.get("old_role_id", None)
+            role_id = request.data.get("role_id", None)
             new_role_name = request.data.get("new_role_name", None)
             new_options_id_list = request.data.get("new_options_id_list", None)
 
-            if not old_role_id:
+            if not role_id:
                 raise ParamsError("原角色ID为空")
             if not new_role_name:
                 raise ParamsError("新角色名为空")
@@ -226,7 +226,7 @@ class UserUpdatePemView(JWTAuthApiView):
                 raise ParamsError("权限选项为空")
 
             try:
-                old_role_id = int(old_role_id)
+                role_id = int(role_id)
                 perm_id_list = [int(perm_id) for perm_id in new_options_id_list.split(",")]
             except Exception as e:
                 logging.exception(e)
@@ -238,7 +238,7 @@ class UserUpdatePemView(JWTAuthApiView):
                 result = general_message(code, "failed", "角色名称不能与系统默认相同")
                 return Response(result, status=code)
             if not role_repo.team_role_is_exist_by_role_name_team_id(tenant_name=team_name,
-                                                                     role_id=old_role_id):
+                                                                     role_id=role_id):
                 code = 400
                 result = general_message(code, "failed", "原角色不存在")
                 return Response(result, status=code)
@@ -252,7 +252,7 @@ class UserUpdatePemView(JWTAuthApiView):
             try:
                 role_obj = team_services.update_role_by_team_name_role_name_perm_list(
                     new_role_name=new_role_name,
-                    old_role_id=old_role_id,
+                    role_id=role_id,
                     tenant_name=team_name,
                     perm_id_list=perm_id_list)
                 if role_obj:

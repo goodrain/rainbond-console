@@ -138,19 +138,19 @@ class RoleRepo(object):
             TenantUserRolePermission.objects.filter(role_id=role_id).delete()
 
     def update_role_by_team_name_role_name_perm_list(self, tenant_pk,
-                                                     old_role_id,
+                                                     role_id,
                                                      new_role_name,
                                                      perm_id_list):
         """更新一个自定义角色的权限"""
         with transaction.atomic():
-            role_obj = TenantUserRole.objects.filter(ID=old_role_id, tenant_id=tenant_pk,
+            role_obj = TenantUserRole.objects.filter(ID=role_id, tenant_id=tenant_pk,
                                                      is_default=False).update(role_name=new_role_name)
-            TenantUserRolePermission.objects.filter(role_id=old_role_id).delete()
+            TenantUserRolePermission.objects.filter(role_id=role_id).delete()
             for perm_id in perm_id_list:
-                TenantUserRolePermission.objects.create(role_id=old_role_id, per_id=perm_id)
+                TenantUserRolePermission.objects.create(role_id=role_id, per_id=perm_id)
         if role_obj:
 
-            return TenantUserRole.objects.get(ID=old_role_id, role_name=new_role_name, tenant_id=tenant_pk,
+            return TenantUserRole.objects.get(ID=role_id, role_name=new_role_name, tenant_id=tenant_pk,
                                               is_default=False)
         else:
             return None

@@ -178,14 +178,14 @@ class TeamService(object):
         role_repo.del_role_by_team_pk_role_name_role_id(tenant_pk=tenant.pk,
                                                         role_id=role_id)
 
-    def update_role_by_team_name_role_name_perm_list(self, tenant_name, old_role_id, new_role_name,
+    def update_role_by_team_name_role_name_perm_list(self, tenant_name, role_id, new_role_name,
                                                      perm_id_list):
         """更新一个角色的权限"""
         tenant = self.get_tenant(tenant_name=tenant_name)
         role_obj = role_repo.update_role_by_team_name_role_name_perm_list(
             tenant_pk=tenant.pk,
             new_role_name=new_role_name,
-            old_role_id=old_role_id,
+            role_id=role_id,
             perm_id_list=perm_id_list)
         return role_obj
 
