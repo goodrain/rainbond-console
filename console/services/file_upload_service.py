@@ -17,10 +17,10 @@ logger = logging.getLogger("default")
 
 class FileUploadService(object):
 
-    def upload_file(self, tenant, upload_file, suffix):
+    def upload_file(self, upload_file, suffix):
         is_upload_to_oss = self.is_upload_to_oss()
         if is_upload_to_oss:
-            file_url = self.app_market_upload(tenant.tenant_id,upload_file)
+            file_url = self.upload_file_to_oss(upload_file, suffix)
         else:
             file_url = self.upload_file_to_local(upload_file, suffix)
         return file_url
