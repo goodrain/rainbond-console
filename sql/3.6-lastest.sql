@@ -32,7 +32,7 @@ INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('rollback_service', '回滚应用', 1, NULL);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_container', '应用容器管理', 1, NULL);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_log', '应用日志管理', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_monitor', '应用监控管理', 1, NULL);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_monitor', '应用监控管理', 0, NULL);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_extend', '应用伸缩管理', 1, NULL);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_config', '应用配置管理', 1, NULL);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_plugin', '应用扩展管理', 1, NULL);

@@ -312,7 +312,7 @@ class UserRoleView(JWTAuthApiView):
 
             paginator = Paginator(role_list, 8)
             try:
-                role_list = paginator.page(page).object_list
+                role_list = paginator.page(int(page)).object_list
             except PageNotAnInteger:
                 role_list = paginator.page(1).object_list
             except EmptyPage:
@@ -427,7 +427,7 @@ class TeamAddUserView(JWTAuthApiView):
               type: string
               paramType: body
             - name: role_ids
-              description: 选择角色 格式{"role_id": "1,2,3"}
+              description: 选择角色 格式{"role_ids": "1,2,3"}
               required: true
               type: string
               paramType: body

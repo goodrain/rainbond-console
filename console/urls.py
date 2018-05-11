@@ -380,7 +380,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
 
 
-    # 获取自定义权限时可给角色绑定的权限选项
+    # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
     # 在一个团队中创建一个角色
     url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
