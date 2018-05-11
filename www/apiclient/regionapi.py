@@ -1456,6 +1456,7 @@ class RegionInvokeApi(HttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
+        self._set_headers(token)
         res, body = self._put(
             url, self.default_headers, json.dumps(data), region=region)
         return body
@@ -1464,6 +1465,7 @@ class RegionInvokeApi(HttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
+        self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
