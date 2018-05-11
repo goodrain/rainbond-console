@@ -63,7 +63,7 @@ class RegionService(object):
                         "is_active": region.is_active,
                         "region_status": regionconfig.status,
                         "team_region_alias": regionconfig.region_alias,
-                        "region.region_tenant_id": region.region_tenant_id,
+                        "region_tenant_id": region.region_tenant_id,
                         "team_region_name": region.region_name,
                         "region_scope": regionconfig.scope,
                         "region_create_time": regionconfig.create_time,
@@ -98,67 +98,8 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
-    # # 调用数据中心API开通一个租户
-    # def open_team_region(self, team_name, region_name):
-    #     tenant = team_repo.get_team_by_team_name(team_name)
-    #     if not tenant:
-    #         return 404, u"需要开通的团队{0}不存在".format(team_name), None
-    #     region_config = region_repo.get_region_by_region_name_and_region_id(
-    #         region_name)
-    #     if not region_config:
-    #         return 404, u"需要开通的数据中心{0}不存在".format(region_name), None
-    #     tenant_region = region_repo.get_team_region_by_teannt_and_region(
-    #         tenant.tenant_id, region_name)
-    #     if not tenant_region:
-    #         tenant_region = self.create_new_tenant_region(tenant, region_name)
-    #     else:
-    #         if not tenant_region.is_init:
-    #
-    #             res, body = region_api.create_tenant(
-    #                 region_name, tenant.tenant_name, tenant.tenant_id,
-    #                 tenant.enterprise_id)
-    #             logger.debug("create region tenant : res, {0}, body {1}".
-    #                          format(res, body))
-    #             tenant_region.is_active = True
-    #             tenant_region.is_init = True
-    #             # TODO 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充
-    #             tenant_region.region_tenant_id = tenant.tenant_id
-    #             tenant_region.region_tenant_name = tenant.tenant_name
-    #             tenant_region.region_scope = 'public'
-    #             tenant_region.enterprise_id = tenant.enterprise_id
-    #             tenant_region.save()
-    #         else:
-    #             if (not tenant_region.region_tenant_id) or \
-    #                     (not tenant_region.region_tenant_name) or \
-    #                     (not tenant_region.enterprise_id):
-    #                 tenant_region.region_tenant_id = tenant.tenant_id
-    #                 tenant_region.region_tenant_name = tenant.tenant_name
-    #                 tenant_region.region_scope = 'public'
-    #                 tenant_region.enterprise_id = tenant.enterprise_id
-    #                 tenant_region.save()
-    #     return 200, u"success", tenant_region
-    #
-    # # 新建团队开通数据中心关系并调用数据中心API开通一个租户
-    # def create_new_tenant_region(self, tenant, region_name,scope="public"):
-    #     tenant_region_info = {
-    #         "tenant_id": tenant.tenant_id,
-    #         "region_name": region_name
-    #     }
-    #     tenant_region = region_repo.create_tenant_region(**tenant_region_info)
-    #     res, body = region_api.create_tenant(region_name, tenant.tenant_name,
-    #                                          tenant.tenant_id,
-    #                                          tenant.enterprise_id)
-    #     logger.debug(
-    #         "create region tenant : res, {0}, body {1}".format(res, body))
-    #     tenant_region.is_active = True
-    #     tenant_region.is_init = True
-    #     # TODO 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充
-    #     tenant_region.region_tenant_id = tenant.tenant_id
-    #     tenant_region.region_tenant_name = tenant.tenant_name
-    #     tenant_region.region_scope = scope
-    #     tenant_region.enterprise_id = tenant.enterprise_id
-    #     tenant_region.save()
-    #     return tenant_region
+    def get_all_regions(self):
+        return region_repo.get_all_regions()
 
     def get_region_httpdomain(self, region_name):
         region = region_repo.get_region_by_region_name(region_name)

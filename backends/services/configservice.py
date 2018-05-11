@@ -208,20 +208,99 @@ class ConfigService(object):
         value = json.dumps(value_map)
         self.update_config("GITLAB_SERVICE_API", value)
 
+    def get_image_hub_config(self):
+        image_hub_config = self.get_config_by_key("APPSTORE_IMAGE_HUB")
+        if not image_hub_config:
+            image_hub_config = "{}"
+        hubconfig_all = json.loads(image_hub_config)
+        hub_config_dict = dict()
+        if hubconfig_all:
+            csc = ConsoleSysConfig.objects.get(key="APPSTORE_IMAGE_HUB")
+            hub_config_dict.update(hubconfig_all)
+            hub_config_dict["enable"] = csc.enable
+        else:
+            hub_config_dict["enable"] = False
+        return hub_config_dict
+
+    def add_image_hub_config(self, hub_url, namespace, hub_user, hub_password):
+        value_map = dict()
+        value_map["hub_url"] = hub_url
+        value_map["namespace"] = namespace
+        value_map["hub_user"] = hub_user
+        value_map["hub_password"] = hub_password
+
+        value = json.dumps(value_map)
+        self.add_config("APPSTORE_IMAGE_HUB", value, "json", "云市仓库配置")
+
+    def update_image_hub_config(self, hub_url, namespace, hub_user, hub_password):
+        value_map = dict()
+        value_map["hub_url"] = hub_url
+        value_map["namespace"] = namespace
+        value_map["hub_user"] = hub_user
+        value_map["hub_password"] = hub_password
+
+        value = json.dumps(value_map)
+        self.update_config("APPSTORE_IMAGE_HUB", value)
+
+    def get_ftp_config(self):
+        ftp_config = self.get_config_by_key("APPSTORE_SLUG_PATH")
+        if not ftp_config:
+            ftp_config = "{}"
+        ftpconfig_all = json.loads(ftp_config)
+        ftp_config_dict = dict()
+        if ftpconfig_all:
+            csc = ConsoleSysConfig.objects.get(key="APPSTORE_SLUG_PATH")
+            ftp_config_dict.update(ftpconfig_all)
+            ftp_config_dict["enable"] = csc.enable
+        else:
+            ftp_config_dict["enable"] = False
+        return ftp_config_dict
+
+    def add_ftp_config(self, ftp_host, ftp_port, namespace, ftp_username, ftp_password):
+        value_map = dict()
+        value_map["ftp_host"] = ftp_host
+        value_map["ftp_port"] = ftp_port
+        value_map["namespace"] = namespace
+        value_map["ftp_username"] = ftp_username
+        value_map["ftp_password"] = ftp_password
+
+        value = json.dumps(value_map)
+        self.add_config("APPSTORE_SLUG_PATH", value, "json", "仓库FTP配置")
+
+    def update_ftp_config(self, ftp_host, ftp_port, namespace, ftp_username, ftp_password):
+        value_map = dict()
+        value_map["ftp_host"] = ftp_host
+        value_map["ftp_port"] = ftp_port
+        value_map["namespace"] = namespace
+        value_map["ftp_username"] = ftp_username
+        value_map["ftp_password"] = ftp_password
+
+        value = json.dumps(value_map)
+        self.update_config("APPSTORE_SLUG_PATH", value)
+
+
     def manage_code_conf(self, action, type):
         if action not in ("open", "close",):
             raise ParamsError("操作参数错误")
-        if type not in ("github", "gitlab",):
+        if type not in ("github", "gitlab","ftpconf","hubconf"):
             raise ParamsError("操作参数错误")
         if action == "open":
             if type == "github":
                 ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=True)
             elif type == "gitlab":
                 ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=True)
+            elif type == "hubconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=True)
+            elif type == "ftpconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=True)
         else:
             if type == "github":
                 ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=False)
             elif type == "gitlab":
                 ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=False)
+            elif type == "hubconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=False)
+            elif type == "ftpconf":
+                ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=False)
         custom_settings.reload()
 config_service = ConfigService()

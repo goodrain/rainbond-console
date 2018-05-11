@@ -6,20 +6,35 @@ import oss2
 from goodrain_web.custom_config import custom_config as custom_settings
 from django.conf import settings
 import logging
-
+from www.apiclient.baseclient import client_auth_service
 from www.utils.crypt import make_uuid
+import requests
+from addict import Dict
+import json
 
 logger = logging.getLogger("default")
 
 
 class FileUploadService(object):
-    def upload_file(self, upload_file, suffix):
-        oss_conf = self.__get_oss_config()
-        if oss_conf:
-            file_url = self.upload_file_to_oss(upload_file, suffix)
+
+    def upload_file(self, tenant, upload_file, suffix):
+        is_upload_to_oss = self.is_upload_to_oss()
+        if is_upload_to_oss:
+            file_url = self.app_market_upload(tenant.tenant_id,upload_file)
         else:
             file_url = self.upload_file_to_local(upload_file, suffix)
         return file_url
+
+    def app_market_upload(self, tenant_id, upload_file):
+
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/files/upload"
+        files = {'file': upload_file}
+        headers = {"X_ENTERPRISE_ID": market_client_id,
+                   "X_ENTERPRISE_TOKEN": market_client_token}
+        resp = requests.post(url, files=files, headers=headers, verify=False)
+        result = Dict(json.loads(resp.content))
+        return result.data.bean.path
 
     def upload_file_to_oss(self, upload_file, suffix):
         filename = 'console/file/{0}.{1}'.format(make_uuid(), suffix)
@@ -50,6 +65,9 @@ class FileUploadService(object):
         bucket = oss2.Bucket(
             auth, oss_conf["OSS_ENDPOINT"], oss_conf["OSS_BUCKET"], is_cname=True)
         return bucket
+
+    def is_upload_to_oss(self):
+        return settings.MODULES.get('SSO_LOGIN')
 
     def upload_file_to_local(self, upload_file, suffix):
         filename = '{0}/uploads/{1}.{2}'.format(settings.MEDIA_ROOT,

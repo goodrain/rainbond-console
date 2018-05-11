@@ -98,6 +98,15 @@ class TeamService(object):
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         return user_perms
 
+    def get_user_perms_in_permtenant_list(self, user_id, tenant_name):
+        """
+        一个用户在一个团队中的身份列表
+        :return: 一个用户在一个团队中的身份列表
+        """
+        tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
+        user_perms_list = team_repo.get_user_perms_in_permtenant_list(user_id=user_id, tenant_id=tenant.ID)
+        return user_perms_list
+
     def get_user_perm_identitys_in_permtenant(self, user_id, tenant_name):
         """获取用户在一个团队的身份列表"""
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
@@ -174,10 +183,10 @@ class TeamService(object):
         """更新一个角色的权限"""
         tenant = self.get_tenant(tenant_name=tenant_name)
         role_obj = role_repo.update_role_by_team_name_role_name_perm_list(
-                                                                          tenant_pk=tenant.pk,
-                                                                          new_role_name=new_role_name,
-                                                                          old_role_id=old_role_id,
-                                                                          perm_id_list=perm_id_list)
+            tenant_pk=tenant.pk,
+            new_role_name=new_role_name,
+            old_role_id=old_role_id,
+            perm_id_list=perm_id_list)
         return role_obj
 
     def get_tenant_role_by_tenant_name(self, tenant_name):
@@ -204,8 +213,8 @@ class TeamService(object):
                 for user_id in user_ids:
                     for role_id in role_ids:
                         PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk,
-                                                           enterprise_id=enterprise.pk, role_id=role_id,
-                                                           defaults={"role_id": role_id})
+                                                               enterprise_id=enterprise.pk, role_id=role_id,
+                                                               defaults={"role_id": role_id})
 
             except Exception as e:
                 logging.exception(e)
@@ -325,6 +334,9 @@ class TeamService(object):
 
     def get_enterprise_teams(self, enterprise_id):
         return team_repo.get_teams_by_enterprise_id(enterprise_id)
+
+    def get_team_by_team_alias(self, team_alias):
+        return team_repo.get_team_by_team_alias(team_alias)
 
 
 team_services = TeamService()

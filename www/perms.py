@@ -131,6 +131,11 @@ class UserActions(dict):
 
 
 def get_highest_identity(identitys):
+    """
+    获取最高权限
+    :param identitys:
+    :return:
+    """
     identity_map = {"access": 1, "viewer": 2, "developer": 3, "admin": 4, "owner": 5}
     final_identity = identitys[0]
     identity_num = -1
@@ -140,7 +145,6 @@ def get_highest_identity(identitys):
             final_identity = i
             identity_num = num
     return final_identity
-
 
 def check_perm(perm, user, tenantName=None, serviceAlias=None):
     if isinstance(user, AnonymousUser):

@@ -29,6 +29,7 @@ plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
 
 
+
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
         plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id).filter(
@@ -306,7 +307,8 @@ class AppPluginService(object):
                         }
                         if upstream_options:
                             item_option["attr_value"] = upstream_options.get(item.attr_name, item.attr_default_value)
-                        options.append(item_option)
+                        if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                            options.append(item_option)
                     upstream_env_list.append({
 
                         "service_id": service.service_id,
@@ -323,7 +325,7 @@ class AppPluginService(object):
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
+                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
                                                                      dest_service_id=dep_service.service_id,
                                                                      container_port=port.container_port)
                         downstream_options = None
@@ -344,7 +346,8 @@ class AppPluginService(object):
                             if downstream_options:
                                 item_option["attr_value"] = downstream_options.get(item.attr_name,
                                                                                    item.attr_default_value)
-                            options.append(item_option)
+                            if item.protocol == "" or (port.protocol in item.protocol.split(",")):
+                                options.append(item_option)
 
                         downstream_env_list.append({
 
@@ -406,14 +409,13 @@ class AppPluginService(object):
                 build_version=build_version,
                 service_meta_type=dowstream_config.service_meta_type,
                 injection=dowstream_config.injection,
-                dest_service_id="",
-                dest_service_alias="",
+                dest_service_id=dowstream_config.dest_service_id,
+                dest_service_alias=dowstream_config.dest_service_alias,
                 container_port=dowstream_config.port,
                 attrs=json.dumps(attrs_map),
                 protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
-
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):

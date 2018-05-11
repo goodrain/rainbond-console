@@ -41,7 +41,7 @@ class ServiceOperateView(BaseAPIView):
               type: string
               paramType: query
             - name: status
-              description: 事件状态（complete,failure,timeout）默认 failure
+              description: 事件状态（success,failure,timeout）默认 failure
               required: false
               type: string
               paramType: query
@@ -58,11 +58,12 @@ class ServiceOperateView(BaseAPIView):
                 if not team:
                     return Response(generate_result("0404", "team not found", "团队{0}不存在".format(team_name)))
 
-            show_events,total = service_event_dynamic.get_services_events(int(page), int(page_size), create_time, status, team)
+            show_events, total = service_event_dynamic.get_services_events(int(page), int(page_size), create_time, status, team)
             result_list = []
             for e in show_events:
                 bean = e.to_dict()
-                bean.update({"service_cname": e.service_cname, "service_alias": e.service_alias})
+                bean.update({"service_cname": e.service_cname, "service_alias": e.service_alias,
+                             "service_region": e.service_region, "team_name": e.team_name})
                 result_list.append(bean)
             result = generate_result("0000", "query success", "查询成功", list=result_list,total=total)
 

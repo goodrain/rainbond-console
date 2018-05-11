@@ -9,6 +9,9 @@ const util = {
              index++;
              currUnit = unitArr[index];
          }
+         if(num % 1 === 0){
+             return num+' '+currUnit;
+         }
          return num.toFixed(2)+' '+currUnit;
      }
 }

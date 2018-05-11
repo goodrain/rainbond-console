@@ -21,13 +21,16 @@ import {
   Switch,
   Tabs,
   Divider,
-  InputNumber
+  InputNumber,
+  Upload
 } from 'antd';
 import {routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import ConfirmModal from '../../components/ConfirmModal';
 import Ellipsis from '../../components/Ellipsis';
 import FooterToolbar from '../../components/FooterToolbar';
+import config from '../../config/config';
+import cookie from '../../utils/cookie';
 
 import styles from './Index.less';
 import mytabcss from './mytab.css';
@@ -61,6 +64,19 @@ const tailFormItemLayout = {
     }
   }
 };
+
+const token = cookie.get('token');
+let myheaders = {}
+if (token) {
+   myheaders.Authorization = `GRJWT ${token}`;  
+}
+
+const uploadButton = (
+  <div>
+    <Icon type="plus" />
+    <div className="ant-upload-text">上传图标</div>
+  </div>
+);
 
 @Form.create()
 class AppInfo extends PureComponent {
@@ -244,8 +260,7 @@ class AppInfo extends PureComponent {
                 ]
               })(<InputNumber style={{width: '100%'}}
                 placeholder='请输入最大节点'
-                min={app.extend_method_map.min_node}
-                max={app.extend_method_map.max_node}
+                min={1}
                 step={app.extend_method_map.step_node}/>)}
             </FormItem>
           </Col>
@@ -320,7 +335,8 @@ export default class Main extends PureComponent {
       info: null,
       selectedApp: '',
       service: null,
-      key: ''
+      key: '',
+      fileList:[]
     }
     this.com = [];
     this.share_group_info = null;
@@ -348,7 +364,15 @@ export default class Main extends PureComponent {
         if (data.bean.share_service_list[0]) {
           selectedApp = data.bean.share_service_list[0].service_alias;
         }
-        this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias})
+         this.setState({info: data.bean, selectedApp: selectedApp, key: data.bean.share_service_list[0].service_alias})
+         if(data.bean.share_group_info.pic){
+           this.setState({fileList:[{
+              uid: -1,
+              name: data.bean.share_group_info.pic,
+              status: 'done',
+              url: data.bean.share_group_info.pic
+           }]})
+         }    
         this.share_group_info = data.bean.share_group_info;
         this.share_service_list = data.bean.share_service_list;
       },
@@ -374,6 +398,7 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
+          this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || '';
         }
       });
 
@@ -400,7 +425,6 @@ export default class Main extends PureComponent {
             var indexname = '';
             var indexarr = [];
             indexarr = index.split('||');
-            console.log(indexarr);
             if (indexarr[0] == 'connect' && indexarr[2] != 'random') {
               option['service_connect_info_map_list'].map((serapp) => {
                 if (serapp['attr_name'] == indexarr[1]) {
@@ -460,6 +484,36 @@ export default class Main extends PureComponent {
     })
   }
 
+  handleLogoChange = ({ fileList }) =>{
+      
+      this.setState({ fileList })
+    // fileList = fileList.map((file) => {
+    //     if (file.response) {
+    //       // Component will show file.url as link
+    //       //file.url = file.response.data.bean.path;
+    //       console.log("111111")
+    //       console.log(file.response)
+    //       console.log(file.response.data.bean.file_url )
+    //       this.setState({ pic:file.response.data.bean.file_url });
+    //     }
+    //     return file;
+    //   });
+
+      //3. filter successfully uploaded files according to response from server
+      // fileList = fileList.filter((file) => {
+      //   if (file.response) {
+      //     return file.percent == 100 && file.status == 'done';
+      //   }
+      //   return true;
+      // });
+     
+      this.setState({ fileList })
+  }
+  handleLogoRemove = () => {
+    this.setState({fileList: []})
+  }
+
+
   componentWillUnmount() {}
   save = (val) => {
     this
@@ -480,7 +534,8 @@ export default class Main extends PureComponent {
     const tabk = this.state.key;
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
-
+    const fileList = this.state.fileList
+   
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.content}>
@@ -532,21 +587,7 @@ export default class Main extends PureComponent {
                       })(<Input placeholder="默认使用上次的版本"/>)}
                     </Form.Item>
                   </Col>
-
-                  <Col span="12">
-                    <Form.Item {...formItemLayout} label='应用说明'>
-                      {getFieldDecorator('describe', {
-                        initialValue: appinfo.describe,
-                        rules: [
-                          {
-                            required: false,
-                            message: '请输入应用说明'
-                          }
-                        ]
-                      })(<TextArea placeholder="请输入应用说明"/>)}
-                    </Form.Item>
-                  </Col>
-                  <Col span="12">
+                   <Col span="12">
                     <Form.Item {...formItemLayout} label='分享范围'>
                       {getFieldDecorator('scope', {
                         initialValue: appinfo.scope || 'team',
@@ -563,6 +604,45 @@ export default class Main extends PureComponent {
                         </RadioGroup>
                       )}
                     </Form.Item>
+                  </Col>
+                  <Col span="12">
+                    <Form.Item {...formItemLayout} label='应用说明'>
+                      {getFieldDecorator('describe', {
+                        initialValue: appinfo.describe,
+                        rules: [
+                          {
+                            required: false,
+                            message: '请输入应用说明'
+                          }
+                        ]
+                      })(<TextArea placeholder="请输入应用说明"/>)}
+                    </Form.Item>
+                  </Col>
+                   <Col span="12">
+                    <Form.Item {...formItemLayout} label='图标'>
+                        {getFieldDecorator('pic', {
+                          rules: [
+                            {
+                              required: false,
+                              message: '请上传图标'
+                            }
+                          ]
+                        })(
+                          <Upload
+                            className="logo-uploader"
+                            name="file"
+                            accept="image/jpg,image/jpeg,image/png"
+                                action={config.imageUploadUrl}
+                                listType="picture-card"
+                                fileList={fileList}
+                                headers = {myheaders}
+                                onChange={this.handleLogoChange}
+                                onRemove={this.handleLogoRemove}
+                              >
+                                {fileList.length > 0? null:uploadButton}
+                              </Upload>
+                        )}
+                      </Form.Item>
                   </Col>
                 </Row>
               </Form>

@@ -484,7 +484,8 @@ export default class Index extends PureComponent {
   }
   render() {
     const {ports, certificates, appDetail} = this.props;
-    const isImageApp = appUtil.isImageApp(appDetail)
+    const isImageApp = appUtil.isImageApp(appDetail);
+    const isDockerfile = appUtil.isDockerfile(appDetail);
     return (
       <Fragment>
         <Row>
@@ -546,7 +547,7 @@ export default class Index extends PureComponent {
           subDesc={this.state.showDeleteDomain.domain}
           onOk={this.handleSubmitDeleteDomain}
           onCancel={this.cancalDeleteDomain}/>}
-        {this.state.showAddPort && <AddPort isImageApp={isImageApp} onCancel={this.onCancelAddPort} onOk={this.handleAddPort} />}
+        {this.state.showAddPort && <AddPort isImageApp={isImageApp} isDockerfile={isDockerfile} onCancel={this.onCancelAddPort} onOk={this.handleAddPort} />}
         {this.state.showAddDomain && <AddDomain
           certificates={certificates || []}
           onCreateKey={this.handleCreateKey}

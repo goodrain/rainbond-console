@@ -16,6 +16,7 @@ from console.repositories.app import service_repo, recycle_bin_repo, service_sou
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.plugin import app_plugin_relation_repo
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -449,6 +450,10 @@ class AppManageService(AppManageBase):
         if is_bind_domain:
             event = event_service.update_event(event, "当前应用已绑定域名,请先解绑", "failure")
             return 412, "请先解绑应用绑定的域名", event
+        # 判断是否有插件
+        if self.__is_service_has_plugins(service):
+            event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件", "failure")
+            return 412, "请先卸载应用安装的插件", event
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
@@ -588,6 +593,13 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) == 404:
                 return False
+        return False
+
+    def __is_service_has_plugins(self, service):
+        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+            service.service_id)
+        if service_plugin_relations:
+            return True
         return False
 
     def delete_region_service(self, tenant, service):

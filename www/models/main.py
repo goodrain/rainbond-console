@@ -245,6 +245,10 @@ class Users(models.Model):
 
     @property
     def is_sys_admin(self):
+        """
+        是否是系统管理员
+        :return: True/False
+        """
         # admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
         #           'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
         # return bool(self.email in admins)
@@ -304,6 +308,9 @@ class BaseModel(models.Model):
 
 
 class Tenants(BaseModel):
+    """
+    租户表
+    """
     class Meta:
         db_table = 'tenant_info'
 
@@ -795,6 +802,9 @@ class ServiceDomainCertificate(BaseModel):
 
 
 class PermRelService(BaseModel):
+    """
+    用户和服务关系表/用户在一个服务中的角色
+    """
     class Meta:
         db_table = 'service_perms'
 
@@ -806,6 +816,10 @@ class PermRelService(BaseModel):
 
 
 class PermRelTenant(BaseModel):
+    """
+    用户和团队的关系表
+    identity ：租户权限
+    """
     class Meta:
         db_table = 'tenant_perms'
 

@@ -1456,7 +1456,7 @@ class RegionInvokeApi(HttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
-        res, body = self._post(
+        res, body = self._put(
             url, self.default_headers, json.dumps(data), region=region)
         return body
 
@@ -1508,3 +1508,15 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         return self._put(
             url, self.default_headers, json.dumps(body), region=region)
+
+    def get_services_pods(self, region, tenant_name, service_id_list,
+                         enterprise_id):
+        """获取多个应用的pod信息"""
+        service_ids = ",".join(service_id_list)
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?enterprise_id=" + enterprise_id + "&service_ids=" + service_ids
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, None, region=region)
+        return body
