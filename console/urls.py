@@ -59,6 +59,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
+from console.views.webhook import WebHooks
 from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, APPPluginConfigView    
 urlpatterns = patterns(
     '',
@@ -374,6 +375,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
+
+    # webhook测试
+    url(r'^webhook$', WebHooks.as_view()),
 )
 
 
