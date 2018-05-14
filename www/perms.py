@@ -34,8 +34,6 @@ class PermActions(object):
                                    ('restart_service', u"重启应用"),
                                    ('rollback_service', u"回滚应用"),
                                    ('manage_service_container', u"应用容器管理"),
-                                   ('manage_service_log', u"应用日志管理"),
-                                   ('manage_service_monitor', u"应用监控管理"),
                                    ('manage_service_extend', u"应用伸缩管理"),
                                    ('manage_service_config', u"应用配置管理"),
                                    ('manage_service_plugin', u"应用扩展管理"),
@@ -48,12 +46,12 @@ class PermActions(object):
                                ('delete_service', u"删除应用"),
                                ('share_service', u"应用组分享"),
                                ('manage_service_member_perms', u'应用权限设置'),
-                               ('manage_financial_center', u"财务中心管理"),
+                               ('tenant_manage_role', u'自定义角色')
                            ) + tenant_developer_actions
 
     tenant_owner_actions = (
                                ('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
-                               ('modify_team_name', u'修改团队名称'), ('tenant_manage_role', u'自定义角色')
+                               ('modify_team_name', u'修改团队名称')
                            ) + tenant_admin_actions
 
     tenant_gray_actions = (
@@ -70,8 +68,6 @@ class PermActions(object):
                                     ('restart_service', u"重启应用"),
                                     ('rollback_service', u"回滚应用"),
                                     ('manage_service_container', u"应用容器管理"),
-                                    ('manage_service_log', u"应用日志管理"),
-                                    ('manage_service_monitor', u"应用监控管理"),
                                     ('manage_service_extend', u"应用伸缩管理"),
                                     ('manage_service_config', u"应用配置管理"),
                                     ('manage_service_plugin', u"应用扩展管理"),

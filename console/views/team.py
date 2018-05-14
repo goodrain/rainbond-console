@@ -246,16 +246,28 @@ class TeamUserView(JWTAuthApiView):
                 # 获取一个用户在一个团队中的身份列表
                 perms_identitys_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
                                                                                            tenant_name=team_name)
-                # 获取一个用户在一个团队中的角色名称列表
-                perms_role_list = team_services.get_user_perm_role_in_permtenant(user_id=user.user_id,
-                                                                                 tenant_name=team_name)
+                # 获取一个用户在一个团队中的角色ID列表
+                perms_role_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id,
+                                                                                    tenant_name=team_name)
+
+                role_info_list = []
+
+                for identity in perms_identitys_list:
+                    if identity == "access":
+                        role_info_list.append({"role_name": identity, "role_id": None})
+                    role_id = role_repo.get_role_id_by_role_name(identity)
+                    role_info_list.append({"role_name": identity, "role_id": role_id})
+
+                for role in perms_role_list:
+                    role_name = role_repo.get_role_name_by_role_id(role)
+                    role_info_list.append({"role_name": role_name, "role_id": role})
 
                 users_list.append(
                     {
                         "user_id": user.user_id,
                         "user_name": user.nick_name,
                         "email": user.email,
-                        "identity": list(set(perms_identitys_list + perms_role_list))
+                        "role_info": role_info_list
                     }
                 )
             paginator = Paginator(users_list, 8)

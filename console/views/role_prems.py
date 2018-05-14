@@ -7,7 +7,7 @@ from backends.services.exceptions import *
 from backends.services.resultservice import *
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.views.base import JWTAuthApiView
+from console.views.base import JWTAuthApiView,AlowAnyApiView
 from www.decorator import perm_required
 from www.models import Tenants
 from www.utils.return_message import general_message, error_message
@@ -304,13 +304,26 @@ class UserRoleView(JWTAuthApiView):
           required: true
           type: string
           paramType: query
+        - name: page_size
+          description: 每页展示个数(默认8个)
+          required: false
+          type: string
+          paramType: query
         """
 
         try:
             page = request.GET.get("page", 1)
+            page_size = request.GET.get("page_size", 8)
             role_list = team_services.get_tenant_role_by_tenant_name(tenant_name=team_name)
 
-            paginator = Paginator(role_list, 8)
+            try:
+                page_size = int(page_size)
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(400, "Incorrect parameter format", "参数page_size格式错误")
+                return Response(result, status=500)
+
+            paginator = Paginator(role_list, page_size)
             try:
                 role_list = paginator.page(int(page)).object_list
             except PageNotAnInteger:
@@ -320,7 +333,7 @@ class UserRoleView(JWTAuthApiView):
                 page = paginator.num_pages
                 role_list = paginator.page(paginator.num_pages).object_list
             result = general_message(200, "get permissions success", "获取权限成功", list=role_list, total=paginator.count,
-                                     num_pages=paginator.num_pages, current_page=page)
+                                     num_pages=paginator.num_pages, current_page=page, page_size=page_size)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -500,3 +513,10 @@ class TeamAddUserView(JWTAuthApiView):
             print(str(e))
             result = general_message(code, "system error", "系统异常")
         return Response(result, status=code)
+
+
+
+class WebHooks(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        print request.data
+        return Response("ok", status=200)
