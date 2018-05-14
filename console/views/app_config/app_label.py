@@ -45,7 +45,7 @@ class AppLabelView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('view_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         添加服务标签
@@ -81,7 +81,7 @@ class AppLabelView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('view_service')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除服务标签

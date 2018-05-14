@@ -187,7 +187,6 @@ class ServiceSourceInfo(BaseModel):
 
 
 class TeamGitlabInfo(BaseModel):
-
     class Meta:
         db_table = "team_gitlab_info"
 
@@ -316,6 +315,7 @@ class ServiceRelationRecycleBin(BaseModel):
 
 class EnterpriseUserPerm(BaseModel):
     """用户在企业的权限"""
+
     class Meta:
         db_table = 'enterprise_user_perm'
 
@@ -323,3 +323,60 @@ class EnterpriseUserPerm(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(
         max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
+
+
+class TenantUserRole(BaseModel):
+    """用户在一个团队中的角色"""
+
+    class Meta:
+        db_table = 'tenant_user_role'
+        unique_together = (('role_name', 'tenant_id'),)
+
+    role_name = models.CharField(max_length=32, help_text=u'角色名称')
+    tenant_id = models.IntegerField(null=True, blank=True, help_text=u'团队id')
+    is_default = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class TenantUserPermission(BaseModel):
+    """权限及对应的操作"""
+
+    class Meta:
+        db_table = 'tenant_user_permission'
+        unique_together = (('codename', 'per_info'),)
+
+    codename = models.CharField(max_length=32, help_text=u'权限名称')
+    per_info = models.CharField(max_length=32, help_text=u'权限对应的操作信息')
+    is_select = models.BooleanField(default=True, help_text=u'自定义权限时是否可以做选项')
+    group = models.IntegerField(help_text=u'这个权限属于哪个权限组', null=True, blank=True)
+    per_explanation = models.CharField(max_length=132, null=True, blank=True, help_text=u'这一条权限操作的具体说明')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class TenantUserRolePermission(BaseModel):
+    """团队中一个角色与权限的关系对应表"""
+
+    class Meta:
+        db_table = 'tenant_user_role_permission'
+
+    role_id = models.IntegerField(help_text=u'团队中的一个角色的id')
+    per_id = models.IntegerField(help_text=u'一个权限操作的id')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class PermGroup(BaseModel):
+    """权限组，用于给权限分组分类"""
+
+    class Meta:
+        db_table = 'tenant_permission_group'
+
+    group_name = models.CharField(max_length=64, help_text=u'组名')
+
+    def __unicode__(self):
+        return self.to_dict()

@@ -19,6 +19,7 @@ from www.perms import PermActions, get_highest_identity
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
 from console.services.plugin import plugin_service, plugin_version_service
+from console.repositories.perm_repo import role_repo
 
 logger = logging.getLogger("default")
 
@@ -93,12 +94,13 @@ class TeamUserDetaislView(JWTAuthApiView):
             team = team_services.get_tenant_by_tenant_name(team_name)
             is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
             perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
+            role_list = team_services.get_user_perm_role_in_permtenant(user_id=self.user.user_id, tenant_name=team_name)
             # teams = [{"team_identity": perm.identity} for perm in perms]
             data = dict()
             data["nick_name"] = self.user.nick_name
             data["email"] = self.user.email
             # data["teams_identity"] = teams[0]["team_identity"]
-            data["teams_identity"] = self.get_highest_identity(perms)
+            data["teams_identity"] = perms + role_list
             data["is_user_enter_amdin"] = is_user_enter_amdin
             code = 200
             result = general_message(code, "user details query success.", "用户详情获取成功", bean=data)
@@ -183,12 +185,15 @@ class AddTeamView(JWTAuthApiView):
                     return Response(general_message(500, "user's enterprise is not found"), status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
 
+                role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
+
                 # 创建用户在团队的权限
                 perm_info = {
                     "user_id": user.user_id,
                     "tenant_id": team.ID,
-                    "identity": "owner",
-                    "enterprise_id": enterprise.pk
+                    "enterprise_id": enterprise.pk,
+                    # 创建团队时给创建用户添加owner的角色
+                    "role_id": role_obj.pk
                 }
                 perm_services.add_user_tenant_perm(perm_info)
                 for r in regions:
@@ -238,14 +243,31 @@ class TeamUserView(JWTAuthApiView):
             user_list = team_services.get_tenant_users_by_tenant_name(tenant_name=team_name)
             users_list = list()
             for user in user_list:
-                perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
-                                                                                 tenant_name=team_name)
+                # 获取一个用户在一个团队中的身份列表
+                perms_identitys_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
+                                                                                           tenant_name=team_name)
+                # 获取一个用户在一个团队中的角色ID列表
+                perms_role_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id,
+                                                                                    tenant_name=team_name)
+
+                role_info_list = []
+
+                for identity in perms_identitys_list:
+                    if identity == "access":
+                        role_info_list.append({"role_name": identity, "role_id": None})
+                    role_id = role_repo.get_role_id_by_role_name(identity)
+                    role_info_list.append({"role_name": identity, "role_id": role_id})
+
+                for role in perms_role_list:
+                    role_name = role_repo.get_role_name_by_role_id(role)
+                    role_info_list.append({"role_name": role_name, "role_id": role})
+
                 users_list.append(
                     {
                         "user_id": user.user_id,
                         "user_name": user.nick_name,
                         "email": user.email,
-                        "identity": perms_list
+                        "role_info": role_info_list
                     }
                 )
             paginator = Paginator(users_list, 8)
@@ -297,7 +319,12 @@ class TeamUserAddView(JWTAuthApiView):
             user_id=request.user.user_id,
             tenant_name=team_name
         )
-        no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
+        # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
+        role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+        if perm_list:
+            no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
+        else:
+            no_auth = "manage_team_member_permissions" not in role_perm_tuple
         if no_auth:
             code = 400
             result = general_message(code, "no identity", "您不是管理员，没有权限做此操作")
@@ -366,37 +393,39 @@ class UserDelView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            if "owner" not in identitys and "admin" not in identitys:
+
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+
+            if "owner" not in identitys and "admin" not in identitys and "manage_team_member_permissions" not in perm_tuple:
                 code = 400
                 result = general_message(code, "no identity", "没有权限")
-            else:
-                user_ids = str(request.data.get("user_ids", None))
-                if not user_ids:
-                    result = general_message(400, "failed", "删除成员不能为空")
-                    return Response(result, status=400)
+                return Response(result, status=code)
 
-                # 查询出本要删除的用户在本团队中的所有权限，并判断是否是本团队的拥有者
-                for user_id in user_ids.split(","):
-                    user_perms_in_permtenant_list = team_services.get_user_perms_in_permtenant_list(user_id=int(user_id),
-                                                                                               tenant_name=team_name)
-                    if "owner" in user_perms_in_permtenant_list:
-                        result = general_message(400, "failed", "不能删除拥有者")
-                        return Response(result, status=400)
+            user_ids = str(request.data.get("user_ids", None))
+            if not user_ids:
+                result = general_message(400, "failed", "删除成员不能为空")
+                return Response(result, status=400)
 
-                if str(request.user.user_id) in user_ids:
-                    result = general_message(400, "failed", "不能删除自己")
-                    return Response(result, status=400)
-                try:
-                    user_id_list = user_ids.split(",")
-                    user_services.batch_delete_users(team_name, user_id_list)
-                    result = general_message(200, "delete the success", "删除成功")
-                except Tenants.DoesNotExist as e:
-                    logger.exception(e)
-                    result = generate_result(400, "tenant not exist", "{}团队不存在".format(team_name))
-                except Exception as e:
-                    logger.exception(e)
-                    result = error_message(e.message)
-                return Response(result)
+            try:
+                user_id_list = [int(user_id) for user_id in user_ids.split(",")]
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(200, "Incorrect parameter format", "参数格式不正确")
+                return Response(result, status=400)
+
+            if request.user.user_id in user_id_list:
+                result = general_message(400, "failed", "不能删除自己")
+                return Response(result, status=400)
+            try:
+                user_services.batch_delete_users(team_name, user_id_list)
+                result = general_message(200, "delete the success", "删除成功")
+            except Tenants.DoesNotExist as e:
+                logger.exception(e)
+                result = generate_result(400, "tenant not exist", "{}团队不存在".format(team_name))
+            except Exception as e:
+                logger.exception(e)
+                result = error_message(e.message)
+            return Response(result)
         except Exception as e:
             code = 500
             logger.exception(e)
@@ -426,10 +455,13 @@ class TeamNameModView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+
             no_auth = True
 
-            if "owner" in perms or "admin" in perms:
+            if "owner" in perms or "modify_team_name" in perm_tuple:
                 no_auth = False
+
             if no_auth:
                 code = 400
                 result = general_message(code, "no identity", "权限不足不能修改团队名")
@@ -467,32 +499,37 @@ class TeamDelView(JWTAuthApiView):
               paramType: path
         """
         code = 200
-        if "owner" not in team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-        ):
+
+        identity_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id,
+            tenant_name=team_name
+        )
+        perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+
+        if "owner" not in identity_list and "drop_tenant" not in perm_tuple:
             code = 400
             result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
-        else:
-            try:
-                service_count = team_services.get_team_service_count_by_team_name(team_name=team_name)
-                if service_count >= 1:
-                    result = general_message(400, "failed", "当前团队内有应用,不可以删除")
-                    return Response(result, status=400)
-                status = team_services.delete_tenant(tenant_name=team_name)
-                if not status:
-                    result = general_message(code, "delete a tenant successfully", "删除团队成功")
-                else:
-                    code = 400
-                    result = general_message(code, "delete a tenant failed", "删除团队失败")
-            except Tenants.DoesNotExist as e:
+            return Response(result, status=code)
+
+        try:
+            service_count = team_services.get_team_service_count_by_team_name(team_name=team_name)
+            if service_count >= 1:
+                result = general_message(400, "failed", "当前团队内有应用,不可以删除")
+                return Response(result, status=400)
+            status = team_services.delete_tenant(tenant_name=team_name)
+            if not status:
+                result = general_message(code, "delete a tenant successfully", "删除团队成功")
+            else:
                 code = 400
-                logger.exception(e)
-                result = generate_result(code, "tenant not exist", "{}团队不存在".format(team_name))
-            except Exception as e:
-                code = 500
-                result = general_message(code, "sys exception", "系统异常")
-                logger.exception(e)
+                result = general_message(code, "delete a tenant failed", "删除团队失败")
+        except Tenants.DoesNotExist as e:
+            code = 400
+            logger.exception(e)
+            result = generate_result(code, "tenant not exist", "{}团队不存在".format(team_name))
+        except Exception as e:
+            code = 500
+            result = general_message(code, "sys exception", "系统异常")
+            logger.exception(e)
         return Response(result, status=code)
 
 
@@ -535,28 +572,38 @@ class TeamExitView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        if "owner" in team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-        ):
+
+        identity_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id,
+            tenant_name=team_name
+        )
+
+        role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id,
+                                                                        tenant_name=team_name)
+
+        if "owner" in identity_list:
             result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
             return Response(result, status=409)
-        if "admin" in team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-        ):
+        if "admin" in identity_list:
             result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
             return Response(result, status=409)
-        else:
-            try:
-                code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
-                if code == 200:
-                    result = general_message(code=code, msg="success", msg_show=msg_show)
-                else:
-                    result = general_message(code=code, msg="failed", msg_show=msg_show)
-            except Exception as e:
-                logger.exception(e)
-                result = error_message(e.message)
+
+        if "owner" in role_name_list:
+            result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
+            return Response(result, status=409)
+        if "admin" in role_name_list:
+            result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
+            return Response(result, status=409)
+
+        try:
+            code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
+            if code == 200:
+                result = general_message(code=code, msg="success", msg_show=msg_show)
+            else:
+                result = general_message(code=code, msg="failed", msg_show=msg_show)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -594,15 +641,24 @@ class TeamDetailView(JWTAuthApiView):
             if not user_team_perm:
                 if not self.user.is_sys_admin and team_name != "grdemo":
                     return Response(general_message(403, "you right to see this team", "您无权查看此团队"), 403)
-                else:
-                    final_identity = "viewer"
             else:
                 perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                                  tenant_name=tenant.tenant_name)
-                final_identity = get_highest_identity(perms_list)
-            tenant_info["identity"] = final_identity
-            tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
-            tenant_info["tenant_actions"] = tenant_actions
+                role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=self.user.user_id,
+                                                                                tenant_name=tenant.tenant_name)
+
+                role_perms_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id,
+                                                                         tenant_name=tenant.tenant_name)
+
+                tenant_actions = ()
+                tenant_info["identity"] = perms_list + role_name_list
+                if perms_list:
+                    final_identity = get_highest_identity(perms_list)
+                    perms = p.keys('tenant_{0}_actions'.format(final_identity))
+                    tenant_actions += perms
+                tenant_actions += role_perms_tuple
+                tenant_info["tenant_actions"] = tuple(set(tenant_actions))
+
             return Response(general_message(200, "success", "查询成功", bean=tenant_info), status=200)
 
         except Exception as e:

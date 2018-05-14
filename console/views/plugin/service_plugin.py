@@ -21,7 +21,7 @@ logger = logging.getLogger("default")
 
 
 class ServicePluginsView(AppBaseView):
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取应用可用的插件列表
@@ -61,7 +61,7 @@ class ServicePluginsView(AppBaseView):
 
 
 class ServicePluginInstallView(AppBaseView):
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
         应用安装插件
@@ -126,7 +126,7 @@ class ServicePluginInstallView(AppBaseView):
             result = general_message(500, e.message, "插件安装失败")
         return Response(result, status=result["code"])
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
         应用卸载插件
@@ -161,7 +161,7 @@ class ServicePluginInstallView(AppBaseView):
 
 
 class ServicePluginOperationView(AppBaseView):
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         启停用应用插件
@@ -273,7 +273,7 @@ class ServicePluginConfigView(AppBaseView):
             result = error_message(e.message)
         return Response(result, result["code"])
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     @transaction.atomic
     def put(self, request, plugin_id, *args, **kwargs):
         """

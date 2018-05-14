@@ -20,7 +20,7 @@ logger = logging.getLogger("default")
 
 class PluginCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_plugin')
+    @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         插件创建

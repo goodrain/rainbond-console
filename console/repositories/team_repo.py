@@ -24,7 +24,7 @@ class TeamRepo(object):
 
     def get_tenant_users_by_tenant_ID(self, tenant_ID):
         """
-        返回一个团队中所有队用户对象
+        返回一个团队中所有用户对象
         :param tenant_ID:
         :return:
         """

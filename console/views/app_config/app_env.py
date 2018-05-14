@@ -59,7 +59,7 @@ class AppEnvView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为应用添加环境变量
@@ -126,7 +126,7 @@ class AppEnvView(AppBaseView):
 
 class AppEnvManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除应用的某个环境变量
@@ -197,7 +197,7 @@ class AppEnvManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('view_service')
+    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改应用环境变量

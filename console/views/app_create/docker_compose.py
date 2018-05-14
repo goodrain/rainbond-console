@@ -122,7 +122,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
 
 class GetComposeCheckUUID(ComposeGroupBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         compose_id = request.GET.get("compose_id", None)
         if not compose_id:
@@ -137,7 +137,7 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
 
 class ComposeCheckView(ComposeGroupBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose应用检测
@@ -174,7 +174,7 @@ class ComposeCheckView(ComposeGroupBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     @transaction.atomic
     def get(self, request, *args, **kwargs):
         """
@@ -254,7 +254,7 @@ class ComposeCheckView(ComposeGroupBaseView):
 
 class ComposeCheckUpdate(ComposeGroupBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         compose文件内容修改
@@ -310,7 +310,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
     """放弃创建compose"""
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def delete(self, request, *args, **kwargs):
         """
         放弃创建compose组应用

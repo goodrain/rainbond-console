@@ -19,7 +19,7 @@ logger = logging.getLogger("default")
 
 
 class APPPluginsView(AppBaseView):
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取应用可用的插件列表
@@ -89,7 +89,7 @@ class APPPluginInstallView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
         应用安装插件
@@ -190,7 +190,7 @@ class APPPluginInstallView(AppBaseView):
             logger.exception(e)
             return Response(result, status=500)
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
         应用卸载插件
@@ -277,7 +277,7 @@ class APPPluginOpenView(AppBaseView):
     #     """
     #     pass
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         启停用应用插件
@@ -364,7 +364,7 @@ class APPPluginConfigView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
         应用插件查看配置
@@ -419,7 +419,7 @@ class APPPluginConfigView(AppBaseView):
             result = error_message(e.message)
             return Response(result, result["code"])
 
-    @perm_required('manage_service')
+    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         应用插件更新

@@ -22,7 +22,7 @@ logger = logging.getLogger("default")
 
 class AppBuild(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         服务构建
@@ -86,7 +86,7 @@ class AppBuild(AppBaseView):
 
 class ComposeBuildView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose应用检测

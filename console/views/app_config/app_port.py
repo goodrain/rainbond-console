@@ -68,7 +68,7 @@ class AppPortView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为应用添加端口
@@ -138,7 +138,7 @@ class AppPortView(AppBaseView):
 
 class AppPortManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         查看应用的某个端口的详情
@@ -177,7 +177,7 @@ class AppPortManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除应用的某个端口
@@ -214,7 +214,7 @@ class AppPortManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改应用的某个端口（打开|关闭|修改协议|修改环境变量）

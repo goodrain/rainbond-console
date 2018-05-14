@@ -44,7 +44,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def post(self, request, *args, **kwargs):
         """
         为服务添加的用户权限
@@ -89,7 +89,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def put(self, request, *args, **kwargs):
         """
         为服务修改用户的权限
@@ -135,7 +135,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def delete(self, request, *args, **kwargs):
         """
         删除应用添加的权限
@@ -174,7 +174,7 @@ class ServicePermView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_member_perms')
     def patch(self, request, *args, **kwargs):
         """
         为服务批量添加用户权限
@@ -208,16 +208,25 @@ class ServicePermView(AppBaseView):
             user_ids = request.data.get("user_ids", None)
             if not identity or not user_ids:
                 return Response(general_message(400, "params error", "参数异常"), status=400)
-            user_id_list = user_ids.split(",")
+            try:
+                user_id_list = [int(user_id) for user_id in user_ids.split(",")]
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(400, "Incorrect parameter format", "参数格式错误")
+                return Response(result, status=400)
             service_perm_list = []
             for u_id in user_id_list:
                 code, msg, service_perm = app_perm_service.add_service_perm(self.user, u_id, self.tenant, self.service,
                                                                             identity)
                 if code != 200:
                     return Response(general_message(code, "add service perm error", msg), status=400)
-                service_perm_list.append(service_perm.to_dict)
+
+                service_perm_list.append(
+                    {"ID": service_perm.pk, "user_id": service_perm.user_id, "service_id": service_perm.service_id,
+                     "identity": service_perm.identity, "role_id": service_perm.role_id})
             result = general_message(200, "success", "操作成功", list=service_perm_list)
         except Exception as e:
+            print(e)
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
