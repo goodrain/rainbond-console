@@ -515,8 +515,3 @@ class TeamAddUserView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-
-class WebHooks(AlowAnyApiView):
-    def post(self, request, *args, **kwargs):
-        print request.data
-        return Response("ok", status=200)

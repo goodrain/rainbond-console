@@ -62,7 +62,7 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, APPPluginConfigView
 
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, WebHooks
+    UserModifyPemView, TeamAddUserView
 
 urlpatterns = patterns(
     '',
@@ -395,8 +395,6 @@ urlpatterns = patterns(
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
 
-    # webhook测试
-    url(r'^webhook$', WebHooks.as_view()),
 )
 
 
