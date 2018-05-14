@@ -24,9 +24,9 @@ class PermOptionsView(JWTAuthApiView):
 
         """
         try:
-            options_list = role_perm_repo.get_permission_options()
+            option_dict = role_perm_repo.get_permission_options()
 
-            result = general_message(200, "get permissions success", "获取权限选项成功", list=options_list)
+            result = general_message(200, "get permissions success", "获取权限选项成功", bean=option_dict)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -314,10 +314,13 @@ class UserRoleView(JWTAuthApiView):
             try:
                 role_list = paginator.page(int(page)).object_list
             except PageNotAnInteger:
+                page = 1
                 role_list = paginator.page(1).object_list
             except EmptyPage:
+                page = paginator.num_pages
                 role_list = paginator.page(paginator.num_pages).object_list
-            result = general_message(200, "get permissions success", "获取权限成功", list=role_list)
+            result = general_message(200, "get permissions success", "获取权限成功", list=role_list, total=paginator.count,
+                                     num_pages=paginator.num_pages, current_page=page)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

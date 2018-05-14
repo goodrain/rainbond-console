@@ -2,7 +2,7 @@
 from www.models import PermRelTenant, PermRelService
 from django.db import transaction
 from django.db.models import Q
-from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission
+from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission, PermGroup
 from console.repositories.team_repo import team_repo
 from www.models import Tenants
 
@@ -58,6 +58,11 @@ class RoleRepo(object):
                 perm_dict["codename"] = perm_obj.codename
                 perm_dict["perm_info"] = perm_obj.per_info
                 perm_dict["is_select"] = perm_obj.is_select
+                perm_dict["group_id"] = perm_obj.group
+                if perm_obj.group:
+                    perm_dict["group_name"] = PermGroup.objects.get(ID=perm_obj.group).group_name
+                else:
+                    perm_dict["group_name"] = None
                 default_role_perm_list.append(perm_dict)
             role_dict["role_id"] = role_obj.pk
             role_dict["role_name"] = role_obj.role_name
@@ -76,6 +81,11 @@ class RoleRepo(object):
                 perm_dict["codename"] = perm_obj.codename
                 perm_dict["perm_info"] = perm_obj.per_info
                 perm_dict["is_select"] = perm_obj.is_select
+                perm_dict["group_id"] = perm_obj.group
+                if perm_obj.group:
+                    perm_dict["group_name"] = PermGroup.objects.get(ID=perm_obj.group).group_name
+                else:
+                    perm_dict["group_name"] = None
                 team_role_perm_list.append(perm_dict)
             role_dict["role_id"] = role_obj.pk
             role_dict["role_name"] = role_obj.role_name
@@ -172,13 +182,27 @@ class RolePermRepo(object):
 
     def get_permission_options(self):
         """获取可选项"""
-        perm_options_query = TenantUserPermission.objects.filter(is_select=True).values("pk", "codename", "per_info")
-        options_list = []
-        for obj in perm_options_query:
-            options_list.append(
-                {"id": obj["pk"], "codename": obj["codename"], "info": obj["per_info"]}
+        options_dict = dict()
+
+        perm_group_obj = PermGroup.objects.all()
+        for group in perm_group_obj:
+            perm_list = []
+            perm_options_query = TenantUserPermission.objects.filter(is_select=True, group=group.pk)
+            for obj in perm_options_query:
+                perm_list.append(
+                    {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
+                )
+            options_dict[group.group_name] = perm_list
+        outher_perm_options_query = TenantUserPermission.objects.filter(is_select=True, group__isnull=True)
+
+        outher_perm_list = []
+
+        for obj in outher_perm_options_query:
+            outher_perm_list.append(
+                {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
             )
-        return options_list
+        options_dict["其他"] = outher_perm_list
+        return options_dict
 
     def get_select_perm_list(self):
         """获取可以选择的权限列表"""

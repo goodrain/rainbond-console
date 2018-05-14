@@ -255,7 +255,7 @@ class TeamUserView(JWTAuthApiView):
                         "user_id": user.user_id,
                         "user_name": user.nick_name,
                         "email": user.email,
-                        "identity": perms_identitys_list + perms_role_list
+                        "identity": list(set(perms_identitys_list + perms_role_list))
                     }
                 )
             paginator = Paginator(users_list, 8)

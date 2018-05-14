@@ -1,8 +1,9 @@
 
--- 创建角色表，权限表，角色权限关系表
+-- 创建角色表，权限表，角色权限关系表,权限组表
 CREATE TABLE `tenant_user_role` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `role_name` varchar(32) NOT NULL, `tenant_id` integer NULL, `is_default` bool NOT NULL, UNIQUE (`role_name`, `tenant_id`));
-CREATE TABLE `tenant_user_permission` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `codename` varchar(32) NOT NULL, `per_info` varchar(32) NOT NULL, `is_select` bool NOT NULL, `per_explanation` varchar(132) NULL, UNIQUE (`codename`, `per_info`));
+CREATE TABLE `tenant_user_permission` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `codename` varchar(32) NOT NULL, `per_info` varchar(32) NOT NULL, `is_select` bool NOT NULL, `group` integer NULL, `per_explanation` varchar(132) NULL, UNIQUE (`codename`, `per_info`));
 CREATE TABLE `tenant_user_role_permission` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `role_id` integer NOT NULL, `per_id` integer NOT NULL);
+CREATE TABLE `tenant_permission_group` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `group_name` varchar(64) NOT NULL);
 
 -- 在原来的用户在团队中的身份表中添加'role_id'字段
 ALTER TABLE `service_perms` ADD COLUMN `role_id` integer NULL;
@@ -16,34 +17,35 @@ INSERT INTO `tenant_user_role` (`role_name`, `tenant_id`, `is_default`) VALUES (
 INSERT INTO `tenant_user_role` (`role_name`, `tenant_id`, `is_default`) VALUES ('developer', NULL, 1);
 INSERT INTO `tenant_user_role` (`role_name`, `tenant_id`, `is_default`) VALUES ('viewer', NULL, 1);
 
+-- 初始化默认权限组
+INSERT INTO `console`.`tenant_permission_group` (`group_name`) VALUES ('团队相关');
+INSERT INTO `console`.`tenant_permission_group` (`group_name`) VALUES ('应用相关');
+
 -- 初始化权限信息
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('tenant_access', '登入团队', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_team_member_permissions', '团队权限设置', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('tenant_open_region', '开通数据中心', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_group', '应用组管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('view_service', '查看应用信息', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('deploy_service', '部署应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('create_service', '创建应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('delete_service', '删除应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('share_service', '应用组分享', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('stop_service', '关闭应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('start_service', '启动应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('restart_service', '重启应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('rollback_service', '回滚应用', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_container', '应用容器管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_log', '应用日志管理', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_monitor', '应用监控管理', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_extend', '应用伸缩管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_config', '应用配置管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_plugin', '应用扩展管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_service_member_perms', '应用权限设置', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('view_plugin', '查看插件信息', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_plugin', '插件管理', 1, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('manage_financial_center', '财务中心管理', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('drop_tenant', '删除团队', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('transfer_ownership', '移交所有权', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('modify_team_name', '修改团队名称', 0, NULL);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_access', '登入团队', 1, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_team_member_permissions', '团队权限设置', 1, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_open_region', '开通数据中心', 1, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_group', '应用组管理', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('view_service', '查看应用信息', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('deploy_service', '部署应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('create_service', '创建应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('delete_service', '删除应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('share_service', '应用组分享', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('stop_service', '关闭应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('start_service', '启动应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('restart_service', '重启应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('rollback_service', '回滚应用', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_service_container', '应用容器管理', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_service_extend', '应用伸缩管理', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_service_config', '应用配置管理', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_service_plugin', '应用扩展管理', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_service_member_perms', '应用权限设置', 1, NULL, 2);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('view_plugin', '查看插件信息', 1, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('manage_plugin', '插件管理', 1, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('drop_tenant', '删除团队', 0, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('transfer_ownership', '移交所有权', 0, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('modify_team_name', '修改团队名称', 0, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL, 1);
 
 
 -- 初始化角色和权限的对应关系
@@ -71,9 +73,6 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 21);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 22);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 23);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 24);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 25);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 26);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 27);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 2);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 3);
@@ -94,9 +93,7 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 17);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 18);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 19);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 20);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 21);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 22);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 27);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 24);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 4);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 5);
@@ -110,10 +107,8 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 14);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 15);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 16);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 17);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 18);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 19);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 21);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 22);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 20);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 5);
-INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 21);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 19);
