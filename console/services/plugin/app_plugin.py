@@ -204,7 +204,7 @@ class AppPluginService(object):
                     for k, v in attr_map.iteritems():
                         normal_envs.append({"env_name": k, "env_value": v})
                 else:
-                    base_normal["option"] = json.loads(attr.attrs)
+                    base_normal["options"] = json.loads(attr.attrs)
             if attr.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 base_ports.append({
                     "service_id": service.service_id,

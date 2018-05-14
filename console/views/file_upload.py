@@ -36,7 +36,7 @@ class ConsoleUploadFileView(RegionTenantHeaderView):
                 return Response(general_message(400, "file is too large", "图片大小不能超过1M"), status=400)
 
             suffix = upload_file.name.split('.')[-1]
-            file_url = upload_service.upload_file(self.tenant, upload_file, suffix)
+            file_url = upload_service.upload_file(upload_file, suffix)
             if not file_url:
                 result = general_message(400, "upload file error", "上传失败")
             else:
