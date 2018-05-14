@@ -5,7 +5,7 @@ const menuData = [
   {
     name: '总览',
     icon: 'dashboard',
-    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`
+    path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`,
   }, {
     name: '创建应用',
     icon: 'plus',

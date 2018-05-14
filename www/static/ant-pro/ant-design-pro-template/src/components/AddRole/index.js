@@ -1,10 +1,9 @@
 import React, { PureComponent } from 'react';
-import { Button, Icon, Modal, Form, Checkbox, Select } from 'antd';
+import { Button, Icon, Modal, Form, Checkbox, Input } from 'antd';
 import { getTeamPermissions } from '../../services/team';
+import RolePermsSelect from '../RolePermsSelect';
 
-const Option = Select.Option;
 const FormItem = Form.Item;
-import UserSelect from '../UserSelect';
 const CheckboxGroup = Checkbox.Group;
 
 @Form.create()
@@ -28,6 +27,7 @@ class ConfirmModal extends PureComponent{
    render(){
       const { getFieldDecorator } = this.props.form;
       const { onOk, onCancel, actions}= this.props;
+      const data = this.props.data || {};
 
       const formItemLayout = {
         labelCol: {
@@ -53,12 +53,13 @@ class ConfirmModal extends PureComponent{
       };
 
       const options = actions || [];
-      const roles = this.props.roles || [];
+      const options_ids = data ? (data.role_perm||[]).map((item)=>{return item.perm_id}) : [];
 
       return (
           <Modal
-            title="添加成员"
+            title="添加角色"
             visible={true}
+            width={800}
             onOk={this.handleSubmit}
             onCancel={onCancel}
           >
@@ -66,42 +67,33 @@ class ConfirmModal extends PureComponent{
              <Form onSubmit={this.handleSubmit}>
               <FormItem
                 {...formItemLayout}
-                label="选择用户"
+                label="角色名称"
                 hasFeedback
               >
-                {getFieldDecorator('user_ids', {
+                {getFieldDecorator('role_name', {
+                    initialValue: data.role_name || '',
                     rules: [{
                       required: true,
-                      message: '请选择要添加的用户',
+                      message: '请输入角色名称',
                     }],
                   })(
-                    <UserSelect />
+                    <Input />
                 )}
                 
               </FormItem>
 
               <FormItem
                 {...formItemLayout}
-                label="选择角色"
+                label="选择权限"
               >
-                {getFieldDecorator('role_ids', {
-                    initialValue:[],
+                {getFieldDecorator('options_ids', {
+                    initialValue:options_ids || '',
                     rules: [{
                       required: true,
-                      message: '请选择角色',
+                      message: '请选择权限',
                     }],
                   })(
-                    <Select
-                    mode="multiple"
-                    placeholder="请选择角色"
-                    style={{ width: '100%' }}
-                  >
-                     {
-                       roles.map((role)=>{
-                           return <Option value={role.role_id}>{role.role_name}</Option>
-                       })
-                     }
-                  </Select>
+                    <RolePermsSelect datas={options} />
                 )}
                 
               </FormItem>

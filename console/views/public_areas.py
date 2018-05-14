@@ -234,30 +234,28 @@ class ServiceEventsView(RegionTenantHeaderView):
               paramType: query
         """
         try:
-            code = 200
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
-            event_service_dynamic_list = service_event_dynamic.get_event_service_dynamic(team_id=self.team.tenant_id,
-                                                                                         region_name=
-                                                                                         self.response_region)
-            if event_service_dynamic_list:
-                event_list = list()
-                for service_even in event_service_dynamic_list:
-                    type_cn = event_service.translate_event_type(service_even.get("type", None))
-                    service_even["type_cn"] = type_cn
-                    event_list.append(service_even)
-                paginator = Paginator(event_list, page_size)
-                try:
-                    event_list = paginator.page(page).object_list
-                except PageNotAnInteger:
-                    event_list = paginator.page(1).object_list
-                except EmptyPage:
-                    event_list = paginator.page(paginator.num_pages).object_list
-                result = general_message(code, "query success", "事件获取成功", list=event_list, total=paginator.count)
-                return Response(result, status=code)
-            else:
-                result = general_message(200, "failed", "事件动态获取成功，当前团队没有应用事件动态")
-                return Response(result, status=200)
+            # event_service_dynamic_list = service_event_dynamic.get_event_service_dynamic(team_id=self.team.tenant_id,
+            #                                                                              region_name=
+            #                                                                              self.response_region)
+
+            event_service_dynamic_list = service_event_dynamic.get_team_current_region_service_events(
+                self.response_region, self.tenant, page,
+                page_size)
+            event_list = []
+            for event in event_service_dynamic_list:
+                event_bean = event.to_dict()
+                event_bean["service_alias"] = event.service_alias
+                event_bean["service_cname"] = event.service_cname
+                type_cn = event_service.translate_event_type(event.type)
+                event_bean["type_cn"] = type_cn
+                event_bean["nick_name"] = event.user_name
+
+                event_list.append(event_bean)
+            result = general_message(200, 'success', "查询成功", list=event_list)
+            return Response(result, status=result["code"])
+
         except Exception as e:
             code = 500
             logger.exception(e)

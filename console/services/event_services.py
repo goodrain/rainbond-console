@@ -16,14 +16,34 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 e_s = AppEventService()
 
+
 class ServiceEventDynamic(object):
-    def get_event_service_dynamic(self, team_id, region_name):
+    def get_team_current_region_service_events(self, region, team, page, page_size):
         dsn = BaseConnection()
-        query_sql = '''
-            SELECT e.type,e.start_time,e.status,e.final_status,s.service_alias,s.service_cname,u.nick_name,u.user_id FROM `service_event` e,tenant_service s, user_info u WHERE e.service_id=s.service_id and e.user_name=u.nick_name and e.tenant_id="{team_id}" and s.service_region="{region_name}" ORDER BY start_time DESC LIMIT 0,60;
-        '''.format(team_id=team_id, region_name=region_name)
-        event_service_dynamic = dsn.query(query_sql)
-        return event_service_dynamic
+        start = (int(page)-1) * int(page_size)
+        end = page_size
+
+        query_sql = ''' select e.start_time, e.event_id,s.service_alias,s.service_cname from service_event e JOIN tenant_service s on e.service_id=s.service_id  WHERE e.tenant_id="{team_id}" and s.service_region="{region_name}" ORDER BY start_time DESC LIMIT {start},{end} '''.format(
+            team_id=team.tenant_id, region_name=region, start=start, end=end)
+        events = dsn.query(query_sql)
+        events_ids = []
+        event_id_service_info_map = dict()
+        for e in events:
+            events_ids.append(e.event_id)
+            event_id_service_info_map[e.event_id] = {"service_alias": e.service_alias, "service_cname": e.service_cname}
+
+        events = ServiceEvent.objects.filter(event_id__in=events_ids).order_by("-ID")
+        try:
+            self.__sync_region_service_event_status(region, team.tenant_name, events, False)
+        except Exception as e:
+            logger.exception("synchorized services events error !")
+        for event in events:
+            bean = event_id_service_info_map.get(event.event_id, None)
+            if bean:
+                event.service_alias = bean["service_alias"]
+                event.service_cname = bean["service_cname"]
+        return events
+
 
     def get_services_events(self, page, page_size, create_time, status, team):
 
@@ -52,7 +72,7 @@ class ServiceEventDynamic(object):
         region_events_map = {}
         for event in show_events:
             service = id_service_map.get(event.service_id, None)
-            t = id_team_map.get(event.tenant_id,None)
+            t = id_team_map.get(event.tenant_id, None)
             if service:
                 event.service_cname = service.service_cname
                 event.service_alias = service.service_alias
@@ -82,6 +102,43 @@ class ServiceEventDynamic(object):
         except Exception as e:
             logger.exception(e)
             return
+        region_events = body.get('list')
+        for region_event in region_events:
+            local_event = local_events_not_complete.get(region_event.get('EventID'))
+            if not local_event:
+                continue
+            if not region_event.get('Status'):
+                if timeout:
+                    e_s.checkEventTimeOut(local_event)
+            else:
+                local_event.status = region_event.get('Status')
+                local_event.message = region_event.get('Message')
+                local_event.code_version = region_event.get('CodeVersion')
+                local_event.deploy_version = region_event.get('DeployVersion')
+                local_event.final_status = 'complete'
+                endtime = datetime.datetime.strptime(region_event.get('EndTime')[0:19], '%Y-%m-%d %H:%M:%S')
+                if endtime:
+                    local_event.end_time = endtime
+                else:
+                    local_event.end_time = datetime.datetime.now()
+                local_event.save()
+
+
+    def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
+        local_events_not_complete = dict()
+        for event in events:
+            if event.final_status == '':
+                local_events_not_complete[event.event_id] = event
+
+        if not local_events_not_complete:
+            return
+
+        try:
+            body = region_api.get_tenant_events(region, tenant_name, local_events_not_complete.keys())
+        except Exception as e:
+            logger.exception(e)
+            return
+
         region_events = body.get('list')
         for region_event in region_events:
             local_event = local_events_not_complete.get(region_event.get('EventID'))
