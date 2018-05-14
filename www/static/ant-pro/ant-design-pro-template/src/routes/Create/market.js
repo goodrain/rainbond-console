@@ -38,10 +38,6 @@ import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
-<<<<<<< HEAD
-import GuideManager from '../../components/Guide/guideManager';
-=======
->>>>>>> b9a20d48de0914837196de5486c1ea098ffeb5a4
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
@@ -369,10 +365,6 @@ export default class Main extends PureComponent {
           style={{
           width: 522
         }}/>
-<<<<<<< HEAD
-
-=======
->>>>>>> b9a20d48de0914837196de5486c1ea098ffeb5a4
         </span>
       </div>
     );
@@ -410,7 +402,7 @@ export default class Main extends PureComponent {
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
           {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload} />}
-          <GuideManager />
+          {/* <GuideManager /> */}
       </PageHeaderLayout>
     );
   }
