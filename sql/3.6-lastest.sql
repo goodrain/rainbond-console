@@ -45,7 +45,7 @@ INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('drop_tenant', '删除团队', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('transfer_ownership', '移交所有权', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('modify_team_name', '修改团队名称', 0, NULL, 1);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义团队角色', 0, NULL, 1);
 
 
 -- 初始化角色和权限的对应关系

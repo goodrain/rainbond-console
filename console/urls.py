@@ -388,8 +388,6 @@ urlpatterns = patterns(
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
 
-    # webhook测试
-    url(r'^webhook$', WebHooks.as_view()),
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
@@ -405,5 +403,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
+
+    # webhook测试
+    url(r'^webhook$', WebHooks.as_view()),
 
 )
