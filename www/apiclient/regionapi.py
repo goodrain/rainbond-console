@@ -1522,3 +1522,20 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region)
         return body
+
+    def export_app(self, region, tenant_name, data):
+        """导出应用"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/app/export"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_app_export_status(self, region, tenant_name, event_id):
+        """查询应用导出状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/export/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body

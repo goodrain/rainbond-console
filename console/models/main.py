@@ -323,3 +323,20 @@ class EnterpriseUserPerm(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(
         max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
+
+
+class AppExportRecord(BaseModel):
+    """应用导出"""
+
+    class Meta:
+        db_table = 'app_export_record'
+        unique_together = ('group_key', 'version', 'format')
+
+    group_key = models.CharField(max_length=32, help_text=u"导出应用的key")
+    version = models.CharField(max_length=20, help_text=u"导出应用的版本")
+    format = models.CharField(max_length=15, help_text=u"导出应用的格式")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"时间请求状态")
+    file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
