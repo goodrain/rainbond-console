@@ -182,7 +182,7 @@ class RolePermRepo(object):
 
     def get_permission_options(self):
         """获取可选项"""
-        options_dict = dict()
+        options_list = list()
 
         perm_group_obj = PermGroup.objects.all()
         for group in perm_group_obj:
@@ -192,7 +192,7 @@ class RolePermRepo(object):
                 perm_list.append(
                     {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
                 )
-            options_dict[group.group_name] = perm_list
+            options_list.append({group.group_name: perm_list})
         outher_perm_options_query = TenantUserPermission.objects.filter(is_select=True, group__isnull=True)
 
         outher_perm_list = []
@@ -201,8 +201,8 @@ class RolePermRepo(object):
             outher_perm_list.append(
                 {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
             )
-        options_dict["其他"] = outher_perm_list
-        return options_dict
+        options_list.append({"其他": outher_perm_list})
+        return options_list
 
     def get_select_perm_list(self):
         """获取可以选择的权限列表"""
