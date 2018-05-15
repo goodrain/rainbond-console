@@ -396,9 +396,9 @@ class UserDetailsView(JWTAuthApiView):
                     tenant_actions = role_perm_repo.get_perm_by_role_id(role_id=role_id)
                     perms_tuple += tenant_actions
                 if final_identity:
-                    tenant_info["identity"] = [final_identity] + role_name_list
+                    tenant_info["role_name_list"] = [final_identity] + role_name_list
                 else:
-                    tenant_info["identity"] = role_name_list
+                    tenant_info["role_name_list"] = role_name_list
                 user.actions.set_actions('tenant', tuple(set(perms_tuple)))
                 tenant_info["tenant_actions"] = user.actions.tenant_actions
                 tenant_list.append(tenant_info)
