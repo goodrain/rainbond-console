@@ -24,9 +24,9 @@ class PermOptionsView(JWTAuthApiView):
 
         """
         try:
-            option_list = role_perm_repo.get_permission_options()
+            options_list = role_perm_repo.get_permission_options()
 
-            result = general_message(200, "get permissions success", "获取权限选项成功", list=option_list)
+            result = general_message(200, "get permissions success", "获取权限选项成功", list=options_list)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

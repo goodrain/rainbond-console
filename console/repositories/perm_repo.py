@@ -5,6 +5,7 @@ from django.db.models import Q
 from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission, PermGroup
 from console.repositories.team_repo import team_repo
 from www.models import Tenants
+from collections import OrderedDict
 
 
 class PermsRepo(object):
@@ -183,16 +184,20 @@ class RolePermRepo(object):
     def get_permission_options(self):
         """获取可选项"""
         options_list = list()
+        outher_options_dict = dict()
 
         perm_group_obj = PermGroup.objects.all()
         for group in perm_group_obj:
             perm_list = []
+            options_dict = dict()
             perm_options_query = TenantUserPermission.objects.filter(is_select=True, group=group.pk)
             for obj in perm_options_query:
                 perm_list.append(
                     {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
                 )
-            options_list.append({group.group_name: perm_list})
+            options_dict["group_name"] = group.group_name
+            options_dict["perms_info"] = perm_list
+            options_list.append(options_dict)
         outher_perm_options_query = TenantUserPermission.objects.filter(is_select=True, group__isnull=True)
 
         outher_perm_list = []
@@ -201,7 +206,10 @@ class RolePermRepo(object):
             outher_perm_list.append(
                 {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
             )
-        options_list.append({"其他": outher_perm_list})
+        outher_options_dict["group_name"] = "其他"
+        outher_options_dict["perms_info"] = outher_perm_list
+        options_list.append(outher_options_dict)
+
         return options_list
 
     def get_select_perm_list(self):
