@@ -3,15 +3,18 @@ import logging
 
 from rest_framework.response import Response
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.views.decorators.cache import never_cache
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.views.base import JWTAuthApiView,AlowAnyApiView
+from console.views.base import JWTAuthApiView, AlowAnyApiView
 from www.decorator import perm_required
 from www.models import Tenants
-from www.utils.return_message import general_message, error_message
 from console.repositories.perm_repo import role_repo, role_perm_repo
+from console.views.app_config.base import AppBaseView
+from www.utils.return_message import general_message, error_message
+from console.services.perm_services import app_perm_service
 
 logger = logging.getLogger("default")
 
@@ -515,3 +518,186 @@ class TeamAddUserView(JWTAuthApiView):
         return Response(result, status=code)
 
 
+class ServicePermissionView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取一个应用中存在的成员及他们的权限
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            perm_list = app_perm_service.get_user_service_perm_info(self.service)
+            result = general_message(200, "success", "查询成功", list=perm_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_member_perms')
+    def post(self, request, *args, **kwargs):
+        """
+        为应用添加的用户权限，可单个可批量
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: user_ids
+              description: 用户id 格式{"user_ids":1,2,3}
+              required: true
+              type: string
+              paramType: form
+            - name: perm_ids
+              description: 权限id  {"perm_ids":1,2,3}
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            perm_ids = request.data.get("perm_ids", None)
+            user_ids = request.data.get("user_ids", None)
+            if not perm_ids or not perm_ids:
+                return Response(general_message(400, "params error", "却少参数"), status=400)
+
+            try:
+                perm_list = [int(perm) for perm in perm_ids.split(",")]
+                user_list = [int(user_id) for user_id in user_ids.split(",")]
+            except Exception as e:
+                logging.exception(e)
+                code = 400
+                result = general_message(code, "Incorrect parameter format", "参数格式不正确")
+                return Response(result, status=code)
+
+            code, msg, service_perm = app_perm_service.add_user_service_perm(self.user, user_list, self.tenant,
+                                                                             self.service,
+                                                                             perm_list)
+            if code != 200:
+                return Response(general_message(code, "add service perm error", msg), status=400)
+            result = general_message(code, "success", "添加应用成员成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_member_perms')
+    def put(self, request, *args, **kwargs):
+        """
+        修改用户在应用中的权限
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: user_id
+              description: 用户id
+              required: true
+              type: string
+              paramType: form
+            - name: perm_ids
+              description: 权限id 格式{'perm_ids':'1,2,3'}
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            perm_ids = request.data.get("perm_ids", None)
+            user_id = request.data.get("user_id", None)
+            if not perm_ids or not user_id:
+                return Response(general_message(400, "params error", "参数异常"), status=400)
+
+            try:
+                perm_list = [int(perm_id) for perm_id in perm_ids.split(",")]
+                user_id = int(user_id)
+            except Exception as e:
+                logging.exception(e)
+                code = 400
+                result = general_message(code, "Incorrect parameter format", "参数格式不正确")
+                return Response(result, status=code)
+
+            code, msg, service_perm = app_perm_service.update_user_service_perm(self.user, user_id,
+                                                                                self.service,
+                                                                                perm_list)
+            if code != 200:
+                return Response(general_message(code, "update service perm error", msg), status=400)
+            result = general_message(code, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_member_perms')
+    def delete(self, request, *args, **kwargs):
+        """
+        删除应用添加的权限
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: user_id
+              description: 用户id
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            user_id = request.data.get("user_id", None)
+            if not user_id:
+                return Response(general_message(400, "params error", "参数不能为空"), status=400)
+
+            try:
+                user_id = int(user_id)
+            except Exception as e:
+                logging.exception(e)
+                code = 400
+                result = general_message(code, "Incorrect parameter format", "参数格式不正确")
+                return Response(result, status=code)
+            code, msg = app_perm_service.delete_user_service_perm(self.user, user_id,
+                                                                  self.service)
+            if code != 200:
+                return Response(general_message(code, "delete service perm error", msg), status=400)
+            result = general_message(code, "success", "删除应用成员成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])

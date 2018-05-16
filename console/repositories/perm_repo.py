@@ -2,10 +2,10 @@
 from www.models import PermRelTenant, PermRelService
 from django.db import transaction
 from django.db.models import Q
-from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission, PermGroup
+from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission, PermGroup, \
+    ServiceRelPerms
 from console.repositories.team_repo import team_repo
 from www.models import Tenants
-from collections import OrderedDict
 
 
 class PermsRepo(object):
@@ -36,6 +36,43 @@ class ServicePermRepo(object):
 
     def add_service_perm(self, user_id, service_pk, identity):
         return PermRelService.objects.create(user_id=user_id, service_id=service_pk, identity=identity)
+
+    def get_user_id_in_service(self, service_pk):
+        return ServiceRelPerms.objects.filter(service_id=service_pk).values_list("user_id", flat=True)
+
+    def get_service_perm_by_user_pk_service_pk(self, service_pk, user_pk):
+        """判断一个用户在一个应用中有没有权限"""
+
+        query = ServiceRelPerms.objects.filter(user_id=user_pk, service_id=service_pk)
+        if not query:
+            return None
+        return query
+
+    def add_user_service_perm(self, user_ids, service_pk, perm_ids):
+        """添加用户应用权限"""
+        with transaction.atomic():
+            for user_id in user_ids:
+                for perm_id in perm_ids:
+                    ServiceRelPerms.objects.create(user_id=user_id, service_id=service_pk, perm_id=perm_id)
+
+    def get_service_perm_by_service_pk_user_pk(self, service_pk, user_pk):
+        """判断一个用户在一个应用中是否存在权限"""
+
+        service_perm = ServiceRelPerms.objects.filter(user_id=user_pk, service_id=service_pk)
+        if not service_perm:
+            return None
+        return service_perm
+
+    def update_service_perm_by_service_id_user_id_perm_list(self, user_id, service_id, perm_list):
+        """更新用户在一个应用中的权限"""
+        with transaction.atomic():
+            ServiceRelPerms.objects.filter(user_id=user_id, service_id=service_id).delete()
+            for perm_id in perm_list:
+                ServiceRelPerms.objects.create(user_id=user_id, service_id=service_id, perm_id=perm_id)
+
+    def get_perms_by_user_id_service_id(self, user_id, service_id):
+        """获取一个用户在一个团队中的权限id列表"""
+        return ServiceRelPerms.objects.filter(user_id=user_id, service_id=service_id).values_list("perm_id", flat=True)
 
 
 class RoleRepo(object):
@@ -216,6 +253,17 @@ class RolePermRepo(object):
         """获取可以选择的权限列表"""
         select_perm_list = TenantUserPermission.objects.filter(is_select=True).values_list("pk", flat=True)
         return list(select_perm_list)
+
+    def get_perm_list_by_perm_id_list(self, perm_id_list):
+        perm_query = TenantUserPermission.objects.filter(ID__in=perm_id_list)
+        return [perm_obj.codename for perm_obj in perm_query]
+
+    def get_perm_obj_by_perm_id(self, perm_id):
+
+        if TenantUserPermission.objects.filter(ID=perm_id):
+            return TenantUserPermission.objects.filter(ID=perm_id)[0]
+        else:
+            return None
 
 
 perms_repo = PermsRepo()

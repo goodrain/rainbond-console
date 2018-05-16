@@ -51,7 +51,8 @@ from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServ
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, \
+from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
+    ServiceShareEventPost, \
     ServiceShareCompleteView, ServiceShareRecordView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
@@ -59,10 +60,11 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, APPPluginConfigView
+from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
+    APPPluginConfigView
 
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView
+    UserModifyPemView, TeamAddUserView, ServicePermissionView
 
 urlpatterns = patterns(
     '',
@@ -148,7 +150,8 @@ urlpatterns = patterns(
     # url(r'^teams/(?P<team_name>[\w\-]+)/topological/services', TopologicalGraphView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/topological$', TopologicalGraphView.as_view()),
     # 拓扑图中应用详情
-    url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$', GroupServiceDetView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$',
+        GroupServiceDetView.as_view()),
     # Internet 拓扑详情
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
@@ -157,7 +160,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events$', ServiceShareEventList.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)', ServiceShareEventPost.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
+        ServiceShareEventPost.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
 
     # 安装应用
@@ -221,7 +225,8 @@ urlpatterns = patterns(
     # 应用详情
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view()),
     # 是否安装性能分析插件
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins',
+        AppAnalyzePluginView.as_view()),
     # 应用简要信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/brief', AppBriefView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view()),
@@ -304,15 +309,14 @@ urlpatterns = patterns(
         BatchAppMonitorQueryView.as_view()),
     # 服务标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
-    # 应用权限
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermView.as_view()),
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view()),
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),
 
     # 获取数据中心builder PublicKey
-    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/publickey$', GetRegionPublicKeyView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/publickey$',
+        GetRegionPublicKeyView.as_view()),
 
     # 插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins$', PluginCreateView.as_view()),
@@ -379,7 +383,6 @@ urlpatterns = patterns(
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
 
-
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
     # 在一个团队中创建一个角色
@@ -394,8 +397,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
+    # 应用权限设置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
 
 )
-
-
-
