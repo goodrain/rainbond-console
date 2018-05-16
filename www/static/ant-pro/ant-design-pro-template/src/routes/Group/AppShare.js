@@ -399,10 +399,9 @@ export default class Main extends PureComponent {
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
           console.log(this.state.fileList)
-          console.log(this.state.fileList[0])
-          console.log(this.state.fileList[0].response)
-          if(this.state.fileList[0].response != undefined){
-            this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || '';
+          console.log(this.state.fileList[0] )
+          if(this.state.fileList[0]!= undefined){
+            this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || this.state.fileList[0].pic || '';
           }
         }
       });
@@ -490,19 +489,18 @@ export default class Main extends PureComponent {
   }
 
   handleLogoChange = ({ fileList }) =>{
-      
     
-    // fileList = fileList.map((file) => {
-    //     if (file.response) {
-    //       // Component will show file.url as link
-    //       //file.url = file.response.data.bean.path;
-    //       console.log("111111")
-    //       console.log(file.response)
-    //       console.log(file.response.data.bean.file_url )
-    //       this.setState({ pic:file.response.data.bean.file_url });
-    //     }
-    //     return file;
-    //   });
+      // fileList = fileList.map((file) => {
+      //     if (file.response) {
+      //       // Component will show file.url as link
+      //       //file.url = file.response.data.bean.path;
+      //       console.log("111111")
+      //       console.log(file.response)
+      //       console.log(file.response.data.bean.file_url )
+      //       this.setState({ pic:file.response.data.bean.file_url });
+      //     }
+      //     return file;
+      //   });
 
       //3. filter successfully uploaded files according to response from server
       // fileList = fileList.filter((file) => {
