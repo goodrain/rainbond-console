@@ -401,7 +401,11 @@ export default class Main extends PureComponent {
           console.log(this.state.fileList)
           console.log(this.state.fileList[0] )
           if(this.state.fileList[0]!= undefined){
-            this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || this.state.fileList[0].url;
+            this.state.fileList[0].response.data ?
+            this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url
+            :
+            this.state.fileList[0].url
+            // this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || this.state.fileList[0].url;
           }else{
              this.share_group_info['pic'] = '';
           }
