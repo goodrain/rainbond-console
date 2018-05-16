@@ -30,7 +30,6 @@ import cookie from '../../utils/cookie';
 import {routerRedux} from 'dva/router';
 import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
-
 @Form.create()
 class MoveTeam extends PureComponent {
   handleSubmit = (e) => {
@@ -173,7 +172,6 @@ export default class Index extends PureComponent {
         page: this.state.page
       },
       callback: (data) => {
-        console.log(data)
         this.setState({
           roles: data.list || [],
           roleTotal: data.total
@@ -363,16 +361,16 @@ export default class Index extends PureComponent {
   hideEditAction = () => {
     this.setState({toEditAction: null})
   }
-  handleEditAction = ({identity}) => {
+  handleEditAction = (data) => {
     const team_name = globalUtil.getCurrTeamName();
     this
       .props
       .dispatch({
-        type: 'teamControl/editAction',
+        type: 'teamControl/editMember',
         payload: {
           team_name: team_name,
-          user_name: this.state.toEditAction.user_name,
-          identitys: identity
+          user_name: data.user_name,
+          role_ids: data.role_ids.join(',')
         },
         callback: () => {
           this.loadMembers();
@@ -477,7 +475,7 @@ export default class Index extends PureComponent {
           role_id: this.state.deleteRole.role_id
         },
         callback: () => {
-           this.hideAddRole();
+           this.hideDelRole();
            this.loadRoles();
         }
       })
@@ -554,7 +552,7 @@ export default class Index extends PureComponent {
         }}
           title="已开通数据中心"
           bordered={false}
-          extra={(team.identity === 'owner' || team.identity === 'admin') ? < a href = "javascript:;" onClick = {
+          extra={teamUtil.canAddRegion(team) ? < a href = "javascript:;" onClick = {
           this.onOpenRegion
         } > 开通数据中心 < /a> : null}
           loading={projectLoading}
@@ -603,7 +601,7 @@ export default class Index extends PureComponent {
         }}
           bordered={false}
           title="团队成员"
-          extra={!teamUtil.canAddMember(team)
+          extra={teamUtil.canAddMember(team)
           ? <a href="javascript:;" onClick={this.showAddMember}>添加成员</a>
           : null}>
           <ScrollerX sm={600}>
@@ -623,7 +621,7 @@ export default class Index extends PureComponent {
         }}
         bordered={false}
         title="角色管理 "
-        extra={<a href="javascript:;" onClick={this.showAddRole}>添加角色</a>}>
+        extra={teamUtil.canAddRole(team) && <a href="javascript:;" onClick={this.showAddRole}>添加角色</a>}>
         <ScrollerX sm={600}>
           <TeamRoleTable
             pagination={RolePagination}
@@ -662,11 +660,17 @@ export default class Index extends PureComponent {
           subDesc="移交后您将失去所有权"
           desc={"确定要把团队移交给 " + this.state.toMoveTeam.user_name + " 吗？"}
           onCancel={this.hideMoveTeam}/>}
+
         {this.state.showAddMember && <AddMember
           roles={this.state.roles}
-          actions={teamControl.actions}
           onOk={this.handleAddMember}
           onCancel={this.hideAddMember}/>}
+
+          {this.state.toEditAction && <AddMember
+            roles={this.state.roles}
+            data={this.state.toEditAction}
+            onOk={this.handleEditAction}
+            onCancel={this.hideEditAction}/>}
 
 
           {this.state.showAddRole && <AddRole
@@ -687,11 +691,7 @@ export default class Index extends PureComponent {
               desc={"确定要删除角色 （" + this.state.deleteRole.role_name + "） 吗？"}
               onCancel={this.hideDelRole}/>}
 
-        {this.state.toEditAction && <EditActions
-          onSubmit={this.handleEditAction}
-          onCancel={this.hideEditAction}
-          actions={teamControl.actions}
-          value={this.state.toEditAction.identity}/>}
+
         {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
       </PageHeaderLayout>
     );

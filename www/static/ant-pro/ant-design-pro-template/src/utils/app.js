@@ -162,24 +162,55 @@ const appUtil = {
     isInstalledPowerPlugin: function (appDetail) {
         return false;
     },
+    //获取权限数据
+    getActions: function(appDetail){
+        return [].concat(appDetail.tenant_actions || []).concat(appDetail.service_actions || [])
+    },
     //是否可以管理应用
     canManageApp: function (appDetail) {
-        const activeAction = appDetail.tenant_actions || [];
+        const activeAction = this.getActions(appDetail);
         return activeAction.indexOf('manage_service') > -1;
+    },
+    //是否可以启动应用
+    canStopApp: function(appDetail){
+        const activeAction = appDetail.tenant_actions || [];
+        return activeAction.indexOf('stop_service') > -1;
+    },
+    //是否可以启动应用
+    canStartApp: function(appDetail){
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('start_service') > -1;
+    },
+    //是否可以重启应用
+    canRestartApp: function(appDetail){
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('restart_service') > -1;
     },
     //是否可以删除
     canDelete: function (appDetail) {
-        const activeAction = appDetail.tenant_actions || [];
+        const activeAction = this.getActions(appDetail);
         return activeAction.indexOf('delete_service') > -1;
+    },
+    //是否可以管理容器
+    canManageContainter: function(appDetail){
+        
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_container') > -1;
     },
     //是否可以转移组
     canMoveGroup: function (appDetail) {
-        return true;
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_group') > -1;
+    },
+    //是否可以回滚
+    canRollback: function(appDetail){
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('rollback_service') > -1;
     },
     //是否可以部署应用
     canDeploy: function(appDetail){
-        const activeAction = appDetail.tenant_actions || [];
-        return activeAction.indexOf('code_deploy') > -1;
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('deploy_service') > -1;
     },
     //应用安装来源 source_code 源码 market 云市 docker_compose、docker_run、docker_image 镜像
     getInstallSource: function (appDetail) {
@@ -252,7 +283,39 @@ const appUtil = {
             'docker_image': '镜像'
         }
         return map[source] || '';
-    }
+    },
+    //是否可以对应用添加成员，修改成员，及删除成员 
+    canManageAppMember: function(appDetail){
+        const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_member_perms') > -1;
+    },
+    //是否管理应用的设置页面
+	canManageAppSetting(appDetail){
+		const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_config') > -1;
+    },
+    //是否管理应用插件页面
+	canManageAppPlugin(appDetail){
+		const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_plugin') > -1;
+    },
+    //是否管理应用伸缩页面
+	canManageAppExtend(appDetail){
+		const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_extend') > -1;
+    },
+    //是否管理应用监控页面
+	canManageAppMonitor(appDetail){
+        return true;
+		const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_monitor') > -1;
+    },
+    //是否管理应用日志页面
+	canManageAppLog(appDetail){
+        return true;
+		const activeAction = this.getActions(appDetail);
+        return activeAction.indexOf('manage_service_log') > -1;
+	}
 
 }
 

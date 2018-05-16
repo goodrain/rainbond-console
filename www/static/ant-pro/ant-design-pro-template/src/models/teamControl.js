@@ -4,7 +4,7 @@ import {
   deleteTeam,
   getTeamPermissions,
   removeMember,
-  editMemberPermission,
+  editMember,
   moveTeam,
   addMember,
   createTeam,
@@ -133,11 +133,11 @@ export default {
         callback && callback();
       }
     },
-    *editAction({
+    *editMember({
       payload,
       callback
     }, {call, put}) {
-      const response = yield call(editMemberPermission, payload);
+      const response = yield call(editMember, payload);
       if (response && !response.status) {
         callback && callback();
       }

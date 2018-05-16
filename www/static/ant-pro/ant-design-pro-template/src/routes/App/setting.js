@@ -28,12 +28,15 @@ import KVinput from '../../components/KVinput';
 import SetMemberAppAction from '../../components/SetMemberAppAction';
 import {getCodeBranch, setCodeBranch} from '../../services/app';
 import teamUtil from '../../utils/team';
-import TeamPermissionSelect from '../../components/TeamPermissionSelect'
+import RolePermsSelect from '../../components/RolePermsSelect'
 import ScrollerX from '../../components/ScrollerX';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import appProbeUtil from '../../utils/appProbe-util';
 import appUtil from '../../utils/app';
+import userUtil from '../../utils/user';
+import NoPermTip from '../../components/NoPermTip';
+
 const {Description} = DescriptionList;
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -80,7 +83,7 @@ class EditActions extends PureComponent {
                   message: '不能为空!'
                 }
               ]
-            })(<TeamPermissionSelect options={actions}/>)}
+            })(<RolePermsSelect showGroupName={false} hides={['团队相关']} datas={actions} />)}
           </FormItem>
 
         </Form>
@@ -953,6 +956,7 @@ export default class Index extends PureComponent {
     }
   }
   componentDidMount() {
+    if(!this.canView()) return;
     const {dispatch} = this.props;
     this
       .props
@@ -974,6 +978,10 @@ export default class Index extends PureComponent {
     dispatch({type: 'appControl/clearStartProbe'})
     dispatch({type: 'appControl/clearRunningProbe'})
     dispatch({type: 'appControl/clearMembers'})
+  }
+   //是否可以浏览当前界面
+   canView(){
+    return appUtil.canManageAppSetting(this.props.appDetail);
   }
   fetchBaseInfo = () => {
     const {dispatch} = this.props;
@@ -1079,7 +1087,7 @@ export default class Index extends PureComponent {
     this.setState({showAddMember: false})
   }
   handleAddMember = (values) => {
-
+    console.log(values)
     this
       .props
       .dispatch({
@@ -1380,6 +1388,9 @@ export default class Index extends PureComponent {
       })
   }
   render() {
+
+    if(!this.canView()) return <NoPermTip />;
+
     var self = this;
     const formItemLayout = {
       labelCol: {
@@ -1687,6 +1698,9 @@ export default class Index extends PureComponent {
               title: '操作',
               dataIndex: 'action',
               render(val, data) {
+
+                if(!appUtil.canManageAppMember(this.props.appDetail)) return null;
+
                 return <div>
                   <a
                     onClick={() => {
@@ -1705,14 +1719,18 @@ export default class Index extends PureComponent {
             pagination={false}
             dataSource={members}/>
           </ScrollerX>
-          <div
-            style={{
-            marginTop: 10,
-            textAlign: 'right'
-          }}>
-            <Button onClick={this.showAddMember}><Icon type="plus"/>
-              设置成员应用权限</Button>
-          </div>
+          {
+            appUtil.canManageAppMember(this.props.appDetail) && 
+            <div
+              style={{
+              marginTop: 10,
+              textAlign: 'right'
+            }}>
+              <Button onClick={this.showAddMember}><Icon type="plus"/>
+                设置成员应用权限</Button>
+            </div>
+          }
+          
         </Card>
 
         {this.state.addTag && <AddTag

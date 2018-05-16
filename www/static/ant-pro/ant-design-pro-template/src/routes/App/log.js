@@ -11,6 +11,8 @@ import styles from './Log.less';
 import globalUtil from '../../utils/global';
 import { getMonitorLog, getMonitorWebSocketUrl, getHistoryLog } from '../../services/app';
 import AppLogSocket from '../../utils/appLogSocket';
+import NoPermTip from '../../components/NoPermTip';
+import appUtil from '../../utils/app';
 
 class History1000Log extends PureComponent {
     constructor(props){
@@ -169,10 +171,14 @@ export default class Index extends PureComponent {
   }
 
   componentDidMount() {
+    if(!this.canView()) return;
     const { dispatch } = this.props;
     this.loadLog();
     this.loadWebSocketUrl();
    
+  }//是否可以浏览当前界面
+  canView(){
+    return appUtil.canManageAppLog(this.props.appDetail);
   }
   loadLog(){
       getMonitorLog({
@@ -237,6 +243,7 @@ export default class Index extends PureComponent {
       this.setState({showHistory1000Log: false})
   }
   render() {
+    if(!this.canView()) return <NoPermTip />;
     const logs = this.state.logs;
     return (
      <Card

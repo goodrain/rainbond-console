@@ -105,10 +105,11 @@ export async function getTeamPermissions() {
 /*
 	修改成员角色
 */
-export async function editMemberRole(body = {
+export async function editMember(body = {
   team_name,
   user_name,
-  role_ids
+  role_ids,
+  user_name
 }) {
   return request(config.baseUrl + `/console/teams/${body.team_name}/${body.user_name}/mod-role`, {
     method: 'post',

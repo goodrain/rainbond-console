@@ -40,11 +40,28 @@ class TeamMemberTable extends PureComponent {
         width: '60%',
         render(val) {
           val = val ||[];
-          return <div>{
-            val.map((item)=>{
-                  return <Tag>{item.perm_info}</Tag>
-              })
-          }</div>
+          var category = {}, i=0;
+          for(;i<val.length;i++){
+            if(!category[val[i].group_name]){
+              category[val[i].group_name] = [val[i]]
+            }else{
+              category[val[i].group_name].push(val[i])
+            }
+          }
+          var keys = Object.keys(category);
+
+          return <div>
+            {keys.map((name) => {
+                return <dl>
+                    <dt>{name}</dt>
+                    <dd>{
+                    (category[name] || []).map((item)=>{
+                          return <Tag>{item.perm_info}</Tag>
+                      })
+                  }</dd>
+                  </dl>
+            })}
+          </div>
         }
       }, {
         title: '操作',
@@ -53,7 +70,7 @@ class TeamMemberTable extends PureComponent {
           return <div>
             
 
-            {1 && <a
+            {(!data.is_default && teamUtil.canEditRole(team)) &&  <a
               style={{
               marginRight: 8
             }}
@@ -62,7 +79,7 @@ class TeamMemberTable extends PureComponent {
             }}
               href="javascript:;">修改</a>
 }
-            {1 && <a
+            {(!data.is_default && teamUtil.canDelRole(team))  && <a
               href="javascript:;"
               onClick={() => {
               onDelete(data)

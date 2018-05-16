@@ -603,25 +603,25 @@ class Main extends PureComponent {
                         ? <VisitBtn app_alias={this.getAppAlias()}/>
                         : null}
 
-                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStart(status)
+                    {(appUtil.canStopApp(appDetail)) && !appStatusUtil.canStart(status)
                         ? <Button disabled={!appStatusUtil.canStop(status)} onClick={this.handleStop}>关闭</Button>
                         : null}
-                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStop(status)
+                    {(appUtil.canStartApp(appDetail)) && !appStatusUtil.canStop(status)
                         ? <Button disabled={!appStatusUtil.canStart(status)} onClick={this.handleStart}>启动</Button>
                         : null}
-                    {(appUtil.canManageApp(appDetail))
-                        ?
-                        (this.state.showreStartTips && appStatusUtil.canRestart(status))?
+                    
+                        {(this.state.showreStartTips && appUtil.canRestartApp(appDetail) && appStatusUtil.canRestart(status))?
                         <Tooltip title="应用配置已更改，重启后生效">
                              <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
-                        </Tooltip>
-                        :
-                        <Button
-                                disabled={!appStatusUtil.canRestart(status)}
-                                onClick={this.handleRestart}>重启</Button>
-                        : null
-}
-                    {(appUtil.canManageApp(appDetail)) && appStatusUtil.canManageDocker(status)
+                        </Tooltip> : null}
+
+                        {appUtil.canRestartApp(appDetail) && <Button
+                            disabled={!appStatusUtil.canRestart(status)}
+                            onClick={this.handleRestart}>重启</Button>}
+                        
+
+
+                    {(appUtil.canManageContainter(appDetail)) && appStatusUtil.canManageDocker(status)
                         ? <ManageContainer app_alias={appDetail.service.service_alias}/>
                         : null
 }
