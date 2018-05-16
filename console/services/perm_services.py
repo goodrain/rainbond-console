@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from console.repositories.user_repo import user_repo
-from console.repositories.perm_repo import service_perm_repo, perms_repo, role_perm_repo
+from console.repositories.perm_repo import service_perm_repo, perms_repo, role_perm_repo, role_repo
 from console.repositories.enterprise_repo import enterprise_repo
 import logging
 
@@ -108,7 +108,7 @@ class ServicePermService(object):
                 perm_info = {
                     "user_id": user_id,
                     "tenant_id": tenant.ID,
-                    "role_id": perms_repo.get_role_id_by_role_name("viewer"),
+                    "role_id": role_repo.get_role_id_by_role_name("viewer"),
                     "enterprise_id": enterprise.ID if enterprise else 0
                 }
                 perm_tenant = perms_repo.add_user_tenant_perm(perm_info)
