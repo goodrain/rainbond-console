@@ -2,7 +2,7 @@
 """
   Created on 18/3/5.
 """
-from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterApp,AppExportRecord
 
 
 class RainbondCenterAppRepository(object):
@@ -34,4 +34,18 @@ class RainbondCenterAppRepository(object):
         return None
 
 
+class AppExportRepository(object):
+    def get_export_record_by_unique_key(self, group_key, version, export_format):
+        return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
+
+    def create_app_export_record(self, **params):
+        return AppExportRecord.objects.create(**params)
+
+    def delete_by_key_and_version(self, group_key, version):
+        AppExportRecord.objects.filter(group_key=group_key, version=version).delete()
+
+    def get_by_key_and_version(self, group_key, version):
+        return AppExportRecord.objects.filter(group_key=group_key, version=version)
+
 rainbond_app_repo = RainbondCenterAppRepository()
+app_export_record_repo = AppExportRepository()

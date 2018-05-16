@@ -13,8 +13,7 @@ from console.services.common_services import common_services
 from console.services.event_services import service_event_dynamic
 from console.services.service_services import base_service
 from console.services.team_services import team_services
-from console.services.topological_services import topological_service
-from console.views.app_config.base import AppBaseView
+from www.utils.status_translate import get_status_info_map
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -339,18 +338,19 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
                         if service_status == "all":
                             service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                             status = status_cache.get(service["service_id"], "unknow")
-                            if status == "unknow" and service["create_status"] != "compelet":
+                            if status == "unknow" and service["create_status"] != "complete":
                                 service["status"] = "creating"
                                 service["status_cn"] = "创建中"
                             else:
                                 service["status"] = status_cache.get(service["service_id"], "unknow")
+                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                             if service["status"] == "closed" or service["status"] == "undeploy":
                                 service["min_memory"] = 0
                             result.append(service)
                         else:
                             if status_cache.get(service.service_id) == service_status:
                                 service["status"] = status_cache.get(service.service_id, "unknow")
-                                service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
+                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                                 if service["status"] == "closed" or service["status"] == "undeploy":
                                     service["min_memory"] = 0
                                 result.append(service)
