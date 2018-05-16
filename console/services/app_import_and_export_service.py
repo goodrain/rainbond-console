@@ -92,7 +92,8 @@ class AppExportService(object):
                     try:
                         res, body = region_api.get_app_export_status(region, team.tenant_name, export_record.event_id)
                         result_bean = body["bean"]
-                        export_record.status = result_bean["status"]
+                        if result_bean in ("failed", "success"):
+                            export_record.status = result_bean["status"]
                         export_record.file_path = self.__get_down_url(region, result_bean["tar_file_href"])
                         export_record.save()
                     except Exception as e:
