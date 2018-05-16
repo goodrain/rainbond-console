@@ -398,7 +398,7 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
-          if(!!this.state.fileList[0].response){
+          if(this.state.fileList[0].response != undefined){
             this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || '';
           }
         }
