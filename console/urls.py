@@ -405,6 +405,6 @@ urlpatterns = patterns(
 
 
     # webhook测试
-    url(r'^webhook$', WebHooks.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhook', WebHooks.as_view()),
 
 )
