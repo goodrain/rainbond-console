@@ -105,7 +105,7 @@ class ConfirmModal extends PureComponent{
                 {...formItemLayout}
                 label="选择权限"
               >
-                {getFieldDecorator('options_ids', {
+                {getFieldDecorator('perm_ids', {
                     initialValue:[],
                     rules: [{
                       required: true,

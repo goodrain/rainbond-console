@@ -49,6 +49,7 @@ import {
     getDetail,
     getStatus
 } from '../../services/app';
+import ManageAppGuide from '../../components/ManageAppGuide';
 
 
 /*转移到其他应用组*/
@@ -728,6 +729,7 @@ class Main extends PureComponent {
                     groups={groups}
                     onOk={this.handleMoveGroup}
                     onCancel={this.hideMoveGroup}/>}
+                    <ManageAppGuide />
             </PageHeaderLayout>
         );
     }

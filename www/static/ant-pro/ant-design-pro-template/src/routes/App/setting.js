@@ -73,9 +73,9 @@ class EditActions extends PureComponent {
         onOk={this.handleSubmit}
         onCancel={this.onCancel}>
         <Form onSubmit={this.handleSubmit}>
-
+          
           <FormItem label="">
-            {getFieldDecorator('identity', {
+            {getFieldDecorator('perm_ids', {
               initialValue: value,
               rules: [
                 {
@@ -1343,7 +1343,7 @@ export default class Index extends PureComponent {
   hideEditAction = () => {
     this.setState({toEditAction: null})
   }
-  handleEditAction = ({identity}) => {
+  handleEditAction = (value) => {
     const team_name = globalUtil.getCurrTeamName();
     this
       .props
@@ -1353,7 +1353,7 @@ export default class Index extends PureComponent {
           team_name: team_name,
           user_id: this.state.toEditAction.user_id,
           app_alias: this.props.appAlias,
-          identity: identity
+          ...value
         },
         callback: () => {
           this.loadMembers();
@@ -1678,7 +1678,7 @@ export default class Index extends PureComponent {
           style={{
           marginBottom: 24
         }}
-          title={< Fragment > 成员应用权限 < Tooltip title = "成员的应用权限高于团队权限" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
+          title={< Fragment > 成员应用权限 < Tooltip title = "示例：成员所属角色包含 `启动`权限, 成员应用权限包含`关闭`权限，则该成员对该应用的最终权限为 `启动`+`关闭`" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
           <ScrollerX sm={600}>
           <Table
             columns={[
@@ -1689,15 +1689,21 @@ export default class Index extends PureComponent {
               title: '邮箱',
               dataIndex: 'email'
             }, {
-              title: '权限',
-              dataIndex: 'identity',
+              title: '操作权限',
+              width:'50%',
+              dataIndex: 'service_perms',
               render(val) {
-                return <span>{teamUtil.actionToCN([val])}</span>
+                var arr = val || []
+                return <span>{
+                  arr.map((item)=>{
+                    return <Tag>{item.perm_info}</Tag>
+                  })
+                }</span>
               }
             }, {
               title: '操作',
               dataIndex: 'action',
-              render(val, data) {
+              render :(val, data) => {
 
                 if(!appUtil.canManageAppMember(this.props.appDetail)) return null;
 
@@ -1772,7 +1778,9 @@ export default class Index extends PureComponent {
           onSubmit={this.handleEditAction}
           onCancel={this.hideEditAction}
           actions={teamControl.actions}
-          value={this.state.toEditAction.identity}/>}
+          value={this.state.toEditAction.service_perms.map((item)=>{
+            return item.id
+          })}/>}
         {this.state.viewRunHealth && <ViewRunHealthCheck
           title="运行时检查查看"
           data={this.state.viewRunHealth}
