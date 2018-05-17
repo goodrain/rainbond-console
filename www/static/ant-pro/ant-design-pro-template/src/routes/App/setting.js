@@ -981,7 +981,8 @@ export default class Index extends PureComponent {
   }
    //是否可以浏览当前界面
    canView(){
-    return appUtil.canManageAppSetting(this.props.appDetail);
+     return true;
+    //return appUtil.canManageAppSetting(this.props.appDetail);
   }
   fetchBaseInfo = () => {
     const {dispatch} = this.props;
