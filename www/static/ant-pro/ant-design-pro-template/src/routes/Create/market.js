@@ -39,6 +39,8 @@ import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
+import config from '../../config/config';
+
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
@@ -230,6 +232,21 @@ export default class Main extends PureComponent {
       })
   }
 
+  getExport = (app_id,format) => {
+    this
+      .props
+      .dispatch({
+        type: 'createApp/getExport',
+        payload: {
+          team_name:globalUtil.getCurrTeamName(),
+           app_id:app_id,
+           format:format
+        },
+        callback: ((data) => {
+          // message.success('操作成功，开始导出，请稍等！');
+        })
+      })
+  }
   
 
  queryExport = (item) => {
@@ -321,8 +338,10 @@ export default class Main extends PureComponent {
      var format = keyArr[0];
      var id = keyArr[1];
      var isexport = keyArr[2];
+     var team_name = globalUtil.getCurrTeamName()
      if(isexport =='success'){
-        console.log(id)
+        var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
+        window.open(newurl);
      }else if(isexport == 'loading'){
         message.info('正在导出，请稍后！');
      }else{
@@ -349,7 +368,7 @@ export default class Main extends PureComponent {
           if(appquery.status== 'success'){
             apptext = 'rainbond-app(点击下载)';
             appisSuccess = 'success';
-            appurl = appquery.file_path ;
+            // appurl = appquery.file_path ;
           }else if(appquery.status  == 'exporting'){
             apptext = 'rainbond-app(导出中)';
             appisSuccess = 'loading';
@@ -364,7 +383,7 @@ export default class Main extends PureComponent {
         if(composequery.status== 'success'){
           composetext = 'docker_compose(点击下载)';
           composeisSuccess = 'success';
-          composeurl = composequery.file_path ;
+          // composeurl = composequery.file_path ;
         }else if(composequery.status  == 'exporting'){
           composetext = 'docker_compose(导出中)';
           composeisSuccess = 'loading';
@@ -430,7 +449,7 @@ export default class Main extends PureComponent {
     }}>安装</span>
     ,
      <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
-       <a className="ant-dropdown-link" href="#" >
+       <a className="ant-dropdown-link" href="javascript:;" >
          导出<Icon type="down" />
        </a>
      </Dropdown>

@@ -213,3 +213,13 @@ export function appExport(body={team_name,app_id,format}){
      }
   });
 }
+
+
+/*
+   获取导出文件
+*/
+export async function getExport(body={team_name, app_id,format}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/apps/export/down?app_id=${body.app_id}&format=${body.format}`, {
+     method: 'get'
+  });
+}
