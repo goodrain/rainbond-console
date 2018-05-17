@@ -22,6 +22,8 @@ import {getRouterData} from '../../common/router'
 import {horizontal, vertical} from '../../services/app';
 import styles from './Log.less';
 import globalUtil from '../../utils/global';
+import appUtil from '../../utils/app';
+import NoPermTip from '../../components/NoPermTip';
 
 const {Option} = Select;
 
@@ -37,12 +39,17 @@ export default class Index extends PureComponent {
     }
 
     componentDidMount() {
+        if(!this.canView()) return;
         const {dispatch} = this.props;
         this.fetchExtendInfo();
     }
     componentWillUnmount() {
         const {dispatch} = this.props;
         dispatch({type: 'appControl/clearExtendInfo'})
+    }
+    //是否可以浏览当前界面
+    canView(){
+        return appUtil.canManageAppExtend(this.props.appDetail);
     }
     handleVertical = () => {
 
@@ -94,7 +101,7 @@ export default class Index extends PureComponent {
         })
     }
     render() {
-
+        if(!this.canView()) return <NoPermTip />;
         const {extendInfo} = this.props;
         const {getFieldDecorator} = this.props.form;
 

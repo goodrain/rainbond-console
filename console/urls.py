@@ -28,6 +28,7 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
+from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
@@ -382,6 +383,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
+    # 应用导出
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
+)
+
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),

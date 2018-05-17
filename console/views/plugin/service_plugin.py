@@ -211,6 +211,8 @@ class ServicePluginOperationView(AppBaseView):
             data["plugin_id"] = plugin_id
             data["switch"] = is_active
             data["version_id"] = build_version
+            data["plugin_memory"] = min_memory
+            data["plugin_cpu"] = min_cpu
             # 更新数据中心数据参数
             region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name,
                                                       self.service.service_alias, data)

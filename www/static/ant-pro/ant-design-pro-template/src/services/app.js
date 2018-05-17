@@ -1197,15 +1197,15 @@ export async function setMemberAction(body = {
 				team_name,
 				app_alias,
 				user_ids: [],
-				identity
+				perm_ids
 }) {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/perms`, {
-								method: 'patch',
+								method: 'post',
 								data: {
-												user_ids: body
-																.user_ids
-																.join(','),
-												identity: body.identity
+									user_ids: body
+											.user_ids
+											.join(','),
+									perm_ids: body.perm_ids
 								}
 				});
 }
@@ -1232,14 +1232,15 @@ export async function deleteMember(body = {
 export async function editMemberAction(body = {
 				team_name,
 				app_alias,
-				user_ids,
-				identity
+				user_id,
+				perm_ids
 }) {
+
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/perms`, {
 								method: 'put',
 								data: {
 												user_id: body.user_id,
-												identity: body.identity
+												perm_ids: body.perm_ids
 								}
 				});
 }

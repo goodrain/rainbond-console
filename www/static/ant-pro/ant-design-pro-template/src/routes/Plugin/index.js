@@ -5,10 +5,13 @@ import {Link, routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import globalUtil from '../../utils/global';
 import pluginUtil from '../../utils/plugin';
+import userUtil from '../../utils/user';
+import TeamUtil from '../../utils/team';
 import styles from './Index.less';
 import Ellipsis from '../../components/Ellipsis';
 import Manage from './manage';
 import ConfirmModal from '../../components/ConfirmModal';
+import NoPermTip from '../../components/NoPermTip';
 
 @connect(({list, loading}) => ({}))
 class PluginList extends PureComponent {
@@ -104,7 +107,7 @@ class PluginList extends PureComponent {
                   className={styles.card}
                   actions={[<Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>, <span onClick={()=>{this.onDeletePlugin(item)}}>删除</span>]}>
                   <Card.Meta
-                    style={{height: 97, overflow: 'hidden'}}
+                    style={{height: 99, overflow: 'hidden'}}
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={< Link to = {
                     `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`
@@ -138,8 +141,15 @@ class PluginList extends PureComponent {
   }
 }
 
-export default class Index extends PureComponent {
+@connect(({user}) => ({currUser: user.currentUser}))
+class Index extends PureComponent {
   render() {
+    const currUser = this.props.currUser;
+    const team_name = globalUtil.getCurrTeamName();
+    const team = userUtil.getTeamByTeamName(currUser, team_name);
+    if(!TeamUtil.canManagePlugin(team)){
+       return <NoPermTip />
+    }
     const pluginId = this.props.match.params.pluginId;
     if (pluginId) {
       return <Manage {...this.props}/>
@@ -148,3 +158,5 @@ export default class Index extends PureComponent {
     }
   }
 }
+
+export default Index;

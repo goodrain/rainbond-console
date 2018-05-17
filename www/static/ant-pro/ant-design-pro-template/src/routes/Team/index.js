@@ -15,8 +15,10 @@ import {
   Input
 } from 'antd';
 import TeamMemberTable from '../../components/TeamMemberTable';
+import TeamRoleTable from '../../components/TeamRoleTable';
 import ConfirmModal from '../../components/ConfirmModal';
 import AddMember from '../../components/AddMember';
+import AddRole from '../../components/AddRole';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import TeamPermissionSelect from '../../components/TeamPermissionSelect';
 import styles from './index.less';
@@ -28,7 +30,6 @@ import cookie from '../../utils/cookie';
 import {routerRedux} from 'dva/router';
 import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
-
 @Form.create()
 class MoveTeam extends PureComponent {
   handleSubmit = (e) => {
@@ -141,15 +142,42 @@ export default class Index extends PureComponent {
       page: 1,
       pageSize: 8,
       total: 0,
-      members: []
+      members: [],
+      roles:[],
+      rolePage: 1,
+      roleTotal: 0,
+      rolePageSize: 8,
+      showAddRole: false,
+      deleteRole: null,
+      editRole: null
     }
   }
   componentDidMount() {
     this.loadMembers();
+    this.loadRoles();
     this
       .props
       .dispatch({type: 'teamControl/fetchAllPerm'})
     this.fetchRegions();
+  }
+  loadRoles = () => {
+    const {dispatch} = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    const region_name = globalUtil.getCurrRegionName();
+    dispatch({
+      type: 'teamControl/getRoles',
+      payload: {
+        team_name: team_name,
+        page_size: this.state.pageSize,
+        page: this.state.page
+      },
+      callback: (data) => {
+        this.setState({
+          roles: data.list || [],
+          roleTotal: data.total
+        })
+      }
+    })
   }
   loadMembers = () => {
     const {dispatch} = this.props;
@@ -195,7 +223,28 @@ export default class Index extends PureComponent {
   hideAddMember = () => {
     this.setState({showAddMember: false})
   }
-
+  showAddRole = () => {
+    this.setState({showAddRole: true})
+  }
+  hideAddRole = () => {
+    this.setState({showAddRole: false})
+  }
+  handleAddRole = (values) => {
+    const team_name = globalUtil.getCurrTeamName();
+    this
+      .props
+      .dispatch({
+        type: 'teamControl/createRole',
+        payload: {
+          team_name,
+          ...values
+        },
+        callback: () => {
+          this.loadRoles();
+          this.hideAddRole();
+        }
+      })
+  }
   showExitTeam = () => {
     this.setState({showExitTeam: true})
   }
@@ -274,7 +323,7 @@ export default class Index extends PureComponent {
               return item.key
             })
             .join(','),
-          identity: values.identity
+          role_ids: values.role_ids.join(',')
         },
         callback: () => {
           this.loadMembers();
@@ -312,16 +361,16 @@ export default class Index extends PureComponent {
   hideEditAction = () => {
     this.setState({toEditAction: null})
   }
-  handleEditAction = ({identity}) => {
+  handleEditAction = (data) => {
     const team_name = globalUtil.getCurrTeamName();
     this
       .props
       .dispatch({
-        type: 'teamControl/editAction',
+        type: 'teamControl/editMember',
         payload: {
           team_name: team_name,
-          user_name: this.state.toEditAction.user_name,
-          identitys: identity
+          user_name: data.user_name,
+          role_ids: data.role_ids.join(',')
         },
         callback: () => {
           this.loadMembers();
@@ -382,6 +431,58 @@ export default class Index extends PureComponent {
       this.loadMembers();
     })
   }
+  hanldeRolePageChange = (page) => {
+    this.setState({
+      rolePage: page
+    }, () => {
+      this.loadRoles();
+    })
+  }
+  onEditRole = (item) => {
+    this.setState({editRole: item})
+  }
+  handleEditRole = (values) => {
+    const team_name = globalUtil.getCurrTeamName();
+    this
+      .props
+      .dispatch({
+        type: 'teamControl/editRole',
+        payload: {
+          team_name: team_name,
+          role_id: this.state.editRole.role_id,
+          ...values
+        },
+        callback: () => {
+           this.hideEditRole();
+           this.loadRoles();
+        }
+      })
+  }
+  hideEditRole = () => {
+    this.setState({editRole: null})
+  }
+  onDelRole = (item) => {
+    this.setState({deleteRole: item})
+  }
+  handleDelRole = () => {
+    const team_name = globalUtil.getCurrTeamName();
+    this
+      .props
+      .dispatch({
+        type: 'teamControl/removeRole',
+        payload: {
+          team_name: team_name,
+          role_id: this.state.deleteRole.role_id
+        },
+        callback: () => {
+           this.hideDelRole();
+           this.loadRoles();
+        }
+      })
+  }
+  hideDelRole = () => {
+    this.setState({deleteRole: null})
+  }
   render() {
     const {
       index,
@@ -394,6 +495,7 @@ export default class Index extends PureComponent {
 
     const team_name = globalUtil.getCurrTeamName();
     const team = userUtil.getTeamByTeamName(currUser, team_name);
+    const roles = this.state.roles;
 
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
@@ -431,6 +533,15 @@ export default class Index extends PureComponent {
       }
     };
 
+    const RolePagination = {
+      current: this.state.page,
+      pageSize: this.state.pageSize,
+      total: this.state.total,
+      onChange: (v) => {
+        this.hanldeRolePageChange(v);
+      }
+    };
+
     return (
       
       <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
@@ -441,7 +552,7 @@ export default class Index extends PureComponent {
         }}
           title="已开通数据中心"
           bordered={false}
-          extra={(team.identity === 'owner' || team.identity === 'admin') ? < a href = "javascript:;" onClick = {
+          extra={teamUtil.canAddRegion(team) ? < a href = "javascript:;" onClick = {
           this.onOpenRegion
         } > 开通数据中心 < /a> : null}
           loading={projectLoading}
@@ -482,6 +593,9 @@ export default class Index extends PureComponent {
         </Card>
 
         <Card
+          style={{
+            marginBottom: 24
+          }}
           bodyStyle={{
           paddingTop: 12
         }}
@@ -500,6 +614,24 @@ export default class Index extends PureComponent {
               list={members}/>
           </ScrollerX>
         </Card>
+
+        <Card
+        bodyStyle={{
+        paddingTop: 12
+        }}
+        bordered={false}
+        title="角色管理 "
+        extra={teamUtil.canAddRole(team) && <a href="javascript:;" onClick={this.showAddRole}>添加角色</a>}>
+        <ScrollerX sm={600}>
+          <TeamRoleTable
+            pagination={RolePagination}
+            team={team}
+            onDelete={this.onDelRole}
+            onEdit={this.onEditRole}
+            list={roles}/>
+        </ScrollerX>
+        </Card>
+
         {this.state.showEditName && <MoveTeam
           teamAlias={team.team_alias}
           onSubmit={this.handleEditName}
@@ -528,15 +660,38 @@ export default class Index extends PureComponent {
           subDesc="移交后您将失去所有权"
           desc={"确定要把团队移交给 " + this.state.toMoveTeam.user_name + " 吗？"}
           onCancel={this.hideMoveTeam}/>}
+
         {this.state.showAddMember && <AddMember
-          actions={teamControl.actions}
+          roles={this.state.roles}
           onOk={this.handleAddMember}
           onCancel={this.hideAddMember}/>}
-        {this.state.toEditAction && <EditActions
-          onSubmit={this.handleEditAction}
-          onCancel={this.hideEditAction}
-          actions={teamControl.actions}
-          value={this.state.toEditAction.identity}/>}
+
+          {this.state.toEditAction && <AddMember
+            roles={this.state.roles}
+            data={this.state.toEditAction}
+            onOk={this.handleEditAction}
+            onCancel={this.hideEditAction}/>}
+
+
+          {this.state.showAddRole && <AddRole
+            actions={teamControl.actions}
+            onOk={this.handleAddRole}
+            onCancel={this.hideAddRole}/>}
+
+            {this.state.editRole && <AddRole
+              data={this.state.editRole}
+              actions={teamControl.actions}
+              onOk={this.handleEditRole}
+              onCancel={this.hideEditRole}/>}
+
+            {this.state.deleteRole && <ConfirmModal
+              onOk={this.handleDelRole}
+              title="删除角色"
+              subDesc="此操作不可恢复"
+              desc={"确定要删除角色 （" + this.state.deleteRole.role_name + "） 吗？"}
+              onCancel={this.hideDelRole}/>}
+
+
         {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
       </PageHeaderLayout>
     );

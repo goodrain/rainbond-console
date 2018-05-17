@@ -38,7 +38,6 @@ import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
-import Mask from '../../components/Guide/mask';
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
@@ -282,9 +281,11 @@ export default class Main extends PureComponent {
      className={PluginStyles.card}
      actions={[<span onClick={() => {
        this.showCreate(item)
-     }}>安装</span>,<span onClick={() => {
-       this.onUpload()
-     }}>导出</span>]}>
+     }}>安装</span>
+    //  ,<span onClick={() => {
+    //    this.onUpload()
+    //  }}>导出</span>
+     ]}>
      <Card.Meta
          style={{height: 112, overflow: 'hidden'}}
          avatar={< img style = {{width: 110, height: 110, margin:' 0 auto'}}alt = {
@@ -364,7 +365,6 @@ export default class Main extends PureComponent {
           style={{
           width: 522
         }}/>
-        {/* <Mask target={"#"+this.state.target} /> */}
         </span>
       </div>
     );
@@ -391,9 +391,9 @@ export default class Main extends PureComponent {
         tabList={tabList}
         tabActiveKey={this.state.scope}
         onTabChange={this.handleTabChange}>
-          <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
+          {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
-          </div>
+          </div> */}
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
@@ -402,7 +402,7 @@ export default class Main extends PureComponent {
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
           {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload} />}
-          
+          {/* <GuideManager /> */}
       </PageHeaderLayout>
     );
   }
