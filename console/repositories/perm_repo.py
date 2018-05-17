@@ -163,6 +163,14 @@ class RoleRepo(object):
 
         return role_obj
 
+    def team_user_is_exist_by_role_id_tenant_name(self, role_id, tenant_name):
+        """判断团队中一个角色是否有绑定的人"""
+        tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name)
+        if not tenant:
+            raise Tenants.DoesNotExist
+        return PermRelTenant.objects.filter(tenant_id=tenant.ID, role_id=role_id)
+
+
     def get_role_name_by_role_id(self, role_id):
         """获取角色名称"""
         return TenantUserRole.objects.get(pk=role_id).role_name

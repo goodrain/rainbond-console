@@ -157,6 +157,13 @@ class TeamDelRoleView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "failed", "该角色不存在")
                 return Response(result, status=code)
+
+            if role_repo.team_user_is_exist_by_role_id_tenant_name(role_id=role_id, tenant_name=team_name):
+                code = 400
+                result = general_message(code, "failed", "有团队成员拥有该角色，不能删除")
+                return Response(result, status=code)
+
+
             try:
                 team_services.del_role_by_team_name_role_name_role_id(tenant_name=team_name,
                                                                       role_id=role_id)
