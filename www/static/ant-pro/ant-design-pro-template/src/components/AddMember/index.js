@@ -1,5 +1,5 @@
 import React, { PureComponent } from 'react';
-import { Button, Icon, Modal, Form, Checkbox, Select } from 'antd';
+import { Button, Icon, Modal, Form, Checkbox, Select, Input } from 'antd';
 import { getTeamPermissions } from '../../services/team';
 
 const Option = Select.Option;
@@ -19,6 +19,7 @@ class ConfirmModal extends PureComponent{
 
    }
    handleSubmit= () => {
+      
        this.props.form.validateFields((err, values) => {
         if (!err) {
           this.props.onOk && this.props.onOk(values);
@@ -27,8 +28,8 @@ class ConfirmModal extends PureComponent{
    }
    render(){
       const { getFieldDecorator } = this.props.form;
-      const { onOk, onCancel, actions}= this.props;
-
+      const { onOk, onCancel}= this.props;
+      const data = this.props.data;
       const formItemLayout = {
         labelCol: {
           xs: { span: 24 },
@@ -51,8 +52,6 @@ class ConfirmModal extends PureComponent{
           },
         },
       };
-
-      const options = actions || [];
       const roles = this.props.roles || [];
 
       return (
@@ -64,28 +63,47 @@ class ConfirmModal extends PureComponent{
           >
 
              <Form onSubmit={this.handleSubmit}>
-              <FormItem
-                {...formItemLayout}
-                label="选择用户"
-                hasFeedback
-              >
-                {getFieldDecorator('user_ids', {
-                    rules: [{
-                      required: true,
-                      message: '请选择要添加的用户',
-                    }],
-                  })(
-                    <UserSelect />
-                )}
-                
-              </FormItem>
+              {
+                 data ? 
+                 <FormItem
+                  {...formItemLayout}
+                  label="用户名"
+                  hasFeedback
+                >
+                  {getFieldDecorator('user_name', {
+                      initialValue: data.user_name || '',
+                      rules: [{
+                        required: false,
+                        message: '请输入用户名称',
+                      }],
+                    })(
+                      <Input disabled placeholder="请输入用户名称" />
+                  )}
+                </FormItem>
+                :
+                <FormItem
+                  {...formItemLayout}
+                  label="选择用户"
+                  hasFeedback
+                >
+                  {getFieldDecorator('user_ids', {
+                      rules: [{
+                        required: true,
+                        message: '请选择要添加的用户',
+                      }],
+                    })(
+                      <UserSelect />
+                  )}
+                </FormItem>
+              }
+              
 
               <FormItem
                 {...formItemLayout}
                 label="选择角色"
               >
                 {getFieldDecorator('role_ids', {
-                    initialValue:[],
+                    initialValue:data ? data.role_info.map((item)=>{return item.role_id}) : [],
                     rules: [{
                       required: true,
                       message: '请选择角色',

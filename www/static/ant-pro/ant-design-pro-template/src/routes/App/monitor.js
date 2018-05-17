@@ -41,6 +41,8 @@ const ButtonGroup = Button.Group;
 const {RangePicker} = DatePicker;
 import monitorDataUtil from '../../utils/monitorDataUtil';
 import ScrollerX from '../../components/ScrollerX';
+import NoPermTip from '../../components/NoPermTip';
+import appUtil from '../../utils/app';
 
 class Empty extends PureComponent {
   render() {
@@ -69,6 +71,7 @@ class MonitorHistory extends PureComponent {
     return 60 * 60 * houer / 20 + 's';
   }
   componentDidMount() {
+    
     this.mounted = true;
     this.inerval = 10000;
     this.fetchRequestTimeRange();
@@ -78,6 +81,7 @@ class MonitorHistory extends PureComponent {
   componentWillUnmount() {
     this.mounted = false;
   }
+  
   fetchRequestTimeRange() {
     if (!this.mounted)
       return;
@@ -562,8 +566,14 @@ export default class Index extends PureComponent {
       anaPlugins: null
     }
   }
+
   componentDidMount() {
+    if(!this.canView()) return;
     this.getAnalyzePlugins();
+  }
+  //是否可以浏览当前界面
+  canView(){
+    return appUtil.canManageAppMonitor(this.props.appDetail);
   }
   getAnalyzePlugins() {
     this
@@ -586,6 +596,7 @@ export default class Index extends PureComponent {
     }
   }
   render() {
+    if(!this.canView()) return <NoPermTip />;
     const {type, anaPlugins} = this.state;
     const {appDetail} = this.props;
 

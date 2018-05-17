@@ -339,12 +339,20 @@ class Main extends PureComponent {
           <Dropdown
             overlay={(
             <Menu>
-              <Menu.Item>
-                <a onClick={this.toEdit} href="javascript:;">修改组名</a>
-              </Menu.Item>
-              <Menu.Item>
-                <a onClick={this.toDelete} href="javascript:;">删除当前组</a>
-              </Menu.Item>
+              {
+                teamUtil.canManageGroup(team) && 
+                <Menu.Item>
+                  <a onClick={this.toEdit} href="javascript:;">修改组名</a>
+                </Menu.Item>
+              }
+              {
+                teamUtil.canManageGroup(team) && 
+                <Menu.Item>
+                  <a onClick={this.toDelete} href="javascript:;">删除当前组</a>
+                </Menu.Item>
+              }
+              
+              
               <Menu.Item>
                 <a onClick={this.toAdd} href="javascript:;">新增组</a>
               </Menu.Item>

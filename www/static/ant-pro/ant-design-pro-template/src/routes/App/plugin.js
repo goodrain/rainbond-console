@@ -29,8 +29,12 @@ import DescriptionList from '../../components/DescriptionList';
 
 import styles from './basicList.less';
 import globalUtil from '../../utils/global';
+import teamUtil from '../../utils/team';
+import userUtil from '../../utils/user';
 import pluginUtil from '../../utils/plugin';
 import appPluginUtil from '../../utils/appPlugin';
+import NoPermTip from '../../components/NoPermTip';
+import appUtil from '../../utils/app';
 
 const {Description} = DescriptionList;
 const Option = Select.Option;
@@ -370,8 +374,12 @@ export default class Index extends PureComponent {
   }
 
   componentDidMount() {
+    if(!this.canView()) return;
     this.getPlugins();
-
+  }
+  //是否可以浏览当前界面
+  canView(){
+    return appUtil.canManageAppPlugin(this.props.appDetail);
   }
   getPlugins = () => {
     var team_name = globalUtil.getCurrTeamName();
@@ -680,6 +688,7 @@ export default class Index extends PureComponent {
         })
   }
   render() {
+    if(!this.canView()) return <NoPermTip />;
     var type = this.state.type;
     return (
       <Card>

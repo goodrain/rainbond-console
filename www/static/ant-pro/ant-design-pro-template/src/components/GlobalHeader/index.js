@@ -21,6 +21,7 @@ import styles from './index.less';
 import cookie from '../../utils/cookie';
 import userIcon from '../../../public/images/user-icon-small.png';
 import ScrollerX from '../../components/ScrollerX';
+import teamUtil from '../../utils/team';
 
 const {Header} = Layout;
 
@@ -113,7 +114,7 @@ export default class GlobalHeader extends PureComponent {
                 })
 }
                 <Menu.Divider/>
-                {(team.identity === 'owner' || team.identity === 'admin') && <Menu.Item key={'openRegion'}><Icon type="plus"/>开通数据中心</Menu.Item>}
+                {teamUtil.canAddRegion(team) && <Menu.Item key={'openRegion'}><Icon type="plus"/>开通数据中心</Menu.Item>}
             </Menu>
         }
         return <Menu/>;
