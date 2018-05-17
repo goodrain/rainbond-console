@@ -6,17 +6,18 @@ import datetime
 import json
 import logging
 import urllib2
-import contextlib
+
+import requests
 
 from console.repositories.group import group_repo
 from console.repositories.market_app_repo import app_export_record_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
+from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from www.apiclient.baseclient import  client_auth_service
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -129,6 +130,47 @@ class AppExportService(object):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                       export_format)
 
+    def download_from_region(self, export_format, tenant_name, app):
+        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+                                                                               export_format)
+        region = self.get_app_share_region(app)
+
+        download_url = self.__get_down_url(region, export_record.file_path)
+        file_name = export_record.file_path.split("/")[-1]
+        url, token = client_auth_service.get_region_access_token_by_tenant(
+            tenant_name, region)
+        if not token:
+            region_info = region_repo.get_region_by_region_name(region)
+            if region_info:
+                token = region_info.token
+        if token:
+            headers = {"Authorization": "Token {}".format(token)}
+        else:
+            headers = {"Authorization": ""}
+
+        resp = requests.get(download_url, stream=True, headers=headers)
+        logger.debug("==========> {0}".format(type(resp)))
+        return resp, file_name
+
+    # def get_header_and_file_name(self, export_format, tenant_name, app):
+    #     export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+    #                                                                            export_format)
+    #     region = self.get_app_share_region(app)
+    #
+    #     download_url = self.__get_down_url(region, export_record.file_path)
+    #     # file_name = export_record.file_path.split("/")[-1]
+    #     url, token = client_auth_service.get_region_access_token_by_tenant(
+    #         tenant_name, region)
+    #     if not token:
+    #         region_info = region_repo.get_region_by_region_name(region)
+    #         if region_info:
+    #             token = region_info.token
+    #     if token:
+    #         headers = {"Authorization":"Token {}".format(token)}
+    #     else:
+    #         headers = {"Authorization": ""}
+    #     return headers,download_url
+
     def get_file_down_req(self, export_format, tenant_name, app):
         export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                                export_format)
@@ -147,20 +189,7 @@ class AppExportService(object):
         if token:
             req.add_header("Authorization", "Token {}".format(token))
 
-        # with contextlib.closing(urllib2.urlopen(req)) as f:
-        #
-        # resp = urllib2.urlopen(req)
-        # return resp
-        return req,file_name
-
-    def file_iterator(self, req, chunk_size=2048):
-        with contextlib.closing(urllib2.urlopen(req)) as f:
-            while True:
-                c = f.read(chunk_size)
-                if c:
-                    yield c
-                else:
-                    break
+        return req, file_name
 
 
 export_service = AppExportService()

@@ -4,16 +4,19 @@
 """
 import logging
 
+from django.http import FileResponse
+from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 import urllib2
 import contextlib
+import requests
 
 from console.exception.main import ResourceNotEnoughException
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderView, AlowAnyApiView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 
@@ -108,12 +111,11 @@ class CenterAppExportView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class ExportFileDownLoadView(RegionTenantHeaderView):
+class ExportFileDownLoadView(AlowAnyApiView):
     @never_cache
-    @perm_required("view_service")
-    def get(self, request, *args, **kwargs):
+    def get(self, request, tenantName, *args, **kwargs):
         """
-        获取应用导出状态
+        下载应用包
         ---
         parameters:
             - name: tenantName
@@ -153,23 +155,23 @@ class ExportFileDownLoadView(RegionTenantHeaderView):
                     return Response(general_message(400, "export failed", "应用导出失败，请重试"), status=400)
                 if export_record.status == "exporting":
                     return Response(general_message(400, "exporting", "应用正在导出中，请稍后重试"), status=400)
-            req, file_name = export_service.get_file_down_req(export_format, self.tenant.tenant_name, app)
 
-            def file_iterator(r, chunk_size=2048):
-                with contextlib.closing(urllib2.urlopen(r)) as f:
-                    while True:
-                        c = f.read(chunk_size)
-                        if c:
-                            yield c
-                        else:
-                            break
+            req, file_name = export_service.get_file_down_req(export_format, tenantName, app)
 
-            response = StreamingHttpResponse(file_iterator(req))
+            response = StreamingHttpResponse(self.file_iterator(req))
             response['Content-Type'] = 'application/octet-stream'
             response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
-
             return response
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=result["code"])
+
+    def file_iterator(self, r, chunk_size=2048):
+        with contextlib.closing(urllib2.urlopen(r)) as f:
+            while True:
+                c = f.read(chunk_size)
+                if c:
+                    yield c
+                else:
+                    break
