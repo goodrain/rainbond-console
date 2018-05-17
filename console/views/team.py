@@ -416,6 +416,16 @@ class UserDelView(JWTAuthApiView):
             if request.user.user_id in user_id_list:
                 result = general_message(400, "failed", "不能删除自己")
                 return Response(result, status=400)
+
+            for user_id in user_id_list:
+                print user_id
+                role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=user_id, tenant_name=team_name)
+                identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user_id,
+                                                                                    tenant_name=team_name)
+                print role_name_list
+                if "owner" in role_name_list or "owner" in identity_list:
+                    result = general_message(400, "failed", "不能删除团队创建者！")
+                    return Response(result, status=400)
             try:
                 user_services.batch_delete_users(team_name, user_id_list)
                 result = general_message(200, "delete the success", "删除成功")

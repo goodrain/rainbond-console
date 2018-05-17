@@ -385,8 +385,6 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
-)
-
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
