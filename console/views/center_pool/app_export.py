@@ -6,6 +6,9 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from django.http import StreamingHttpResponse
+import urllib2
+import contextlib
 
 from console.exception.main import ResourceNotEnoughException
 from console.services.app_import_and_export_service import export_service
@@ -103,3 +106,70 @@ class CenterAppExportView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class ExportFileDownLoadView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("view_service")
+    def get(self, request, *args, **kwargs):
+        """
+        获取应用导出状态
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: format
+              description: 导出类型 rainbond-app | docker-compose
+              required: true
+              type: string
+              paramType: form
+            - name: app_id
+              description: rainbond app id
+              required: true
+              type: string
+              paramType: query
+
+        """
+        try:
+            app_id = request.GET.get("app_id", None)
+            export_format = request.GET.get("format", None)
+            if not app_id:
+                return Response(general_message(400, "app id is null", "请指明需要下载的应用"), status=400)
+            if not export_format or export_format not in ("rainbond-app", "docker-compose",):
+                return Response(general_message(400, "export format is illegal", "请指明下载的格式"), status=400)
+
+            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
+            if not app:
+                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+
+            export_record = export_service.get_export_record(export_format, app)
+            if not export_record:
+                return Response(general_message(400, "no export records", "该应用无导出记录，无法下载"), status=400)
+            if export_record.status != "success":
+                if export_record.status == "failed":
+                    return Response(general_message(400, "export failed", "应用导出失败，请重试"), status=400)
+                if export_record.status == "exporting":
+                    return Response(general_message(400, "exporting", "应用正在导出中，请稍后重试"), status=400)
+            req, file_name = export_service.get_file_down_req(export_format, self.tenant.tenant_name, app)
+
+            def file_iterator(r, chunk_size=2048):
+                with contextlib.closing(urllib2.urlopen(r)) as f:
+                    while True:
+                        c = f.read(chunk_size)
+                        if c:
+                            yield c
+                        else:
+                            break
+
+            response = StreamingHttpResponse(file_iterator(req))
+            response['Content-Type'] = 'application/octet-stream'
+            response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
+
+            return response
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])

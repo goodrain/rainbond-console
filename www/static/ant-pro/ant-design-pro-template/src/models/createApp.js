@@ -1,4 +1,4 @@
-import { createAppByCode, createAppByCompose, createAppByDockerrun, getMarketApp, installApp,
+import { createAppByCode, createAppByCompose, createAppByDockerrun, getMarketApp, installApp , queryExport,appExport,
 getAppsByComposeId } from '../services/createApp';
 
 export default {
@@ -54,8 +54,21 @@ export default {
       if(data){
           callback && callback(data);
       }
+    },
+    *queryExport({payload, callback}, {call, put}) {
+      const data = yield call(queryExport, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *appExport({payload, callback}, {call, put}) {
+      const data = yield call(appExport, payload);
+      if(data){
+          callback && callback(data);
+      }
     }
   },
+ 
   reducers: {
     saveRuntimeInfo(state, {payload}){
        console.log(payload)
