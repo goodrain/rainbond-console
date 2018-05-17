@@ -36,8 +36,8 @@ class EvnOption extends React.Component {
           return;
       }
 
-      if(!/^[a-zA-Z]+$/g.test(value||'')){
-          callback("大小写英文");
+      if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(value||'')){
+          callback("大小写英文_");
           return;
       }
       callback()
@@ -353,7 +353,7 @@ export default class Index extends PureComponent {
             >
               {getFieldDecorator('config_name', {
                 initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }],
+                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
                 validateFirst: true
               })(
                 <Input placeholder="请输入配置组名" />

@@ -18,7 +18,8 @@ import {
   Input,
   Pagination,
   Modal,
-  Upload
+  Upload,
+  message
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import {getRoutes} from '../../utils/utils';
@@ -38,12 +39,14 @@ import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
+import config from '../../config/config';
+
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
-
 //上传文件
+
 @Form.create()
 class UploadFile extends PureComponent {
     constructor(props){
@@ -91,7 +94,6 @@ class UploadFile extends PureComponent {
       });
     }
     handleCheck = (rule, value, callback) => {
-        console.log(this.state.fileList)
         if(!this.state.fileList.length){
               callback("请选择应用模板文件")
               return;
@@ -146,8 +148,6 @@ class UploadFile extends PureComponent {
     }
 }
 
-
-
 @connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 @Form.create()
 export default class Main extends PureComponent {
@@ -163,7 +163,9 @@ export default class Main extends PureComponent {
       pageSize: 9,
       total: 0,
       showUpload: false,
-      target: 'searchWrap'
+      target: 'searchWrap',
+      visiblebox:{},
+      querydatabox:{}
     }
   }
   componentDidMount() {
@@ -184,6 +186,8 @@ export default class Main extends PureComponent {
     })
   }
   getApps = (v) => {
+    var datavisible = {};
+    var dataquery = {};
     this
       .props
       .dispatch({
@@ -195,13 +199,75 @@ export default class Main extends PureComponent {
           page: this.state.page
         },
         callback: ((data) => {
+          if(data.list.length != 0){
+            data.list.map((app)=>{
+              datavisible[app.ID] = false;
+              dataquery[app.ID] = {};
+            })
+          }
           this.setState({
             list: data.list || [],
-            total: data.total
+            total: data.total,
+            visiblebox:datavisible,
+            querydatabox:dataquery
           })
         })
       })
   }
+
+
+  appExport = (app_id,format) => {
+    this
+      .props
+      .dispatch({
+        type: 'createApp/appExport',
+        payload: {
+          team_name:globalUtil.getCurrTeamName(),
+           app_id:app_id,
+           format:format
+        },
+        callback: ((data) => {
+          message.success('操作成功，开始导出，请稍等！');
+        })
+      })
+  }
+
+  getExport = (app_id,format) => {
+    this
+      .props
+      .dispatch({
+        type: 'createApp/getExport',
+        payload: {
+          team_name:globalUtil.getCurrTeamName(),
+           app_id:app_id,
+           format:format
+        },
+        callback: ((data) => {
+          // message.success('操作成功，开始导出，请稍等！');
+        })
+      })
+  }
+  
+
+ queryExport = (item) => {
+    this
+      .props
+      .dispatch({
+        type: 'createApp/queryExport',
+        payload: {
+           app_id:item.ID,
+           team_name:globalUtil.getCurrTeamName()
+        },
+        callback: ((data) => {
+          var newquerydata = this.state.querydatabox;
+           var querydataid = data.bean;
+           newquerydata[item.ID] = querydataid;
+           this.setState({querydatabox:newquerydata})
+        })
+      })
+  }
+
+
   hanldePageChange = (page) => {
     this.setState({
       page: page
@@ -264,8 +330,100 @@ export default class Main extends PureComponent {
   handleCancelUpload = () => {
      this.setState({showUpload: false})
   }
-  renderApp = (item) => {
+ 
+  handleMenuClick = (e) => {
+     var key = e.key;
+     var keyArr  = key.split("||");
+     console.log(keyArr);
+     var format = keyArr[0];
+     var id = keyArr[1];
+     var isexport = keyArr[2];
+     var team_name = globalUtil.getCurrTeamName()
+     if(isexport =='success'){
+        var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
+        window.open(newurl);
+     }else if(isexport == 'loading'){
+        message.info('正在导出，请稍后！');
+     }else{
+       this.appExport(id,format);
+     }
+    
+  }
 
+  renderSubMenu = (item,querydata) => {
+    const id = item.ID;
+    const exportbox  = querydata[id];
+    const appquery = exportbox.rainbond_app;
+    const composequery = exportbox.docker_compose;
+    var apptext ='rainbond-app(点击导出)';
+    var composetext = 'docker_compose(点击导出)';
+    var appurl='javascript:;';
+    var composeurl ='javascript:;';
+    var appisSuccess = 'none';
+    var composeisSuccess = 'none';
+    if(appquery){
+      //
+      
+       if(appquery.is_export_before)  {
+          if(appquery.status== 'success'){
+            apptext = 'rainbond-app(点击下载)';
+            appisSuccess = 'success';
+            // appurl = appquery.file_path ;
+          }else if(appquery.status  == 'exporting'){
+            apptext = 'rainbond-app(导出中)';
+            appisSuccess = 'loading';
+          }else{
+            apptext = 'rainbond-app(导出失败)';
+          }
+       }else{
+        apptext = 'rainbond-app(点击导出)';
+       }
+       //
+       if(composequery.is_export_before)  {
+        if(composequery.status== 'success'){
+          composetext = 'docker_compose(点击下载)';
+          composeisSuccess = 'success';
+          // composeurl = composequery.file_path ;
+        }else if(composequery.status  == 'exporting'){
+          composetext = 'docker_compose(导出中)';
+          composeisSuccess = 'loading';
+        }else{
+          composetext = 'docker_compose(导出失败)';
+        }
+     }else{
+        composetext = 'docker_compose(点击导出)';
+     }
+       //
+
+       //
+       
+    }else{
+      composetext = 'docker_compose(点击下载)';
+      apptext = 'rainbond-app(点击下载)';
+    }
+
+    return <Menu onClick={this.handleMenuClick}>
+            <Menu.Item key={ 'rainbond-app||' +  id  + '||' + appisSuccess}>
+              <a target="_blank"  href={appurl} >{apptext}</a>
+            </Menu.Item>
+            <Menu.Item key={'docker-compose||' + id  + '||' + composeisSuccess}>
+              <a target="_blank" href={composeurl}  >{composetext}</a>
+            </Menu.Item>
+      </Menu>
+		
+  }
+  
+  handleVisibleChange = (item,flag) =>{
+    var newvisible = this.state.visiblebox;
+    const ID = item.ID
+    newvisible[ID] = flag;
+    this.setState({ visiblebox: newvisible })
+    this.queryExport(item);
+  }
+  renderApp = (item) => {
+    const ismarket = item.source;
+    const itemID= item.ID;
+    const querydata = this.state.querydatabox;
     const title = (item) => {
       return <div
         title={item.group_name || ''}
@@ -279,13 +437,24 @@ export default class Main extends PureComponent {
 
      return <Card
      className={PluginStyles.card}
-     actions={[<span onClick={() => {
+     actions={
+      ismarket == 'market' ? 
+      [<span onClick={() => {
        this.showCreate(item)
      }}>安装</span>
-    //  ,<span onClick={() => {
-    //    this.onUpload()
-    //  }}>导出</span>
-     ]}>
+     ]
+     :
+     [<span onClick={() => {
+      this.showCreate(item)
+    }}>安装</span>
+    ,
+     <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
+       <a className="ant-dropdown-link" href="javascript:;" >
+         导出<Icon type="down" />
+       </a>
+     </Dropdown>
+    ]
+    }>
      <Card.Meta
          style={{height: 112, overflow: 'hidden'}}
          avatar={< img style = {{width: 110, height: 110, margin:' 0 auto'}}alt = {

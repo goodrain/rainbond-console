@@ -5,11 +5,15 @@
 import datetime
 import json
 import logging
+import urllib2
+
+import requests
 
 from console.repositories.group import group_repo
 from console.repositories.market_app_repo import app_export_record_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
+from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
@@ -94,7 +98,7 @@ class AppExportService(object):
                         result_bean = body["bean"]
                         if result_bean["status"] in ("failed", "success"):
                             export_record.status = result_bean["status"]
-                        export_record.file_path = self.__get_down_url(region, result_bean["tar_file_href"])
+                        export_record.file_path = result_bean["tar_file_href"]
                         export_record.save()
                     except Exception as e:
                         logger.exception(e)
@@ -121,6 +125,71 @@ class AppExportService(object):
             return region.url + raw_url
         else:
             return raw_url
+
+    def get_export_record(self, export_format, app):
+        return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+                                                                      export_format)
+
+    def download_from_region(self, export_format, tenant_name, app):
+        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+                                                                               export_format)
+        region = self.get_app_share_region(app)
+
+        download_url = self.__get_down_url(region, export_record.file_path)
+        file_name = export_record.file_path.split("/")[-1]
+        url, token = client_auth_service.get_region_access_token_by_tenant(
+            tenant_name, region)
+        if not token:
+            region_info = region_repo.get_region_by_region_name(region)
+            if region_info:
+                token = region_info.token
+        if token:
+            headers = {"Authorization": "Token {}".format(token)}
+        else:
+            headers = {"Authorization": ""}
+
+        resp = requests.get(download_url, stream=True, headers=headers)
+        logger.debug("==========> {0}".format(type(resp)))
+        return resp, file_name
+
+    # def get_header_and_file_name(self, export_format, tenant_name, app):
+    #     export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+    #                                                                            export_format)
+    #     region = self.get_app_share_region(app)
+    #
+    #     download_url = self.__get_down_url(region, export_record.file_path)
+    #     # file_name = export_record.file_path.split("/")[-1]
+    #     url, token = client_auth_service.get_region_access_token_by_tenant(
+    #         tenant_name, region)
+    #     if not token:
+    #         region_info = region_repo.get_region_by_region_name(region)
+    #         if region_info:
+    #             token = region_info.token
+    #     if token:
+    #         headers = {"Authorization":"Token {}".format(token)}
+    #     else:
+    #         headers = {"Authorization": ""}
+    #     return headers,download_url
+
+    def get_file_down_req(self, export_format, tenant_name, app):
+        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
+                                                                               export_format)
+        region = self.get_app_share_region(app)
+
+        download_url = self.__get_down_url(region, export_record.file_path)
+        file_name = export_record.file_path.split("/")[-1]
+        url, token = client_auth_service.get_region_access_token_by_tenant(
+            tenant_name, region)
+        if not token:
+            region_info = region_repo.get_region_by_region_name(region)
+            if region_info:
+                token = region_info.token
+
+        req = urllib2.Request(download_url)
+        if token:
+            req.add_header("Authorization", "Token {}".format(token))
+
+        return req, file_name
 
 
 export_service = AppExportService()
