@@ -185,3 +185,31 @@ export async function getComposeByComposeId(body={team_name, compose_id}){
      method: 'get'
   });
 }
+
+
+/*
+   应用导出状态查询
+*/
+export function queryExport(body={team_name,app_id}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/export', {
+     method: 'get',
+     params: {
+       app_id: body.app_id
+     }
+  });
+}
+
+/*
+   应用导出 console/teams/{team_name}/apps/export
+*/
+export function appExport(body={team_name,app_id,format}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/export', {
+     method: 'post',
+     data: {
+       app_id: body.app_id,
+       format:body.format
+     }
+  });
+}
