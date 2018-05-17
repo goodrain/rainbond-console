@@ -295,18 +295,18 @@ class AppList extends PureComponent {
                                 ? <Fragment>
                                  <a
                                     style={{marginRight: 8}}
-                                        href="javascirpt:;"
+                                        href="javascript:;"
                                         onClick={() => {
                                         this.handleLoadAppDetail(item)
                                     }}>更新应用</a>
                                     <a
-                                        href="javascirpt:;"
+                                        href="javascript:;"
                                         onClick={() => {
                                         this.showOfflineApp(item)
                                     }}>卸载应用</a>
                                  </Fragment>
                                 : <a
-                                    href="javascirpt:;"
+                                    href="javascript:;"
                                     onClick={() => {
                                     this.handleLoadAppDetail(item)
                                 }}>下载应用</a>]}>
