@@ -28,10 +28,10 @@ class WebHooks(AlowAnyApiView):
         full_name = request.data.get("repository")["full_name"]
         url = "https://github.com/" + full_name
 
-        print request.META
+        logger.debug(request.META)
 
-        print ("xxxxx", [type, event, content_type, Signature,DELIVERY, ref, id, url])
-        print "ccc",x,x2,x3,x4,x5
+        logger.debug("xxxxx", [type, event, content_type, Signature,DELIVERY, ref, id, url])
+        logger.debug( "ccc",x,x2,x3,x4,x5)
 
         return Response("ok", status=200)
 
