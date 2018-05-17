@@ -62,7 +62,7 @@ from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, 
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 
-from console.views.webhook import WebHooks
+from console.views.webhook import *
 
 from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
     APPPluginConfigView
@@ -409,5 +409,8 @@ urlpatterns = patterns(
 
     # webhook测试
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhook', WebHooks.as_view()),
+
+    # 获取webhook回调地址
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get-url', WebHooksUrl.as_view()),
 
 )
