@@ -408,7 +408,7 @@ urlpatterns = patterns(
 
 
     # webhook测试
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhook', WebHooks.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/apps/(?P<app_name>[\w\-]+)/webhook', WebHooks.as_view()),
 
     # 获取webhook回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get-url', WebHooksUrl.as_view()),
