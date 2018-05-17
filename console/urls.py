@@ -67,7 +67,7 @@ from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstall
     APPPluginConfigView
 
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView
+    UserModifyPemView, TeamAddUserView, ServicePermissionView
 
 urlpatterns = patterns(
     '',
@@ -312,8 +312,6 @@ urlpatterns = patterns(
         BatchAppMonitorQueryView.as_view()),
     # 服务标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
-    # 应用权限
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermView.as_view()),
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view()),
     # 获取当前可用全部数据中心
@@ -388,7 +386,6 @@ urlpatterns = patterns(
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
 
-
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
     # 在一个团队中创建一个角色
@@ -403,6 +400,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
+    # 应用权限设置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
+
 
     # webhook测试
     url(r'^webhook$', WebHooks.as_view()),

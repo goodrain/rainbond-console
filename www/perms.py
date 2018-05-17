@@ -8,6 +8,7 @@ from console.repositories.perm_repo import role_perm_repo
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from www.utils.return_message import general_message
+from console.models.main import ServiceRelPerms
 
 logger = logging.getLogger('default')
 
@@ -20,7 +21,6 @@ class PermActions(object):
     )
 
     tenant_viewer_actions = (
-
 
                                 ('view_plugin', u"查看插件信息"),
                             ) + tenant_access_actions
@@ -142,6 +142,7 @@ def get_highest_identity(identitys):
             identity_num = num
     return final_identity
 
+
 def check_perm(perm, user, tenantName=None, serviceAlias=None):
     if isinstance(user, AnonymousUser):
         raise PermissionDenied('this resource need login status', redirect_url='/login')
@@ -160,7 +161,7 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
                                                                                                        flat=True)
 
             role_id_list = PermRelTenant.objects.filter(user_id=user.pk, tenant_id=tenant.pk).values_list("role_id",
-                                                                                                       flat=True)
+                                                                                                          flat=True)
             if not identitys[0] and not role_id_list[0]:
                 raise PermRelTenant.DoesNotExist
 
@@ -177,9 +178,13 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
             if serviceAlias is not None:
                 service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=serviceAlias)
-                service_identity = PermRelService.objects.get(user_id=user.pk, service_id=service.pk).identity
-                service_actions = p.keys('service_{0}_actions'.format(service_identity))
-                user.actions.set_actions('service', service_actions)
+                user_service_perms_id_list = ServiceRelPerms.objects.filter(user_id=user.pk,
+                                                                            service_id=service.pk).values_list(
+                    "perm_id",
+                    flat=True)
+                perm_codename_list = role_perm_repo.get_perm_list_by_perm_id_list(
+                    perm_id_list=user_service_perms_id_list)
+                user.actions.set_actions('service', perm_codename_list)
         except Tenants.DoesNotExist:
             raise UrlParseError(404, 'no matching tenantName for {0}'.format(tenantName))
         except TenantServiceInfo.DoesNotExist:

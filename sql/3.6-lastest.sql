@@ -1,11 +1,12 @@
 
--- 创建角色表，权限表，角色权限关系表,权限组表
+-- 创建角色表，权限表，角色权限关系表,权限组表,应用权限表
 CREATE TABLE `tenant_user_role` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `role_name` varchar(32) NOT NULL, `tenant_id` integer NULL, `is_default` bool NOT NULL, UNIQUE (`role_name`, `tenant_id`));
 CREATE TABLE `tenant_user_permission` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `codename` varchar(32) NOT NULL, `per_info` varchar(32) NOT NULL, `is_select` bool NOT NULL, `group` integer NULL, `per_explanation` varchar(132) NULL, UNIQUE (`codename`, `per_info`));
 CREATE TABLE `tenant_user_role_permission` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `role_id` integer NOT NULL, `per_id` integer NOT NULL);
 CREATE TABLE `tenant_permission_group` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `group_name` varchar(64) NOT NULL);
+CREATE TABLE `service_user_perms` (`ID` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `user_id` integer NOT NULL, `service_id` integer NOT NULL, `perm_id` integer NOT NULL);
 
--- 在原来的用户在团队中的身份表中添加'role_id'字段
+-- 在原来的用户在团队中的身份表，用户在服务中的身份表中 添加'role_id'字段
 ALTER TABLE `service_perms` ADD COLUMN `role_id` integer NULL;
 ALTER TABLE `tenant_perms` ADD COLUMN `role_id` integer NULL;
 ALTER TABLE `service_perms` MODIFY `identity` varchar(15) NULL;

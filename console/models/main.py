@@ -380,3 +380,17 @@ class PermGroup(BaseModel):
 
     def __unicode__(self):
         return self.to_dict()
+
+
+class ServiceRelPerms(BaseModel):
+    """一个用户在一个应用下的权限"""
+
+    class Meta:
+        db_table = 'service_user_perms'
+
+    user_id = models.IntegerField(help_text=u"用户id")
+    service_id = models.IntegerField(help_text=u"服务id")
+    perm_id = models.IntegerField(help_text=u'权限id')
+
+    def __unicode__(self):
+        return self.to_dict()
