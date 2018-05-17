@@ -37,6 +37,7 @@ class AppExportService(object):
             "group_key": group_key,
             "version": version,
             "format": export_format,
+            "status": "exporting"
         }
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
