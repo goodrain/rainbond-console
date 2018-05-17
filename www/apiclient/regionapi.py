@@ -1381,21 +1381,23 @@ class RegionInvokeApi(HttpClient):
         url, token = client_auth_service.get_region_access_token_by_tenant(
             tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
+        # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
+        region_info = self.get_region_info(region_name=region)
+        url = region_info.url
         if not token:
             # region_map = self.get_region_map(region)
-            region_info = self.get_region_info(region_name=region)
             token = region_info.token
-            url = region_info.url
         else:
             token = "Token {}".format(token)
         return url, token
 
-    def __get_region_access_info_by_enterprise_id(self,enterprise_id,region):
-        url,token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id,region)
+    def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
+        url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
+        # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
+        region_info = self.get_region_info(region_name=region)
+        url = region_info.url
         if not token:
-            region_info = self.get_region_info(region_name=region)
             token = region_info.token
-            url = region_info.url
         else:
             token = "Token {}".format(token)
         return url, token
