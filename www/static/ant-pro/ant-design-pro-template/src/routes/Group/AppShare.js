@@ -398,7 +398,17 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
-          this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || '';
+          console.log(this.state.fileList)
+          console.log(this.state.fileList[0] )
+          if(this.state.fileList[0]!= undefined){
+            this.state.fileList[0].response ?
+            this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url
+            :
+            this.state.fileList[0].url
+            // this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url || this.state.fileList[0].url;
+          }else{
+             this.share_group_info['pic'] = '';
+          }
         }
       });
 
@@ -485,19 +495,18 @@ export default class Main extends PureComponent {
   }
 
   handleLogoChange = ({ fileList }) =>{
-      
-      this.setState({ fileList })
-    // fileList = fileList.map((file) => {
-    //     if (file.response) {
-    //       // Component will show file.url as link
-    //       //file.url = file.response.data.bean.path;
-    //       console.log("111111")
-    //       console.log(file.response)
-    //       console.log(file.response.data.bean.file_url )
-    //       this.setState({ pic:file.response.data.bean.file_url });
-    //     }
-    //     return file;
-    //   });
+    
+      // fileList = fileList.map((file) => {
+      //     if (file.response) {
+      //       // Component will show file.url as link
+      //       //file.url = file.response.data.bean.path;
+      //       console.log("111111")
+      //       console.log(file.response)
+      //       console.log(file.response.data.bean.file_url )
+      //       this.setState({ pic:file.response.data.bean.file_url });
+      //     }
+      //     return file;
+      //   });
 
       //3. filter successfully uploaded files according to response from server
       // fileList = fileList.filter((file) => {
