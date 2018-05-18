@@ -258,7 +258,7 @@ export default class CreateCheck extends PureComponent {
             .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/create/create-compose-setting/${params.group_id}/${params.compose_id}`));
     }
     handleBuild = () => {
-
+        const team_name = globalUtil.getCurrTeamName();
         const appDetail = this.state.appDetail;
         const params = this.getParams();
         this
@@ -270,6 +270,14 @@ export default class CreateCheck extends PureComponent {
                     ...params
                 },
                 callback: () => {
+                    this
+                    .props
+                    .dispatch({
+                        type: 'global/fetchGroups',
+                        payload: {
+                        team_name: team_name
+                        }
+                    });
                     this
                         .props
                         .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${params.group_id}`))
