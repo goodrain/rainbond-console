@@ -115,6 +115,17 @@ class PluginList extends PureComponent {
       })
     });
   }
+  getItemTitle = (item) => {
+    if(item.hasInstall !== false){
+       return < Link to = {
+        `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`
+      } > {
+        item.plugin_alias
+      } < /Link>
+    }else{
+       return item.plugin_alias;
+    }
+  }
   getAction = (item) => {
     if(item.hasInstall !== false){
       return [<Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`}>管理</Link>, <span onClick={()=>{this.onDeletePlugin(item)}}>删除</span>]
@@ -164,11 +175,7 @@ class PluginList extends PureComponent {
                   <Card.Meta
                     style={{height: 99, overflow: 'hidden'}}
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
-                    title={< Link to = {
-                    `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns/${item.plugin_id}`
-                  } > {
-                    item.plugin_alias
-                  } < /Link>}
+                    title={this.getItemTitle(item)}
                     description={(
                     <Ellipsis className={styles.item} lines={3}>< p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
                       pluginUtil.getCategoryCN(item.category)
