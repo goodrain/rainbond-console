@@ -32,8 +32,10 @@ class AppExportService(object):
         if export_record:
             return 409, "已存在改导出类型的文件", None
 
+        if event_id is None:
+            event_id = make_uuid()
         params = {
-            "event_id": event_id or make_uuid(),
+            "event_id": event_id,
             "group_key": group_key,
             "version": version,
             "format": export_format,
@@ -61,7 +63,7 @@ class AppExportService(object):
             new_export_record = export_record
         else:
             logger.debug("create export record !")
-            code, msg, new_export_record = self.create_export_repo(None, export_format, app.group_key, app.version)
+            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version)
             if code != 200:
                 return code, msg, None
         return 200, "success", new_export_record
