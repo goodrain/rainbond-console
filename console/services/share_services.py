@@ -614,7 +614,7 @@ class ShareService(object):
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
                 tenant_service_group_id=share_record.group_id,
-                pic=group_info["pic"],
+                pic=group_info.get("pic",""),
                 source="local",
                 record_id=share_record.ID,
                 version=group_info["version"],
