@@ -131,46 +131,16 @@ class AppExportService(object):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                       export_format)
 
-    def download_from_region(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-                                                                               export_format)
-        region = self.get_app_share_region(app)
+    def get_export_record_status(self, app):
+        records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
+        export_status = "other"
 
-        download_url = self.__get_down_url(region, export_record.file_path)
-        file_name = export_record.file_path.split("/")[-1]
-        url, token = client_auth_service.get_region_access_token_by_tenant(
-            tenant_name, region)
-        if not token:
-            region_info = region_repo.get_region_by_region_name(region)
-            if region_info:
-                token = region_info.token
-        if token:
-            headers = {"Authorization": "Token {}".format(token)}
-        else:
-            headers = {"Authorization": ""}
-
-        resp = requests.get(download_url, stream=True, headers=headers)
-        logger.debug("==========> {0}".format(type(resp)))
-        return resp, file_name
-
-    # def get_header_and_file_name(self, export_format, tenant_name, app):
-    #     export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-    #                                                                            export_format)
-    #     region = self.get_app_share_region(app)
-    #
-    #     download_url = self.__get_down_url(region, export_record.file_path)
-    #     # file_name = export_record.file_path.split("/")[-1]
-    #     url, token = client_auth_service.get_region_access_token_by_tenant(
-    #         tenant_name, region)
-    #     if not token:
-    #         region_info = region_repo.get_region_by_region_name(region)
-    #         if region_info:
-    #             token = region_info.token
-    #     if token:
-    #         headers = {"Authorization":"Token {}".format(token)}
-    #     else:
-    #         headers = {"Authorization": ""}
-    #     return headers,download_url
+        if not records:
+            export_status = "unexported"
+        for record in records:
+            if record.status == "exporting":
+                export_status = "exporting"
+        return export_status
 
     def get_file_down_req(self, export_format, tenant_name, app):
         export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,

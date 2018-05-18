@@ -16,6 +16,7 @@ from console.services.market_app_service import market_app_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
 import json
+from console.services.app_import_and_export_service import export_service
 
 logger = logging.getLogger('default')
 
@@ -58,7 +59,11 @@ class CenterAppListView(RegionTenantHeaderView):
             show_apps = paginator.page(int(page))
             app_list = []
             for app in show_apps:
+                min_memory = self.__get_service_group_memory(app.app_template)
+                export_status = export_service.get_export_record_status(app)
                 app_bean = app.to_dict()
+                app_bean["min_memory"] = min_memory
+                app_bean["export_status"] = export_status
                 app_bean.pop("app_template")
                 app_list.append(app_bean)
             result = general_message(200, "success", "查询成功", list=app_list, total=paginator.count,
@@ -67,6 +72,18 @@ class CenterAppListView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])
+
+    def __get_service_group_memory(self, app_template_raw):
+        app_template = json.loads(app_template_raw)
+        apps = app_template["apps"]
+        total_memory = 0
+        for app in apps:
+            extend_method_map = app.get("extend_method_map", None)
+            if extend_method_map:
+                total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
+            else:
+                total_memory += 128
+        return total_memory
 
 
 class CenterAppView(RegionTenantHeaderView):
