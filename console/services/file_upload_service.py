@@ -11,6 +11,7 @@ from www.utils.crypt import make_uuid
 import requests
 from addict import Dict
 import json
+import os
 
 logger = logging.getLogger("default")
 
@@ -70,6 +71,14 @@ class FileUploadService(object):
         return settings.MODULES.get('SSO_LOGIN')
 
     def upload_file_to_local(self, upload_file, suffix):
+        try:
+            prefix_file_path = '{0}/uploads'.format(settings.MEDIA_ROOT)
+
+            if not os.path.exists(prefix_file_path):
+                os.makedirs(prefix_file_path, 0777)
+        except Exception as e:
+            logger.exception(e)
+
         filename = '{0}/uploads/{1}.{2}'.format(settings.MEDIA_ROOT,
                                                 make_uuid(), suffix)
         with open(filename, 'wb+') as destination:
