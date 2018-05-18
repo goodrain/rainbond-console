@@ -145,13 +145,20 @@ class AppExportService(object):
     def get_export_record_status(self, app):
         records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
         export_status = "other"
-
+        # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:
-            export_status = "unexported"
+            return "unexported"
+        failed = True
+
         for record in records:
-            if record.status == "exporting":
-                export_status = "exporting"
-        return export_status
+            if record.status == "success":
+                return "success"
+            if record.status != "failed":
+                failed = False
+        if failed:
+            return "failed"
+        else:
+            return "exporting"
 
     def get_file_down_req(self, export_format, tenant_name, app):
         export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
