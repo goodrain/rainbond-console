@@ -48,6 +48,14 @@ class TeamMemberTable extends PureComponent {
         title: '操作',
         dataIndex: 'action',
         render(val, data) {
+          var roles = data.role_info || [];
+          var creater = roles.filter((item)=>{
+              return item.role_name === 'owner'
+          })[0];
+          if(creater){
+            return null;
+          }
+
           return <div>
             {teamUtil.canDeleteMember(team) && <a
               href="javascript:;"
