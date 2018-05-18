@@ -165,14 +165,20 @@ export default class Main extends PureComponent {
       showUpload: false,
       target: 'searchWrap',
       visiblebox:{},
-      querydatabox:{}
+      querydatabox:{},
+      exportTit:{}
     }
+    this.mount = false;
   }
   componentDidMount() {
+    this.mount = true;
     this.getApps();
     setTimeout(()=>{
       this.setState({target: 'importApp'});
     }, 3000)
+  }
+  componentWillUnmount() {
+    this.mount = false;
   }
   handleChange = (v) => {
 
@@ -188,6 +194,7 @@ export default class Main extends PureComponent {
   getApps = (v) => {
     var datavisible = {};
     var dataquery = {};
+    var dataexportTit = {}
     this
       .props
       .dispatch({
@@ -203,13 +210,22 @@ export default class Main extends PureComponent {
             data.list.map((app)=>{
               datavisible[app.ID] = false;
               dataquery[app.ID] = {};
+              if(app.export_status == 'exporting'){
+                dataexportTit[app.ID] = '导出中'
+                this.queryExport(app);
+              }else if(app.export_status ==  'success'){
+                dataexportTit[app.ID] = '导出(可下载)'
+              }else{
+                dataexportTit[app.ID] = '导出'
+              }
             })
           }
           this.setState({
             list: data.list || [],
             total: data.total,
             visiblebox:datavisible,
-            querydatabox:dataquery
+            querydatabox:dataquery,
+            exportTit:dataexportTit
           })
         })
       })
@@ -227,7 +243,7 @@ export default class Main extends PureComponent {
            format:format
         },
         callback: ((data) => {
-          message.success('操作成功，开始导出，请稍等！');
+          notification.success({message: `操作成功，开始导出，请稍等！`});
         })
       })
   }
@@ -250,6 +266,8 @@ export default class Main extends PureComponent {
   
 
  queryExport = (item) => {
+  if (!this.mount) 
+  return;
     this
       .props
       .dispatch({
@@ -259,9 +277,47 @@ export default class Main extends PureComponent {
            team_name:globalUtil.getCurrTeamName()
         },
         callback: ((data) => {
+          var newexportTit = this.state.exportTit;
           var newquerydata = this.state.querydatabox;
            var querydataid = data.bean;
            newquerydata[item.ID] = querydataid;
+           if(data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
+               if((data.bean.docker_compose.status == "exporting" && data.bean.rainbond_app.status != "success") || (data.bean.rainbond_app.status == "exporting" && data.bean.docker_compose.status != "success")){
+                   newexportTit[item.ID] = '导出中'
+                   setTimeout(() => {
+                      this.queryExport(item);
+                    }, 5000)
+               }else if(data.bean.docker_compose.status == "success" || data.bean.rainbond_app.status == "success"){
+                  newexportTit[item.ID] = '导出(可下载)'
+               }else{
+                  newexportTit[item.ID] = '导出' 
+               }
+           }else if(data.bean.docker_compose.is_export_before && !data.bean.rainbond_app.is_export_before){
+              if(data.bean.docker_compose.status == "exporting"){
+                    newexportTit[item.ID] = '导出中'
+                    setTimeout(() => {
+                      this.queryExport(item);
+                    }, 5000)
+                }else if(data.bean.docker_compose.status == "success"){
+                  newexportTit[item.ID] = '导出(可下载)'
+                }else{
+                  newexportTit[item.ID] = '导出' 
+                }
+           }else if(!data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
+              if(data.bean.rainbond_app.status == "exporting"){
+                newexportTit[item.ID] = '导出中'
+                setTimeout(() => {
+                  this.queryExport(item);
+                }, 5000)
+              }else if(data.bean.rainbond_app.status == "success"){
+                 newexportTit[item.ID] = '导出(可下载)'
+              }else{
+                newexportTit[item.ID] = '导出' 
+              }
+           }else{
+               newexportTit[item.ID] = '导出' 
+           }
+          
            this.setState({querydatabox:newquerydata})
         })
       })
@@ -275,7 +331,7 @@ export default class Main extends PureComponent {
       this.getApps();
     })
   }
-  componentWillUnmount() {}
+ 
   getDefaulType = () => {
     return ''
   }
@@ -343,7 +399,7 @@ export default class Main extends PureComponent {
         var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
         window.open(newurl);
      }else if(isexport == 'loading'){
-        message.info('正在导出，请稍后！');
+        notification.info({message: `正在导出，请稍后！`});
      }else{
        this.appExport(id,format);
      }
@@ -361,6 +417,7 @@ export default class Main extends PureComponent {
     var composeurl ='javascript:;';
     var appisSuccess = 'none';
     var composeisSuccess = 'none';
+    const export_status = item.export_status;
     if(appquery){
       //
       
@@ -417,13 +474,15 @@ export default class Main extends PureComponent {
     var newvisible = this.state.visiblebox;
     const ID = item.ID
     newvisible[ID] = flag;
-    this.setState({ visiblebox: newvisible })
+    this.setState({ visiblebox: newvisible });
     this.queryExport(item);
   }
   renderApp = (item) => {
     const ismarket = item.source;
     const itemID= item.ID;
     const querydata = this.state.querydatabox;
+    const exportStatus = item.export_status;
+    const exportText = this.state.exportTit[itemID];
     const title = (item) => {
       return <div
         title={item.group_name || ''}
@@ -450,7 +509,7 @@ export default class Main extends PureComponent {
     ,
      <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
        <a className="ant-dropdown-link" href="javascript:;" >
-         导出<Icon type="down" />
+         {exportText}<Icon type="down" />
        </a>
      </Dropdown>
     ]

@@ -11,7 +11,6 @@ from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_perm import ServicePermView
 from console.views.app_config.app_port import AppPortView, AppPortManageView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
@@ -61,11 +60,10 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
-    APPPluginConfigView
-
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
+from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
+    APPPluginConfigView
 
 urlpatterns = patterns(
     '',

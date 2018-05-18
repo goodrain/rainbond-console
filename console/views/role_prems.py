@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+import re
 from rest_framework.response import Response
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.decorators.cache import never_cache
@@ -76,6 +77,12 @@ class TeamAddRoleView(JWTAuthApiView):
                 logging.exception(e)
                 code = 400
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
+                return Response(result, status=code)
+
+            ret = re.match(r"[A-Za-z0-9_\-\u4e00-\u9fa5]", role_name)
+            if not ret or len(role_name) > 30:
+                code = 400
+                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,下划线的组合")
                 return Response(result, status=code)
             if role_name in role_repo.get_default_role():
                 code = 400
@@ -243,6 +250,13 @@ class UserUpdatePemView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
+
+            ret = re.match(r"[A-Za-z0-9_\-\u4e00-\u9fa5]", new_role_name)
+            if not ret or len(new_role_name) > 30:
+                code = 400
+                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,下划线的组合")
+                return Response(result, status=code)
+
             if new_role_name in role_repo.get_default_role():
                 code = 400
                 result = general_message(code, "failed", "角色名称不能与系统默认相同")
@@ -297,7 +311,6 @@ class UserUpdatePemView(JWTAuthApiView):
 
 
 class UserRoleView(JWTAuthApiView):
-    @perm_required('tenant.tenant_access')
     def get(self, request, team_name, *args, **kwargs):
         """
         一个团队所有可展示的的角色及角色对应的权限信息展示(不含owner)

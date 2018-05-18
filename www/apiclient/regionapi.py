@@ -8,7 +8,6 @@ from django.conf import settings
 
 from backends.models import RegionConfig
 from www.apiclient.baseclient import HttpClient, client_auth_service
-from www.utils.conf_tool import regionConfig
 from www.models.main import TenantRegionInfo, Tenants
 import os
 
@@ -23,10 +22,6 @@ class RegionInvokeApi(HttpClient):
             'Content-Type': 'application/json'
         }
 
-    # def _get_region_request_info(self, region):
-    #     region_map = self.get_region_map(region)
-    #     token = region_map[region]['token']
-    #     return token, region_map[region]['url']
 
     def make_proxy_http(self, region_service_info):
         proxy_info = region_service_info['proxy']
@@ -40,22 +35,6 @@ class RegionInvokeApi(HttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-    def get_region_map(self, region):
-        region_service_infos = regionConfig.region_service_api()
-        region_map = {}
-        for region_service_info in region_service_infos:
-            client_info = {"url": region_service_info["url"]}
-            token = region_service_info.get("token", None)
-            client_info['token'] = token
-            if 'proxy' in region_service_info and region_service_info.get(
-                    'proxy_priority', False) is True:
-                client_info['client'] = self.make_proxy_http(
-                    region_service_info)
-            else:
-                client_info['client'] = httplib2.Http(timeout=5)
-
-            region_map[region_service_info["region_name"]] = client_info
-        return region_map
 
     def _set_headers(self, token):
         if settings.MODULES["RegionToken"]:
@@ -89,14 +68,6 @@ class RegionInvokeApi(HttpClient):
             raise http.Http404
         return tenant_regions[0]
 
-    # def get_all_tenant_resources(self, region):
-    #     """获取所有租户的资源使用情况"""
-    #     region_map = self.get_region_map(region)
-    #     token = region_map[region]['token']
-    #     url = region_map[region]['url'] + "/v2/resources/tenants"
-    #     self._set_headers(token)
-    #     res, body = self._get(url, self.default_headers, region=region)
-    #     return body
 
     def get_tenant_resources(self, region, tenant_name, enterprise_id):
         """获取指定租户的资源使用情况"""

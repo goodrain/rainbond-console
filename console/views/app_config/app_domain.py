@@ -18,7 +18,6 @@ logger = logging.getLogger("default")
 
 class TenantCertificateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         """
         获取团队下的证书

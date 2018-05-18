@@ -17,7 +17,6 @@ logger = logging.getLogger("default")
 
 class AppProbeView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取服务指定模式的探针
