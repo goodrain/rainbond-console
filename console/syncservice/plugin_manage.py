@@ -17,6 +17,7 @@ class PluginManage(object):
 
         tps = TenantPlugin.objects.filter(origin="local_market",
                                           image="goodrain.me/envoy_discover_service_20180117184912")
+        print tps.count()
         for tp in tps:
             tsprs = TenantServicePluginRelation.objects.filter(plugin_id=tp.plugin_id)
             for tspr in tsprs:
@@ -29,15 +30,16 @@ class PluginManage(object):
                             region_api.uninstall_service_plugin(service.service_region, tenant.tenant_name, tp.plugin_id,
                                                                 service.service_alias)
                         except region_api.CallApiError as e:
+                            print e
                             if e.status != 404:
-                                print e
                                 continue
                         try:
                             region_api.delete_plugin(service.service_region, tenant.tenant_name, tp.plugin_id)
                         except region_api.CallApiError as e:
+                            print e
                             if e.status != 404:
-                                print e
                                 continue
+
                         TenantServicePluginRelation.objects.filter(service_id=service.service_id,
                                                                    plugin_id=tp.plugin_id).delete()
 
