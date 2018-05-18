@@ -72,12 +72,21 @@ class AppExportService(object):
         first_app = apps[0]
         if first_app:
             region = first_app.get("service_region", None)
-            return region
         else:
             group = group_repo.get_group_by_id(app.tenant_service_group_id)
             if group:
-                return group.region_name
+                region = group.region_name
+            else:
+                return None
+        
+        if region:
+            region_config = region_repo.get_region_by_region_name(region)
+            if region_config:
+                return region
             return None
+        else:
+            return None
+
 
     def get_export_status(self, team, app):
         app_export_records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
