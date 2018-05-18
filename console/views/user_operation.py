@@ -98,6 +98,7 @@ class TenantServiceView(BaseApiView):
                 user_info["is_active"] = 1
                 user = Users(**user_info)
                 user.set_password(password)
+                user.save()
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enterprise = enterprise_services.create_enterprise()

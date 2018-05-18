@@ -92,7 +92,12 @@ const teamUtil = {
 	canManagePlugin(teamBean={}){
 		var actions = teamBean.tenant_actions || [];
 		return actions.indexOf('manage_plugin') > -1
-	}
+	},
+	//是否可以查看应用
+	canViewApp(teamBean={}){
+		var actions = teamBean.tenant_actions || [];
+		return actions.indexOf('view_service') > -1
+	},
 }
 
 export default teamUtil;
