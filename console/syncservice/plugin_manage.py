@@ -42,6 +42,7 @@ class PluginManage(object):
                     except Exception as e:
                         print e
                         logger.exception(e)
+                        continue
 
         print "finished !"
         logger.debug("finished !")
