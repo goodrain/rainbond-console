@@ -43,5 +43,7 @@ class PluginManage(object):
                         print e
                         logger.exception(e)
 
+        print "finished !"
+        logger.debug("finished !")
 
 plugin_manage = PluginManage()
