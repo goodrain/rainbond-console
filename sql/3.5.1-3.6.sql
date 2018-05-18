@@ -80,6 +80,7 @@ INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('transfer_ownership', '移交所有权', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('modify_team_name', '修改团队名称', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL, 1);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('import_and_export_service', '导入导出云市应用', 1, NULL, 1);
 
 
 -- 初始化角色和权限的对应关系
@@ -107,6 +108,7 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 21);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 22);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 23);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 24);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 25);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 2);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 3);
@@ -128,6 +130,7 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 18);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 19);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 20);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 24);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 25);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 4);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 5);
@@ -143,6 +146,7 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 16);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 17);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 19);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 20);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 25);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 5);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 19);

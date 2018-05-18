@@ -25,7 +25,7 @@ logger = logging.getLogger('default')
 
 class CenterAppExportView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("view_service")
+    @perm_required("tenant_access")
     def get(self, request, *args, **kwargs):
         """
         获取应用导出状态
@@ -62,7 +62,7 @@ class CenterAppExportView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("manage_service")
+    @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         导出应用市场应用

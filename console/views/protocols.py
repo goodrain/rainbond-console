@@ -21,7 +21,6 @@ region_api = RegionInvokeApi()
 
 class RegionProtocolView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("tenant.tenant_access")
     def get(self, request, *args, **kwargs):
         """
         获取数据中心支持的协议

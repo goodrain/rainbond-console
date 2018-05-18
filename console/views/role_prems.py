@@ -297,7 +297,7 @@ class UserUpdatePemView(JWTAuthApiView):
 
 
 class UserRoleView(JWTAuthApiView):
-    @perm_required('tenant_access')
+    @perm_required('tenant.tenant_access')
     def get(self, request, team_name, *args, **kwargs):
         """
         一个团队所有可展示的的角色及角色对应的权限信息展示(不含owner)
