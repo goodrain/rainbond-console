@@ -25,9 +25,19 @@ class PluginManage(object):
                     service = tss[0]
                     try:
                         tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-                        region_api.uninstall_service_plugin(service.service_region, tenant.tenant_name, tp.plugin_id,
-                                                            service.service_alias)
-                        region_api.delete_plugin(service.service_region, tenant.tenant_name, tp.plugin_id)
+                        try:
+                            region_api.uninstall_service_plugin(service.service_region, tenant.tenant_name, tp.plugin_id,
+                                                                service.service_alias)
+                        except region_api.CallApiError as e:
+                            if e.status != 404:
+                                print e
+                                continue
+                        try:
+                            region_api.delete_plugin(service.service_region, tenant.tenant_name, tp.plugin_id)
+                        except region_api.CallApiError as e:
+                            if e.status != 404:
+                                print e
+                                continue
                         TenantServicePluginRelation.objects.filter(service_id=service.service_id,
                                                                    plugin_id=tp.plugin_id).delete()
 
