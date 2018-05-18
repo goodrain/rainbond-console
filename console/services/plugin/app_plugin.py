@@ -3,7 +3,7 @@
   Created on 18/1/29.
 """
 import logging
-
+import os
 from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
     app_plugin_attr_repo, plugin_version_repo
@@ -16,7 +16,7 @@ from .plugin_version import PluginBuildVersionService
 from console.repositories.base import BaseConnection
 from console.repositories.app_config import port_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
-from www.models.plugin import ServicePluginConfigVar
+from www.models.plugin import ServicePluginConfigVar,PluginConfigGroup,PluginConfigItems
 import json
 import copy
 from console.repositories.plugin import service_plugin_config_repo
@@ -507,43 +507,64 @@ class PluginService(object):
         body = region_api.build_plugin(region, tenant.tenant_name, plugin.plugin_id, build_data)
         return body
 
-    def add_default_plugin(self, user, tenant, regions):
+    def add_default_plugin(self, user, tenant, region, plugin_type="perf_analyze_plugin"):
+        plugin_base_info = None
         try:
-            for region in regions:
-                desc = "实时分析应用的吞吐率、响应时间、在线人数等指标"
-                plugin_alias = "服务实时性能分析"
-                category = "analyst-plugin:perf"
-                image_url = "goodrain.me/tcm"
-                code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region, desc,
-                                                                        plugin_alias,
-                                                                        category, "image",
-                                                                        image_url, "")
-                plugin_base_info.origin = "local_market"
-                plugin_base_info.save()
+            all_default_config = None
+            module_dir = os.path.dirname(__file__)
+            file_path = os.path.join(module_dir, 'default_config.json')
+            with open(file_path) as f:
+                all_default_config = json.load(f)
+            if not all_default_config:
+                raise Exception("no config was found")
 
-                plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
-                                                                                   tenant.tenant_id,
-                                                                                   user.user_id, "", "unbuild", 64)
-                config_params = {
-                    "plugin_id": plugin_build_version.plugin_id,
-                    "build_version": plugin_build_version.build_version,
-                    "config_name": "端口是否开启分析",
-                    "service_meta_type": "upstream_port",
-                    "injection": "auto"
-                }
-                config_group_repo.create_plugin_config_group(**config_params)
-                item_params = {
-                    "plugin_id": plugin_build_version.plugin_id,
-                    "build_version": plugin_build_version.build_version,
-                    "service_meta_type": "upstream_port",
-                    "attr_name": "OPEN",
-                    "attr_type": "radio",
-                    "attr_alt_value": "YES,NO",
-                    "attr_default_value": "YES",
-                    "is_change": True,
-                    "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
-                }
-                config_item_repo.create_plugin_config_items(**item_params)
+            needed_plugin_config = all_default_config[plugin_type]
+            code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region,
+                                                                    needed_plugin_config["desc"],
+                                                                    needed_plugin_config["plugin_alias"],
+                                                                    needed_plugin_config["category"], needed_plugin_config["build_source"],
+                                                                    needed_plugin_config["image"],
+                                                                    needed_plugin_config["code_repo"])
+            plugin_base_info.origin = "local_market"
+            plugin_base_info.origin_share_id = plugin_type
+            plugin_base_info.save()
+
+            plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
+                                                                               tenant.tenant_id,
+                                                                               user.user_id, "", "unbuild", 64)
+
+            plugin_config_meta_list = []
+            config_items_list = []
+            config_group = needed_plugin_config["config_group"]
+            if config_group:
+                for config in config_group:
+                    options = config["options"]
+                    plugin_config_meta = PluginConfigGroup(
+                        plugin_id=plugin_build_version.plugin_id,
+                        build_version=plugin_build_version.build_version,
+                        config_name=config["config_name"],
+                        service_meta_type=config["service_meta_type"],
+                        injection=config["injection"]
+                    )
+                    plugin_config_meta_list.append(plugin_config_meta)
+
+                    for option in options:
+                        config_item = PluginConfigItems(
+                            plugin_id=plugin_build_version.plugin_id,
+                            build_version=plugin_build_version.build_version,
+                            service_meta_type=config["service_meta_type"],
+                            attr_name=option["attr_name"],
+                            attr_alt_value=option["attr_alt_value"],
+                            attr_type=option.get("attr_type", "string"),
+                            attr_default_value=option.get("attr_default_value", None),
+                            is_change=option.get("is_change", False),
+                            attr_info=option.get("attr_info", ""),
+                            protocol=option.get("protocol", "")
+                        )
+                        config_items_list.append(config_item)
+
+                config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)
+                config_item_repo.bulk_create_items(config_items_list)
 
                 event_id = make_uuid()
                 plugin_build_version.event_id = event_id
@@ -556,8 +577,10 @@ class PluginService(object):
                 plugin_build_version.build_status = "build_success"
                 plugin_build_version.save()
         except Exception as e:
-            logger.error("添加默认插件错误")
             logger.exception(e)
+            if plugin_base_info:
+                self.delete_plugin(region, tenant, plugin_base_info.plugin_id)
+            raise e
 
     def update_region_plugin_info(self, region, tenant, tenant_plugin, plugin_build_version):
         data = dict()
@@ -586,3 +609,7 @@ class PluginService(object):
         config_item_repo.delete_config_items_by_plugin_id(plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(plugin_id)
         return 200, "删除成功"
+
+    def get_default_plugin(self, region, tenant):
+        return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(origin_share_id__in=["perf_analyze_plugin","downstream_net_plugin"])
+

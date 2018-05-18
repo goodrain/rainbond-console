@@ -113,7 +113,6 @@ class GoodrainSSONotify(AlowAnyApiView):
         if code != 200:
             logger.debug("account.login", "create teanant on region error")
             return code, msg, team
-        plugin_service.add_default_plugin(user, team, [tenant_region.region_name])
         # 如果没有领过资源包，为默认开通的数据中心领取免费资源包
         result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
                                                               tenant_region.region_name, user.nick_name)

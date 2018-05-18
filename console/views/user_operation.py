@@ -149,7 +149,6 @@ class TenantServiceView(BaseApiView):
                                                                                                tenant.region)
                             if code != 200:
                                 return Response(general_message(code, "register fail", msg), status=code)
-                            plugin_service.add_default_plugin(user, tenant, region_name)
 
                             data = dict()
                             data["user_id"] = user.user_id

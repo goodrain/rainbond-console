@@ -123,6 +123,7 @@ class ServiceGroupView(RegionTenantHeaderView):
 
 class GroupServiceView(RegionTenantHeaderView):
     @never_cache
+    @perm_required("tenant.tenant_access")
     def get(self, request, *args, **kwargs):
         """
         应用组应用列表、状态展示
