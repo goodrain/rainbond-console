@@ -38,6 +38,7 @@ class PermActions(object):
                                    ('manage_service_config', u"应用配置管理"),
                                    ('manage_service_plugin', u"应用扩展管理"),
                                    ('manage_plugin', u"插件管理"),
+                                   ('import_and_export_service', u'应用导入导出'),
                                ) + tenant_viewer_actions
 
     tenant_admin_actions = (
