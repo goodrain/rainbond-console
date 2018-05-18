@@ -79,10 +79,10 @@ class TeamAddRoleView(JWTAuthApiView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            ret = re.match(r"[A-Za-z0-9_\-\u4e00-\u9fa5]", role_name)
-            if not ret or len(role_name) > 30:
+            r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+            if not r.match(role_name.decode("utf-8")) or len(role_name) > 30:
                 code = 400
-                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,下划线的组合")
+                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,中文字符,下划线的组合")
                 return Response(result, status=code)
             if role_name in role_repo.get_default_role():
                 code = 400
@@ -170,7 +170,6 @@ class TeamDelRoleView(JWTAuthApiView):
                 result = general_message(code, "failed", "有团队成员拥有该角色，不能删除")
                 return Response(result, status=code)
 
-
             try:
                 team_services.del_role_by_team_name_role_name_role_id(tenant_name=team_name,
                                                                       role_id=role_id)
@@ -251,10 +250,10 @@ class UserUpdatePemView(JWTAuthApiView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            ret = re.match(r"[A-Za-z0-9_\-\u4e00-\u9fa5]", new_role_name)
-            if not ret or len(new_role_name) > 30:
+            r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+            if not r.match(new_role_name.decode("utf-8")) or len(new_role_name) > 30:
                 code = 400
-                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,下划线的组合")
+                result = general_message(code, "failed", "角色名称只能是30个字符内任意数字,字母,中文字符,下划线的组合")
                 return Response(result, status=code)
 
             if new_role_name in role_repo.get_default_role():
