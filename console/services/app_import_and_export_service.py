@@ -119,13 +119,13 @@ class AppExportService(object):
                     rainbond_app_init_data.update({
                         "is_export_before": True,
                         "status": export_record.status,
-                        "file_path": export_record.file_path
+                        "file_path": self._wrapper_director_download_url(region, export_record.file_path.replace("/v2",""))
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
                         "is_export_before": True,
                         "status": export_record.status,
-                        "file_path": export_record.file_path
+                        "file_path": self._wrapper_director_download_url(region, export_record.file_path.replace("/v2",""))
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
@@ -137,6 +137,16 @@ class AppExportService(object):
             return region.url + raw_url
         else:
             return raw_url
+
+    def _wrapper_director_download_url(self, region_name, raw_url):
+        region = region_repo.get_region_by_region_name(region_name)
+        if region:
+            splits_texts = region.url.split(":")
+            if len(splits_texts) > 2:
+                index = region.url.index(":", 6)
+                return region.url[:index] + ":6060" + raw_url
+            else:
+                return region.url + ":6060" + raw_url
 
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
