@@ -239,8 +239,7 @@ class Main extends PureComponent {
             showEditName: false,
             showMoveGroup: false,
             showDeployTips:false,
-            showreStartTips:false,
-            showCloseApp:false
+            showreStartTips:false
         }
         this.timer = null;
         this.mount = false;
@@ -479,12 +478,6 @@ class Main extends PureComponent {
     cancelDeleteApp = () => {
         this.setState({showDeleteApp: false})
     }
-    onCloseApp = () => {
-        this.setState({showCloseApp: true})
-    }
-    cancelCloseApp = () => {
-        this.setState({showCloseApp: false})
-    }
     handleDeleteApp = () => {
         const team_name = globalUtil.getCurrTeamName()
         this
@@ -613,7 +606,7 @@ class Main extends PureComponent {
                         : null}
 
                     {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStart(status)
-                        ? <Button disabled={!appStatusUtil.canStop(status)} onClick={this.onCloseApp}>关闭</Button>
+                        ? <Button disabled={!appStatusUtil.canStop(status)} onClick={this.handleStop}>关闭</Button>
                         : null}
                     {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStop(status)
                         ? <Button disabled={!appStatusUtil.canStart(status)} onClick={this.handleStart}>启动</Button>
@@ -741,12 +734,6 @@ class Main extends PureComponent {
                     groups={groups}
                     onOk={this.handleMoveGroup}
                     onCancel={this.hideMoveGroup}/>}
-                {this.state.showCloseApp && <ConfirmModal
-                    onOk={this.handleStop}
-                    onCancel={this.cancelCloseApp}
-                    title="关闭应用"
-                    desc="确定要关闭此应用吗？"
-                />}
             </PageHeaderLayout>
         );
     }
