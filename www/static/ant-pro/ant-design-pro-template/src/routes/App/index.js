@@ -444,6 +444,7 @@ class Main extends PureComponent {
         })
     }
     handleStop = () => {
+        this.setState({showCloseApp: false});
         if (this.state.actionIng) {
             notification.warning({message: `正在执行操作，请稍后`});
             return;
