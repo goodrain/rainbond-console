@@ -387,24 +387,24 @@ export default class Main extends PureComponent {
      this.setState({showUpload: false})
   }
  
-  handleMenuClick = (e) => {
-     var key = e.key;
-     var keyArr  = key.split("||");
-     console.log(keyArr);
-     var format = keyArr[0];
-     var id = keyArr[1];
-     var isexport = keyArr[2];
-     var team_name = globalUtil.getCurrTeamName()
-     if(isexport =='success'){
-        var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
-        window.open(newurl);
-     }else if(isexport == 'loading'){
-        notification.info({message: `正在导出，请稍后！`});
-     }else{
-       this.appExport(id,format);
-     }
+  // handleMenuClick = (e) => {
+  //    var key = e.key;
+  //    var keyArr  = key.split("||");
+  //    console.log(keyArr);
+  //    var format = keyArr[0];
+  //    var id = keyArr[1];
+  //    var isexport = keyArr[2];
+  //    var team_name = globalUtil.getCurrTeamName()
+  //    if(isexport =='success'){
+  //       var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
+  //       window.open(newurl);
+  //    }else if(isexport == 'loading'){
+  //       notification.info({message: `正在导出，请稍后！`});
+  //    }else{
+  //      this.appExport(id,format);
+  //    }
     
-  }
+  // }
 
   renderSubMenu = (item,querydata) => {
     const id = item.ID;
@@ -425,7 +425,7 @@ export default class Main extends PureComponent {
           if(appquery.status== 'success'){
             apptext = 'rainbond-app(点击下载)';
             appisSuccess = 'success';
-            // appurl = appquery.file_path ;
+            appurl = appquery.file_path ;
           }else if(appquery.status  == 'exporting'){
             apptext = 'rainbond-app(导出中)';
             appisSuccess = 'loading';
@@ -440,7 +440,7 @@ export default class Main extends PureComponent {
         if(composequery.status== 'success'){
           composetext = 'docker_compose(点击下载)';
           composeisSuccess = 'success';
-          // composeurl = composequery.file_path ;
+          composeurl = composequery.file_path ;
         }else if(composequery.status  == 'exporting'){
           composetext = 'docker_compose(导出中)';
           composeisSuccess = 'loading';
@@ -459,12 +459,12 @@ export default class Main extends PureComponent {
       apptext = 'rainbond-app(点击下载)';
     }
 
-    return <Menu onClick={this.handleMenuClick}>
+    return <Menu>
             <Menu.Item key={ 'rainbond-app||' +  id  + '||' + appisSuccess}>
-              <a target="_blank"  href={appurl} >{apptext}</a>
+              <a target="_blank"  href={appurl} download="filename">{apptext}</a>
             </Menu.Item>
             <Menu.Item key={'docker-compose||' + id  + '||' + composeisSuccess}>
-              <a target="_blank" href={composeurl}  >{composetext}</a>
+              <a target="_blank" href={composeurl}  download="filename">{composetext}</a>
             </Menu.Item>
       </Menu>
 		
