@@ -168,8 +168,8 @@ export default class Index extends PureComponent {
       type: 'teamControl/getRoles',
       payload: {
         team_name: team_name,
-        page_size: this.state.pageSize,
-        page: this.state.page
+        page_size: this.state.rolePageSize,
+        page: this.state.rolePage
       },
       callback: (data) => {
         this.setState({
@@ -534,9 +534,9 @@ export default class Index extends PureComponent {
     };
 
     const RolePagination = {
-      current: this.state.page,
-      pageSize: this.state.pageSize,
-      total: this.state.total,
+      current: this.state.rolePage,
+      pageSize: this.state.rolePageSize,
+      total: this.state.roleTotal,
       onChange: (v) => {
         this.hanldeRolePageChange(v);
       }

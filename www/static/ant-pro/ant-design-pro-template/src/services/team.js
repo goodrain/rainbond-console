@@ -59,11 +59,12 @@ export async function createRole(body={team_name, role_name, options_ids}){
 /*
 获取团队下所有角色
  */
-export async function getRoles(body={team_name, pageNumber}){
+export async function getRoles(body={team_name, page, page_size}){
   return request(config.baseUrl + `console/teams/${body.team_name}/role-list`,{
     method: 'get',
     params:{
-      page: body.pageNumber
+      page: body.page,
+      page_size: body.page_size
     }
   })
 }
