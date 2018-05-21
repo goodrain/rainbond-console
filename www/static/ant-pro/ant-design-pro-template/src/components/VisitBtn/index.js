@@ -94,9 +94,7 @@ export default class Index extends PureComponent {
     var demo = visitInfo;
     const appAlias = this.props.app_alias;
     return <Fragment>
-     
-        <Button onClick={this.showModal}>访问</Button >
-     
+       <Button onClick={this.showModal}>访问</Button>
       {showModal && <Modal
         title="提示"
         visible={true}
@@ -120,16 +118,12 @@ export default class Index extends PureComponent {
     const appAlias = this.props.app_alias;
     const links = this.getHttpLinks(demo.access_info || {});
     if (links.length === 1) {
-      return 
-     
-      <Button onClick={() => {
+      return  <Button onClick={() => {
         window.open(links[0])
       }}>访问</Button >;
     } else if (links.length === 0) {
       return <Fragment>
-       
-        <Button onClick={this.showModal}>访问</Button>
-     
+          <Button onClick={this.showModal}>访问</Button>
         {showModal && <Modal
           title="提示"
           visible={true}
