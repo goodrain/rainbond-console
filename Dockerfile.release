@@ -2,13 +2,13 @@ FROM goodrainapps/python:2.7.9
 
 MAINTAINER zhengys@goodrain.com
 
-RUN mkdir -p /app/ui
+RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
 
 ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN chmod +x /app/ui/entrypoint.sh
+RUN chmod +x /app/ui/entrypoint.sh && cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai
 
 RUN apk update && apk --no-cache add --virtual .build-deps \
       build-base \
