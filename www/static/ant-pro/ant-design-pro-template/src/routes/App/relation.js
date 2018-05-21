@@ -409,7 +409,7 @@ export default class Index extends PureComponent {
        />
        </ScrollerX>
        <div  style={{marginTop:10, textAlign: 'right'}}>
-        <Button onClick={this.handleAddVar}><Icon type="plus" /> 添加变量</Button>
+          <Button onClick={this.handleAddVar}><Icon type="plus" /> 添加变量</Button>
        </div>
      </Card>
      <Card

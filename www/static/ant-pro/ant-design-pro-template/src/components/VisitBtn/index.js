@@ -8,7 +8,8 @@ import {
   Menu,
   Table,
   Card,
-  Alert
+  Alert,
+  Tooltip
 } from 'antd';
 import {connect} from 'dva';
 import {Link} from 'dva/router';
@@ -93,7 +94,9 @@ export default class Index extends PureComponent {
     var demo = visitInfo;
     const appAlias = this.props.app_alias;
     return <Fragment>
-      <Button onClick={this.showModal}>访问</Button >
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+        <Button onClick={this.showModal}>访问</Button >
+      </Tooltip>
       {showModal && <Modal
         title="提示"
         visible={true}

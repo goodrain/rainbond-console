@@ -214,12 +214,14 @@ class ManageContainer extends PureComponent {
             </Menu>
         )
         return (
-            <Dropdown
-                onVisibleChange={this.handleVisibleChange}
-                overlay={renderPods}
-                placement="bottomRight">
-                <Button>管理容器</Button>
-            </Dropdown>
+            <Tooltip title=" 选择实例进入WEB控制台，可以进行容器内部shell管理操作">
+                <Dropdown
+                    onVisibleChange={this.handleVisibleChange}
+                    overlay={renderPods}
+                    placement="bottomRight">
+                    <Button>管理容器</Button>
+                </Dropdown>
+            </Tooltip>
         )
     }
 }
@@ -616,9 +618,11 @@ class Main extends PureComponent {
                              <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
                         </Tooltip>
                         :
-                        <Button
+                        <Tooltip title="关闭应用并使用最新的配置重新启动应用">
+                            <Button
                                 disabled={!appStatusUtil.canRestart(status)}
                                 onClick={this.handleRestart}>重启</Button>
+                         </Tooltip>
                         : null
 }
                     {(appUtil.canManageApp(appDetail)) && appStatusUtil.canManageDocker(status)
@@ -637,7 +641,9 @@ class Main extends PureComponent {
                             <Button onClick={this.handleDeploy} type="primary" className={styles.blueant}>重新部署</Button>
                         </Tooltip>
                         : 
-                        <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
+                        <Tooltip title="基于最新代码或镜像构建云帮应用，并滚动更新实例。">
+                            <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
+                        </Tooltip>
                     : ''}
 
             </div>
