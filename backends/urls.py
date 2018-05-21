@@ -5,7 +5,7 @@ from backends.views.account import AccountCreateView, TenantEnterpriseView, \
     AuthAccessTokenView, EnterpriseFuzzyQueryView
 from backends.views.announcement import AllAnnouncementView, AnnouncementView
 from backends.views.config import *
-from backends.views.event import ServiceOperateView
+from backends.views.event import ServiceOperateView, ServiceOperationDetailView
 from backends.views.resource.clusters import *
 from backends.views.resource.nodes import *
 from backends.views.resource.region import *
@@ -96,5 +96,6 @@ urlpatterns = patterns(
 
     # 操作汇总
     url(r'^v1/events$', ServiceOperateView.as_view()),
+    url(r'^v1/events/detail$', ServiceOperationDetailView.as_view()),
 )
 

@@ -9,6 +9,7 @@ from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from www.utils.return_message import general_message
 from console.models.main import ServiceRelPerms
+from console.services.team_services import team_services
 
 logger = logging.getLogger('default')
 
@@ -38,6 +39,7 @@ class PermActions(object):
                                    ('manage_service_config', u"应用配置管理"),
                                    ('manage_service_plugin', u"应用扩展管理"),
                                    ('manage_plugin', u"插件管理"),
+                                   ('import_and_export_service', u'应用导入导出'),
                                ) + tenant_viewer_actions
 
     tenant_admin_actions = (
@@ -157,20 +159,19 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenantName)
-            identitys = PermRelTenant.objects.filter(user_id=user.pk, tenant_id=tenant.pk).values_list("identity",
-                                                                                                       flat=True)
-
-            role_id_list = PermRelTenant.objects.filter(user_id=user.pk, tenant_id=tenant.pk).values_list("role_id",
-                                                                                                          flat=True)
-            if not identitys[0] and not role_id_list[0]:
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=user.pk,
+                                                                            tenant_name=tenant.tenant_name)
+            role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.pk,
+                                                                             tenant_name=tenant.tenant_name)
+            if not identitys and not role_id_list:
                 raise PermRelTenant.DoesNotExist
 
             tenant_actions_tuple = ()
-            if identitys[0]:
+            if identitys:
                 tenant_identity = get_highest_identity(identitys)
                 tenant_actions = p.keys('tenant_{0}_actions'.format(tenant_identity))
                 tenant_actions_tuple += tenant_actions
-            if role_id_list[0]:
+            if role_id_list:
                 for role_id in role_id_list:
                     perm_tuple = role_perm_repo.get_perm_by_role_id(role_id=role_id)
                     tenant_actions_tuple += perm_tuple

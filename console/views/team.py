@@ -200,8 +200,6 @@ class AddTeamView(JWTAuthApiView):
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
                         return Response(general_message(code, "add team error", msg), status=code)
-                # 添加默认的插件
-                plugin_service.add_default_plugin(self.user, team, regions)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)

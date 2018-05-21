@@ -1,6 +1,8 @@
 import React, { PureComponent } from 'react';
 import { Button, Icon, Modal, Form, Checkbox, Select, Input } from 'antd';
+import {connect} from 'dva';
 import { getTeamPermissions } from '../../services/team';
+import globalUtil from '../../utils/global';
 
 const Option = Select.Option;
 const FormItem = Form.Item;
@@ -8,16 +10,37 @@ import UserSelect from '../UserSelect';
 const CheckboxGroup = Checkbox.Group;
 
 @Form.create()
+@connect(({}) => ({}))
 class ConfirmModal extends PureComponent{
    constructor(arg){
      super(arg);
      this.state = {
-        actions: []
+        actions: [],
+        roles: []
      }
    }
    componentDidMount(){
-
+      this.loadRoles();
    }
+   loadRoles = () => {
+    const {dispatch} = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    const region_name = globalUtil.getCurrRegionName();
+    dispatch({
+      type: 'teamControl/getRoles',
+      payload: {
+        team_name: team_name,
+        page_size: 10000,
+        page: 1
+      },
+      callback: (data) => {
+        this.setState({
+          roles: data.list || [],
+          roleTotal: data.total
+        })
+      }
+    })
+  }
    handleSubmit= () => {
       
        this.props.form.validateFields((err, values) => {
@@ -52,7 +75,7 @@ class ConfirmModal extends PureComponent{
           },
         },
       };
-      const roles = this.props.roles || [];
+      const roles = this.state.roles || [];
 
       return (
           <Modal

@@ -223,9 +223,6 @@ export default class AppList extends PureComponent {
 						title: '操作',
 						dataIndex: 'action',
 						render: (val, data) => {
-							if (!appUtil.canManageApp(teamAction)) {
-								return null;
-							}
 							return (
 								<Fragment>
 									{appStatusUtil.canRestart(data)
@@ -271,11 +268,6 @@ export default class AppList extends PureComponent {
 					}} bordered={false}>
 						
 							<div
-									style={{
-									display: appUtil.canManageApp(teamAction)
-											? 'block'
-											: 'none'
-							}}
 									className={styles.tableList}>
 									<div className={styles.tableListOperator}>
 										<Button disabled={!this.canBatchRestart()} onClick={this.handleBatchRestart}>

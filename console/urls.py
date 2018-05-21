@@ -11,7 +11,6 @@ from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_perm import ServicePermView
 from console.views.app_config.app_port import AppPortView, AppPortManageView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
@@ -28,7 +27,7 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
-from console.views.center_pool.app_export import CenterAppExportView
+from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
@@ -61,14 +60,11 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-
 from console.views.webhook import *
-
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
-    APPPluginConfigView
-
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
+from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
+    APPPluginConfigView
 
 urlpatterns = patterns(
     '',
@@ -388,6 +384,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
+
+    # 应用下载
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export/down$', ExportFileDownLoadView.as_view()),
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),

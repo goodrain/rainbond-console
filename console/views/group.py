@@ -132,7 +132,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @perm_required("tenant.tenant_access")
     def get(self, request, *args, **kwargs):
         """
             查询组信息

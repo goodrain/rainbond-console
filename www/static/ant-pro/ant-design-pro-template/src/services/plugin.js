@@ -231,3 +231,19 @@ export async function getUsedApp(body = {
 }) {
   return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/used_services`, {method: 'get'});
 }
+
+/*
+   临时接口，查询默认安装的插件
+ */
+export async function getDefaultPlugin(body={team_name}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/default`, {method: 'get'});
+}
+
+/*
+   安装默认插件
+ */
+export async function installDefaultPlugin(body={team_name, plugin_type}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/default`, {method: 'post', data:{
+    plugin_type: body.plugin_type
+  }});
+}

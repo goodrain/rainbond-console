@@ -22,7 +22,7 @@ import AppList from './AppList';
 import AppShape from './AppShape';
 import AppShare from './AppShare';
 import ConfirmModal from '../../components/ConfirmModal';
-
+import NoPermTip from '../../components/NoPermTip';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import teamUtil from '../../utils/team';
@@ -403,7 +403,7 @@ class Main extends PureComponent {
   }
 }
 
-@connect(({user, groupControl}) => ({}), null, null, {pure: false})
+@connect(({user, groupControl, }) => ({currUser: user.currentUser}), null, null, {pure: false})
 export default class Index extends PureComponent {
   constructor(arg) {
     super(arg);
@@ -433,6 +433,10 @@ export default class Index extends PureComponent {
       groupDetail,
       groups
     } = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    const team = userUtil.getTeamByTeamName(currUser, team_name);
+   
+    if(!teamUtil.canViewApp(team))  return <NoPermTip />
 
     if (this.id !== this.getGroupId()) {
       this.id = this.getGroupId();

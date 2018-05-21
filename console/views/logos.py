@@ -10,7 +10,7 @@ from console.repositories.announce_repo import announcement_repo
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
-
+from console.repositories.perm_repo import role_perm_repo
 logger = logging.getLogger("default")
 
 
@@ -21,6 +21,8 @@ class ConfigInfoView(AlowAnyApiView):
         ---
         """
         try:
+            # 判断是否已经初始化权限默认数据，没有则初始化
+            status = role_perm_repo.initialize_permission_settings()
             code = 200
             data = dict()
             logo = config_service.get_image()
@@ -46,7 +48,7 @@ class ConfigInfoView(AlowAnyApiView):
             gitlab_config = config_service.get_gitlab_config()
             data["gitlab_config"] = gitlab_config
 
-            result = general_message(code, "query success", "Logo获取成功", bean=data)
+            result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)

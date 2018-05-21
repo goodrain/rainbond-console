@@ -111,6 +111,8 @@ class TeamService(object):
         """获取用户在一个团队的身份列表"""
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        if not user_perms:
+            return []
         identitys = [perm.identity for perm in user_perms]
         identity_list = []
         for identity in identitys:
@@ -123,6 +125,8 @@ class TeamService(object):
         """获取一个用户在一个团队的角色名称列表"""
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        if not user_perms:
+            return []
         role_id_list = []
         for role_id in [perm.role_id for perm in user_perms]:
             if not role_id:
@@ -135,7 +139,7 @@ class TeamService(object):
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         if not user_perms:
-            return None
+            return []
         role_id_list = []
         for role_id in [perm.role_id for perm in user_perms]:
             if not role_id:
@@ -147,6 +151,8 @@ class TeamService(object):
         """获取一个用户在一个团队中的拥有权限元祖"""
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        if not user_perms:
+            return ()
         role_id_list = [perm.role_id for perm in user_perms]
         role_perm_tuple = ()
         for role_id in role_id_list:

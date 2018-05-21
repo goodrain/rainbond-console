@@ -96,7 +96,7 @@ class TeamMemberTable extends PureComponent {
       pagination={pagination}
       dataSource={list}
       columns={columns}
-      onChange={this.handleTableChange}/>);
+      />);
   }
 }
 

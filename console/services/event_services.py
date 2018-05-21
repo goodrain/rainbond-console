@@ -49,7 +49,6 @@ class ServiceEventDynamic(object):
 
         query = Q()
         status = "success" if status == "complete" else status
-
         if team:
             query &= Q(tenant_id=team.tenant_id)
         if create_time:
@@ -81,7 +80,10 @@ class ServiceEventDynamic(object):
                 # 处理数据中心对应的event
                 if event.final_status == "" and not status:
                     region_events = region_events_map.get(service.service_region, [])
-                    region_events.append(event)
+                    if region_events:
+                        region_events.append(event)
+                    else:
+                        region_events_map[service.service_region] = [event]
             else:
                 event.service_cname = None
                 event.service_alias = None
