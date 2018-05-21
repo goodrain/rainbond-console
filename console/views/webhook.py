@@ -13,23 +13,26 @@ from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from www.utils.return_message import general_message, error_message
 
+
 class WebHooks(AlowAnyApiView):
 
-    def post(self, request, team_name, app_name, *args, **kwargs):
+    def post(self, request, team_name, app_name, username, *args, **kwargs):
         try:
 
-            if request.META.get("HTTP_X_GITHUB_EVENT", None):
-
+            event = request.META.get("HTTP_X_GITHUB_EVENT", None)
+            user_agent = request.META.get("HTTP_USER_AGENT", None)
+            user_agent2 = user_agent.split("/")[0]
+            if event and user_agent2 == "GitHub-Hookshot":
 
                 tenant = Tenants.objects.get(tenant_name=team_name)
-                print "tenant",tenant
+                print "tenant", tenant
                 service = TenantServiceInfo.objects.filter(service_alias=app_name, tenant_id=tenant.tenant_id)[0]
-                print "service",service
+                print "service", service
                 status_map = app_service.get_service_status(tenant, service)
-                print "vvvv",status_map
+                print "vvvv", status_map
                 status = status_map.get("status", None)
                 print "status", status
-                user = Users.objects.get(user_id=100)
+                user = Users.objects.get(nick_name=username)
 
                 if status == "running":
                     code, msg, event = app_manage_service.deploy(tenant, service, user)
@@ -64,14 +67,14 @@ class WebHooks(AlowAnyApiView):
 
                 x3 = request.META.get("HTTP_X_GITLAB_TOKEN", None)
                 type(x3)
-                print x,x2,x3
+                print x, x2, x3
 
                 event_name = request.data.get("event_name", None)
                 ref = request.data.get("ref", None)
                 project_id = request.data.get("project_id", None)
                 url = request.data.get("project")["git_http_url"]
 
-                print event_name,ref,project_id,url
+                print event_name, ref, project_id, url
 
 
 
@@ -93,10 +96,13 @@ class WebHooksUrl(AppBaseView):
     def get(self, request, *args, **kwargs):
         team_name = self.team_name
         app_name = self.service.service_alias
+        username = self.user.nick_name
 
         hostName = socket.gethostname()
         print hostName
-        return Response("http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps" + app_name + "/webhook")
+        return Response(
+            "http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps/" + app_name + "/users/" + username + "/webhook")
 
-{"status":"closed","disabledAction":["visit","stop","manage_container","reboot"],
- "status_cn":"已关闭","activeAction":["restart","deploy"]}
+
+{"status": "closed", "disabledAction": ["visit", "stop", "manage_container", "reboot"],
+ "status_cn": "已关闭", "activeAction": ["restart", "deploy"]}
