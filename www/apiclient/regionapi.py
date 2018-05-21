@@ -1341,7 +1341,7 @@ class RegionInvokeApi(HttpClient):
     def get_events_by_event_ids(self, region_name, event_ids):
         """获取多个event的事件"""
         region_info = self.get_region_info(region_name)
-        url = region_info.url + "/v2/events"
+        url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}))
         return body
