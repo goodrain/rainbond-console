@@ -94,9 +94,7 @@ export default class Index extends PureComponent {
     var demo = visitInfo;
     const appAlias = this.props.app_alias;
     return <Fragment>
-      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
-        <Button onClick={this.showModal}>访问</Button >
-      </Tooltip>
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址"><Button onClick={this.showModal}>访问</Button ></Tooltip>
       {showModal && <Modal
         title="提示"
         visible={true}
@@ -120,10 +118,9 @@ export default class Index extends PureComponent {
     const appAlias = this.props.app_alias;
     const links = this.getHttpLinks(demo.access_info || {});
     if (links.length === 1) {
-      return  <Tooltip title="跳转到应用对外访问端口对应的域名地址">
-      <Button onClick={() => {
+      return  <Tooltip title="跳转到应用对外访问端口对应的域名地址"><Button onClick={() => {
         window.open(links[0])
-      }}>访问</Button > </Tooltip>;
+      }}>访问</Button ></Tooltip>;
     } else if (links.length === 0) {
       return <Fragment>
         <Tooltip title="跳转到应用对外访问端口对应的域名地址">
