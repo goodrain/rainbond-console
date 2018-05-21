@@ -148,7 +148,9 @@ export default class Index extends PureComponent {
 }
       </Fragment>
     } else {
-      return <Dropdown
+      return 
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+      <Dropdown
         overlay={(
         <Menu onClick={this.handleClickLink}>
           {links.map((item) => {
@@ -157,12 +159,12 @@ export default class Index extends PureComponent {
         </Menu>
       )}
         placement="bottomRight">
-        <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+       
         <Button>
           <a href={links[0]} target="_blank">访问</a>
         </Button>
-        </Tooltip>
       </Dropdown>
+      </Tooltip>
     }
     return <Fragment>
       <Tooltip title="跳转到应用对外访问端口对应的域名地址">
