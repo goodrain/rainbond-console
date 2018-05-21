@@ -16,6 +16,7 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
 from console.services.app import app_service
+from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 
@@ -44,7 +45,8 @@ class StartAppView(AppBaseView):
         """
         try:
             new_add_memory = self.service.min_memory * self.service.min_node
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory, "启动应用")
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
+                                                           "启动应用")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)
@@ -198,7 +200,7 @@ class RollBackAppView(AppBaseView):
             deploy_version = request.data.get("deploy_version", None)
             if not deploy_version:
                 return Response(general_message(400, "deploy version is not found", "请指明回滚的版本"), status=400)
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user,deploy_version)
+            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -241,7 +243,8 @@ class VerticalExtendAppView(AppBaseView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
+            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user,
+                                                                   int(new_memory))
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -284,6 +287,12 @@ class HorizontalExtendAppView(AppBaseView):
             new_node = request.data.get("new_node", None)
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
+            mysql_service = user_services.get_mysql_service(service_alias=self.service.service_alias,
+                                                            team_id=self.tenant.tenant_id)
+            if mysql_service and int(new_node) > 1:
+                result = general_message(400, "Only allow vertical expansion", "云市安装的mysql只允许垂直扩容")
+                return Response(result, status=400)
+
             code, msg, event = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user,
                                                                      int(new_node))
             bean = {}

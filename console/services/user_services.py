@@ -11,7 +11,7 @@ from backends.services.tenantservice import tenant_service as tenantService, Ema
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from www.gitlab_http import GitlabApi
-from www.models import Tenants, Users, PermRelTenant
+from www.models import Tenants, Users, PermRelTenant, TenantServiceInfo
 from www.tenantservice.baseservice import CodeRepositoriesService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 
@@ -199,5 +199,10 @@ class UserService(object):
 
     def get_user_by_phone(self, phone):
         return user_repo.get_user_by_phone(phone)
+
+    def get_mysql_service(self, service_alias, team_id):
+        return TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=team_id, service_key="mysql",
+                                                service_source="market")
+
 
 user_services = UserService()
