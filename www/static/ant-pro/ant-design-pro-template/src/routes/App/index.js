@@ -623,14 +623,12 @@ class Main extends PureComponent {
                         ?
                         (this.state.showreStartTips && appStatusUtil.canRestart(status))?
                         <Tooltip title="应用配置已更改，重启后生效">
-                             <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
+                            <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
                         </Tooltip>
                         :
                         <Tooltip title="关闭应用并使用最新的配置重新启动应用">
-                            <Button
-                                disabled={!appStatusUtil.canRestart(status)}
-                                onClick={this.handleRestart}>重启</Button>
-                         </Tooltip>
+                            <Button disabled={!appStatusUtil.canRestart(status)} onClick={this.handleRestart}>重启</Button>
+                        </Tooltip>
                         : null
 }
                     {(appUtil.canManageApp(appDetail)) && appStatusUtil.canManageDocker(status)
