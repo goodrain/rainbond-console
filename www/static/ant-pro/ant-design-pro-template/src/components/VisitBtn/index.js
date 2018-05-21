@@ -94,7 +94,9 @@ export default class Index extends PureComponent {
     var demo = visitInfo;
     const appAlias = this.props.app_alias;
     return <Fragment>
-       <Button onClick={this.showModal}>访问</Button>
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+        <Button onClick={this.showModal}>访问</Button >
+      </Tooltip>
       {showModal && <Modal
         title="提示"
         visible={true}
@@ -118,12 +120,15 @@ export default class Index extends PureComponent {
     const appAlias = this.props.app_alias;
     const links = this.getHttpLinks(demo.access_info || {});
     if (links.length === 1) {
-      return  <Button onClick={() => {
+      return  <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+      <Button onClick={() => {
         window.open(links[0])
-      }}>访问</Button >;
+      }}>访问</Button > </Tooltip>;
     } else if (links.length === 0) {
       return <Fragment>
-          <Button onClick={this.showModal}>访问</Button>
+        <Tooltip title="跳转到应用对外访问端口对应的域名地址">
+        <Button onClick={this.showModal}>访问</Button>
+        </Tooltip>
         {showModal && <Modal
           title="提示"
           visible={true}
@@ -142,7 +147,7 @@ export default class Index extends PureComponent {
 }
       </Fragment>
     } else {
-      return <Dropdown
+      return  <Tooltip title="跳转到应用对外访问端口对应的域名地址"><Dropdown
         overlay={(
         <Menu onClick={this.handleClickLink}>
           {links.map((item) => {
@@ -151,17 +156,17 @@ export default class Index extends PureComponent {
         </Menu>
       )}
         placement="bottomRight">
-       
+      
         <Button>
           <a href={links[0]} target="_blank">访问</a>
         </Button>
-       
       </Dropdown>
+      </Tooltip>
     }
     return <Fragment>
-      
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
       <Button onClick={this.showModal}>访问</Button>
-     
+      </Tooltip>
       {showModal && <Modal
         title="提示"
         visible={true}
@@ -187,9 +192,9 @@ export default class Index extends PureComponent {
     var btn = <Button onClick={this.hiddenModal}>关闭</Button>;
     const btns = [btn];
     return <Fragment>
-     
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
       <Button onClick={this.showModal}>访问</Button >
-  
+      </Tooltip>
       {showModal && <Modal
         title="访问信息"
         width="800px"
@@ -316,7 +321,9 @@ export default class Index extends PureComponent {
     }
 
     return <Fragment>
+      <Tooltip title="跳转到应用对外访问端口对应的域名地址">
       <Button onClick={this.showModal}>访问</Button>
+      </Tooltip>
       {showModal && <Modal
         title="访问信息"
         width="800px"
