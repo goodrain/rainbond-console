@@ -80,7 +80,7 @@ class AppExportService(object):
                 region = group.region_name
             else:
                 return None
-        
+
         if region:
             region_config = region_repo.get_region_by_region_name(region)
             if region_config:
@@ -143,10 +143,11 @@ class AppExportService(object):
         if region:
             splits_texts = region.url.split(":")
             if len(splits_texts) > 2:
-                index = region.url.index(":", 6)
-                return region.url[:index] + ":6060" + raw_url
+                temp_url = splits_texts[0]+"://"+region.tcpdomain
+                # index = region.url.index(":", 6)
+                return temp_url + ":6060" + raw_url
             else:
-                return region.url + ":6060" + raw_url
+                return "http://" + region.tcpdomain + ":6060" + raw_url
 
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
