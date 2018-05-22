@@ -37,7 +37,8 @@ from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView, AnnouncementView
+from console.views.logos import ConfigInfoView
+from console.views.message import UserMessageView
 from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
 from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
@@ -62,15 +63,12 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
     UserDetailsView
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
-    APPPluginConfigView
 
 urlpatterns = patterns(
     '',
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
     # 站内消息
-    url(r'^announcement$', AnnouncementView.as_view()),
 
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
@@ -404,4 +402,6 @@ urlpatterns = patterns(
     # 应用权限设置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
 
+    # 站内信信息获取
+    url(r'^teams/(?P<team_name>[\w\-]+)/message$', UserMessageView.as_view()),
 )
