@@ -215,12 +215,14 @@ class ManageContainer extends PureComponent {
             </Menu>
         )
         return (
-            <Dropdown
-                onVisibleChange={this.handleVisibleChange}
-                overlay={renderPods}
-                placement="bottomRight">
-                <Button>管理容器</Button>
-            </Dropdown>
+            <Tooltip title=" 选择实例进入WEB控制台，可以进行容器内部shell管理操作">
+                <Dropdown
+                    onVisibleChange={this.handleVisibleChange}
+                    overlay={renderPods}
+                    placement="bottomRight">
+                    <Button>管理容器</Button>
+                </Dropdown>
+            </Tooltip>
         )
     }
 }
@@ -238,7 +240,8 @@ class Main extends PureComponent {
             showEditName: false,
             showMoveGroup: false,
             showDeployTips:false,
-            showreStartTips:false
+            showreStartTips:false,
+            showCloseApp:false
         }
         this.timer = null;
         this.mount = false;
@@ -442,6 +445,7 @@ class Main extends PureComponent {
         })
     }
     handleStop = () => {
+        this.setState({showCloseApp: false});
         if (this.state.actionIng) {
             notification.warning({message: `正在执行操作，请稍后`});
             return;
@@ -476,6 +480,12 @@ class Main extends PureComponent {
     }
     cancelDeleteApp = () => {
         this.setState({showDeleteApp: false})
+    }
+    onCloseStop = () => {
+        this.setState({showCloseApp: true})
+    }
+    cancelCloseApp = () => {
+        this.setState({showCloseApp: false})
     }
     handleDeleteApp = () => {
         const team_name = globalUtil.getCurrTeamName()
@@ -621,7 +631,6 @@ class Main extends PureComponent {
                             onClick={this.handleRestart}>重启</Button>}
                         
 
-
                     {(appUtil.canManageContainter(appDetail)) && appStatusUtil.canManageDocker(status)
                         ? <ManageContainer app_alias={appDetail.service.service_alias}/>
                         : null
@@ -638,7 +647,9 @@ class Main extends PureComponent {
                             <Button onClick={this.handleDeploy} type="primary" className={styles.blueant}>重新部署</Button>
                         </Tooltip>
                         : 
-                        <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
+                        <Tooltip title="基于最新代码或镜像构建云帮应用，并滚动更新实例。">
+                            <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
+                        </Tooltip>
                     : ''}
 
             </div>
@@ -729,7 +740,12 @@ class Main extends PureComponent {
                     groups={groups}
                     onOk={this.handleMoveGroup}
                     onCancel={this.hideMoveGroup}/>}
-                    <ManageAppGuide />
+                {this.state.showCloseApp && <ConfirmModal
+                    onOk={this.handleStop}
+                    onCancel={this.cancelCloseApp}
+                    title="关闭应用"
+                    desc="确定要关闭此应用吗？"
+                />}
             </PageHeaderLayout>
         );
     }
