@@ -52,8 +52,8 @@ INSERT INTO `tenant_user_role` (`role_name`, `tenant_id`, `is_default`) VALUES (
 INSERT INTO `tenant_user_role` (`role_name`, `tenant_id`, `is_default`) VALUES ('viewer', NULL, 1);
 
 -- 初始化默认权限组
-INSERT INTO `console`.`tenant_permission_group` (`group_name`) VALUES ('团队相关');
-INSERT INTO `console`.`tenant_permission_group` (`group_name`) VALUES ('应用相关');
+INSERT INTO `tenant_permission_group` (`group_name`) VALUES ('团队相关');
+INSERT INTO `tenant_permission_group` (`group_name`) VALUES ('应用相关');
 
 -- 初始化权限信息
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_access', '登入团队', 1, NULL, 1);
