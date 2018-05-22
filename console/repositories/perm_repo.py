@@ -176,7 +176,11 @@ class RoleRepo(object):
 
     def get_role_id_by_role_name(self, role_name):
         """获取角色ID"""
-        return TenantUserRole.objects.get(role_name=role_name).pk
+        role_query = TenantUserRole.objects.filter(role_name=role_name)
+        if role_query:
+            return role_query[0].pk
+        else:
+            return None
 
     def add_role_by_tenant_pk_perm_list(self, role_name, tenant_pk, perm_id_list):
         """创建一个角色"""

@@ -253,9 +253,9 @@ class TeamUserView(JWTAuthApiView):
                 for identity in perms_identitys_list:
                     if identity == "access":
                         role_info_list.append({"role_name": identity, "role_id": None})
-                    role_id = role_repo.get_role_id_by_role_name(identity)
-                    role_info_list.append({"role_name": identity, "role_id": role_id})
-
+                    else:
+                        role_id = role_repo.get_role_id_by_role_name(identity)
+                        role_info_list.append({"role_name": identity, "role_id": role_id})
                 for role in perms_role_list:
                     role_name = role_repo.get_role_name_by_role_id(role)
                     role_info_list.append({"role_name": role_name, "role_id": role})
