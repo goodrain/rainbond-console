@@ -212,7 +212,7 @@ export default class Main extends PureComponent {
               dataquery[app.ID] = {};
               if(app.export_status == 'exporting'){
                 dataexportTit[app.ID] = '导出中'
-                this.queryExport(app);
+                // this.queryExport(app);
               }else if(app.export_status ==  'success'){
                 dataexportTit[app.ID] = '导出(可下载)'
               }else{
@@ -284,9 +284,9 @@ export default class Main extends PureComponent {
            if(data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
                if((data.bean.docker_compose.status == "exporting" && data.bean.rainbond_app.status != "success") || (data.bean.rainbond_app.status == "exporting" && data.bean.docker_compose.status != "success")){
                    newexportTit[item.ID] = '导出中'
-                   setTimeout(() => {
-                      this.queryExport(item);
-                    }, 5000)
+                  //  setTimeout(() => {
+                  //     this.queryExport(item);
+                  //   }, 5000)
                }else if(data.bean.docker_compose.status == "success" || data.bean.rainbond_app.status == "success"){
                   newexportTit[item.ID] = '导出(可下载)'
                }else{
@@ -295,9 +295,9 @@ export default class Main extends PureComponent {
            }else if(data.bean.docker_compose.is_export_before && !data.bean.rainbond_app.is_export_before){
               if(data.bean.docker_compose.status == "exporting"){
                     newexportTit[item.ID] = '导出中'
-                    setTimeout(() => {
-                      this.queryExport(item);
-                    }, 5000)
+                    // setTimeout(() => {
+                    //   this.queryExport(item);
+                    // }, 5000)
                 }else if(data.bean.docker_compose.status == "success"){
                   newexportTit[item.ID] = '导出(可下载)'
                 }else{
@@ -306,9 +306,9 @@ export default class Main extends PureComponent {
            }else if(!data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
               if(data.bean.rainbond_app.status == "exporting"){
                 newexportTit[item.ID] = '导出中'
-                setTimeout(() => {
-                  this.queryExport(item);
-                }, 5000)
+                // setTimeout(() => {
+                //   this.queryExport(item);
+                // }, 5000)
               }else if(data.bean.rainbond_app.status == "success"){
                  newexportTit[item.ID] = '导出(可下载)'
               }else{
