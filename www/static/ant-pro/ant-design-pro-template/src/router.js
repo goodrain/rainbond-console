@@ -20,6 +20,7 @@ function RouterConfig({history, app}) {
   const UserLayout = routerData['/user'].component;
   const BasicLayout = routerData['/'].component;
   return (
+    
     <InitRainbondInfo>
       <LocaleProvider locale={zhCN}>
         <ConnectedRouter history={history}>
