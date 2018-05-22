@@ -26,6 +26,15 @@ import teamUtil from '../../utils/team';
 const {Header} = Layout;
 
 export default class GlobalHeader extends PureComponent {
+    constructor(props){
+        super(props);
+        this.state = {
+            noticeCount:0,
+            noticeData:[],
+            total: 0,
+			pageSize: 5
+        }
+      }
     componentWillUnmount() {
         this
             .triggerResizeEvent
@@ -256,38 +265,28 @@ export default class GlobalHeader extends PureComponent {
             onPressEnter={(value) => {
               console.log('enter', value); // eslint-disable-line
             }}
-          />
-          <NoticeIcon
-            className={styles.action}
-            count={notifyCount}
-            onItemClick={(item, tabProps) => {
-              console.log(item, tabProps); // eslint-disable-line
-            }}
-            onClear={onNoticeClear}
-            onPopupVisibleChange={onNoticeVisibleChange}
-            loading={fetchingNotices}
-            popupAlign={{ offset: [20, -16] }}
-          >
-            <NoticeIcon.Tab
-              list={noticeData['通知']}
-              title="通知"
-              emptyText="你已查看所有通知"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/wAhyIChODzsoKIOBHcBk.svg"
-            />
-            <NoticeIcon.Tab
-              list={noticeData['消息']}
-              title="消息"
-              emptyText="您已读完所有消息"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/sAuJeJzSKbUmHfBQRzmZ.svg"
-            />
-            <NoticeIcon.Tab
-              list={noticeData['待办']}
-              title="待办"
-              emptyText="你已完成所有待办"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
-            />
-          </NoticeIcon>
-        */}
+          /> */}
+
+           <NoticeIcon count={5} className="notice-icon">
+                <NoticeIcon.Tab
+                    title="公告"
+                    emptyText="你已查看所有公告"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/wAhyIChODzsoKIOBHcBk.svg"
+                />
+                <NoticeIcon.Tab
+                    title="消息"
+                    emptyText="你已查看所有消息"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/sAuJeJzSKbUmHfBQRzmZ.svg"
+                />
+                <NoticeIcon.Tab
+                    title="提醒"
+                    emptyText="你已查看所有提醒"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
+                />
+            </NoticeIcon>
+          
+     
+       
                     {currentUser
                         ? (
                             <Dropdown overlay={menu}>
