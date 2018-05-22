@@ -64,6 +64,9 @@ export default class PageHeader extends PureComponent {
     );
   }
   conversionFromLocation = (routerLocation, breadcrumbNameMap) => {
+
+    
+
     const {
       linkElement = 'a'
     } = this.props;
@@ -77,6 +80,7 @@ export default class PageHeader extends PureComponent {
       const url = `/${pathSnippets
         .slice(0, index + 1)
         .join('/')}`;
+
       const currentBreadcrumb = getBreadcrumb(breadcrumbNameMap, url);
       const isLinkable = (index !== pathSnippets.length - 1) && currentBreadcrumb.component;
       return currentBreadcrumb.name && !currentBreadcrumb.hideInBreadcrumb
@@ -119,6 +123,8 @@ export default class PageHeader extends PureComponent {
     if (breadcrumbList && breadcrumbList.length) {
       return this.conversionFromProps();
     }
+
+
     // 如果传入 routes 和 params 属性 If pass routes and params attributes
     if (routes && params) {
       return (<Breadcrumb

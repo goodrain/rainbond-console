@@ -507,12 +507,12 @@ export default class Main extends PureComponent {
      [<span onClick={() => {
       this.showCreate(item)
     }}>安装</span>
-    ,
-     <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
-       <a className="ant-dropdown-link" href="javascript:;" >
-         {exportText}<Icon type="down" />
-       </a>
-     </Dropdown>
+    // ,
+    // <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
+    //    <a  className="ant-dropdown-link" href="javascript:;" >
+    //      {exportText}<Icon type="down" />
+    //    </a>
+    //  </Dropdown>
     ]
     }>
      <Card.Meta
