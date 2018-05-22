@@ -57,7 +57,7 @@ class ConfirmModal extends PureComponent{
 
       return (
           <Modal
-            title="添加角色"
+            title={this.props.title || "添加角色"}
             visible={true}
             width={800}
             onOk={this.handleSubmit}
