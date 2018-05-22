@@ -86,6 +86,14 @@ export default class Index extends PureComponent {
       if (data) {
         this
           .props
+          .dispatch({
+            type: 'global/fetchGroups',
+            payload: {
+              team_name: team_name
+            }
+          });
+        this
+          .props
           .dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${app_alias}/overview`));
       }
     })
