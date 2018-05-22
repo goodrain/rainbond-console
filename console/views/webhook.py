@@ -22,12 +22,24 @@ class WebHooks(AlowAnyApiView):
             event = request.META.get("HTTP_X_GITHUB_EVENT", None)
             user_agent = request.META.get("HTTP_USER_AGENT", None)
             user_agent2 = user_agent.split("/")[0]
-            if event and user_agent2 == "GitHub-Hookshot":
+            if event == "push" and user_agent2 == "GitHub-Hookshot":
 
                 tenant = Tenants.objects.get(tenant_name=team_name)
                 print "tenant", tenant
-                service = TenantServiceInfo.objects.filter(service_alias=app_name, tenant_id=tenant.tenant_id)[0]
+                service = TenantServiceInfo.objects.get(service_alias=app_name, tenant_id=tenant.tenant_id)
                 print "service", service
+                ref = request.data.get("ref")
+                if not service.code_version == ref:
+                    result = general_message(400, "failed", "当前分支与部署分支不同")
+                    return Response(result, status=400)
+
+                git_url = request.data.get("repository")["git_url"]
+                ssh_url = request.data.get("repository")["ssh_url"]
+                if not service.git_url == git_url or service.git_url == ssh_url:
+                    result = general_message(400, "failed", "URl错误")
+                    return Response(result, status=400)
+
+                # 获取应用状态
                 status_map = app_service.get_service_status(tenant, service)
                 print "vvvv", status_map
                 status = status_map.get("status", None)
@@ -54,10 +66,10 @@ class WebHooks(AlowAnyApiView):
                 ref = request.data.get("ref")
                 # ref = ref.split("/")[-1]
                 id = request.data.get("repository")["id"]
-                full_name = request.data.get("repository")["full_name"]
+                url = request.data.get("repository")["git_url"]
                 # url = "https://github.com/" + full_name
 
-                print ("xxxxx", [ref, id, full_name])
+                print ("xxxxx", [ref, id])
 
             if request.META.get("HTTP_X_GITLAB_EVENT", None):
                 print request.META
@@ -85,6 +97,10 @@ class WebHooks(AlowAnyApiView):
             logger.exception(e)
             logger.error(e)
             return Response(e.message, status=400)
+        except Tenants.DoesNotExist as e:
+            logger.exception(e)
+            logger.error(e)
+            return Response(e.message, status=400)
 
         return Response("ok", status=200)
 
@@ -95,14 +111,20 @@ class WebHooks(AlowAnyApiView):
 class WebHooksUrl(AppBaseView):
     def get(self, request, *args, **kwargs):
         team_name = self.team_name
+        tenant_id = self.tenant.tenant_id
         app_name = self.service.service_alias
         username = self.user.nick_name
-
+        service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=app_name)
+        service_code_from = service_obj.code_from == "github" or service_obj.code_from == "gitlab_manual"
+        if not service_obj.service_source == "source_code" and service_code_from:
+            result = general_message(400, "failed", "该应用不符合要求")
+            return Response(result, status=400)
         hostName = socket.gethostname()
         print hostName
-        return Response(
-            "http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps/" + app_name + "/users/" + username + "/webhook")
+
+        result = "http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps/" + app_name + "/users/" + username + "/webhook"
+        return Response(result, status=200)
 
 
-{"status": "closed", "disabledAction": ["visit", "stop", "manage_container", "reboot"],
- "status_cn": "已关闭", "activeAction": ["restart", "deploy"]}
+# {"status": "closed", "disabledAction": ["visit", "stop", "manage_container", "reboot"],
+#  "status_cn": "已关闭", "activeAction": ["restart", "deploy"]}
