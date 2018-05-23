@@ -123,7 +123,7 @@ class ServiceShareRecordEvent(BaseModel):
         db_table = "service_share_record_event"
 
     record_id = models.IntegerField(help_text=u"关联的订单ID")
-    region_share_id = models.CharField(max_length=32, help_text=u"应用数据中心分享反馈ID")
+    region_share_id = models.CharField(max_length=36, help_text=u"应用数据中心分享反馈ID")
     team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
     service_key = models.CharField(max_length=32, help_text=u"对应应用key")
     service_id = models.CharField(max_length=32, help_text=u"对应应用ID")
