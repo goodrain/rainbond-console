@@ -16,7 +16,6 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
 from console.services.app import app_service
-from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 
@@ -287,11 +286,6 @@ class HorizontalExtendAppView(AppBaseView):
             new_node = request.data.get("new_node", None)
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
-            mysql_service = user_services.get_mysql_service(service_alias=self.service.service_alias,
-                                                            team_id=self.tenant.tenant_id)
-            if mysql_service and int(new_node) > 1:
-                result = general_message(400, "Only allow vertical expansion", "云市安装的mysql只允许垂直扩容")
-                return Response(result, status=400)
 
             code, msg, event = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user,
                                                                      int(new_node))
