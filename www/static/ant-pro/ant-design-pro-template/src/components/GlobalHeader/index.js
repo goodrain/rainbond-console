@@ -111,9 +111,7 @@ export default class GlobalHeader extends PureComponent {
         const tabTit = noticeTit[tablist];
         var newList = this.state.newNoticeList;
         newList[tabTit] = [];
-        this.setState({newNoticeList:newList},()=>{
-             console.log(this.state.newNoticeList)
-        });
+        this.forceUpdate();
     }
     getuserMessage = (page_num,page_size,msg_type,is_read) => {
         this.props.dispatch({
@@ -237,8 +235,7 @@ export default class GlobalHeader extends PureComponent {
             currTeam
         } = this.props;
        const noticesList = this.state.newNoticeList
-       console.log("1111")
-       console.log(noticesList)
+        console.log(this.state.newNoticeList)
         if (!currentUser) {
             return null
         }
