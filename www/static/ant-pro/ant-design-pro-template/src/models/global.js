@@ -150,7 +150,10 @@ export default {
           type: 'saveGroups',
           payload: response.list || []
         })
-        callback && callback();
+        setTimeout(()=>{
+          callback && callback(response.list);
+        })
+        
       }
     },
     *bindGithub({

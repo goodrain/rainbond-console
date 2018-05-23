@@ -2,6 +2,7 @@ import React from 'react';
 import {Link, Redirect, Switch, Route} from 'dva/router';
 import DocumentTitle from 'react-document-title';
 import {Icon} from 'antd';
+import {connect} from 'dva';
 import GlobalFooter from '../components/GlobalFooter';
 import styles from './UserLayout.less';
 import logo from '../../public/logo-icon-44.png';
@@ -29,11 +30,11 @@ const copyright = <div>Copyright
 
 class UserLayout extends React.PureComponent {
   getPageTitle() {
-    const {routerData, location} = this.props;
+    const {routerData, location, rainbondInfo} = this.props;
     const {pathname} = location;
-    let title = '好雨云帮 | 应用一键部署';
+    let title = `${rainbondInfo.title} | 应用一键部署`;
     if (routerData[pathname] && routerData[pathname].name) {
-      title = `${routerData[pathname].name} - 好雨云帮 | 应用一键部署`;
+      title = `${routerData[pathname].name} - ${rainbondInfo.title} | 应用一键部署`;
     }
     return title;
   }
@@ -46,7 +47,7 @@ class UserLayout extends React.PureComponent {
     }
   }
   render() {
-    const {routerData, match} = this.props;
+    const {routerData, match, rainbondInfo} = this.props;
 
     return (
       <DocumentTitle title={this.getPageTitle()}>
@@ -61,13 +62,13 @@ class UserLayout extends React.PureComponent {
                   }}
                     alt="logo"
                     className={styles.logo}
-                    src={logo}/>
+                    src={rainbondInfo.logo || logo}/>
                   <h1
                     style={{
                     display: 'inline-block',
                     verticalAlign: 'middle',
                     marginBottom: 0
-                  }}>好雨云帮</h1>
+                  }}>{rainbondInfo.title}</h1>
                 </Link>
               </div>
               <div className={styles.desc}>无服务器PaaS、以应用为中心、软件定义一切</div>
@@ -88,4 +89,9 @@ class UserLayout extends React.PureComponent {
   }
 }
 
-export default UserLayout;
+export default connect(({global}) => {
+
+  return ({
+      rainbondInfo: global.rainbondInfo
+  })
+})(UserLayout);

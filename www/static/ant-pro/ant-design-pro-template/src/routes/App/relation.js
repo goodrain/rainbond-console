@@ -79,7 +79,10 @@ class AddRelation extends PureComponent {
      super(props);
      this.state = {
        selectedRowKeys:[],
-       apps:[]
+       apps:[],
+       page: 1,
+       page_size: 6,
+       total:0
      }
    }
    componentDidMount(){
@@ -93,30 +96,38 @@ class AddRelation extends PureComponent {
         return;
       }
 
-      this.props.onSubmit && this.props.onSubmit(this.state.selectedRowKeys);
+      var ids = this.state.selectedRowKeys.map((item) => {
+          return this.state.apps[item].service_id
+      })
+      this.props.onSubmit && this.props.onSubmit(ids);
 
    }
    getUnRelationedApp = () => {
        getUnRelationedApp({
          team_name: globalUtil.getCurrTeamName(),
-         app_alias: this.props.appAlias
+         app_alias: this.props.appAlias,
+         page: this.state.page,
+         page_size: this.state.page_size
       }).then((data) => {
           if(data){
-              this.setState({apps: data.list || []})
+              this.setState({apps: data.list || [], total: data.total, selectedRowKeys: []})
           }
       })
    }
    handleCancel = () => {
      this.props.onCancel && this.props.onCancel();
    }
+   onPageChange = (page) => {
+     this.setState({page: page}, ()=>{
+        this.getUnRelationedApp();
+     })
+   }
    render(){
       const rowSelection = {
         onChange: (selectedRowKeys, selectedRows) => {
-           this.setState({selectedRowKeys: selectedRows.map((item)=>{return item.service_id})})
+           this.setState({selectedRowKeys: selectedRowKeys})
         },
-        getCheckboxProps: record => ({
-          disabled: record.name === 'Disabled User', // Column configuration not to be checked
-        }),
+        selectedRowKeys: this.state.selectedRowKeys
       };
 
       return (
@@ -128,7 +139,12 @@ class AddRelation extends PureComponent {
         onCancel = {this.handleCancel}
         >
         <Table
-          pagination = {false}
+          pagination = {{
+            current: this.state.page,
+            pageSize: this.state.page_size,
+            total: this.state.total,
+            onChange: this.onPageChange
+          }}
           dataSource={this.state.apps || []}
           rowSelection = {rowSelection}
           columns={[{
@@ -409,7 +425,7 @@ export default class Index extends PureComponent {
        />
        </ScrollerX>
        <div  style={{marginTop:10, textAlign: 'right'}}>
-        <Button onClick={this.handleAddVar}><Icon type="plus" /> 添加变量</Button>
+          <Button onClick={this.handleAddVar}><Icon type="plus" /> 添加变量</Button>
        </div>
      </Card>
      <Card

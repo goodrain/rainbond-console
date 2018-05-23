@@ -87,6 +87,7 @@ export default class Index extends PureComponent {
     }
 
     handleBuild = () => {
+        const team_name = globalUtil.getCurrTeamName();
         const params = this.getParams();
         this
             .props
@@ -97,6 +98,14 @@ export default class Index extends PureComponent {
                     ...params
                 },
                 callback: () => {
+                    this
+                        .props
+                        .dispatch({
+                            type: 'global/fetchGroups',
+                            payload: {
+                            team_name: team_name
+                            }
+                        });
                     this
                         .props
                         .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${params.group_id}`))

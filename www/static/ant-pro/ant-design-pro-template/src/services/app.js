@@ -273,9 +273,19 @@ export function getRelationedApp(body = {
 */
 export function getUnRelationedApp(body = {
 				team_name,
-				app_alias
+				app_alias,
+				page,
+				page_size
 }) {
-				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {method: 'get'});
+	console.log(body)
+				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {
+					method: 'get',
+					params:{
+						page: body.page ||1,
+						page_size: body.page_size || 8
+					}
+					
+			});
 }
 
 /*

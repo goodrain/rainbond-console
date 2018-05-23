@@ -39,6 +39,7 @@ AppLogSocket.prototype = {
 		this.timerQueue = new TimerQueue({
 			onExecute:this.onMessage
 		})
+		var i=1;
 	},
 	getSocket: function() {
 		return this.webSocket;
@@ -48,7 +49,6 @@ AppLogSocket.prototype = {
 	},
 	_onOpen: function(evt) {
 		//通知服务器
-		
 		this.serviceId && this.webSocket.send("topic=" + this.serviceId);
 		this.onOpen();
 	},
@@ -63,16 +63,27 @@ AppLogSocket.prototype = {
 			 		msg = ''
 			 	}
 			 }else{
-			 	msg = msg;
+				 msg = msg;
 			 }
 			 msg && this.timerQueue.add(msg);
 		}
 	},
 	_onClose: function(evt) {
-		this.onClose();
+		this.webSocket.onopen = null;
+		this.webSocket.onmessage = null;
+		this.webSocket.onclose = null;
+		this.webSocket.onerror = null;
+		this.webSocket = null;
+		if(!this.destroyed && this.isAutoConnect){
+			this.init();
+		}
 	},
 	_onError: function() {
 		this.onError();
+	},
+	destroy: function() {
+		this.destroyed = true;
+		this.webSocket.close();
 	}
 }
 

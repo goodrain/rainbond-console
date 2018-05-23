@@ -393,7 +393,12 @@ export default class Index extends PureComponent {
     );
 
     return (
-      <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
+      <PageHeaderLayout 
+      breadcrumbList={[{
+          title: "首页",
+          href: `/`
+      }]}
+       content={pageHeaderContent} extraContent={extraContent}>
         <Row gutter={24}>
           <Col xl={16} lg={24} md={24} sm={24} xs={24}>
             <Card bordered={false} style={{

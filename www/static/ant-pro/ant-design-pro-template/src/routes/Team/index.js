@@ -679,6 +679,7 @@ export default class Index extends PureComponent {
             onCancel={this.hideAddRole}/>}
 
             {this.state.editRole && <AddRole
+              title="修改角色"
               data={this.state.editRole}
               actions={teamControl.actions}
               onOk={this.handleEditRole}

@@ -186,7 +186,7 @@ export default class Index extends PureComponent {
          app_alias: this.props.appAlias
       }).then((data) => {
           if(data){
-              this.setState({logs: data.list || []})
+              this.setState({logs: (data.list || []).reverse()})
           }
       })
   }
@@ -204,7 +204,7 @@ export default class Index extends PureComponent {
   }
   componentWillUnmount(){
       if(this.socket){
-          this.socket.close();
+          this.socket.destroy();
           this.socket = null;
       }
   }
@@ -214,6 +214,7 @@ export default class Index extends PureComponent {
          this.socket = new AppLogSocket({
           url: this.state.websocketUrl,
           serviceId: appDetail.service.service_id,
+          isAutoConnect: true,
           onMessage: (msg) =>  {
             if(this.state.started){
                 var logs = this.state.logs || [];

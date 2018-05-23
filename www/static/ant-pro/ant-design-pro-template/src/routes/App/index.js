@@ -498,7 +498,7 @@ class Main extends PureComponent {
                         });
                     this
                         .props
-                        .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`));
+                        .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${this.props.appDetail.service.group_id}`));
                 }
 
             })
@@ -695,6 +695,19 @@ class Main extends PureComponent {
         const Com = map[type];
         return (
             <PageHeaderLayout
+                breadcrumbList={[{
+                    title: "首页",
+                    href: `/`
+                },{
+                    title: "我的应用",
+                    href: ``
+                },{
+                    title: this.props.appDetail.service.group_name,
+                    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${this.props.appDetail.service.group_id}`
+                },{
+                    title: this.props.appDetail.service.service_cname,
+                    href: ''
+                }]}
                 action={action}
                 title={this.renderTitle(appDetail.service.service_cname)}
                 onTabChange={this.handleTabChange}

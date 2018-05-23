@@ -387,24 +387,25 @@ export default class Main extends PureComponent {
      this.setState({showUpload: false})
   }
  
-  // handleMenuClick = (e) => {
-  //    var key = e.key;
-  //    var keyArr  = key.split("||");
-  //    console.log(keyArr);
-  //    var format = keyArr[0];
-  //    var id = keyArr[1];
-  //    var isexport = keyArr[2];
-  //    var team_name = globalUtil.getCurrTeamName()
-  //    if(isexport =='success'){
-  //       var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
-  //       window.open(newurl);
-  //    }else if(isexport == 'loading'){
-  //       notification.info({message: `正在导出，请稍后！`});
-  //    }else{
-  //      this.appExport(id,format);
-  //    }
+  handleMenuClick = (e) => {
+     var key = e.key;
+     var keyArr  = key.split("||");
+     console.log(keyArr);
+     var format = keyArr[0];
+     var id = keyArr[1];
+     var isexport = keyArr[2];
+     var team_name = globalUtil.getCurrTeamName()
+     if(isexport =='success'){
+        // var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
+        // window.open(newurl);
+        console.log("00")
+     }else if(isexport == 'loading'){
+        notification.info({message: `正在导出，请稍后！`});
+     }else{
+       this.appExport(id,format);
+     }
     
-  // }
+  }
 
   renderSubMenu = (item,querydata) => {
     const id = item.ID;
@@ -459,7 +460,7 @@ export default class Main extends PureComponent {
       apptext = 'rainbond-app(点击下载)';
     }
 
-    return <Menu>
+    return <Menu onClick={this.handleMenuClick}>
             <Menu.Item key={ 'rainbond-app||' +  id  + '||' + appisSuccess}>
               <a target="_blank"  href={appurl} download="filename">{apptext}</a>
             </Menu.Item>
