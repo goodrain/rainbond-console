@@ -12,6 +12,10 @@ from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from www.utils.return_message import general_message, error_message
+import hmac
+import json
+from hashlib import sha1
+
 
 
 class WebHooks(AlowAnyApiView):
@@ -23,19 +27,39 @@ class WebHooks(AlowAnyApiView):
             user_agent = request.META.get("HTTP_USER_AGENT", None)
             user_agent2 = user_agent.split("/")[0]
             if event == "push" and user_agent2 == "GitHub-Hookshot":
+                # github
+                signature = request.META.get("HTTP_X_HUB_SIGNATURE", None)
+                if signature:
+                    token = signature.split("=")[1]
+                    print "token", token
+                else:
+                    token = None
+                logger.debug("payload",request.data.get("payload", None))
+                body = json.dumps(request.data)
+                body_bytes = body.encode("utf-8")
+                print "body", body
+                sig = hmac.new("zhoujunhao".encode("utf-8"), body_bytes, digestmod=sha1)
+                y = sig.hexdigest()
+                logger.debug(token, y)
+                if hmac.compare_digest(token, y):
+                    logger.debug("yes")
+                else:
+                    logger.debug("no")
 
                 tenant = Tenants.objects.get(tenant_name=team_name)
-                print "tenant", tenant
+
                 service = TenantServiceInfo.objects.get(service_alias=app_name, tenant_id=tenant.tenant_id)
-                print "service", service
+
                 ref = request.data.get("ref")
                 if not service.code_version == ref:
+                    logger.debug("---当前分支与部署分支不同")
                     result = general_message(400, "failed", "当前分支与部署分支不同")
                     return Response(result, status=400)
 
                 git_url = request.data.get("repository")["git_url"]
                 ssh_url = request.data.get("repository")["ssh_url"]
                 if not service.git_url == git_url or service.git_url == ssh_url:
+                    logger.debug("github地址错误")
                     result = general_message(400, "failed", "URl错误")
                     return Response(result, status=400)
 
@@ -46,7 +70,8 @@ class WebHooks(AlowAnyApiView):
                 print "status", status
                 user = Users.objects.get(nick_name=username)
 
-                if status == "running":
+                if status:
+                    logger.debug(status, "xxxx")
                     code, msg, event = app_manage_service.deploy(tenant, service, user)
                     bean = {}
                     if event:
@@ -56,20 +81,6 @@ class WebHooks(AlowAnyApiView):
                         return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
                     result = general_message(code, "success", "操作成功", bean=bean)
                     return Response(result, status=200)
-
-                event = request.META.get("HTTP_X_GITHUB_EVENT", None)
-                Signature = request.META.get("HTTP_X_HUB_SIGNATURE", None)
-                DELIVERY = request.META.get("HTTP_X_GITHUB_DELIVERY", None)
-                user_agent = request.META.get("HTTP_USER_AGENT", None)
-                print (event, Signature, DELIVERY, user_agent)
-                # logger.debug(request.META)
-                ref = request.data.get("ref")
-                # ref = ref.split("/")[-1]
-                id = request.data.get("repository")["id"]
-                url = request.data.get("repository")["git_url"]
-                # url = "https://github.com/" + full_name
-
-                print ("xxxxx", [ref, id])
 
             if request.META.get("HTTP_X_GITLAB_EVENT", None):
                 print request.META
@@ -124,7 +135,6 @@ class WebHooksUrl(AppBaseView):
 
         result = "http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps/" + app_name + "/users/" + username + "/webhook"
         return Response(result, status=200)
-
 
 # {"status": "closed", "disabledAction": ["visit", "stop", "manage_container", "reboot"],
 #  "status_cn": "已关闭", "activeAction": ["restart", "deploy"]}
