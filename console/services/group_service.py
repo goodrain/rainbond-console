@@ -4,6 +4,7 @@
 """
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.app import service_repo
+from console.repositories.compose_repo import compose_repo
 import logging
 import re
 
@@ -55,6 +56,7 @@ class GroupService(object):
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与组的关系
         group_service_relation_repo.delete_relation_by_group_id(group_id)
+        compose_repo.delete_group_compose_by_group_id(group_id)
         return 200, u"删除成功", group_id
 
     def add_service_to_group(self, tenant, region_name, group_id, service_id):

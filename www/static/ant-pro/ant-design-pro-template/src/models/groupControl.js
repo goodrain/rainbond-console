@@ -16,7 +16,10 @@ import {
   giveupShare,
   completeShare,
   editAppCreateCompose,
-  groupMonitorData
+  groupMonitorData,
+  backup,
+  getBackup,
+  getBackupStatus
 } from '../services/group';
 import cookie from '../utils/cookie';
 
@@ -29,6 +32,33 @@ export default {
     apps: []
   },
   effects : {
+    *fetchBackupStatus({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getBackupStatus, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *fetchBackup({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getBackup, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *backup({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(backup, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *groupMonitorData({
       payload,
       callback

@@ -1,6 +1,7 @@
 import React, {PureComponent, Fragment} from 'react';
 import { Icon } from 'antd';
-import Noperm403 from '../../routes/Exception/403'
+
+import NoPerm403 from '../../routes/Exception/403'
 
 class Index extends PureComponent {
     render(){
@@ -13,4 +14,4 @@ class Index extends PureComponent {
     }
 }
 
-export default Noperm403;
+export default NoPerm403;
