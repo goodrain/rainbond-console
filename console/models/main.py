@@ -410,3 +410,19 @@ class AppExportRecord(BaseModel):
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+
+
+class UserMessage(BaseModel):
+    """用户站内信"""
+
+    class Meta:
+        db_table = 'user_message'
+
+    message_id = models.CharField(max_length=32, help_text=u"消息ID")
+    receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
+    content = models.CharField(max_length=256, help_text=u"消息内容")
+    is_read = models.BooleanField(default=False, help_text=u"是否已读")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    msg_type = models.CharField(max_length=15, help_text=u"消息类型")
+    announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")

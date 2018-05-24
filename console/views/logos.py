@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
-from console.repositories.announce_repo import announcement_repo
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -148,24 +147,6 @@ class TitleView(BaseApiView):
     #         code = 500
     #         result = error_message(e.message)
     #     return Response(result, status=code)
-
-
-class AnnouncementView(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
-        """
-        获取站内消息
-        ---
-
-        """
-        try:
-            code = 200
-            context = announcement_repo.get_announcement()
-            result = general_message(code, "query success", "站内消息获取成功", bean=context)
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=code)
 
 
 class GuideView(BaseApiView):

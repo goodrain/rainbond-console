@@ -10,6 +10,7 @@ import {
     Divider,
     Tooltip
 } from 'antd';
+import {connect} from 'dva';
 import Ellipsis from '../Ellipsis';
 import moment from 'moment';
 import groupBy from 'lodash/groupBy';
@@ -22,19 +23,39 @@ import cookie from '../../utils/cookie';
 import userIcon from '../../../public/images/user-icon-small.png';
 import ScrollerX from '../../components/ScrollerX';
 import teamUtil from '../../utils/team';
+import globalUtil from '../../utils/global';
 
 const {Header} = Layout;
 
+const noticeTit ={
+    '公告':'announcement',
+    '消息':'service_abnormal',
+    '提醒':'own_money'
+}
+@connect(({global}) => ({}))
 export default class GlobalHeader extends PureComponent {
+    constructor(props){
+        super(props);
+        this.state = {
+            noticeCount:0,
+            noticeList:[],
+            total: 0,
+            pageSize: 1000,
+            msg_type:'',
+            popupVisible:false,
+            msg_ids:'',
+            newNoticeList:{}
+        }
+      }
+    componentDidMount() {
+        this.getuserMessage()
+    }
     componentWillUnmount() {
         this
             .triggerResizeEvent
             .cancel();
     }
-    getNoticeData() {
-        const {
-            notices = []
-        } = this.props;
+    getNoticeData(notices) {
         if (notices.length === 0) {
             return {};
         }
@@ -42,25 +63,82 @@ export default class GlobalHeader extends PureComponent {
             const newNotice = {
                 ...notice
             };
-            if (newNotice.datetime) {
-                newNotice.datetime = moment(notice.datetime).fromNow();
+            const newNoticebox = {}
+            if (newNotice.create_time) {
+                newNoticebox['datetime'] = moment(notice.create_time).fromNow();
             }
             // transform id to item key
-            if (newNotice.id) {
-                newNotice.key = newNotice.id;
+            if (newNotice.ID) {
+                newNoticebox['key'] = newNotice.ID;
             }
-            if (newNotice.extra && newNotice.status) {
-                const color = ({todo: '', processing: 'blue', urgent: 'red', doing: 'gold'})[newNotice.status];
-                newNotice.extra = <Tag
-                    color={color}
-                    style={{
-                    marginRight: 0
-                }}>{newNotice.extra}</Tag>;
+            if (newNotice.content) {
+                newNoticebox['description'] = newNotice.content;
             }
-            return newNotice;
+            if (newNotice.msg_type) {
+                newNoticebox['msg_type'] = newNotice.msg_type;
+            }
+            // if (newNotice.extra && newNotice.status) {
+            //     const color = ({
+            //       todo: '',
+            //       processing: 'blue',
+            //       urgent: 'red',
+            //       doing: 'gold',
+            //     })[newNotice.status];
+            //     newNotice.extra = <Tag color={color} style={{ marginRight: 0 }}>{newNotice.extra}</Tag>;
+            //   }
+            return newNoticebox;
         });
-        return groupBy(newNotices, 'type');
+        return groupBy(newNotices, 'msg_type');
     }
+    handleVisibleChange = (flag) =>{
+        this.setState({popupVisible:flag,total:0},()=>{
+            if(this.state.popupVisible){
+                this.props.dispatch({
+                    type: 'global/putMsgAction',
+                    payload: {
+                      team_name:globalUtil.getCurrTeamName(),
+                      msg_ids:this.state.msg_ids,
+                      action:"mark_read"
+                    },
+                    callback: ((data) => {
+                        console.log(data)
+                    })
+                })
+            }
+        })
+    }
+    onClear = (tablist)=>{
+        const tabTit = noticeTit[tablist];
+        var newList = this.state.newNoticeList;
+        newList[tabTit] = [];
+        this.forceUpdate();
+    }
+    getuserMessage = (page_num,page_size,msg_type,is_read) => {
+        this.props.dispatch({
+            type: 'global/getuserMessage',
+            payload: {
+              team_name:globalUtil.getCurrTeamName(),
+              page_num:1,
+              page_size:this.state.pageSize,
+              msg_type:this.state.msg_type,
+              is_read:0
+            },
+            callback: ((data) => {
+                var datalist = data.list;
+                var ids = '';
+                datalist.map((order)=>{
+                    ids += order.ID + ','
+                })
+                ids = ids.slice(0,(ids.length-1))
+                this.setState({total:data.total,noticeList:data.list,msg_ids:ids},()=>{
+                    const newNotices = this.getNoticeData(this.state.noticeList);
+                    
+                    this.setState({newNoticeList:newNotices})
+                })
+            })
+          })
+      }
+
     toggle = () => {
         const {collapsed, onCollapse} = this.props;
         onCollapse(!collapsed);
@@ -156,11 +234,11 @@ export default class GlobalHeader extends PureComponent {
             currRegion,
             currTeam
         } = this.props;
-
+       const noticesList = this.state.newNoticeList
+        console.log(this.state.newNoticeList)
         if (!currentUser) {
             return null
         }
-
         const menu = (
             <Menu selectedKeys={[]} onClick={onMenuClick}>
                 {/*<Menu.Item disabled><Icon type="user" />个人中心</Menu.Item>
@@ -177,8 +255,7 @@ export default class GlobalHeader extends PureComponent {
             }}/>退出登录</Menu.Item>
             </Menu>
         );
-
-        const noticeData = this.getNoticeData();
+       
         return (
             <Header className={styles.header}>
                 {isMobile && ([
@@ -256,38 +333,37 @@ export default class GlobalHeader extends PureComponent {
             onPressEnter={(value) => {
               console.log('enter', value); // eslint-disable-line
             }}
-          />
-          <NoticeIcon
-            className={styles.action}
-            count={notifyCount}
-            onItemClick={(item, tabProps) => {
-              console.log(item, tabProps); // eslint-disable-line
-            }}
-            onClear={onNoticeClear}
-            onPopupVisibleChange={onNoticeVisibleChange}
-            loading={fetchingNotices}
-            popupAlign={{ offset: [20, -16] }}
-          >
-            <NoticeIcon.Tab
-              list={noticeData['通知']}
-              title="通知"
-              emptyText="你已查看所有通知"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/wAhyIChODzsoKIOBHcBk.svg"
-            />
-            <NoticeIcon.Tab
-              list={noticeData['消息']}
-              title="消息"
-              emptyText="您已读完所有消息"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/sAuJeJzSKbUmHfBQRzmZ.svg"
-            />
-            <NoticeIcon.Tab
-              list={noticeData['待办']}
-              title="待办"
-              emptyText="你已完成所有待办"
-              emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
-            />
-          </NoticeIcon>
-        */}
+          /> */}
+          
+           <NoticeIcon 
+            count={this.state.total} 
+            className="notice-icon" 
+            popupVisible={this.state.popupVisible} 
+            onPopupVisibleChange={this.handleVisibleChange}
+            onClear={this.onClear}
+            >
+                <NoticeIcon.Tab
+                    title="公告"
+                    emptyText="你已查看所有公告"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/wAhyIChODzsoKIOBHcBk.svg"
+                    list={noticesList['announcement']}
+                />
+                <NoticeIcon.Tab
+                    title="消息"
+                    emptyText="你已查看所有消息"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/sAuJeJzSKbUmHfBQRzmZ.svg"
+                    list={noticesList['service_abnormal']}
+                />
+                <NoticeIcon.Tab
+                    title="提醒"
+                    emptyText="你已查看所有提醒"
+                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
+                    list={noticesList['own_money']}
+                />
+            </NoticeIcon>
+          
+     
+       
                     {currentUser
                         ? (
                             <Dropdown overlay={menu}>
