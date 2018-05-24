@@ -4,11 +4,11 @@ import config from '../config/config';
 /* 
    查询备份状态
 */
-export async function getBackupStatus(body={team_name, backup_id}){
-	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/backup`, {
+export async function getBackupStatus(body={team_name, backup_id, group_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/backup`, {
 	  method: 'get',
 	  params: {
-		backup_id: body.backup_id
+			backup_id: body.backup_id
 	  },
 	});
   }
@@ -20,7 +20,9 @@ export async function getBackup(body={team_name, group_id}){
 	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/backup`, {
 	  method: 'get',
 	  params: {
-		group_id: body.group_id
+			group_id: body.group_id,
+			page: body.page,
+			page_size: body.page_size
 	  },
 	});
   }

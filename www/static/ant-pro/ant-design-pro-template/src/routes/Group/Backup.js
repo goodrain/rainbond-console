@@ -19,9 +19,82 @@ import appStatusUtil from '../../utils/appStatus-util';
 import sourceUtil from '../../utils/source-unit';
 import ScrollerX from '../../components/ScrollerX';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
+import userUtil from '../../utils/user';
+import logSocket from '../../utils/logSocket';
+
 const {TextArea}  = Input
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
+
+@connect(({user, appControl}) => ({currUser: user.currentUser}))
+class BackupStatus extends PureComponent {
+	constructor(props){
+		super(props);
+		this.state = {
+			map: {
+				starting: '备份中',
+				success: '备份成功',
+				failed: '备份失败'
+			}
+		}
+		this.timer = null;
+	}
+	componentDidMount(){
+		const data = this.props.data;
+	
+		if(data.status === 'starting'){
+			this.createSocket();
+			this.startLoopStatus();
+		}
+	}
+	createSocket(){
+		this.logSocket = new logSocket({
+			url: this.getSocketUrl(),
+			eventId: this.props.data.event_id,
+			onMessage: (msg) => {
+				console.log(msg)
+			}
+		})
+	}
+	componentWillUnmount(){
+		this.stopLoopStatus();
+		this.logSocket && this.logSocket.destroy();
+		this.logSocket = null;
+	}
+	getSocketUrl = () => {
+		return userUtil.getCurrRegionSoketUrl(this.props.currUser);
+	}
+	startLoopStatus(){
+		this.props.dispatch({
+			type: 'groupControl/fetchBackupStatus',
+			payload: {
+				team_name: globalUtil.getCurrTeamName(),
+				backup_id: this.props.data.backup_id,
+				group_id: this.props.group_id
+			},
+			callback: (data) => {
+				const bean = data.bean;
+				if(bean.status === 'starting'){
+					this.timer = setTimeout(()=>{
+						this.startLoopStatus();
+					}, 10000)
+				}else{
+					this.props.onEnd && this.props.onEnd();
+				}
+			}
+		})
+	}
+	stopLoopStatus(){
+		clearTimeout(this.timer)
+	}
+	render(){
+		const data = this.props.data||{};
+		return (
+			<span>{this.state.map[data.status]} {data.status === 'starting' && <Icon  style={{marginLeft: 8}} type="loading" spin />}</span>
+		)
+	}
+}
+
 
 @Form.create()
 class Backup extends PureComponent {
@@ -98,9 +171,9 @@ export default class AppList extends PureComponent {
 			selectedRowKeys: [],
 			list: [],
 			teamAction: {},
-			current: 1,
+			page: 1,
 			total: 0,
-			pageSize: 10,
+			pageSize: 6,
 			showBackup: false
 		}
 	}
@@ -117,9 +190,11 @@ export default class AppList extends PureComponent {
 			payload:{
 				team_name: team_name,
 				group_id: this.getGroupId(),
+				page: this.state.page,
+				page_size: this.state.pageSize
 			},
 			callback: (data) => {
-				this.setState({list: data.list ||[]})
+				this.setState({list: data.list ||[], total: data.total})
 			}
 		})
 	}
@@ -162,8 +237,8 @@ export default class AppList extends PureComponent {
 						dataIndex: 'mode',
 						render: (val, data) => {
 							var map = {
-								'full-online': '离线模式',
-								'full-offline': '在线模式'
+								'full-online': '在线模式',
+								'full-offline': '离线模式'
 							}
 							return map[val] || ''
 						}
@@ -176,13 +251,8 @@ export default class AppList extends PureComponent {
 				}, {
 						title: '状态',
 						dataIndex: 'status',
-						render: (val) => {
-							var map = {
-								starting: '备份中',
-								success: '备份成功',
-								failed: '备份失败'
-							}
-								return map[val]
+						render: (val, data) => {
+							return <BackupStatus onEnd={this.fetchBackup} group_id={this.getGroupId()} data={data} />
 						}
 				},{
                     title: '备注',
@@ -225,8 +295,23 @@ export default class AppList extends PureComponent {
                     </div>
                   )}>
                    <Card>
-                       <Table  columns={columns} dataSource={list} />
+				   	   <ScrollerX sm={800}>
+						   <Table 
+						    rowKey={(data)=>{return data.backup_id}}
+						    pagination={{
+								current: this.state.page,
+								total: this.state.total,
+								pageSize: this.state.pageSize,
+								onChange: (page) => {
+									this.setState({page: page}, ()=>{
+										this.fetchBackup();
+									})
+								}
+							}}
+						    columns={columns} dataSource={list} />
+					   </ScrollerX>
                    </Card>
+				   
 				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
                 </PageHeaderLayout>
               );
