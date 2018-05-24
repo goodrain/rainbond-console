@@ -18,19 +18,38 @@ logger = logging.getLogger("default")
 
 class WebHooks(AlowAnyApiView):
 
-    def post(self, request, team_name, app_name, username, *args, **kwargs):
+    def post(self, request, service_id, *args, **kwargs):
         try:
-            tenant = Tenants.objects.get(tenant_name=team_name)
+            print service_id
+            service_obj = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
+            if not service_obj.open_webhooks:
+                print "bbbb"
+                logger.debug("没开启webhooks自动部署")
+                result = general_message(400, "failed", "没有开启此功能")
+                return Response(result, status=400)
 
-            service = TenantServiceInfo.objects.get(service_alias=app_name, tenant_id=tenant.tenant_id)
             event = request.META.get("HTTP_X_GITHUB_EVENT", None)
             user_agent = request.META.get("HTTP_USER_AGENT", None)
             if user_agent:
-                user_agent2 = user_agent.split("/")[0]
-            else:
-                user_agent2 = None
-            if event == "push" and user_agent2 == "GitHub-Hookshot":
+                user_agent = user_agent.split("/")[0]
+            print event,user_agent
+
+            if event == "push" and user_agent == "GitHub-Hookshot":
                 # github
+                print "进到github"
+
+                commits_info = request.data.get("head_commit")
+                if not commits_info:
+                    logger.debug("提交信息获取失败")
+                    result = general_message(400, "failed", "提交信息获取失败")
+                    return Response(result, status=400)
+                message = commits_info.get("message")
+                if not "@automatic_deployment@" in message:
+                    logger.debug("提交信息无效")
+                    result = general_message(400, "failed", "提交信息无效")
+                    return Response(result, status=400)
+
                 signature = request.META.get("HTTP_X_HUB_SIGNATURE", None)
                 token = None
                 if signature:
@@ -38,11 +57,14 @@ class WebHooks(AlowAnyApiView):
                     print "token", token
 
                 payload = json.dumps(request.data)
-                hmac_obj = hmac.new(str("zhoujunhao"), str(payload), digestmod=sha1)
-                token_2 = hmac_obj.hexdigest()
-                logger.debug("token", token, token_2)
-                print ("token", token, token_2)
-                if hmac.compare_digest(str(token), str(token_2)):
+                secret = service_obj.secret
+                hmac_obj = hmac.new(str(secret), msg=payload, digestmod=sha1)
+                my_token = hmac_obj.hexdigest()
+                logger.debug("token", token)
+                logger.debug("token2", my_token)
+
+                print ("token", token, my_token)
+                if hmac.compare_digest(token, my_token):
                     logger.debug("yes")
                     print "yes"
                 else:
@@ -50,32 +72,36 @@ class WebHooks(AlowAnyApiView):
                     print "no"
 
                 ref = request.data.get("ref")
+                if not ref:
+                    logger.debug("获取分支信息失败")
+                    result = general_message(400, "failed", "获取分支信息失败")
+                    return Response(result, status=400)
                 ref = ref.split("/")[2]
-                if not service.code_version == ref:
-                    logger.debug("---当前分支与部署分支不同")
-                    result = general_message(400, "failed", "当前分支与部署分支不同")
+                if not service_obj.code_version == ref:
+                    logger.debug("当前分支与部署分支不同")
+                    result = general_message(400, "failed", "提交分支与部署分支不同")
                     return Response(result, status=400)
 
-                git_url = request.data.get("repository")["clone_url"]
+                clone_url = request.data.get("repository")["clone_url"]
                 ssh_url = request.data.get("repository")["ssh_url"]
-                logger.debug("git_url", service.git_url)
-                logger.debug("clone_url", git_url)
+                logger.debug("git_url", service_obj.git_url)
+                logger.debug("clone_url", clone_url)
                 logger.debug("ssh_url", ssh_url)
-                if not (service.git_url == git_url or service.git_url == ssh_url):
-                    logger.debug("github地址错误")
-                    result = general_message(400, "failed", "URl错误")
+                if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
+                    logger.debug("github地址不相符")
+                    result = general_message(400, "failed", "仓库地址不相符")
                     return Response(result, status=400)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(tenant, service)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 print "vvvv", status_map
                 status = status_map.get("status", None)
-                print "status", status
-                user = Users.objects.get(nick_name=username)
+                logger.debug(status)
 
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info.get("committer").get("username")
                 if status:
-                    logger.debug(status, "xxxx")
-                    code, msg, event = app_manage_service.deploy(tenant, service, user)
+                    code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user_obj, committer_name)
                     bean = {}
                     if event:
                         bean = event.to_dict()
@@ -84,7 +110,7 @@ class WebHooks(AlowAnyApiView):
                         return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
                     result = general_message(code, "success", "操作成功", bean=bean)
                     return Response(result, status=200)
-
+            # gitlab
             if request.META.get("HTTP_X_GITLAB_EVENT", None):
 
                 event_name = request.data.get("object_kind", None)
@@ -97,7 +123,7 @@ class WebHooks(AlowAnyApiView):
                     return Response("却少参数", status=400)
                 logger.debug("yesref", ref.split("/")[2])
                 branch = ref.split("/")[2]
-                if not service.code_version == branch:
+                if not service_obj.code_version == branch:
                     return Response("版本不符", status=400)
 
                 repository = request.data.get("repository")
@@ -108,27 +134,27 @@ class WebHooks(AlowAnyApiView):
                 git_http_url = repository["git_http_url"]
                 git_ssh_url = repository["git_ssh_url"]
                 id = request.data.get("project_id", None)
-                logger.debug("ooo", service.git_url)
+                logger.debug("ooo", service_obj.git_url)
                 logger.debug("ooox", git_ssh_url)
-                logger.debug("eee", service.git_url == git_ssh_url)
+                logger.debug("eee", service_obj.git_url == git_ssh_url)
 
-                if not (service.git_url == git_http_url or service.git_url == git_ssh_url):
+                if not (service_obj.git_url == git_http_url or service_obj.git_url == git_ssh_url):
                     logger.debug("仓库地主不相符，fff")
 
                     return Response("仓库地主不相符", status=400)
 
                 logger.debug("yessssssss")
                 # 获取应用状态
-                status_map = app_service.get_service_status(tenant, service)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 print "vvvv", status_map
                 status = status_map.get("status", None)
                 print "status", status
-                user = Users.objects.get(nick_name=username)
+                user = Users.objects.get(service_obj.creater)
 
                 if status:
                     logger.debug(status, "status")
                     logger.debug("mmmmmmmmm")
-                    code, msg, event = app_manage_service.deploy(tenant, service, user)
+                    code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user)
                     bean = {}
                     if event:
                         bean = event.to_dict()
@@ -137,6 +163,10 @@ class WebHooks(AlowAnyApiView):
                         return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
                     result = general_message(code, "success", "操作成功", bean=bean)
                     return Response(result, status=200)
+            else:
+                logger.debug("暂不不支持")
+                result = general_message(400, "failed", "暂不支持")
+                return Response(result, status=400)
 
         except Exception as e:
             logger.exception(e)
@@ -174,7 +204,7 @@ class GetWebHooksUrl(AppBaseView):
             logger.debug(hostname)
             print hostname
 
-            url = "http://" + "127.0.0.1:9000/" + "console/team/" + team_name + "/apps/" + service_alias + "/users/" + username + "/webhook"
+            url = "http://" + "127.0.0.1:9000/" + "console/" + "webhooks/" + service_obj.service_id
             result = general_message(200, "success", "获取webhooks-URl成功", list=[url])
             return Response(result, status=200)
         except Exception as e:

@@ -202,8 +202,8 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
+    def deploy(self, tenant, service, user, committer_name=None):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
         if code != 200:
             return code, msg, event
 
