@@ -2,6 +2,32 @@ import request from '../utils/request';
 import config from '../config/config';
 
 /* 
+   查询备份
+*/
+export async function getBackup(body={team_name, group_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/backup`, {
+	  method: 'get',
+	  params: {
+		group_id: body.group_id
+	  },
+	});
+  }
+
+/* 
+   备份
+*/
+export async function backup(body={team_name, group_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groups/${body.group_id}/backup`, {
+	  method: 'POST',
+	  data:{
+		note: body.note,
+		mode: body.mode
+	  }
+	});
+  }
+
+
+/* 
   查询这个组的所有可监控应用的响应时间和吞吐率
 */
 export async function groupMonitorData(body={team_name, group_id}){
