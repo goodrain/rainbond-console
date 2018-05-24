@@ -601,8 +601,8 @@ class AppMarketSynchronizeService(object):
             rbc = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_group["group_key"],
                                                                         app_group["group_version"])
             if rbc:
-                rbc.describe = app_group["info"]
-                rbc.pic = app_group["pic"]
+                rbc.describe = app_group["info"] if app_group["info"] else rbc.describe
+                rbc.pic = app_group["pic"] if app_group["pic"] else rbc.pic
                 rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
                 rbc.template_version = app_group.get("template_version", rbc.template_version)
                 rbc.save()
