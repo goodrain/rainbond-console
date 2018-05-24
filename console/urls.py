@@ -28,9 +28,12 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
+from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
+    GroupAppsBackupStatusView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
@@ -383,6 +386,12 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
+    # 应用导入
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view()),
+    # 应用导入状态查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view()),
+    # 应用包目录查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/(?P<event_id>[\w\-]+)/dir$', CenterAppTarballDirView.as_view()),
 
     # 应用下载
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export/down$', ExportFileDownLoadView.as_view()),
@@ -403,5 +412,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
     # 应用权限设置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
-
+    # 一组应用备份
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
+        GroupAppsBackupStatusView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
 )

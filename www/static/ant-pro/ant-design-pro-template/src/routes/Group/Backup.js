@@ -16,6 +16,7 @@ import {
 } from '../../services/app';
 import appUtil from '../../utils/app';
 import appStatusUtil from '../../utils/appStatus-util';
+import sourceUtil from '../../utils/source-unit';
 import ScrollerX from '../../components/ScrollerX';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 const {TextArea}  = Input
@@ -139,6 +140,7 @@ export default class AppList extends PureComponent {
 			},
 			callback: () => {
 				this.cancelBackup();
+				this.fetchBackup();
 			}
 		})
 	}
@@ -151,37 +153,40 @@ export default class AppList extends PureComponent {
 			const columns = [
 				{
 						title: '备份时间',
-						dataIndex: 'service_cname',
-						render: (val, data) => {
-								return <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/app/${data.service_alias}/overview`}>{val}</Link>
-						}
+						dataIndex: 'create_time'
 				}, {
 						title: '备份人',
-						dataIndex: 'service_type'
+						dataIndex: 'user'
 				}, {
 						title: '备份模式',
-						dataIndex: 'min_memory',
+						dataIndex: 'mode',
 						render: (val, data) => {
-								return val + 'MB'
+							var map = {
+								'full-online': '离线模式',
+								'full-offline': '在线模式'
+							}
+							return map[val] || ''
 						}
 				}, {
 						title: '包大小',
-						dataIndex: 'status_cn',
+						dataIndex: 'backup_size',
 						render: (val, data) => {
-								return <Badge status={appUtil.appStatusToBadgeStatus(data.status)} text={val}/>
+								return sourceUtil.unit(val, 'Byte');
 						}
 				}, {
 						title: '状态',
-						dataIndex: 'update_time',
+						dataIndex: 'status',
 						render: (val) => {
-								return moment(val).format("YYYY-MM-DD HH:mm:ss")
+							var map = {
+								starting: '备份中',
+								success: '备份成功',
+								failed: '备份失败'
+							}
+								return map[val]
 						}
 				},{
                     title: '备注',
-                    dataIndex: 'update_time999',
-                    render: (val) => {
-                            return moment(val).format("YYYY-MM-DD HH:mm:ss")
-                    }
+                    dataIndex: 'note'
                 }, {
 						title: '操作',
 						dataIndex: 'action',
@@ -194,7 +199,8 @@ export default class AppList extends PureComponent {
 						}
 				}
 			];
-            const groupDetail = {};
+			const groupDetail = {};
+			const list = this.state.list || [];
 			return (
                 
                 <PageHeaderLayout
@@ -219,7 +225,7 @@ export default class AppList extends PureComponent {
                     </div>
                   )}>
                    <Card>
-                       <Table columns={columns} dataSource={[]} />
+                       <Table  columns={columns} dataSource={list} />
                    </Card>
 				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
                 </PageHeaderLayout>

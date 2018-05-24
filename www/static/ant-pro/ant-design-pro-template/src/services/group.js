@@ -2,6 +2,18 @@ import request from '../utils/request';
 import config from '../config/config';
 
 /* 
+   查询备份状态
+*/
+export async function getBackupStatus(body={team_name, backup_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/backup`, {
+	  method: 'get',
+	  params: {
+		backup_id: body.backup_id
+	  },
+	});
+  }
+
+/* 
    查询备份
 */
 export async function getBackup(body={team_name, group_id}){
@@ -17,7 +29,7 @@ export async function getBackup(body={team_name, group_id}){
    备份
 */
 export async function backup(body={team_name, group_id}){
-	return request(config.baseUrl + `/console/teams/${body.team_name}/groups/${body.group_id}/backup`, {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/backup`, {
 	  method: 'POST',
 	  data:{
 		note: body.note,

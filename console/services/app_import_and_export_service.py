@@ -7,10 +7,11 @@ import json
 import logging
 import urllib2
 
-import requests
-
+from console.models.main import RainbondCenterApp
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.appstore.appstore import app_store
 from console.repositories.group import group_repo
-from console.repositories.market_app_repo import app_export_record_repo
+from console.repositories.market_app_repo import app_export_record_repo, app_import_record_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from www.apiclient.baseclient import client_auth_service
@@ -89,7 +90,6 @@ class AppExportService(object):
         else:
             return None
 
-
     def get_export_status(self, team, app):
         app_export_records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
         rainbond_app_init_data = {
@@ -119,13 +119,15 @@ class AppExportService(object):
                     rainbond_app_init_data.update({
                         "is_export_before": True,
                         "status": export_record.status,
-                        "file_path": self._wrapper_director_download_url(region, export_record.file_path.replace("/v2",""))
+                        "file_path": self._wrapper_director_download_url(region,
+                                                                         export_record.file_path.replace("/v2", ""))
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
                         "is_export_before": True,
                         "status": export_record.status,
-                        "file_path": self._wrapper_director_download_url(region, export_record.file_path.replace("/v2",""))
+                        "file_path": self._wrapper_director_download_url(region,
+                                                                         export_record.file_path.replace("/v2", ""))
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
@@ -143,7 +145,7 @@ class AppExportService(object):
         if region:
             splits_texts = region.url.split(":")
             if len(splits_texts) > 2:
-                temp_url = splits_texts[0]+"://"+region.tcpdomain
+                temp_url = splits_texts[0] + "://" + region.tcpdomain
                 # index = region.url.index(":", 6)
                 return temp_url + ":6060" + raw_url
             else:
@@ -192,4 +194,95 @@ class AppExportService(object):
         return req, file_name
 
 
+class AppImportService(object):
+    def start_import_apps(self, tenant, region, scope, event_id, file_names):
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        import_record.scope = scope
+
+        service_slug = app_store.get_slug_connection_info(scope, tenant.tenant_name)
+        service_image = app_store.get_image_connection_info(scope, tenant.tenant_name)
+        data = {
+            "service_slug": service_slug,
+            "service_image": service_image,
+            "event_id": event_id,
+            "apps": file_names
+        }
+        logger.debug("params {0}".format(json.dumps(data)))
+        res, body = region_api.import_app(region, tenant.tenant_name, data)
+        logger.debug("response body {0}".format(body))
+        import_record.status = "importing"
+        import_record.save()
+
+    def get_and_update_import_status(self, tenant, region, event_id):
+        """获取并更新导入状态"""
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        # 去数据中心请求导入状态
+        res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
+        logger.debug("app import status response body {0}".format(body))
+        status = body["bean"]["status"]
+        if import_record.status != "success":
+            if status == "success":
+                logger.debug("app import success !")
+                self.__save_import_info(tenant.tenant_name, import_record.scope, body["bean"]["metadata"])
+                import_record.source_dir = body["bean"]["source_dir"]
+                import_record.format = body["bean"]["format"]
+                import_record.status = "success"
+                import_record.save()
+
+            else:
+                import_record.status = status
+                import_record.save()
+        apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
+        return import_record, apps_status
+
+    def __wrapp_app_import_status(self, app_status):
+        """
+        wrapper struct "app1:success,app2:failed" to
+        [{"file_name":"app1","status":"success"},{"file_name":"app2","status":"failed"} ]
+        """
+        status_list = []
+        k_v_map_list = app_status.split(",")
+        for value in k_v_map_list:
+            kv_map_list = value.split(":")
+            status_list.append({"file_name": kv_map_list[0], "status": kv_map_list[1]})
+        return status_list
+
+    def get_import_app_dir(self, tenant, region, event_id):
+        """获取应用目录下的包"""
+        res, body = region_api.get_import_file_dir(region, tenant.tenant_name, event_id)
+        app_tars = body["bean"]["apps"]
+        return app_tars
+
+    def __save_import_info(self,tenant_name, scope, metadata):
+        rainbond_apps = []
+        metadata = json.loads(metadata)
+        for app_template in metadata:
+            app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
+                                                                        app_template["group_version"])
+            desc = ""
+            pic = ""
+            if app:
+                desc = app.describe
+                pic = app.pic
+
+            rainbond_app = RainbondCenterApp(
+                group_key=make_uuid(),
+                group_name=app_template["group_name"],
+                version=app_template['group_version'],
+                share_user=0,
+                record_id=0,
+                share_team=tenant_name,
+                source="import",
+                scope=scope,
+                describe=desc,
+                pic=pic,
+                app_template=json.dumps(app_template),
+                is_complete=True,
+                template_version=app_template.get("template_version", "")
+            )
+            rainbond_apps.append(rainbond_app)
+        rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
+
+
 export_service = AppExportService()
+import_service = AppImportService()

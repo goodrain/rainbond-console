@@ -1512,3 +1512,58 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
+    def import_app(self, region, tenant_name, data):
+        """导入应用"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/app/import"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_app_import_status(self, region, tenant_name, event_id):
+        """查询导入状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_import_file_dir(self, region, tenant_name, event_id):
+        """查询导入状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def backup_group_apps(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(body))
+        return body
+
+    def get_backup_status_by_backup_id(self, region, tenant_name, backup_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + str(
+            backup_id)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_backup_status_by_group_id(self, region, tenant_name, group_uuid):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups?group_id=" + str(
+            group_uuid)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
