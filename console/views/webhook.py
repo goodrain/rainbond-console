@@ -9,9 +9,8 @@ from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
 from www.models.main import Tenants, TenantServiceInfo, Users
 from console.services.app import app_service
-from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
 from www.utils.return_message import general_message, error_message
+from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 
@@ -19,12 +18,15 @@ logger = logging.getLogger("default")
 class WebHooksDeploy(AlowAnyApiView):
 
     def post(self, request, service_id, *args, **kwargs):
+        """
+        github，gitlab 回调接口 触发自动部署
+
+        """
         try:
             print service_id
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             if not service_obj.open_webhooks:
-                print "bbbb"
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -36,7 +38,7 @@ class WebHooksDeploy(AlowAnyApiView):
             print github_event, user_agent
 
             if github_event and user_agent == "GitHub-Hookshot":
-                # github
+                ############### github ##################
                 print "进到github"
                 if not github_event == "push":
                     logger.debug("不支持此事件类型")
@@ -62,7 +64,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 payload = json.dumps(request.data)
                 secret = service_obj.secret
-                hmac_obj = hmac.new(str(secret), msg=payload, digestmod=sha1)
+                hmac_obj = hmac.new(secret, msg=payload, digestmod=sha1)
                 my_token = hmac_obj.hexdigest()
                 logger.debug("token", token)
                 logger.debug("token2", my_token)
@@ -109,19 +111,28 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 user_obj = Users.objects.get(user_id=service_obj.creater)
                 committer_name = commits_info.get("committer").get("username")
-                if status:
-                    code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user_obj, committer_name)
-                    bean = {}
-                    if event:
-                        bean = event.to_dict()
-                        bean["type_cn"] = event_service.translate_event_type(event.type)
-                    if code != 200:
-                        return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
-                    result = general_message(code, "success", "操作成功", bean=bean)
-                    return Response(result, status=200)
-            # gitlab
+                if status == "running":
+                    user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
+                                                 committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态异常")
+                    return Response(result, status=400)
+
+            ######################## gitlab ###########################
+
             gitlab_event = request.META.get("HTTP_X_GITLAB_EVENT", None)
+            gitlab_token = request.META.get("HTTP_X_GITLAB_TOKEN", None)
             if gitlab_event:
+
+                # if service_obj.secret:
+                #     logger.debug("token_gitlab",gitlab_token)
+                #     if not gitlab_token == service_obj.secret:
+                #         logger.debug("Secret Token 校验失败")
+                #         result = general_message(400, "failed", "Secret Token 校验失败")
+                #         return Response(result, status=400)
+
+                logger.debug(request.data)
 
                 commits_info = request.data.get("commits")
                 if not commits_info:
@@ -160,10 +171,12 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 url = repository["url"]
                 git_http_url = repository.get("git_http_url")
-                git_ssh_url = repository.get("git_ssh_url")
+                gitlab_ssh_url = repository.get("git_ssh_url")
+                git_ssh_url = gitlab_ssh_url.split("//", 1)[-1]
 
                 logger.debug("ooo", service_obj.git_url)
                 logger.debug("ooox", git_ssh_url)
+                logger.debug("http_url", git_http_url)
 
                 if not (service_obj.git_url == git_http_url or service_obj.git_url == git_ssh_url):
                     logger.debug("github地址不相符")
@@ -175,20 +188,16 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 print "vvvv", status_map
                 status = status_map.get("status", None)
-                user = Users.objects.get(service_obj.creater)
-                committer_name = commits_info.get("author").get("name")
-                if status:
-                    logger.debug(status, "status")
-                    logger.debug("mmmmmmmmm")
-                    code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, committer_name)
-                    bean = {}
-                    if event:
-                        bean = event.to_dict()
-                        bean["type_cn"] = event_service.translate_event_type(event.type)
-                    if code != 200:
-                        return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
-                    result = general_message(code, "success", "操作成功", bean=bean)
-                    return Response(result, status=200)
+                user = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info[-1].get("author").get("name")
+                logger.debug("status", status_map)
+                if status == "running":
+                    user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user,
+                                                 committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态异常")
+                    return Response(result, status=400)
             else:
                 logger.debug("暂时仅支持github与gitlab的webhooks")
                 result = general_message(400, "failed", "暂时仅支持github与gitlab的webhooks")
@@ -207,31 +216,151 @@ class WebHooksDeploy(AlowAnyApiView):
             logger.error(e)
             return Response(e.message, status=400)
 
-    def get(self, request, *args, **kwargs):
-        return Response("ok")
-
 
 class GetWebHooksUrl(AppBaseView):
     def get(self, request, *args, **kwargs):
+        """
+        判断该应用是否有webhooks自动部署功能，有则返回URL
+        """
         try:
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             service_code_from = service_obj.code_from == "github" or service_obj.code_from == "gitlab_new" or service_obj.code_from == "gitlab_exit"
             if not (service_obj.service_source == "source_code" and service_code_from):
-                result = general_message(400, "failed", "该应用不符合要求")
-                return Response(result, status=400)
+                result = general_message(200, "failed", "该应用不符合要求", display=False)
+                return Response(result, status=200)
             hostname = socket.gethostname()
             logger.debug(hostname)
             print hostname
 
             url = "http://" + "127.0.0.1:9000/" + "console/" + "webhooks/" + service_obj.service_id
-            result = general_message(200, "success", "获取webhooks-URl成功", list=[url])
+            if service_obj.code_from == "github":
+                result = general_message(200, "success", "获取webhooks-URl成功", bean={"url": url, "show_pwd_form": True},
+                                         display=True)
+            else:
+                result = general_message(200, "success", "获取webhooks-URl成功", bean={"url": url, "show_pwd_form": False},
+                                         display=True)
+
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result, status=400)
+        return Response(result, status=500)
 
-# {"status": "closed", "disabledAction": ["visit", "stop", "manage_container", "reboot"],
-#  "status_cn": "已关闭", "activeAction": ["restart", "deploy"]}
+
+class ManagePassword(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        """
+        查看密码
+
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+        """
+        secret = self.service.secret
+        result = general_message(200, "success", "获取成功", bean={"secret": secret})
+        return Response(result, status=200)
+
+    def post(self, request, *args, **kwargs):
+        """
+        修改密码
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: secret
+              description: 密码
+              required: true
+              type: string 格式：{"secret":"xxxxxx"}
+              paramType: body
+
+        """
+        try:
+            secret = request.data.get("secret", None)
+            if not secret:
+                result = general_message(400, "Parameter cannot be empty", "却少参数:secret")
+                return Response(result, status=400)
+            if len(secret) > 64:
+                result = general_message(400, "The length cannot be greater than 64", "密码不能大于64个字符")
+                return Response(result, status=400)
+            self.service.secret = secret
+            self.service.save()
+            result = general_message(200, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+        return Response(result, status=200)
+
+
+class WebHooksStatus(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        """检查是否开启自动部署功能"""
+        try:
+            status = self.service.open_webhooks
+            result = general_message(200, "success", "获取成功", status=status)
+            return Response(result, status=200)
+        except Exception as e:
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+    def post(self, request, *args, **kwargs):
+        """
+        开启或关闭自动部署功能
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: action
+              description: 操作 打开:open 关闭:close
+              required: true
+              type: string 格式：{"action":"open"}
+              paramType: body
+
+        """
+        try:
+            action = request.data.get("action", None)
+            if not action:
+                result = general_message(400, "Parameter cannot be empty", "却少参数")
+                return Response(result, status=400)
+            if action != "open" and action != "close":
+                result = general_message(400, "action error", "操作类型不存在")
+                return Response(result, status=400)
+            if action == "open":
+                self.service.open_webhooks = True
+                self.service.save()
+                result = general_message(200, "success", "开启成功")
+            else:
+                self.service.open_webhooks = False
+                self.service.save()
+                result = general_message(200, "success", "关闭成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+        return Response(result, status=200)
