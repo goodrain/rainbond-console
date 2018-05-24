@@ -236,7 +236,6 @@ export default class Index extends PureComponent {
   hideDownHistoryLog = () =>{
       this.setState({showHistoryLog: false})
   }
-
   showDownHistory1000Log = () =>{
       this.setState({showHistory1000Log: true})
   }
