@@ -60,7 +60,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.webhook import *
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
 from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
@@ -405,11 +405,9 @@ urlpatterns = patterns(
     # 应用权限设置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
 
-
-    # webhook测试
-    url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooks.as_view()),
-
-    # 获取webhooks回调地址
+    # 自动部署
+    url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
+    # 获取自动部署回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get-url', GetWebHooksUrl.as_view()),
 
 )
