@@ -80,7 +80,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
     @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
-        应用备份状态查询
+        根据应用备份ID查询备份状态
         ---
         parameters:
             - name: tenantName

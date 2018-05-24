@@ -17,7 +17,7 @@ region_api = RegionInvokeApi()
 
 class GroupAppBackupService(object):
     def get_group_back_up_info(self, tenant, region, group_id):
-        return backup_record_repo.get_group_backup_records(tenant.tenant_id, region, group_id)
+        return backup_record_repo.get_group_backup_records(tenant.tenant_id, region, group_id).order_by("-ID")
 
     def check_backup_condition(self, tenant, region, group_id):
         """
