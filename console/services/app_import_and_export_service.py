@@ -253,7 +253,21 @@ class AppImportService(object):
         app_tars = body["bean"]["apps"]
         return app_tars
 
-    def __save_import_info(self,tenant_name, scope, metadata):
+    def create_import_app_dir(self, tenant, region):
+        """创建一个应用包"""
+        event_id = make_uuid()
+        res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
+        path = body["bean"]["path"]
+        import_record_params = {"event_id": event_id, "status": "created_dir","source_dir":path}
+        import_record = app_import_record_repo.create_app_import_record(**import_record_params)
+        return import_record
+
+    def delete_import_app_dir(self, tenant, region, event_id):
+        res, body = region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+        app_import_record_repo.delete_by_event_id(event_id)
+        return body
+
+    def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
         for app_template in metadata:

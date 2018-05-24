@@ -88,7 +88,7 @@ class GroupAppBackupService(object):
         backup_record = backup_record_repo.get_record_by_backup_id(backup_id)
         if not backup_record:
             return 404, "不存在该备份记录", None
-        if backup_record.status == "staring":
+        if backup_record.status == "starting":
             body = region_api.get_backup_status_by_backup_id(region, tenant.tenant_name, backup_id)
             bean = body["bean"]
             backup_record.status = bean["status"]
