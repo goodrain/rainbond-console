@@ -40,12 +40,14 @@ class CenterAppUploadView(RegionTenantHeaderView):
             if not request.FILES or not request.FILES.get('file'):
                 return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             upload_file = request.FILES.get("file")
+            file_name = upload_file.name
             code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,
                                                                                    self.response_region, upload_file)
             if code != 200:
                 return Response(general_message(code, "upload file faild", msg), status=code)
-
-            result = general_message(200, 'success', "上传成功", bean=import_record.to_dict())
+            bean = import_record.to_dict()
+            bean["file_name"] = file_name
+            result = general_message(200, 'success', "上传成功", bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
