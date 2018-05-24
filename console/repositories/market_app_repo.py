@@ -2,7 +2,7 @@
 """
   Created on 18/3/5.
 """
-from console.models.main import RainbondCenterApp,AppExportRecord
+from console.models.main import RainbondCenterApp, AppExportRecord, AppImportRecord
 
 
 class RainbondCenterAppRepository(object):
@@ -27,7 +27,7 @@ class RainbondCenterAppRepository(object):
     def bulk_create_rainbond_apps(self, rainbond_apps):
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
 
-    def get_rainbond_app_by_record_id(self,record_id):
+    def get_rainbond_app_by_record_id(self, record_id):
         rcapps = RainbondCenterApp.objects.filter(record_id=record_id)
         if rcapps:
             return rcapps[0]
@@ -47,5 +47,18 @@ class AppExportRepository(object):
     def get_by_key_and_version(self, group_key, version):
         return AppExportRecord.objects.filter(group_key=group_key, version=version)
 
+
+class AppImportRepository(object):
+    def get_import_record_by_event_id(self, event_id):
+        return AppImportRecord.objects.filter(event_id=event_id).first()
+
+    def delete_by_event_id(self, event_id):
+        AppImportRecord.objects.filter(event_id=event_id).delete()
+
+    def create_app_import_record(self, **params):
+        return AppImportRecord.objects.create(**params)
+
+
 rainbond_app_repo = RainbondCenterAppRepository()
 app_export_record_repo = AppExportRepository()
+app_import_record_repo = AppImportRepository()
