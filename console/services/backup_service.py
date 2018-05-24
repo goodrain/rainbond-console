@@ -57,7 +57,6 @@ class GroupAppBackupService(object):
             "slug_info": service_slug,
             "image_info": service_image
         }
-        logger.debug("============> {0}".format(json.dumps(data)))
         body = region_api.backup_group_apps(region, tenant.tenant_name, data)
         bean = body["bean"]
         record_data = {
@@ -70,6 +69,7 @@ class GroupAppBackupService(object):
             "status": bean["status"],
             "note": note,
             "mode": mode,
+            "backup_id":bean.get("backup_id", ""),
             "source_dir": bean.get("source_dir", ""),
             "backup_size": bean.get("backup_size", 0),
             "user": user.nick_name,
