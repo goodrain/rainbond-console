@@ -201,7 +201,7 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
             backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.response_region, group_id)
             paginator = JuncheePaginator(backups, int(page_size))
             backup_records = paginator.page(int(page))
-            result = general_message(200, "success", "查询成功", list=[backup.to_dict() for backup in backup_records])
+            result = general_message(200, "success", "查询成功", list=[backup.to_dict() for backup in backup_records], total=paginator.count)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
