@@ -663,6 +663,7 @@ class ShareService(object):
         data["update_note"] = app.describe
         data["group_template"] = app.app_template
         data["group_share_alias"] = app.group_name
+        data["logo"] = app.pic
         result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
         # 云市url
         app_url = result["app_url"]
