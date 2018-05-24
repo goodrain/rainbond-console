@@ -1538,6 +1538,23 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def create_import_file_dir(self, region, tenant_name, event_id):
+        """创建导入目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_import_file_dir(self, region, tenant_name, event_id):
+        """删除导入目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return res, body
+
+
     def backup_group_apps(self, region, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)

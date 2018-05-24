@@ -78,7 +78,7 @@ class CenterAppImportView(RegionTenantHeaderView):
               type: string
               paramType: form
             - name: file_name
-              description: 导入文件名
+              description: 导入文件名,多个文件名以英文逗号分隔
               required: true
               type: string
               paramType: form
@@ -92,7 +92,8 @@ class CenterAppImportView(RegionTenantHeaderView):
                 return Response(general_message(400, "file name is null", "文件名称为空"), status=400)
             if not event_id:
                 return Response(general_message(400, "event id is not found", "参数错误"), status=400)
-            import_service.start_import_apps(self.tenant, self.response_region, scope, event_id, [file_name])
+            files = file_name.split(",")
+            import_service.start_import_apps(self.tenant, self.response_region, scope, event_id, files)
             result = general_message(200, 'success', "操作成功，正在导入")
         except Exception as e:
             logger.exception(e)
@@ -136,7 +137,7 @@ class CenterAppImportView(RegionTenantHeaderView):
 class CenterAppTarballDirView(RegionTenantHeaderView):
     @never_cache
     @perm_required("import_and_export_service")
-    def get(self, request, event_id, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         """
         查询应用包目录
         ---
@@ -149,12 +150,67 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
             - name: event_id
               description: 事件ID
               required: true
-              type: path
-              paramType: form
+              type: string
+              paramType: query
         """
         try:
+            event_id = request.GET.get("event_id", None)
+            if not event_id:
+                return Response(general_message(400, "event id is null","请指明需要查询的event id"), status=400)
+
             apps = import_service.get_import_app_dir(self.tenant, self.response_region, event_id)
             result = general_message(200, "success", "查询成功", list=apps)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @perm_required("import_and_export_service")
+    def post(self, request, *args, **kwargs):
+        """
+        批量导入时创建一个目录
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            import_record = import_service.create_import_app_dir(self.tenant, self.response_region)
+
+            result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @perm_required("import_and_export_service")
+    def delete(self, request, *args, **kwargs):
+        """
+        删除导入
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: event_id
+              description: 事件ID
+              required: true
+              type: string
+              paramType: query
+        """
+        try:
+            event_id = request.GET.get("event_id", None)
+            if not event_id:
+                return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
+
+            import_record = import_service.delete_import_app_dir(self.tenant, self.response_region)
+
+            result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
