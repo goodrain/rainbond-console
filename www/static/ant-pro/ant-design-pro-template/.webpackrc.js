@@ -14,12 +14,17 @@ export default {
       }
     ]
   ],
-
+  
   "env" : {
     "development": {
       "extraBabelPlugins": ["dva-hmr"],
       "html": {
         "template": "./src/index.ejs"
+      },
+      resolve: {
+        alias: {
+          fonts: "./src/assets/fonts",
+        }
       },
       "publicPath": "/" ///
     },
@@ -34,7 +39,7 @@ export default {
   },
   "ignoreMomentLocale" : true,
   "theme" : "./src/theme.js",
-
+  
   "disableDynamicImport" : true,
   "hash" : true,
   "proxy" : {
