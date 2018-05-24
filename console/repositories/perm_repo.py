@@ -78,6 +78,9 @@ class ServicePermRepo(object):
         ServiceRelPerms.objects.filter(service_id=sid).delete()
         PermRelService.objects.filter(service_id=sid).delete()
 
+    def get_service_perms_by_service_pk(self, sid):
+        return ServiceRelPerms.objects.filter(service_id=sid)
+
 class RoleRepo(object):
     def get_default_role_by_role_name(self, role_name, is_default=True):
         return TenantUserRole.objects.get(role_name=role_name, is_default=is_default)
