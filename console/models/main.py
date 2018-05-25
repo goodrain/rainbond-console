@@ -441,6 +441,8 @@ class AppImportRecord(BaseModel):
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
 
 
 class GroupAppBackupRecord(BaseModel):

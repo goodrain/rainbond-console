@@ -59,7 +59,6 @@ class GroupAppBackupService(object):
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
         metadata = self.get_group_app_metadata(group_id, tenant)
-        logger.debug("=========> metadata {0}".format(metadata))
         version = current_time_str("%Y%m%d%H%M%S")
         data = {
             "event_id": event_id,

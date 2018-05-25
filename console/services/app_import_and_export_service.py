@@ -279,7 +279,8 @@ class AppImportService(object):
         event_id = make_uuid()
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
-        import_record_params = {"event_id": event_id, "status": "created_dir","source_dir":path}
+        import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
+                                "team_name": tenant.tenant_name, "regioin": region}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
@@ -330,6 +331,14 @@ class AppImportService(object):
             logger.exception(e)
         return ""
 
+    def get_importing_apps(self, tenant, region):
+        importing_records = app_import_record_repo.get_importing_record()
+        importing_list = []
+        for importing_record in importing_records:
+            import_record, apps_status = self.get_and_update_import_status(tenant, region, importing_record.event_id)
+            if import_record.status not in ("success", "failed"):
+                importing_list.append(apps_status)
+        return importing_list
 
 export_service = AppExportService()
 import_service = AppImportService()
