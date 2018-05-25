@@ -37,16 +37,26 @@ import StandardFormRow from '../../components/StandardFormRow';
 import TagSelect from '../../components/TagSelect';
 import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
+import BatchImportForm from '../../components/BatchImportForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
 import config from '../../config/config';
+import cookie from '../../utils/cookie';
 
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
-//上传文件
 
+const token = cookie.get('token');
+let myheaders = {}
+if (token) {
+   myheaders.Authorization = `GRJWT ${token}`;  
+   myheaders['X_REGION_NAME'] = globalUtil.getCurrRegionName();
+   myheaders['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
+}
+
+//上传文件
 @Form.create()
 class UploadFile extends PureComponent {
     constructor(props){
@@ -56,73 +66,21 @@ class UploadFile extends PureComponent {
       }
     }
     handleOk = () => {
-       this.props.form.validateFields({force: true}, (err, values)=>{
-           if(err) return;
-           this.props.onOk && this.props.onOk(values)
-       },)
+        console.log(this.state.fileList)
     }
-    handleUpload = () => {
-      const { fileList } = this.state;
-      const formData = new FormData();
-      fileList.forEach((file) => {
-        formData.append('files[]', file);
-      });
   
-      this.setState({
-        uploading: true,
-      });
-  
-      // You can use any AJAX library you like
-      reqwest({
-        url: '//jsonplaceholder.typicode.com/posts/',
-        method: 'post',
-        processData: false,
-        data: formData,
-        success: () => {
-          this.setState({
-            fileList: [],
-            uploading: false,
-          });
-          message.success('upload successfully.');
-        },
-        error: () => {
-          this.setState({
-            uploading: false,
-          });
-          message.error('upload failed.');
-        },
-      });
-    }
-    handleCheck = (rule, value, callback) => {
-        if(!this.state.fileList.length){
-              callback("请选择应用模板文件")
-              return;
-        }
-        callback();
+    onChange= ({ fileList }) => {
+        this.setState({fileList},function(){
+          console.log(this.state.fileList)
+        })
     }
     render(){
       const form = this.props.form;
       const {getFieldDecorator} = form;
-      const props = {
-        action: '//jsonplaceholder.typicode.com/posts/',
-        onRemove: (file) => {
-          this.setState(({ fileList }) => {
-            const index = fileList.indexOf(file);
-            const newFileList = fileList.slice();
-            newFileList.splice(index, 1);
-            return {
-              fileList: newFileList,
-            };
-          });
-        },
-        beforeUpload: (file) => {
-          this.setState(({ fileList }) => ({
-            fileList: [file],
-          }));
-          return false;
-        },
-        fileList: this.state.fileList,
-      };
+      const team_name = globalUtil.getCurrTeamName();
+      const uploadUrl = config.baseUrl + '/console/teams/'+ team_name +'/apps/upload';
+      const fileList = this.state.fileList;
+      
       return (
          <Modal
            visible={true}
@@ -131,18 +89,15 @@ class UploadFile extends PureComponent {
            title="请上传应用模板"
            okText="确定上传"
          >
-              <Form.Item>
-              {
-                getFieldDecorator('file', {
-                  initialValue: '',
-                  rules:[{validator: this.handleCheck}]
-                })(
-                  <Upload {...props}>
-                     <Button>请选择文件</Button>
-                  </Upload>
-                )
-              }
-              </Form.Item>
+            <Upload 
+               action={uploadUrl}
+               fileList={fileList}
+               onChange={this.onChange}
+               onRemove={this.onRemove}
+               headers = {myheaders}
+            >
+                {fileList.length > 0? null: <Button>请选择文件</Button>}
+            </Upload>
          </Modal>
       )
     }
@@ -166,7 +121,9 @@ export default class Main extends PureComponent {
       target: 'searchWrap',
       visiblebox:{},
       querydatabox:{},
-      exportTit:{}
+      exportTit:{},
+      is_public:this.props.rainbondInfo.is_public,
+      showBatchImport:false
     }
     this.mount = false;
   }
@@ -380,12 +337,14 @@ export default class Main extends PureComponent {
       })
 
   }
-  onUpload = () => {
-     this.setState({showUpload: true})
-  }
+ 
   handleCancelUpload = () => {
      this.setState({showUpload: false})
   }
+  handleCancelBatchImport = () => {
+    this.setState({showBatchImport: false})
+ }
+ 
  
   handleMenuClick = (e) => {
      var key = e.key;
@@ -398,7 +357,6 @@ export default class Main extends PureComponent {
      if(isexport =='success'){
         // var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
         // window.open(newurl);
-        console.log("00")
      }else if(isexport == 'loading'){
         notification.info({message: `正在导出，请稍后！`});
      }else{
@@ -477,6 +435,14 @@ export default class Main extends PureComponent {
     newvisible[ID] = flag;
     this.setState({ visiblebox: newvisible });
     this.queryExport(item);
+  }
+  handleImportMenuClick = (e)=>{
+    if(e.key == '1'){
+       this.setState({showUpload:true})
+    }
+    if(e.key == '2'){
+      this.setState({showBatchImport:true})
+    }
   }
   renderApp = (item) => {
     const ismarket = item.source;
@@ -614,6 +580,13 @@ export default class Main extends PureComponent {
       }
     ];
     const loading = this.props.loading;
+    const ImportMenu = (
+      <Menu onClick={this.handleImportMenuClick}>
+        <Menu.Item key="1">文件上传</Menu.Item>
+        <Menu.Item key="2">批量导入</Menu.Item>
+      </Menu>
+    );
+    
     return (
       <PageHeaderLayout
         content={mainSearch}
@@ -623,6 +596,18 @@ export default class Main extends PureComponent {
           {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
           </div> */}
+          <div style={{marginBottom:'10px',textAlign:'right'}}>
+          {
+            this.state.is_public?
+            ''
+            :
+             <Dropdown overlay={ImportMenu}>
+              <Button>
+                导入 <Icon type="down" />
+              </Button>
+            </Dropdown>
+          }
+          </div>
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
@@ -631,6 +616,7 @@ export default class Main extends PureComponent {
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
           {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload} />}
+          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} />}
           {/* <GuideManager /> */}
       </PageHeaderLayout>
     );
