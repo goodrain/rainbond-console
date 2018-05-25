@@ -94,10 +94,16 @@ class UserMessageView(RegionTenantHeaderView):
             msg_ids = request.data.get("msg_ids", None)
             action = request.data.get("action", None)
             if not msg_ids:
-                return Response(general_message(400, "msg ids is null", "请指明需修改更新的消息"), status=400)
+                return Response(general_message(200, "msg ids is null", "参数为空，未做修改"), status=200)
             if not action:
                 return Response(general_message(400, "action is null", "请指明操作类型"), status=400)
-            msg_id_list = msg_ids.split(",")
+            try:
+                if action != "mark_read" and action != "mark_unread":
+                    raise TypeError("参数格式错误")
+                msg_id_list = [int(msg_id) for msg_id in msg_ids.split(",")]
+            except Exception as e:
+                logger.exception(e)
+                return Response(general_message(400, "action is null", "参数格式错误"), status=400)
             msg_service.update_user_msgs(self.user, action, msg_id_list)
 
             result = general_message(200, 'success', "更新成功")
@@ -128,7 +134,7 @@ class UserMessageView(RegionTenantHeaderView):
             msg_ids = request.data.get("msg_ids", None)
             if not msg_ids:
                 return Response(general_message(400, "msg ids is null", "请指明需删除的消息"), status=400)
-            msg_id_list = msg_ids.split(",")
+            msg_id_list = [int(msg_id) for msg_id in msg_ids.split(",")]
             msg_service.delete_user_msgs(self.user, msg_id_list)
 
             result = general_message(200, 'success', "删除成功")

@@ -395,6 +395,7 @@ class ServiceRelPerms(BaseModel):
     def __unicode__(self):
         return self.to_dict()
 
+
 class AppExportRecord(BaseModel):
     """应用导出"""
 
@@ -424,8 +425,10 @@ class UserMessage(BaseModel):
     is_read = models.BooleanField(default=False, help_text=u"是否已读")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
-    msg_type = models.CharField(max_length=15, help_text=u"消息类型")
+    msg_type = models.CharField(max_length=32, help_text=u"消息类型")
     announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")
+    title = models.CharField(max_length=64, help_text=u"消息标题", default=u"title")
+    level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
 
 class AppImportRecord(BaseModel):
     class Meta:
@@ -443,6 +446,7 @@ class AppImportRecord(BaseModel):
 class GroupAppBackupRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_backup'
+
     group_id = models.IntegerField(help_text=u"组ID")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")

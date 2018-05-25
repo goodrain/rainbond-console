@@ -23,7 +23,9 @@ class MessageService(object):
                 content=announce.content,
                 is_read=False,
                 msg_type=MessageType.ANNOUNCEMENT,
-                announcement_id=announce.announcement_id
+                announcement_id=announce.announcement_id,
+                title=announce.title,
+                level=announce.level
             ))
         UserMessage.objects.bulk_create(msg_list)
 
@@ -41,12 +43,12 @@ class MessageService(object):
 
     def update_user_msgs(self, user, action, msg_id_list):
         if action == "mark_read":
-            UserMessage.objects.filter(receiver_id=user.user_id, message_id__in=msg_id_list).update(is_read=True)
+            UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).update(is_read=True)
         else:
-            UserMessage.objects.filter(receiver_id=user.user_id, message_id__in=msg_id_list).update(is_read=False)
+            UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).update(is_read=False)
 
     def delete_user_msgs(self, user, msg_id_list):
-        UserMessage.objects.filter(receiver_id=user.user_id, message_id__in=msg_id_list).delete()
+        UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).delete()
 
 
 msg_service = MessageService()

@@ -93,5 +93,5 @@ class PluginInjection(object):
 
 class MessageType(object):
     ANNOUNCEMENT = "announcement"
-    OWN_MONEY = "own_money"
-    SERVICE_ABNORMAL = "service_abnormal"
+    NEWS = "news"
+    WARN = "warn"
