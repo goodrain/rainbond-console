@@ -86,8 +86,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 user_obj = Users.objects.get(user_id=service_obj.creater)
                 committer_name = commits_info.get("committer").get("username")
                 if status == "running":
-                    user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
-                                                 committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
+                                                        committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态异常")
@@ -152,8 +152,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info[-1].get("author").get("name")
                 logger.debug("status", status_map)
                 if status == "running":
-                    user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user,
-                                                 committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user,
+                                                        committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态异常")
@@ -174,7 +174,7 @@ class WebHooksDeploy(AlowAnyApiView):
         except Exception as e:
             logger.exception(e)
             logger.error(e)
-            return Response(e.message, status=400)
+            return Response(e.message, status=500)
 
 
 class GetWebHooksUrl(AppBaseView):
