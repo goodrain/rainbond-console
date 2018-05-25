@@ -191,10 +191,6 @@ class GetWebHooksUrl(AppBaseView):
             if not (service_obj.service_source == "source_code" and service_code_from):
                 result = general_message(200, "failed", "该应用不符合要求", display=False)
                 return Response(result, status=200)
-            hostname = socket.gethostname()
-            logger.debug("hostname", hostname)
-            print "hostname", hostname
-
             url = "http://" + "console.goodrain.com/" + "console/" + "webhooks/" + service_obj.service_id
 
             result = general_message(200, "success", "获取webhooks-URl成功", bean={"url": url, "show_pwd_form": False},
