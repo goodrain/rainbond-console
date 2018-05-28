@@ -51,9 +51,29 @@ CREATE TABLE groupapp_backup
 ALTER TABLE `tenant_service` ADD COLUMN `secret` varchar(64) NULL;
 ALTER TABLE `tenant_service` ADD COLUMN `open_webhooks` bool DEFAULT false NOT NULL;
 
+ALTER TABLE `tenant_service_delete` ADD COLUMN `secret` varchar(64) NULL;
+ALTER TABLE `tenant_service_delete` ADD COLUMN `open_webhooks` bool DEFAULT false NOT NULL;
+
 -- 站内信添加标题，等级字段
 ALTER TABLE `announcement` ADD COLUMN `title` varchar(64) DEFAULT 'title' NOT NULL;
 ALTER TABLE `announcement` ADD COLUMN `level` varchar(32) DEFAULT 'low' NOT NULL;
 
 -- 增加字段长度
 ALTER TABLE `announcement` MODIFY `type` varchar(32);
+
+-- 应用迁移表
+CREATE TABLE groupapp_migrate
+(
+    ID int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    group_id int,
+    event_id varchar(32),
+    group_uuid varchar(32) NOT NULL,
+    version varchar(32),
+    backup_id varchar(36),
+    migrate_team varchar(32),
+    user varchar(20),
+    migrate_region varchar(15),
+    status varchar(15),
+    create_time datetime
+);
+CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);

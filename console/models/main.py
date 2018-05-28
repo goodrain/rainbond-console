@@ -464,3 +464,18 @@ class GroupAppBackupRecord(BaseModel):
     backup_size = models.IntegerField(help_text=u"备份文件大小")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     backup_server_info = models.CharField(max_length=400, null=True, blank=True, default="", help_text=u"备份服务信息")
+
+
+class GroupAppMigrateRecord(BaseModel):
+    class Meta:
+        db_table = 'groupapp_migrate'
+    group_id = models.IntegerField(help_text=u"组ID")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
+    version = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"迁移的版本")
+    migrate_team = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
+    user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
+    migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")

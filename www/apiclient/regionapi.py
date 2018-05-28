@@ -1584,3 +1584,15 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
+
+    def star_apps_migrate_task(self, region, tenant_name, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        # TODO 对接接口
+        pass
+        # url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
+        #
+        # self._set_headers(token)
+        # res, body = self._post(
+        #     url, self.default_headers, region=region, body=json.dumps(data))
+        # return body
