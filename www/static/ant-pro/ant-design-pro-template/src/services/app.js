@@ -25,6 +25,18 @@ export function cancelAutoDeploy(body={team_name, app_alias}){
 	});
 }
 
+/*
+	开启自动部署
+ */
+export function openAutoDeploy(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/status`, {
+			method: 'post',
+			data: {
+				action: 'open'
+			}
+	});
+}
+
 
 /*
 	获取应用的历史操作日志

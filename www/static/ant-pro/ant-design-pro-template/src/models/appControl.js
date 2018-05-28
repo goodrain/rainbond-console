@@ -67,7 +67,8 @@ import {
   getAnalyzePlugins,
   getAppResource,
   getAutoDeployStatus,
-  cancelAutoDeploy
+  cancelAutoDeploy,
+  openAutoDeploy
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -129,6 +130,15 @@ export default {
     members: []
   },
   effects : {
+    *openAutoDeploy({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(openAutoDeploy, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *cancelAutoDeploy({
       payload,
       callback

@@ -36,6 +36,7 @@ import appProbeUtil from '../../utils/appProbe-util';
 import appUtil from '../../utils/app';
 import userUtil from '../../utils/user';
 import NoPermTip from '../../components/NoPermTip';
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 const {Description} = DescriptionList;
 const FormItem = Form.Item;
@@ -80,6 +81,18 @@ class AutoDeploy extends PureComponent {
         }
       })
     }
+    handleOpen = () => {
+      this.props.dispatch({
+        type: 'appControl/openAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
     render(){
        if(!this.state.display) return null;
        return (
@@ -90,17 +103,32 @@ class AutoDeploy extends PureComponent {
         {
           this.state.status === false && 
           <div>
-            <h3>请把以下地址配置到您的webhooks中</h3>
-            <p>{this.state.url}</p>
+            <h3>未开启</h3>
           </div>
         }
         {
           this.state.status === true && 
           <div>
-            <h3>已开通自动部署</h3>
-            <p><Button onClick={this.handleCancel}>取消自动部署</Button></p>
+            <h3>使用以下地址设置(Gitlab,Github)Webhook:</h3>
+            <p>{this.state.url} <CopyToClipboard text={this.state.url}
+          onCopy={() => {notification.success({message: '复制成功'})}}><Button  size="small">复制</Button></CopyToClipboard></p>
+            <p>当提交信息包含“@deploy”时将自动触发应用自动部署</p>
           </div>
         }
+        <div
+              style={{
+              marginTop: 10,
+              textAlign: 'right'
+            }}>
+              {
+                  this.state.status === false && 
+                  <Button onClick={this.handleOpen}>开启自动部署</Button>   
+              }
+              {
+                  this.state.status === true && 
+                  <Button onClick={this.handleCancel}>关闭自动部署</Button>  
+              }
+            </div>
         </Card>
        )
     }
