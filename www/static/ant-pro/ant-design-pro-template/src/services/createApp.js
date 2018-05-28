@@ -249,7 +249,8 @@ export function importApp(body={team_name,event_id,scope,file_name}){
      method: 'post',
      data: {
       event_id: body.event_id,
-      file_name:body.file_name
+      file_name:body.file_name,
+      scope:body.scope
      }
   });
 }

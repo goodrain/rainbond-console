@@ -38,6 +38,7 @@ import TagSelect from '../../components/TagSelect';
 import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
 import BatchImportForm from '../../components/BatchImportForm';
+import BatchImportListForm from '../../components/BatchImportmListForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
 import config from '../../config/config';
@@ -57,6 +58,8 @@ if (token) {
 }
 
 //上传文件
+
+@connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 @Form.create()
 class UploadFile extends PureComponent {
     constructor(props){
@@ -66,13 +69,42 @@ class UploadFile extends PureComponent {
       }
     }
     handleOk = () => {
-        console.log(this.state.fileList)
-    }
+         const file = this.state.fileList;
+         if(file.length == 0){
+            message.info('您还没有上传文件',2);
+            return;
+         }
+         if(file[0].status != 'done'){
+              message.info('正在上传请稍后',2);
+              return;
+         }
+         const file_name = file[0].name;
+         const event_id = file[0].response.data.bean.event_id;
+         console.log(event_id)
+        this
+        .props
+        .dispatch({
+            type: 'createApp/importApp',
+            payload: {
+                team_name: globalUtil.getCurrTeamName(),
+                scope: 'enterprise',
+                event_id: event_id,
+                file_name: file_name
+            },
+            callback: ((data) => {
+              message.success('操作成功，正在导入',2);
+              this.props.onOk && this.props.onOk(data);
+            })
+        })
+    } 
   
     onChange= ({ fileList }) => {
         this.setState({fileList},function(){
           console.log(this.state.fileList)
         })
+    }
+    onRemove = ()=>{
+       this.setState({fileList:[]})
     }
     render(){
       const form = this.props.form;
@@ -123,7 +155,11 @@ export default class Main extends PureComponent {
       querydatabox:{},
       exportTit:{},
       is_public:this.props.rainbondInfo.is_public,
-      showBatchImport:false
+      showBatchImport:false,
+      showBatchImportList:false,
+      source_dir:'',
+      importEvent_id:'',
+      importNameList:[]
     }
     this.mount = false;
   }
@@ -341,11 +377,24 @@ export default class Main extends PureComponent {
   handleCancelUpload = () => {
      this.setState({showUpload: false})
   }
+  handleUploadOk =()=>{
+    this.setState({showUpload: false})
+  }
   handleCancelBatchImport = () => {
     this.setState({showBatchImport: false})
  }
+ handleBatchImportOk = (data) => {
+   console.log(data)
+   this.setState({showBatchImport: false,showBatchImportList:true,importNameList:data})
+}
  
- 
+handleCancelBatchImportList = () => {
+  this.setState({showBatchImportList: false})
+}
+handleOKBatchImportList = () => {
+    this.setState({showBatchImportList: false})
+}
+
   handleMenuClick = (e) => {
      var key = e.key;
      var keyArr  = key.split("||");
@@ -442,6 +491,20 @@ export default class Main extends PureComponent {
     }
     if(e.key == '2'){
       this.setState({showBatchImport:true})
+      this
+        .props
+        .dispatch({
+            type: 'createApp/importDir',
+            payload: {
+                team_name: globalUtil.getCurrTeamName()
+            },
+            callback: ((data) => {
+                this.setState({
+                   source_dir:data.bean.source_dir,
+                   importEvent_id:data.bean.event_id
+                })
+            })
+        })
     }
   }
   renderApp = (item) => {
@@ -615,8 +678,10 @@ export default class Main extends PureComponent {
           disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
-          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload} />}
-          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} />}
+          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload}  />}
+          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} source_dir={this.state.source_dir} event_id={this.state.importEvent_id}/>}
+          {this.state.showBatchImportList && <BatchImportListForm  onOk={this.handleOKBatchImportList} onCancel={this.handleCancelBatchImportList} event_id={this.state.importEvent_id} file_name={this.state.importNameList}/>}
+          
           {/* <GuideManager /> */}
       </PageHeaderLayout>
     );
