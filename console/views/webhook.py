@@ -8,6 +8,7 @@ from www.models.main import Tenants, TenantServiceInfo, Users
 from console.services.app import app_service
 from www.utils.return_message import general_message, error_message
 from console.services.user_services import user_services
+from www.decorator import perm_required
 
 logger = logging.getLogger("default")
 
@@ -214,6 +215,7 @@ class WebHooksStatus(AppBaseView):
             result = error_message(e.message)
             return Response(result, status=500)
 
+    @perm_required("manage_service_config")
     def post(self, request, *args, **kwargs):
         """
         开启或关闭自动部署功能
