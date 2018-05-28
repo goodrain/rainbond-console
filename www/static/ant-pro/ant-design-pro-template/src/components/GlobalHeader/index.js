@@ -63,7 +63,7 @@ class DialogMessage extends PureComponent {
                 data.map((item) => {
                     return <dl>
                         <dt><h3>{item.title}</h3></dt>
-                        <dd>{item.content}</dd>
+                        <dd style={{whiteSpace: 'pre-wrap'}}>{item.content}</dd>
                     </dl>
                 })
             }
@@ -432,7 +432,7 @@ export default class GlobalHeader extends PureComponent {
                 </div>
                 {(this.state.showDialogMessage && this.state.showDialogMessage.length) ? <DialogMessage dispatch={this.props.dispatch} onCancel={()=>{
                     this.setState({showDialogMessage: null})
-                }} data={this.state.showDialogMessage} /> : null}
+                }} data={[this.state.showDialogMessage[0]]} /> : null}
             </Header>
         );
     }
