@@ -1,6 +1,31 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+
+/*
+	获取自动部署设置状态
+
+ */
+export function getAutoDeployStatus(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/get-url`, {
+			method: 'get'
+	});
+}
+
+
+/*
+	取消自动部署
+ */
+export function cancelAutoDeploy(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/status`, {
+			method: 'post',
+			data: {
+				action: 'close'
+			}
+	});
+}
+
+
 /*
 	获取应用的历史操作日志
 */

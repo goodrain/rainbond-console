@@ -43,6 +43,70 @@ const Option = Select.Option;
 const RadioGroup = Radio.Group;
 const CheckableTag = Tag.CheckableTag;
 
+@connect()
+class AutoDeploy extends PureComponent {
+    constructor(props){
+      super(props);
+      this.state = {
+        display: false,
+        status: false,
+        url:''
+      }
+    }
+    componentDidMount(){
+       this.getInfo();
+    }
+    getInfo = () => {
+      this.props.dispatch({
+        type: 'appControl/getAutoDeployStatus',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.setState({display: data.bean.display, status: data.bean.status||false, url: data.bean.url})
+        }
+      })
+    }
+    handleCancel = () => {
+      this.props.dispatch({
+        type: 'appControl/cancelAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
+    render(){
+       if(!this.state.display) return null;
+       return (
+        <Card style={{
+          marginBottom: 24
+        }} title="自动部署"
+        >
+        {
+          this.state.status === false && 
+          <div>
+            <h3>请把以下地址配置到您的webhooks中</h3>
+            <p>{this.state.url}</p>
+          </div>
+        }
+        {
+          this.state.status === true && 
+          <div>
+            <h3>已开通自动部署</h3>
+            <p><Button onClick={this.handleCancel}>取消自动部署</Button></p>
+          </div>
+        }
+        </Card>
+       )
+    }
+}
+
+
 @Form.create()
 class EditActions extends PureComponent {
   handleSubmit = (e) => {
@@ -1499,6 +1563,8 @@ export default class Index extends PureComponent {
           </Form>
         </Card>
 
+        <AutoDeploy app={appDetail} />
+        
         <Card style={{
           marginBottom: 24
         }} title="自定义环境变量">
