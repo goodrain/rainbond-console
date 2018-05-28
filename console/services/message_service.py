@@ -38,9 +38,13 @@ class MessageService(object):
                 level=announce.level
             )
         # 删除已经删除的公告
-        announcements_id_list = msg_repo.get_all_announcements_id()
-        msg_repo.det_all_usermessage().exclude(announcement_id__in=announcements_id_list).delete()
+        announcements_id_list = announcement_repo.get_all_announcements_id()
+        msg_repo.get_all_usermessage().exclude(announcement_id__in=announcements_id_list).delete()
 
+        # 删除关闭启用的公告
+        close_announcements = announcement_repo.get_close_announcements().filter(announcement_id__in=noticed_msg_ids)
+        close_announcements_list = [obj.announcement_id for obj in close_announcements]
+        msg_repo.get_all_usermessage().filter(announcement_id__in=close_announcements_list).delete()
 
     def get_user_msgs(self, user, page_num, page_size, msg_type, is_read):
         query = Q()
