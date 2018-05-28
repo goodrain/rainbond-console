@@ -86,7 +86,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 user_obj = Users.objects.get(user_id=service_obj.creater)
                 committer_name = commits_info.get("committer").get("username")
-                if status == "running":
+                if status == "running" or status == "abnormal":
                     return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
                                                         committer_name=committer_name)
                 else:
@@ -152,7 +152,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 user = Users.objects.get(user_id=service_obj.creater)
                 committer_name = commits_info[-1].get("author").get("name")
                 logger.debug("status", status_map)
-                if status == "running":
+                if status == "running" or status == "abnormal":
                     return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user,
                                                         committer_name=committer_name)
                 else:
@@ -192,7 +192,8 @@ class GetWebHooksUrl(AppBaseView):
             if not (service_obj.service_source == "source_code" and service_code_from):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
-            url = "http://" + "console.goodrain.com/" + "console/" + "webhooks/" + service_obj.service_id
+            host = request.get_host()
+            url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             status = self.service.open_webhooks
             result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})
