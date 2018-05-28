@@ -395,6 +395,7 @@ class ServiceRelPerms(BaseModel):
     def __unicode__(self):
         return self.to_dict()
 
+
 class AppExportRecord(BaseModel):
     """应用导出"""
 
@@ -412,6 +413,23 @@ class AppExportRecord(BaseModel):
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
 
 
+class UserMessage(BaseModel):
+    """用户站内信"""
+
+    class Meta:
+        db_table = 'user_message'
+
+    message_id = models.CharField(max_length=32, help_text=u"消息ID")
+    receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
+    content = models.CharField(max_length=256, help_text=u"消息内容")
+    is_read = models.BooleanField(default=False, help_text=u"是否已读")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    msg_type = models.CharField(max_length=32, help_text=u"消息类型")
+    announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")
+    title = models.CharField(max_length=64, help_text=u"消息标题", default=u"title")
+    level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
+
 class AppImportRecord(BaseModel):
     class Meta:
         db_table = 'app_import_record'
@@ -423,11 +441,14 @@ class AppImportRecord(BaseModel):
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
 
 
 class GroupAppBackupRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_backup'
+
     group_id = models.IntegerField(help_text=u"组ID")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")

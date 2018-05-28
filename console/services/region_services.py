@@ -216,4 +216,11 @@ class RegionService(object):
             token = "Token {}".format(token)
         return url, token
 
+    def get_team_usable_regions(self, team_name):
+        usable_regions = region_repo.get_usable_regions()
+        region_names = [r.region_name for r in usable_regions]
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,region_name__in=region_names)
+        return team_opened_regions
+
+
 region_services = RegionService()

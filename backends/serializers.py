@@ -52,6 +52,8 @@ class AnnouncementSerilizer(serializers.Serializer):
     a_tag_url = serializers.CharField(max_length=1024, required=False, help_text=u"a标签跳转地址")
     type = serializers.CharField(max_length=15, required=False, help_text=u"通知类型")
     active = serializers.BooleanField(required=False, help_text=u"通知是否启用")
+    title = serializers.CharField(max_length=64, required=True, help_text=u"通知标题")
+    level = serializers.CharField(max_length=32, required=False, help_text=u"通知的等级")
 
 
 class AccountInitSerilizer(serializers.Serializer):

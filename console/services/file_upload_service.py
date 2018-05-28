@@ -95,7 +95,7 @@ class FileUploadService(object):
         logger.debug("request header : {0}".format(headers))
         files = {'appTarFile': upload_file}
         event_id = make_uuid()
-        import_record_params = {"event_id": event_id, "status": "uploading"}
+        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
 
         data = {"eventId": event_id}

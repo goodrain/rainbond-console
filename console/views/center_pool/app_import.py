@@ -215,3 +215,27 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class CenterAppImportingAppsView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("import_and_export_service")
+    def get(self, request, *args, **kwargs):
+        """
+        查询仍在导入的应用
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+
+            apps = import_service.get_importing_apps(self.tenant, self.response_region)
+            result = general_message(200, "success", "查询成功", list=apps)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])

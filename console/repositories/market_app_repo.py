@@ -58,6 +58,9 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params):
         return AppImportRecord.objects.create(**params)
 
+    def get_importing_record(self):
+        return AppImportRecord.objects.filter(status="importing")
+
 
 rainbond_app_repo = RainbondCenterAppRepository()
 app_export_record_repo = AppExportRepository()

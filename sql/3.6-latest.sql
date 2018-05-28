@@ -7,8 +7,10 @@ CREATE TABLE user_message
     is_read TINYINT DEFAULT 0,
     create_time DATETIME,
     update_time DATETIME,
-    msg_type VARCHAR(15),
-    announcement_id VARCHAR(32)
+    msg_type VARCHAR(32),
+    announcement_id VARCHAR(32),
+    title VARCHAR(64) NOT NULL ,
+    level VARCHAR(32) NOT NULL
 );
 
 CREATE TABLE app_import_record
@@ -19,6 +21,8 @@ CREATE TABLE app_import_record
     scope VARCHAR(15) DEFAULT '',
     format VARCHAR(15) DEFAULT '',
     source_dir VARCHAR(256) DEFAULT '',
+    team_name VARCHAR(32) DEFAULT '',
+    region VARCHAR(32) DEFAULT '',
     create_time DATETIME,
     update_time DATETIME
 );
@@ -42,3 +46,14 @@ CREATE TABLE groupapp_backup
     backup_size INT DEFAULT 0,
     create_time DATETIME
 );
+
+-- 自动触发部署功能添加字段
+ALTER TABLE `tenant_service` ADD COLUMN `secret` varchar(64) NULL;
+ALTER TABLE `tenant_service` ADD COLUMN `open_webhooks` bool DEFAULT false NOT NULL;
+
+-- 站内信添加标题，等级字段
+ALTER TABLE `announcement` ADD COLUMN `title` varchar(64) DEFAULT 'title' NOT NULL;
+ALTER TABLE `announcement` ADD COLUMN `level` varchar(32) DEFAULT 'low' NOT NULL;
+
+-- 增加字段长度
+ALTER TABLE `announcement` MODIFY `type` varchar(32);

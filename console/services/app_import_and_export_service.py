@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import urllib2
+import base64
 
 from console.models.main import RainbondCenterApp
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -48,7 +49,7 @@ class AppExportService(object):
     def export_current_app(self, team, export_format, app):
         event_id = make_uuid()
         data = {"event_id": event_id, "group_key": app.group_key, "version": app.version, "format": export_format,
-                "group_metadata": app.app_template}
+                "group_metadata": self.__get_group_metata(app)}
         region = self.get_app_share_region(app)
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
@@ -68,6 +69,27 @@ class AppExportService(object):
             if code != 200:
                 return code, msg, None
         return 200, "success", new_export_record
+
+    def __get_group_metata(self, app):
+        picture_path = app.pic
+        suffix = picture_path.split('.')[-1]
+        describe = app.describe
+        image_base64_string = self.encode_image(picture_path)
+
+        app_template = json.loads(app.app_template)
+        app_template["suffix"] = suffix
+        app_template["describe"] = describe
+        app_template["image_base64_string"] = image_base64_string
+        return json.dumps(app_template)
+
+    def encode_image(self, image_url):
+        if image_url.startswith("http"):
+            response = urllib2.urlopen(image_url)
+        else:
+            response = open(image_url)
+        image_base64_string = base64.encodestring(response.read())
+        response.close()
+        return image_base64_string
 
     def get_app_share_region(self, app):
         app_template = json.loads(app.app_template)
@@ -218,7 +240,6 @@ class AppImportService(object):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         # 去数据中心请求导入状态
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
-        logger.debug("app import status response body {0}".format(body))
         status = body["bean"]["status"]
         if import_record.status != "success":
             if status == "success":
@@ -258,7 +279,8 @@ class AppImportService(object):
         event_id = make_uuid()
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
-        import_record_params = {"event_id": event_id, "status": "created_dir","source_dir":path}
+        import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
+                                "team_name": tenant.tenant_name, "regioin": region}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
@@ -273,11 +295,12 @@ class AppImportService(object):
         for app_template in metadata:
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
-            desc = ""
-            pic = ""
             if app:
-                desc = app.describe
-                pic = app.pic
+                continue
+            image_base64_string = app_template.pop("image_base64_string", "")
+            pic_url = ""
+            if image_base64_string:
+                pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
 
             rainbond_app = RainbondCenterApp(
                 group_key=make_uuid(),
@@ -288,8 +311,8 @@ class AppImportService(object):
                 share_team=tenant_name,
                 source="import",
                 scope=scope,
-                describe=desc,
-                pic=pic,
+                describe=app_template.pop("describe", ""),
+                pic=pic_url,
                 app_template=json.dumps(app_template),
                 is_complete=True,
                 template_version=app_template.get("template_version", "")
@@ -297,6 +320,25 @@ class AppImportService(object):
             rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
+    def decode_image(self, image_base64_string, suffix):
+        try:
+            file_name = make_uuid() + "."+suffix
+            file_path = "{0}/{1}".format("/data/media/uploads", file_name)
+            with open(file_path, "wb") as f:
+                f.write(image_base64_string.decode("base64"))
+            return file_path
+        except Exception as e:
+            logger.exception(e)
+        return ""
+
+    def get_importing_apps(self, tenant, region):
+        importing_records = app_import_record_repo.get_importing_record()
+        importing_list = []
+        for importing_record in importing_records:
+            import_record, apps_status = self.get_and_update_import_status(tenant, region, importing_record.event_id)
+            if import_record.status not in ("success", "failed"):
+                importing_list.append(apps_status)
+        return importing_list
 
 export_service = AppExportService()
 import_service = AppImportService()

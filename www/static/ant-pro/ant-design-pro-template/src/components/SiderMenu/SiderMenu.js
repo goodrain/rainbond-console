@@ -5,6 +5,7 @@ import {Link} from 'dva/router';
 import styles from './index.less';
 import globalUtil from '../../utils/global';
 import userUtil from '../../utils/user';
+import teamUtil from '../../utils/team';
 
 const {Sider} = Layout;
 const {SubMenu} = Menu;
@@ -259,7 +260,7 @@ export default class SiderMenu extends PureComponent {
        var region  = userUtil.hasTeamAndRegion(user, team_name, region_name);
        if(region){
          //当前是公有数据中心
-         if(region.region_scope === 'public' && (team.identity === 'owner' || team.identity === 'admin')){
+         if(region.region_scope === 'public' && (teamUtil.canViewFinance(team))){
             return ItemDom;
          }
        }
