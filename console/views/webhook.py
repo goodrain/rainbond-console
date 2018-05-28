@@ -190,12 +190,12 @@ class GetWebHooksUrl(AppBaseView):
             code_from = service_obj.code_from
             service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
             if not (service_obj.service_source == "source_code" and service_code_from):
-                result = general_message(200, "failed", "该应用不符合要求", display=False)
+                result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             url = "http://" + "console.goodrain.com/" + "console/" + "webhooks/" + service_obj.service_id
 
-            result = general_message(200, "success", "获取webhooks-URl成功", bean={"url": url, "show_pwd_form": False},
-                                     display=True)
+            status = self.service.open_webhooks
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})
 
             return Response(result, status=200)
         except Exception as e:
@@ -205,16 +205,6 @@ class GetWebHooksUrl(AppBaseView):
 
 
 class WebHooksStatus(AppBaseView):
-    def get(self, request, *args, **kwargs):
-        """检查是否开启自动部署功能"""
-        try:
-            status = self.service.open_webhooks
-            result = general_message(200, "success", "获取成功", status=status)
-            return Response(result, status=200)
-        except Exception as e:
-            result = error_message(e.message)
-            return Response(result, status=500)
-
     @perm_required("manage_service_config")
     def post(self, request, *args, **kwargs):
         """
@@ -261,62 +251,3 @@ class WebHooksStatus(AppBaseView):
         return Response(result, status=200)
 
 
-class ManagePassword(AppBaseView):
-    def get(self, request, *args, **kwargs):
-        """
-        查看密码
-
-        parameters:
-            - name: tenantName
-              description: 租户名
-              required: true
-              type: string
-              paramType: path
-            - name: serviceAlias
-              description: 服务别名
-              required: true
-              type: string
-              paramType: path
-        """
-        secret = self.service.secret
-        result = general_message(200, "success", "获取成功", bean={"secret": secret})
-        return Response(result, status=200)
-
-    def post(self, request, *args, **kwargs):
-        """
-        修改密码
-        ---
-        parameters:
-            - name: tenantName
-              description: 租户名
-              required: true
-              type: string
-              paramType: path
-            - name: serviceAlias
-              description: 服务别名
-              required: true
-              type: string
-              paramType: path
-            - name: secret
-              description: 密码
-              required: true
-              type: string 格式：{"secret":"xxxxxx"}
-              paramType: body
-
-        """
-        try:
-            secret = request.data.get("secret", None)
-            if not secret:
-                result = general_message(400, "Parameter cannot be empty", "却少参数:secret")
-                return Response(result, status=400)
-            if len(secret) > 64:
-                result = general_message(400, "The length cannot be greater than 64", "密码不能大于64个字符")
-                return Response(result, status=400)
-            self.service.secret = secret
-            self.service.save()
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-        return Response(result, status=200)

@@ -11,8 +11,11 @@ class AnnouncementRepository(object):
     def get_enabled_announcements(self):
         return Announcement.objects.filter(active=True)
 
+    def get_close_announcements(self):
+        return Announcement.objects.filter(active=False)
+
     def get_all_announcements_id(self):
-        all_obj = Announcement.objects.filter(active=True)
+        all_obj = Announcement.objects.all()
         return [obj.announcement_id for obj in all_obj]
 
 
@@ -26,8 +29,8 @@ class MessageRepository(object):
     def get_usermessage_queryset(self, announcement_id):
         return UserMessage.objects.filter(announcement_id=announcement_id)
 
-    def det_all_usermessage(self):
-        return UserMessage.objects.all()
+    def get_all_usermessage(self):
+        return UserMessage.objects.exclude(announcement_id__isnull=True)
 
 announcement_repo = AnnouncementRepository()
 msg_repo = MessageRepository()
