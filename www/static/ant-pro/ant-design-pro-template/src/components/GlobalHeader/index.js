@@ -8,7 +8,8 @@ import {
     Dropdown,
     Avatar,
     Divider,
-    Tooltip
+    Tooltip,
+    Modal
 } from 'antd';
 import {connect} from 'dva';
 import Ellipsis from '../Ellipsis';
@@ -25,12 +26,59 @@ import ScrollerX from '../../components/ScrollerX';
 import teamUtil from '../../utils/team';
 import globalUtil from '../../utils/global';
 
+class DialogMessage extends PureComponent {
+    componentDidMount(){
+        const data = this.props.data;
+        if(data && data.length){
+            const ids = data.map((item)=>{
+                  return item.ID
+            })
+
+            this.props.dispatch({
+                type: 'global/putMsgAction',
+                payload: {
+                    team_name:globalUtil.getCurrTeamName(),
+                    msg_ids:ids.join(','),
+                    action:"mark_read"
+                },
+                callback: ((data) => {
+                })
+            })
+            
+        }
+
+    }
+    render(){
+       const data = this.props.data;
+       if(!data || !data.length) return null;
+
+       return <Modal
+            visible={true}
+            footer={null}
+            onCancel={this.props.onCancel}
+            maskClosable={false}
+       >
+            <h2> </h2>
+            {
+                data.map((item) => {
+                    return <dl>
+                        <dt><h3>{item.title}</h3></dt>
+                        <dd>{item.content}</dd>
+                    </dl>
+                })
+            }
+        </Modal>
+    }
+}
+
+
+
 const {Header} = Layout;
 
 const noticeTit ={
     '公告':'announcement',
-    '消息':'service_abnormal',
-    '提醒':'own_money'
+    '消息':'news',
+    '提醒':'warn'
 }
 @connect(({global}) => ({}))
 export default class GlobalHeader extends PureComponent {
@@ -44,7 +92,8 @@ export default class GlobalHeader extends PureComponent {
             msg_type:'',
             popupVisible:false,
             msg_ids:'',
-            newNoticeList:{}
+            newNoticeList:{},
+            showDialogMessage: null
         }
       }
     componentDidMount() {
@@ -63,19 +112,18 @@ export default class GlobalHeader extends PureComponent {
             const newNotice = {
                 ...notice
             };
-            const newNoticebox = {}
             if (newNotice.create_time) {
-                newNoticebox['datetime'] = moment(notice.create_time).fromNow();
+                newNotice['datetime'] = moment(notice.create_time).fromNow();
             }
             // transform id to item key
             if (newNotice.ID) {
-                newNoticebox['key'] = newNotice.ID;
+                newNotice['key'] = newNotice.ID;
             }
             if (newNotice.content) {
-                newNoticebox['description'] = newNotice.content;
+                newNotice['description'] = newNotice.content;
             }
             if (newNotice.msg_type) {
-                newNoticebox['msg_type'] = newNotice.msg_type;
+                newNotice['msg_type'] = newNotice.msg_type;
             }
             // if (newNotice.extra && newNotice.status) {
             //     const color = ({
@@ -86,25 +134,25 @@ export default class GlobalHeader extends PureComponent {
             //     })[newNotice.status];
             //     newNotice.extra = <Tag color={color} style={{ marginRight: 0 }}>{newNotice.extra}</Tag>;
             //   }
-            return newNoticebox;
+            return newNotice;
         });
         return groupBy(newNotices, 'msg_type');
     }
     handleVisibleChange = (flag) =>{
         this.setState({popupVisible:flag,total:0},()=>{
-            if(this.state.popupVisible){
-                this.props.dispatch({
-                    type: 'global/putMsgAction',
-                    payload: {
-                      team_name:globalUtil.getCurrTeamName(),
-                      msg_ids:this.state.msg_ids,
-                      action:"mark_read"
-                    },
-                    callback: ((data) => {
-                        console.log(data)
-                    })
-                })
-            }
+            // if(this.state.popupVisible){
+            //     this.props.dispatch({
+            //         type: 'global/putMsgAction',
+            //         payload: {
+            //           team_name:globalUtil.getCurrTeamName(),
+            //           msg_ids:this.state.msg_ids,
+            //           action:"mark_read"
+            //         },
+            //         callback: ((data) => {
+            //             console.log(data)
+            //         })
+            //     })
+            // }
         })
     }
     onClear = (tablist)=>{
@@ -129,10 +177,13 @@ export default class GlobalHeader extends PureComponent {
                 datalist.map((order)=>{
                     ids += order.ID + ','
                 })
-                ids = ids.slice(0,(ids.length-1))
-                this.setState({total:data.total,noticeList:data.list,msg_ids:ids},()=>{
-                    const newNotices = this.getNoticeData(this.state.noticeList);
+                ids = ids.slice(0,(ids.length-1));
+                
+                this.setState({total:data.total,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
+                    return item.level === 'high';
+                }) },()=>{
                     
+                    const newNotices = this.getNoticeData(this.state.noticeList);
                     this.setState({newNoticeList:newNotices})
                 })
             })
@@ -235,7 +286,6 @@ export default class GlobalHeader extends PureComponent {
             currTeam
         } = this.props;
        const noticesList = this.state.newNoticeList
-        console.log(this.state.newNoticeList)
         if (!currentUser) {
             return null
         }
@@ -255,7 +305,6 @@ export default class GlobalHeader extends PureComponent {
             }}/>退出登录</Menu.Item>
             </Menu>
         );
-       
         return (
             <Header className={styles.header}>
                 {isMobile && ([
@@ -336,29 +385,31 @@ export default class GlobalHeader extends PureComponent {
           /> */}
           
            <NoticeIcon 
+            
             count={this.state.total} 
             className="notice-icon" 
             popupVisible={this.state.popupVisible} 
             onPopupVisibleChange={this.handleVisibleChange}
             onClear={this.onClear}
+            onItemClick = {(item)=> {
+                
+                this.setState({showDialogMessage: [item]})
+            }}
             >
                 <NoticeIcon.Tab
                     title="公告"
                     emptyText="你已查看所有公告"
-                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/wAhyIChODzsoKIOBHcBk.svg"
                     list={noticesList['announcement']}
                 />
                 <NoticeIcon.Tab
                     title="消息"
                     emptyText="你已查看所有消息"
-                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/sAuJeJzSKbUmHfBQRzmZ.svg"
-                    list={noticesList['service_abnormal']}
+                    list={noticesList['news']}
                 />
                 <NoticeIcon.Tab
                     title="提醒"
                     emptyText="你已查看所有提醒"
-                    emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
-                    list={noticesList['own_money']}
+                    list={noticesList['warn']}
                 />
             </NoticeIcon>
           
@@ -379,6 +430,9 @@ export default class GlobalHeader extends PureComponent {
                             marginLeft: 8
                         }}/>}
                 </div>
+                {(this.state.showDialogMessage && this.state.showDialogMessage.length) ? <DialogMessage dispatch={this.props.dispatch} onCancel={()=>{
+                    this.setState({showDialogMessage: null})
+                }} data={this.state.showDialogMessage} /> : null}
             </Header>
         );
     }
