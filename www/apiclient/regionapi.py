@@ -63,7 +63,7 @@ class RegionInvokeApi(HttpClient):
                 if os.environ.get('REGION_TOKEN'):
                     self.default_headers.update({
                         "Authorization":
-                        os.environ.get('REGION_TOKEN')
+                            os.environ.get('REGION_TOKEN')
                     })
                 else:
                     self.default_headers.update({
@@ -1382,8 +1382,8 @@ class RegionInvokeApi(HttpClient):
             token = "Token {}".format(token)
         return url, token
 
-    def __get_region_access_info_by_enterprise_id(self,enterprise_id,region):
-        url,token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id,region)
+    def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
+        url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         if not token:
             region_info = self.get_region_info(region_name=region)
             token = region_info.token
@@ -1391,7 +1391,6 @@ class RegionInvokeApi(HttpClient):
         else:
             token = "Token {}".format(token)
         return url, token
-
 
     def get_protocols(self, region, tenant_name):
         """
@@ -1443,3 +1442,11 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(
             url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
+
+    def get_events_by_event_ids(self, region_name, event_ids):
+        """获取多个event的事件"""
+        region_info = self.get_region_info(region_name)
+        url = region_info.url + "/v2/event"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}))
+        return body

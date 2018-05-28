@@ -89,6 +89,8 @@ class Announcement(BaseModel):
     type = models.CharField(max_length=15, null=True, blank=True, default="all", help_text=u"通知类型")
     active = models.BooleanField(default=True, help_text=u"通知是否启用")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    title = models.CharField(max_length=64, help_text=u"通知标题", default=u"title")
+    level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
 
 
 class NodeInstallInfo(BaseModel):
