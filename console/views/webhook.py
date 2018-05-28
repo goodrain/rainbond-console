@@ -190,13 +190,12 @@ class GetWebHooksUrl(AppBaseView):
             code_from = service_obj.code_from
             service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
             if not (service_obj.service_source == "source_code" and service_code_from):
-                result = general_message(200, "failed", "该应用不符合要求", display=False)
+                result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             url = "http://" + "console.goodrain.com/" + "console/" + "webhooks/" + service_obj.service_id
 
             status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status},
-                                     display=True)
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})
 
             return Response(result, status=200)
         except Exception as e:
