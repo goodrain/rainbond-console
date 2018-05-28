@@ -280,7 +280,7 @@ class AppImportService(object):
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
         import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
-                                "team_name": tenant.tenant_name, "regioin": region}
+                                "team_name": tenant.tenant_name, "region": region}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
