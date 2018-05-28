@@ -85,7 +85,7 @@ class AnnouncementView(BaseAPIView):
         ---
         parameters:
         -   name: body
-            description: 修改内容 字段有 content,a_tag,a_tag_url,type,active(启用)
+            description: 修改内容 字段有 content,a_tag,a_tag_url,type,active(启用)，title，level
             required: true
             type: string
             paramType: body
