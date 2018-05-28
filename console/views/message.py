@@ -103,7 +103,7 @@ class UserMessageView(RegionTenantHeaderView):
                 msg_id_list = [int(msg_id) for msg_id in msg_ids.split(",")]
             except Exception as e:
                 logger.exception(e)
-                return Response(general_message(400, "action is null", "参数格式错误"), status=400)
+                return Response(general_message(400, "Incorrect parameter format", "参数格式错误"), status=400)
             msg_service.update_user_msgs(self.user, action, msg_id_list)
 
             result = general_message(200, 'success', "更新成功")

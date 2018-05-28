@@ -28,6 +28,19 @@ class MessageService(object):
                 level=announce.level
             ))
         UserMessage.objects.bulk_create(msg_list)
+        # 更新已有的公告
+        old_announcements = announcement_repo.get_enabled_announcements().filter(announcement_id__in=noticed_msg_ids)
+        for announce in old_announcements:
+            usermessage_query = msg_repo.get_usermessage_queryset(announce.announcement_id)
+            usermessage_query.update(
+                content=announce.content,
+                title=announce.title,
+                level=announce.level
+            )
+        # 删除已经删除的公告
+        announcements_id_list = msg_repo.get_all_announcements_id()
+        msg_repo.det_all_usermessage().exclude(announcement_id__in=announcements_id_list).delete()
+
 
     def get_user_msgs(self, user, page_num, page_size, msg_type, is_read):
         query = Q()
