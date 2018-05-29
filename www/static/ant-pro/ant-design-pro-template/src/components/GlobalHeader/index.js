@@ -88,7 +88,7 @@ export default class GlobalHeader extends PureComponent {
             popupVisible:false,
             msg_ids:'',
             newNoticeList:{},
-            showDialogMessage: [{title: '111', content: '222'}]
+            showDialogMessage: null
         }
       }
     componentDidMount() {
