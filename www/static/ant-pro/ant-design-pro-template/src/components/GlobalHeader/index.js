@@ -29,6 +29,7 @@ import globalUtil from '../../utils/global';
 class DialogMessage extends PureComponent {
     componentDidMount(){
         const data = this.props.data;
+
         if(data && data.length){
             const ids = data.map((item)=>{
                   return item.ID
@@ -44,30 +45,24 @@ class DialogMessage extends PureComponent {
                 callback: ((data) => {
                 })
             })
+
+
+            Modal.info({
+                title: data[0].title,
+                okText: '知道了',
+                content: (
+                    <div style={{whiteSpace: 'pre-wrap'}}>
+                      {data[0].content}
+                    </div>
+                  )
+            })
+
             
         }
 
     }
     render(){
-       const data = this.props.data;
-       if(!data || !data.length) return null;
-
-       return <Modal
-            visible={true}
-            footer={null}
-            onCancel={this.props.onCancel}
-            maskClosable={false}
-       >
-            <h2> </h2>
-            {
-                data.map((item) => {
-                    return <dl>
-                        <dt><h3>{item.title}</h3></dt>
-                        <dd style={{whiteSpace: 'pre-wrap'}}>{item.content}</dd>
-                    </dl>
-                })
-            }
-        </Modal>
+       return null;
     }
 }
 
@@ -93,7 +88,7 @@ export default class GlobalHeader extends PureComponent {
             popupVisible:false,
             msg_ids:'',
             newNoticeList:{},
-            showDialogMessage: null
+            showDialogMessage: [{title: '111', content: '222'}]
         }
       }
     componentDidMount() {
