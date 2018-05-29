@@ -659,7 +659,7 @@ handleOKBatchImportList = () => {
           {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
           </div> */}
-          <div style={{marginBottom:'10px',textAlign:'right'}}>
+          {/* <div style={{marginBottom:'10px',textAlign:'right'}}>
           {
             this.state.is_public?
             ''
@@ -670,7 +670,7 @@ handleOKBatchImportList = () => {
               </Button>
             </Dropdown>
           }
-          </div>
+          </div> */}
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
