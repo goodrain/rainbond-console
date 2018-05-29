@@ -39,12 +39,29 @@ export default class Index extends PureComponent {
 				event_id:this.props.event_id,
 				importlist:[],
 				showappstatus:false,
-				showapp:true
+				showapp:true,
+				showsubBtn:true,
+				source_dir:this.props.source_dir,
+				showImport:true
 			}
+			this.mountImport = false;
+			this.mountQueryImport = true;
 		}
+
+		componentDidMount() {
+			this.mountImport = true;
+			this.handleQueryImportDir();
+		}
+		componentWillUnmount() {
+			this.mountImport = false;
+			this.mountQueryImport = false;
+		}
+
 		handleSubmit = ()=>{
 			if(this.state.file_name == ''){
-				message.info('请先选择应用',2);
+				notification.info({
+					message: '请先选择应用'
+				})
 				return;
 			}
 			const event_id = this.props.event_id;
@@ -59,13 +76,38 @@ export default class Index extends PureComponent {
 					file_name: this.state.file_name
 				},
 				callback: ((data) => {
-					message.success('操作成功，正在导入',2);
+					notification.success({
+						message: '操作成功，正在导入'
+					})
+					this.setState({showImport:false})
 					this.queryImportApp();
 					// this.props.onOk && this.props.onOk(data);
 				})
         	})
 		}
 		
+        handleQueryImportDir = ()=>{
+			if (!this.mountQueryImport) 
+  			return;
+			const event_id = this.props.event_id;
+			const source_dir = this.props.source_dir;
+			this
+			.props
+			.dispatch({
+				type: 'createApp/queryImportDirApp',
+				payload: {
+					team_name: globalUtil.getCurrTeamName(),
+					event_id:event_id
+				},
+				callback: ((data) => {
+					this.setState({fileList:data.list});
+					setTimeout(() => {
+						this.handleQueryImportDir();
+					}, 2000)
+				})
+			})
+		}
+
 		onChange =(e)=>{
 			var fileStr = '';
 			e.map((order)=>{
@@ -77,6 +119,9 @@ export default class Index extends PureComponent {
 			this.setState({file_name:fileStr})
 		}
 		queryImportApp=()=>{
+			this.mountQueryImport = false;
+			if (!this.mountImport) 
+  			return;
 			const event_id = this.props.event_id;
 			this
 			.props
@@ -88,40 +133,107 @@ export default class Index extends PureComponent {
 				},
 				callback: ((data) => {
 					console.log(data.list)
-					this.setState({importlist:data.list,showappstatus:true,showapp:false})
+					this.setState({importlist:data.list,showappstatus:true,showapp:false,showsubBtn:false})
+					setTimeout(() => {
+						this.queryImportApp();
+					}, 2000)
+				})
+        	})
+		}
+		reImportApp = (app,e) =>{
+			console.log(app)
+			console.log(e)
+			const event_id = this.props.event_id;
+			this
+			.props
+			.dispatch({
+				type: 'createApp/importApp',
+				payload: {
+					team_name: globalUtil.getCurrTeamName(),
+					scope: 'enterprise',
+					event_id: event_id,
+					file_name: app.file_name
+				},
+				callback: ((data) => {
+					notification.success({
+						message: '操作成功，正在导入'
+					})
 				})
         	})
 		}
 		render() {
 			const importlist = this.state.importlist;
-			console.log(importlist)
+			const showsubBtn = this.state.showsubBtn;
+			const list = this.state.fileList;
 			return (
 				<Modal
 					visible={true}
 					onCancel={this.props.onCancel}
 					onOk={this.handleSubmit}
 					title="批量导入应用"
+					footer={
+						showsubBtn ?
+						[
+						<Button key="back" onClick={this.props.onCancel}>取消</Button>,
+						<Button key="submit" type="primary"  onClick={this.handleSubmit}>
+							导入
+						</Button>
+					   ]
+					   :
+					   [
+						<Button key="back" onClick={this.props.onCancel}>取消</Button>
+					   ]
+					}
+						
 					>
 					<div>
 					{
-						importlist.length == 0?
-						<div>
-							<p>请选择需要导入的应用</p>
-							<CheckboxGroup options={this.state.fileList} onChange={this.onChange}/>
-						</div>
-						:
-						<ul>
+						(!this.state.showImport && importlist.length != 0) ?
+						<ul>	
 							{
 								importlist.map((app)=>{
 									return (
-									<li>
-										{app.file_name}
-										<span>{appstatus[app.status]}</span>
+									<li style={{ lineHeight: '30px',paddingBottom:'5px' }}>
+										{app.file_name}  
+										<span style={{padding:"0 5px"}}>{appstatus[app.status]}</span>
+										{
+											app.status == 'failed'?
+											<Button onClick={this.reImportApp.bind(this,app)} type="primary" size="small">重新导入</Button>
+											:
+											''
+										}
 									</li>
 									)
 								})
 							}
 						</ul>
+						:
+						''
+					}
+					{	
+						this.state.showImport ?
+						<div>
+							<p>请选择需要导入的应用</p>
+							<Checkbox.Group  onChange={this.onChange} style={{display:'block'}}>
+								<Row>
+									{
+										list.map((order)=>{
+											return(
+												<Col span={24}><Checkbox value={order}>{order}</Checkbox></Col>
+											)
+										})
+									}
+								</Row>
+							</Checkbox.Group>
+						</div>
+						:
+						''
+					}
+					{
+						(!this.state.showImport && importlist.length == 0) ?
+						<p>请稍后，导入中...</p>
+						:
+						''
 					}
 					</div>
 				</Modal>
