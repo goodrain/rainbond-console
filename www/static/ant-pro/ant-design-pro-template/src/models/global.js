@@ -10,7 +10,10 @@ import {
   getCompanyInfo,
   getRegionOneDayMoney,
   getRegionSource,
-  offlineMarketApp
+  offlineMarketApp,
+  getuserMessage,
+  putMsgAction,
+  deleteMsg
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -56,6 +59,35 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(getRegionOneDayMoney, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getuserMessage({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getuserMessage, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    //消息标记为已读未读
+    *putMsgAction({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(putMsgAction, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    //删除站内信
+    *deleteMsg({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(deleteMsg, payload);
       if (data) {
         callback && callback(data)
       }
@@ -150,7 +182,10 @@ export default {
           type: 'saveGroups',
           payload: response.list || []
         })
-        callback && callback();
+        setTimeout(()=>{
+          callback && callback(response.list);
+        })
+        
       }
     },
     *bindGithub({

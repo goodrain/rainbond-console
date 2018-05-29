@@ -2,6 +2,7 @@ from django.conf.urls import patterns, url
 
 from marketapi.enter_view import *
 from marketapi.views import MarketSSOUserAPIView, MarketSSOUserInitAPIView
+from marketapi.message import *
 
 urlpatterns = patterns(
     '',
@@ -17,5 +18,7 @@ urlpatterns = patterns(
     url(r'^v1/enterprises/services/(?P<service_id>[\w\-]+)/domain$', EnterDomainAPIView.as_view()),
     url(r'^v1/enterprises/regions/access_token$', RegionEnterpriseAccessTokenAPIView.as_view()),
     url(r'^v1/enterprises/regions/resources$', RegionEnterResourceAPIView.as_view()),
-    url(r'^v1/enterprises/tenants$', EnterTenantsAPIView.as_view())
+    url(r'^v1/enterprises/tenants$', EnterTenantsAPIView.as_view()),
+
+    url(r'^v1/message$', UserMessageView.as_view())
 )

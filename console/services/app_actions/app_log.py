@@ -96,11 +96,12 @@ class AppEventService(object):
                 return True
         return False
 
-    def create_event(self, tenant, service, user, action):
+    def create_event(self, tenant, service, user, action, committer_name=None):
         last_event = event_repo.get_last_event(tenant.tenant_id, service.service_id)
         # 提前从数据中心更新event信息
         if last_event:
-            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event], timeout=True)
+            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event],
+                                                    timeout=True)
         old_deploy_version = ""
         if last_event:
             if last_event.final_status == "":
@@ -111,16 +112,28 @@ class AppEventService(object):
         if not action:
             return 400, "操作类型参数不存在", None
         event_id = make_uuid()
-        event_info = {
-            "event_id": event_id,
-            "service_id": service.service_id,
-            "tenant_id": tenant.tenant_id,
-            "type": action,
-            "deploy_version": service.deploy_version,
-            "old_deploy_version": old_deploy_version,
-            "user_name": user.nick_name,
-            "start_time": datetime.datetime.now()
-        }
+        if committer_name:
+            event_info = {
+                "event_id": event_id,
+                "service_id": service.service_id,
+                "tenant_id": tenant.tenant_id,
+                "type": action,
+                "deploy_version": service.deploy_version,
+                "old_deploy_version": old_deploy_version,
+                "user_name": committer_name,
+                "start_time": datetime.datetime.now()
+            }
+        else:
+            event_info = {
+                "event_id": event_id,
+                "service_id": service.service_id,
+                "tenant_id": tenant.tenant_id,
+                "type": action,
+                "deploy_version": service.deploy_version,
+                "old_deploy_version": old_deploy_version,
+                "user_name": user.nick_name,
+                "start_time": datetime.datetime.now()
+            }
 
         if action == "deploy":
             last_deploy_event = event_repo.get_last_deploy_event(tenant.tenant_id, service.service_id)
@@ -248,6 +261,7 @@ class AppEventService(object):
 
     def delete_service_events(self, service):
         event_repo.delete_events(service.service_id)
+
 
 class AppLogService(object):
     def get_service_logs(self, tenant, service, action="service", lines=50):

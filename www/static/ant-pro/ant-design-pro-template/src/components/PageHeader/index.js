@@ -120,6 +120,7 @@ export default class PageHeader extends PureComponent {
   conversionBreadcrumbList = () => {
     const {breadcrumbList} = this.props;
     const {routes, params, routerLocation, breadcrumbNameMap} = this.getBreadcrumbProps();
+
     if (breadcrumbList && breadcrumbList.length) {
       return this.conversionFromProps();
     }

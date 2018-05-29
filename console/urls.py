@@ -28,16 +28,21 @@ from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryV
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
+from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
+    CenterAppImportingAppsView
 from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
+    GroupAppsBackupStatusView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView, AnnouncementView
+from console.views.logos import ConfigInfoView
+from console.views.message import UserMessageView
 from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
 from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
@@ -60,17 +65,15 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
-    APPPluginConfigView
 
 urlpatterns = patterns(
     '',
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
     # 站内消息
-    url(r'^announcement$', AnnouncementView.as_view()),
 
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
@@ -383,7 +386,14 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
-
+    # 应用导入
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view()),
+    # 应用包目录查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/dir$', CenterAppTarballDirView.as_view()),
+    # 正在导入的应用查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/importing-apps$', CenterAppImportingAppsView.as_view()),
+    # 应用导入状态查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view()),
     # 应用下载
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export/down$', ExportFileDownLoadView.as_view()),
 
@@ -403,5 +413,20 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
     # 应用权限设置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
+
+    # 站内信信息获取
+    url(r'^teams/(?P<team_name>[\w\-]+)/message$', UserMessageView.as_view()),
+    # 一组应用备份
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
+        GroupAppsBackupStatusView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
+
+    # webhooks回调地址
+    url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
+    # 获取自动部署回调地址
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/get-url', GetWebHooksUrl.as_view()),
+    # 自动部署功能状态与操作
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
 
 )

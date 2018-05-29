@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
-from console.repositories.announce_repo import announcement_repo
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -27,7 +26,7 @@ class ConfigInfoView(AlowAnyApiView):
             data = dict()
             logo = config_service.get_image()
             host_name = request.get_host()
-            data["logo"] = str(host_name) + str(logo)
+            data["logo"] = "{0}://{1}{2}".format(request.scheme, str(host_name), str(logo))
             # 判断是否为公有云
             if settings.MODULES.get('SSO_LOGIN'):
                 data["url"] = "https://sso.goodrain.com/#/login/"
@@ -148,24 +147,6 @@ class TitleView(BaseApiView):
     #         code = 500
     #         result = error_message(e.message)
     #     return Response(result, status=code)
-
-
-class AnnouncementView(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
-        """
-        获取站内消息
-        ---
-
-        """
-        try:
-            code = 200
-            context = announcement_repo.get_announcement()
-            result = general_message(code, "query success", "站内消息获取成功", bean=context)
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=code)
 
 
 class GuideView(BaseApiView):
