@@ -293,7 +293,8 @@ export default class Main extends PureComponent {
             total: data.total,
             visiblebox:datavisible,
             querydatabox:dataquery,
-            exportTit:dataexportTit
+            exportTit:dataexportTit,
+            importingList:data.list || []
           })
         })
       })
@@ -460,14 +461,12 @@ export default class Main extends PureComponent {
     this.setState({showBatchImport: false})
  }
  handleBatchImportOk = (data) => {
-   console.log(data)
    this.setState({showBatchImport: false,showBatchImportList:true,importNameList:data})
 }
  
 handleCancelBatchImportList = () => {
   this.setState({showBatchImportList: false})
   this.queryImportingApp();
-  // this.getApps();
 }
 handleOKBatchImportList = () => {
     this.setState({showBatchImportList: false})
@@ -476,7 +475,6 @@ handleOKBatchImportList = () => {
   handleMenuClick = (e) => {
      var key = e.key;
      var keyArr  = key.split("||");
-     console.log(keyArr);
      var format = keyArr[0];
      var id = keyArr[1];
      var isexport = keyArr[2];
@@ -599,21 +597,17 @@ handleOKBatchImportList = () => {
                 team_name: globalUtil.getCurrTeamName()
             },
             callback: ((data) => {
-              console.log(data.list)
                 if(data.list.length == [] ){
                    this.getApps();
                 }else{
                   var applist = data.list
-                  // var newappList = applist[0];
-                  // for(var i=0;i<applist.length; i++){
-                  //     if((i+1) == applist.length) break;
-                  //     newappList = newappList.concat(applist[i+1])
-                  // }
-                  this.setState({importingList:applist})
-                  this.getApps();
-                  setTimeout(()=>{
+                  const list = this.state.list
+                  const imList = applist.concat(list)
+                  this.setState({importingList:imList},function(){
+                    setTimeout(()=>{
                       this.queryImportingApp();
-                  }, 3000)
+                    }, 3000)
+                  })
               }
            })
       })
@@ -694,39 +688,8 @@ handleOKBatchImportList = () => {
       }
     };
     const importingList = this.state.importingList;
-    console.log(importingList)
-    const importList = importingList
-      ? (
-        <List
-          bordered={false}
-          locale ={{emptyText: ''}}
-          grid={{
-          gutter: 24,
-            lg: 3,
-            md: 2,
-            sm: 1,
-            xs: 1
-        }}
-          dataSource={importingList}
-          renderItem={item => (
-            <List.Item
-              style={{border: 'none'}}
-              >
-                <Card  className={PluginStyles.card} style={{height:'200px',overflowY:'auto'}}>
-                     {
-                       item.map((order)=>{
-                         return(
-                            <p>{order.file_name}<span>{appstatus[order.status]}</span></p>
-                         )
-                       })
-                     }
-                </Card>
-            </List.Item>
-        )}/>
-      )
-      : null;
       
-    const cardList = list
+    const cardList = importingList
       ? (
 
         <List
@@ -739,12 +702,26 @@ handleOKBatchImportList = () => {
             xs: 1
         }}
           pagination={paginationProps}
-          dataSource={list}
+          dataSource={importingList}
           renderItem={item => (
             <List.Item
               style={{border: 'none'}}
               >
-              {this.renderApp(item)}
+              {
+                item.ID ?
+                this.renderApp(item)
+                :
+                <Card  className={PluginStyles.card} style={{height:'200px',overflowY:'auto'}}>
+                     {
+                       item.map((order)=>{
+                         return(
+                            <p>{order.file_name}<span>{appstatus[order.status]}</span></p>
+                         )
+                       })
+                     }
+                </Card>
+              }
+              
             </List.Item>
         )}/>
       )
@@ -817,7 +794,6 @@ handleOKBatchImportList = () => {
           }
           </div>
           <div className={PluginStyles.cardList}>
-            {importList}
             {cardList}
           </div>
         {this.state.showCreate && <CreateAppFromMarketForm

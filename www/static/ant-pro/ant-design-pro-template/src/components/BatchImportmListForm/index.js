@@ -174,14 +174,14 @@ export default class Index extends PureComponent {
 					footer={
 						showsubBtn ?
 						[
-						<Button key="back" onClick={this.props.onCancel}>取消</Button>,
+						<Button key="back" onClick={this.props.onCancel}>关闭</Button>,
 						<Button key="submit" type="primary"  onClick={this.handleSubmit}>
 							导入
 						</Button>
 					   ]
 					   :
 					   [
-						<Button key="back" onClick={this.props.onCancel}>取消</Button>
+						<Button key="back" onClick={this.props.onCancel}>关闭</Button>
 					   ]
 					}
 						

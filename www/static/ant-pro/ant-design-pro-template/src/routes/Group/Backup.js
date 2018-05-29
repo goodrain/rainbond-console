@@ -262,9 +262,29 @@ export default class AppList extends PureComponent {
 						dataIndex: 'action',
 						render: (val, data) => {
 							return (
-								<Fragment>
+								<div>
+									{ /*
+										( data.status == 'success')?
+										<Fragment>
+											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleRecovery.bind(this,data)}>恢复</Button>
+											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleMove.bind(this,data)}>迁移</Button>
+											<Button onClick={this.handleDelete.bind(this,data)}>删除</Button>
+										</Fragment>
+										:''
+										*/
+									}
+									{ 
+										/*
+										(data.status == 'failed')?
+										<Fragment>
+											<Button onClick={this.handleDelete.bind(this,data)}>删除</Button>
+										</Fragment>
+										:''
+										*/
+									}
+								</div>	
 									
-								</Fragment>
+								
 							)
 						}
 				}
