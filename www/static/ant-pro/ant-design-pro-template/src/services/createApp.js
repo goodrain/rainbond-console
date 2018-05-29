@@ -296,3 +296,15 @@ export function queryImportDirApp(body={team_name,event_id}){
      }
   });
 }
+
+
+/*
+   查询导入中的文件
+*/
+
+export function queryImportingApp(body={team_name}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/importing-apps', {
+     method: 'get'
+  });
+}
