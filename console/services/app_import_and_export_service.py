@@ -303,7 +303,7 @@ class AppImportService(object):
                 pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
 
             rainbond_app = RainbondCenterApp(
-                group_key=make_uuid(),
+                group_key=app_template["group_key"],
                 group_name=app_template["group_name"],
                 version=app_template['group_version'],
                 share_user=0,
