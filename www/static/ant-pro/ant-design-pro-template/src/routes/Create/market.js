@@ -147,31 +147,36 @@ class UploadFile extends PureComponent {
         })
     } 
   
-    onChange= ({ fileList }) => {
-        this.setState({fileList})
-    }
-
-    // onChange = (info) => {
-    //   let fileList = info.fileList;
-    //   // fileList = fileList.slice(-2);
-    //   fileList = fileList.map((file) => {
-    //     if (file.response) {
-    //       return file;
-    //     }
-       
-    //   });
-      
-    //   fileList = fileList.filter((file) => {
-    //     if (file.response) {
-    //       return file;
-    //     }
-       
-    //   });
-  
-    //   this.setState({ fileList },function(){
-    //        console.log(this.state.fileList)
-    //   });
+    // onChange= ({ fileList }) => {
+    //     this.setState({fileList})
     // }
+
+    onChange = (info) => {
+      let fileList = info.fileList;
+  
+      // // 1. Limit the number of uploaded files
+      // //    Only to show two recent uploaded files, and old ones will be replaced by the new
+      // fileList = fileList.slice(-2);
+  
+      // 2. read from response and show file link
+      // fileList = fileList.map((file) => {
+      //   if (file.response) {
+      //     // Component will show file.url as link
+      //     file.file_name = file.name;
+      //   }
+      //   return file;
+      // });
+  
+      // 3. filter successfully uploaded files according to response from server
+      fileList = fileList.filter((file) => {
+        if (file.response) {
+          return file.response.msg === 'success';
+        }
+        return true;
+      });
+  
+      this.setState({ fileList });
+    }
 
     onRemove = ()=>{
        this.setState({fileList:[]})
@@ -198,6 +203,7 @@ class UploadFile extends PureComponent {
                onRemove={this.onRemove}
                headers = {myheaders}
             >
+                
                 {fileList.length > 0? null: <Button>请选择文件</Button>}
             </Upload>
          </Modal>
