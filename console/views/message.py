@@ -30,7 +30,7 @@ class UserMessageView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: msg_type
-              description: 消息类别(own_money|service_abnormal|announcement)
+              description: 消息类别(warn|news|announcement)
               required: false
               type: string
               paramType: query

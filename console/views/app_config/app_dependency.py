@@ -162,7 +162,7 @@ class AppNotDependencyView(AppBaseView):
               required: true
               type: string
               paramType: path
-            - name: page_num
+            - name: page
               description: 页码
               required: false
               type: string
@@ -184,7 +184,7 @@ class AppNotDependencyView(AppBaseView):
               paramType: query
         """
         try:
-            page_num = int(request.GET.get("page_num", 1))
+            page_num = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 25))
             search_key = request.GET.get("search_key", None)
             condition = request.GET.get("condition", None)
