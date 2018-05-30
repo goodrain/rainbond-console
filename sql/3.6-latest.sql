@@ -74,6 +74,7 @@ CREATE TABLE groupapp_migrate
     user varchar(20),
     migrate_region varchar(15),
     status varchar(15),
+    restore_id varchar(36) default null ,
     create_time datetime
 );
 CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);

@@ -193,7 +193,7 @@ class GetWebHooksUrl(AppBaseView):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             host = request.get_host()
-            url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
+            url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             status = self.service.open_webhooks
             result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})

@@ -1585,14 +1585,33 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def star_apps_migrate_task(self, region, tenant_name, data):
+    def star_apps_migrate_task(self, region, tenant_name, backup_id, data):
+        """发起迁移命令"""
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        # TODO 对接接口
-        pass
-        # url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
-        #
-        # self._set_headers(token)
-        # res, body = self._post(
-        #     url, self.default_headers, region=region, body=json.dumps(data))
-        # return body
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def get_apps_migrate_status(self, region, tenant_name, backup_id, restore_id):
+        """获取迁移结果"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore/" + restore_id
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def copy_backup_data(self, region, tenant_name, data):
+        """数据中心备份数据进行拷贝"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backupcopy"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return body

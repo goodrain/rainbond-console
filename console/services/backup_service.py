@@ -98,7 +98,7 @@ class GroupAppBackupService(object):
         return make_uuid()
 
     def get_groupapp_backup_status_by_backup_id(self, tenant, region, backup_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(backup_id)
+        backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
         if not backup_record:
             return 404, "不存在该备份记录", None
         if backup_record.status == "starting":
@@ -133,7 +133,8 @@ class GroupAppBackupService(object):
         compose_group_info = compose_repo.get_group_compose_by_group_id(group_id)
         compose_service_relation = None
         if compose_group_info:
-            compose_service_relation = compose_relation_repo.get_compose_service_relation_by_compose_id(compose_group_info.compose_id)
+            compose_service_relation = compose_relation_repo.get_compose_service_relation_by_compose_id(
+                compose_group_info.compose_id)
         group_info = group_repo.get_group_by_id(group_id)
 
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)

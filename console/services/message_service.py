@@ -52,7 +52,10 @@ class MessageService(object):
             query &= Q(msg_type=msg_type)
         if is_read is not None:
             query &= Q(is_read=is_read)
-        msgs = msg_repo.get_user_all_msgs(user.user_id).filter(query)
+        if msg_type and is_read:
+            msgs = msg_repo.get_user_all_msgs(user.user_id).order_by("-create_time")
+        else:
+            msgs = msg_repo.get_user_all_msgs(user.user_id).filter(query).order_by("-create_time")
         msg_paginator = JuncheePaginator(msgs, int(page_size))
         total = msg_paginator.count
         page_msgs = msg_paginator.page(page_num)

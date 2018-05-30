@@ -12,8 +12,8 @@ class GroupAppBackupRecordRespository(object):
     def create_backup_records(self, **params):
         return GroupAppBackupRecord.objects.create(**params)
 
-    def get_record_by_backup_id(self, backup_id):
-        return GroupAppBackupRecord.objects.filter(backup_id=backup_id).first()
+    def get_record_by_backup_id(self, team_id, backup_id):
+        return GroupAppBackupRecord.objects.filter(team_id=team_id, backup_id=backup_id).first()
 
     def get_record_by_group_id(self, group_id):
         return GroupAppBackupRecord.objects.filter(group_id=group_id)
