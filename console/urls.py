@@ -45,7 +45,7 @@ from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVers
 from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
     PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
-    SyncMarketPluginTemplatesView
+    SyncMarketPluginTemplatesView, InstallMarketPlugin
 from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
@@ -376,6 +376,7 @@ urlpatterns = patterns(
     url(r'^market/plugins$', MarketPluginsView.as_view()),
     url(r'^market/plugins/sync$', SyncMarketPluginsView.as_view()),
     url(r'^market/plugins/sync-template$', SyncMarketPluginTemplatesView.as_view()),
+    url(r'^market/plugins/install$', InstallMarketPlugin.as_view()),
 
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),

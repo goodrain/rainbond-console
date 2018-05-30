@@ -4,6 +4,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.models import RainbondCenterPlugin
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message, error_message
@@ -79,3 +80,27 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, 500)
+
+
+class InstallMarketPlugin(RegionTenantHeaderView):
+    def post(self, requset, team_name, *args, **kwargs):
+        """
+        安装插件
+        :param requset:
+        :param team_name:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        plugin_id = requset.data.get('plugin_id')
+
+        try:
+            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
+            status, msg = market_plugin_service.install_plugin(
+                self.user.user_id, self.team, self.response_region, plugin
+            )
+            if status != 200:
+                return Response(general_message(500, 'install plugin failed', msg), 500)
+            return Response(general_message(200, '', ''), 200)
+        except RainbondCenterPlugin.DoesNotExist:
+            return Response(general_message(404, "plugin not exist", "插件不存在"), status=404)
