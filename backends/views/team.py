@@ -15,6 +15,7 @@ from console.services.user_services import user_services as console_user_service
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
+from backends.services.regionservice import region_service
 
 logger = logging.getLogger("default")
 
@@ -268,3 +269,36 @@ class AddTeamUserView(BaseAPIView):
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")
         return Response(result)
+
+class TeamUsableRegionView(BaseAPIView):
+
+    def get(self, request, tenant_name, *args, **kwargs):
+        """
+        获取团队可用的数据中心
+        ---
+        parameters:
+            - name: tenant_name
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+        """
+        region_name = None
+        try:
+            team = console_team_service.get_tenant_by_tenant_name(tenant_name)
+            if not team:
+                return Response(generate_result("0404", "team not found", "团队{0}不存在".format(tenant_name)))
+
+            region_list = console_region_service.get_region_list_by_team_name(request, tenant_name)
+            if region_list:
+                region_name = region_list[0]["team_region_name"]
+            else:
+                regions = region_service.get_all_regions()
+                if regions:
+                    region_name = regions[0].region_name
+            result = generate_result("0000", "success", "查询成功", bean={"region_name":region_name})
+        except Exception as e:
+            logger.exception(e)
+            result = generate_result("9999", "system error", "系统异常")
+        return Response(result)
+
