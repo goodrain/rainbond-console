@@ -127,7 +127,8 @@ class GroupappsMigrateService(object):
 
     def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata):
         group_info = metadata["group_info"]
-        group = group_repo.add_group(migrate_tenant.tenant_id, migrate_region, group_info["group_name"])
+        group_name = '_'.join([group_info["group_name"], make_uuid()[-4:]])
+        group = group_repo.add_group(migrate_tenant.tenant_id, migrate_region, group_name)
         apps = metadata["apps"]
 
         old_new_service_id_map = dict()
