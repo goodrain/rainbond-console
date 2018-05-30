@@ -44,30 +44,23 @@ class DialogMessage extends PureComponent {
                 callback: ((data) => {
                 })
             })
+
+            Modal.info({
+                title: data[0].title,
+                content: (
+                    <div dangerouslySetInnerHTML={{__html:data[0].content}} style={{whiteSpace: 'pre-wrap'}}></div>
+                ),
+                okText: '知道了',
+                onOk: () => {
+                    this.props.onCancel && this.props.onCancel();
+                }
+            })
             
         }
 
     }
     render(){
-       const data = this.props.data;
-       if(!data || !data.length) return null;
-
-       return <Modal
-            visible={true}
-            footer={null}
-            onCancel={this.props.onCancel}
-            maskClosable={false}
-       >
-            <h2> </h2>
-            {
-                data.map((item) => {
-                    return <dl>
-                        <dt><h3>{item.title}</h3></dt>
-                        <dd style={{whiteSpace: 'pre-wrap'}}>{item.content}</dd>
-                    </dl>
-                })
-            }
-        </Modal>
+       return null;
     }
 }
 

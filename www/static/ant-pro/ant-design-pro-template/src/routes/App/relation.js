@@ -2,7 +2,7 @@ import React, { PureComponent, Fragment } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { Link, Switch, Route } from 'dva/router';
-import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Modal, notification} from 'antd';
+import { Row, Col, Card, Form, Select, Button, Icon, Menu, Input,  Dropdown, Table, Modal, notification} from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import { getRoutes } from '../../utils/utils';
 import { getRouterData } from '../../common/router'
@@ -13,7 +13,7 @@ import globalUtil from '../../utils/global';
 import ConfirmModal from '../../components/ConfirmModal';
 import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
-
+const Option = Select.Option;
 
 //查看连接信息
 
@@ -73,7 +73,7 @@ class ViewRelationInfo extends PureComponent {
    }
 }
 
-
+@Form.create()
 class AddRelation extends PureComponent {
    constructor(props){
      super(props);
@@ -82,7 +82,9 @@ class AddRelation extends PureComponent {
        apps:[],
        page: 1,
        page_size: 6,
-       total:0
+       total:0,
+       search_key:'',
+       condition:''
      }
    }
    componentDidMount(){
@@ -107,7 +109,9 @@ class AddRelation extends PureComponent {
          team_name: globalUtil.getCurrTeamName(),
          app_alias: this.props.appAlias,
          page: this.state.page,
-         page_size: this.state.page_size
+         page_size: this.state.page_size,
+         search_key: this.state.search_key,
+         condition: this.state.condition
       }).then((data) => {
           if(data){
               this.setState({apps: data.list || [], total: data.total, selectedRowKeys: []})
@@ -122,6 +126,17 @@ class AddRelation extends PureComponent {
         this.getUnRelationedApp();
      })
    }
+   handleSearch = (e) => {
+     e.preventDefault();
+     this.state.page = 1;
+     this.getUnRelationedApp();
+   }
+   handleKeyChange = (e) => {
+    this.setState({search_key: e.target.value})
+   }
+   handleConditionChange = (value) => {
+      this.setState({condition: value})
+   }
    render(){
       const rowSelection = {
         onChange: (selectedRowKeys, selectedRows) => {
@@ -129,7 +144,7 @@ class AddRelation extends PureComponent {
         },
         selectedRowKeys: this.state.selectedRowKeys
       };
-
+      const { getFieldDecorator } = this.props.form;
       return (
         <Modal
         title="添加依赖"
@@ -138,7 +153,34 @@ class AddRelation extends PureComponent {
         onOk={this.handleSubmit}
         onCancel = {this.handleCancel}
         >
+        <Form style={{textAlign: 'right', paddingBottom: 8}} layout="inline" onSubmit={this.handleSearch}>
+          <FormItem>
+              <Input
+                size="small"
+                type="text"
+                onChange={this.handleKeyChange}
+                value={this.state.search_key}
+                placeholder="请输入关键字"
+              />
+          </FormItem>
+          <FormItem>
+              <Select
+                size="small"
+                style={{ width: 100 }}
+                value={this.state.condition}
+                onChange={this.handleConditionChange}
+              >
+                <Option value="">全部</Option>
+                <Option value="service_name">应用名称</Option>
+                <Option value="group_name">应用组</Option>
+              </Select>
+          </FormItem>
+          <FormItem>
+            <Button size="small" htmlType="submit"><Icon type="search" />搜索</Button>
+          </FormItem>
+        </Form>
         <Table
+          size="middle"
           pagination = {{
             current: this.state.page,
             pageSize: this.state.page_size,

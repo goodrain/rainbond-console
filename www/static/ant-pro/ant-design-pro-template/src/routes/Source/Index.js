@@ -263,7 +263,7 @@ class AppList extends PureComponent {
                 <Card
                     className={BasicListStyles.listCard}
                     bordered={false}
-                    title="云市应用列表"
+                    title=""
                     style={{
                     marginTop: 24
                 }}
@@ -333,7 +333,8 @@ class AppList extends PureComponent {
         this.state = {
             isChecked: true,
             loading: false,
-            currStep: 0
+            currStep: 0,
+            scope: 'app'
         }
     }
     componentDidMount() {}
@@ -363,6 +364,9 @@ class AppList extends PureComponent {
                         .dispatch({type: 'user/fetchCurrent'})
                 }
             })
+    }
+    handleTabChange = (key) => {
+        this.setState({scope: key})
     }
     renderContent = () => {
         const {currUser} = this.props;
@@ -450,10 +454,23 @@ class AppList extends PureComponent {
             </div>
         );
 
+        const tabList = [
+            {
+              key: 'app',
+              tab: '应用'
+            }, {
+              key: 'plugin',
+              tab: '插件'
+            }
+        ];
+
         return (
-            <PageHeaderLayout content={pageHeaderContent}>
+            <PageHeaderLayout 
+                tabList={tabList}
+                tabActiveKey={this.state.scope}
+                onTabChange={this.handleTabChange}
+                content={pageHeaderContent}>
                 {this.renderContent()}
-                
             </PageHeaderLayout>
         );
     }

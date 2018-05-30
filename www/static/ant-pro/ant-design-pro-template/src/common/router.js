@@ -125,6 +125,9 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/myplugns/:pluginId?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/index'))
     },
+    '/team/:team/region/:region/shareplugin/step-one/:pluginId/:shareId': {
+      component: dynamicWrapper(app, [], () => import ('../routes/Plugin/share-stepone'))
+    },
     '/team/:team/region/:region/create-plugin': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/Create'))
     },

@@ -1,6 +1,56 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/**
+  获取插件分享的信息
+ */
+export async function getPluginShareInfo(body={
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}`, {
+    method: 'get'
+  });
+}
+
+
+/**
+  放弃分享插件
+ */
+export async function giveupSharePlugin(body={
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}`, {
+    method: 'delete'
+  });
+}
+
+/**
+  分享插件
+ */
+export async function sharePlugin(body={
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/share/record`, {
+    method: 'post'
+  });
+}
+
+/*
+  查询未完成插件分享记录
+ */
+export async function getShareRecord(body = {
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/share/record`, {
+    method: 'get'
+  });
+}
+
+
 /*
 	获取应用的历史操作日志
 */
