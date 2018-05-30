@@ -112,6 +112,40 @@ class TenantEnterpriseView(BaseAPIView):
         return Response(result)
 
 
+class EnterpriseFuzzyQueryView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        模糊查询企业
+        ---
+        parameters:
+            - name: enterprise_alias
+              description: 企业别名
+              required: false
+              type: string
+              paramType: form
+            - name: enterprise_name
+              description: 企业名称
+              required: false
+              type: string
+              paramType: form
+        """
+        try:
+            enterprise_alias = request.GET.get("enterprise_alias",None)
+            enterprise_name = request.GET.get("enterprise_name",None)
+            enters = []
+            if enterprise_alias:
+                enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_alias(enterprise_alias)
+            if enterprise_name:
+                enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_name(enterprise_name)
+
+            rt_enterprises = [{"enterprise_id": enter.enterprise_id, "enterprise_name": enter.enterprise_name,
+                               "enterprise_alias": enter.enterprise_alias} for enter in enters]
+            result = generate_result("0000", "success", "查询成功", list=rt_enterprises)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+
 class AuthAccessTokenView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):
         """
@@ -161,40 +195,6 @@ class AuthAccessTokenView(AlowAnyApiView):
             bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict()}
 
             result = generate_result("0000", "success", "信息获取成功",bean)
-        except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
-        return Response(result)
-
-class EnterpriseFuzzyQueryView(BaseAPIView):
-    def get(self, request, *args, **kwargs):
-        """
-        更新企业信息
-        ---
-        parameters:
-            - name: enterprise_alias
-              description: 企业别名
-              required: false
-              type: string
-              paramType: form
-            - name: enterprise_name
-              description: 企业名称
-              required: false
-              type: string
-              paramType: form
-        """
-        try:
-            enterprise_alias = request.GET.get("enterprise_alias",None)
-            enterprise_name = request.GET.get("enterprise_name",None)
-            enters = []
-            if enterprise_alias:
-                enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_alias(enterprise_alias)
-            if enterprise_name:
-                enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_name(enterprise_name)
-
-            rt_enterprises = [{"enterprise_id": enter.enterprise_id, "enterprise_name": enter.enterprise_name,
-                               "enterprise_alias": enter.enterprise_alias} for enter in enters]
-            result = generate_result("0000", "success", "查询成功", list=rt_enterprises)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
