@@ -55,8 +55,9 @@ class UserMessageView(RegionTenantHeaderView):
             msg_type = request.GET.get("msg_type", None)
             page_num = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 5))
-            is_read = int(request.GET.get("is_read", 0))
-            is_read = bool(is_read)
+            is_read = request.GET.get("is_read", None)
+            if is_read:
+                is_read = bool(int(is_read))
             # 先同步数据
             msg_service.sync_announcements_for_user(self.user)
             # 再获取数据
