@@ -1076,6 +1076,26 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def share_plugin(self, region_name, tenant_name, plugin_id, body):
+        """分享插件"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = "{0}/v2/tenants/{1}/plugin/{2}/share".format(
+            url, tenant_region.region_tenant_name, plugin_id)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return res, body
+
+    def share_plugin_result(self, region_name, tenant_name, plugin_id, region_share_id):
+        """查询分享插件状态"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = "{0}/v2/tenants/{1}/plugin/{2}/share/{3}".format(
+            url, tenant_region.region_tenant_name, plugin_id, region_share_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
     def bindDomain(self, region, tenant_name, service_alias, body):
         # region_map = self.get_region_map(region)
         # token = region_map[region]['token']

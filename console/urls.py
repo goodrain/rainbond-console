@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import patterns, url
-from django.views.decorators.csrf import csrf_exempt
 
 from console.captcha.captcha_code import CaptchaView
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
@@ -43,6 +42,10 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
+from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
+    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
+from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
+    SyncMarketPluginTemplatesView
 from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
@@ -50,6 +53,8 @@ from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServ
     ServiceEventsView, TeamServiceOverViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView
+from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
+    UserModifyPemView, TeamAddUserView, ServicePermissionView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
@@ -60,10 +65,6 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
-from console.views.app_config.app_plugin import APPPluginsView, APPPluginInstallView, APPPluginOpenView, \
-    APPPluginConfigView
 
 urlpatterns = patterns(
     '',
@@ -361,6 +362,20 @@ urlpatterns = patterns(
         ServicePluginOperationView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$',
         ServicePluginConfigView.as_view()),
+
+    # 插件分享
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/share/record$', PluginShareRecordView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)$', PluginShareInfoView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events$', PluginShareEventsView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
+        PluginShareEventView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/complete$',
+        PluginShareCompletionView.as_view()),
+
+    # 插件市场
+    url(r'^market/plugins$', MarketPluginsView.as_view()),
+    url(r'^market/plugins/sync$', SyncMarketPluginsView.as_view()),
+    url(r'^market/plugins/sync-template$', SyncMarketPluginTemplatesView.as_view()),
 
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),
