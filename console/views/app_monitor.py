@@ -228,7 +228,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
     def get_query_statements(self, service_id_list, all_pod_ips):
         # 响应时间语句： avg(app_client_requesttime{client="17216189100", service_id=~"968f6919a1bb4cc988d48fd4ebf6303f"}) by (service_id,client)
-        # 吞吐率 avg(ceil(increase(app_client_request{service_id=~"968f6919a1bb4cc988d48fd4ebf6303f",client=~"17216189100"}[1m])/12)) by (service_id,client)
+        # 吞吐率 sum(ceil(increase(app_client_request{service_id=~"968f6919a1bb4cc988d48fd4ebf6303f",client=~"17216189100"}[1m])/12)) by (service_id,client)
 
         query_service_ids = "|".join(service_id_list)
         query_pod_ips = "|".join(all_pod_ips)
@@ -236,7 +236,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         logger.debug(" 1 ======> raw response_time {0}".format(response_time))
         response_time = urlencode({"1": response_time})[2:]
 
-        throughput_rate = 'avg(ceil(increase(app_client_request{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
+        throughput_rate = 'sum(ceil(increase(app_client_request{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
         logger.debug(" 2 ======> raw throughput_rate {0}".format(throughput_rate))
         throughput_rate = urlencode({"1": throughput_rate})[2:]
         return response_time, throughput_rate
