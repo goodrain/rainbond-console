@@ -37,7 +37,7 @@ from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView, AnnouncementView
+from console.views.logos import ConfigInfoView, AnnouncementView, PhpConfigView
 from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
 from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
@@ -61,6 +61,8 @@ urlpatterns = patterns(
     '',
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
+    # php环境配置
+    url(r'^php$', PhpConfigView.as_view()),
     # 站内消息
     url(r'^announcement$', AnnouncementView.as_view()),
 
