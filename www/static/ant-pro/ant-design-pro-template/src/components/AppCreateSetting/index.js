@@ -566,6 +566,11 @@ class PHP extends PureComponent {
       dependencies: []
     }
   }
+  onChange = (value) => {
+    this
+      .props
+      .dispatch({type: 'createApp/saveRuntimeInfo', payload: value})
+  }
   componentDidMount() {
     const runtimeInfo = this.props.runtimeInfo || {};
     if (runtimeInfo.runtimes === false) {
