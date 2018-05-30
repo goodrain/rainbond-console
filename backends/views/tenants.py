@@ -18,22 +18,31 @@ class TenantsView(BaseAPIView):
         ---
         parameters:
             - name: tenant_name
-              description: 模糊租户名称
-              required: true
+              description: 模糊团队名称
+              required: false
+              type: string
+              paramType: query
+            - name: tenant_alias
+              description: 模糊团队别名
+              required: false
               type: string
               paramType: query
 
         """
         try:
             tenant_name = request.GET.get("tenant_name", None)
+            tenant_alias = request.GET.get("tenant_alias", None)
             tenant_list = []
             if tenant_name:
-                tenant_list = tenant_service.get_fuzzy_tenants(tenant_name)
+                tenant_list = tenant_service.get_fuzzy_tenants_by_tenant_name(tenant_name)
+            if tenant_alias:
+                tenant_list = tenant_service.get_fuzzy_tenants_by_tenant_alias(tenant_alias)
             tenants = []
             for tenant in tenant_list:
                 id_name_pair = {}
                 id_name_pair["tenant_name"] = tenant.tenant_name
                 id_name_pair["tenant_id"] = tenant.tenant_id
+                id_name_pair["tenant_alias"] = tenant.tenant_alias
                 tenants.append(id_name_pair)
             result = generate_result("0000", "success", "查询成功", list=tenants)
         except Exception as e:
