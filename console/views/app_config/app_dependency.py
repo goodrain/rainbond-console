@@ -46,7 +46,7 @@ class AppDependencyView(AppBaseView):
               paramType: query
         """
         try:
-            page_num = int(request.GET.get("page_num", 1))
+            page_num = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 25))
             dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
             service_ids = [s.service_id for s in dependencies]
