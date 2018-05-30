@@ -156,15 +156,22 @@ class PluginShareInfoView(RegionTenantHeaderView):
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
                 self.response_region, self.tenant, plugin_id)
 
-            share_plugin_info["config_groups"] = [
-                group.to_dict() for group in
-                plugin_repo.get_plugin_config_groups(plugin_id, plugin_version.build_version)
-            ]
+            config_groups = []
+            for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version.build_version):
+                group_map = group.to_dict()
 
-            share_plugin_info["config_items"] = [
-                item.to_dict() for item in
-                plugin_repo.get_plugin_config_items(plugin_id, plugin_version.build_version)
-            ]
+                items = plugin_service.get_config_items_by_id_metadata_and_version(
+                    group.plugin_id, group.build_version, group.service_meta_type
+                )
+
+                config_items = []
+                for item in items:
+                    config_items.append(item.to_dict())
+
+                group_map['config_items'] = config_items
+                config_groups.append(group_map)
+
+            share_plugin_info["config_groups"] = config_groups
 
             return Response(general_message(200, "", "", bean={'share_plugin_info': share_plugin_info}), 200)
         except Exception as e:
