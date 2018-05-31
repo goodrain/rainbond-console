@@ -133,19 +133,6 @@ export default class GlobalHeader extends PureComponent {
     }
     handleVisibleChange = (flag) =>{
         this.setState({popupVisible:flag,total:0},()=>{
-            // if(this.state.popupVisible){
-            //     this.props.dispatch({
-            //         type: 'global/putMsgAction',
-            //         payload: {
-            //           team_name:globalUtil.getCurrTeamName(),
-            //           msg_ids:this.state.msg_ids,
-            //           action:"mark_read"
-            //         },
-            //         callback: ((data) => {
-            //             console.log(data)
-            //         })
-            //     })
-            // }
         })
     }
     onClear = (tablist)=>{
@@ -171,9 +158,12 @@ export default class GlobalHeader extends PureComponent {
                     ids += order.ID + ','
                 })
                 ids = ids.slice(0,(ids.length-1));
+                var newTotal = datalist.filter((item)=>{
+                    return item.is_read === false
+                }).length
                 
-                this.setState({total:data.total,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
-                    return item.level === 'high';
+                this.setState({total:newTotal,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
+                    return item.level === 'high' && item.is_read === false;
                 }) },()=>{
                     
                     const newNotices = this.getNoticeData(this.state.noticeList);
@@ -385,23 +375,22 @@ export default class GlobalHeader extends PureComponent {
             onPopupVisibleChange={this.handleVisibleChange}
             onClear={this.onClear}
             onItemClick = {(item)=> {
-                
                 this.setState({showDialogMessage: [item]})
             }}
             >
                 <NoticeIcon.Tab
                     title="公告"
-                    emptyText="你已查看所有公告"
+                    emptyText="暂无数据"
                     list={noticesList['announcement']}
                 />
                 <NoticeIcon.Tab
                     title="消息"
-                    emptyText="你已查看所有消息"
+                    emptyText="暂无数据"
                     list={noticesList['news']}
                 />
                 <NoticeIcon.Tab
                     title="提醒"
-                    emptyText="你已查看所有提醒"
+                    emptyText="暂无数据"
                     list={noticesList['warn']}
                 />
             </NoticeIcon>
