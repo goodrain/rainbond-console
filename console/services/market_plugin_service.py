@@ -109,7 +109,8 @@ class MarketPluginService(object):
 
             logger.debug(share_info)
             plugin_info = share_info.get("share_plugin_info")
-            logger.debug(type(plugin_info))
+            if isinstance(plugin_info, unicode):
+                plugin_info = json.loads(plugin_info)
             plugin_id = plugin_info.get("plugin_id")
 
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
@@ -193,9 +194,9 @@ class MarketPluginService(object):
 
             return 200, "分享信息处理成功", plugin.to_dict()
         except Exception as e:
+            logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            logger.exception(e)
             return 500, "插件分享处理发生错误", None
 
     def plugin_share_completion(self, tenant, share_record, user_name):
