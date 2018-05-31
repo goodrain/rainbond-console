@@ -25,6 +25,7 @@ import userIcon from '../../../public/images/user-icon-small.png';
 import ScrollerX from '../../components/ScrollerX';
 import teamUtil from '../../utils/team';
 import globalUtil from '../../utils/global';
+import {Route, Redirect, Switch, routerRedux} from 'dva/router';
 
 class DialogMessage extends PureComponent {
     componentDidMount(){
@@ -135,11 +136,10 @@ export default class GlobalHeader extends PureComponent {
         this.setState({popupVisible:flag,total:0},()=>{
         })
     }
-    onClear = (tablist)=>{
-        const tabTit = noticeTit[tablist];
-        var newList = this.state.newNoticeList;
-        newList[tabTit] = [];
-        this.forceUpdate();
+    onClear = ()=>{
+        this
+            .props
+            .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/message`));
     }
     getuserMessage = (page_num,page_size,msg_type,is_read) => {
         this.props.dispatch({

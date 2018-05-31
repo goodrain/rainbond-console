@@ -64,7 +64,9 @@ const tailFormItemLayout = {
 const token = cookie.get('token');
 let myheaders = {}
 if (token) {
-   myheaders.Authorization = `GRJWT ${token}`;  
+   myheaders.Authorization = `GRJWT ${token}`;
+   myheaders['X_REGION_NAME'] = globalUtil.getCurrRegionName();
+   myheaders['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
 }
 
 const uploadButton = (
@@ -113,7 +115,15 @@ export default class Main extends PureComponent {
         ...params
       },
       callback: (data) => {
-        
+        this.setState({info: data.bean.share_plugin_info})
+        if(data.bean.share_plugin_info.pic){
+          this.setState({fileList:[{
+             uid: -1,
+             name: data.bean.share_plugin_info.pic,
+             status: 'done',
+             url: data.bean.share_plugin_info.pic
+          }]})
+        }
       },
       handleError: (res) => {
         if (res && res.status === 404) {
@@ -130,8 +140,27 @@ export default class Main extends PureComponent {
       .props
       .form
       .validateFields((err, values) => {
+        
+        const share_plugin_info = {
+          ...this.state.info,
+          ...values,
+          pic: (values.pic && values.pic.file && values.pic.file.response && values.pic.file.response.data && values.pic.file.response.data.bean) ? values.pic.file.response.data.bean.file_url : ''
+        };
         if (!err) {
           
+          const {dispatch} = this.props;
+          const param = this.getParams();
+          dispatch({
+            type: 'plugin/submitSharePlugin',
+            payload: {
+              team_name: globalUtil.getCurrTeamName(),
+              shareId: param.shareId,
+              share_plugin_info
+            },
+            callback: (data) => {
+              dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-two/${param.pluginId}/${param.shareId}`))
+            }
+          })
         }
       });
   }
@@ -158,20 +187,13 @@ export default class Main extends PureComponent {
   }
   componentWillUnmount() {}
   render() {
-    const info = this.state.info || {};
+    const info = this.state.info;
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
-    const fileList = this.state.fileList
-   
-    const pageHeaderContent = (
-      <div className={styles.pageHeaderContent}>
-        <div className={styles.content}>
-          <div className={styles.contentTitle}>{info.plugin_name || '-'}</div>
-        </div>
-      </div>
-    );
+    const fileList = this.state.fileList;
+    if(info === null) return null;
     return (
-      <PageHeaderLayout content={pageHeaderContent}>
+      <PageHeaderLayout>
         <div>
           <Card
             style={{
@@ -234,8 +256,8 @@ export default class Main extends PureComponent {
                   </Col>
                   <Col span="12">
                     <Form.Item {...formItemLayout} label='插件说明'>
-                      {getFieldDecorator('describe', {
-                        initialValue: info.describe,
+                      {getFieldDecorator('desc', {
+                        initialValue: info.desc,
                         rules: [
                           {
                             required: false,

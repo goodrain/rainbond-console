@@ -1,14 +1,54 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/*
+查询分享单个任务的状态
+ */
+export async function startShareOneEvent(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events/${body.eventId}`, {
+    method: 'post'
+  });
+}
+
+/*
+查询分享单个任务的状态
+ */
+export async function getShareOneEventInfo(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events/${body.eventId}`, {
+    method: 'get'
+  });
+}
+
+/*
+  插件分享提交
+*/
+export async function getShareEventInfo(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events`, {
+    method: 'get'
+  });
+}
+
+/*
+  插件分享提交
+*/
+export async function submitSharePlugin(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}`, {
+    method: 'post',
+    data:{
+      share_plugin_info: body.share_plugin_info
+    }
+  });
+}
+
 /**
   获取插件分享的信息
  */
 export async function getPluginShareInfo(body={
   team_name,
-  plugin_id
+  pluginId,
+  shareId
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}`, {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}`, {
     method: 'get'
   });
 }

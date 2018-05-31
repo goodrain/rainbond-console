@@ -5,7 +5,11 @@ getBuildPluginVersionStatus, getBuildVersionLog, getUsedApp, deletePlugin, getDe
 getShareRecord,
 sharePlugin,
 giveupSharePlugin,
-getPluginShareInfo
+getPluginShareInfo,
+submitSharePlugin,
+getShareEventInfo,
+getShareOneEventInfo,
+startShareOneEvent
 } from '../services/plugin';
 import cookie from '../utils/cookie';
 
@@ -18,6 +22,30 @@ export default {
     apps:[]
   },
   effects: {
+    *startShareOneEvent({ payload, callback }, { call, put }) {
+      const response = yield call(startShareOneEvent, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getShareOneEventInfo({ payload, callback }, { call, put }) {
+      const response = yield call(getShareOneEventInfo, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getShareEventInfo({ payload, callback }, { call, put }) {
+      const response = yield call(getShareEventInfo, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *submitSharePlugin({ payload, callback }, { call, put }) {
+      const response = yield call(submitSharePlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
     *getPluginShareInfo({ payload, callback }, { call, put }) {
       const response = yield call(getPluginShareInfo, payload);
       if(response) {

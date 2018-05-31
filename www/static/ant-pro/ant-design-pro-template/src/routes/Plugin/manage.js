@@ -71,9 +71,8 @@ export default class Index extends PureComponent {
         plugin_id: this.getId()
       },
       callback: (data) => {
-        this.setState({
-          apps: data.list || []
-        })
+          this.setState({isShareing:data._code !== '20021' }, ()=>{
+          })
       }
     })
   }
@@ -324,8 +323,6 @@ export default class Index extends PureComponent {
   }
   sharePlugin = () => {
     const {dispatch} = this.props;
-    dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-one/${this.getId()}/666`))
-    return;
     dispatch({
       type: 'plugin/sharePlugin',
       payload: {
@@ -334,10 +331,10 @@ export default class Index extends PureComponent {
       },
       callback: (data) => {
         if (data.bean.step === 1) {
-          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/share/one/${data.bean.group_id}/${data.bean.ID}`))
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-one/${this.getId()}/${data.bean.ID}`))
         }
         if (data.bean.step === 2) {
-          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/share/two/${data.bean.group_id}/${data.bean.ID}`))
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-two/${this.getId()}/${data.bean.ID}`))
         }
       }
     })
