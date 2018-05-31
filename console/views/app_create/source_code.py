@@ -141,15 +141,18 @@ class AppCompileEnvView(AppBaseView):
         try:
             compile_env = compile_env_service.get_service_compile_env(self.service)
             bean = dict()
-
+            selected_dependency = []
             if compile_env:
                 check_dependency = json.loads(compile_env.check_dependency)
                 user_dependency = {}
                 if compile_env.user_dependency:
                     user_dependency = json.loads(compile_env.user_dependency)
+                    selected_dependency = [key.replace("ext-", "") for key in
+                                           user_dependency.get("dependencies", {}).keys()]
                 bean["check_dependency"] = check_dependency
                 bean["user_dependency"] = user_dependency
                 bean["service_id"] = compile_env.service_id
+                bean["selected_dependency"] = selected_dependency
             result = general_message(200, "success", "查询编译环境成功",bean=bean)
         except Exception as e:
             logger.exception(e)
