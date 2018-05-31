@@ -562,6 +562,8 @@ class TenantServiceInfo(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
+    secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
 
     def __unicode__(self):
         return self.service_alias
@@ -684,6 +686,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
+    secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
 
 
 class TenantServiceLog(BaseModel):

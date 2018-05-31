@@ -36,12 +36,104 @@ import appProbeUtil from '../../utils/appProbe-util';
 import appUtil from '../../utils/app';
 import userUtil from '../../utils/user';
 import NoPermTip from '../../components/NoPermTip';
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 const {Description} = DescriptionList;
 const FormItem = Form.Item;
 const Option = Select.Option;
 const RadioGroup = Radio.Group;
 const CheckableTag = Tag.CheckableTag;
+
+@connect()
+class AutoDeploy extends PureComponent {
+    constructor(props){
+      super(props);
+      this.state = {
+        display: false,
+        status: false,
+        url:''
+      }
+    }
+    componentDidMount(){
+       this.getInfo();
+    }
+    getInfo = () => {
+      this.props.dispatch({
+        type: 'appControl/getAutoDeployStatus',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.setState({display: data.bean.display, status: data.bean.status||false, url: data.bean.url})
+        }
+      })
+    }
+    handleCancel = () => {
+      this.props.dispatch({
+        type: 'appControl/cancelAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
+    handleOpen = () => {
+      this.props.dispatch({
+        type: 'appControl/openAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
+    render(){
+       if(!this.state.display) return null;
+       return (
+        <Card style={{
+          marginBottom: 24
+        }} title="自动部署"
+        >
+        {
+          this.state.status === false && 
+          <div>
+            <h3>未开启</h3>
+          </div>
+        }
+        {
+          this.state.status === true && 
+          <div>
+            <h3>使用以下地址设置(Gitlab,Github)Webhook:</h3>
+            <p>{this.state.url} <CopyToClipboard text={this.state.url}
+          onCopy={() => {notification.success({message: '复制成功'})}}><Button  size="small">复制</Button></CopyToClipboard></p>
+            <p>当提交信息包含“@deploy”时将自动触发应用自动部署</p>
+          </div>
+        }
+        <div
+              style={{
+              marginTop: 10,
+              textAlign: 'right'
+            }}>
+              {
+                  this.state.status === false && 
+                  <Button onClick={this.handleOpen}>开启自动部署</Button>   
+              }
+              {
+                  this.state.status === true && 
+                  <Button onClick={this.handleCancel}>关闭自动部署</Button>  
+              }
+            </div>
+        </Card>
+       )
+    }
+}
+
 
 @Form.create()
 class EditActions extends PureComponent {
@@ -1499,6 +1591,8 @@ export default class Index extends PureComponent {
           </Form>
         </Card>
 
+        <AutoDeploy app={appDetail} />
+        
         <Card style={{
           marginBottom: 24
         }} title="自定义环境变量">

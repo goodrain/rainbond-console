@@ -73,6 +73,15 @@ const teamUtil = {
 		var actions = teamBean.role_name_list || [];
 		return actions.indexOf('owner') > -1
 	},
+	//是否是团队管理员
+	isAdmin(teamBean={}){
+		var actions = teamBean.role_name_list || [];
+		return actions.indexOf('admin') > -1
+	},
+	//是否可以查看财务中心
+	canViewFinance(teamBean={}){
+		return this.isCreater(teamBean) || this.isAdmin(teamBean);
+	},
 	//对否可以移交团队 
 	canChangeOwner(teamBean={}) {
 		var actions = teamBean.tenant_actions || [];

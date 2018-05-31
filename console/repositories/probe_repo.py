@@ -34,4 +34,7 @@ class ServiceProbeRepository(object):
     def delete_service_probe(self, service_id):
         ServiceProbe.objects.filter(service_id=service_id).delete()
 
+    def get_service_probe(self, service_id):
+        return ServiceProbe.objects.filter(service_id=service_id)
+
 probe_repo = ServiceProbeRepository()

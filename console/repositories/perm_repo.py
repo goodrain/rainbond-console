@@ -74,6 +74,12 @@ class ServicePermRepo(object):
         """获取一个用户在一个团队中的权限id列表"""
         return ServiceRelPerms.objects.filter(user_id=user_id, service_id=service_id).values_list("perm_id", flat=True)
 
+    def delete_service_perm(self, sid):
+        ServiceRelPerms.objects.filter(service_id=sid).delete()
+        PermRelService.objects.filter(service_id=sid).delete()
+
+    def get_service_perms_by_service_pk(self, sid):
+        return ServiceRelPerms.objects.filter(service_id=sid)
 
 class RoleRepo(object):
     def get_default_role_by_role_name(self, role_name, is_default=True):

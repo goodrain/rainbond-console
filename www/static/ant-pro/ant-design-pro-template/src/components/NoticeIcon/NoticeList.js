@@ -17,6 +17,7 @@ export default function NoticeList({
     );
   }
   return (
+   
     <div>
       <List className={styles.list}>
         {data.map((item, i) => {
@@ -37,7 +38,7 @@ export default function NoticeList({
                 description={
                   <div>
                     <div className={styles.description} title={item.description}>
-                      {item.description}
+                      {"查看详情"}
                     </div>
                     <div className={styles.datetime}>{item.datetime}</div>
                   </div>

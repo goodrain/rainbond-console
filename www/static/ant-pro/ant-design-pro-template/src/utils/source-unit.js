@@ -1,4 +1,4 @@
-const unitArr = ['KB', 'MB', 'GB', 'TB', 'PB']
+const unitArr = ['Byte', 'KB', 'MB', 'GB', 'TB', 'PB']
 const util = {
      unit: (num, baseUnit='KB', fixed=2) => {
          num = Number(num);
