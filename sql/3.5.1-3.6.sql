@@ -12,7 +12,7 @@ CREATE TABLE service_plugin_config_var
     dest_service_id VARCHAR(32) NOT NULL,
     dest_service_alias VARCHAR(32) NOT NULL,
     container_port INT(11) NOT NULL,
-    attrs VARCHAR(256) DEFAULT '',
+    attrs VARCHAR(512) DEFAULT '',
     protocol VARCHAR(16) DEFAULT '',
     create_time DATETIME
 );

@@ -261,7 +261,7 @@ export default class shareCheck extends PureComponent {
         this.handleBuild
       }
       type = "primary" > 构建应用 < /Button>,
-        <Button type="default" onClick={this.handleSetting}>高级设置</Button >, < Button onClick = {
+         < Button onClick = {
         this.showDelete
       }
       type = "default" > 放弃创建 < /Button>];
