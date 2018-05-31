@@ -110,6 +110,16 @@ class GroupAppBackupService(object):
             backup_record.save()
         return 200, "success", backup_record
 
+    def delete_group_backup_by_backup_id(self, tenant, region, backup_id):
+        backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
+        if not backup_record:
+            return 404, "不存在该备份记录"
+        if backup_record.status == "starting":
+            return 409, "该备份正在进行中"
+        region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
+        backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
+        return 200,"success"
+
     def get_group_backup_status_by_group_id(self, tenant, region, group_id):
         backup_records = backup_record_repo.get_record_by_group_id(group_id)
         if not backup_records:

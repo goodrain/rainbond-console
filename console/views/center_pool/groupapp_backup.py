@@ -121,6 +121,49 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    @never_cache
+    @perm_required("import_and_export_service")
+    def delete(self, request, *args, **kwargs):
+        """
+        根据应用备份ID删除备份
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 组ID
+              required: true
+              type: string
+              paramType: path
+            - name: backup_id
+              description: 备份id
+              required: true
+              type: string
+              paramType: query
+        """
+        try:
+            group_id = int(kwargs.get("group_id", None))
+            if not group_id:
+                return Response(general_message(400, "group id is null", "请选择需要的组ID"), status=400)
+            backup_id = request.GET.get("backup_id", None)
+            if not backup_id:
+                return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
+            code, msg = groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant,
+                                                                                                       self.response_region,
+                                                                                                       backup_id)
+            if code != 200:
+                return Response(general_message(code, "get backup status error", msg), status=code)
+
+            result = general_message(200, "success", "删除成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 
 class GroupAppsBackupStatusView(RegionTenantHeaderView):
     @never_cache
