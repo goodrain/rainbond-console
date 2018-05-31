@@ -17,7 +17,6 @@ from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, c
     app_plugin_attr_repo, plugin_version_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.services.plugin import plugin_service
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
@@ -616,19 +615,3 @@ class PluginService(object):
     def get_default_plugin(self, region, tenant):
         return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
             origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin"])
-
-    def check_plugin_share_condition(self, team_id, plugin_id, region_name):
-        plugin = plugin_repo.get_plugin_by_plugin_id(team_id, plugin_id)
-        if not plugin:
-            return 404, 'plugin not exist', '插件不存在'
-
-        if plugin.orgin == 'market':
-            return 400, 'plugin from market', '插件来源于云市，无法分享'
-
-        build_info = plugin_service.get_tenant_plugin_newest_versions(region_name, team_id, plugin_id)
-        if not build_info:
-            return 400, 'plugin not build', '插件未构建'
-
-        if build_info.build_status != 'build_success':
-            return 400, 'plugin not build success', '插件未构建成功，无法分享'
-        return 200, 'plugin can share', ''

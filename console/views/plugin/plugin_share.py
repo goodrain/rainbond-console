@@ -76,7 +76,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
                     result = general_message(20021, "share not complete", "有分享流程未完成", bean=share_record.to_dict())
                     return Response(result, status=200)
 
-            status, msg, msg_show = plugin_service.check_plugin_share_condition(
+            status, msg, msg_show = market_plugin_service.check_plugin_share_condition(
                 team_id, plugin_id, self.response_region
             )
             if status != 200:

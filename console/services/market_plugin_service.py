@@ -371,5 +371,21 @@ class MarketPluginService(object):
                 transaction.savepoint_rollback(sid)
             return 500, '插件安装失败'
 
+    def check_plugin_share_condition(self, team_id, plugin_id, region_name):
+        plugin = plugin_repo.get_plugin_by_plugin_id(team_id, plugin_id)
+        if not plugin:
+            return 404, 'plugin not exist', '插件不存在'
+
+        if plugin.orgin == 'market':
+            return 400, 'plugin from market', '插件来源于云市，无法分享'
+
+        build_info = plugin_service.get_tenant_plugin_newest_versions(region_name, team_id, plugin_id)
+        if not build_info:
+            return 400, 'plugin not build', '插件未构建'
+
+        if build_info.build_status != 'build_success':
+            return 400, 'plugin not build success', '插件未构建成功，无法分享'
+        return 200, 'plugin can share', ''
+
 
 market_plugin_service = MarketPluginService()
