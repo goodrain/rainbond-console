@@ -223,3 +223,88 @@ export async function getExport(body={team_name, app_id,format}){
      method: 'get'
   });
 }
+
+
+
+/*
+   应用包上传
+*/
+export function uploadApp(body={team_name}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/upload', {
+     method: 'post'
+  });
+}
+
+
+
+/*
+   导入应用包
+*/
+
+export function importApp(body={team_name,event_id,scope,file_name}){
+  const team_name = body.team_name
+  const event_id = body.event_id
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/'+ event_id, {
+     method: 'post',
+     data: {
+      event_id: body.event_id,
+      file_name:body.file_name,
+      scope:body.scope
+     }
+  });
+}
+
+/*
+   查询包导入状态
+*/
+
+
+export function queryImportApp(body={team_name,event_id}){
+  const team_name = body.team_name
+  const event_id = body.event_id
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/'+ event_id, {
+     method: 'get'
+  });
+}
+
+
+
+/*
+   批量导入创建目录
+*/
+
+export function importDir(body={team_name}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/dir', {
+     method: 'post'
+  });
+}
+
+
+
+/*
+   查询本次导入的目录下的文件
+*/
+
+export function queryImportDirApp(body={team_name,event_id}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/dir', {
+     method: 'get',
+     params:{
+      event_id:body.event_id
+     }
+  });
+}
+
+
+/*
+   查询导入中的文件
+*/
+
+export function queryImportingApp(body={team_name}){
+  const team_name = body.team_name
+  return request(config.baseUrl + '/console/teams/'+ team_name +'/apps/import/importing-apps', {
+     method: 'get'
+  });
+}

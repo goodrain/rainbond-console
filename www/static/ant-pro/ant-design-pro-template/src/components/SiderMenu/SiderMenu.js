@@ -5,6 +5,7 @@ import {Link} from 'dva/router';
 import styles from './index.less';
 import globalUtil from '../../utils/global';
 import userUtil from '../../utils/user';
+import teamUtil from '../../utils/team';
 
 const {Sider} = Layout;
 const {SubMenu} = Menu;
@@ -259,7 +260,7 @@ export default class SiderMenu extends PureComponent {
        var region  = userUtil.hasTeamAndRegion(user, team_name, region_name);
        if(region){
          //当前是公有数据中心
-         if(region.region_scope === 'public' && (team.identity === 'owner' || team.identity === 'admin')){
+         if(region.region_scope === 'public' && (teamUtil.canViewFinance(team))){
             return ItemDom;
          }
        }
@@ -287,7 +288,7 @@ export default class SiderMenu extends PureComponent {
   render() {
     const {logo, collapsed, location: {
         pathname
-      }, onCollapse} = this.props;
+      }, onCollapse, title} = this.props;
     const {openKeys} = this.state;
     // Don't show popup menu when it is been collapsed
     const menuProps = collapsed
@@ -312,8 +313,8 @@ export default class SiderMenu extends PureComponent {
         className={styles.sider}>
         <div className={styles.logo} key="logo">
           <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`}>
-            <img src={logo} alt="logo"/>
-            <h1>好雨云帮</h1>
+            <img src={logo} alt={title || 'logo'}/>
+            <h1>{title}</h1>
           </Link>
         </div>
         <Menu

@@ -52,3 +52,6 @@ class ServicePluginConfigVarRepository(object):
 
     def delete_service_plugin_config_var(self, service_id, plugin_id):
         ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
+
+    def get_service_plugin_all_config(self, service_id):
+        return ServicePluginConfigVar.objects.filter(service_id=service_id)

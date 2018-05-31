@@ -35,10 +35,10 @@ class AppPortService(object):
             return 400, u"端口别名不合法"
         return 200, "success"
 
-    def is_open_outer_steam_port(self, tenant_id, service_id):
+    def is_open_outer_steam_port(self, tenant_id, service_id, current_port):
         """判断是否有对外打开的非http协议端口"""
         ports = port_repo.get_service_ports(tenant_id, service_id).filter(is_outer_service=True).exclude(
-            protocol="http")
+            protocol="http").exclude(container_port=current_port)
         if ports:
             return True
         return False
@@ -73,7 +73,7 @@ class AppPortService(object):
                 return code, msg, None
         if is_outer_service:
             if protocol != "http":
-                if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+                if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, container_port):
                     return 412, u"非http协议端口只能对外开放一个"
 
         service_port = {"tenant_id": tenant.tenant_id, "service_id": service.service_id,
@@ -220,7 +220,7 @@ class AppPortService(object):
     
     def __open_outer(self, tenant, service, deal_port):
         if deal_port.protocol != "http":
-            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
         deal_port.is_outer_service = True
         if service.create_status == "complete":
@@ -292,7 +292,7 @@ class AppPortService(object):
         if protocol != "http":
             if deal_port.is_outer_service:
                 return 400, u"请关闭外部访问"
-            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
 
         if service.create_status == "complete":

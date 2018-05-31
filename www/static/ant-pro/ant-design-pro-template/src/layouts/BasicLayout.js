@@ -347,9 +347,9 @@ class BasicLayout extends React.PureComponent {
             });
     }
     getPageTitle() {
-        const {routerData, location} = this.props;
+        const {routerData, location, rainbondInfo} = this.props;
         const {pathname} = location;
-        let title = '好雨云帮 | 应用一键部署';
+        let title = `${rainbondInfo.title} | 应用一键部署`;
         if (routerData[pathname] && routerData[pathname].name) {
             title = `${routerData[pathname].name} - ` + title;
         }
@@ -535,12 +535,13 @@ class BasicLayout extends React.PureComponent {
 
         const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
         const isRegionMaintain = region.region_status === '3';
-
+        
         const layout = (
             <Layout>
                 {
                     isRegionMaintain ? null :
-                    <SiderMenu currentUser={currentUser} logo={logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
+                    
+                    <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
                     // If you do not have the Authorized parameter
                     // you will be forced to jump to the 403 interface without permission
                     Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>

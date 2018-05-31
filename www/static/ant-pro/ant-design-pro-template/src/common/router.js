@@ -94,9 +94,14 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/team': {
       component: dynamicWrapper(app, ['teamControl'], () => import ('../routes/Team/index'))
     },
+    '/team/:team/region/:region/groups/backup/:groupId/': {
+      component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/Backup')),
+      title: '备份管理'
+    },
     '/team/:team/region/:region/groups/:groupId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/Index'))
     },
+    
     '/team/:team/region/:region/groups/share/one/:groupId/:shareId': {
       component: dynamicWrapper(app, ['groupControl'], () => import ('../routes/Group/AppShare'))
     },

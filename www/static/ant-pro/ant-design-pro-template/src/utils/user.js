@@ -1,4 +1,7 @@
 import cookie from './cookie';
+import globalUtil from './global';
+import teamUtil from './team';
+import regionUtil from './region';
 
 const userUtil = {
 	isLogin() {
@@ -52,6 +55,20 @@ const userUtil = {
 	//是否是系统管理员
 	isSystemAdmin(userBean) {
 		return userBean.is_sys_admin
+	},
+	//获取当前的soketUrl
+	getCurrRegionSoketUrl(currUser){
+		var currTeam = this.getTeamByTeamName(currUser, globalUtil.getCurrTeamName());
+		var currRegionName = globalUtil.getCurrRegionName();
+	
+		if (currTeam) {
+		  var region = teamUtil.getRegionByName(currTeam, currRegionName);
+	
+		  if (region) {
+			return regionUtil.getEventWebSocketUrl(region);
+		  }
+		}
+		return '';
 	}
 
 }

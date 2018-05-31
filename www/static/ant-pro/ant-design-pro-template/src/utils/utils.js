@@ -131,8 +131,9 @@ function getRenderArr(routes) {
  * @param {routerData} routerData
  */
 export function getRoutes(path, routerData) {
-  let routes = Object.keys(routerData).filter(routePath =>
-    routePath.indexOf(path) === 0 && routePath !== path);
+  let routes = Object.keys(routerData).filter(routePath =>{
+    return routePath.indexOf(path) === 0 && routePath !== path
+  });
 
   // Replace path to '' eg. path='user' /user/name => name
   routes = routes.map(item => item.replace(path, ''));

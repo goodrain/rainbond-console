@@ -35,7 +35,7 @@ export default class Index extends PureComponent {
       pagination: {
         total: 0,
         current: 1,
-        pageSize: 10
+        pageSize: 6
       },
       localpaths: {}
     }

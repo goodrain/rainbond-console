@@ -89,3 +89,15 @@ class PluginMetaType(object):
 class PluginInjection(object):
     AUTO = "auto"
     EVN = "env"
+
+
+class MessageType(object):
+    ANNOUNCEMENT = "announcement"
+    NEWS = "news"
+    WARN = "warn"
+
+
+class AppMigrateType(object):
+    CURRENT_REGION_CURRENT_TENANT = "cdct"
+    OTHER_REGION = "od"
+    CURRENT_REGION_OTHER_TENANT = "cdot"

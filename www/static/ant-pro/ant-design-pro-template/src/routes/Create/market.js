@@ -37,16 +37,75 @@ import StandardFormRow from '../../components/StandardFormRow';
 import TagSelect from '../../components/TagSelect';
 import AvatarList from '../../components/AvatarList';
 import CreateAppFromMarketForm from '../../components/CreateAppFromMarketForm';
+import BatchImportForm from '../../components/BatchImportForm';
+import BatchImportListForm from '../../components/BatchImportmListForm';
 import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
 import config from '../../config/config';
+import cookie from '../../utils/cookie';
 
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
-//上传文件
 
+const token = cookie.get('token');
+let myheaders = {}
+if (token) {
+   myheaders.Authorization = `GRJWT ${token}`;  
+   myheaders['X_REGION_NAME'] = globalUtil.getCurrRegionName();
+   myheaders['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
+}
+
+const appstatus ={
+	'pending':'等待中',
+	'importing':'导入中',
+	'success':'成功',
+	'failed':'失败'
+}
+
+const datalist ={
+  "msg": "success",
+  "code": 200,
+  "data": {
+      "bean": {},
+      "list": [
+          [
+              {
+                  "status": "success",
+                  "file_name": "share-v1.0_1.tar"
+              },
+              {
+                  "status": "pending",
+                  "file_name": "share-v1.0_8.tar"
+              }
+          ],
+          [
+            {
+                "status": "success",
+                "file_name": "share-v1.0_1.tar"
+            },
+            {
+                "status": "pending",
+                "file_name": "share-v1.0_8.tar"
+            },
+            {
+              "status": "success",
+              "file_name": "share-v1.0_1.tar"
+          },
+          {
+              "status": "pending",
+              "file_name": "share-v1.0_8.tar"
+          }
+        ]
+      ]
+  },
+  "msg_show": "查询成功"
+}
+
+
+//上传文件
+@connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 @Form.create()
 class UploadFile extends PureComponent {
     constructor(props){
@@ -56,73 +115,79 @@ class UploadFile extends PureComponent {
       }
     }
     handleOk = () => {
-       this.props.form.validateFields({force: true}, (err, values)=>{
-           if(err) return;
-           this.props.onOk && this.props.onOk(values)
-       },)
-    }
-    handleUpload = () => {
-      const { fileList } = this.state;
-      const formData = new FormData();
-      fileList.forEach((file) => {
-        formData.append('files[]', file);
-      });
-  
-      this.setState({
-        uploading: true,
-      });
-  
-      // You can use any AJAX library you like
-      reqwest({
-        url: '//jsonplaceholder.typicode.com/posts/',
-        method: 'post',
-        processData: false,
-        data: formData,
-        success: () => {
-          this.setState({
-            fileList: [],
-            uploading: false,
-          });
-          message.success('upload successfully.');
-        },
-        error: () => {
-          this.setState({
-            uploading: false,
-          });
-          message.error('upload failed.');
-        },
-      });
-    }
-    handleCheck = (rule, value, callback) => {
-        if(!this.state.fileList.length){
-              callback("请选择应用模板文件")
+         const file = this.state.fileList;
+         if(file.length == 0){
+            notification.info({
+              message: '您还没有上传文件'
+            })
+            return;
+         }
+         if(file[0].status != 'done'){
+              notification.info({
+                message: '正在上传请稍后'
+              })
               return;
+         }
+         const file_name = file[0].name;
+         const event_id = file[0].response.data.bean.event_id;
+        this
+        .props
+        .dispatch({
+            type: 'createApp/importApp',
+            payload: {
+                team_name: globalUtil.getCurrTeamName(),
+                scope: 'enterprise',
+                event_id: event_id,
+                file_name: file_name
+            },
+            callback: ((data) => {
+              notification.success({message: `操作成功，正在导入`});
+              this.props.onOk && this.props.onOk(data);
+            })
+        })
+    } 
+  
+    // onChange= ({ fileList }) => {
+    //     this.setState({fileList})
+    // }
+
+    onChange = (info) => {
+      let fileList = info.fileList;
+  
+      // // 1. Limit the number of uploaded files
+      // //    Only to show two recent uploaded files, and old ones will be replaced by the new
+      // fileList = fileList.slice(-2);
+  
+      // 2. read from response and show file link
+      // fileList = fileList.map((file) => {
+      //   if (file.response) {
+      //     // Component will show file.url as link
+      //     file.file_name = file.name;
+      //   }
+      //   return file;
+      // });
+  
+      // 3. filter successfully uploaded files according to response from server
+      fileList = fileList.filter((file) => {
+        if (file.response) {
+          return file.response.msg === 'success';
         }
-        callback();
+        return true;
+      });
+  
+      this.setState({ fileList });
+    }
+
+    onRemove = ()=>{
+       this.setState({fileList:[]})
     }
     render(){
       const form = this.props.form;
       const {getFieldDecorator} = form;
-      const props = {
-        action: '//jsonplaceholder.typicode.com/posts/',
-        onRemove: (file) => {
-          this.setState(({ fileList }) => {
-            const index = fileList.indexOf(file);
-            const newFileList = fileList.slice();
-            newFileList.splice(index, 1);
-            return {
-              fileList: newFileList,
-            };
-          });
-        },
-        beforeUpload: (file) => {
-          this.setState(({ fileList }) => ({
-            fileList: [file],
-          }));
-          return false;
-        },
-        fileList: this.state.fileList,
-      };
+      const team_name = globalUtil.getCurrTeamName();
+      const uploadUrl = config.baseUrl + '/console/teams/'+ team_name +'/apps/upload';
+      const fileList = this.state.fileList;
+      
       return (
          <Modal
            visible={true}
@@ -131,18 +196,16 @@ class UploadFile extends PureComponent {
            title="请上传应用模板"
            okText="确定上传"
          >
-              <Form.Item>
-              {
-                getFieldDecorator('file', {
-                  initialValue: '',
-                  rules:[{validator: this.handleCheck}]
-                })(
-                  <Upload {...props}>
-                     <Button>请选择文件</Button>
-                  </Upload>
-                )
-              }
-              </Form.Item>
+            <Upload 
+               action={uploadUrl}
+               fileList={fileList}
+               onChange={this.onChange}
+               onRemove={this.onRemove}
+               headers = {myheaders}
+            >
+                
+                {fileList.length > 0? null: <Button>请选择文件</Button>}
+            </Upload>
          </Modal>
       )
     }
@@ -166,12 +229,22 @@ export default class Main extends PureComponent {
       target: 'searchWrap',
       visiblebox:{},
       querydatabox:{},
-      exportTit:{}
+      exportTit:{},
+      is_public:this.props.rainbondInfo.is_public,
+      showBatchImport:false,
+      showBatchImportList:false,
+      source_dir:'',
+      importEvent_id:'',
+      importNameList:[],
+      importingList:[]
     }
     this.mount = false;
+    this.mountquery = false;
   }
   componentDidMount() {
     this.mount = true;
+    this.mountquery = true;
+    this.queryImportingApp();
     this.getApps();
     setTimeout(()=>{
       this.setState({target: 'importApp'});
@@ -179,6 +252,7 @@ export default class Main extends PureComponent {
   }
   componentWillUnmount() {
     this.mount = false;
+    this.mountquery = false;
   }
   handleChange = (v) => {
 
@@ -225,7 +299,8 @@ export default class Main extends PureComponent {
             total: data.total,
             visiblebox:datavisible,
             querydatabox:dataquery,
-            exportTit:dataexportTit
+            exportTit:dataexportTit,
+            importingList:data.list || []
           })
         })
       })
@@ -380,17 +455,32 @@ export default class Main extends PureComponent {
       })
 
   }
-  onUpload = () => {
-     this.setState({showUpload: true})
-  }
+ 
   handleCancelUpload = () => {
      this.setState({showUpload: false})
   }
+  handleUploadOk =()=>{
+    this.setState({showUpload: false})
+    this.getApps();
+  }
+  handleCancelBatchImport = () => {
+    this.setState({showBatchImport: false})
+ }
+ handleBatchImportOk = (data) => {
+   this.setState({showBatchImport: false,showBatchImportList:true,importNameList:data})
+}
  
+handleCancelBatchImportList = () => {
+  this.setState({showBatchImportList: false})
+  this.queryImportingApp();
+}
+handleOKBatchImportList = () => {
+    this.setState({showBatchImportList: false})
+}
+
   handleMenuClick = (e) => {
      var key = e.key;
      var keyArr  = key.split("||");
-     console.log(keyArr);
      var format = keyArr[0];
      var id = keyArr[1];
      var isexport = keyArr[2];
@@ -398,7 +488,6 @@ export default class Main extends PureComponent {
      if(isexport =='success'){
         // var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
         // window.open(newurl);
-        console.log("00")
      }else if(isexport == 'loading'){
         notification.info({message: `正在导出，请稍后！`});
      }else{
@@ -478,6 +567,58 @@ export default class Main extends PureComponent {
     this.setState({ visiblebox: newvisible });
     this.queryExport(item);
   }
+  handleImportMenuClick = (e)=>{
+    if(e.key == '1'){
+       this.setState({showUpload:true})
+    }
+    if(e.key == '2'){
+      this.setState({showBatchImport:true})
+      this
+        .props
+        .dispatch({
+            type: 'createApp/importDir',
+            payload: {
+                team_name: globalUtil.getCurrTeamName()
+            },
+            callback: ((data) => {
+                this.setState({
+                   source_dir:data.bean.source_dir,
+                   importEvent_id:data.bean.event_id
+                })
+            })
+        })
+    }
+  }
+
+  queryImportingApp = ()=>{
+    // const datal = datalist.data.list
+    // this.setState({importingList:datal})
+    if (!this.mountquery) 
+    return;
+    this
+        .props
+        .dispatch({
+            type: 'createApp/queryImportingApp',
+            payload: {
+                team_name: globalUtil.getCurrTeamName()
+            },
+            callback: ((data) => {
+                if(data.list.length == [] ){
+                   this.getApps();
+                }else{
+                  var applist = data.list
+                  const list = this.state.list
+                  const imList = applist.concat(list)
+                  this.setState({importingList:imList},function(){
+                    setTimeout(()=>{
+                      this.queryImportingApp();
+                    }, 3000)
+                  })
+              }
+           })
+      })
+  }
+
   renderApp = (item) => {
     const ismarket = item.source;
     const itemID= item.ID;
@@ -552,7 +693,9 @@ export default class Main extends PureComponent {
         this.hanldePageChange(v);
       }
     };
-    const cardList = list
+    const importingList = this.state.importingList;
+      
+    const cardList = importingList
       ? (
 
         <List
@@ -565,12 +708,26 @@ export default class Main extends PureComponent {
             xs: 1
         }}
           pagination={paginationProps}
-          dataSource={list}
+          dataSource={importingList}
           renderItem={item => (
             <List.Item
               style={{border: 'none'}}
               >
-              {this.renderApp(item)}
+              {
+                item.ID ?
+                this.renderApp(item)
+                :
+                <Card  className={PluginStyles.card} style={{height:'200px',overflowY:'auto'}}>
+                     {
+                       item.map((order)=>{
+                         return(
+                            <p>{order.file_name}<span>{appstatus[order.status]}</span></p>
+                         )
+                       })
+                     }
+                </Card>
+              }
+              
             </List.Item>
         )}/>
       )
@@ -614,6 +771,13 @@ export default class Main extends PureComponent {
       }
     ];
     const loading = this.props.loading;
+    const ImportMenu = (
+      <Menu onClick={this.handleImportMenuClick}>
+        <Menu.Item key="1">文件上传</Menu.Item>
+        <Menu.Item key="2">批量导入</Menu.Item>
+      </Menu>
+    );
+    
     return (
       <PageHeaderLayout
         content={mainSearch}
@@ -623,6 +787,18 @@ export default class Main extends PureComponent {
           {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
           </div> */}
+          <div style={{marginBottom:'10px',textAlign:'right'}}>
+          {
+            this.state.is_public?
+            ''
+            :
+             <Dropdown overlay={ImportMenu}>
+              <Button>
+                导入 <Icon type="down" />
+              </Button>
+            </Dropdown>
+          }
+          </div>
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
@@ -630,7 +806,10 @@ export default class Main extends PureComponent {
           disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
-          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload} />}
+          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload}  />}
+          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} source_dir={this.state.source_dir} event_id={this.state.importEvent_id}/>}
+          {this.state.showBatchImportList && <BatchImportListForm  onOk={this.handleOKBatchImportList} onCancel={this.handleCancelBatchImportList} event_id={this.state.importEvent_id} file_name={this.state.importNameList} source_dir={this.state.source_dir} />}
+          
           {/* <GuideManager /> */}
       </PageHeaderLayout>
     );

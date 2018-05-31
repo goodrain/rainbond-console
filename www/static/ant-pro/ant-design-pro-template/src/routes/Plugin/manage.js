@@ -365,6 +365,16 @@ export default class Index extends PureComponent {
 
     return (
       <PageHeaderLayout
+        breadcrumbList={[{
+            title: "首页",
+            href: `/`
+        },{
+            title: "我的插件",
+            href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/myplugns`
+        },{
+            title: this.state.currInfo.plugin_alias,
+            href: ``
+        }]}
         title={this.state.currInfo.plugin_alias}
         content={this.state.currInfo.desc}
         extraContent={extra}

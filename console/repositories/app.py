@@ -67,6 +67,8 @@ class ServiceSourceRepository(object):
     def create_service_source(self, **params):
         return ServiceSourceInfo.objects.create(**params)
 
+    def delete_service_source(self, team_id, service_id):
+        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
