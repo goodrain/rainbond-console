@@ -2,26 +2,28 @@
 """
   Created on 18/1/29.
 """
+import copy
+import json
 import logging
 import os
+
+from addict import Dict
+
 from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
+from console.repositories.app import service_repo
+from console.repositories.app_config import port_repo
+from console.repositories.base import BaseConnection
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
     app_plugin_attr_repo, plugin_version_repo
-from console.repositories.app import service_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.plugin import plugin_service
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.services import plugin_svc
+from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
 from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
-from console.repositories.base import BaseConnection
-from console.repositories.app_config import port_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
-import json
-import copy
-from console.repositories.plugin import service_plugin_config_repo
-from addict import Dict
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -623,7 +625,7 @@ class PluginService(object):
         if plugin.orgin == 'market':
             return 400, 'plugin from market', '插件来源于云市，无法分享'
 
-        build_info = plugin_svc.get_tenant_plugin_newest_versions(region_name, team_id, plugin_id)
+        build_info = plugin_service.get_tenant_plugin_newest_versions(region_name, team_id, plugin_id)
         if not build_info:
             return 400, 'plugin not build', '插件未构建'
 
