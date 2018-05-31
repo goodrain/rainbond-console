@@ -31,6 +31,11 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: path
+            - name: group_id
+              description: 组ID
+              required: true
+              type: string
+              paramType: path
             - name: region
               description: 需要备份的数据中心
               required: true
@@ -91,6 +96,11 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
               type: string
               paramType: path
               paramType: query
+            - name: group_id
+              description: 组ID
+              required: true
+              type: string
+              paramType: path
             - name: restore_id
               description: 存储id
               required: true

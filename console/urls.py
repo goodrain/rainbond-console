@@ -441,7 +441,7 @@ urlpatterns = patterns(
         GroupAppsBackupStatusView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/migrate$', GroupAppsMigrateView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate$', GroupAppsMigrateView.as_view()),
 
     # webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
