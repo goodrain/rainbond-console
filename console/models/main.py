@@ -87,7 +87,7 @@ class RainbondCenterPlugin(BaseModel):
     record_id = models.IntegerField(help_text=u"分享流程id")
     version = models.CharField(max_length=20, unique=True, help_text=u"版本")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
-    pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"插件头像信息")
+    pic = models.TextField(null=True, blank=True, help_text=u"插件头像信息")
     scope = models.CharField(max_length=10, choices=plugin_scope, help_text=u"可用范围")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     share_user = models.IntegerField(help_text=u"分享人id")
