@@ -113,7 +113,7 @@ class MarketPluginService(object):
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
                 region_name, tenant, plugin_id)
 
-            if not plugin_version and plugin_version.build_status != "build_success":
+            if not plugin_version or plugin_version[0].build_status != "build_success":
                 return 400, "插件未构建", None
 
             plugin_version = plugin_version.first()
@@ -170,6 +170,7 @@ class MarketPluginService(object):
                 plugin_id=plugin_info.get("plugin_id"),
                 record_id=share_record.ID,
                 version=plugin_info.get("version"),
+                build_version=plugin_info.get('build_version'),
                 pic=plugin_info.get("pic", ""),
                 scope=plugin_info.get("scope"),
                 source="local",
@@ -261,7 +262,7 @@ class MarketPluginService(object):
 
         body = {
             "plugin_id": rcp.plugin_id,
-            "plugin_version": rcp.version,
+            "plugin_version": rcp.build_version,
             "plugin_key": rcp.plugin_key,
             "event_id": event_id,
             "share_user": nick_name,

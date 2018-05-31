@@ -86,6 +86,7 @@ class RainbondCenterPlugin(BaseModel):
     category = models.CharField(max_length=32, help_text=u"插件类别")
     record_id = models.IntegerField(help_text=u"分享流程id")
     version = models.CharField(max_length=20, unique=True, help_text=u"版本")
+    build_version = models.CharField(max_length=32, help_text=u"构建版本")
     pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"插件头像信息")
     scope = models.CharField(max_length=10, choices=plugin_scope, help_text=u"可用范围")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
@@ -456,6 +457,7 @@ class UserMessage(BaseModel):
     title = models.CharField(max_length=64, help_text=u"消息标题", default=u"title")
     level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
 
+
 class AppImportRecord(BaseModel):
     class Meta:
         db_table = 'app_import_record'
@@ -495,6 +497,7 @@ class GroupAppBackupRecord(BaseModel):
 class GroupAppMigrateRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_migrate'
+
     group_id = models.IntegerField(help_text=u"组ID")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")

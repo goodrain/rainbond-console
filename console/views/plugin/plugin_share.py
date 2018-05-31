@@ -155,6 +155,8 @@ class PluginShareInfoView(RegionTenantHeaderView):
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
                 self.response_region, self.tenant, plugin_id)
 
+            share_plugin_info["build_version"] = plugin_version[0].build_version
+
             config_groups = []
             for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version[0].build_version):
                 group_map = group.to_dict()
