@@ -8,10 +8,8 @@ from console.models import PluginShareRecordEvent
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.services.market_plugin_service import market_plugin_service
-from console.services.plugin import plugin_service
 from console.services.share_services import share_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.services import plugin_svc
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
@@ -20,7 +18,6 @@ logger = logging.getLogger('default')
 
 
 class PluginShareRecordView(RegionTenantHeaderView):
-    @perm_required('share_plugin')
     def get(self, request, team_name, plugin_id, *args, **kwargs):
         """
         查询插件分享记录
@@ -41,7 +38,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
         return Response(data=result, status=200)
 
-    @perm_required('share_plugin')
+    # @perm_required('share_plugin')
     def post(self, request, team_name, plugin_id, *args, **kwargs):
         """
         创建分享插件记录
@@ -77,7 +74,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
                     return Response(result, status=200)
 
             status, msg, msg_show = market_plugin_service.check_plugin_share_condition(
-                team_id, plugin_id, self.response_region
+                self.team, plugin_id, self.response_region
             )
             if status != 200:
                 return Response(general_message(status, msg, msg_show))
@@ -142,8 +139,10 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
                 plugin_id = plugin.plugin_id
 
+                share_plugin_info["category"] = plugin.category
                 share_plugin_info["plugin_key"] = make_uuid()
-                share_plugin_info["plugin_id"] = plugin.plugin_id
+                share_plugin_info["plugin_id"] = plugin_id
+                share_plugin_info["plugin_name"] = plugin.plugin_name
                 share_plugin_info["version"] = "1.0"
                 share_plugin_info["desc"] = "This is a default description."
                 share_plugin_info["scope"] = "team"
@@ -157,10 +156,10 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 self.response_region, self.tenant, plugin_id)
 
             config_groups = []
-            for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version.build_version):
+            for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version[0].build_version):
                 group_map = group.to_dict()
 
-                items = plugin_service.get_config_items_by_id_metadata_and_version(
+                items = plugin_svc.get_config_items_by_id_metadata_and_version(
                     group.plugin_id, group.build_version, group.service_meta_type
                 )
 
@@ -212,7 +211,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
             share_info = request.data
 
             status, msg, plugin = market_plugin_service.create_plugin_share_info(
-                share_record, share_info, self.tenant.teant_id, self.team_name, self.response_region)
+                share_record, share_info, self.user.user_id, self.team, self.response_region)
 
             result = general_message(status, "create share info", msg, bean=plugin)
             return Response(result, status=status)

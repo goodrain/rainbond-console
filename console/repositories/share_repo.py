@@ -155,8 +155,8 @@ class ShareRepo(object):
             return share_record[0]
 
     def get_share_plugin(self, plugin_id):
-        plugins = RainbondCenterPlugin.objects.filter(group_id=plugin_id)
-        return plugins[:-1] if plugins else None
+        plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
+        return plugins.first() if plugins else None
 
 
 share_repo = ShareRepo()

@@ -15,6 +15,7 @@ from console.services.plugin import plugin_version_service, plugin_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import make_uuid, TenantPlugin, PluginConfigGroup, PluginConfigItems
+from www.services import plugin_svc
 
 market_api = MarketOpenAPI()
 region_api = RegionInvokeApi()
@@ -41,7 +42,7 @@ class MarketPluginService(object):
             'id': p.ID
         } for p in paged_plugins]
 
-        return plugins.total(), data
+        return len(plugins), data
 
     def sync_market_plugins(self, tenant_id):
         market_plugins = market_api.get_plugins(tenant_id)
@@ -97,22 +98,25 @@ class MarketPluginService(object):
                 pass
 
     @transaction.atomic
-    def create_plugin_share_info(self, share_record, share_info, user_id, tenant_id,
-                                 tenant_name, region_name):
+    def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):
+        tenant_id = tenant.tenant_id
+        tenant_name = tenant.tenant_name
+
         sid = transaction.savepoint()
         try:
             PluginShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             RainbondCenterPlugin.objects.filter(record_id=share_record.ID).delete()
 
-            plugin_info = share_info.get("plugin_share_info")
+            plugin_info = json.loads(share_info.get("share_plugin_info"))
             plugin_id = plugin_info.get("plugin_id")
 
-            plugin_version = plugin_service.get_tenant_plugin_newest_versions(
-                region_name, tenant_id, plugin_id
-            )
+            plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
+                region_name, tenant, plugin_id)
 
             if not plugin_version and plugin_version.build_status != "build_success":
                 return 400, "插件未构建", None
+
+            plugin_version = plugin_version.first()
 
             tenant_plugin = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
 
@@ -123,7 +127,7 @@ class MarketPluginService(object):
                 "plugin_version": plugin_info.get("version"),
                 "code_repo": tenant_plugin.code_repo,
                 "build_source": tenant_plugin.build_source,
-                "image": tenant_plugin.iamge,
+                "image": tenant_plugin.image,
                 "category": tenant_plugin.category
             }
 
@@ -133,13 +137,13 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_image_connection_info(share_info["scope"], tenant_name)
+            plugin_info["plugin_image"] = app_store.get_image_connection_info(
+                plugin_info["scope"], tenant_name
+            )
             if not plugin_info["plugin_image"]:
                 if sid:
                     transaction.savepoint_rollback(sid)
                 return 400, "获取镜像上传地址错误", None
-
-            plugin_template['share_plugin_info'] = plugin_info
 
             event = PluginShareRecordEvent(
                 record_id=share_record.ID,
@@ -152,25 +156,28 @@ class MarketPluginService(object):
             event.save()
 
             RainbondCenterPlugin.objects.filter(
-                version=share_info["version"], plugin_id=share_record.group_id).delete()
+                version=plugin_info["version"], plugin_id=share_record.group_id).delete()
 
-            share_info["source"] = "local"
-            share_info["record_id"] = share_record.ID
-            share_info["plugin_template"] = json.dumps(plugin_template)
+            plugin_info["source"] = "local"
+            plugin_info["record_id"] = share_record.ID
+
+            plugin_template['share_plugin_info'] = plugin_info
+            # plugin_info["plugin_template"] = json.dumps(plugin_template)
 
             plugin = RainbondCenterPlugin(
                 plugin_key=plugin_info.get("plugin_key"),
                 plugin_name=plugin_info.get("plugin_name"),
                 plugin_id=plugin_info.get("plugin_id"),
                 record_id=share_record.ID,
-                version=share_info.get("version"),
-                pic=share_info.get("pic", ""),
-                scope=share_info.get("scope"),
-                soure="local",
+                version=plugin_info.get("version"),
+                pic=plugin_info.get("pic", ""),
+                scope=plugin_info.get("scope"),
+                source="local",
                 share_user=user_id,
                 share_team=tenant_name,
-                desc=share_info.get("desc"),
-                plugin_template=json.dumps(plugin_template)
+                desc=plugin_info.get("desc"),
+                plugin_template=json.dumps(plugin_template),
+                category=plugin_info.get('category')
             )
 
             plugin.save()
@@ -181,7 +188,7 @@ class MarketPluginService(object):
 
             transaction.savepoint_commit(sid)
 
-            return 200, "分享信息处理成功", plugin
+            return 200, "分享信息处理成功", plugin.to_dict()
         except Exception as e:
             if sid:
                 transaction.savepoint_rollback(sid)
@@ -371,19 +378,19 @@ class MarketPluginService(object):
                 transaction.savepoint_rollback(sid)
             return 500, '插件安装失败'
 
-    def check_plugin_share_condition(self, team_id, plugin_id, region_name):
-        plugin = plugin_repo.get_plugin_by_plugin_id(team_id, plugin_id)
+    def check_plugin_share_condition(self, tenant, plugin_id, region_name):
+        plugin = plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
         if not plugin:
             return 404, 'plugin not exist', '插件不存在'
 
-        if plugin.orgin == 'market':
+        if plugin.origin == 'market':
             return 400, 'plugin from market', '插件来源于云市，无法分享'
 
-        build_info = plugin_service.get_tenant_plugin_newest_versions(region_name, team_id, plugin_id)
+        build_info = plugin_svc.get_tenant_plugin_newest_versions(region_name, tenant, plugin_id)
         if not build_info:
             return 400, 'plugin not build', '插件未构建'
 
-        if build_info.build_status != 'build_success':
+        if build_info[0].build_status != 'build_success':
             return 400, 'plugin not build success', '插件未构建成功，无法分享'
         return 200, 'plugin can share', ''
 
