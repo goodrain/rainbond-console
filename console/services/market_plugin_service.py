@@ -102,7 +102,6 @@ class MarketPluginService(object):
         tenant_id = tenant.tenant_id
         tenant_name = tenant.tenant_name
 
-        sid = transaction.savepoint()
         try:
             PluginShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             RainbondCenterPlugin.objects.filter(record_id=share_record.ID).delete()
@@ -122,6 +121,9 @@ class MarketPluginService(object):
             plugin_version = plugin_version.first()
 
             tenant_plugin = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
+
+
+            sid = transaction.savepoint()
 
             plugin_template = {
                 "plugin_id": plugin_info.get("plugin_id"),
