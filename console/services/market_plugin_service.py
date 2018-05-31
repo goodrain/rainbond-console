@@ -262,6 +262,7 @@ class MarketPluginService(object):
         body = {
             "plugin_id": rcp.plugin_id,
             "plugin_version": rcp.version,
+            "plugin_key": rcp.plugin_key,
             "event_id": event_id,
             "share_user": nick_name,
             "share_scope": rcp.scope,

@@ -344,7 +344,7 @@ class PluginShareEventView(RegionTenantHeaderView):
 
     def post(self, request, team_name, share_id, event_id, *args, **kwargs):
         """
-        创建创建分享事件
+        创建分享事件
         :param request:
         :param team_name:
         :param share_id:
@@ -369,6 +369,10 @@ class PluginShareEventView(RegionTenantHeaderView):
                 status, msg, data = market_plugin_service.sync_event(
                     self.user.nick_name, self.response_region, team_name, event
                 )
+
+                if status != 200:
+                    result = general_message(status, "sync share event failed", msg)
+                    return Response(result, status=status)
 
                 result = general_message(status, "sync share event", msg, bean=data.to_dict())
                 return Response(result, status=status)
