@@ -257,7 +257,8 @@ class VerticalExtendAppView(AppBaseView):
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
             new_add_memory = (int(new_memory) * self.service.min_node) - self.service.min_node * self.service.min_memory
-
+            if new_add_memory < 0:
+                new_add_memory = 0
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
                                                            "启动应用")
             if not allow_create:
@@ -310,6 +311,8 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
             new_add_memory = (int(new_node) - self.service.min_node) * self.service.min_memory
+            if new_add_memory < 0:
+                new_add_memory = 0
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
                                                            "启动应用")
             if not allow_create:

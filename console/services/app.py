@@ -152,7 +152,7 @@ class AppService(object):
             "eid": tenant.enterprise_id
         }
         is_public = settings.MODULES.get('SSO_LOGIN')
-        if not is_public:
+        if not is_public or new_add_memory <= 0:
             return allow_create, tips
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
