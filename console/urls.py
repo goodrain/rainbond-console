@@ -48,10 +48,10 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
-from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
-    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
     SyncMarketPluginTemplatesView, InstallMarketPlugin
+from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
+    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
@@ -71,10 +71,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
-from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
 
 urlpatterns = patterns(
     '',
