@@ -107,7 +107,8 @@ class MarketPluginService(object):
             PluginShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             RainbondCenterPlugin.objects.filter(record_id=share_record.ID).delete()
 
-            plugin_info = json.loads(share_info.get("share_plugin_info"))
+            logger.debug(share_info)
+            plugin_info = share_info.get("share_plugin_info")
             plugin_id = plugin_info.get("plugin_id")
 
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
