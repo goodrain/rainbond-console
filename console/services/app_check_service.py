@@ -133,7 +133,7 @@ class AppCheckService(object):
             service_image = image["name"] + ":" + image["tag"]
             service.image = service_image
 
-        library = service_info.get("library", False)
+        library = service_info.get("dependencies", False)
         procfile = service_info.get("procfile", False)
         runtime = service_info.get("runtime", False)
 
