@@ -1,6 +1,15 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+  /*
+  获取php语言扩展
+ */
+export function getPhpConfig(){
+	return request(config.baseUrl + `/console/php`, {
+	  method: 'get'
+  });
+  }
+
 /*
 	获取应用的历史操作日志
 */

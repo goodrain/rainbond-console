@@ -64,7 +64,8 @@ import {
   getPluginConfigs,
   editPluginConfigs,
   getAnalyzePlugins,
-  getAppResource
+  getAppResource,
+  getPhpConfig
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -126,6 +127,15 @@ export default {
     members: []
   },
   effects : {
+    *getPhpConfig({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getPhpConfig, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getAppResource({
       payload,
       callback

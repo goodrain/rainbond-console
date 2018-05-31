@@ -464,114 +464,17 @@ class PHP extends PureComponent {
         }
       ],
       unablePlugs: [
-        {
-          name: 'BCMath',
-          version: '',
-          url: 'http://docs.php.net/bcmath'
-        }, {
-          name: 'Calendar',
-          version: '',
-          url: 'http/docs.php.net/calendar'
-        }, {
-          name: 'Exif',
-          version: '1.4',
-          url: 'http://docs.php.net/exif'
-        }, {
-          name: 'FTP',
-          version: '',
-          url: 'http://docs.php.net/ftp'
-        }, {
-          name: 'GD(支持PNG, JPEG 和 FreeType)',
-          version: '2.1.0',
-          url: 'http://docs.php.net/gd'
-        }, {
-          name: 'gettext',
-          version: '',
-          url: 'http://docs.php.net/gettext'
-        }, {
-          name: 'intl',
-          version: '1.1.0',
-          url: 'http://docs.php.net/intl'
-        }, {
-          name: 'mbstring',
-          version: '1.3.2',
-          url: 'http://docs.php.net/mbstring'
-        }, {
-          name: 'MySQL(PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)',
-          version: 'mysqlnd 5.0.11-dev',
-          url: 'http://docs.php.net/book.mysql'
-        }, {
-          name: 'PCNTL',
-          version: '',
-          url: 'http://docs.php.net/pcntl'
-        }, {
-          name: 'Shmop',
-          version: '',
-          url: 'http://docs.php.net/shmop'
-        }, {
-          name: 'SOAP',
-          version: '',
-          url: 'http://docs.php.net/soap'
-        }, {
-          name: 'SQLite3',
-          version: '0.7-dev',
-          url: 'http://docs.php.net/sqlite3'
-        }, {
-          name: 'SQLite(PDO)',
-          version: '3.8.2',
-          url: 'http://docs.php.net/pdo_sqlite'
-        }, {
-          name: 'XMLRPC',
-          version: '0.51',
-          url: 'http://docs.php.net/xmlrpc'
-        }, {
-          name: 'XSL',
-          version: '1.1.28',
-          url: 'http://docs.php.net/xsl'
-        }, {
-          name: 'APCu',
-          version: '4.0.6',
-          url: 'http://pecl.php.net/package/apcu'
-        }, {
-          name: 'Blackfire',
-          version: '0.20.6',
-          url: 'http://blackfire.io/'
-        }, {
-          name: 'ImageMagick',
-          version: '3.1.2',
-          url: 'http://docs.php.net/imagick'
-        }, {
-          name: 'memcached',
-          version: '2.2.0',
-          url: 'http://docs.php.net/memcached'
-        }, {
-          name: 'MongoDB',
-          version: '1.6.6',
-          url: 'http://docs.php.net/mongo'
-        }, {
-          name: 'NewRelic',
-          version: '4.19.0.90',
-          url: 'http://newrelic.com/php'
-        }, {
-          name: 'OAuth',
-          version: '1.2.3',
-          url: 'http://docs.php.net/oauth'
-        }, {
-          name: 'PHPRedis',
-          version: '2.2.7',
-          url: 'http://pecl.php.net/package/redis'
-        }
       ],
       //扩展
-      dependencies: []
+      dependencies: [],
+      selected_dependency: this.props.selected_dependency || [],
+      service_dependency: (this.props.selected_dependency || []).join(','),
+      versions:[],
+      default_version: ''
     }
   }
-  onChange = (value) => {
-    this
-      .props
-      .dispatch({type: 'createApp/saveRuntimeInfo', payload: value})
-  }
   componentDidMount() {
+    this.getPhpConfig();
     const runtimeInfo = this.props.runtimeInfo || {};
     if (runtimeInfo.runtimes === false) {
       this.onChange({
@@ -585,6 +488,19 @@ class PHP extends PureComponent {
       })
     }
 
+  }
+  getPhpConfig = () => {
+     this.props.dispatch({
+        type: 'appControl/getPhpConfig',
+        callback: (data) => {
+            this.setState({versions: data.bean.versions, default_version: data.bean.default_version, unablePlugs: data.bean.extends})
+        }
+     })
+  }
+  onChange = (value) => {
+    this
+      .props
+      .dispatch({type: 'createApp/saveRuntimeInfo', payload: value})
   }
   getDefaultRuntime = () => {
     return '5.6.11';
@@ -613,13 +529,11 @@ class PHP extends PureComponent {
     };
 
     const rowSelection = {
+      selectedRowKeys: this.state.selected_dependency,
       onChange: (selectedRowKeys, selectedRows) => {
         this.setState({
-          service_dependency: selectedRows.map((item) => {
-            return item
-              .name
-              .toLowerCase()
-          }).join(',')
+          service_dependency: selectedRowKeys.join(','),
+          selected_dependency: selectedRowKeys
         })
       }
     };
@@ -627,6 +541,7 @@ class PHP extends PureComponent {
     const {getFieldDecorator, getFieldValue} = this.props.form;
 
     const runtimeInfo = this.props.runtimeInfo || {};
+    const userRunTimeInfo = this.props.userRunTimeInfo;
     const formItemLayout = {
       labelCol: {
         span: 5
@@ -636,9 +551,11 @@ class PHP extends PureComponent {
       }
     };
 
-    if (runtimeInfo.runtimes && runtimeInfo.procfile && runtimeInfo.dependencies) {
+    if (runtimeInfo.runtimes && runtimeInfo.procfile && runtimeInfo.dependencies ) {
       return null;
     }
+
+    if(!this.state.versions.length) return null;
 
     return (
       <Fragment>
@@ -648,7 +565,7 @@ class PHP extends PureComponent {
           {!runtimeInfo.runtimes
             ? <Form.Item {...formItemLayout} label="版本设置">
                 {getFieldDecorator('service_runtimes', {
-                  initialValue: this.getDefaultRuntime(),
+                  initialValue: userRunTimeInfo.runtimes || this.state.default_version,
                   rules: [
                     {
                       required: true,
@@ -657,12 +574,11 @@ class PHP extends PureComponent {
                   ]
                 })(
                   <RadioGroup>
-                    <Radio value="5.6.11">5.6.11</Radio>
-                    <Radio value="5.5.27">5.5.27</Radio>
-                    <Radio value="5.4.40">5.4.40</Radio>
-                    <Radio value="5.3.29">5.3.29</Radio>
-                    <Radio value="7.1.2">7.1.2</Radio>
-                    <Radio value="7.0.16">7.0.16</Radio>
+                    {
+                      this.state.versions.map((item) => {
+                          return <Radio value={item}>{item}</Radio>
+                      })
+                    }
                   </RadioGroup>
                 )}
               </Form.Item>
@@ -711,6 +627,7 @@ class PHP extends PureComponent {
                   </TabPane>
                   <TabPane tab="未启用扩展" key="2">
                     <Table
+                      rowKey='value'
                       columns={[
                       {
                         title: '名称',
@@ -925,7 +842,10 @@ class RenderDeploy extends PureComponent {
           ? <PHP
               appDetail={this.props.appDetail}
               onSubmit={this.handleEditRuntime}
-              runtimeInfo={runtimeInfo.check_dependency || {}}/>
+              runtimeInfo={runtimeInfo.check_dependency || {}}
+              userRunTimeInfo={runtimeInfo.user_dependency || {}}
+              selected_dependency={runtimeInfo.selected_dependency||[]}
+              />
           : null
 }
 
