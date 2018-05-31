@@ -281,3 +281,31 @@ export async function completeShare(body = {
 }) {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/share/${body.share_id}/complete`, {method: 'post'});
 }
+
+
+/*
+  应用备份迁移
+*/
+export async function migrateApp(body = {team_name,region,team,backup_id,group_id}) {
+		return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/migrate`, {
+					method: 'post',
+					data: {
+						region: body.region,
+						team: body.team,
+						backup_id: body.backup_id
+					}
+	});
+}
+
+
+/*
+  应用备份迁移状态查询
+*/
+export async function queryMigrateApp(body = {team_name,restore_id,group_id}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/migrate`, {
+				method: 'get',
+				params: {
+					restore_id: body.restore_id
+				}
+});
+}

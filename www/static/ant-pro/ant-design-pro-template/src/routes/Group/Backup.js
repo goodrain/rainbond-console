@@ -21,10 +21,14 @@ import ScrollerX from '../../components/ScrollerX';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import userUtil from '../../utils/user';
 import logSocket from '../../utils/logSocket';
+import ConfirmModal from '../../components/ConfirmModal';
+import MigrationBackup from '../../components/MigrationBackup';
+ 
 
 const {TextArea}  = Input
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
+
 
 @connect(({user, appControl}) => ({currUser: user.currentUser}))
 class BackupStatus extends PureComponent {
@@ -46,6 +50,7 @@ class BackupStatus extends PureComponent {
 			this.createSocket();
 			this.startLoopStatus();
 		}
+		
 	}
 	createSocket(){
 		this.logSocket = new logSocket({
@@ -162,8 +167,11 @@ class Backup extends PureComponent {
 	}
 }
 
-
-@connect(({groupControl}) => ({}), null, null, {pure: false})
+// @connect(({ groupControl}) => ({
+// 	groupDetail: groupControl.groupDetail || {}
+//   }))
+  @connect(({user,global,groupControl}) => ({groupDetail: groupControl.groupDetail || {},currUser: user.currentUser}))
+//   @connect(({groupControl}) => ({}), null, null, {pure: false})
 export default class AppList extends PureComponent {
 	constructor(props) {
 		super(props);
@@ -174,11 +182,16 @@ export default class AppList extends PureComponent {
 			page: 1,
 			total: 0,
 			pageSize: 6,
-			showBackup: false
+			showBackup: false,
+			showMove:false,
+			showDel:false,
+			showRecovery:false,
+			backup_id:''
 		}
 	}
 	componentDidMount() {
 		this.fetchBackup();
+		console.log(this.props)
 	}
 	componentWillUnmount() {
 
@@ -223,6 +236,29 @@ export default class AppList extends PureComponent {
 		const params = this.props.match.params;
 		return params.groupId;
 	}
+	handleRecovery =(data,e)=>{
+		console.log(e)
+		console.log(data)
+	}
+	handleMove =(data,e) =>{
+		console.log(data)
+		this.setState({showMove:true,backup_id:data.backup_id});
+	}
+	handleMoveBackup=()=>{
+		this.setState({showMove:false});
+	}
+	cancelMoveBackup = () =>{
+		this.setState({showMove:false,backup_id:''});
+	}
+	handleDel = (data,e) =>{
+		this.setState({showDel:true,backup_id:data.backup_id})
+	}
+	handleDelete = (e) =>{
+		console.log(e)
+	}
+	cancelDelete = (e)=>{
+		this.setState({showDel:false,backup_id:''})
+	}
 	render() {
 
 			const columns = [
@@ -263,24 +299,22 @@ export default class AppList extends PureComponent {
 						render: (val, data) => {
 							return (
 								<div>
-									{ /*
+									{ 
 										( data.status == 'success')?
 										<Fragment>
 											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleRecovery.bind(this,data)}>恢复</Button>
 											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleMove.bind(this,data)}>迁移</Button>
-											<Button onClick={this.handleDelete.bind(this,data)}>删除</Button>
+											<Button onClick={this.handleDel.bind(this,data)}>删除</Button>
 										</Fragment>
 										:''
-										*/
+										
 									}
 									{ 
-										/*
 										(data.status == 'failed')?
 										<Fragment>
-											<Button onClick={this.handleDelete.bind(this,data)}>删除</Button>
+											<Button onClick={this.handleDel.bind(this,data)}>删除</Button>
 										</Fragment>
 										:''
-										*/
 									}
 								</div>	
 									
@@ -289,7 +323,7 @@ export default class AppList extends PureComponent {
 						}
 				}
 			];
-			const groupDetail = {};
+			
 			const list = this.state.list || [];
 			return (
                 
@@ -302,9 +336,12 @@ export default class AppList extends PureComponent {
                       title: "我的应用",
                       href: ``
                   },{
-                      title: "test",
+                      title: this.props.groupDetail.group_name,
                       href: ``
-                  }]}
+                  },{
+					title: "备份",
+					href: ``
+				}]}
                   content={(
                     <p>备份管理</p>
                   )}
@@ -333,6 +370,15 @@ export default class AppList extends PureComponent {
                    </Card>
 				   
 				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
+				   {this.state.showMove && <MigrationBackup onOk={this.handleMoveBackup} onCancel={this.cancelMoveBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()} />}
+				   {this.state.showRecovery && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
+				   {this.state.showDel && <ConfirmModal
+				   	backupId = {this.state.backup_id}
+                    onOk={this.handleDelete}
+                    onCancel={this.cancelDelete}
+                    title="删除备份"
+                    desc="确定要删除此备份吗？"
+                    subDesc="此操作不可恢复"/>}
                 </PageHeaderLayout>
               );
 	}
