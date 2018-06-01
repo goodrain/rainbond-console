@@ -227,6 +227,7 @@ class MarketPluginService(object):
             "tenant_id": tenant.tenant_id,
             "plugin_key": plugin.plugin_key,
             "plugin_version": plugin.version,
+            "build_version": plugin.build_version,
             "plugin_name": plugin.plugin_name,
             "share_user": user_name,
             "share_team": tenant.tenant_alias,
@@ -263,6 +264,7 @@ class MarketPluginService(object):
         record_event.event_id = event_id
 
         plugin_template = json.loads(rcp.plugin_template)
+        share_plugin = plugin_template.get("share_plugin_info")
 
         body = {
             "plugin_id": rcp.plugin_id,
@@ -271,7 +273,7 @@ class MarketPluginService(object):
             "event_id": event_id,
             "share_user": nick_name,
             "share_scope": rcp.scope,
-            "image_info": plugin_template.get("plugin_image", None),
+            "image_info": share_plugin.get("plugin_image") if share_plugin else "",
         }
 
         sid = transaction.savepoint()
@@ -300,7 +302,7 @@ class MarketPluginService(object):
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            return 500, "应用分享介质同步发生错误", None
+            return 500, "插件分享事件同步发生错误", None
 
     @transaction.atomic
     def install_plugin(self, user, tenant, region_name, market_plugin):

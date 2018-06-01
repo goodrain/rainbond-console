@@ -422,7 +422,7 @@ class PluginShareCompletionView(RegionTenantHeaderView):
                 self.tenant, share_record, self.user.nick_name
             )
             result = general_message(
-                200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url
+                200, "share complete", "插件分享完成", bean=share_record.to_dict(), app_market_url=app_market_url
             )
             return Response(result, status=200)
         except Exception as e:
