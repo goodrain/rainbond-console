@@ -253,7 +253,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 share_plugin.delete()
                 return Response(general_message(200, msg='', msg_show=''), 200)
 
-            share_service.delete_record(share_record)
+            share_record.delete()
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)
         except Exception as e:
