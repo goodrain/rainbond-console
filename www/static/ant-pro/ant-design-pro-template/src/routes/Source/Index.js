@@ -263,7 +263,7 @@ class AppList extends PureComponent {
                 <Card
                     className={BasicListStyles.listCard}
                     bordered={false}
-                    title="云市应用列表"
+                    title=""
                     style={{
                     marginTop: 24
                 }}
@@ -327,13 +327,247 @@ class AppList extends PureComponent {
         )
     }
 }
-@connect(({user}) => ({currUser: user.currentUser}))export default class Index extends PureComponent {
+
+
+
+@connect()
+class PluginList extends PureComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            sync: false,
+            page: 1,
+            pageSize: 10,
+            app_name: '',
+            plugins: [],
+            loading: true,
+            total: 0,
+            type: "",
+            showOfflineApp: null
+        }
+    }
+    componentDidMount = () => {
+        this.loadPlugins();
+    }
+    handleSync = () => {
+        this.setState({
+            sync: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/syncMarketPlugins'
+                }).then(()=>{
+                    this.setState({
+                        sync: false
+                    }, () => {
+                        this.loadPlugins();
+                    })
+                })
+        })
+    }
+    loadPlugins = () => {
+        this.setState({
+            loading: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/getMarketPlugins',
+                    payload: {
+                        plugin_name: this.state.app_name,
+                        page: this.state.page,
+                        limit: this.state.pageSize,
+                        is_complete: this.state.type
+                    },
+                    callback: (data) => {
+                        this.setState({
+                            plugins: data.list || [],
+                            loading: false,
+                            total: data.total
+                        })
+                    }
+                })
+        })
+    }
+    handlePageChange = (page) => {
+        this.setState({
+            page: page
+        }, () => {
+            this.loadPlugins();
+        })
+    }
+    handleSearch = (app_name) => {
+        this.setState({
+            app_name: app_name,
+            page: 1
+        }, () => {
+            this.loadPlugins();
+        })
+    }
+    handleLoadAppDetail = (data) => {
+        this
+            .props
+            .dispatch({
+                type: 'global/syncMarketPluginTmp',
+                payload: {
+                    team_name: globalUtil.getCurrTeamName(),
+                    body: [
+                        {
+                            plugin_key: data.group_key,
+                            version: data.version
+
+                        }
+                    ]
+                },
+                callback: (data) => {
+                    notification.success({message: '操作成功'});
+                    this.loadPlugins();
+                }
+            })
+    }
+    handleTypeChange = (e) => {
+        this.setState({type: e.target.value, page: 1}, () => {
+            this.loadPlugins();
+        })
+    }
+    handleOfflineApp = () => {
+        const app = this.state.showOfflineApp;
+        this.props.dispatch({
+            type: 'global/offlineMarketApp',
+            payload:{
+                app_id: app.ID
+            },
+            callback: () => {
+                notification.success({
+                    message: '卸载成功'
+                })
+                this.hideOfflineApp();
+                this.loadPlugins();
+            }
+        })
+    }
+    showOfflineApp = (app) => {
+        this.setState({showOfflineApp: app})
+    }
+    hideOfflineApp = () => {
+        this.setState({showOfflineApp: null})
+    }
+    render() {
+        const extraContent = (
+            <div className={BasicListStyles.extraContent}>
+                <RadioGroup onChange={this.handleTypeChange} defaultValue={this.state.type}>
+                    <RadioButton value="">全部</RadioButton>
+                    <RadioButton value={true}>已下载</RadioButton>
+                    <RadioButton value={false}>未下载</RadioButton>
+                </RadioGroup>
+                <Search
+                    className={BasicListStyles.extraContentSearch}
+                    placeholder="请输入名称进行搜索"
+                    onSearch={this.handleSearch}/>
+            </div>
+        );
+
+        const paginationProps = {
+            pageSize: this.state.pageSize,
+            total: this.state.total,
+            current: this.state.page,
+            onChange: (pageSize) => {
+                this.handlePageChange(pageSize)
+            }
+        };
+
+        const ListContent = ({
+            data: {
+                owner,
+                createdAt,
+                percent,
+                status
+            }
+        }) => (
+            <div className={BasicListStyles.listContent}></div>
+        );
+
+        return (
+            <div className={BasicListStyles.standardList}>
+                <Card
+                    className={BasicListStyles.listCard}
+                    bordered={false}
+                    title=""
+                    style={{
+                    marginTop: 24
+                }}
+                    bodyStyle={{
+                    padding: '0 32px 40px 32px'
+                }}
+                    extra={extraContent}>
+                    <Button
+                        disabled={this.state.sync}
+                        onClick={this.handleSync}
+                        type="dashed"
+                        style={{
+                        width: '100%',
+                        marginBottom: 8
+                    }}><Icon
+                        className={this.state.sync
+                ? 'roundloading'
+                : ''}
+                        type="sync"/>从好雨云市同步插件信息</Button>
+                    <List
+                        size="large"
+                        rowKey="id"
+                        loading={this.state.loading}
+                        pagination={paginationProps}
+                        dataSource={this.state.apps}
+                        renderItem={item => (
+                        <List.Item
+                            actions={[item.is_complete
+                                ? <Fragment>
+                                 <a
+                                    style={{marginRight: 8}}
+                                        href="javascript:;"
+                                        onClick={() => {
+                                        this.handleLoadAppDetail(item)
+                                    }}>更新应用</a>
+                                    <a
+                                        href="javascript:;"
+                                        onClick={() => {
+                                        this.showOfflineApp(item)
+                                    }}>卸载应用</a>
+                                 </Fragment>
+                                : <a
+                                    href="javascript:;"
+                                    onClick={() => {
+                                    this.handleLoadAppDetail(item)
+                                }}>下载应用</a>]}>
+                            <List.Item.Meta
+                                avatar={< Avatar src = {
+                                item.pic || require("../../../public/images/app_icon.jpg")
+                            }
+                            shape = "square" size = "large" />}
+                                title={item.group_name}
+                                description={item.describe || '-'}/>
+                            <ListContent data={item}/>
+                        </List.Item>
+                    )}/>
+
+                </Card>
+                {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
+            </div>
+        )
+    }
+}
+
+
+@connect(({user}) => ({currUser: user.currentUser}))
+export default class Index extends PureComponent {
     constructor(arg) {
         super(arg);
         this.state = {
             isChecked: true,
             loading: false,
-            currStep: 0
+            currStep: 0,
+            scope: 'app'
         }
     }
     componentDidMount() {}
@@ -363,6 +597,9 @@ class AppList extends PureComponent {
                         .dispatch({type: 'user/fetchCurrent'})
                 }
             })
+    }
+    handleTabChange = (key) => {
+        this.setState({scope: key})
     }
     renderContent = () => {
         const {currUser} = this.props;
@@ -433,7 +670,15 @@ class AppList extends PureComponent {
             )
         }
 
-        return <AppList/>
+        if(this.state.scope === 'app'){
+            return <AppList/>
+        }
+
+        if(this.state.scope === 'plugin'){
+            return <PluginList/>
+        }
+
+        
     }
     render() {
         const {currUser} = this.props;
@@ -450,10 +695,23 @@ class AppList extends PureComponent {
             </div>
         );
 
+        const tabList = [
+            {
+              key: 'app',
+              tab: '应用'
+            }, {
+              key: 'plugin',
+              tab: '插件'
+            }
+        ];
+
         return (
-            <PageHeaderLayout content={pageHeaderContent}>
+            <PageHeaderLayout 
+                tabList={tabList}
+                tabActiveKey={this.state.scope}
+                onTabChange={this.handleTabChange}
+                content={pageHeaderContent}>
                 {this.renderContent()}
-                
             </PageHeaderLayout>
         );
     }

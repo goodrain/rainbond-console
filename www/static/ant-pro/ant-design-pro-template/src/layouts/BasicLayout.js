@@ -257,7 +257,6 @@ class BasicLayout extends React.PureComponent {
                                     currRegion = region;
                                 }
                             }
-                            
                         }
                         this
                             .props

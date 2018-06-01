@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, List } from 'antd';
+import { Avatar, List, Badge } from 'antd';
 import classNames from 'classnames';
 import styles from './NoticeList.less';
 
@@ -8,11 +8,14 @@ export default function NoticeList({
 }) {
   if (data.length === 0) {
     return (
-      <div className={styles.notFound}>
+      <div style={{textAlign: 'center'}}>
         {emptyImage ? (
           <img src={emptyImage} alt="not found" />
         ) : null}
-        <div>{emptyText || locale.emptyText}</div>
+        <div style={{padding: '50px 0'}}>{emptyText || locale.emptyText}</div>
+        <div className={styles.clear} onClick={onClear}>
+          查看历史消息
+        </div>
       </div>
     );
   }
@@ -32,7 +35,7 @@ export default function NoticeList({
                 title={
                   <div className={styles.title}>
                     {item.title}
-                    <div className={styles.extra}>{item.extra}</div>
+                <div className={styles.extra}>{item.is_read === false ? <Badge status="error" /> : null}</div>
                   </div>
                 }
                 description={
@@ -49,7 +52,7 @@ export default function NoticeList({
         })}
       </List>
       <div className={styles.clear} onClick={onClear}>
-        {locale.clear}{title}
+         查看历史消息
       </div>
     </div>
   );

@@ -19,7 +19,9 @@ import {
   groupMonitorData,
   backup,
   getBackup,
-  getBackupStatus
+  getBackupStatus,
+  migrateApp,
+  queryMigrateApp
 } from '../services/group';
 import cookie from '../utils/cookie';
 
@@ -233,6 +235,26 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(completeShare, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    //应用备份迁移
+    *migrateApp({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(migrateApp, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+     //应用备份迁移状态查询
+     *queryMigrateApp({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(queryMigrateApp, payload);
       if (response) {
         callback && callback(response);
       }

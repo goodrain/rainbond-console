@@ -3,6 +3,15 @@ import config from '../config/config';
 
 
 /*
+  获取php语言扩展
+ */
+export function getPhpConfig(){
+	return request(config.baseUrl + `/console/php`, {
+		method: 'get'
+});
+}
+
+/*
 	获取自动部署设置状态
 
  */
@@ -312,14 +321,18 @@ export function getUnRelationedApp(body = {
 				team_name,
 				app_alias,
 				page,
-				page_size
+				page_size,
+				search_key,
+				condition
 }) {
-	console.log(body)
+
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {
 					method: 'get',
 					params:{
 						page: body.page ||1,
-						page_size: body.page_size || 8
+						page_size: body.page_size || 8,
+						condition: body.condition,
+						search_key: body.search_key
 					}
 					
 			});

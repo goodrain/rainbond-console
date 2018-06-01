@@ -91,6 +91,9 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },
+    '/team/:team/region/:region/message': {
+      component: dynamicWrapper(app, ['index'], () => import ('../routes/Message/Index'))
+    },
     '/team/:team/region/:region/team': {
       component: dynamicWrapper(app, ['teamControl'], () => import ('../routes/Team/index'))
     },
@@ -124,6 +127,12 @@ export const getRouterData = (app) => {
     },
     '/team/:team/region/:region/myplugns/:pluginId?': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/index'))
+    },
+    '/team/:team/region/:region/shareplugin/step-one/:pluginId/:shareId': {
+      component: dynamicWrapper(app, [], () => import ('../routes/Plugin/share-stepone'))
+    },
+    '/team/:team/region/:region/shareplugin/step-two/:pluginId/:shareId': {
+      component: dynamicWrapper(app, [], () => import ('../routes/Plugin/share-steptwo'))
     },
     '/team/:team/region/:region/create-plugin': {
       component: dynamicWrapper(app, [], () => import ('../routes/Plugin/Create'))
