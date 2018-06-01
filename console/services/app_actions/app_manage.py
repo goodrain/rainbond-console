@@ -583,6 +583,8 @@ class AppManageService(AppManageBase):
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             services = service_repo.get_services_by_service_ids(*sids).values_list("service_cname", flat=True)
+            if not services:
+                return False, ""
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""
