@@ -152,27 +152,27 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 share_plugin_info["share_team"] = team_name
                 share_plugin_info["is_shared"] = False
 
-            plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
-                self.response_region, self.tenant, plugin_id)
+                plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
+                    self.response_region, self.tenant, plugin_id)
 
-            share_plugin_info["build_version"] = plugin_version[0].build_version
+                share_plugin_info["build_version"] = plugin_version[0].build_version
 
-            config_groups = []
-            for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version[0].build_version):
-                group_map = group.to_dict()
+                config_groups = []
+                for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version[0].build_version):
+                    group_map = group.to_dict()
 
-                items = plugin_svc.get_config_items_by_id_metadata_and_version(
-                    group.plugin_id, group.build_version, group.service_meta_type
-                )
+                    items = plugin_svc.get_config_items_by_id_metadata_and_version(
+                        group.plugin_id, group.build_version, group.service_meta_type
+                    )
 
-                config_items = []
-                for item in items:
-                    config_items.append(item.to_dict())
+                    config_items = []
+                    for item in items:
+                        config_items.append(item.to_dict())
 
-                group_map['config_items'] = config_items
-                config_groups.append(group_map)
+                    group_map['config_items'] = config_items
+                    config_groups.append(group_map)
 
-            share_plugin_info["config_groups"] = config_groups
+                share_plugin_info["config_groups"] = config_groups
 
             return Response(general_message(200, "", "", bean={'share_plugin_info': share_plugin_info}), 200)
         except Exception as e:
