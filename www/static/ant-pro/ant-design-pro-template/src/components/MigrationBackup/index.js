@@ -125,7 +125,7 @@ export default class Index extends PureComponent {
 					regionList = order.region
 				}
 			})
-			this.setState({teamsName:value,regionData:regionList,regionName:''})
+			this.setState({teamsName:value,regionData:regionList})
 		}
 		onRegionChange = (value) => {
 			var regionData = this.state.regionData;
@@ -135,7 +135,7 @@ export default class Index extends PureComponent {
 		render() {
 			const teamsData = this.state.teamsData || [];
 			const regionData = this.state.regionData || [];
-		    const restoreStatus = this.state.restore_status
+			const restoreStatus = this.state.restore_status;
 			return (
 				<Modal
 					visible={true}
@@ -165,7 +165,7 @@ export default class Index extends PureComponent {
 						:
 						<div>
 							<p>请选择迁移的团队和数据中心</p>
-							<Select style={{ width: 120, marginRight:'10px'}} onChange={this.handleTeamsChange}>
+							<Select style={{ width: 120, marginRight:'10px'}} onSelect={this.handleTeamsChange} defaultValue='请选择团队'>
 								{
 									teamsData.map((order)=>{
 										return(
@@ -174,7 +174,7 @@ export default class Index extends PureComponent {
 									})
 								}
 							</Select>
-							<Select style={{ width: 120 }} onChange={this.onRegionChange} >
+							<Select style={{ width: 120 }} onSelect={this.onRegionChange} defaultValue='请选择数据中心'>
 								{
 									regionData.map((order)=>{
 										return(

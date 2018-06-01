@@ -170,7 +170,7 @@ class Backup extends PureComponent {
 // @connect(({ groupControl}) => ({
 // 	groupDetail: groupControl.groupDetail || {}
 //   }))
-  @connect(({user,global,groupControl}) => ({groupDetail: groupControl.groupDetail || {},currUser: user.currentUser}))
+  @connect(({user,global,groupControl}) => ({groupDetail: groupControl.groupDetail || {},currUser: user.currentUser,groups: global.groups || []}))
 //   @connect(({groupControl}) => ({}), null, null, {pure: false})
 export default class AppList extends PureComponent {
 	constructor(props) {
@@ -186,12 +186,13 @@ export default class AppList extends PureComponent {
 			showMove:false,
 			showDel:false,
 			showRecovery:false,
-			backup_id:''
+			backup_id:'',
+			groupName:''
 		}
 	}
 	componentDidMount() {
 		this.fetchBackup();
-		console.log(this.props)
+		this.getGroupName();
 	}
 	componentWillUnmount() {
 
@@ -232,9 +233,20 @@ export default class AppList extends PureComponent {
 			}
 		})
 	}
-	getGroupId() {
+	getGroupId =() => {
 		const params = this.props.match.params;
 		return params.groupId;
+	}
+	getGroupName= ()=>{
+		 const group_id = this.getGroupId();
+		 const groups = this.props.groups;
+		 var group_name = '';
+		 groups.map((order)=>{
+			if(order.group_id == group_id){
+				group_name = order.group_name;
+			}
+		 })
+		 this.setState({groupName:group_name})
 	}
 	handleRecovery =(data,e)=>{
 		console.log(e)
@@ -325,6 +337,7 @@ export default class AppList extends PureComponent {
 			];
 			
 			const list = this.state.list || [];
+			const groupName = this.state.groupName;
 			return (
                 
                 <PageHeaderLayout
@@ -336,7 +349,7 @@ export default class AppList extends PureComponent {
                       title: "我的应用",
                       href: ``
                   },{
-                      title: this.props.groupDetail.group_name,
+                      title: groupName,
                       href: ``
                   },{
 					title: "备份",

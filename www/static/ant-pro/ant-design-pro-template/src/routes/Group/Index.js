@@ -112,6 +112,7 @@ class Main extends PureComponent {
     const {dispatch} = this.props;
     this.fetchGroupDetail();
     this.recordShare()
+    console.log(this.props)
   }
   componentwillreceiveprops(nextProps) {
 
