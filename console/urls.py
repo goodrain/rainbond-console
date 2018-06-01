@@ -41,7 +41,7 @@ from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView
+from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
 from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
 from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
@@ -73,8 +73,8 @@ urlpatterns = patterns(
     '',
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
-    # 站内消息
-
+    # php环境配置
+    url(r'^php$', PhpConfigView.as_view()),
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录
