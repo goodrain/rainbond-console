@@ -109,6 +109,7 @@ class MarketPluginService(object):
             RainbondCenterPlugin.objects.filter(record_id=share_record.ID).delete()
 
             plugin_info = share_info.get("share_plugin_info")
+            logger.debug('plugin_info type is {}'.format(type(plugin_info)))
             if isinstance(plugin_info, unicode):
                 plugin_info = json.loads(plugin_info)
 
@@ -167,6 +168,9 @@ class MarketPluginService(object):
 
             plugin_template['share_plugin_info'] = plugin_info
             # plugin_info["plugin_template"] = json.dumps(plugin_template)
+
+            logger.debug("plugin template dumps")
+            logger.debug(json.dumps(plugin_template))
 
             plugin = RainbondCenterPlugin(
                 plugin_key=plugin_info.get("plugin_key"),
