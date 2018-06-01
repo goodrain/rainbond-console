@@ -2,6 +2,38 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+
+/* 同步插件模版 */
+export async function syncMarketPluginTmp(body={plugin_key, version}){
+  return request(config.baseUrl + `/console/market/plugins/sync-template`, {
+    method: 'post',
+    data: {
+      plugin_key: body.plugin_key,
+      version: body.version
+    }
+  });
+}
+
+/* 同步云市插件 */
+export async function syncMarketPlugins(){
+  return request(config.baseUrl + `/console/market/plugins/sync`, {
+    method: 'post'
+  });
+}
+
+/* 获取内部市场插件 */
+export async function getMarketPlugins(body={plugin_name, page}){
+  return request(config.baseUrl + `/console/market/plugins`, {
+    method: 'get',
+    params: {
+      plugin_name: body.plugin_name,
+      page: body.page,
+      limit: body.limit
+    }
+  });
+}
+
+
 /* 获取某个数据中心的资源详情 */
 export async function getRegionSource(body={team_name, region}){
   return request(config.baseUrl + `/console/enterprise/region/resource`, {

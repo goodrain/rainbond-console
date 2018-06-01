@@ -13,7 +13,10 @@ import {
   offlineMarketApp,
   getuserMessage,
   putMsgAction,
-  deleteMsg
+  deleteMsg,
+  getMarketPlugins,
+  syncMarketPlugins,
+  syncMarketPluginTmp
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -36,6 +39,33 @@ export default {
     payTip: false
   },
   effects : {
+    *getMarketPlugins({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getMarketPlugins, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncMarketPlugins({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketPlugins, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncMarketPluginTmp({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketPluginTmp, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *offlineMarketApp({
       payload,
       callback

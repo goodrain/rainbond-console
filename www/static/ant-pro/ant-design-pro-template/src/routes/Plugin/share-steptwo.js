@@ -260,7 +260,7 @@ export default class shareCheck extends PureComponent {
     const actions = [ < Button onClick = {
         this.handleBuild
       }
-      type = "primary" > 构建应用 < /Button>,
+      type = "primary" > 完成分享流程 < /Button>,
          < Button onClick = {
         this.showDelete
       }
