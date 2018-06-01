@@ -46,11 +46,11 @@ Please read [Run locally](./docs/local_deploy.md)
 
 ## UI
 
-<img src="./docs/buildfromsourcecode.gif" href="http://www.rainbond.com/docs/stable">
+<img src="https://github.com/goodrain/rainbond/blob/V3.6/docs/buildfromsourcecode.gif" href="http://www.rainbond.com/docs/stable">
 
 * Source code creation application process
 
-<img src="./docs/topology.gif" href="http://www.rainbond.com/docs/stable">
+<img src="https://github.com/goodrain/rainbond/blob/V3.6/docs/topology.gif" href="http://www.rainbond.com/docs/stable">
 
 * Business application group topology diagram,The network topology, applied relational topology and real-time monitoring are shown here.
 
