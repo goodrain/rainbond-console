@@ -69,6 +69,7 @@ class MarketPluginService(object):
                     pic=p.get('logo'),
                     build_version=p.get('build_version'),
                     record_id=0,
+                    category=p.get('category'),
                     scope='goodrain',
                     source='market',
                     share_user=0,
