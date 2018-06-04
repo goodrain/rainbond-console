@@ -563,14 +563,19 @@ class PluginList extends PureComponent {
 export default class Index extends PureComponent {
     constructor(arg) {
         super(arg);
+        
+        let params = this.getParam();
         this.state = {
             isChecked: true,
             loading: false,
             currStep: 0,
-            scope: 'app'
+            scope: params.type || 'app'
         }
     }
     componentDidMount() {}
+    getParam() {
+        return this.props.match.params;
+    }
     handleTakeInfo = () => {
         const {currUser} = this.props;
         this.setState({
