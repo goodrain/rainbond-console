@@ -44,6 +44,8 @@ CREATE TABLE groupapp_backup
     source_dir VARCHAR(256) DEFAULT '',
     backup_server_info VARCHAR(256) DEFAULT '',
     backup_size INT DEFAULT 0,
+    total_memory INT DEFAULT 0,
+    source_type VARCHAR (32) DEFAULT '',
     create_time DATETIME
 );
 

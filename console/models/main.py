@@ -481,7 +481,7 @@ class GroupAppBackupRecord(BaseModel):
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"备份版本")
-    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     team_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"团队ID")
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"备份人")
     region = models.CharField(max_length=15, null=True, blank=True, help_text=u"数据中心")
@@ -491,7 +491,9 @@ class GroupAppBackupRecord(BaseModel):
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     backup_size = models.IntegerField(help_text=u"备份文件大小")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    total_memory = models.IntegerField(help_text=u"备份应用的总内存")
     backup_server_info = models.CharField(max_length=400, null=True, blank=True, default="", help_text=u"备份服务信息")
+    source_type = models.CharField(max_length=32, null=True, blank=True, help_text=u"源类型")
 
 
 class GroupAppMigrateRecord(BaseModel):
@@ -509,3 +511,16 @@ class GroupAppMigrateRecord(BaseModel):
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
     restore_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"恢复ID")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+
+
+class GroupAppBackupImportRecord(BaseModel):
+    class Meta:
+        db_table = 'groupapp_backup_import'
+
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    file_temp_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
