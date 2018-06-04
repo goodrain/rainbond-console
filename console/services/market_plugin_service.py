@@ -74,7 +74,7 @@ class MarketPluginService(object):
         plugin_templates = market_api.get_plugin_templates(tenant_id, plugins)
         for template in plugin_templates:
             try:
-                rcp = RainbondCenterPlugin.object.get(
+                rcp = RainbondCenterPlugin.objects.get(
                     plugin_key=template.get('plugin_key'), version=template.get('version')
                 )
                 rcp.share_user = 0
