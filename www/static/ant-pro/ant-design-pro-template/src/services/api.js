@@ -3,6 +3,17 @@ import request from '../utils/request';
 import config from '../config/config';
 
 
+/* 完成分享 */
+export async function complatePluginShare(body={team_name, share_id}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}/complete`, {
+    method: 'post',
+    data: {
+      plugin_key: body.plugin_key,
+      version: body.version
+    }
+  });
+}
+
 /* 同步插件模版 */
 export async function syncMarketPluginTmp(body={plugin_key, version}){
   return request(config.baseUrl + `/console/market/plugins/sync-template`, {

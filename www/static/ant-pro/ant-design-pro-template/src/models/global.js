@@ -16,7 +16,8 @@ import {
   deleteMsg,
   getMarketPlugins,
   syncMarketPlugins,
-  syncMarketPluginTmp
+  syncMarketPluginTmp,
+  complatePluginShare
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -39,6 +40,15 @@ export default {
     payTip: false
   },
   effects : {
+    *complatePluginShare({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(complatePluginShare, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *getMarketPlugins({
       payload,
       callback

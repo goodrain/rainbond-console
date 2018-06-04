@@ -290,16 +290,12 @@ export default class shareCheck extends PureComponent {
       this
         .props
         .dispatch({
-          type: 'groupControl/completeShare',
+          type: 'global/complatePluginShare',
           payload: {
             team_name: globalUtil.getCurrTeamName(),
             share_id: params.shareId
           },
           callback: (data) => {
-            if(data.app_market_url){
-              window.location.href = data.app_market_url;
-              return;
-            }
             this
               .props
               .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${params.groupId}`))
