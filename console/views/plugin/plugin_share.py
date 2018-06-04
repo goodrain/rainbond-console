@@ -10,6 +10,7 @@ from console.repositories.share_repo import share_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.services.share_services import share_service
 from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
 from www.services import plugin_svc
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
@@ -38,7 +39,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
         return Response(data=result, status=200)
 
-    # @perm_required('share_plugin')
+    @perm_required('share_plugin')
     def post(self, request, team_name, plugin_id, *args, **kwargs):
         """
         创建分享插件记录
@@ -96,6 +97,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
 
 
 class PluginShareInfoView(RegionTenantHeaderView):
+    @perm_required("view_plugin")
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         查询分享的插件信息
@@ -180,6 +182,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
+    @perm_required("share_plugin")
     def post(self, request, team_name, share_id, *args, **kwargs):
         """
         创建插件分享
@@ -222,6 +225,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
+    @perm_required("share_plugin")
     def delete(self, request, team_name, share_id, *args, **kwargs):
         """
         放弃插件分享
@@ -263,6 +267,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
 
 class PluginShareEventsView(RegionTenantHeaderView):
+    @perm_required("share_plugin")
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         获取插件分享事件
@@ -304,6 +309,7 @@ class PluginShareEventsView(RegionTenantHeaderView):
 
 
 class PluginShareEventView(RegionTenantHeaderView):
+    @perm_required("share_plugin")
     def get(self, request, team_name, share_id, event_id, *args, **kwargs):
         """
         获取插件分享事件列表
@@ -344,6 +350,7 @@ class PluginShareEventView(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
+    @perm_required("share_plugin")
     def post(self, request, team_name, share_id, event_id, *args, **kwargs):
         """
         创建分享事件
@@ -390,6 +397,7 @@ class PluginShareEventView(RegionTenantHeaderView):
 
 
 class PluginShareCompletionView(RegionTenantHeaderView):
+    @perm_required("share_plugin")
     def post(self, request, team_name, share_id, *args, **kwargs):
         """
         创建分享完成接口
