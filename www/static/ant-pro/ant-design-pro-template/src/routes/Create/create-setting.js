@@ -71,7 +71,6 @@ export default class Index extends PureComponent {
             if (code === 10403) {}
 
           }
-
         }
       })
   }

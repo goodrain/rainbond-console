@@ -101,3 +101,7 @@ class AppMigrateType(object):
     CURRENT_REGION_CURRENT_TENANT = "cdct"
     OTHER_REGION = "od"
     CURRENT_REGION_OTHER_TENANT = "cdot"
+
+
+class StorageUnit(object):
+    ONE_MB=1048576
