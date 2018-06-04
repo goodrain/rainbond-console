@@ -23,8 +23,14 @@ logger = logging.getLogger('default')
 
 
 class MarketPluginService(object):
-    def get_paged_plugins(self, plugin_name="", page=1, limit=10):
-        q = Q(scope='goodrain', source='market', is_complete=True)
+    def get_paged_plugins(self, plugin_name="", is_complete=None, source="", page=1, limit=10):
+        q = Q(scope='goodrain')
+
+        if source:
+            q = q & Q(source=source)
+
+        if is_complete:
+            q = q & Q(is_complete=is_complete)
 
         if plugin_name:
             q = q & Q(plugin_name__icontains=plugin_name)
@@ -53,6 +59,7 @@ class MarketPluginService(object):
                 rcp = RainbondCenterPlugin.objects.get(plugin_key=p.get('plugin_key'), version=p.get('version'))
                 rcp.pic = p.get('pic')
                 rcp.desc = p.get('intro')
+                rcp.version = p.get('version')
                 rcp.save()
             except RainbondCenterPlugin.DoesNotExist:
                 rcp = RainbondCenterPlugin(

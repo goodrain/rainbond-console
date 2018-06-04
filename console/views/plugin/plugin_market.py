@@ -26,9 +26,15 @@ class MarketPluginsView(RegionTenantHeaderView):
             plugin_name = request.GET.get('plugin_name')
             page = request.GET.get('page', 1)
             limit = request.GET.get('limit', 10)
+            is_download = request.GET.get('is_download')
+            source = request.GET.get('source')
 
-            total, plugins = market_plugin_service.get_paged_plugins(plugin_name, page, limit)
-            result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+            total, plugins = market_plugin_service.get_paged_plugins(
+                plugin_name, is_download, source, page, limit
+            )
+            result = general_message(
+                200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
+            )
             return Response(data=result, status=200)
         except Exception as e:
             logger.exception(e)
