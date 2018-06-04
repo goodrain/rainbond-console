@@ -39,22 +39,41 @@ class GroupappsMigrateService(object):
 
     def __copy_backup_record(self, restore_mode, origin_backup_record, current_team, current_region, migrate_team,
                              migrate_region):
-        """拷贝数据"""
+        """拷贝备份数据"""
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
             original_data = region_api.get_backup_status_by_backup_id(current_region, current_team.tenant_name,
                                                                       origin_backup_record.backup_id)
+            new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+
             new_event_id = make_uuid()
+            new_group_uuid = make_uuid()
             new_data = original_data["bean"]
             new_data["event_id"] = new_event_id
+            new_data["group_id"] = new_group_uuid
             # 存入其他数据中心
-            region_api.copy_backup_data(migrate_region, migrate_team.tenant_name, new_data)
+            body = region_api.copy_backup_data(migrate_region, migrate_team.tenant_name, new_data)
+            bean = body["bean"]
             params = origin_backup_record.to_dict()
             params.pop("ID")
             params["team_id"] = migrate_team.tenant_id
             params["event_id"] = new_event_id
+            params["group_id"] = new_group.ID
+            params["group_uuid"] = new_group_uuid
             params["region"] = migrate_region
-            backup_record_repo.create_backup_records(**params)
+            params["backup_id"] = bean["backup_id"]
+
+            new_backup_record = backup_record_repo.create_backup_records(**params)
+            return new_group, new_backup_record
+        return None, None
+
+    def __create_new_group(self, tenant_id, region, old_group_id):
+
+        old_group = group_repo.get_group_by_id(old_group_id)
+        new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+
+        new_group = group_repo.add_group(tenant_id, region, new_group_name)
+        return new_group
 
     def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id):
 
@@ -65,29 +84,32 @@ class GroupappsMigrateService(object):
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
-        self.__copy_backup_record(restore_mode, backup_record, current_team, current_region, migrate_team,
-                                  migrate_region)
+        new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
+                                                                 current_region, migrate_team,
+                                                                 migrate_region)
+        if not new_backup_record:
+            new_backup_record = backup_record
 
-        event_id = make_uuid()
-        service_slug = app_store.get_slug_connection_info("enterprise", current_team.tenant_name)
-        service_image = app_store.get_image_connection_info("enterprise", current_team.tenant_name)
+        backup_service_info = json.loads(new_backup_record.backup_server_info)
+        service_slug = backup_service_info["slug_info"]
+        service_image = backup_service_info["image_info"]
 
         data = {
-            "backup_id": backup_record.backup_id,
+            "backup_id": new_backup_record.backup_id,
             "restore_mode": restore_mode,
             "tenant_id": migrate_team.tenant_id,
             "slug_info": service_slug,
             "image_info": service_image
         }
-        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, backup_id, data)
+        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
 
         # 创建迁移记录
         params = {
-            "group_id": backup_record.group_id,
-            "group_uuid": backup_record.group_uuid,
-            "event_id": event_id,
+            "group_id": new_backup_record.group_id,
+            "group_uuid": new_backup_record.group_uuid,
+            "event_id": make_uuid(),
             "version": backup_record.version,
-            "backup_id": backup_record.backup_id,
+            "backup_id": new_backup_record.backup_id,
             "migrate_team": migrate_team.tenant_name,
             "migrate_region": migrate_region,
             "status": "starting",
