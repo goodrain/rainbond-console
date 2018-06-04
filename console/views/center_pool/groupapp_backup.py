@@ -340,7 +340,7 @@ class GroupAppsBackupImportView(RegionTenantHeaderView):
                                                                             upload_file)
             if code != 200:
                 return Response(general_message(code, "backup import failed", msg), status=code)
-            result = general_message(200, "success", "导入成功")
+            result = general_message(200, "success", "导入成功", bean=record.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
