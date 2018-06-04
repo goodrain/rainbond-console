@@ -68,7 +68,8 @@ import {
   getAppResource,
   getAutoDeployStatus,
   cancelAutoDeploy,
-  openAutoDeploy
+  openAutoDeploy,
+  getPhpConfig
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -130,6 +131,15 @@ export default {
     members: []
   },
   effects : {
+    *getPhpConfig({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getPhpConfig, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *openAutoDeploy({
       payload,
       callback
