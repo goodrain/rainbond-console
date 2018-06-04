@@ -142,7 +142,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 share_plugin_info["category"] = plugin.category
                 share_plugin_info["plugin_key"] = make_uuid()
                 share_plugin_info["plugin_id"] = plugin_id
-                share_plugin_info["plugin_name"] = plugin.plugin_name
+                share_plugin_info["plugin_name"] = plugin.plugin_alias
                 share_plugin_info["version"] = "1.0"
                 share_plugin_info["desc"] = "This is a default description."
                 share_plugin_info["scope"] = "team"
