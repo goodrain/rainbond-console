@@ -233,7 +233,7 @@ class GroupAppBackupService(object):
         services = group_service.get_group_services(group_id)
         if services:
             return 409, "请确保需要导入的组中不存在应用", None
-        content = upload_file.read()
+        content = upload_file.read().strip()
         data = json.loads(AuthCode.decode(content, KEY))
         event_id = make_uuid()
         group_uuid = make_uuid()
