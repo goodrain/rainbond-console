@@ -66,6 +66,8 @@ class MarketPluginService(object):
                     plugin_key=p.get('plugin_key'),
                     plugin_name=p.get('name'),
                     version=p.get('version'),
+                    pic=p.get('logo'),
+                    build_version=p.get('build_version'),
                     record_id=0,
                     scope='goodrain',
                     source='market',
