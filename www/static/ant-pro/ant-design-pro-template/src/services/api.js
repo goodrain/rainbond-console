@@ -2,6 +2,25 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+/* */
+export async function syncCloudPlugin(){
+  return request(config.baseUrl + `/console/market/plugins/sync`, {
+    method: 'post'
+  });
+}
+
+/* 获取云端插件 */
+export async function getCloudPlugin(body={plugin_name, page}){
+  return request(config.baseUrl + `/console/market/plugins`, {
+    method: 'get',
+    params: {
+      plugin_name: body.plugin_name,
+      page: body.page,
+      limit: body.limit
+    }
+  });
+}
+
 
 /* 完成分享 */
 export async function complatePluginShare(body={team_name, share_id}){
@@ -16,6 +35,7 @@ export async function complatePluginShare(body={team_name, share_id}){
 
 /* 同步插件模版 */
 export async function syncMarketPluginTmp(body={plugin_key, version}){
+  
   return request(config.baseUrl + `/console/market/plugins/sync-template`, {
     method: 'post',
     data: {
@@ -34,7 +54,7 @@ export async function syncMarketPlugins(){
 
 /* 获取内部市场插件 */
 export async function getMarketPlugins(body={plugin_name, page}){
-  return request(config.baseUrl + `/console/market/plugins`, {
+  return request(config.baseUrl + `/console/plugins`, {
     method: 'get',
     params: {
       plugin_name: body.plugin_name,

@@ -96,24 +96,173 @@ class AuthForm extends PureComponent {
     }
 }
 
-@connect()
-class AppList extends PureComponent {
-    constructor(props) {
+
+class CloudPlugin extends PureComponent {
+    constructor(props){
         super(props);
         this.state = {
+            pageSize:10,
+            total:0,
+            page:1,
             sync: false,
-            page: 1,
-            pageSize: 10,
-            app_name: '',
-            apps: [],
-            loading: true,
-            total: 0,
-            type: "",
-            showOfflineApp: null
+            loading: false
         }
     }
     componentDidMount = () => {
-        this.loadApps();
+        this.handleSync();
+    }
+    handleClose = () => {
+        this.props.onClose && this.props.onClose();
+    }
+    handleSync = () => {
+        this.setState({
+            sync: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/syncCloudPlugin'
+                }).then(()=>{
+                    this.setState({
+                        sync: false
+                    }, () => {
+                        this.loadPlugins();
+                    })
+                })
+        })
+    }
+    handleSearch = (app_name) => {
+        this.setState({
+            app_name: app_name,
+            page: 1
+        }, () => {
+            this.loadApps();
+        })
+    }
+    loadPlugins = () => {
+        this.setState({
+            loading: true
+        }, () => {
+            this
+                .props
+                .dispatch({
+                    type: 'global/getCloudPlugin',
+                    payload: {
+                        plugin_name: this.state.app_name,
+                        page: this.state.page,
+                        pageSize: this.state.pageSize
+                    },
+                    callback: (data) => {
+                        this.setState({
+                            apps: data.list || [],
+                            loading: false,
+                            total: data.total
+                        })
+                    }
+                })
+        })
+    }
+    handleLoadPluginDetail = (data) => {
+        console.log(data)
+        this
+            .props
+            .dispatch({
+                type: 'global/syncMarketPluginTmp',
+                payload: {
+                    plugin_key: data.plugin_key,
+                    version: data.version
+                },
+                callback: (data) => {
+                    notification.success({message: '操作成功'});
+                    this.loadPlugins();
+                    this.props.onSyncSuccess && this.props.onSyncSuccess();
+                }
+            })
+    }
+    handlePageChange = (page) => {
+        this.setState({
+            page: page
+        }, () => {
+            this.loadApps();
+        })
+    }
+    render(){
+        const paginationProps = {
+            pageSize: this.state.pageSize,
+            total: this.state.total,
+            current: this.state.page,
+            onChange: (pageSize) => {
+                this.handlePageChange(pageSize)
+            }
+        };
+        return <Card
+                className={BasicListStyles.listCard}
+                bordered={false}
+                title={ <div>云端 <Search
+                    className={BasicListStyles.extraContentSearch}
+                    placeholder="请输入名称进行搜索"
+                    onSearch={this.handleSearch}/></div>}
+                style={{
+                marginTop: 24
+            }}
+                bodyStyle={{
+                padding: '0 32px 40px 32px'
+            }}
+                extra={
+                    <div className={BasicListStyles.extraContent}>
+                        <RadioGroup>
+                            <RadioButton onClick={this.handleClose}>关闭</RadioButton>
+                        </RadioGroup>
+                    </div>
+                }>
+                <List
+                    size="large"
+                    rowKey="id"
+                    loading={this.state.loading}
+                    pagination={paginationProps}
+                    dataSource={this.state.apps}
+                    renderItem={item => (
+                    <List.Item
+                        actions={[item.is_complete
+                            ? <Fragment>
+                            <span>已同步</span>
+                            </Fragment>
+                            : <a
+                                href="javascript:;"
+                                onClick={() => {
+                                this.handleLoadPluginDetail(item)
+                            }}>同步到市场</a>]}>
+                        <List.Item.Meta
+                            avatar={< Avatar src = {
+                            item.pic || require("../../../public/images/app_icon.jpg")
+                        }
+                        shape = "square" size = "large" />}
+                            title={item.plugin_name}
+                            description={item.desc || '-'}/>
+
+                    </List.Item>
+                )}/>
+            </Card>
+    }
+}
+
+
+class CloudApp extends PureComponent {
+    constructor(props){
+        super(props);
+        this.state = {
+            pageSize:10,
+            total:0,
+            page:1,
+            sync: false,
+            loading: false
+        }
+    }
+    componentDidMount = () => {
+        this.handleSync();
+    }
+    handleClose = () => {
+        this.props.onClose && this.props.onClose();
     }
     handleSync = () => {
         this.setState({
@@ -135,6 +284,14 @@ class AppList extends PureComponent {
                 })
         })
     }
+    handleSearch = (app_name) => {
+        this.setState({
+            app_name: app_name,
+            page: 1
+        }, () => {
+            this.loadApps();
+        })
+    }
     loadApps = () => {
         this.setState({
             loading: true
@@ -146,8 +303,7 @@ class AppList extends PureComponent {
                     payload: {
                         app_name: this.state.app_name,
                         page: this.state.page,
-                        pageSize: this.state.pageSize,
-                        is_complete: this.state.type
+                        pageSize: this.state.pageSize
                     },
                     callback: (data) => {
                         this.setState({
@@ -159,6 +315,29 @@ class AppList extends PureComponent {
                 })
         })
     }
+    handleLoadAppDetail = (data) => {
+        this
+            .props
+            .dispatch({
+                type: 'global/syncMarketAppDetail',
+                payload: {
+                    team_name: globalUtil.getCurrTeamName(),
+                    body: [
+                        {
+                            group_key: data.group_key,
+                            version: data.version,
+                            template_version: data.template_version
+
+                        }
+                    ]
+                },
+                callback: (data) => {
+                    notification.success({message: '操作成功'});
+                    this.loadApps();
+                    this.props.onSyncSuccess && this.props.onSyncSuccess();
+                }
+            })
+    }
     handlePageChange = (page) => {
         this.setState({
             page: page
@@ -166,12 +345,137 @@ class AppList extends PureComponent {
             this.loadApps();
         })
     }
+    render(){
+        const paginationProps = {
+            pageSize: this.state.pageSize,
+            total: this.state.total,
+            current: this.state.page,
+            onChange: (pageSize) => {
+                this.handlePageChange(pageSize)
+            }
+        };
+        return <Card
+                className={BasicListStyles.listCard}
+                bordered={false}
+                title={ <div>云端 <Search
+                    className={BasicListStyles.extraContentSearch}
+                    placeholder="请输入名称进行搜索"
+                    onSearch={this.handleSearch}/></div>}
+                style={{
+                marginTop: 24
+            }}
+                bodyStyle={{
+                padding: '0 32px 40px 32px'
+            }}
+                extra={
+                    <div className={BasicListStyles.extraContent}>
+                        <RadioGroup>
+                            <RadioButton onClick={this.handleClose}>关闭</RadioButton>
+                        </RadioGroup>
+                    </div>
+                }>
+                <List
+                    size="large"
+                    rowKey="id"
+                    loading={this.state.loading}
+                    pagination={paginationProps}
+                    dataSource={this.state.apps}
+                    renderItem={item => (
+                    <List.Item
+                        actions={[item.is_complete
+                            ? <Fragment>
+                            <span>已同步</span>
+                            </Fragment>
+                            : <a
+                                href="javascript:;"
+                                onClick={() => {
+                                this.handleLoadAppDetail(item)
+                            }}>同步到市场</a>]}>
+                        <List.Item.Meta
+                            avatar={< Avatar src = {
+                            item.pic || require("../../../public/images/app_icon.jpg")
+                        }
+                        shape = "square" size = "large" />}
+                            title={item.group_name}
+                            description={item.describe || '-'}/>
+
+                    </List.Item>
+                )}/>
+            </Card>
+    }
+}
+
+
+@connect()
+class AppList extends PureComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            page: 1,
+            pageSize: 10,
+            app_name: '',
+            apps: [],
+            loading: true,
+            total: 0,
+            type: "",
+            showOfflineApp: null,
+            showCloudApp: false
+        }
+    }
+    componentDidMount = () => {
+        this.getApps();
+    }
+    getApps = (v) => {
+        var datavisible = {};
+        var dataquery = {};
+        var dataexportTit = {}
+        this
+          .props
+          .dispatch({
+            type: 'createApp/getMarketApp',
+            payload: {
+              app_name: this.state.app_name || '',
+              scope: this.state.scope,
+              page_size: this.state.pageSize,
+              page: this.state.page
+            },
+            callback: ((data) => {
+              if(data.list.length != 0){
+                data.list.map((app)=>{
+                  datavisible[app.ID] = false;
+                  dataquery[app.ID] = {};
+                  if(app.export_status == 'exporting'){
+                    dataexportTit[app.ID] = '导出中'
+                    this.queryExport(app);
+                  }else if(app.export_status ==  'success'){
+                    dataexportTit[app.ID] = '导出(可下载)'
+                  }else{
+                    dataexportTit[app.ID] = '导出'
+                  }
+                })
+              }
+              this.setState({
+                apps: data.list || [],
+                total: data.total,
+                visiblebox:datavisible,
+                querydatabox:dataquery,
+                exportTit:dataexportTit,
+                importingList:data.list || [],
+                loading: false
+              })
+            })
+          })
+    }
+    handlePageChange = (page) => {
+        this.state.page = page;
+        this.getApps();
+    }
     handleSearch = (app_name) => {
         this.setState({
             app_name: app_name,
             page: 1
         }, () => {
-            this.loadApps();
+            this.getApps();
         })
     }
     handleLoadAppDetail = (data) => {
@@ -226,15 +530,10 @@ class AppList extends PureComponent {
     render() {
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
-                <RadioGroup onChange={this.handleTypeChange} defaultValue={this.state.type}>
-                    <RadioButton value="">全部</RadioButton>
-                    <RadioButton value={true}>已下载</RadioButton>
-                    <RadioButton value={false}>未下载</RadioButton>
+                <RadioGroup value="">
+                    <RadioButton value="test">导入应用</RadioButton>
+                    <RadioButton value="test" onClick={()=>{this.setState({showCloudApp: true})}}>云端同步</RadioButton>
                 </RadioGroup>
-                <Search
-                    className={BasicListStyles.extraContentSearch}
-                    placeholder="请输入名称进行搜索"
-                    onSearch={this.handleSearch}/>
             </div>
         );
 
@@ -247,42 +546,26 @@ class AppList extends PureComponent {
             }
         };
 
-        const ListContent = ({
-            data: {
-                owner,
-                createdAt,
-                percent,
-                status
-            }
-        }) => (
-            <div className={BasicListStyles.listContent}></div>
-        );
 
         return (
-            <div className={BasicListStyles.standardList}>
+            <div className={BasicListStyles.standardList} style={{display: this.state.showCloudApp ? 'flex' : 'block',position:'relative', overflow: 'hidden'}}>
                 <Card
                     className={BasicListStyles.listCard}
                     bordered={false}
-                    title=""
+                    title={<div>{this.state.showCloudApp && <span>内部市场</span>}<Search
+                        className={BasicListStyles.extraContentSearch}
+                        placeholder="请输入名称进行搜索"
+                        onSearch={this.handleSearch}/></div>}
                     style={{
-                    marginTop: 24
+                    marginTop: 24,
+                    transition: 'all .8s',
+                    width: this.state.showCloudApp ? '50%' : '100%',
+                    display: 'inline-block'
                 }}
                     bodyStyle={{
                     padding: '0 32px 40px 32px'
                 }}
-                    extra={extraContent}>
-                    <Button
-                        disabled={this.state.sync}
-                        onClick={this.handleSync}
-                        type="dashed"
-                        style={{
-                        width: '100%',
-                        marginBottom: 8
-                    }}><Icon
-                        className={this.state.sync
-                ? 'roundloading'
-                : ''}
-                        type="sync"/>从好雨云市同步应用信息</Button>
+                    extra={this.state.showCloudApp ? null : extraContent}>
                     <List
                         size="large"
                         rowKey="id"
@@ -291,19 +574,19 @@ class AppList extends PureComponent {
                         dataSource={this.state.apps}
                         renderItem={item => (
                         <List.Item
-                            actions={[item.is_complete
+                            actions={this.state.showCloudApp ? null : [item.is_complete
                                 ? <Fragment>
                                  <a
                                     style={{marginRight: 8}}
                                         href="javascript:;"
                                         onClick={() => {
                                         this.handleLoadAppDetail(item)
-                                    }}>更新应用</a>
+                                    }}>云端更新</a>
                                     <a
                                         href="javascript:;"
                                         onClick={() => {
                                         this.showOfflineApp(item)
-                                    }}>卸载应用</a>
+                                    }}>删除</a>
                                  </Fragment>
                                 : <a
                                     href="javascript:;"
@@ -317,11 +600,19 @@ class AppList extends PureComponent {
                             shape = "square" size = "large" />}
                                 title={item.group_name}
                                 description={item.describe || '-'}/>
-                            <ListContent data={item}/>
                         </List.Item>
                     )}/>
 
                 </Card>
+                <div style={{
+                    transition: 'all .8s',
+                    transform: this.state.showCloudApp ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',
+                    marginLeft:8,
+                    width: '49%'
+                }}>
+                    {this.state.showCloudApp ? <CloudApp onSyncSuccess={() => {this.handlePageChange(1)}} onClose={()=>{this.setState({showCloudApp: false})}} dispatch={this.props.dispatch} /> : null}
+                </div>
+                 
                 {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
             </div>
         )
@@ -343,7 +634,8 @@ class PluginList extends PureComponent {
             loading: true,
             total: 0,
             type: "",
-            showOfflineApp: null
+            showOfflineApp: null,
+            showCloudPlugin: false
         }
     }
     componentDidMount = () => {
@@ -391,11 +683,8 @@ class PluginList extends PureComponent {
         })
     }
     handlePageChange = (page) => {
-        this.setState({
-            page: page
-        }, () => {
-            this.loadPlugins();
-        })
+        this.state.page = page;
+        this.loadPlugins();
     }
     handleSearch = (app_name) => {
         this.setState({
@@ -405,27 +694,7 @@ class PluginList extends PureComponent {
             this.loadPlugins();
         })
     }
-    handleLoadAppDetail = (data) => {
-        this
-            .props
-            .dispatch({
-                type: 'global/syncMarketPluginTmp',
-                payload: {
-                    team_name: globalUtil.getCurrTeamName(),
-                    body: [
-                        {
-                            plugin_key: data.group_key,
-                            version: data.version
-
-                        }
-                    ]
-                },
-                callback: (data) => {
-                    notification.success({message: '操作成功'});
-                    this.loadPlugins();
-                }
-            })
-    }
+    
     handleTypeChange = (e) => {
         this.setState({type: e.target.value, page: 1}, () => {
             this.loadPlugins();
@@ -456,15 +725,9 @@ class PluginList extends PureComponent {
     render() {
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
-                <RadioGroup onChange={this.handleTypeChange} defaultValue={this.state.type}>
-                    <RadioButton value="">全部</RadioButton>
-                    <RadioButton value={true}>已下载</RadioButton>
-                    <RadioButton value={false}>未下载</RadioButton>
+                <RadioGroup value="">
+                    <RadioButton onClick={()=>{this.setState({showCloudPlugin: true})}} value="">云端同步</RadioButton>
                 </RadioGroup>
-                <Search
-                    className={BasicListStyles.extraContentSearch}
-                    placeholder="请输入名称进行搜索"
-                    onSearch={this.handleSearch}/>
             </div>
         );
 
@@ -489,30 +752,24 @@ class PluginList extends PureComponent {
         );
 
         return (
-            <div className={BasicListStyles.standardList}>
+            <div className={BasicListStyles.standardList} style={{display: this.state.showCloudPlugin ? 'flex' : 'block',position:'relative', overflow: 'hidden'}}>
                 <Card
                     className={BasicListStyles.listCard}
                     bordered={false}
-                    title=""
+                    title={<div>{this.state.showCloudPlugin && <span>内部市场</span>}<Search
+                        className={BasicListStyles.extraContentSearch}
+                        placeholder="请输入名称进行搜索"
+                        onSearch={this.handleSearch}/></div>}
                     style={{
-                    marginTop: 24
+                    marginTop: 24,
+                    transition: 'all .8s',
+                    width: this.state.showCloudPlugin ? '50%' : '100%',
+                    display: 'inline-block'
                 }}
                     bodyStyle={{
                     padding: '0 32px 40px 32px'
                 }}
-                    extra={extraContent}>
-                    <Button
-                        disabled={this.state.sync}
-                        onClick={this.handleSync}
-                        type="dashed"
-                        style={{
-                        width: '100%',
-                        marginBottom: 8
-                    }}><Icon
-                        className={this.state.sync
-                ? 'roundloading'
-                : ''}
-                        type="sync"/>从好雨云市同步插件信息</Button>
+                    extra={this.state.showCloudPlugin ? null : extraContent}>
                     <List
                         size="large"
                         rowKey="id"
@@ -552,6 +809,14 @@ class PluginList extends PureComponent {
                     )}/>
 
                 </Card>
+                <div style={{
+                    transition: 'all .8s',
+                    transform: this.state.showCloudPlugin ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',
+                    marginLeft:8,
+                    width: '49%'
+                }}>
+                    {this.state.showCloudPlugin ? <CloudPlugin onSyncSuccess={() => {this.handlePageChange(1)}} onClose={()=>{this.setState({showCloudPlugin: false})}} dispatch={this.props.dispatch} /> : null}
+                </div>
                 {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
             </div>
         )

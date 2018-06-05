@@ -17,7 +17,9 @@ import {
   getMarketPlugins,
   syncMarketPlugins,
   syncMarketPluginTmp,
-  complatePluginShare
+  complatePluginShare,
+  getCloudPlugin,
+  syncCloudPlugin
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -40,6 +42,24 @@ export default {
     payTip: false
   },
   effects : {
+    *syncCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *complatePluginShare({
       payload,
       callback
