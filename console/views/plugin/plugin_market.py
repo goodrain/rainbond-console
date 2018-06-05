@@ -5,6 +5,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.models import RainbondCenterPlugin
+from console.repositories.plugin import plugin_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
@@ -133,6 +134,44 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
                 plugin_name, is_complete=True, scope=scope, tenant=self.tenant,
                 source='market', page=page, limit=limit
             )
+            result = general_message(
+                200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
+            )
+            return Response(data=result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
+class InstallableInteralPluginsView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取可安装的内部插件列表接口
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            plugin_name = request.GET.get('plugin_name')
+            page = request.GET.get('page', 1)
+            limit = request.GET.get('limit', 10)
+
+            total, plugins = market_plugin_service.get_paged_plugins(
+                plugin_name, is_complete=True, tenant=self.tenant, source='market',
+                page=page, limit=limit
+            )
+
+            installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
+                filter(origin='market')
+
+            for p in plugins:
+                if installed.filter(plugin_alias=p["plugin_name"]).exists():
+                    p["is_installed"] = True
+                else:
+                    p["is_installed"] = False
+
             result = general_message(
                 200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
             )

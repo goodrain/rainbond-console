@@ -50,7 +50,7 @@ from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogV
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
 from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
     SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
-    UninstallPluginTemplateView
+    UninstallPluginTemplateView, InstallableInteralPluginsView
 from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
     PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \
@@ -386,6 +386,7 @@ urlpatterns = patterns(
     url(r'^market/plugins/uninstall-template$', UninstallPluginTemplateView.as_view()),
     url(r'^market/plugins/install$', InstallMarketPlugin.as_view()),
     url(r'^plugins$', InternalMarketPluginsView.as_view()),
+    url(r'^plugins/installable$', InstallableInteralPluginsView.as_view()),
 
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),
