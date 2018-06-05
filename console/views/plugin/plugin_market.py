@@ -30,7 +30,7 @@ class MarketPluginsView(RegionTenantHeaderView):
             limit = request.GET.get('limit', 10)
             # is_download = request.GET.get('is_download')
 
-            market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
+            # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
             total, plugins = market_plugin_service.get_paged_plugins(
                 plugin_name, page=page, limit=limit, order_by='is_complete', source='market'
             )

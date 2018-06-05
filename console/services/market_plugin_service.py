@@ -52,8 +52,8 @@ class MarketPluginService(object):
             tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
             tenant_names = [t.tenant_name for t in tenants]
 
-            q = q | Q(share_team__in=tenant_names, scope="enterprise") \
-                | Q(scope="goodrain") | Q(share_team=tenant.tenant_name, scope="team")
+            q = q & (Q(share_team__in=tenant_names, scope="enterprise")
+                     | Q(scope="goodrain") | Q(share_team=tenant.tenant_name, scope="team"))
 
         if order_by == 'is_complete':
             plugins = RainbondCenterPlugin.objects.filter(q).order_by('is_complete, -ID')
