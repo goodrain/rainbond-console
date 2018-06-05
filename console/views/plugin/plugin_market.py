@@ -75,12 +75,10 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         """
         try:
             plugin_data = request.data
-            data = []
-            for p in plugin_data:
-                data.append({
-                    'plugin_key': p["plugin_key"],
-                    'version': p['version']
-                })
+            data = {
+                'plugin_key': plugin_data["plugin_key"],
+                'version': plugin_data['version']
+            }
 
             market_plugin_service.sync_market_plugin_templates(self.tenant.tenant_id, data)
             result = general_message(200, "success", "同步成功")
