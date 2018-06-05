@@ -69,7 +69,9 @@ class MarketPluginService(object):
             'pic': p.pic,
             'version': p.version,
             'desc': p.desc,
-            'id': p.ID
+            'id': p.ID,
+            'is_complete': p.is_complete,
+            'update_time': p.update_time
         } for p in paged_plugins]
 
         return len(plugins), data
@@ -104,32 +106,35 @@ class MarketPluginService(object):
         RainbondCenterPlugin.objects.bulk_create(plugins)
         return True
 
-    def sync_market_plugin_templates(self, tenant_id, plugins):
-        plugin_templates = market_api.get_plugin_templates(tenant_id, plugins)
-        for template in plugin_templates:
-            try:
-                rcp = RainbondCenterPlugin.objects.get(
-                    plugin_key=template.get('plugin_key'), version=template.get('version')
-                )
-                rcp.share_user = 0
-                user_name = template.get('share_user')
-                if user_name:
-                    try:
-                        user = user_repo.get_user_by_username(user_name)
-                        rcp.share_user = user.user_id
-                    except Exception as e:
-                        logger.exception(e)
+    def sync_market_plugin_templates(self, tenant_id, plugin_data):
+        try:
+            plugin_template = market_api.get_plugin_templates(
+                tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
+            )
+            template = plugin_template.get('template')
 
-                rcp.share_team = template.get('share_team')
-                rcp.plugin_template = template.get('template')
-                rcp.pic = template.get('pic')
-                rcp.desc = template.get('intro')
-                rcp.version = template.get('version')
-                rcp.is_complete = True
-                rcp.save()
-                return True
-            except RainbondCenterPlugin.DoesNotExist:
-                pass
+            rcp = RainbondCenterPlugin.objects.get(
+                plugin_key=template.get('plugin_key'), version=template.get('major_version')
+            )
+            rcp.share_user = 0
+            user_name = template.get('share_user')
+            if user_name:
+                try:
+                    user = user_repo.get_user_by_username(user_name)
+                    rcp.share_user = user.user_id
+                except Exception as e:
+                    logger.exception(e)
+
+            # rcp.share_team = template.get('share_team')
+            rcp.plugin_template = template.get('template_content')
+            # rcp.pic = template.get('pic')
+            rcp.desc = template.get('update_note')
+            # rcp.version = template.get('version')
+            rcp.is_complete = True
+            rcp.save()
+            return True
+        except RainbondCenterPlugin.DoesNotExist:
+            pass
 
     @transaction.atomic
     def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):

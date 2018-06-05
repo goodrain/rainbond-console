@@ -75,12 +75,10 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         """
         try:
             plugin_data = request.data
-            data = []
-            for p in plugin_data:
-                data.append({
-                    'plugin_key': p["plugin_key"],
-                    'version': p['version']
-                })
+            data = {
+                'plugin_key': plugin_data["plugin_key"],
+                'version': plugin_data['version']
+            }
 
             market_plugin_service.sync_market_plugin_templates(self.tenant.tenant_id, data)
             result = general_message(200, "success", "同步成功")
@@ -143,3 +141,25 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+
+class UninstallPluginTemplateView(RegionTenantHeaderView):
+    @perm_required('manage_plugin')
+    def post(self, requset, *args, **kwargs):
+        """
+        卸载插件模板
+        :param requset:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        plugin_id = requset.data.get('plugin_id')
+
+        try:
+            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
+            plugin.plugin_template = ''
+            plugin.is_complete = False
+            plugin.save()
+            return Response(general_message(200, '', ''), 200)
+        except RainbondCenterPlugin.DoesNotExist:
+            return Response(general_message(404, "plugin not exist", "插件不存在"), status=404)
