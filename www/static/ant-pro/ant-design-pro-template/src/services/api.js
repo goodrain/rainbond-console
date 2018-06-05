@@ -2,7 +2,17 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
-/* */
+/* 内部市场删除插件 */
+export async function deleteMarketPlugin(body={plugin_id}){
+  return request(config.baseUrl + `/console/market/plugins/uninstall-template`, {
+    method: 'post',
+    data: {
+      plugin_id: body.plugin_id
+    }
+  });
+}
+
+/* 云端同步插件 */
 export async function syncCloudPlugin(){
   return request(config.baseUrl + `/console/market/plugins/sync`, {
     method: 'post'

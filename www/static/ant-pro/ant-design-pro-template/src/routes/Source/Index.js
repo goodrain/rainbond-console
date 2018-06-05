@@ -136,7 +136,7 @@ class CloudPlugin extends PureComponent {
             app_name: app_name,
             page: 1
         }, () => {
-            this.loadApps();
+            this.loadPlugins();
         })
     }
     loadPlugins = () => {
@@ -163,7 +163,6 @@ class CloudPlugin extends PureComponent {
         })
     }
     handleLoadPluginDetail = (data) => {
-        console.log(data)
         this
             .props
             .dispatch({
@@ -682,6 +681,21 @@ class PluginList extends PureComponent {
                 })
         })
     }
+    handleLoadPluginDetail = (data) => {
+        this
+            .props
+            .dispatch({
+                type: 'global/syncMarketPluginTmp',
+                payload: {
+                    plugin_key: data.plugin_key,
+                    version: data.version
+                },
+                callback: (data) => {
+                    notification.success({message: '操作成功'});
+                    this.loadPlugins();
+                }
+            })
+    }
     handlePageChange = (page) => {
         this.state.page = page;
         this.loadPlugins();
@@ -700,27 +714,27 @@ class PluginList extends PureComponent {
             this.loadPlugins();
         })
     }
-    handleOfflineApp = () => {
-        const app = this.state.showOfflineApp;
+    handleOfflinePlugin = () => {
+        const plugin = this.state.showOfflinePlugin;
         this.props.dispatch({
-            type: 'global/offlineMarketApp',
+            type: 'global/deleteMarketPlugin',
             payload:{
-                app_id: app.ID
+                plugin_id: plugin.id
             },
             callback: () => {
                 notification.success({
                     message: '卸载成功'
                 })
-                this.hideOfflineApp();
+                this.hideOfflinePlugin();
                 this.loadPlugins();
             }
         })
     }
-    showOfflineApp = (app) => {
-        this.setState({showOfflineApp: app})
+    showOfflinePlugin = (plugin) => {
+        this.setState({showOfflinePlugin: plugin})
     }
-    hideOfflineApp = () => {
-        this.setState({showOfflineApp: null})
+    hideOfflinePlugin = () => {
+        this.setState({showOfflinePlugin: null})
     }
     render() {
         const extraContent = (
@@ -775,7 +789,7 @@ class PluginList extends PureComponent {
                         rowKey="id"
                         loading={this.state.loading}
                         pagination={paginationProps}
-                        dataSource={this.state.apps}
+                        dataSource={this.state.plugins}
                         renderItem={item => (
                         <List.Item
                             actions={[item.is_complete
@@ -784,13 +798,13 @@ class PluginList extends PureComponent {
                                     style={{marginRight: 8}}
                                         href="javascript:;"
                                         onClick={() => {
-                                        this.handleLoadAppDetail(item)
-                                    }}>更新应用</a>
+                                        this.handleLoadPluginDetail(item)
+                                    }}>云端更新</a>
                                     <a
                                         href="javascript:;"
                                         onClick={() => {
-                                        this.showOfflineApp(item)
-                                    }}>卸载应用</a>
+                                        this.showOfflinePlugin(item)
+                                    }}>删除</a>
                                  </Fragment>
                                 : <a
                                     href="javascript:;"
@@ -802,9 +816,9 @@ class PluginList extends PureComponent {
                                 item.pic || require("../../../public/images/app_icon.jpg")
                             }
                             shape = "square" size = "large" />}
-                                title={item.group_name}
-                                description={item.describe || '-'}/>
-                            <ListContent data={item}/>
+                                title={item.plugin_name}
+                                description={item.desc || '-'}/>
+                            
                         </List.Item>
                     )}/>
 
@@ -817,7 +831,7 @@ class PluginList extends PureComponent {
                 }}>
                     {this.state.showCloudPlugin ? <CloudPlugin onSyncSuccess={() => {this.handlePageChange(1)}} onClose={()=>{this.setState({showCloudPlugin: false})}} dispatch={this.props.dispatch} /> : null}
                 </div>
-                {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
+                {this.state.showOfflinePlugin && <ConfirmModal onOk={this.handleOfflinePlugin} desc={`确定要删除此插件吗?`} subDesc="删除后其他人将无法安装此插件" title={'删除插件'} onCancel={this.hideOfflinePlugin} />}
             </div>
         )
     }

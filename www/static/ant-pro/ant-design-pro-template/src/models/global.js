@@ -19,7 +19,8 @@ import {
   syncMarketPluginTmp,
   complatePluginShare,
   getCloudPlugin,
-  syncCloudPlugin
+  syncCloudPlugin,
+  deleteMarketPlugin
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -42,6 +43,15 @@ export default {
     payTip: false
   },
   effects : {
+    *deleteMarketPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(deleteMarketPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *syncCloudPlugin({
       payload,
       callback
