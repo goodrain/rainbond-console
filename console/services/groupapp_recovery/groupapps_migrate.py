@@ -138,7 +138,7 @@ class GroupappsMigrateService(object):
                 migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
                 if status == "success":
                     with transaction.atomic():
-                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata))
+                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata), migrate_record.group_id)
                 migrate_record.status = status
                 migrate_record.save()
             else:
@@ -147,10 +147,9 @@ class GroupappsMigrateService(object):
 
         return 200, "success", migrate_record
 
-    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata):
-        group_info = metadata["group_info"]
-        group_name = '_'.join([group_info["group_name"], make_uuid()[-4:]])
-        group = group_repo.add_group(migrate_tenant.tenant_id, migrate_region, group_name)
+    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
+
+        group = group_repo.get_group_by_id(group_id)
         apps = metadata["apps"]
 
         old_new_service_id_map = dict()
