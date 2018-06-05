@@ -300,7 +300,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
 
             code, msg, data_str = groupapp_backup_service.export_group_backup(team, backup_id)
             if code != 200:
-                return Response(general_message(code, "export backup failed", "备份导出失败"), status=code)
+                return Response(general_message(code, "export backup failed", msg), status=code)
             file_name = group.group_name + ".bak"
             output = StringIO.StringIO()
             output.write(data_str)
