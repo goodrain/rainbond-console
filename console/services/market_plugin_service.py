@@ -25,7 +25,7 @@ logger = logging.getLogger('default')
 
 class MarketPluginService(object):
     def get_paged_plugins(self, plugin_name="", is_complete=None, scope="", source="",
-                          tenant=None, page=1, limit=10):
+                          tenant=None, page=1, limit=10, order_by="", category=""):
         q = Q()
 
         if source:
@@ -36,6 +36,9 @@ class MarketPluginService(object):
 
         if plugin_name:
             q = q & Q(plugin_name__icontains=plugin_name)
+
+        if category:
+            q = q & Q(category=category)
 
         if scope == 'team':
             q = q & Q(share_team=tenant.tenant_name)
@@ -52,7 +55,11 @@ class MarketPluginService(object):
             q = q | Q(share_team__in=tenant_names, scope="enterprise") \
                 | Q(scope="goodrain") | Q(share_team=tenant.tenant_name, scope="team")
 
-        plugins = RainbondCenterPlugin.objects.filter(q).order_by('-ID')
+        if order_by == 'is_complete':
+            plugins = RainbondCenterPlugin.objects.filter(q).order_by('is_complete, -ID')
+        else:
+            plugins = RainbondCenterPlugin.objects.filter(q).order_by('-ID')
+
         paged_plugins = Paginator(plugins, limit).page(page)
 
         data = [{

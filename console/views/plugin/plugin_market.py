@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from console.models import RainbondCenterPlugin
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')
@@ -24,13 +25,14 @@ class MarketPluginsView(RegionTenantHeaderView):
         """
         try:
             plugin_name = request.GET.get('plugin_name')
+            category = request.GET.get('category')
             page = request.GET.get('page', 1)
             limit = request.GET.get('limit', 10)
-            is_download = request.GET.get('is_download')
-            source = request.GET.get('source')
+            # is_download = request.GET.get('is_download')
 
+            market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
             total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name, is_download, source, page, limit
+                plugin_name, page=page, limit=limit, order_by='is_complete', source='market'
             )
             result = general_message(
                 200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
@@ -89,6 +91,7 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
+    @perm_required("manage_plugin")
     def post(self, requset, team_name, *args, **kwargs):
         """
         安装插件
@@ -129,7 +132,7 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
 
             total, plugins = market_plugin_service.get_paged_plugins(
                 plugin_name, is_complete=True, scope=scope, tenant=self.tenant,
-                page=page, limit=limit
+                source='market', page=page, limit=limit
             )
             result = general_message(
                 200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
