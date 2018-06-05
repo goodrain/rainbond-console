@@ -144,7 +144,6 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
 
 
 class UninstallPluginTemplateView(RegionTenantHeaderView):
-    @perm_required('manage_plugin')
     def post(self, requset, *args, **kwargs):
         """
         卸载插件模板
@@ -153,6 +152,9 @@ class UninstallPluginTemplateView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
+        if not self.user.is_sys_admin:
+            return Response(general_message(403, "you are not admin", "此操作需平台管理员才能操作"), status=403)
+
         plugin_id = requset.data.get('plugin_id')
 
         try:
