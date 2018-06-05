@@ -56,7 +56,7 @@ class MarketPluginService(object):
                      | Q(scope="goodrain") | Q(share_team=tenant.tenant_name, scope="team"))
 
         if order_by == 'is_complete':
-            plugins = RainbondCenterPlugin.objects.filter(q).order_by('is_complete, -ID')
+            plugins = RainbondCenterPlugin.objects.filter(q).order_by('is_complete')
         else:
             plugins = RainbondCenterPlugin.objects.filter(q).order_by('-update_time')
 
