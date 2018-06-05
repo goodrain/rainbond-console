@@ -279,7 +279,12 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
-            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete)
+
+            market_sycn_service.down_market_group_list(self.tenant)
+
+            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
+                .order_by('is_complete')
+
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
