@@ -64,45 +64,6 @@ const appstatus ={
 	'failed':'失败'
 }
 
-const datalist ={
-  "msg": "success",
-  "code": 200,
-  "data": {
-      "bean": {},
-      "list": [
-          [
-              {
-                  "status": "success",
-                  "file_name": "share-v1.0_1.tar"
-              },
-              {
-                  "status": "pending",
-                  "file_name": "share-v1.0_8.tar"
-              }
-          ],
-          [
-            {
-                "status": "success",
-                "file_name": "share-v1.0_1.tar"
-            },
-            {
-                "status": "pending",
-                "file_name": "share-v1.0_8.tar"
-            },
-            {
-              "status": "success",
-              "file_name": "share-v1.0_1.tar"
-          },
-          {
-              "status": "pending",
-              "file_name": "share-v1.0_8.tar"
-          }
-        ]
-      ]
-  },
-  "msg_show": "查询成功"
-}
-
 
 //上传文件
 @connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
@@ -591,8 +552,6 @@ handleOKBatchImportList = () => {
   }
 
   queryImportingApp = ()=>{
-    // const datal = datalist.data.list
-    // this.setState({importingList:datal})
     if (!this.mountquery) 
     return;
     this
