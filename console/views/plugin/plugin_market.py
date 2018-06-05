@@ -145,7 +145,7 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
 
 class UninstallPluginTemplateView(RegionTenantHeaderView):
     @perm_required('manage_plugin')
-    def delete(self, requset, *args, **kwargs):
+    def post(self, requset, *args, **kwargs):
         """
         卸载插件模板
         :param requset:
