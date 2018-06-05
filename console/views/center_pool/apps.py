@@ -54,7 +54,8 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name)
+            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name) \
+                .order_by('-create_time')
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
