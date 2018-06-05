@@ -144,10 +144,10 @@ class Backup extends PureComponent {
 					})(
 						<RadioGroup>
 							<Tooltip title="备份到Rainbond平台">
-							<RadioButton value="full-online">在线备份</RadioButton>
+							<RadioButton value="full-online">云端备份</RadioButton>
 							</Tooltip>
 							<Tooltip title="备份到服务器指定目录">
-								<RadioButton value="full-offline">离线备份</RadioButton>
+								<RadioButton value="full-offline">本地备份</RadioButton>
 							</Tooltip>
 						</RadioGroup>
 					)}
