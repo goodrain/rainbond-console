@@ -110,3 +110,32 @@ class InstallMarketPlugin(RegionTenantHeaderView):
             return Response(general_message(200, '', ''), 200)
         except RainbondCenterPlugin.DoesNotExist:
             return Response(general_message(404, "plugin not exist", "插件不存在"), status=404)
+
+
+class InternalMarketPluginsView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        内部插件市场接口
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            plugin_name = request.GET.get('plugin_name')
+            page = request.GET.get('page', 1)
+            limit = request.GET.get('limit', 10)
+            scope = request.GET.get('scope')
+
+            total, plugins = market_plugin_service.get_paged_plugins(
+                plugin_name, is_complete=True, scope=scope, tenant=self.tenant,
+                page=page, limit=limit
+            )
+            result = general_message(
+                200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
+            )
+            return Response(data=result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)

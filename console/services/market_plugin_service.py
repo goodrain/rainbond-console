@@ -10,6 +10,7 @@ from django.db.models import Q
 from console.appstore.appstore import app_store
 from console.models import RainbondCenterPlugin, PluginShareRecordEvent
 from console.repositories.plugin import plugin_repo
+from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.plugin import plugin_version_service, plugin_service
 from www.apiclient.marketclient import MarketOpenAPI
@@ -23,8 +24,9 @@ logger = logging.getLogger('default')
 
 
 class MarketPluginService(object):
-    def get_paged_plugins(self, plugin_name="", is_complete=None, source="", page=1, limit=10):
-        q = Q(scope='goodrain')
+    def get_paged_plugins(self, plugin_name="", is_complete=None, scope="", source="",
+                          tenant=None, page=1, limit=10):
+        q = Q()
 
         if source:
             q = q & Q(source=source)
@@ -34,6 +36,21 @@ class MarketPluginService(object):
 
         if plugin_name:
             q = q & Q(plugin_name__icontains=plugin_name)
+
+        if scope == 'team':
+            q = q & Q(share_team=tenant.tenant_name)
+        elif scope == 'goodrain':
+            q = q & Q(scope='goodrain')
+        elif scope == 'enterprise':
+            tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
+            tenant_names = [t.tenant_name for t in tenants]
+            q = q & Q(share_team__in=tenant_names) & ~Q(scope='team')
+        else:
+            tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
+            tenant_names = [t.tenant_name for t in tenants]
+
+            q = q | Q(share_team__in=tenant_names, scope="enterprise") \
+                | Q(scope="goodrain") | Q(share_team=tenant.tenant_name, scope="team")
 
         plugins = RainbondCenterPlugin.objects.filter(q).order_by('-ID')
         paged_plugins = Paginator(plugins, limit).page(page)
