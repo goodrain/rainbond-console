@@ -49,7 +49,8 @@ from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogV
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
 from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
-    SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView
+    SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
+    UninstallPluginTemplateView
 from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
     PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \
@@ -382,6 +383,7 @@ urlpatterns = patterns(
     url(r'^market/plugins$', MarketPluginsView.as_view()),
     url(r'^market/plugins/sync$', SyncMarketPluginsView.as_view()),
     url(r'^market/plugins/sync-template$', SyncMarketPluginTemplatesView.as_view()),
+    url(r'^market/plugins/uninstall-template$', UninstallPluginTemplateView.as_view()),
     url(r'^market/plugins/install$', InstallMarketPlugin.as_view()),
     url(r'^plugins$', InternalMarketPluginsView.as_view()),
 
@@ -440,9 +442,11 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
         GroupAppsBackupStatusView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$', GroupAppsBackupExportView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$',
+        GroupAppsBackupExportView.as_view()),
 
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$', GroupAppsBackupImportView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$',
+        GroupAppsBackupImportView.as_view()),
 
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复

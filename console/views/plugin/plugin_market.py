@@ -141,3 +141,25 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+
+class UninstallPluginTemplateView(RegionTenantHeaderView):
+    @perm_required('manage_plugin')
+    def delete(self, requset, *args, **kwargs):
+        """
+        卸载插件模板
+        :param requset:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        plugin_id = requset.data.get('plugin_id')
+
+        try:
+            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
+            plugin.plugin_template = ''
+            plugin.is_complete = False
+            plugin.save()
+            return Response(general_message(200, '', ''), 200)
+        except RainbondCenterPlugin.DoesNotExist:
+            return Response(general_message(404, "plugin not exist", "插件不存在"), status=404)
