@@ -10,12 +10,13 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from console.repositories.group import group_repo
 
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderView, AlowAnyApiView
 from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.backup_service import groupapp_backup_service
 from console.constants import StorageUnit
+from console.services.team_services import team_services
 
 
 logger = logging.getLogger('default')
@@ -256,9 +257,8 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class GroupAppsBackupExportView(RegionTenantHeaderView):
+class GroupAppsBackupExportView(AlowAnyApiView):
     @never_cache
-    @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         一个组的备份导出
@@ -285,6 +285,12 @@ class GroupAppsBackupExportView(RegionTenantHeaderView):
             group_id = int(kwargs.get("group_id", None))
             if not group_id:
                 return Response(general_message(400, "group id is null", "请选择需要导出备份的组"), status=400)
+            team_name = kwargs.get("tenantName", None)
+            if not team_name:
+                return Response(general_message(400, "group id is null", "请选择需要导出备份的组"), status=400)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status=404)
             group = group_repo.get_group_by_id(group_id)
             if not group:
                 return Response(general_message(404, "group not found", "组{0}不存在".format(group_id)), status=404)
@@ -292,7 +298,7 @@ class GroupAppsBackupExportView(RegionTenantHeaderView):
             if not backup_id:
                 return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
 
-            code, msg, data_str = groupapp_backup_service.export_group_backup(self.tenant, backup_id)
+            code, msg, data_str = groupapp_backup_service.export_group_backup(team, backup_id)
             if code != 200:
                 return Response(general_message(code, "export backup failed", "备份导出失败"), status=code)
             file_name = group.group_name + ".bak"
