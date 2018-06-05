@@ -58,7 +58,7 @@ class MarketPluginService(object):
         if order_by == 'is_complete':
             plugins = RainbondCenterPlugin.objects.filter(q).order_by('is_complete, -ID')
         else:
-            plugins = RainbondCenterPlugin.objects.filter(q).order_by('-ID')
+            plugins = RainbondCenterPlugin.objects.filter(q).order_by('-update_time')
 
         paged_plugins = Paginator(plugins, limit).page(page)
 
