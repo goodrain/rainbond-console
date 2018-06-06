@@ -235,6 +235,9 @@ class GroupAppBackupService(object):
             return 409, "请确保需要导入的组中不存在应用", None
         content = upload_file.read().strip()
         data = json.loads(AuthCode.decode(content, KEY))
+        current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])
+        if current_backup:
+            return 412,"当前"
         event_id = make_uuid()
         group_uuid = make_uuid()
         params = {
@@ -272,6 +275,9 @@ class GroupAppBackupService(object):
         new_backup_record = backup_record_repo.create_backup_records(**record_data)
         return 200, "success", new_backup_record
 
+    def update_backup_record_group_id(self, group_id, new_group_id):
+        """修改Groupid"""
+        backup_record_repo.get_record_by_group_id(group_id).update(group_id=new_group_id)
 
 
 groupapp_backup_service = GroupAppBackupService()

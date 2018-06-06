@@ -24,4 +24,7 @@ class GroupAppBackupRecordRespository(object):
     def delete_record_by_backup_id(self, team_id, backup_id):
         return GroupAppBackupRecord.objects.filter(team_id=team_id, backup_id=backup_id).delete()
 
+    def get_record_by_group_id_and_backup_id(self, group_id, backup_id):
+        return GroupAppBackupRecord.objects.filter(group_id=group_id, backup_id=backup_id)
+
 backup_record_repo = GroupAppBackupRecordRespository()

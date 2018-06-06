@@ -480,6 +480,7 @@ class GroupAppMigrateRecord(BaseModel):
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
     migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    migrate_type = models.CharField(max_length=15, default="migrate", help_text=u"类型")
     restore_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"恢复ID")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     original_group_id = models.IntegerField(help_text=u"原始组ID")

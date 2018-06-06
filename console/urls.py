@@ -35,7 +35,7 @@ from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppG
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
     GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView
-from console.views.center_pool.groupapp_migration import GroupAppsMigrateView
+from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
@@ -428,6 +428,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate$', GroupAppsMigrateView.as_view()),
+    # 应用组删除
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
     # webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
