@@ -9,7 +9,9 @@ getPluginShareInfo,
 submitSharePlugin,
 getShareEventInfo,
 getShareOneEventInfo,
-startShareOneEvent
+startShareOneEvent,
+installMarketPlugin,
+getUnInstalledPlugin
 } from '../services/plugin';
 import cookie from '../utils/cookie';
 
@@ -22,6 +24,18 @@ export default {
     apps:[]
   },
   effects: {
+    *installMarketPlugin({ payload, callback }, { call, put }) {
+      const response = yield call(installMarketPlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getUnInstalledPlugin({ payload, callback }, { call, put }) {
+      const response = yield call(getUnInstalledPlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
     *startShareOneEvent({ payload, callback }, { call, put }) {
       const response = yield call(startShareOneEvent, payload);
       if(response) {

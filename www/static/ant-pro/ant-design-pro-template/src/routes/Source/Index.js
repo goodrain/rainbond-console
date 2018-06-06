@@ -56,7 +56,6 @@ class AuthForm extends PureComponent {
         };
         const {getFieldDecorator} = this.props.form;
         return (
-
             <Form
                 style={{
                 textAlign: 'left'
@@ -104,32 +103,15 @@ class CloudPlugin extends PureComponent {
             pageSize:10,
             total:0,
             page:1,
-            sync: false,
-            loading: false
+            loading: false,
+            plugins: []
         }
     }
     componentDidMount = () => {
-        this.handleSync();
+        this.loadPlugins();
     }
     handleClose = () => {
         this.props.onClose && this.props.onClose();
-    }
-    handleSync = () => {
-        this.setState({
-            sync: true
-        }, () => {
-            this
-                .props
-                .dispatch({
-                    type: 'global/syncCloudPlugin'
-                }).then(()=>{
-                    this.setState({
-                        sync: false
-                    }, () => {
-                        this.loadPlugins();
-                    })
-                })
-        })
     }
     handleSearch = (app_name) => {
         this.setState({
@@ -154,7 +136,7 @@ class CloudPlugin extends PureComponent {
                     },
                     callback: (data) => {
                         this.setState({
-                            apps: data.list || [],
+                            plugins: data.list || [],
                             loading: false,
                             total: data.total
                         })
@@ -182,7 +164,7 @@ class CloudPlugin extends PureComponent {
         this.setState({
             page: page
         }, () => {
-            this.loadApps();
+            this.loadPlugins();
         })
     }
     render(){
@@ -219,7 +201,7 @@ class CloudPlugin extends PureComponent {
                     rowKey="id"
                     loading={this.state.loading}
                     pagination={paginationProps}
-                    dataSource={this.state.apps}
+                    dataSource={this.state.plugins}
                     renderItem={item => (
                     <List.Item
                         actions={[item.is_complete
@@ -513,10 +495,10 @@ class AppList extends PureComponent {
             },
             callback: () => {
                 notification.success({
-                    message: '卸载成功'
+                    message: '删除成功'
                 })
                 this.hideOfflineApp();
-                this.loadApps();
+                this.getApps();
             }
         })
     }
@@ -612,7 +594,7 @@ class AppList extends PureComponent {
                     {this.state.showCloudApp ? <CloudApp onSyncSuccess={() => {this.handlePageChange(1)}} onClose={()=>{this.setState({showCloudApp: false})}} dispatch={this.props.dispatch} /> : null}
                 </div>
                  
-                {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要卸载才应用吗?`} subDesc="卸载后其他人将无法安装此应用" title={'卸载应用'} onCancel={this.hideOfflineApp} />}
+                {this.state.showOfflineApp && <ConfirmModal onOk={this.handleOfflineApp} desc={`确定要删除此应用吗?`} subDesc="删除后其他人将无法安装此应用" title={'删除应用'} onCancel={this.hideOfflineApp} />}
             </div>
         )
     }
@@ -633,7 +615,7 @@ class PluginList extends PureComponent {
             loading: true,
             total: 0,
             type: "",
-            showOfflineApp: null,
+            showOfflinePlugin: null,
             showCloudPlugin: false
         }
     }
@@ -792,7 +774,7 @@ class PluginList extends PureComponent {
                         dataSource={this.state.plugins}
                         renderItem={item => (
                         <List.Item
-                            actions={[item.is_complete
+                            actions={this.state.showCloudPlugin ? null : [item.is_complete
                                 ? <Fragment>
                                  <a
                                     style={{marginRight: 8}}
