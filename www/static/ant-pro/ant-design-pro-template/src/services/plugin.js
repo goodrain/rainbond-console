@@ -1,6 +1,22 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 安装内部市场的插件 */
+export async function installMarketPlugin(body={plugin_id}){
+  return request(config.baseUrl + `/console/market/plugins/install`,{
+    method: 'POST',
+    data:body
+  })
+}
+
+/* 获取内部市场可安装的插件 */
+export async function getUnInstalledPlugin(body={plugin_name, page, limit}){
+  return request(config.baseUrl + `/console/plugins/installable`,{
+    method: 'get',
+    params:body
+  })
+}
+
 /*
 查询分享单个任务的状态
  */
