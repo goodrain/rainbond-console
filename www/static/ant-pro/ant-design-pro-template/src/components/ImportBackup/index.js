@@ -44,9 +44,15 @@ export default class Index extends PureComponent {
         return true;
       });
   
-      this.setState({ fileList });
+      this.setState({ fileList },()=>{
+        this.props.onReLoad && this.props.onReLoad();
+      });
     }
 	onRemove =()=>{
+    notification.info({
+      message: '备份已导入',
+      duration:'2'
+    });
 		return false
 	}
 	

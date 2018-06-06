@@ -191,7 +191,6 @@ export default class AppList extends PureComponent {
 			showImport:false,
 			backup_id:'',
 			groupName:''
-			
 		}
 	}
 	componentDidMount() {
@@ -257,10 +256,16 @@ export default class AppList extends PureComponent {
 		this.setState({showImport:true})
 	}
 	handleImportBackup =(e) =>{
-		
+		notification.success({
+			message: '备份已导入',
+			duration:'2'
+		});
+		this.setState({showImport:false})
+		this.fetchBackup();
 	}
 	cancelImportBackup = () =>{
 		this.setState({showImport:false})
+		this.fetchBackup();
 	}
 	// 恢复应用备份
 	handleRecovery =(data,e)=>{
@@ -292,6 +297,10 @@ export default class AppList extends PureComponent {
 		var group_id = this.getGroupId();
 		var exportURl = config.baseUrl + '/console/teams/'+ team_name +'/groupapp/'+ group_id +'/backup/export?backup_id=' + backup_id
 		window.open(exportURl);
+		notification.success({
+			message: '备份导出中',
+			duration:'2'
+		});
 	}
 	// 删除应用备份
 	handleDel = (data,e) =>{
@@ -348,8 +357,8 @@ export default class AppList extends PureComponent {
 										<Fragment>
 											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleRecovery.bind(this,data)}>恢复</Button>
 											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleMove.bind(this,data)}>迁移</Button>
-											<Button type="primary" style={{marginRight:'5px'}} onClick={this.handleExport.bind(this,data)}>导出</Button>
-											<Button onClick={this.handleDel.bind(this,data)}>删除</Button>
+											{data.mode == 'full-online' &&  <Button type="primary" style={{marginRight:'5px'}} onClick={this.handleExport.bind(this,data)}>导出</Button> }
+											{/* <Button onClick={this.handleDel.bind(this,data)}>删除</Button> */}
 										</Fragment>
 										:''
 										
@@ -357,7 +366,7 @@ export default class AppList extends PureComponent {
 									{ 
 										(data.status == 'failed')?
 										<Fragment>
-											<Button onClick={this.handleDel.bind(this,data)}>删除</Button>
+											{/* <Button onClick={this.handleDel.bind(this,data)}>删除</Button> */}
 										</Fragment>
 										:''
 									}
@@ -418,7 +427,7 @@ export default class AppList extends PureComponent {
 				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
 				   {this.state.showMove && <MigrationBackup onOk={this.handleMoveBackup} onCancel={this.cancelMoveBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()} />}
 				   {this.state.showRecovery && <RestoreBackup onOk={this.handleRecoveryBackup} onCancel={this.cancelRecoveryBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
-				   {this.state.showImport && <ImportBackup onOk={this.handleImportBackup} onCancel={this.cancelImportBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
+				   {this.state.showImport && <ImportBackup onReLoad={this.handleImportBackup} onCancel={this.cancelImportBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
 				   {this.state.showDel && <ConfirmModal
 				   	backupId = {this.state.backup_id}
                     onOk={this.handleDelete}

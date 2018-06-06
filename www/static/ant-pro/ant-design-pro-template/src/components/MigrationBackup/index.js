@@ -158,6 +158,10 @@ export default class Index extends PureComponent {
 						this.state.showRestore?
 						<div>
 							<p style={{textAlign:'center'}}>迁移状态</p>
+							{
+								restoreStatus == ''?
+								
+							}
 							<p style={{textAlign:'center',fontSize:'18px'}}>
 								{appRestore[restoreStatus]}
 							</p>
