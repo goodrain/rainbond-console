@@ -8,7 +8,6 @@ from console.models import RainbondCenterPlugin
 from console.repositories.plugin import plugin_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')
@@ -91,7 +90,6 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
-    @perm_required("manage_plugin")
     def post(self, requset, team_name, *args, **kwargs):
         """
         安装插件
