@@ -237,7 +237,7 @@ class GroupAppBackupService(object):
         data = json.loads(AuthCode.decode(content, KEY))
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])
         if current_backup:
-            return 412,"当前"
+            return 412,"当前团队已导入过该备份", None
         event_id = make_uuid()
         group_uuid = make_uuid()
         params = {
