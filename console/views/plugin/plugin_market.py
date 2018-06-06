@@ -90,11 +90,10 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
-    def post(self, requset, team_name, *args, **kwargs):
+    def post(self, requset, *args, **kwargs):
         """
         安装插件
         :param requset:
-        :param team_name:
         :param args:
         :param kwargs:
         :return:
@@ -104,7 +103,7 @@ class InstallMarketPlugin(RegionTenantHeaderView):
         try:
             plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
             status, msg = market_plugin_service.install_plugin(
-                self.user.user_id, self.team, self.response_region, plugin
+                self.user, self.team, self.response_region, plugin
             )
             if status != 200:
                 return Response(general_message(500, 'install plugin failed', msg), 500)

@@ -376,7 +376,7 @@ class MarketPluginService(object):
             share_config_groups = share_plugin_info.get('config_groups')
 
             for group in share_config_groups:
-                share_config_items = share_plugin_info.get('config_items')
+                share_config_items = share_plugin_info.get('config_items', [])
 
                 plugin_config_group = PluginConfigGroup(
                     plugin_id=group.get("plugin_id"),
