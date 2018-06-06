@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from console.appstore.appstore import app_store
 from console.models import RainbondCenterPlugin, PluginShareRecordEvent
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -150,6 +151,11 @@ class MarketPluginService(object):
             plugin_info = share_info.get("share_plugin_info")
             if isinstance(plugin_info, unicode):
                 plugin_info = json.loads(plugin_info)
+
+            if plugin_info.get('scope') == 'goodrain':
+                ent = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+                if ent and not ent.is_active:
+                    return 10407, "用户未跟云市认证", None
 
             plugin_id = plugin_info.get("plugin_id")
 
