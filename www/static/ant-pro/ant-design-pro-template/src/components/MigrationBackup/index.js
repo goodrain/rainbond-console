@@ -14,7 +14,8 @@ import {
 		Select,
 		Input,
 		Modal,
-		message
+		message,
+		Spin
 } from 'antd';
 import globalUtil from '../../utils/global';
 
@@ -87,7 +88,7 @@ export default class Index extends PureComponent {
 					group_id:this.props.groupId
 				},
 				callback: (data) => {
-					notification.success({message: "操作成功，开始迁移应用"});
+					notification.success({message: "开始迁移应用",duration:'2'});
 					this.setState({restore_id:data.bean.restore_id},()=>{
 						this.queryMigrateApp()
 					})
@@ -108,6 +109,15 @@ export default class Index extends PureComponent {
 				},
 				callback: (data) => {
 					this.setState({showRestore:true,restore_status:data.bean.status})
+					if(data.bean.status == 'success'){
+						this
+						.props
+						.dispatch(routerRedux.push(`/team/${data.bean.migrate_team}/region/${data.bean.migrate_region}/groups/backup/${data.bean.group_id}`));
+						location.reload();
+					}
+					if(data.bean.status == 'failed'){
+						this.props.onCancel && this.props.onCancel()
+					}
 					if(data.bean.status == 'starting'){
 						setTimeout(() => {
 							this.queryMigrateApp();
@@ -157,14 +167,43 @@ export default class Index extends PureComponent {
 					{
 						this.state.showRestore?
 						<div>
-							<p style={{textAlign:'center'}}>迁移状态</p>
 							{
-								restoreStatus == ''?
-								
+								restoreStatus == 'starting'?
+								<div>
+									<p style={{textAlign:'center'}}>
+										<Spin />
+									</p>
+									<p style={{textAlign:'center',fontSize:'14px'}}>
+										迁移中，请稍后(请勿关闭弹窗)
+									</p>
+								</div>
+								:''
+
 							}
-							<p style={{textAlign:'center',fontSize:'18px'}}>
-								{appRestore[restoreStatus]}
-							</p>
+							{
+								restoreStatus == 'success'?
+								<div>
+									<p style={{textAlign:'center',color:"#28cb75", fontSize:'36px'}}>
+										<Icon type="check-circle-o" />
+									</p>
+									<p style={{textAlign:'center',fontSize:'14px'}}>
+										迁移成功
+									</p>
+								</div>
+								:''
+							}
+							{
+								restoreStatus == '失败'?
+								<div>
+									<p style={{textAlign:'center',color:'999', fontSize:'36px'}}>
+										<Icon type="close-circle-o" />
+									</p>
+									<p style={{textAlign:'center',fontSize:'14px'}}>
+										迁移失败，请重新迁移
+									</p>
+								</div>
+								:''
+							}
 						</div>
 						:
 						<div>

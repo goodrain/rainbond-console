@@ -62,7 +62,12 @@ export default class Index extends PureComponent {
 					title="恢复备份"
 					footer={
 						this.state.showRestore?
-						[<Button key="back" onClick={this.props.onCancel}>关闭</Button>]
+						[
+						<Button key="back" onClick={this.props.onCancel}>关闭</Button>,
+						<Button key="submit" type="primary"  onClick={this.handleSubmit}>
+							确定
+						</Button>
+						]
 						:
 						[
 						<Button key="back" onClick={this.props.onCancel}>关闭</Button>,
@@ -76,12 +81,12 @@ export default class Index extends PureComponent {
 						this.state.showRestore?
 						<div>
 							<p>
-							恢复状态
+							   您需要要删除备份前的文件么？
 							</p>
 						</div>
 						:
 						<div>
-							<p>您要恢复xx备份到当前数据中心么？</p>
+							<p>您要恢复备份到当前数据中心么？</p>
 						</div>
 					}
 					
