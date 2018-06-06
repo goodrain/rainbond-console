@@ -482,6 +482,8 @@ class GroupAppMigrateRecord(BaseModel):
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
     restore_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"恢复ID")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    original_group_id = models.IntegerField(help_text=u"原始组ID")
+    original_group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"原始group UUID")
 
 
 class GroupAppBackupImportRecord(BaseModel):
