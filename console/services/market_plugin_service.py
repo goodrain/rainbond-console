@@ -83,7 +83,9 @@ class MarketPluginService(object):
         plugins = []
         for p in market_plugins:
             try:
-                rcp = RainbondCenterPlugin.objects.get(plugin_key=p.get('plugin_key'), version=p.get('version'))
+                rcp = RainbondCenterPlugin.objects.get(
+                    plugin_key=p.get('plugin_key'), version=p.get('version'), source='market'
+                )
                 rcp.pic = p.get('pic')
                 rcp.desc = p.get('intro')
                 rcp.version = p.get('version')

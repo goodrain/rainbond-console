@@ -424,6 +424,11 @@ class RolePermRepo(object):
                                                       group=team_group)
             perms_dict["manage_plugin"] = obj.pk
 
+            obj = TenantUserPermission.objects.create(codename="share_plugin", per_info="插件分享",
+                                                      is_select=True,
+                                                      group=team_group)
+            perms_dict["share_plugin"] = obj.pk
+
             obj = TenantUserPermission.objects.create(codename="drop_tenant", per_info="删除团队",
                                                       is_select=False,
                                                       group=team_group)
