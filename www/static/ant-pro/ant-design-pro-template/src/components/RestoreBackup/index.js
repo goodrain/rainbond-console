@@ -75,18 +75,16 @@ export default class Index extends PureComponent {
 		}
 
 		handleSubmit = (e)=>{
-			var teamsName = this.state.teamsName;
-			var regionName = this.state.regionName;
 			this.props.dispatch({
-				type: 'groupControl/migrateApp',
+				type: 'groupControl/delRestore',
 				payload:{
 					team_name: globalUtil.getCurrTeamName(),
-					region:this.props.propsParams.region,
+					group_id:this.props.groupId,
 					new_group_id:this.state.new_group_id
 				},
 				callback: (data) => {
 					notification.success({message: "删除成功",duration:'2'});
-					this.props.onCancel & this.props.onCancel()
+					//this.props.onCancel & this.props.onCancel()
 				}
 			})
 		}
@@ -121,7 +119,7 @@ export default class Index extends PureComponent {
 				<Modal
 					visible={true}
 					onCancel={this.props.onCancel}
-					title="迁移"
+					title="恢复"
 					footer={
 						!this.state.showRestore?
 						[<Button key="back" onClick={this.props.onCancel}>关闭</Button>,

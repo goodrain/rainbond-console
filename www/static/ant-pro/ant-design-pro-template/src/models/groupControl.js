@@ -21,7 +21,8 @@ import {
   getBackup,
   getBackupStatus,
   migrateApp,
-  queryMigrateApp
+  queryMigrateApp,
+  delRestore
 } from '../services/group';
 import cookie from '../utils/cookie';
 

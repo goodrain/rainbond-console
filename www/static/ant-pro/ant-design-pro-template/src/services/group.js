@@ -314,7 +314,7 @@ export async function queryMigrateApp(body = {team_name,restore_id,group_id}) {
 /*
   应用备份删除
 */
-export async function delRestore(body = {team_name,restore_id,new_group_id}) {
+export async function delRestore(body = {team_name,group_id,new_group_id}) {
 	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
 				method: 'DELETE',
 				data: {
