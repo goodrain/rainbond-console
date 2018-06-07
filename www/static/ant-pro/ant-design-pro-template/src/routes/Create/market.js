@@ -493,7 +493,6 @@ handleOKBatchImportList = () => {
      }else{
        this.appExport(id,format);
      }
-    
   }
 
   renderSubMenu = (item,querydata) => {
