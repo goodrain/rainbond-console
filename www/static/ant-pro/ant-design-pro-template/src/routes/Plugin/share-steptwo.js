@@ -299,7 +299,7 @@ export default class shareCheck extends PureComponent {
           callback: (data) => {
             this
               .props
-              .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source/plugin/${list[0].plugin_name}`))
+              .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source/plugin/${encodeURIComponent(list[0].plugin_name)}`))
           }
         })
     }

@@ -46,7 +46,7 @@ export default {
 	},
 	//是否从云市安装的插件
 	isMarketPlugin: function(bean){
-		 return bean.origin !== 'source_code'
+		 return bean.origin === 'market'
 	},
 	//获取插件版本构建状态的中文描述
 	getBuildStatusCN: function(status) {
