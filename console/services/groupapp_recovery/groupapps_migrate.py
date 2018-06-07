@@ -133,6 +133,8 @@ class GroupappsMigrateService(object):
     def __check_group_service_status(self, region, tenant, group_id):
         services = group_service.get_group_services(group_id)
         service_ids = [s.service_id for s in services]
+        if not service_ids:
+            return True
         body = region_api.service_status(region, tenant.tenant_name,
                                          {"service_ids": service_ids, "enterprise_id": tenant.enterprise_id})
         status_list = body["list"]
