@@ -85,7 +85,8 @@ export default class Index extends PureComponent {
 					region:this.state.regionName,
 					team: this.state.teamsName,
 					backup_id:this.props.backupId,
-					group_id:this.props.groupId
+					group_id:this.props.groupId,
+					migrate_type:'migrate'
 				},
 				callback: (data) => {
 					notification.success({message: "开始迁移应用",duration:'2'});
@@ -112,7 +113,7 @@ export default class Index extends PureComponent {
 					if(data.bean.status == 'success'){
 						this
 						.props
-						.dispatch(routerRedux.push(`/team/${data.bean.migrate_team}/region/${data.bean.migrate_region}/groups/backup/${data.bean.group_id}`));
+						.dispatch(routerRedux.push(`/team/${data.bean.migrate_team}/region/${data.bean.migrate_region}/groups/${data.bean.group_id}`));
 						location.reload();
 					}
 					if(data.bean.status == 'failed'){
@@ -151,7 +152,7 @@ export default class Index extends PureComponent {
 					visible={true}
 					onCancel={this.props.onCancel}
 					onOk={this.handleSubmit}
-					title="批量导入应用"
+					title="迁移"
 					footer={
 						this.state.showRestore?
 						[<Button key="back" onClick={this.props.onCancel}>关闭</Button>]
@@ -193,7 +194,7 @@ export default class Index extends PureComponent {
 								:''
 							}
 							{
-								restoreStatus == '失败'?
+								restoreStatus == 'failed'?
 								<div>
 									<p style={{textAlign:'center',color:'999', fontSize:'36px'}}>
 										<Icon type="close-circle-o" />

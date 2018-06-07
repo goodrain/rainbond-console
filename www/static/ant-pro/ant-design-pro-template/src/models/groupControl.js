@@ -258,6 +258,16 @@ export default {
       if (response) {
         callback && callback(response);
       }
+    },
+    //应用备份删除
+    *delRestore({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(delRestore, payload);
+      if (response) {
+        callback && callback(response);
+      }
     }
   },
   reducers : {

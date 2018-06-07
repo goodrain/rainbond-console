@@ -194,6 +194,7 @@ export default class AppList extends PureComponent {
 		}
 	}
 	componentDidMount() {
+		
 		this.fetchBackup();
 		this.getGroupName();
 	}
@@ -313,7 +314,6 @@ export default class AppList extends PureComponent {
 		this.setState({showDel:false,backup_id:''})
 	}
 	render() {
-
 			const columns = [
 				{
 						title: '备份时间',
@@ -326,8 +326,8 @@ export default class AppList extends PureComponent {
 						dataIndex: 'mode',
 						render: (val, data) => {
 							var map = {
-								'full-online': '在线模式',
-								'full-offline': '离线模式'
+								'full-online': '云端备份',
+								'full-offline': '本地备份'
 							}
 							return map[val] || ''
 						}
@@ -366,7 +366,7 @@ export default class AppList extends PureComponent {
 									{ 
 										(data.status == 'failed')?
 										<Fragment>
-											{/* <a  href="javascript:;"onClick={this.handleDel.bind(this,data)}>删除</a> */}
+											 <a  href="javascript:;"onClick={this.handleDel.bind(this,data)}>删除</a>
 										</Fragment>
 										:''
 									}
@@ -383,7 +383,7 @@ export default class AppList extends PureComponent {
 			return (
                 
                 <PageHeaderLayout
-                  title={"备份历史管理"}
+                  title={groupName}
                   breadcrumbList={[{
                       title: "首页",
                       href: `/`
@@ -398,7 +398,7 @@ export default class AppList extends PureComponent {
 					href: ``
 				}]}
                   content={(
-                    <p>备份管理</p>
+                    <p>备份历史管理</p>
                   )}
                     extraContent={(
                     <div>
@@ -426,7 +426,7 @@ export default class AppList extends PureComponent {
 				   
 				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
 				   {this.state.showMove && <MigrationBackup onOk={this.handleMoveBackup} onCancel={this.cancelMoveBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()} />}
-				   {this.state.showRecovery && <RestoreBackup onOk={this.handleRecoveryBackup} onCancel={this.cancelRecoveryBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
+				   {this.state.showRecovery && <RestoreBackup onOk={this.handleRecoveryBackup} onCancel={this.cancelRecoveryBackup} propsParams={this.props.match.params} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
 				   {this.state.showImport && <ImportBackup onReLoad={this.handleImportBackup} onCancel={this.cancelImportBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
 				   {this.state.showDel && <ConfirmModal
 				   	backupId = {this.state.backup_id}
