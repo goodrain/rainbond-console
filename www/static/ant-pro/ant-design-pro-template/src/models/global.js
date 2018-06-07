@@ -40,7 +40,8 @@ export default {
     rainbondInfo: null,
     apploadingnum: 0,
     //显示充值提示
-    payTip: false
+    payTip: false,
+    showAuthCompany: false
   },
   effects : {
     *deleteMarketPlugin({
@@ -338,7 +339,19 @@ export default {
         ...state,
         apploadingnum: state.apploadingnum - 1
       }
-    }
+    },
+    showAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: true
+      }
+    },
+    hideAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: false
+      }
+    },
   },
 
   subscriptions : {
