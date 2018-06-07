@@ -5,9 +5,11 @@
 from console.repositories.app_config import domain_repo
 import re
 import datetime
-
+from console.repositories.region_repo import region_repo
+from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
+
 
 region_api = RegionInvokeApi()
 
@@ -76,7 +78,7 @@ class DomainService(object):
         certif.save()
         return 200, "success"
 
-    def __check_domain_name(self, domain_name):
+    def __check_domain_name(self, team_name, domain_name, domain_type):
         if not domain_name:
             return 400, u"域名不能为空"
         zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
@@ -84,22 +86,41 @@ class DomainService(object):
         if match:
             return 400, u"域名不能包含中文"
         re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
-        if not re.match(re_exp,domain_name):
+        if not re.match(re_exp, domain_name):
             return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
+        if len(domain_name) > 256:
+            return 400, u"域名过长"
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         if domain:
             return 412, u"域名已存在"
+        if domain_type == DomainType.WWW:
+            is_domain_conflict, conflict_domain = self.__is_domain_conflict(domain_name, team_name)
+            if is_domain_conflict:
+                return 409, u"域名中不能该域名{0}".format(conflict_domain)
+
         return 200, u"success"
+
+    def __is_domain_conflict(self, domain_name, team_name):
+        regions = region_repo.get_usable_regions()
+        conflict_domains = ["{0}.{1}".format(team_name, region.httpdomain) for region in regions]
+        for d in conflict_domains:
+            if d in domain_name:
+                return True, d
+        return False, None
 
     def get_port_bind_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+
+    def get_sld_domains(self, service, container_port):
+        return domain_repo.get_service_domain_by_container_port(service.service_id, container_port).filter(
+            domain_type=DomainType.SLD_DOMAIN)
 
     def is_domain_exist(self, domain_name):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id):
-        code, msg = self.__check_domain_name(domain_name)
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
         if code != 200:
             return code, msg
         certificate_info = None
@@ -129,10 +150,11 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
         region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
 
-        domain_info = {}
+        domain_info = dict()
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
+        domain_info["domain_type"] = domain_type
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = protocol

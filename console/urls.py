@@ -6,7 +6,7 @@ from console.captcha.captcha_code import CaptchaView
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
-    DomainView
+    DomainView, SecondLevelDomainView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
@@ -274,6 +274,7 @@ urlpatterns = patterns(
 
     # 服务域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view()),
     # 服务操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),

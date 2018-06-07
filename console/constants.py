@@ -105,3 +105,8 @@ class AppMigrateType(object):
 
 class StorageUnit(object):
     ONE_MB=1048576
+
+
+class DomainType(object):
+    SLD_DOMAIN = "goodrain-sld"
+    WWW = "www"

@@ -82,3 +82,6 @@ CREATE TABLE groupapp_migrate
     create_time datetime
 );
 CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);
+
+-- 域名添加域名类型和二级域名名称字段
+ALTER TABLE service_domain ADD domain_type varchar(20) DEFAULT 'www' NULL;
