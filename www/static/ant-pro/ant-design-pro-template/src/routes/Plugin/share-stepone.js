@@ -141,13 +141,14 @@ export default class Main extends PureComponent {
       .form
       .validateFields((err, values) => {
         
+        
+        var url = (values.pic && values.pic.file && values.pic.file.response && values.pic.file.response.data && values.pic.file.response.data.bean) ? values.pic.file.response.data.bean.file_url : '';
         const share_plugin_info = {
           ...this.state.info,
           ...values,
-          pic: (values.pic && values.pic.file && values.pic.file.response && values.pic.file.response.data && values.pic.file.response.data.bean) ? values.pic.file.response.data.bean.file_url : ''
+          pic: url ? url : this.state.info.pic
         };
         if (!err) {
-          
           const {dispatch} = this.props;
           const param = this.getParams();
           dispatch({

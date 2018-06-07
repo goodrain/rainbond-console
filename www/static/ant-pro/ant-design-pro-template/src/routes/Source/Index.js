@@ -153,11 +153,11 @@ export default class Index extends PureComponent {
         }
 
         if(this.state.scope === 'app'){
-            return <AppList/>
+            return <AppList {...this.props}/>
         }
 
         if(this.state.scope === 'plugin'){
-            return <PluginList/>
+            return <PluginList {...this.props}/>
         }
 
         

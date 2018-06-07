@@ -41,11 +41,12 @@ const {Search} = Input;
 export default class PluginList extends PureComponent {
     constructor(props) {
         super(props);
+        
         this.state = {
             sync: false,
             page: 1,
             pageSize: 10,
-            app_name: '',
+            app_name: this.getParams().name || '',
             plugins: [],
             loading: true,
             total: 0,
@@ -53,6 +54,14 @@ export default class PluginList extends PureComponent {
             showOfflinePlugin: null,
             showCloudPlugin: false
         }
+    }
+    getParams = () => {
+        var param = this.props.match.params || {};
+        if(param.name){
+            param.name = decodeURIComponent(param.name);
+        }
+        return param;
+        
     }
     componentDidMount = () => {
         this.loadPlugins();
@@ -140,7 +149,7 @@ export default class PluginList extends PureComponent {
             },
             callback: () => {
                 notification.success({
-                    message: '卸载成功'
+                    message: '删除成功'
                 })
                 this.hideOfflinePlugin();
                 this.loadPlugins();
@@ -188,6 +197,7 @@ export default class PluginList extends PureComponent {
                     className={BasicListStyles.listCard}
                     bordered={false}
                     title={<div>{this.state.showCloudPlugin && <span>内部市场</span>}<Search
+                        defaultValue={this.state.app_name}
                         className={BasicListStyles.extraContentSearch}
                         placeholder="请输入名称进行搜索"
                         onSearch={this.handleSearch}/></div>}
