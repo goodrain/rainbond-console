@@ -5,6 +5,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.models import RainbondCenterPlugin
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
@@ -55,6 +56,11 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         :return:
         """
         try:
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            if ent and not ent.is_active:
+                result = general_message(10407, "failed", "用户未跟云市认证")
+                return Response(result, 500)
+
             market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
             result = general_message(200, "success", "同步成功")
             return Response(result, 200)
@@ -74,6 +80,11 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         :return:
         """
         try:
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            if ent and not ent.is_active:
+                result = general_message(10407, "failed", "用户未跟云市认证")
+                return Response(result, 500)
+
             plugin_data = request.data
             data = {
                 'plugin_key': plugin_data["plugin_key"],
@@ -90,11 +101,10 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
-    def post(self, requset, team_name, *args, **kwargs):
+    def post(self, requset, *args, **kwargs):
         """
         安装插件
         :param requset:
-        :param team_name:
         :param args:
         :param kwargs:
         :return:
@@ -104,7 +114,7 @@ class InstallMarketPlugin(RegionTenantHeaderView):
         try:
             plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
             status, msg = market_plugin_service.install_plugin(
-                self.user.user_id, self.team, self.response_region, plugin
+                self.user, self.team, self.response_region, plugin
             )
             if status != 200:
                 return Response(general_message(500, 'install plugin failed', msg), 500)

@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from console.appstore.appstore import app_store
 from console.models import RainbondCenterPlugin, PluginShareRecordEvent
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -82,7 +83,9 @@ class MarketPluginService(object):
         plugins = []
         for p in market_plugins:
             try:
-                rcp = RainbondCenterPlugin.objects.get(plugin_key=p.get('plugin_key'), version=p.get('version'))
+                rcp = RainbondCenterPlugin.objects.get(
+                    plugin_key=p.get('plugin_key'), version=p.get('version'), source='market'
+                )
                 rcp.pic = p.get('pic')
                 rcp.desc = p.get('intro')
                 rcp.version = p.get('version')
@@ -150,6 +153,11 @@ class MarketPluginService(object):
             plugin_info = share_info.get("share_plugin_info")
             if isinstance(plugin_info, unicode):
                 plugin_info = json.loads(plugin_info)
+
+            if plugin_info.get('scope') == 'goodrain':
+                ent = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+                if ent and not ent.is_active:
+                    return 10407, "用户未跟云市认证", None
 
             plugin_id = plugin_info.get("plugin_id")
 
@@ -376,7 +384,7 @@ class MarketPluginService(object):
             share_config_groups = share_plugin_info.get('config_groups')
 
             for group in share_config_groups:
-                share_config_items = share_plugin_info.get('config_items')
+                share_config_items = share_plugin_info.get('config_items', [])
 
                 plugin_config_group = PluginConfigGroup(
                     plugin_id=group.get("plugin_id"),
