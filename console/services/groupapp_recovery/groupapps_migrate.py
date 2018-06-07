@@ -164,7 +164,7 @@ class GroupappsMigrateService(object):
                     if migrate_record.migrate_type == "recover":
                         # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
                         backup_record_repo.get_record_by_group_id(migrate_record.original_group_id).update(
-                            original_group_id=migrate_record.group_id)
+                            group_id=migrate_record.group_id)
                         self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
             migrate_record.status = status
             migrate_record.save()
