@@ -254,9 +254,12 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
             share_plugin = share_repo.get_share_plugin(share_record.group_id)
             if share_plugin and share_plugin.is_complete:
+                share_record.delete()
+                PluginShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
                 share_plugin.delete()
                 return Response(general_message(200, msg='', msg_show=''), 200)
 
+            PluginShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             share_record.delete()
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)
