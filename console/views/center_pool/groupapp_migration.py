@@ -14,6 +14,7 @@ from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
+from console.repositories.group import group_repo
 from console.services.group_service import group_service
 
 logger = logging.getLogger('default')
@@ -163,10 +164,10 @@ class GroupAppsView(RegionTenantHeaderView):
             new_group_id = request.data.get("new_group_id", None)
             if not new_group_id:
                 return Response(general_message(400, "new group id is null", "请确认新恢复的组"), status=400)
-            group = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
+            group = group_repo.get_group_by_id(group_id)
             if not group:
                 return Response(general_message(400, "group not exist", "组ID {0} 不存在".format(group_id)), status=400)
-            new_group = group_service.get_group_by_id(self.tenant, self.response_region, new_group_id)
+            new_group = group_repo.get_group_by_id(new_group_id)
             if not new_group:
                 return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),
                                 status=400)
