@@ -40,12 +40,18 @@ export default class Index extends PureComponent {
       fileList = fileList.filter((file) => {
         if (file.response) {
           return file.response.msg === 'success';
+          
         }
         return true;
       });
   
       this.setState({ fileList },()=>{
-        this.props.onReLoad && this.props.onReLoad();
+        const file = this.state.fileList
+        if(file.length > 0){
+          if(file[0].status == 'done'){
+            this.props.onReLoad && this.props.onReLoad();
+          }
+        }
       });
     }
 	onRemove =()=>{
