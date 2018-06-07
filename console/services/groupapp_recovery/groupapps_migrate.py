@@ -192,7 +192,7 @@ class GroupappsMigrateService(object):
             self.__save_port(migrate_tenant, ts, app["service_ports"], lb_mapping_port)
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
-            self.__save_service_domain(ts, app["service_domains"])
+            # self.__save_service_domain(ts, app["service_domains"])
             self.__save_service_event(migrate_tenant, ts, app["service_events"])
             self.__save_service_perms(ts, app["service_perms"])
             self.__save_service_probes(ts, app["service_probes"])
