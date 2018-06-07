@@ -160,7 +160,7 @@ class GroupAppsView(RegionTenantHeaderView):
             group_id = int(kwargs.get("group_id", None))
             if not group_id:
                 return Response(general_message(400, "group id is null", "请确认需要删除的组"), status=400)
-            new_group_id = request.GET.get("new_group_id", None)
+            new_group_id = request.data.get("new_group_id", None)
             if not new_group_id:
                 return Response(general_message(400, "new group id is null", "请确认新恢复的组"), status=400)
             group = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
@@ -179,7 +179,7 @@ class GroupAppsView(RegionTenantHeaderView):
 
             group.delete()
 
-            result = general_message(200, "success", "操作成功，开始迁移应用")
+            result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
