@@ -11,8 +11,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
-from django.conf import settings
 from console.services.region_services import region_services
+from console.repositories.app import service_repo
 
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
@@ -453,7 +453,6 @@ class AppPortService(object):
         for e in both_outer_fix_env:
             env_list.append({"name": e.name, "attr_name": e.attr_name, "attr_value": e.attr_value})
         return env_list
-   
 
     def __get_port_access_url(self, tenant, service, port):
         domain = region_services.get_region_httpdomain(service.service_region)
@@ -479,7 +478,25 @@ class AppPortService(object):
 
         return urls
 
-    def get_outer_port_opend_services_ids(self, tenant, service_ids):
-        service_ports = port_repo.get_http_opend_services_ports(tenant.tenant_id, service_ids)
-        ids = [p.service_id for p in service_ports]
-        return list(set(ids))
+    def get_team_region_usable_tcp_ports(self, tenant, service):
+        services = service_repo.get_service_by_region_and_tenant(service.service_region, tenant.tenant_id)
+        current_service_tcp_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id).filter(
+            is_outer_service=True).exclude(protocol__in=("http", "https"))
+        lb_mapping_ports = [p.lb_mapping_port for p in current_service_tcp_ports]
+        service_ids = [s.service_id for s in services]
+        res = port_repo.get_tcp_outer_opend_ports(service_ids).exclude(lb_mapping_port__in=lb_mapping_ports)
+        return res
+
+    def change_lb_mapping_port(self, tenant, service, container_port, new_lb_mapping_port, mapping_service_id):
+        data = {"change_port": new_lb_mapping_port}
+        body = region_api.change_service_lb_mapping_port(service.service_region, tenant.tenant_name,
+                                                         service.service_alias,
+                                                         container_port, data)
+
+        current_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+        exchange_port_info = port_repo.get_service_port_by_lb_mapping_port(mapping_service_id, new_lb_mapping_port)
+
+        exchange_port_info.lb_mapping_port = current_port.lb_mapping_port
+        exchange_port_info.save()
+        current_port.lb_mapping_port = new_lb_mapping_port
+        current_port.save()

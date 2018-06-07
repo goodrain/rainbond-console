@@ -1645,3 +1645,15 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
         return body
+
+    def change_service_lb_mapping_port(self, region, tenant_name, service_alias, container_port, data):
+        """修改应用负载均衡端口"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
+            container_port) + "/changelbport"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return body

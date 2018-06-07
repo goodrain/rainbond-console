@@ -111,7 +111,7 @@ class GroupappsMigrateService(object):
 
         # 创建迁移记录
         params = {
-            "group_id": new_backup_record.group_id,
+            "group_id": new_group.ID,
             "group_uuid": new_backup_record.group_uuid,
             "event_id": make_uuid(),
             "version": backup_record.version,

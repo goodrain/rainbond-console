@@ -104,6 +104,13 @@ class TenantServicePortRepository(object):
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, is_outer_service=True,
                                                  protocol__in=("http", "https"))
 
+    def get_tcp_outer_opend_ports(self, service_ids):
+        return TenantServicesPort.objects.filter(service_id__in=service_ids, is_outer_service=True).exclude(
+            protocol__in=("http", "https"))
+
+    def get_service_port_by_lb_mapping_port(self, service_id, lb_mapping_port):
+        return TenantServicesPort.objects.filter(service_id=service_id, lb_mapping_port=lb_mapping_port).first()
+
 class TenantServiceVolumnRepository(object):
     def get_service_volumes(self, service_id):
         return TenantServiceVolume.objects.filter(service_id=service_id)
