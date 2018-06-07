@@ -96,7 +96,7 @@ export default class Index extends PureComponent {
         }
 
         //如果未进行平台验证
-        if (currUser.is_enterprise_active !== 1) {
+        if (currUser.is_enterprise_active === 1) {
             const step = this.state.currStep;
             const extra = (
                 <div>

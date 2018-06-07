@@ -241,20 +241,6 @@ export default class Main extends PureComponent {
           page: this.state.page
         },
         callback: ((data) => {
-          if(data.list.length != 0){
-            data.list.map((app)=>{
-              datavisible[app.ID] = false;
-              dataquery[app.ID] = {};
-              if(app.export_status == 'exporting'){
-                dataexportTit[app.ID] = '导出中'
-                this.queryExport(app);
-              }else if(app.export_status ==  'success'){
-                dataexportTit[app.ID] = '导出(可下载)'
-              }else{
-                dataexportTit[app.ID] = '导出'
-              }
-            })
-          }
           this.setState({
             list: data.list || [],
             total: data.total,
@@ -266,99 +252,6 @@ export default class Main extends PureComponent {
         })
       })
   }
-
-
-  appExport = (app_id,format) => {
-    this
-      .props
-      .dispatch({
-        type: 'createApp/appExport',
-        payload: {
-          team_name:globalUtil.getCurrTeamName(),
-           app_id:app_id,
-           format:format
-        },
-        callback: ((data) => {
-          notification.success({message: `操作成功，开始导出，请稍等！`});
-        })
-      })
-  }
-
-  getExport = (app_id,format) => {
-    this
-      .props
-      .dispatch({
-        type: 'createApp/getExport',
-        payload: {
-          team_name:globalUtil.getCurrTeamName(),
-           app_id:app_id,
-           format:format
-        },
-        callback: ((data) => {
-          // message.success('操作成功，开始导出，请稍等！');
-        })
-      })
-  }
-  
-
- queryExport = (item) => {
-  if (!this.mount) 
-  return;
-    this
-      .props
-      .dispatch({
-        type: 'createApp/queryExport',
-        payload: {
-           app_id:item.ID,
-           team_name:globalUtil.getCurrTeamName()
-        },
-        callback: ((data) => {
-          var newexportTit = this.state.exportTit;
-          var newquerydata = this.state.querydatabox;
-           var querydataid = data.bean;
-           newquerydata[item.ID] = querydataid;
-           if(data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
-               if((data.bean.docker_compose.status == "exporting" && data.bean.rainbond_app.status != "success") || (data.bean.rainbond_app.status == "exporting" && data.bean.docker_compose.status != "success")){
-                   newexportTit[item.ID] = '导出中'
-                   setTimeout(() => {
-                      this.queryExport(item);
-                    }, 5000)
-               }else if(data.bean.docker_compose.status == "success" || data.bean.rainbond_app.status == "success"){
-                  newexportTit[item.ID] = '导出(可下载)'
-               }else{
-                  newexportTit[item.ID] = '导出' 
-               }
-           }else if(data.bean.docker_compose.is_export_before && !data.bean.rainbond_app.is_export_before){
-              if(data.bean.docker_compose.status == "exporting"){
-                    newexportTit[item.ID] = '导出中'
-                    setTimeout(() => {
-                      this.queryExport(item);
-                    }, 5000)
-                }else if(data.bean.docker_compose.status == "success"){
-                  newexportTit[item.ID] = '导出(可下载)'
-                }else{
-                  newexportTit[item.ID] = '导出' 
-                }
-           }else if(!data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
-              if(data.bean.rainbond_app.status == "exporting"){
-                newexportTit[item.ID] = '导出中'
-                setTimeout(() => {
-                  this.queryExport(item);
-                }, 5000)
-              }else if(data.bean.rainbond_app.status == "success"){
-                 newexportTit[item.ID] = '导出(可下载)'
-              }else{
-                newexportTit[item.ID] = '导出' 
-              }
-           }else{
-               newexportTit[item.ID] = '导出' 
-           }
-          
-           this.setState({querydatabox:newquerydata})
-        })
-      })
-  }
-
 
   hanldePageChange = (page) => {
     this.setState({
@@ -438,87 +331,6 @@ handleCancelBatchImportList = () => {
 handleOKBatchImportList = () => {
     this.setState({showBatchImportList: false})
 }
-
-  handleMenuClick = (e) => {
-     var key = e.key;
-     var keyArr  = key.split("||");
-     var format = keyArr[0];
-     var id = keyArr[1];
-     var isexport = keyArr[2];
-     var team_name = globalUtil.getCurrTeamName()
-     if(isexport =='success'){
-        // var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
-        // window.open(newurl);
-     }else if(isexport == 'loading'){
-        notification.info({message: `正在导出，请稍后！`});
-     }else{
-       this.appExport(id,format);
-     }
-  }
-
-  renderSubMenu = (item,querydata) => {
-    const id = item.ID;
-    const exportbox  = querydata[id];
-    const appquery = exportbox.rainbond_app;
-    const composequery = exportbox.docker_compose;
-    var apptext ='rainbond-app(点击导出)';
-    var composetext = 'docker_compose(点击导出)';
-    var appurl='javascript:;';
-    var composeurl ='javascript:;';
-    var appisSuccess = 'none';
-    var composeisSuccess = 'none';
-    const export_status = item.export_status;
-    if(appquery){
-      //
-      
-       if(appquery.is_export_before)  {
-          if(appquery.status== 'success'){
-            apptext = 'rainbond-app(点击下载)';
-            appisSuccess = 'success';
-            appurl = appquery.file_path ;
-          }else if(appquery.status  == 'exporting'){
-            apptext = 'rainbond-app(导出中)';
-            appisSuccess = 'loading';
-          }else{
-            apptext = 'rainbond-app(导出失败)';
-          }
-       }else{
-        apptext = 'rainbond-app(点击导出)';
-       }
-       //
-       if(composequery.is_export_before)  {
-        if(composequery.status== 'success'){
-          composetext = 'docker_compose(点击下载)';
-          composeisSuccess = 'success';
-          composeurl = composequery.file_path ;
-        }else if(composequery.status  == 'exporting'){
-          composetext = 'docker_compose(导出中)';
-          composeisSuccess = 'loading';
-        }else{
-          composetext = 'docker_compose(导出失败)';
-        }
-     }else{
-        composetext = 'docker_compose(点击导出)';
-     }
-       //
-
-       //
-       
-    }else{
-      composetext = 'docker_compose(点击下载)';
-      apptext = 'rainbond-app(点击下载)';
-    }
-
-    return <Menu onClick={this.handleMenuClick}>
-            <Menu.Item key={ 'rainbond-app||' +  id  + '||' + appisSuccess}>
-              <a target="_blank"  href={appurl} download="filename">{apptext}</a>
-            </Menu.Item>
-            <Menu.Item key={'docker-compose||' + id  + '||' + composeisSuccess}>
-              <a target="_blank" href={composeurl}  download="filename">{composetext}</a>
-            </Menu.Item>
-      </Menu>
-		
-  }
   
   handleVisibleChange = (item,flag) =>{
     var newvisible = this.state.visiblebox;
@@ -606,12 +418,6 @@ handleOKBatchImportList = () => {
      [<span onClick={() => {
       this.showCreate(item)
     }}>安装</span>
-    ,
-     <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
-       <a className="ant-dropdown-link" href="javascript:;" >
-         {exportText}<Icon type="down" />
-       </a>
-     </Dropdown>
     ]
     }>
      <Card.Meta
@@ -729,12 +535,6 @@ handleOKBatchImportList = () => {
       }
     ];
     const loading = this.props.loading;
-    const ImportMenu = (
-      <Menu onClick={this.handleImportMenuClick}>
-        <Menu.Item key="1">文件上传</Menu.Item>
-        <Menu.Item key="2">批量导入</Menu.Item>
-      </Menu>
-    );
     
     return (
       <PageHeaderLayout
@@ -745,18 +545,6 @@ handleOKBatchImportList = () => {
           {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
           </div> */}
-          <div style={{marginBottom:'10px',textAlign:'right'}}>
-          {
-            this.state.is_public?
-            ''
-            :
-             <Dropdown overlay={ImportMenu}>
-              <Button>
-                导入 <Icon type="down" />
-              </Button>
-            </Dropdown>
-          }
-          </div>
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
