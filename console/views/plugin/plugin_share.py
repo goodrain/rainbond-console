@@ -78,7 +78,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
                 self.team, plugin_id, self.response_region
             )
             if status != 200:
-                return Response(general_message(status, msg, msg_show))
+                return Response(general_message(status, msg, msg_show), status=status)
 
             record = {
                 "group_share_id": make_uuid(),

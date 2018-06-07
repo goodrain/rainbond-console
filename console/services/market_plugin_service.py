@@ -95,6 +95,7 @@ class MarketPluginService(object):
                     plugin_key=p.get('plugin_key'),
                     plugin_name=p.get('name'),
                     version=p.get('version'),
+                    desc=p.get('intro'),
                     pic=p.get('logo'),
                     build_version=p.get('build_version'),
                     record_id=0,
@@ -117,7 +118,8 @@ class MarketPluginService(object):
             template = plugin_template.get('template')
 
             rcp = RainbondCenterPlugin.objects.get(
-                plugin_key=template.get('plugin_key'), version=template.get('major_version')
+                plugin_key=template.get('plugin_key'), version=template.get('major_version'),
+                source='market'
             )
             rcp.share_user = 0
             user_name = template.get('share_user')
@@ -128,11 +130,7 @@ class MarketPluginService(object):
                 except Exception as e:
                     logger.exception(e)
 
-            # rcp.share_team = template.get('share_team')
             rcp.plugin_template = template.get('template_content')
-            # rcp.pic = template.get('pic')
-            rcp.desc = template.get('update_note')
-            # rcp.version = template.get('version')
             rcp.is_complete = True
             rcp.save()
             return True
@@ -381,7 +379,7 @@ class MarketPluginService(object):
                 region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
 
             config_groups, config_items = [], []
-            share_config_groups = share_plugin_info.get('config_groups')
+            share_config_groups = share_plugin_info.get('config_groups', [])
 
             for group in share_config_groups:
                 share_config_items = share_plugin_info.get('config_items', [])
