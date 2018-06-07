@@ -71,7 +71,7 @@ export default class Index extends PureComponent {
         plugin_id: this.getId()
       },
       callback: (data) => {
-          this.setState({isShareing:data._code !== '20021' }, ()=>{
+          this.setState({isShareing:data._code === '20021' }, ()=>{
           })
       }
     })
@@ -378,7 +378,11 @@ export default class Index extends PureComponent {
 }
           {/* <Button type="default" onClick={this.handleCreatePluginVersion}>创建新版本</Button> */}
           {/* <Button onClick={this.showDeleteVersion} type="default">删除当前版本</Button> */}
-          <Button type="default" onClick={this.sharePlugin}>{this.state.isShareing ? '继续分享' : '分享插件'}</Button>
+          {pluginUtil.isMarketPlugin(this.state.currInfo)
+            ? null
+            : <Button type="default" onClick={this.sharePlugin}>{this.state.isShareing ? '继续分享' : '分享插件'}</Button>
+          }
+          
         </ButtonGroup>
 
       </div>

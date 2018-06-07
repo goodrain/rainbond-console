@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import patterns, url
-from django.views.decorators.csrf import csrf_exempt
 
 from console.captcha.captcha_code import CaptchaView
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
@@ -49,6 +48,11 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
+from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
+    SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
+    UninstallPluginTemplateView, InstallableInteralPluginsView
+from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
+    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
@@ -56,6 +60,8 @@ from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServ
     ServiceEventsView, TeamServiceOverViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView
+from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
+    UserModifyPemView, TeamAddUserView, ServicePermissionView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
@@ -67,8 +73,6 @@ from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, 
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
-from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
 
 urlpatterns = patterns(
     '',
@@ -367,6 +371,24 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$',
         ServicePluginConfigView.as_view()),
 
+    # 插件分享
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/share/record$', PluginShareRecordView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)$', PluginShareInfoView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events$', PluginShareEventsView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
+        PluginShareEventView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/complete$',
+        PluginShareCompletionView.as_view()),
+
+    # 插件市场
+    url(r'^market/plugins$', MarketPluginsView.as_view()),
+    url(r'^market/plugins/sync$', SyncMarketPluginsView.as_view()),
+    url(r'^market/plugins/sync-template$', SyncMarketPluginTemplatesView.as_view()),
+    url(r'^market/plugins/uninstall-template$', UninstallPluginTemplateView.as_view()),
+    url(r'^market/plugins/install$', InstallMarketPlugin.as_view()),
+    url(r'^plugins$', InternalMarketPluginsView.as_view()),
+    url(r'^plugins/installable$', InstallableInteralPluginsView.as_view()),
+
     # 内部云市应用相关
     url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
@@ -422,9 +444,11 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
         GroupAppsBackupStatusView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$', GroupAppsBackupExportView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$',
+        GroupAppsBackupExportView.as_view()),
 
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$', GroupAppsBackupImportView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$',
+        GroupAppsBackupImportView.as_view()),
 
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复

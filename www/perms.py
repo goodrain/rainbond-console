@@ -47,6 +47,7 @@ class PermActions(object):
                                ('tenant_open_region', u'开通数据中心'),
                                ('delete_service', u"删除应用"),
                                ('share_service', u"应用组分享"),
+                               ('share_plugin', u"插件分享"),
                                ('manage_service_member_perms', u'应用权限设置'),
                                ('tenant_manage_role', u'自定义角色')
                            ) + tenant_developer_actions
