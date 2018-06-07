@@ -1,6 +1,6 @@
 import React, {PureComponent, Fragment} from 'react';
 import {connect} from 'dva';
-import {Card, Button, Icon, List} from 'antd';
+import {Card, Button, Icon, List, notification} from 'antd';
 import {Link, routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import globalUtil from '../../utils/global';
@@ -47,7 +47,7 @@ class MarketPlugin extends PureComponent {
            plugin_id: data.id
         },
         callback: (data) => {
-             Notification.success({
+            notification.success({
                message: '安装成功'
              });
              this.fetchPlugins();
@@ -58,7 +58,7 @@ class MarketPlugin extends PureComponent {
   renderTmp = () => {
        var list = this.state.list;
        if(!list) {
-           return <p style={{}}><Icon type="loading" /></p>
+           return <p style={{textAlign: 'center'}}><Icon type="loading" /></p>
        }
 
        list = list.filter((item) => {
