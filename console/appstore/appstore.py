@@ -11,6 +11,7 @@ from console.repositories.team_repo import team_repo
 logger = logging.getLogger('default')
 market_api = MarketOpenAPI()
 
+
 class AppStore(object):
     def __init__(self):
         pass
@@ -51,7 +52,14 @@ class AppStore(object):
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
                 namespace = image_config_dict.get("namespace", team_name)
-                image_info = {"hub_url": hub_url, "hub_user": hub_user, "hub_password": hub_password, "namespace": namespace}
+                is_trust = hub_url == 'hub.goodrain.com'
+                image_info = {
+                    "hub_url": hub_url,
+                    "hub_user": hub_user,
+                    "hub_password": hub_password,
+                    "namespace": namespace,
+                    "is_trust": is_trust
+                }
                 return image_info
         except Exception as e:
             logger.exception(e)
