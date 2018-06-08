@@ -144,7 +144,7 @@ class ExportBtn extends PureComponent {
                     //点击导出平台应用
                     if(type === 'rainbond-app'){
                         var rainbond_app = data.bean.rainbond_app || {};
-                        if(rainbond_app.is_export_before && rainbond_app.file_path){
+                        if(rainbond_app.status === 'success' && rainbond_app.file_path){
                             this.setState({is_rainbond_app_exporting: false})
                             this.download(rainbond_app.file_path);
                             return;
@@ -168,7 +168,7 @@ class ExportBtn extends PureComponent {
                     //点击导出compose
                     }else{
                         var docker_compose = data.bean.docker_compose || {};
-                        if(docker_compose.is_export_before && docker_compose.file_path){
+                        if(docker_compose.status === 'success' && docker_compose.file_path){
                             this.setState({is_docker_compose_exporting: false})
                             this.download(docker_compose.file_path);
                             return;
