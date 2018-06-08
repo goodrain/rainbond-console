@@ -95,8 +95,8 @@ class CenterAppExportView(RegionTenantHeaderView):
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            if app.source == "market":
-                return Response(general_message(412, "current type not support", "云市导入应用暂不支持导出"), status=412)
+            # if app.source == "market":
+            #     return Response(general_message(412, "current type not support", "云市导入应用暂不支持导出"), status=412)
 
             code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
             if code != 200:
