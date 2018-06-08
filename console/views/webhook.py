@@ -91,7 +91,7 @@ class WebHooksDeploy(AlowAnyApiView):
                                                         committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
                     return Response(result, status=400)
             # gitlab
             elif request.META.get("HTTP_X_GITLAB_EVENT", None):
@@ -157,7 +157,7 @@ class WebHooksDeploy(AlowAnyApiView):
                                                         committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
                     return Response(result, status=400)
             else:
                 logger.debug("暂时仅支持github与gitlab")
