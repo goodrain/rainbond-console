@@ -34,7 +34,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
             if not share_record.is_success and share_record.step < 3:
                 result = general_message(
                     20021, "share record not complete", "分享流程未完成", bean=share_record.to_dict())
-                return Response(result, status=200)
+                return Response(result, status=20021)
 
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
         return Response(data=result, status=200)
