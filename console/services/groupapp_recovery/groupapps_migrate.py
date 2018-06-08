@@ -5,7 +5,6 @@
 """
 from django.db import transaction
 
-from console.appstore.appstore import app_store
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from www.apiclient.regionapi import RegionInvokeApi
@@ -38,9 +37,13 @@ class GroupappsMigrateService(object):
         return AppMigrateType.CURRENT_REGION_CURRENT_TENANT
 
     def __copy_backup_record(self, restore_mode, origin_backup_record, current_team, current_region, migrate_team,
-                             migrate_region):
+                             migrate_region, migrate_type):
         """拷贝备份数据"""
-        new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+        services = group_service.get_group_services(origin_backup_record.group_id)
+        if not services and migrate_type == "recover":
+            new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
+        else:
+            new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
             original_data = region_api.get_backup_status_by_backup_id(current_region, current_team.tenant_name,
@@ -92,7 +95,7 @@ class GroupappsMigrateService(object):
         # 数据迁移到其他地方先处理数据中心数据拷贝
         new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
                                                                  current_region, migrate_team,
-                                                                 migrate_region)
+                                                                 migrate_region, migrate_type)
         if not new_backup_record:
             new_backup_record = backup_record
 
