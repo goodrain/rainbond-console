@@ -78,3 +78,26 @@ CREATE TABLE groupapp_migrate
     create_time datetime
 );
 CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);
+
+-- 插件分享增加字段
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN plugin_name VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN build_version VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN category VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN plugin_id VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN record_id INTEGER AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN `desc` VARCHAR(400) AFTER share_team;
+
+-- 插件分享记录事件表
+CREATE TABLE plugin_share_record_event(
+	ID INT AUTO_INCREMENT PRIMARY KEY,
+	record_id INT,
+	region_share_id VARCHAR(36),
+	team_id VARCHAR(32),
+	team_name VARCHAR(32),
+	plugin_id VARCHAR(32),
+	plugin_name VARCHAR(32),
+	event_id VARCHAR(32),
+	event_status VARCHAR(32),
+	create_time datetime NOT NULL,
+	update_time datetime NOT NULL
+);
