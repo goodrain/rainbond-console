@@ -83,7 +83,6 @@ class ExportBtn extends PureComponent {
             rainbond_app: null,
             is_docker_compose_exporting: false,
             is_rainbond_app_exporting: false
-
         }
     }
     componentDidMount(){
@@ -127,6 +126,7 @@ class ExportBtn extends PureComponent {
                 }else{
                     this.setState({is_docker_compose_exporting: true})
                 } 
+                this.queryExport(format)
             })
         })
     }
