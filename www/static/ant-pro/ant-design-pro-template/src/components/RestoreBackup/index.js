@@ -66,7 +66,7 @@ export default class Index extends PureComponent {
 					migrate_type:'recover'
 				},
 				callback: (data) => {
-					notification.success({message: "开始恢复中",duration:'2'});
+					// notification.success({message: "开始恢复中",duration:'2'});
 					this.setState({restore_id:data.bean.restore_id},()=>{
 						this.queryMigrateApp()
 					})

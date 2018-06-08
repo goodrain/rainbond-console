@@ -40,7 +40,6 @@ export default class Index extends PureComponent {
       fileList = fileList.filter((file) => {
         if (file.response) {
           return file.response.msg === 'success';
-          
         }
         return true;
       });
@@ -48,8 +47,12 @@ export default class Index extends PureComponent {
       this.setState({ fileList },()=>{
         const file = this.state.fileList
         if(file.length > 0){
+          console.log(file[0])
+          console.log(file[0].response)
           if(file[0].status == 'done'){
             this.props.onReLoad && this.props.onReLoad();
+          }else{
+            console.log("111111")
           }
         }
       });
@@ -61,7 +64,9 @@ export default class Index extends PureComponent {
     });
 		return false
 	}
-	
+  onData = (e)=>{
+     console.log(e)
+  }
     render(){
 	  const group_id = this.props.groupId;
       const team_name = globalUtil.getCurrTeamName();
@@ -81,8 +86,9 @@ export default class Index extends PureComponent {
                action={uploadUrl}
                fileList={fileList}
                onChange={this.onChange}
-			   headers = {myheaders}
-			   onRemove ={this.onRemove}
+			        headers = {myheaders}
+              onRemove ={this.onRemove}
+              data={this.onData}
             >
                 
                 {fileList.length > 0? null: <Button>请选择文件</Button>}

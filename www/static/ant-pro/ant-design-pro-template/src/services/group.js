@@ -312,13 +312,26 @@ export async function queryMigrateApp(body = {team_name,restore_id,group_id}) {
 }
 
 /*
-  应用备份删除
+  应用备份恢复删除
 */
 export async function delRestore(body = {team_name,group_id,new_group_id}) {
 	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
 				method: 'DELETE',
 				data: {
 					new_group_id: body.new_group_id
+				}
+});
+}
+
+
+/*
+  应用备份删除
+*/
+export async function delBackup(body = {team_name,group_id,backup_id}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
+				method: 'DELETE',
+				data: {
+					backup_id: body.backup_id
 				}
 });
 }

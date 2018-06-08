@@ -89,7 +89,7 @@ export default class Index extends PureComponent {
 					migrate_type:'migrate'
 				},
 				callback: (data) => {
-					notification.success({message: "开始迁移应用",duration:'2'});
+					// notification.success({message: "开始迁移应用",duration:'2'});
 					this.setState({restore_id:data.bean.restore_id},()=>{
 						this.queryMigrateApp()
 					})
