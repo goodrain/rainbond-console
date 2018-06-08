@@ -102,13 +102,21 @@ class AppExportService(object):
             if group:
                 region = group.region_name
             else:
-                return None
+                region = None
 
         if region:
             region_config = region_repo.get_region_by_region_name(region)
             if region_config:
                 return region
-            return None
+            region = None
+        else:
+            region = None
+        if not region and app.source == "market":
+            regions = region_repo.get_usable_regions()
+            if not regions:
+                return None
+            else:
+                return regions[0].region_name
         else:
             return None
 

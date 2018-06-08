@@ -194,7 +194,6 @@ export default class AppList extends PureComponent {
 		}
 	}
 	componentDidMount() {
-		
 		this.fetchBackup();
 		this.getGroupName();
 	}
@@ -308,7 +307,22 @@ export default class AppList extends PureComponent {
 		this.setState({showDel:true,backup_id:data.backup_id})
 	}
 	handleDelete = (e) =>{
-		console.log(e)
+		const team_name = globalUtil.getCurrTeamName();
+		this.props.dispatch({
+			type: 'groupControl/delBackup',
+			payload:{
+				team_name: team_name,
+				group_id: this.getGroupId(),
+				backup_id:this.state.backup_id
+			},
+			callback: (data) => {
+				notification.success({
+					message: '删除成功',
+					duration:'2'
+				});
+				this.fetchBackup();
+			}
+		})
 	}
 	cancelDelete = (e)=>{
 		this.setState({showDel:false,backup_id:''})

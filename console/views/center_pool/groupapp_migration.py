@@ -164,6 +164,8 @@ class GroupAppsView(RegionTenantHeaderView):
             new_group_id = request.data.get("new_group_id", None)
             if not new_group_id:
                 return Response(general_message(400, "new group id is null", "请确认新恢复的组"), status=400)
+            if group_id == new_group_id:
+                return Response(general_message(200, "success", "恢复到当前组无需删除"), status=200)
             group = group_repo.get_group_by_id(group_id)
             if not group:
                 return Response(general_message(400, "group not exist", "组ID {0} 不存在".format(group_id)), status=400)

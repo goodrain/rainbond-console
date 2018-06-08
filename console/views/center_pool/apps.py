@@ -17,6 +17,7 @@ from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
 import json
 from console.services.app_import_and_export_service import export_service
+from console.services.enterprise_services import enterprise_services
 
 logger = logging.getLogger('default')
 
@@ -201,6 +202,9 @@ class DownloadMarketAppGroupView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            if not enterprise.is_active:
+                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             logger.debug("start synchronized market apps")
             market_sycn_service.down_market_group_list(self.tenant)
             result = general_message(200, "success", "创建成功")
@@ -232,6 +236,9 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            if not enterprise.is_active:
+                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             group_data = request.data
             data_list = []
             for d in group_data:
