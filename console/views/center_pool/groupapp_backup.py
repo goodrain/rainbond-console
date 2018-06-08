@@ -148,18 +148,18 @@ class GroupAppsBackupView(RegionTenantHeaderView):
               description: 备份id
               required: true
               type: string
-              paramType: query
+              paramType: form
         """
         try:
             group_id = int(kwargs.get("group_id", None))
             if not group_id:
                 return Response(general_message(400, "group id is null", "请选择需要的组ID"), status=400)
-            backup_id = request.GET.get("backup_id", None)
+            backup_id = request.data.get("backup_id", None)
             if not backup_id:
                 return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
             code, msg = groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant,
-                                                                                                       self.response_region,
-                                                                                                       backup_id)
+                                                                                 self.response_region,
+                                                                                 backup_id)
             if code != 200:
                 return Response(general_message(code, "get backup status error", msg), status=code)
 
