@@ -44,6 +44,8 @@ CREATE TABLE groupapp_backup
     source_dir VARCHAR(256) DEFAULT '',
     backup_server_info VARCHAR(256) DEFAULT '',
     backup_size INT DEFAULT 0,
+    total_memory INT DEFAULT 0,
+    source_type VARCHAR (32) DEFAULT '',
     create_time DATETIME
 );
 
@@ -75,6 +77,8 @@ CREATE TABLE groupapp_migrate
     migrate_region varchar(15),
     status varchar(15),
     restore_id varchar(36) default null ,
+    original_group_id int,
+    original_group_uuid varchar(32) NOT NULL,
     create_time datetime
 );
 CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);
@@ -101,3 +105,6 @@ CREATE TABLE plugin_share_record_event(
 	create_time datetime NOT NULL,
 	update_time datetime NOT NULL
 );
+
+-- 域名添加域名类型和二级域名名称字段
+ALTER TABLE service_domain ADD domain_type varchar(20) DEFAULT 'www' NULL;

@@ -2,8 +2,6 @@ import request from '../utils/request';
 import config from '../config/config';
 
 
-
-
 /*
 获取所有的权限
 */

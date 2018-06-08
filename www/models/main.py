@@ -785,6 +785,7 @@ class ServiceDomain(BaseModel):
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='http', help_text=u"域名类型 http https httptphttps httpandhttps")
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
+    domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
 
     def __unicode__(self):
         return self.domain_name

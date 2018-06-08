@@ -25,7 +25,7 @@ IS_OPEN_API = False
 
 DEBUG = False
 
-conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, "www_com")
+conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
 
 if os.path.exists(conf_file):
     execfile(conf_file)

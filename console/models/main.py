@@ -8,7 +8,7 @@ from django.db.models.fields.files import FileField
 logger = logging.getLogger("default")
 
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
-plugin_scope = (("enterprise", u"企业"), ("team", u"团队"))
+plugin_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 user_identity = ((u"管理员", "admin"),)
 
 
@@ -80,17 +80,23 @@ class RainbondCenterPlugin(BaseModel):
     class Meta:
         db_table = "rainbond_center_plugin"
 
-    plugin_key = models.CharField(max_length=32, unique=True, help_text=u"插件级别")
+    plugin_key = models.CharField(max_length=32, unique=True, help_text=u"插件分享key")
+    plugin_name = models.CharField(max_length=32, help_text=u"插件名称")
+    plugin_id = models.CharField(max_length=32, null=True, help_text=u"插件id")
+    category = models.CharField(max_length=32, help_text=u"插件类别")
+    record_id = models.IntegerField(help_text=u"分享流程id")
     version = models.CharField(max_length=20, unique=True, help_text=u"版本")
-    pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"应用头像信息")
+    build_version = models.CharField(max_length=32, help_text=u"构建版本")
+    pic = models.CharField(max_length=100,null=True, blank=True, help_text=u"插件头像信息")
     scope = models.CharField(max_length=10, choices=plugin_scope, help_text=u"可用范围")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     share_user = models.IntegerField(help_text=u"分享人id")
     share_team = models.CharField(max_length=32, help_text=u"来源应用所属团队")
+    desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"插件描述信息")
     plugin_template = models.TextField(help_text=u"全量插件信息")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
-    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
 
     def __unicode__(self):
         return self.to_dict()
@@ -134,6 +140,27 @@ class ServiceShareRecordEvent(BaseModel):
     event_status = models.CharField(max_length=32, default="not_start", help_text=u"事件状态")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class PluginShareRecordEvent(BaseModel):
+    """插件分享订单关联发布事件"""
+
+    class Meta:
+        db_table = "plugin_share_record_event"
+
+    record_id = models.IntegerField(help_text=u"关联的记录ID")
+    region_share_id = models.CharField(max_length=36, help_text=u"应用数据中心分享反馈ID")
+    team_id = models.CharField(max_length=32, help_text=u"对应所在团队ID")
+    team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
+    plugin_id = models.CharField(max_length=32, help_text=u"对应插件ID")
+    plugin_name = models.CharField(max_length=32, help_text=u"对应插件名称")
+    event_id = models.CharField(max_length=32, default="", help_text=u"介质同步事件ID")
+    event_status = models.CharField(max_length=32, default="not_start", help_text=u"事件状态")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
     def __unicode__(self):
         return self.to_dict()
@@ -430,6 +457,7 @@ class UserMessage(BaseModel):
     title = models.CharField(max_length=64, help_text=u"消息标题", default=u"title")
     level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
 
+
 class AppImportRecord(BaseModel):
     class Meta:
         db_table = 'app_import_record'
@@ -453,7 +481,7 @@ class GroupAppBackupRecord(BaseModel):
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"备份版本")
-    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     team_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"团队ID")
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"备份人")
     region = models.CharField(max_length=15, null=True, blank=True, help_text=u"数据中心")
@@ -463,12 +491,15 @@ class GroupAppBackupRecord(BaseModel):
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     backup_size = models.IntegerField(help_text=u"备份文件大小")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    total_memory = models.IntegerField(help_text=u"备份应用的总内存")
     backup_server_info = models.CharField(max_length=400, null=True, blank=True, default="", help_text=u"备份服务信息")
+    source_type = models.CharField(max_length=32, null=True, blank=True, help_text=u"源类型")
 
 
 class GroupAppMigrateRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_migrate'
+
     group_id = models.IntegerField(help_text=u"组ID")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
@@ -478,5 +509,21 @@ class GroupAppMigrateRecord(BaseModel):
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
     migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    migrate_type = models.CharField(max_length=15, default="migrate", help_text=u"类型")
     restore_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"恢复ID")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    original_group_id = models.IntegerField(help_text=u"原始组ID")
+    original_group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"原始group UUID")
+
+
+class GroupAppBackupImportRecord(BaseModel):
+    class Meta:
+        db_table = 'groupapp_backup_import'
+
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    file_temp_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")

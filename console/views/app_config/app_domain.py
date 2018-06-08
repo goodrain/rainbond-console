@@ -10,8 +10,10 @@ from rest_framework.response import Response
 from console.services.app_config import domain_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from console.constants import DomainType
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
+from console.services.region_services import region_services
 
 logger = logging.getLogger("default")
 
@@ -84,7 +86,7 @@ class TenantCertificateView(RegionTenantHeaderView):
 
 class TenantCertificateManageView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除证书
@@ -115,7 +117,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改证书
@@ -235,7 +237,7 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         服务端口绑定域名
@@ -280,7 +282,7 @@ class ServiceDomainView(AppBaseView):
             certificate_id = request.data.get("certificate_id", None)
 
             code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id)
+                                                   protocol, certificate_id, DomainType.WWW)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -291,7 +293,7 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         服务端口解绑域名
@@ -361,6 +363,91 @@ class DomainView(RegionTenantHeaderView):
             is_exist = domain_service.is_domain_exist(domain_name)
             bean = {"is_domain_exist": is_exist}
             result = general_message(200, "success", "查询成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class SecondLevelDomainView(AppBaseView):
+    @never_cache
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        """
+        获取二级域名后缀
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            http_domain = region_services.get_region_httpdomain(self.service.service_region)
+            sld_suffix = "{0}.{1}".format(self.tenant.tenant_name, http_domain)
+            result = general_message(200, "success", "查询成功", {"sld_suffix": sld_suffix})
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        服务端口自定义二级域名
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: container_port
+              description: 服务端口
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            container_port = request.data.get("container_port", None)
+            domain_name = request.data.get("domain_name", None)
+            if not container_port or not domain_name:
+                return Response(general_message(400, "params error", "参数错误"), status=400)
+            container_port = int(container_port)
+            sld_domains = domain_service.get_sld_domains(self.service, container_port)
+            if not sld_domains:
+
+                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                                                       "http", None, DomainType.SLD_DOMAIN)
+                if code != 200:
+                    return Response(general_message(code, "bind domain error", msg), status=code)
+            else:
+                # 先解绑 再绑定
+                code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, sld_domains[0].domain_name)
+                if code != 200:
+                    return Response(general_message(code, "unbind domain error", msg), status=code)
+                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                                           "http", None, DomainType.SLD_DOMAIN)
+
+            result = general_message(200, "success", "二级域名修改成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

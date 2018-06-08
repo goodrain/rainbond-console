@@ -102,13 +102,21 @@ class AppExportService(object):
             if group:
                 region = group.region_name
             else:
-                return None
+                region = None
 
         if region:
             region_config = region_repo.get_region_by_region_name(region)
             if region_config:
                 return region
-            return None
+            region = None
+        else:
+            region = None
+        if not region and app.source == "market":
+            regions = region_repo.get_usable_regions()
+            if not regions:
+                return None
+            else:
+                return regions[0].region_name
         else:
             return None
 
@@ -292,6 +300,7 @@ class AppImportService(object):
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
+        key_and_version_list = []
         for app_template in metadata:
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
@@ -302,6 +311,10 @@ class AppImportService(object):
             if image_base64_string:
                 pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
 
+            key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
+            if key_and_version in key_and_version_list:
+                continue
+            key_and_version_list.append(key_and_version)
             rainbond_app = RainbondCenterApp(
                 group_key=app_template["group_key"],
                 group_name=app_template["group_name"],

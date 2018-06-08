@@ -5,7 +5,6 @@ console.log(process.env.NODE_ENV)
 export default {
   "entry" : "src/index.js",
   "extraBabelPlugins" : [
-    "transform-decorators-legacy",
     [
       "import", {
         "libraryName": "antd",

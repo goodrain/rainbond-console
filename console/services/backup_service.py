@@ -23,9 +23,12 @@ from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, c
 import json
 import logging
 from console.repositories.app import service_repo
+from www.utils.crypt import AuthCode
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+KEY = "GOODRAINLOVE"
 
 
 class GroupAppBackupService(object):
@@ -58,7 +61,7 @@ class GroupAppBackupService(object):
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
-        metadata = self.get_group_app_metadata(group_id, tenant)
+        total_memory, metadata = self.get_group_app_metadata(group_id, tenant)
         version = current_time_str("%Y%m%d%H%M%S")
         data = {
             "event_id": event_id,
@@ -70,6 +73,7 @@ class GroupAppBackupService(object):
             "slug_info": service_slug,
             "image_info": service_image
         }
+        # 向数据中心发起备份任务
         body = region_api.backup_group_apps(region, tenant.tenant_name, data)
         bean = body["bean"]
         record_data = {
@@ -84,8 +88,10 @@ class GroupAppBackupService(object):
             "mode": mode,
             "backup_id": bean.get("backup_id", ""),
             "source_dir": bean.get("source_dir", ""),
+            "source_type": bean.get("source_type", ""),
             "backup_size": bean.get("backup_size", 0),
             "user": user.nick_name,
+            "total_memory": total_memory,
             "backup_server_info": json.dumps({"slug_info": service_slug, "image_info": service_image})
         }
         backup_record = backup_record_repo.create_backup_records(**record_data)
@@ -106,6 +112,7 @@ class GroupAppBackupService(object):
             bean = body["bean"]
             backup_record.status = bean["status"]
             backup_record.source_dir = bean["source_dir"]
+            backup_record.source_type = bean["source_type"]
             backup_record.backup_size = bean["backup_size"]
             backup_record.save()
         return 200, "success", backup_record
@@ -116,9 +123,11 @@ class GroupAppBackupService(object):
             return 404, "不存在该备份记录"
         if backup_record.status == "starting":
             return 409, "该备份正在进行中"
+        if backup_record.status == "success":
+            return 409, "该备份不可删除"
         region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
         backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
-        return 200,"success"
+        return 200, "success"
 
     def get_group_backup_status_by_group_id(self, tenant, region, group_id):
         backup_records = backup_record_repo.get_record_by_group_id(group_id)
@@ -156,11 +165,13 @@ class GroupAppBackupService(object):
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
+        total_memory = 0
         for service in services:
+            total_memory += service.min_memory * service.min_node
             app_info = self.get_service_details(tenant, service)
             apps.append(app_info)
         all_data["apps"] = apps
-        return json.dumps(all_data)
+        return total_memory, json.dumps(all_data)
 
     def get_service_details(self, tenant, service):
         service_base = service.to_dict()
@@ -204,6 +215,71 @@ class GroupAppBackupService(object):
             "service_ports": [port.to_dict() for port in service_ports]
         }
         return app_info
+
+    def export_group_backup(self, tenant, backup_id):
+        backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
+        if not backup_record:
+            return 404, "不存在该备份记录", None
+        if backup_record.mode == "full-offline":
+            return 409, "本地备份数据暂不支持导出", None
+        if backup_record.status == "starting":
+            return 409, "正在备份中，请稍后重试", None
+
+        data_str = AuthCode.encode(json.dumps(backup_record.to_dict()), KEY)
+        return 200, "success", data_str
+
+    def import_group_backup(self, tenant, region, group_id, upload_file):
+        group = group_repo.get_group_by_id(group_id)
+        if not group:
+            return 404, "需要导入的组不存在", None
+        services = group_service.get_group_services(group_id)
+        if services:
+            return 409, "请确保需要导入的组中不存在应用", None
+        content = upload_file.read().strip()
+        data = json.loads(AuthCode.decode(content, KEY))
+        current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])
+        if current_backup:
+            return 412,"当前团队已导入过该备份", None
+        event_id = make_uuid()
+        group_uuid = make_uuid()
+        params = {
+            "event_id": event_id,
+            "group_id": group_uuid,
+            "status": data["status"],
+            "version": data["version"],
+            "source_dir": data["source_dir"],
+            "source_type": data["source_type"],
+            "backup_mode": data["mode"],
+            "backup_size": data["backup_size"]
+        }
+        body = region_api.copy_backup_data(region, tenant.tenant_name, params)
+
+        bean = body["bean"]
+        record_data = {
+            "group_id": group.ID,
+            "event_id": event_id,
+            "group_uuid": group_uuid,
+            "version": data["version"],
+            "team_id": tenant.tenant_id,
+            "region": region,
+            "status": bean["status"],
+            "note": data["note"],
+            "mode": data["mode"],
+            "backup_id": bean["backup_id"],
+            "source_dir": data["source_dir"],
+            "source_type": data["source_type"],
+            "backup_size": data["backup_size"],
+            "user": data["user"],
+            "total_memory": data["total_memory"],
+            "backup_server_info": data["backup_server_info"]
+        }
+
+        new_backup_record = backup_record_repo.create_backup_records(**record_data)
+        return 200, "success", new_backup_record
+
+    def update_backup_record_group_id(self, group_id, new_group_id):
+        """修改Groupid"""
+        backup_record_repo.get_record_by_group_id(group_id).update(group_id=new_group_id)
 
 
 groupapp_backup_service = GroupAppBackupService()

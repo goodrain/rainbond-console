@@ -284,28 +284,54 @@ export async function completeShare(body = {
 
 
 /*
-  应用备份迁移
+  应用备份迁移/恢复
 */
-export async function migrateApp(body = {team_name,region,team,backup_id,group_id}) {
+export async function migrateApp(body = {team_name,region,team,backup_id,group_id,migrate_type}) {
 		return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/migrate`, {
 					method: 'post',
 					data: {
 						region: body.region,
 						team: body.team,
-						backup_id: body.backup_id
+						backup_id: body.backup_id,
+						migrate_type:body.migrate_type
 					}
 	});
 }
 
 
 /*
-  应用备份迁移状态查询
+  应用备份迁移／恢复状态查询
 */
 export async function queryMigrateApp(body = {team_name,restore_id,group_id}) {
 	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/migrate`, {
 				method: 'get',
 				params: {
 					restore_id: body.restore_id
+				}
+});
+}
+
+/*
+  应用备份恢复删除
+*/
+export async function delRestore(body = {team_name,group_id,new_group_id}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
+				method: 'DELETE',
+				data: {
+					new_group_id: body.new_group_id
+				}
+});
+}
+
+
+/*
+  应用备份删除
+*/
+export async function delBackup(body = {team_name,group_id,backup_id}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
+				method: 'DELETE',
+				data: {
+					backup_id: body.backup_id
 				}
 });
 }

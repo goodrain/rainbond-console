@@ -5,7 +5,6 @@
 """
 from django.db import transaction
 
-from console.appstore.appstore import app_store
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from www.apiclient.regionapi import RegionInvokeApi
@@ -38,65 +37,114 @@ class GroupappsMigrateService(object):
         return AppMigrateType.CURRENT_REGION_CURRENT_TENANT
 
     def __copy_backup_record(self, restore_mode, origin_backup_record, current_team, current_region, migrate_team,
-                             migrate_region):
-        """拷贝数据"""
+                             migrate_region, migrate_type):
+        """拷贝备份数据"""
+        services = group_service.get_group_services(origin_backup_record.group_id)
+        if not services and migrate_type == "recover":
+            new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
+        else:
+            new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
             original_data = region_api.get_backup_status_by_backup_id(current_region, current_team.tenant_name,
                                                                       origin_backup_record.backup_id)
+
             new_event_id = make_uuid()
+            new_group_uuid = make_uuid()
             new_data = original_data["bean"]
             new_data["event_id"] = new_event_id
+            new_data["group_id"] = new_group_uuid
             # 存入其他数据中心
-            region_api.copy_backup_data(migrate_region, migrate_team.tenant_name, new_data)
+            body = region_api.copy_backup_data(migrate_region, migrate_team.tenant_name, new_data)
+            bean = body["bean"]
             params = origin_backup_record.to_dict()
             params.pop("ID")
             params["team_id"] = migrate_team.tenant_id
             params["event_id"] = new_event_id
+            params["group_id"] = new_group.ID
+            params["group_uuid"] = new_group_uuid
             params["region"] = migrate_region
-            backup_record_repo.create_backup_records(**params)
+            params["backup_id"] = bean["backup_id"]
 
-    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id):
+            new_backup_record = backup_record_repo.create_backup_records(**params)
+            return new_group, new_backup_record
+        return new_group, None
+
+    def __create_new_group(self, tenant_id, region, old_group_id):
+
+        old_group = group_repo.get_group_by_id(old_group_id)
+        new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+
+        new_group = group_repo.add_group(tenant_id, region, new_group_name)
+        return new_group
+
+    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type):
 
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
             return 404, "无备份记录", None
 
+        if migrate_type == "recover":
+            is_all_services_closed = self.__check_group_service_status(current_region, current_team,
+                                                                       backup_record.group_id)
+            if not is_all_services_closed:
+                return 409, "恢复备份请确保当前组下的应用全部关闭", None
+
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
-        self.__copy_backup_record(restore_mode, backup_record, current_team, current_region, migrate_team,
-                                  migrate_region)
+        new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
+                                                                 current_region, migrate_team,
+                                                                 migrate_region, migrate_type)
+        if not new_backup_record:
+            new_backup_record = backup_record
 
-        event_id = make_uuid()
-        service_slug = app_store.get_slug_connection_info("enterprise", current_team.tenant_name)
-        service_image = app_store.get_image_connection_info("enterprise", current_team.tenant_name)
+        backup_service_info = json.loads(new_backup_record.backup_server_info)
+        service_slug = backup_service_info["slug_info"]
+        service_image = backup_service_info["image_info"]
 
         data = {
-            "backup_id": backup_record.backup_id,
+            "backup_id": new_backup_record.backup_id,
             "restore_mode": restore_mode,
             "tenant_id": migrate_team.tenant_id,
             "slug_info": service_slug,
             "image_info": service_image
         }
-        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, backup_id, data)
+        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
 
         # 创建迁移记录
         params = {
-            "group_id": backup_record.group_id,
-            "group_uuid": backup_record.group_uuid,
-            "event_id": event_id,
+            "group_id": new_group.ID,
+            "group_uuid": new_backup_record.group_uuid,
+            "event_id": make_uuid(),
             "version": backup_record.version,
-            "backup_id": backup_record.backup_id,
+            "backup_id": new_backup_record.backup_id,
             "migrate_team": migrate_team.tenant_name,
             "migrate_region": migrate_region,
             "status": "starting",
             "user": user.nick_name,
-            "restore_id": body["bean"]["restore_id"]
+            "restore_id": body["bean"]["restore_id"],
+            "original_group_id": backup_record.group_id,
+            "original_group_uuid": backup_record.group_uuid,
+            "migrate_type": migrate_type
+
         }
         migrate_record = migrate_repo.create_migrate_record(**params)
 
         return 200, "操作成功，开始迁移", migrate_record
+
+    def __check_group_service_status(self, region, tenant, group_id):
+        services = group_service.get_group_services(group_id)
+        service_ids = [s.service_id for s in services]
+        if not service_ids:
+            return True
+        body = region_api.service_status(region, tenant.tenant_name,
+                                         {"service_ids": service_ids, "enterprise_id": tenant.enterprise_id})
+        status_list = body["list"]
+        for status in status_list:
+            if status["status"] not in ("closed", "undeploy"):
+                return False
+        return True
 
     def get_and_save_migrate_status(self, user, restore_id):
         migrate_record = migrate_repo.get_by_restore_id(restore_id)
@@ -109,26 +157,26 @@ class GroupappsMigrateService(object):
 
             bean = data["bean"]
             status = bean["status"]
-            if migrate_record.status == "starting":
-                service_change = bean["service_change"]
-                logger.debug("service change : {0}".format(service_change))
-                metadata = bean["metadata"]
-                migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
-                if status == "success":
-                    with transaction.atomic():
-                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata))
-                migrate_record.status = status
-                migrate_record.save()
-            else:
-                migrate_record.status = status
-                migrate_record.save()
+            service_change = bean["service_change"]
+            logger.debug("service change : {0}".format(service_change))
+            metadata = bean["metadata"]
+            migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
+            if status == "success":
+                with transaction.atomic():
+                    self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata), migrate_record.group_id)
+                    if migrate_record.migrate_type == "recover":
+                        # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
+                        backup_record_repo.get_record_by_group_id(migrate_record.original_group_id).update(
+                            group_id=migrate_record.group_id)
+                        self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
+            migrate_record.status = status
+            migrate_record.save()
 
         return 200, "success", migrate_record
 
-    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata):
-        group_info = metadata["group_info"]
-        group_name = '_'.join([group_info["group_name"], make_uuid()[-4:]])
-        group = group_repo.add_group(migrate_tenant.tenant_id, migrate_region, group_name)
+    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
+
+        group = group_repo.get_group_by_id(group_id)
         apps = metadata["apps"]
 
         old_new_service_id_map = dict()
@@ -149,7 +197,7 @@ class GroupappsMigrateService(object):
             self.__save_port(migrate_tenant, ts, app["service_ports"], lb_mapping_port)
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
-            self.__save_service_domain(ts, app["service_domains"])
+            # self.__save_service_domain(ts, app["service_domains"])
             self.__save_service_event(migrate_tenant, ts, app["service_events"])
             self.__save_service_perms(ts, app["service_perms"])
             self.__save_service_probes(ts, app["service_probes"])
@@ -327,5 +375,7 @@ class GroupappsMigrateService(object):
 
             TenantServiceMountRelation.objects.bulk_create(new_service_mnt_relation_list)
 
+    def update_migrate_original_group_id(self, old_original_group_id, new_original_group_id):
+        migrate_repo.get_by_original_group_id(old_original_group_id).update(original_group_id=new_original_group_id)
 
 migrate_service = GroupappsMigrateService()

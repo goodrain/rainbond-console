@@ -82,7 +82,7 @@ export const getRouterData = (app) => {
         'user', 'appControl', 'createApp', 'teamControl', 'plugin', 'region'
       ], () => import ('../layouts/BasicLayout'))
     },
-    '/team/:team/region/:region/source': {
+    '/team/:team/region/:region/source/:type?/:name?': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Source/Index'))
     },
     '/team/:team/region/:region/finance': {

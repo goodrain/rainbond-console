@@ -287,22 +287,19 @@ export default class shareCheck extends PureComponent {
     }
     handleCompleteShare = () => {
       const params = this.getParams();
+      const list = this.state.shareEventList;
       this
         .props
         .dispatch({
-          type: 'groupControl/completeShare',
+          type: 'global/complatePluginShare',
           payload: {
             team_name: globalUtil.getCurrTeamName(),
             share_id: params.shareId
           },
           callback: (data) => {
-            if(data.app_market_url){
-              window.location.href = data.app_market_url;
-              return;
-            }
             this
               .props
-              .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${params.groupId}`))
+              .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source/plugin/${encodeURIComponent(list[0].plugin_name)}`))
           }
         })
     }
@@ -391,8 +388,9 @@ export default class shareCheck extends PureComponent {
           return <PageHeaderLayout>
             <Card bordered={false}>
               {this.renderBody()}
+              
               {status === 'checking' && this.renderChecking()}
-              {status === 'success' && this.renderSuccess()}
+              {status === 'failure' && this.renderSuccess()}
               {status === 'failure' && this.renderError()}
             </Card>
             {this.state.showDelete && <ConfirmModal

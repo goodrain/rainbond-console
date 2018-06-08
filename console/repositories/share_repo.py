@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from console.models.main import RainbondCenterApp, ServiceShareRecord
+from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin
 from www.models import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, TenantServicePluginRelation, TenantServicePluginAttr, ServiceInfo, \
     TenantServiceExtendMethod, ServiceProbe
@@ -152,7 +152,11 @@ class ShareRepo(object):
         if not share_record:
             return None
         else:
-            return share_record[0]   
+            return share_record[0]
+
+    def get_share_plugin(self, plugin_id):
+        plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
+        return plugins.first() if plugins else None
 
 
 share_repo = ShareRepo()

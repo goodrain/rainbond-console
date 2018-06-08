@@ -15,4 +15,7 @@ class GroupAppMigrationRespository(object):
     def get_by_restore_id(self, restore_id):
         return GroupAppMigrateRecord.objects.filter(restore_id=restore_id).first()
 
+    def get_by_original_group_id(self, original_grup_id):
+        return GroupAppMigrateRecord.objects.filter(original_group_id=original_grup_id)
+
 migrate_repo = GroupAppMigrationRespository()

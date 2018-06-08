@@ -251,7 +251,7 @@ export default class SiderMenu extends PureComponent {
     const team_name = globalUtil.getCurrTeamName();
     const team = userUtil.getTeamByTeamName(user, team_name);
     if (ItemDom.key.indexOf('source') > -1) {
-      if (user.is_sys_admin) {
+      if (user.is_sys_admin || user.is_user_enter_amdin) {
         return ItemDom;
       }
       return null;

@@ -17,6 +17,7 @@ from console.services.group_service import group_service
 from console.services.market_app_service import market_sycn_service
 import json
 from console.services.app_import_and_export_service import export_service
+from console.services.enterprise_services import enterprise_services
 
 logger = logging.getLogger('default')
 
@@ -54,7 +55,8 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name)
+            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name) \
+                .order_by('-update_time')
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
@@ -200,6 +202,9 @@ class DownloadMarketAppGroupView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            if not enterprise.is_active:
+                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             logger.debug("start synchronized market apps")
             market_sycn_service.down_market_group_list(self.tenant)
             result = general_message(200, "success", "创建成功")
@@ -231,6 +236,9 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            if not enterprise.is_active:
+                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             group_data = request.data
             data_list = []
             for d in group_data:
@@ -279,7 +287,10 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
-            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete)
+
+            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
+                .order_by('is_complete')
+
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []

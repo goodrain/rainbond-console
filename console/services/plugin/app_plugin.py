@@ -2,32 +2,33 @@
 """
   Created on 18/1/29.
 """
+import copy
+import json
 import logging
 import os
+
+from addict import Dict
+
 from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
+from console.repositories.app import service_repo
+from console.repositories.app_config import port_repo
+from console.repositories.base import BaseConnection
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
     app_plugin_attr_repo, plugin_version_repo
-from console.repositories.app import service_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.services.app_config.app_relation_service import AppServiceRelationService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
 from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
-from console.repositories.base import BaseConnection
-from console.repositories.app_config import port_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from www.models.plugin import ServicePluginConfigVar,PluginConfigGroup,PluginConfigItems
-import json
-import copy
-from console.repositories.plugin import service_plugin_config_repo
-from addict import Dict
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
-
 
 
 class AppPluginService(object):
@@ -363,7 +364,6 @@ class AppPluginService(object):
                             "dest_service_alias": dep_service.service_alias
                         })
 
-
         result_bean["undefine_env"] = undefine_env
         result_bean["upstream_env"] = upstream_env_list
         result_bean["downstream_env"] = downstream_env_list
@@ -416,6 +416,7 @@ class AppPluginService(object):
                 protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):
@@ -522,7 +523,8 @@ class PluginService(object):
             code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region,
                                                                     needed_plugin_config["desc"],
                                                                     needed_plugin_config["plugin_alias"],
-                                                                    needed_plugin_config["category"], needed_plugin_config["build_source"],
+                                                                    needed_plugin_config["category"],
+                                                                    needed_plugin_config["build_source"],
                                                                     needed_plugin_config["image"],
                                                                     needed_plugin_config["code_repo"])
             plugin_base_info.origin = "local_market"
@@ -611,5 +613,5 @@ class PluginService(object):
         return 200, "删除成功"
 
     def get_default_plugin(self, region, tenant):
-        return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(origin_share_id__in=["perf_analyze_plugin","downstream_net_plugin"])
-
+        return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
+            origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin"])

@@ -16,7 +16,11 @@ import {
   deleteMsg,
   getMarketPlugins,
   syncMarketPlugins,
-  syncMarketPluginTmp
+  syncMarketPluginTmp,
+  complatePluginShare,
+  getCloudPlugin,
+  syncCloudPlugin,
+  deleteMarketPlugin
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -36,9 +40,46 @@ export default {
     rainbondInfo: null,
     apploadingnum: 0,
     //显示充值提示
-    payTip: false
+    payTip: false,
+    showAuthCompany: false
   },
   effects : {
+    *deleteMarketPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(deleteMarketPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *complatePluginShare({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(complatePluginShare, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *getMarketPlugins({
       payload,
       callback
@@ -298,7 +339,19 @@ export default {
         ...state,
         apploadingnum: state.apploadingnum - 1
       }
-    }
+    },
+    showAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: true
+      }
+    },
+    hideAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: false
+      }
+    },
   },
 
   subscriptions : {

@@ -1,6 +1,6 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import {connect} from 'dva';
-import {Card, Button, Icon, List} from 'antd';
+import {Card, Button, Icon, List, notification} from 'antd';
 import {Link, routerRedux} from 'dva/router';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import globalUtil from '../../utils/global';
@@ -12,6 +12,97 @@ import Ellipsis from '../../components/Ellipsis';
 import Manage from './manage';
 import ConfirmModal from '../../components/ConfirmModal';
 import NoPermTip from '../../components/NoPermTip';
+
+
+class MarketPlugin extends PureComponent {
+  constructor(props){
+     super(props);
+     this.state = {
+        list: null
+     }
+  }
+  componentDidMount(){
+      this.fetchPlugins();
+  }
+  fetchPlugins = () => {
+    this
+      .props
+      .dispatch({
+        type: 'plugin/getUnInstalledPlugin',
+        payload: {
+            page: 1,
+            limit: 1000
+        },
+        callback: ((data) => {
+          this.setState({
+            list: data.list || []
+          })
+        })
+      });
+  }
+  handleInstall = (data) => {
+     this.props.dispatch({
+        type: 'plugin/installMarketPlugin',
+        payload: {
+           plugin_id: data.id
+        },
+        callback: (data) => {
+            notification.success({
+               message: '安装成功'
+             });
+             this.fetchPlugins();
+             this.props.onInstallSuccess && this.props.onInstallSuccess()
+        }
+     })
+  }
+  renderTmp = () => {
+       var list = this.state.list;
+       if(!list) {
+           return <p style={{textAlign: 'center'}}><Icon type="loading" /></p>
+       }
+
+       list = list.filter((item) => {
+           return !item.is_installed && item.is_complete
+       })
+
+       return <List
+       rowKey="id"
+       grid={{
+       gutter: 24,
+       lg: 3,
+       md: 2,
+       sm: 1,
+       xs: 1
+     }}
+       dataSource={list}
+       renderItem={item => (<List.Item
+           key={item.id}
+           >
+           <Card
+             className={styles.card}
+             actions={[<span onClick={() => {this.handleInstall(item)}}>安装</span>]}>
+             <Card.Meta
+               style={{height: 99, overflow: 'hidden'}}
+               avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
+               title={item.plugin_name}
+               description={(
+               <Ellipsis className={styles.item} lines={3}>< p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
+                 pluginUtil.getCategoryCN(item.category)
+               } < /p>{item.desc}</Ellipsis>
+             )}/>
+           </Card>
+         </List.Item>
+       )}/>
+  }
+  render(){
+    const list = this.state.list || [];
+    return (
+      <div className={styles.cardList}>
+         {this.renderTmp()}
+      </div>
+    )
+  }
+}
 
 @connect(({list, loading}) => ({}))
 class PluginList extends PureComponent {
@@ -173,7 +264,7 @@ class PluginList extends PureComponent {
                   className={styles.card}
                   actions={this.getAction(item)}>
                   <Card.Meta
-                    style={{height: 99, overflow: 'hidden'}}
+                    style={{height: 100, overflow: 'hidden'}}
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={this.getItemTitle(item)}
                     description={(
@@ -198,6 +289,12 @@ class PluginList extends PureComponent {
           title="删除插件"
           desc="确定要删除此插件吗？"/>}
         </div>
+        <dl style={{paddingTop: 32, marginTop: 32}}>
+            <dt style={{marginBottom: '16px', fontSize: '18px'}}>从内部市场安装</dt>
+            <dd><MarketPlugin dispatch={this.props.dispatch} onInstallSuccess={this.fetchPlugins} /></dd>
+            
+        </dl>
+        
       </PageHeaderLayout>
     );
   }

@@ -87,11 +87,13 @@ class AppEventService(object):
         if event.type == "deploy" or event.type == "create":
             if (datetime.datetime.now() - start_time).seconds > 180:
                 event.final_status = "timeout"
+                event.status = "timeout"
                 event.save()
                 return True
         else:
             if (datetime.datetime.now() - start_time).seconds > 30:
                 event.final_status = "timeout"
+                event.status = "timeout"
                 event.save()
                 return True
         return False
@@ -226,7 +228,7 @@ class AppEventService(object):
     def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()
         for event in events:
-            if event.final_status == '':
+            if not event.final_status or not event.status:
                 local_events_not_complete[event.event_id] = event
 
         if not local_events_not_complete:

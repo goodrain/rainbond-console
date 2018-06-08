@@ -35,64 +35,56 @@ export default class Index extends PureComponent {
 		constructor(props) {
 			super(props);
 			this.state = {
-				teamsData:[],
-				regionData:[],
-				teamsName:'',
-				regionName:'',
-				teamsAlias:'',
-				regionAlias:'',
 				backup_id:this.props.backupId,
 				restore_id:'',
 				showRestore:false,
-				restore_status:''
+				restore_status:'',
+				new_group_id:''
 			}
 			this.mount = false;
 		}
 
 		componentDidMount() {
 			this.mount = true;
-			var teams = this.props.currUser.teams;
-			var teamsArr = [];
-			teams.map((order)=>{
-				var orderbox = {};
-				orderbox['team_alias']=order.team_alias;
-				orderbox['team_name']=order.team_name;
-				orderbox['region']=order.region;
-				teamsArr.push(orderbox);
-			})
-			this.setState({teamsData:teamsArr})
-			console.log(teamsArr)
+			
 		}
 		componentWillUnmount() {
 			this.mount = false;
 		}
 
-		handleSubmit = (e)=>{
+		handleRestore = (e)=>{
 			var teamsName = this.state.teamsName;
 			var regionName = this.state.regionName;
-			if(teamsName == ''){
-				notification.warning({message: "请选择迁移团队"})
-                return;
-			}
-			if(regionName == ''){
-				notification.warning({message: "请选择迁移数据中心"})
-                return;
-			}
 			this.props.dispatch({
 				type: 'groupControl/migrateApp',
 				payload:{
 					team_name: globalUtil.getCurrTeamName(),
-					region:this.state.regionName,
-					team: this.state.teamsName,
+					region:this.props.propsParams.region,
+					team: this.props.propsParams.team,
 					backup_id:this.props.backupId,
 					group_id:this.props.groupId,
-					migrate_type:'migrate'
+					migrate_type:'recover'
 				},
 				callback: (data) => {
-					// notification.success({message: "开始迁移应用",duration:'2'});
+					// notification.success({message: "开始恢复中",duration:'2'});
 					this.setState({restore_id:data.bean.restore_id},()=>{
 						this.queryMigrateApp()
 					})
+				}
+			})
+		}
+
+		handleSubmit = (e)=>{
+			this.props.dispatch({
+				type: 'groupControl/delRestore',
+				payload:{
+					team_name: globalUtil.getCurrTeamName(),
+					group_id:this.props.groupId,
+					new_group_id:this.state.new_group_id
+				},
+				callback: (data) => {
+					notification.success({message: "删除成功",duration:'2'});
+					//this.props.onCancel & this.props.onCancel()
 				}
 			})
 		}
@@ -109,16 +101,7 @@ export default class Index extends PureComponent {
 					group_id:this.props.groupId
 				},
 				callback: (data) => {
-					this.setState({showRestore:true,restore_status:data.bean.status})
-					if(data.bean.status == 'success'){
-						this
-						.props
-						.dispatch(routerRedux.push(`/team/${data.bean.migrate_team}/region/${data.bean.migrate_region}/groups/${data.bean.group_id}`));
-						location.reload();
-					}
-					if(data.bean.status == 'failed'){
-						this.props.onCancel && this.props.onCancel()
-					}
+					this.setState({showRestore:true,restore_status:data.bean.status,new_group_id:data.bean.group_id})
 					if(data.bean.status == 'starting'){
 						setTimeout(() => {
 							this.queryMigrateApp();
@@ -128,40 +111,33 @@ export default class Index extends PureComponent {
 			})
 	    }
 
-		handleTeamsChange = (value) => {
-			const teamsData = this.state.teamsData;
-			var regionList =[];
-			teamsData.map((order)=>{
-				if(order.team_name == value){
-					regionList = order.region
-				}
-			})
-			this.setState({teamsName:value,regionData:regionList})
-		}
-		onRegionChange = (value) => {
-			var regionData = this.state.regionData;
-			this.setState({regionName:value})
-		}
+	  
 		
 		render() {
-			const teamsData = this.state.teamsData || [];
-			const regionData = this.state.regionData || [];
 			const restoreStatus = this.state.restore_status;
 			return (
 				<Modal
 					visible={true}
 					onCancel={this.props.onCancel}
-					onOk={this.handleSubmit}
-					title="迁移"
+					title="恢复"
 					footer={
-						this.state.showRestore?
-						[<Button key="back" onClick={this.props.onCancel}>关闭</Button>]
+						!this.state.showRestore?
+						[<Button key="back" onClick={this.props.onCancel}>关闭</Button>,
+						<Button key="submit" type="primary"  onClick={this.handleRestore}>
+							恢复
+						</Button>
+						]
 						:
+						restoreStatus == 'success'?
 						[
 						<Button key="back" onClick={this.props.onCancel}>关闭</Button>,
 						<Button key="submit" type="primary"  onClick={this.handleSubmit}>
-							迁移
-						</Button>
+							确认
+						</Button>	
+					   ]
+					   :
+					   [
+						<Button key="back" onClick={this.props.onCancel}>关闭</Button>
 					   ]
 					}
 					>
@@ -175,7 +151,7 @@ export default class Index extends PureComponent {
 										<Spin />
 									</p>
 									<p style={{textAlign:'center',fontSize:'14px'}}>
-										迁移中，请稍后(请勿关闭弹窗)
+										恢复中，请稍后(请勿关闭弹窗)
 									</p>
 								</div>
 								:''
@@ -188,7 +164,7 @@ export default class Index extends PureComponent {
 										<Icon type="check-circle-o" />
 									</p>
 									<p style={{textAlign:'center',fontSize:'14px'}}>
-										迁移成功
+										恢复成功，是否删除原备份？
 									</p>
 								</div>
 								:''
@@ -200,7 +176,7 @@ export default class Index extends PureComponent {
 										<Icon type="close-circle-o" />
 									</p>
 									<p style={{textAlign:'center',fontSize:'14px'}}>
-										迁移失败，请重新迁移
+										恢复失败，请重新恢复
 									</p>
 								</div>
 								:''
@@ -208,25 +184,7 @@ export default class Index extends PureComponent {
 						</div>
 						:
 						<div>
-							<p>请选择迁移的团队和数据中心</p>
-							<Select style={{ width: 120, marginRight:'10px'}} onSelect={this.handleTeamsChange} defaultValue='请选择团队'>
-								{
-									teamsData.map((order)=>{
-										return(
-											<Option value={order.team_name}>{order.team_alias}</Option>
-										)
-									})
-								}
-							</Select>
-							<Select style={{ width: 120 }} onSelect={this.onRegionChange} defaultValue='请选择数据中心'>
-								{
-									regionData.map((order)=>{
-										return(
-											<Option value={order.team_region_name}>{order.team_region_alias}</Option>
-										)
-									})
-								}
-							</Select>
+							<p>您是否要恢复备份到当前数据中心?</p>
 						</div>
 					}
 					

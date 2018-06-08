@@ -268,3 +268,90 @@ class AppPortManageView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class AppTcpOuterManageView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取当前可修改的tcp端口信息
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: port
+              description: 端口号
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            tcp_outer_ports = port_service.get_team_region_usable_tcp_ports(self.tenant, self.service)
+
+            port_list = []
+            for p in tcp_outer_ports:
+                port_list.append({"service_id": p.service_id, "lb_mpping_port": p.lb_mapping_port})
+            result = general_message(200, "success", "查询成功", list=port_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        修改负载均衡端口
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: lb_mapping_port
+              description: 需要修改的负载均衡端口
+              required: true
+              type: integer
+              paramType: form
+            - name: service_id
+              description: 需要修改的负载均衡端口对应的服务ID
+              required: true
+              type: integer
+              paramType: form
+
+        """
+        container_port = kwargs.get("port", None)
+        lb_mapping_port = request.data.get("lb_mapping_port", None)
+        mapping_service_id = request.data.get("service_id", None)
+        try:
+            container_port = int(container_port)
+            lb_mapping_port = int(lb_mapping_port)
+            if not container_port:
+                return Response(general_message(400, "params error", u"缺少端口参数"), status=400)
+            if not lb_mapping_port:
+                return Response(general_message(400, "params error", u"缺少需要修改的负载均衡端口参数"), status=400)
+            if not mapping_service_id:
+                return Response(general_message(400, "params error", u"缺少端口对应的服务ID"), status=400)
+            port_service.change_lb_mapping_port(self.tenant, self.service, container_port,
+                                                lb_mapping_port, mapping_service_id)
+
+            result = general_message(200, "success", "端口修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
