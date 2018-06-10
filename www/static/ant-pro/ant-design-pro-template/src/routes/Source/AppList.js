@@ -173,7 +173,6 @@ class ExportBtn extends PureComponent {
                             this.download(docker_compose.file_path);
                             return;
                         }
-
                         //导出中
                         if(docker_compose.status === 'exporting'){
                             this.setState({is_docker_compose_exporting: true});

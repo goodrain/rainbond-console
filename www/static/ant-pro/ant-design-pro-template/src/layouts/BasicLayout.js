@@ -18,7 +18,7 @@ import globalUtil from '../utils/global';
 import cookie from '../utils/cookie';
 import Authorized from '../utils/Authorized';
 import {getMenuData} from '../common/menu';
-import logo from '../../public/logo-icon-35.png';
+import logo from '../../public/logo.png';
 import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
