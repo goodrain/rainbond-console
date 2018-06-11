@@ -89,7 +89,7 @@ export default class Index extends PureComponent {
         const {loading, isChecked} = this.state;
 
         //不是系统管理员
-        if (!userUtil.isSystemAdmin(currUser)) {
+        if (!userUtil.isSystemAdmin(currUser) || !userUtil.isCompanyAdmin(currUser)) {
             this
                 .props
                 .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/Exception/403`))
