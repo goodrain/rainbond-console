@@ -21,6 +21,7 @@ TimerQueue.prototype = {
     },
     start: function () {
         var self = this;
+        this.isStarted = true;
         this.timer = setInterval(function () {
             if (!self.queue.empty()) {
                 self.execute();
