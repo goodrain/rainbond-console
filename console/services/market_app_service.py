@@ -609,6 +609,9 @@ class AppMarketSynchronizeService(object):
                 rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
                 rbc.template_version = app_group.get("template_version", rbc.template_version)
                 rbc.save()
+                # 应用更新，删除导出记录
+                app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
+                                                                 app_group["group_version"])
             else:
                 rainbond_app = RainbondCenterApp(
                     group_key=app_group["group_key"],
