@@ -18,7 +18,6 @@ from console.services.backup_service import groupapp_backup_service
 from console.constants import StorageUnit
 from console.services.team_services import team_services
 
-
 logger = logging.getLogger('default')
 
 
@@ -69,9 +68,12 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                 return Response(general_message(412, "state service is not closed",
                                                 "您有有状态服务未关闭,应用如下 {0}".format(",".join(running_state_services))),
                                 status=412)
-            back_up_record = groupapp_backup_service.back_up_group_apps(self.tenant, self.user, self.response_region,
-                                                                        group_id,
-                                                                        mode, note)
+            code, msg, back_up_record = groupapp_backup_service.back_up_group_apps(self.tenant, self.user,
+                                                                                   self.response_region,
+                                                                                   group_id,
+                                                                                   mode, note)
+            if code != 200:
+                return Response(general_message(code, "backup not success", msg), status=code)
 
             bean = back_up_record.to_dict()
             bean.pop("backup_server_info")
@@ -250,7 +252,8 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
             backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.response_region, group_id)
             paginator = JuncheePaginator(backups, int(page_size))
             backup_records = paginator.page(int(page))
-            result = general_message(200, "success", "查询成功", list=[backup.to_dict() for backup in backup_records], total=paginator.count)
+            result = general_message(200, "success", "查询成功", list=[backup.to_dict() for backup in backup_records],
+                                     total=paginator.count)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

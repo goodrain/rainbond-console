@@ -5,7 +5,7 @@ import {Icon} from 'antd';
 import {connect} from 'dva';
 import GlobalFooter from '../components/GlobalFooter';
 import styles from './UserLayout.less';
-import logo from '../../public/logo-icon-44.png';
+import logo from '../../public/logo.png';
 import {getRoutes} from '../utils/utils';
 
 const links = [

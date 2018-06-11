@@ -10,6 +10,7 @@ import {enquireScreen} from 'enquire-js';
 import GlobalHeader from '../components/GlobalHeader';
 import GlobalFooter from '../components/GlobalFooter';
 import SiderMenu from '../components/SiderMenu';
+import AuthCompany from '../components/AuthCompany';
 import NotFound from '../routes/Exception/404';
 import {getRoutes} from '../utils/utils';
 import userUtil from '../utils/user';
@@ -17,7 +18,7 @@ import globalUtil from '../utils/global';
 import cookie from '../utils/cookie';
 import Authorized from '../utils/Authorized';
 import {getMenuData} from '../common/menu';
-import logo from '../../public/logo-icon-35.png';
+import logo from '../../public/logo.png';
 import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
@@ -636,6 +637,7 @@ class BasicLayout extends React.PureComponent {
                 <Loading/>
                 {rainbondInfo.is_public && <Meiqia />}
                 {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
+                {this.props.showAuthCompany && <AuthCompany />}
             </Fragment>
         );
     }
@@ -653,6 +655,7 @@ export default connect(({user, global, loading}) => {
         currTeam: global.currTeam,
         currRegion: global.currRegion,
         rainbondInfo: global.rainbondInfo,
-        payTip: global.payTip
+        payTip: global.payTip,
+        showAuthCompany: global.showAuthCompany
     })
 })(BasicLayout);

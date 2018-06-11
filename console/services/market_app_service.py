@@ -12,7 +12,7 @@ from console.constants import AppConstants
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
@@ -600,12 +600,18 @@ class AppMarketSynchronizeService(object):
         for app_group in app_group_list:
             rbc = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_group["group_key"],
                                                                         app_group["group_version"])
+            # 应用更新，删除导出记录
+            app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
+                                                             app_group["group_version"])
             if rbc:
                 rbc.describe = app_group["info"]
                 rbc.pic = app_group["pic"]
                 rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
                 rbc.template_version = app_group.get("template_version", rbc.template_version)
                 rbc.save()
+                # 应用更新，删除导出记录
+                app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
+                                                                 app_group["group_version"])
             else:
                 rainbond_app = RainbondCenterApp(
                     group_key=app_group["group_key"],

@@ -19,6 +19,7 @@ import {
     Menu
 } from 'antd';
 import Result from '../../components/Result';
+
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './Index.less';
 import BasicListStyles from '../List/BasicList.less';
@@ -95,63 +96,6 @@ export default class Index extends PureComponent {
             return null;
         }
 
-        //如果未进行平台验证
-        if (currUser.is_enterprise_active !== 1) {
-            const step = this.state.currStep;
-            const extra = (
-                <div>
-                    <Steps
-                        style={{
-                        margin: '0 auto',
-                        width: 'calc(100% - 80px)'
-                    }}
-                        progressDot
-                        current={step}>
-                        <Step title={"获取认证信息"}>yyy</Step>
-                        <Step title={"填写认证信息"}></Step>
-                    </Steps>
-                    <div
-                        style={{
-                        textAlign: 'center',
-                        padding: '80px 0',
-                        display: step === 0
-                            ? 'block'
-                            : 'none'
-                    }}>
-                        <p>到好雨官方获取您企业的认证信息，如未登录需要先进行登录</p>
-                        <Button onClick={this.handleTakeInfo} type="primary">去获取</Button>
-                    </div>
-
-                    <div
-                        style={{
-                        textAlign: 'center',
-                        padding: '80px 0',
-                        width: '350px',
-                        margin: '0 auto',
-                        display: step === 1
-                            ? 'block'
-                            : 'none'
-                    }}>
-                        <AuthForm onSubmit={this.handleAuthEnterprise}/>
-                    </div>
-                </div>
-            );
-
-            return (
-                <Card>
-                    <Result
-                        type="error"
-                        title="需要进行互联认证"
-                        description="请按以下步骤提示进行平台认证"
-                        extra={extra}
-                        style={{
-                        marginTop: 48,
-                        marginBottom: 16
-                    }}/>
-                </Card>
-            )
-        }
-
         if(this.state.scope === 'app'){
             return <AppList {...this.props}/>
         }
@@ -194,6 +138,7 @@ export default class Index extends PureComponent {
                 onTabChange={this.handleTabChange}
                 content={pageHeaderContent}>
                 {this.renderContent()}
+                
             </PageHeaderLayout>
         );
     }

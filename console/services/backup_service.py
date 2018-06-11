@@ -57,7 +57,9 @@ class GroupAppBackupService(object):
     def back_up_group_apps(self, tenant, user, region, group_id, mode, note):
         service_slug = app_store.get_slug_connection_info("enterprise", tenant.tenant_name)
         service_image = app_store.get_image_connection_info("enterprise", tenant.tenant_name)
-
+        if mode == "full-online":
+            if not service_slug or not service_image:
+                return 412, "未配置sftp和hub仓库信息", None
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
@@ -95,7 +97,7 @@ class GroupAppBackupService(object):
             "backup_server_info": json.dumps({"slug_info": service_slug, "image_info": service_image})
         }
         backup_record = backup_record_repo.create_backup_records(**record_data)
-        return backup_record
+        return 200, "success", backup_record
 
     def get_backup_group_uuid(self, group_id):
         backup_record = backup_record_repo.get_record_by_group_id(group_id)

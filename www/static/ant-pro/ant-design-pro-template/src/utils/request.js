@@ -140,6 +140,10 @@ export default function request(url, options) {
                     dispatch && dispatch({type: 'global/showPayTip'});
                 }
 
+                if (resData.code === 10407) {
+                    dispatch && dispatch({type: 'global/showAuthCompany'});
+                }
+
                 if (resData.code === 10405) {
                     cookie.remove('token');
                     cookie.remove('token', {domain: ''});
