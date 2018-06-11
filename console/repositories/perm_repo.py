@@ -486,6 +486,7 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("tenant_manage_role"))
             TenantUserRolePermission.objects.create(role_id=owner_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("share_plugin"))
 
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
@@ -512,6 +513,7 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_manage_role"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("share_plugin"))
 
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_group"))
