@@ -305,6 +305,8 @@ class AppImportService(object):
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
             if app:
+                app.is_complete = True
+                app.save()
                 continue
             image_base64_string = app_template.pop("image_base64_string", "")
             pic_url = ""
