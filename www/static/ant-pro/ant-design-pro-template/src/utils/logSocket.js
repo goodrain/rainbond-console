@@ -75,6 +75,11 @@ LogSocket.prototype = {
 	},
 	_onError: function() {
 		this.onError();
+	},
+	destroy: function() {
+	    this.destroyed = true;
+		this.webSocket.close();
+		this.webSocket = null;
 	}
 }
 

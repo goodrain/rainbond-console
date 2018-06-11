@@ -71,11 +71,10 @@ export default class Index extends PureComponent {
 		this.state.datas = [];
 	}
 	
-	renderLogItem = (data) => {
-		
+	renderLogItem = (data, i) => {
 		if(typeof data.message === 'string'){
 			var msg = data.message;
-			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
+			return <p key={i} style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
 		}else{
 			try{
 				const message = data.message;
@@ -86,7 +85,7 @@ export default class Index extends PureComponent {
 				msg += message.status||'';
 				msg += message.progress||'';
 				if(data.step != 'build-progress'){
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
+					return <p key={msg} style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
 				}else{
 					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
 				}				
@@ -101,8 +100,8 @@ export default class Index extends PureComponent {
 		return (
 			<div style={{maxHeight: 300, overflowY: 'auto'}}>
 			{
-				datas.map((data) => {
-					return this.renderLogItem(data);
+				datas.map((data, i) => {
+					return this.renderLogItem(data, i);
 				})
 			}
 			</div>
