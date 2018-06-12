@@ -33,8 +33,7 @@ class MarketPluginsView(RegionTenantHeaderView):
 
             # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
             total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name, page=page, limit=limit, order_by='is_complete', source='market',
-                scope='goodrain'
+                plugin_name, page=page, limit=limit, order_by='is_complete'
             )
             result = general_message(
                 200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
