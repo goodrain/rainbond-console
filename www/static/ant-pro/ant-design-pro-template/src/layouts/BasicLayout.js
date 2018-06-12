@@ -22,6 +22,7 @@ import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
 import ChangePassword from '../components/ChangePassword';
+import WelcomeAndCreateTeam from '../components/WelcomeAndCreateTeam'
 
 const {Content} = Layout;
 const {AuthorizedRoute} = Authorized;
@@ -163,7 +164,8 @@ class BasicLayout extends React.PureComponent {
         isInit: false,
         openRegion: false,
         createTeam: false,
-        showChangePassword: false
+        showChangePassword: false,
+        showWelcomeCreateTeam: false
     };
     onOpenRegion = () => {
         this.setState({openRegion: true})
@@ -231,6 +233,12 @@ class BasicLayout extends React.PureComponent {
                 callback: (user) => {
                     var currTeam = globalUtil.getCurrTeamName();
                     var currRegion = globalUtil.getCurrRegionName();
+
+                    //检测是否有数据中心
+                    if(!user.teams || !user.teams.length){
+                        this.setState({showWelcomeCreateTeam: true});
+                        return;
+                    }
 
                     //验证路径里的团队是否有效
                     if (!currTeam || !currRegion) {
@@ -498,10 +506,13 @@ class BasicLayout extends React.PureComponent {
     checkHasTeam = () => {
         const currentUser = this.props.currentUser;
         if(!currentUser.teams || !currentUser.teams.length){
-           
             return false;
         }
         return true;
+    }
+    handleInitTeamOk = () => {
+        this.setState({showWelcomeCreateTeam: false});
+        this.fetchUserInfo();
     }
     render() {
         const {
@@ -521,13 +532,19 @@ class BasicLayout extends React.PureComponent {
         } = this.props;
         const bashRedirect = this.getBashRedirect();
 
+
+        if(!currentUser) return null;
+
+        //检测用户有没有团队, 没有团队就认为是新用户， 弹欢迎页面并引导创建团队和数据中心
+        if(!this.checkHasTeam()){
+            return <WelcomeAndCreateTeam onOk={this.handleInitTeamOk} />;
+        }
+
+        //检测信息是否初始化完成
         if (!this.isInited()) {
             return null;
         }
 
-        if(!this.checkHasTeam()){
-            return <NoTeamTip />;
-        }
 
         if(!this.checkTeamAndRegion()){
             return null;

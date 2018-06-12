@@ -13,7 +13,9 @@ import {
   offlineMarketApp,
   getuserMessage,
   putMsgAction,
-  deleteMsg
+  deleteMsg,
+  getAllRegion,
+  InitTeam
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -36,6 +38,24 @@ export default {
     payTip: false
   },
   effects : {
+    *InitTeam({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(InitTeam, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getAllRegion({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getAllRegion, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *offlineMarketApp({
       payload,
       callback
@@ -150,7 +170,6 @@ export default {
           callback && callback();
         })
       }
-
     },
     *fetchIsPublic(_, {call, put}) {
       const data = yield call(isPubCloud);

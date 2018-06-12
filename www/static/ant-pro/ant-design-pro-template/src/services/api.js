@@ -2,6 +2,17 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+
+/*
+  初始化一个团队
+*/
+export async function InitTeam(body={team_alias, region_name}){
+  return request(config.baseUrl + `/console/teams/init`, {
+    method: 'post',
+    data: body
+  });
+}
+
 /* 获取某个数据中心的资源详情 */
 export async function getRegionSource(body={team_name, region}){
   return request(config.baseUrl + `/console/enterprise/region/resource`, {
