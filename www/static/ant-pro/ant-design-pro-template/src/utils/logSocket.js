@@ -1,13 +1,3 @@
-/*
-	
-	当对应用进行重新部署、启动、关闭、回滚等操作时会先去服务器请求一个操作事件eventId
-	请求成功后会根据这个eventId发起ajax进行相应的操作
-	操作成功后可以用webSocket来获取对应的操作日志信息， 需要把eventId send给服务器
-	这个类就是对本webSocket的封装, 该类不会对需要的参数做校验
-
-	本类依赖TimerQueue工具类
-*/
-
 import TimerQueue from './timerQueue';
 function noop(){}
 
@@ -29,7 +19,8 @@ function LogSocket(option){
 	this.webSocket.onclose = this._onClose.bind(this);
 	this.webSocket.onerror = this._onError.bind(this);
 	this.timerQueue = new TimerQueue({
-		onExecute:this.onMessage
+		onExecute:this.onMessage,
+		interval:option.interval || 400
 	})
 
 }

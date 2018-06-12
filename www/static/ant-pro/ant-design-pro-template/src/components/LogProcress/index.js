@@ -5,6 +5,35 @@ import { Link } from 'dva/router';
 import { Card, Button, Table, notification, Badge } from 'antd';
 import LogSocket from '../../utils/logSocket'
 
+class Item extends PureComponent {
+	render(){
+		const data = this.props.data;
+		if(typeof data.message === 'string'){
+			var msg = data.message;
+			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
+		}else{
+			try{
+				const message = data.message;
+				var msg = '';
+				if(message.id){
+					msg += message.id+':'
+				}
+				msg += message.status||'';
+				msg += message.progress||'';
+				if(data.step != 'build-progress'){
+					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
+				}else{
+					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
+				}				
+			}catch(e){
+				return null;
+			}
+		}
+		
+		
+	}
+}
+
 
 export default class Index extends PureComponent {
 	constructor(props){
@@ -72,27 +101,7 @@ export default class Index extends PureComponent {
 	}
 	
 	renderLogItem = (data, i) => {
-		if(typeof data.message === 'string'){
-			var msg = data.message;
-			return <p key={i} style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
-		}else{
-			try{
-				const message = data.message;
-				var msg = '';
-				if(message.id){
-					msg += message.id+':'
-				}
-				msg += message.status||'';
-				msg += message.progress||'';
-				if(data.step != 'build-progress'){
-					return <p key={msg} style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
-				}else{
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
-				}				
-			}catch(e){
-				return null;
-			}
-		}
+		
 	}
 	render(){
 		const datas = this.state.datas || [];
@@ -101,7 +110,7 @@ export default class Index extends PureComponent {
 			<div style={{maxHeight: 300, overflowY: 'auto'}}>
 			{
 				datas.map((data, i) => {
-					return this.renderLogItem(data, i);
+					return <Item data={data} key={i} />;
 				})
 			}
 			</div>
