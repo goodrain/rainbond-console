@@ -167,8 +167,7 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
             limit = request.GET.get('limit', 10)
 
             total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name, is_complete=True, tenant=self.tenant, source='market',
-                page=page, limit=limit
+                plugin_name, is_complete=True, tenant=self.tenant, page=page, limit=limit
             )
 
             installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \

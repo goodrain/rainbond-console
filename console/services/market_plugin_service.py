@@ -371,7 +371,7 @@ class MarketPluginService(object):
             if status != 200:
                 return status, msg
 
-            plugin_base_info.origin = "market"
+            plugin_base_info.origin = 'local_market' if market_plugin.source == 'local' else market_plugin.source
             plugin_base_info.origin_share_id = share_plugin_info.get("plugin_key")
             plugin_base_info.save()
 
