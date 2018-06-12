@@ -24,7 +24,10 @@ class ConfigInfoView(AlowAnyApiView):
             data = dict()
             logo = config_service.get_image()
             host_name = request.get_host()
-            data["logo"] = "{0}://{1}{2}".format(request.scheme, str(host_name), str(logo))
+            if not logo:
+                data["logo"] = ""
+            else:
+                data["logo"] = "{0}://{1}{2}".format(request.scheme, str(host_name), str(logo))
             # 判断是否为公有云
             if settings.MODULES.get('SSO_LOGIN'):
                 data["url"] = "https://sso.goodrain.com/#/login/"
