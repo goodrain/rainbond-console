@@ -76,7 +76,11 @@ class AppWebSocketService(object):
                 return '{0}:6060'.format(host)
             else:
                 if "://" in region.wsurl:
-                    return region.wsurl.split("://", 1)[1]
+                    ws_info = region.wsurl.split("://", 1)
+                    if ws_info[0] == "wss":
+                        return "https://{0}".format(ws_info[1])
+                    else:
+                        return "http://{0}".format(ws_info[1])
                 return region.wsurl
 
 
