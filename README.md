@@ -3,7 +3,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-ui.svg?style=flat-square)](https://github.com/goodrain/rainbond-ui/stargazers)
 
-[Website](http://www.rainbond.com) • [Docs](https://www.rainbond.com/docs/stable/) • [Public Cloud](https://sso.goodrain.com/#/login/https%3A%2F%2Fwww.goodrain.com%2F%23%2Findex)
+[Website](http://www.rainbond.com) • [Docs](https://www.rainbond.com/docs/stable/) • [Public Cloud](https://console.goodrain.com)
 
 **Rainbond** is an application-centric Platform as a Service, with innovative concept and complete ecological comes from continuous verification and optimization.
 
@@ -14,16 +14,22 @@ Choose Rainbond for the same reasons disruptive companies do: it serve as a easy
 ## Features
 
 * Kubernetes scheduling system intergated
-* Application-centric console
+* Application-centric product definition
+* As the basic system to build the cloud native datacenter
 * Supports multiple microservice architecture (Spring Cloud, Dubbo and api gateway)
 * Native microservice governance (service discovery, dynamic routing, limiting and fuse) based on extendable Service Mesh 
 * Business-level application performance analysis supports multiple types protocols (HTTP, Mysql, PostgreSQL)
 * Build applications from source codeS (Java, PHP, Python, Golang, Ruby, etc.)
 * Continuous build and deployment from private and public git repositories
 * Quick application build with container image, docker-run command and docker-compose
+* Support application group full backup and recovery, migration of application groups across tenants or across data centers.
 * Pluggable data center supports various types of load balancing, SDN networks, various types of storage systems development
+* Application plug-in system support, flexible extension of application ancillary functions, such as log processing, firewall, traffic analysis, etc
 * Public and private application market with complete application sharing mechanism
 * Multiple data center and across data center application deployment
+* The management node (platform service) HA available.
+* Cluster automatic operation and maintenance, monitoring multidimensional indicators.
+* Provide complete business solution cloud delivery process.
 
 ---
 
