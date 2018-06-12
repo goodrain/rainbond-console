@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 
+from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q
 from rest_framework.response import Response
@@ -14,12 +15,10 @@ from console.services.perm_services import perm_services
 from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from www.models import Tenants
-from console.repositories.plugin import config_group_repo, config_item_repo
 from www.perms import PermActions, get_highest_identity
-from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message, error_message
-from console.services.plugin import plugin_service, plugin_version_service
 from console.repositories.perm_repo import role_repo
+from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger("default")
 
@@ -677,3 +676,71 @@ class TeamDetailView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=result["code"])
+
+
+class TeamRegionInitView(JWTAuthApiView):
+    def post(self, request):
+        """
+        初始化团队和数据中心信息
+        ---
+        parameters:
+            - name: team_alias
+              description: 团队别名
+              required: true
+              type: string
+              paramType: form
+            - name: region_name
+              description: 数据中心名称
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            team_alias = request.data.get("team_alias", None)
+            region_name = request.data.get("region_name", None)
+            if not team_alias:
+                return Response(general_message(400, "team alias is null", "团队名称不能为空"), status=400)
+            if not region_name:
+                return Response(general_message(400, "region name is null", "请选择数据中心"), status=400)
+            team = team_services.get_team_by_team_alias(team_alias)
+            if team:
+                return Response(409,"region alias is exist","团队名称{0}已存在".format(team_alias),status=409)
+            region = region_repo.get_region_by_region_name(region_name)
+            if not region:
+                return Response(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name), status=404)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            if not enterprise:
+                return Response(general_message(404, "user's enterprise is not found","无法找到用户所在的数据中心"))
+
+            code, msg, team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
+            if not code:
+                return Response(general_message(code, "create team error", msg), status=code)
+            perm_info = {
+                "user_id": self.user.user_id,
+                "tenant_id": team.ID,
+                "identity": "owner",
+                "enterprise_id": enterprise.pk
+            }
+            perm_services.add_user_tenant_perm(perm_info)
+            # 创建用户在企业的权限
+            user_services.make_user_as_admin_for_enterprise(self.user.user_id, enterprise.enterprise_id)
+            # 为团队开通默认数据中心并在数据中心创建租户
+            code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
+            if code != 200:
+                return Response(general_message(code, "create tenant on region error", msg), status=code)
+            # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包
+            if settings.MODULES.get('SSO_LOGIN'):
+                result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
+                                                                      tenant_region.region_name, self.user.nick_name)
+                logger.debug("get free resource on [{}] to team {}: {}".format(tenant_region.region_name,
+                                                                               team.tenant_name,
+                                                                               result))
+            self.user.is_active = True
+            self.user.save()
+
+            result = general_message(200, "success", "初始化成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])

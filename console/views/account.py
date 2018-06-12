@@ -176,14 +176,14 @@ class GoodrainSSONotify(AlowAnyApiView):
             else:
                 logger.debug('account.login', 'register/login user.is_active:{}'.format(user.is_active))
                 if not user.is_active:
-                    code, msg, team = self.__init_and_create_user_tenant(user, enterprise)
-                    if code != 200:
-                        return Response({'success': False, 'msg': msg}, status=500)
-
                     # 如果注册用户是通过云市私有交付创建的企业客户, 则将厂商账户加入到其客户企业的管理员列表
                     agent_sso_user_id = request.data.get('agent_sid')
                     logger.debug('account.login', 'agent_sid: {}'.format(agent_sso_user_id))
                     if agent_sso_user_id:
+                        code, msg, team = self.__init_and_create_user_tenant(user, enterprise)
+                        if code != 200:
+                            return Response({'success': False, 'msg': msg}, status=500)
+
                         agent_user = user_services.get_user_by_sso_user_id(agent_sso_user_id)
                         if agent_user:
                             # 创建用户在团队的权限
@@ -195,7 +195,8 @@ class GoodrainSSONotify(AlowAnyApiView):
                             }
                             perm_services.add_user_tenant_perm(perm_info)
                             logger.debug('account.login', 'agent manage team success: {}'.format(perm_info))
-
+                    else:
+                        user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
             logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
             teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
             data_list = [{
