@@ -83,6 +83,8 @@ class AppExportService(object):
         return json.dumps(app_template)
 
     def encode_image(self, image_url):
+        if not image_url:
+            return None
         if image_url.startswith("http"):
             response = urllib2.urlopen(image_url)
         else:
@@ -305,6 +307,8 @@ class AppImportService(object):
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
             if app:
+                app.is_complete = True
+                app.save()
                 continue
             image_base64_string = app_template.pop("image_base64_string", "")
             pic_url = ""
@@ -334,6 +338,8 @@ class AppImportService(object):
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     def decode_image(self, image_base64_string, suffix):
+        if not image_base64_string:
+            return ""
         try:
             file_name = make_uuid() + "."+suffix
             file_path = "{0}/{1}".format("/data/media/uploads", file_name)

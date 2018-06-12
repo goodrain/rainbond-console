@@ -180,7 +180,7 @@ class UserService(object):
             return False
         user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(current_user.user_id, enterprise_id)
         if not user_perms:
-            users = user_repo.get_enterprise_users(enterprise_id).order_by("-user_id")
+            users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
             if users:
                 admin_user = users[0]
                 # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true

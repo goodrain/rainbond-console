@@ -335,7 +335,8 @@ class LogItem extends PureComponent {
               socketUrl={this.getSocketUrl()}
               eventId={data.event_id}/>}
             {(logs || []).map((item) => {
-              return <p>
+              
+              return <p key={item.message}>
                 <span style={{
                   marginRight: 10
                 }}>{dateUtil.format(item.time, 'hh:mm:ss')}</span>

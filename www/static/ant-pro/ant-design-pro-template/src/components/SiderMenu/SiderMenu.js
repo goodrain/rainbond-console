@@ -312,7 +312,7 @@ export default class SiderMenu extends PureComponent {
         width={256}
         className={styles.sider}>
         <div className={styles.logo} key="logo">
-          <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`}>
+          <Link style={{width: collapsed ? '36px': 'auto', display: 'inline-block', overflow: 'hidden'}} to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`}>
             <img src={logo} alt={title || 'logo'}/>
             <h1>{title}</h1>
           </Link>

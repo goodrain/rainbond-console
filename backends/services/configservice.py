@@ -19,7 +19,7 @@ class ConfigService(object):
             cbi = CloundBangImages.objects.get(identify=identify)
             logo = cbi.logo.name
         except CloundBangImages.DoesNotExist as e:
-            logo = "/static/www/images/yunbanglogo.png"
+            logo = ""
         return logo
 
     def upload_image(self, request):

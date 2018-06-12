@@ -2,6 +2,7 @@
 """
   Created on 2018/5/23.
 """
+from cadmin.models import ConsoleSysConfig
 from console.repositories.backup_repo import backup_record_repo
 from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
@@ -58,7 +59,9 @@ class GroupAppBackupService(object):
         service_slug = app_store.get_slug_connection_info("enterprise", tenant.tenant_name)
         service_image = app_store.get_image_connection_info("enterprise", tenant.tenant_name)
         if mode == "full-online":
-            if not service_slug or not service_image:
+            slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
+            image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
+            if not slug_config or not image_config:
                 return 412, "未配置sftp和hub仓库信息", None
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()

@@ -56,6 +56,10 @@ const userUtil = {
 	isSystemAdmin(userBean) {
 		return userBean.is_sys_admin
 	},
+	//是否是企业管理员
+	isCompanyAdmin(userBean){
+		return userBean.is_user_enter_amdin
+	},
 	//获取当前的soketUrl
 	getCurrRegionSoketUrl(currUser){
 		var currTeam = this.getTeamByTeamName(currUser, globalUtil.getCurrTeamName());

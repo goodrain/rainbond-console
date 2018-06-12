@@ -269,8 +269,6 @@ export default class AppList extends PureComponent {
 	}
 	// 恢复应用备份
 	handleRecovery =(data,e)=>{
-		console.log(e)
-		console.log(data)
 		this.setState({showRecovery:true,backup_id:data.backup_id});
 	}
 	handleRecoveryBackup =() =>{
@@ -406,7 +404,7 @@ export default class AppList extends PureComponent {
                       href: ``
                   },{
                       title: groupName,
-                      href: ``
+                      href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${this.getGroupId()}`
                   },{
 					title: "备份",
 					href: ``
