@@ -23,6 +23,9 @@ import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
 import ChangePassword from '../components/ChangePassword';
 import WelcomeAndCreateTeam from '../components/WelcomeAndCreateTeam'
+import CheckUserInfo from './CheckUserInfo'
+import PayTip from './PayTip'
+import Meiqia from './Meiqia'
 
 const {Content} = Layout;
 const {AuthorizedRoute} = Authorized;
@@ -71,86 +74,6 @@ enquireScreen((b) => {
     isMobile = b;
 });
 
-//美洽 
-class Meiqia extends React.PureComponent {
-    componentDidMount(){
-        (function(m, ei, q, i, a, j, s) {
-            m[a] = m[a] || function() {
-                (m[a].a = m[a].a || []).push(arguments)
-          };
-            j = ei.createElement(q),
-                s = ei.getElementsByTagName(q)[0];
-            j.async = true;
-            j.charset = 'UTF-8';
-            j.src = i;
-            s.parentNode.insertBefore(j, s)
-        })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
-        _MEIQIA('entId', 5732);
-    }
-    render(){
-        return null;
-    }
-}
-
-//提示充值
-class PayTip extends React.PureComponent {
-    handleCancel = () => {
-        this.props.dispatch({
-            type: 'global/hidePayTip'
-        })
-    }
-    handleClick = () => {
-        window.open('https://www.goodrain.com/spa/#/personalCenter/my/recharge')
-        this.handleCancel();
-    }
-    getRegionId = () => {
-        var regionName = globalUtil.getCurrRegionName();
-        let regionId = '';
-        if(regionName == 'ali-hz') {
-        regionId = 2;
-        }
-        if(regionName == 'ali-sh'){
-        regionId = 1;
-        }
-        return regionId;
-    }
-    handleBuySource = () => {
-        const regionId = this.getRegionId();
-        if(regionId){
-            window.open(`https://www.goodrain.com/spa/#/resBuy/${regionId}`)
-        }else{
-            notification.warning({message: '当前数据中心不可购买'})
-        }
-        this.handleCancel();
-    }
-    componentDidMount(){
-    }
-    render(){
-        const regionId = this.getRegionId();
-        return <Modal
-            visible={true}
-            title="提示"
-            onCancel={this.handleCancel}
-            footer={[regionId ? <Button onClick={this.handleBuySource} type="primary" size="sm">购买资源</Button> : null, 
-            <Button onClick={this.handleClick} size="sm">账户充值</Button>]}
-        >
-             <h4 style={{textAlign: 'center'}}>资源及企业账户余额不足</h4>
-        </Modal>;
-    }
-}
-
-class NoTeamTip extends React.PureComponent {
-    componentDidMount(){
-        Modal.warning({
-            title: '您还没有团队，无法使用云帮',
-            content: '请联系管理人员'
-        })
-    }
-    render(){
-        return null;
-    }
-}
-
 
 class BasicLayout extends React.PureComponent {
     static childContextTypes = {
@@ -165,13 +88,20 @@ class BasicLayout extends React.PureComponent {
         openRegion: false,
         createTeam: false,
         showChangePassword: false,
-        showWelcomeCreateTeam: false
+        showWelcomeCreateTeam: false,
+        canCancelOpenRegion: true
     };
+    componentDidMount() {
+        enquireScreen((mobile) => {
+            this.setState({isMobile: mobile});
+        });
+        this.fetchUserInfo();
+    }
     onOpenRegion = () => {
         this.setState({openRegion: true})
     }
     cancelOpenRegion = () => {
-        this.setState({openRegion: false})
+        this.setState({openRegion: false, canCancelOpenRegion: true})
     }
     handleOpenRegion = (regions) => {
         const team_name = globalUtil.getCurrTeamName();
@@ -218,12 +148,7 @@ class BasicLayout extends React.PureComponent {
         const {location, routerData, currTeam, currRegion} = this.props;
         return {location, breadcrumbNameMap: routerData};
     }
-    componentDidMount() {
-        enquireScreen((mobile) => {
-            this.setState({isMobile: mobile});
-        });
-        this.fetchUserInfo();
-    }
+    
     fetchUserInfo = () => {
         //获取用户信息、保存团队和数据中心信息
         this
@@ -231,119 +156,8 @@ class BasicLayout extends React.PureComponent {
             .dispatch({
                 type: 'user/fetchCurrent',
                 callback: (user) => {
-                    var currTeam = globalUtil.getCurrTeamName();
-                    var currRegion = globalUtil.getCurrRegionName();
+                    
 
-                    //检测是否有数据中心
-                    if(!user.teams || !user.teams.length){
-                        this.setState({showWelcomeCreateTeam: true});
-                        return;
-                    }
-
-                    //验证路径里的团队是否有效
-                    if (!currTeam || !currRegion) {
-                        if (!currTeam) {
-                            let cookieTeam = cookie.get('team');
-                            if(cookieTeam){
-                                currTeam = cookieTeam;
-                            }else{
-                                let team = userUtil.getDefaultTeam(user);
-                                if (team) {
-                                    currTeam = team.team_name
-                                }
-                            }
-                            
-
-                        }
-                        if (!currRegion) {
-                            let cookieRegion = cookie.get('region_name');
-                            if(cookieRegion){
-                                currRegion = cookieRegion;
-                            }else{
-                                let region = userUtil.getDefaultRegionName(user);
-                                if (region) {
-                                    currRegion = region;
-                                }
-                            }
-                            
-                        }
-                        this
-                            .props
-                            .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                        location.reload();
-                        return;
-                    }
-
-                    var commCode = () => {
-                        
-                        
-
-                        //如果没有当前团队和数据中心
-                        if(!userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
-                            let team = userUtil.getDefaultTeam(user);
-                            if (team) {
-                                currTeam = team.team_name
-                            }
-                            let region = userUtil.getDefaultRegionName(user);
-                            if (region) {
-                                currRegion = region;
-                            }
-                            this
-                                .props
-                                .dispatch(routerRedux.replace(`/team/${currTeam}/region/${currRegion}/index`));
-                            location.reload();
-                            return;
-                        }
-                        cookie.set('team', currTeam);
-                        cookie.set('region_name', currRegion);
-                        //获取群组
-                        this
-                            .props
-                            .dispatch({
-                                type: 'global/fetchGroups',
-                                payload: {
-                                    team_name: currTeam,
-                                    region_name: currRegion
-                                }
-                            });
-
-                        this
-                            .props
-                            .dispatch({
-                                type: 'global/saveCurrTeamAndRegion',
-                                payload: {
-                                    currTeam: currTeam,
-                                    currRegion: currRegion
-                                }
-                            })
-                        //获取当前数据中心的协议
-                        this.props.dispatch({
-                            type: 'region/fetchProtocols',
-                            payload: {
-                                team_name: currTeam,
-                                region_name: currRegion
-                            }
-                        })
-                    }
-
-
-                    //如果当前用户没有该团队, 并且是系统管理员
-                    if(!userUtil.getTeamByTeamName(user, currTeam) && (userUtil.isSystemAdmin(user) || currTeam === 'grdemo')){
-                        this.props.dispatch({
-                            type: 'user/getTeamByName',
-                            payload: {
-                                team_name: currTeam
-                            },
-                            callback: (team) => {
-                                commCode();
-                            },
-                            fail: () => {
-                                commCode();
-                            }
-                        })
-                    }else{
-                        commCode();
-                    }
                 },
                 handleError: (res) => {
                     if (res && (res.status === 403 || res.status === 404)) {
@@ -404,45 +218,12 @@ class BasicLayout extends React.PureComponent {
                 .dispatch({type: 'user/logout'});
         }
     }
-    isInited = () => {
-
-        const currTeam = this.props.currTeam;
-        const currRegion = this.props.currRegion;
-        const currentUser = this.props.currentUser;
-        const rainbondInfo = this.props.rainbondInfo;
-        const groups = this.props.groups;
-
-        //还没有加载完用户信息
-        if (!rainbondInfo || !currentUser || !currTeam || !currRegion || !groups) {
-            return false;
-        }
-
-        var load = document.getElementById('load');
-        if (load) {
-            document
-                .body
-                .removeChild(load);
-        }
-
-        return true;
-    }
     handleNoticeVisibleChange = (visible) => {
         if (visible) {
             this
                 .props
                 .dispatch({type: 'global/fetchNotices'});
         }
-    }
-    checkTeamAndRegion = () => {
-        var currTeam = globalUtil.getCurrTeamName();
-        var currRegion = globalUtil.getCurrRegionName();
-        var user = this.props.currentUser;
-        //判断当前url上的团队和数据中心是在在用户的信息里
-        if(!userUtil.getTeamByTeamName(user, currTeam) || !userUtil.hasTeamAndRegion(user, currTeam, currRegion)){
-            location.href = "/";
-            return false;
-        }
-        return true;
     }
     handleTeamClick = ({key}) => {
 
@@ -503,16 +284,13 @@ class BasicLayout extends React.PureComponent {
                 }
             })
     }
-    checkHasTeam = () => {
-        const currentUser = this.props.currentUser;
-        if(!currentUser.teams || !currentUser.teams.length){
-            return false;
-        }
-        return true;
-    }
+    
     handleInitTeamOk = () => {
         this.setState({showWelcomeCreateTeam: false});
         this.fetchUserInfo();
+    }
+    handleCurrTeamNoRegion = () => {
+        this.setState({openRegion: true, canCancelOpenRegion: false})
     }
     render() {
         const {
@@ -531,30 +309,10 @@ class BasicLayout extends React.PureComponent {
             rainbondInfo
         } = this.props;
         const bashRedirect = this.getBashRedirect();
-
-
-        if(!currentUser) return null;
-
-        //检测用户有没有团队, 没有团队就认为是新用户， 弹欢迎页面并引导创建团队和数据中心
-        if(!this.checkHasTeam()){
-            return <WelcomeAndCreateTeam onOk={this.handleInitTeamOk} />;
-        }
-
-        //检测信息是否初始化完成
-        if (!this.isInited()) {
-            return null;
-        }
-
-
-        if(!this.checkTeamAndRegion()){
-            return null;
-        }
-
-        const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
-        const isRegionMaintain = region.region_status === '3';
-        
-        const layout = (
-            <Layout>
+        const layout = () => {
+            const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
+            const isRegionMaintain = region.region_status === '3';
+            return <Layout>
                 {
                     isRegionMaintain ? null :
                     
@@ -639,16 +397,18 @@ class BasicLayout extends React.PureComponent {
                         copyright={< div > Copyright < Icon type = "copyright" /> 2018 蚂蚁金服体验技术部出品 < /div>}/>
                 </Layout>
             </Layout>
-        );
+        }
 
         return (
             <Fragment>
                 <DocumentTitle title={this.getPageTitle()}>
-                    <ContainerQuery query={query}>
-                        {params => <div className={classNames(params)}>{layout}</div>}
-                    </ContainerQuery>
+                   <CheckUserInfo onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
+                        <ContainerQuery query={query}>
+                            {params => <div className={classNames(params)}>{layout()}</div>}
+                        </ContainerQuery>
+                    </CheckUserInfo>
                 </DocumentTitle>
-                {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
+                {this.state.openRegion && <OpenRegion closable={this.state.canCancelOpenRegion} onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
                 {this.state.createTeam && <CreateTeam onOk={this.handleCreateTeam} onCancel={this.cancelCreateTeam}/>}
                 {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>

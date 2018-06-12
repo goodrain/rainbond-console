@@ -20,6 +20,7 @@ class OpenRegion extends PureComponent {
    }
    componentDidMount(){
      this.getUnRelationedApp();
+
    }
    handleSubmit = () => {
       if(!this.state.selectedRowKeys.length){
@@ -45,6 +46,7 @@ class OpenRegion extends PureComponent {
      this.props.onCancel && this.props.onCancel();
    }
    render(){
+      const closable = this.props.closable;
       const rowSelection = {
         onChange: (selectedRowKeys, selectedRows) => {
            this.setState({selectedRowKeys: selectedRows.map((item)=>{return item.region_name})})
@@ -55,9 +57,14 @@ class OpenRegion extends PureComponent {
         <Modal
         title="开通数据中心"
         width={600}
+        closable={closable}
         visible={true}
-        onOk={this.handleSubmit}
-        onCancel = {this.handleCancel}
+        footer={[
+          closable ? <Button key="back" onClick={this.handleCancel}>取消</Button> : null,
+          <Button key="submit" type="primary" onClick={this.handleSubmit}>
+            确定
+          </Button>
+        ]}
         >
         <Table
           size="small"
