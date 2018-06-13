@@ -704,10 +704,10 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(400, "region name is null", "请选择数据中心"), status=400)
             team = team_services.get_team_by_team_alias(team_alias)
             if team:
-                return Response(409,"region alias is exist","团队名称{0}已存在".format(team_alias),status=409)
+                return Response(general_message(409,"region alias is exist","团队名称{0}已存在".format(team_alias)),status=409)
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                return Response(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name), status=404)
+                return Response(general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)), status=404)
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             if not enterprise:
                 return Response(general_message(404, "user's enterprise is not found","无法找到用户所在的数据中心"))
