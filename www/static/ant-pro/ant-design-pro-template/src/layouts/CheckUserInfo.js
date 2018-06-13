@@ -125,10 +125,11 @@ export default class CheckUserInfo extends React.PureComponent {
 
     render(){
         const user = this.props.userInfo;
-        if(!user) return null;
+        const rainbondInfo = this.props.rainbondInfo;
+        if(!user || !rainbondInfo) return null;
 
         if(!this.hasTeam()){
-            return <WelcomeAndCreateTeam onOk={this.props.onInitTeamOk} />;
+            return <WelcomeAndCreateTeam rainbondInfo={rainbondInfo} onOk={this.props.onInitTeamOk} />;
         }
         if(!this.checkUrlTeamRegion()){
             return null;

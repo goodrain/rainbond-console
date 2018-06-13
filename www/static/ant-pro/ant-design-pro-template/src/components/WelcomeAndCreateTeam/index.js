@@ -71,6 +71,7 @@ export default class Index extends PureComponent {
     render(){
         const form = this.props.form;
         const {getFieldDecorator} = form;
+        const is_public = this.props.rainbondInfo.is_public;
         return (
             <div className={userStyles.container} style={{position: 'relative', zIndex:33}}>
             <div className={userStyles.content}>
@@ -81,7 +82,7 @@ export default class Index extends PureComponent {
                       display: 'inline-block',
                       verticalAlign: 'middle',
                       marginBottom: 0
-                    }}>{"欢迎使用好雨Rainbond"}</h1>
+                    }}>{is_public ? "欢迎使用好雨公有云平台" : "欢迎使用好雨Rainbond"}</h1>
                     <div className={userStyles.desc}>简单2步, 开启云端之旅</div>
                 </div>
                 <div className={styles.wrap}>
