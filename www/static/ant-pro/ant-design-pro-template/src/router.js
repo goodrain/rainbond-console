@@ -34,7 +34,6 @@ function RouterConfig({history, app}) {
               logined={false}
               redirectPath="/"/>
             <AuthorizedRoute
-              key={globalUtil.getCurrTeamName()+globalUtil.getCurrRegionName()}
               path="/"
               render={props => <BasicLayout {...props}/>}
               authority={['admin', 'user']}
