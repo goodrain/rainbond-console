@@ -24,6 +24,7 @@ import Loading from '../components/Loading';
 import ChangePassword from '../components/ChangePassword';
 
 import CheckUserInfo from './CheckUserInfo'
+import InitTeamAndRegionData from './InitTeamAndRegionData'
 import PayTip from './PayTip'
 import Meiqia from './Meiqia'
 
@@ -410,9 +411,11 @@ class BasicLayout extends React.PureComponent {
             <Fragment>
                 <DocumentTitle title={this.getPageTitle()}>
                    <CheckUserInfo onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
+                    <InitTeamAndRegionData>
                         <ContainerQuery query={query}>
                             {params => <div className={classNames(params)}>{layout()}</div>}
                         </ContainerQuery>
+                    </InitTeamAndRegionData>
                     </CheckUserInfo>
                 </DocumentTitle>
                 {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
