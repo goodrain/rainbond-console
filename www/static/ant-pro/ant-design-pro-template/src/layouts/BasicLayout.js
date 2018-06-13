@@ -22,7 +22,7 @@ import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
 import ChangePassword from '../components/ChangePassword';
-import WelcomeAndCreateTeam from '../components/WelcomeAndCreateTeam'
+
 import CheckUserInfo from './CheckUserInfo'
 import PayTip from './PayTip'
 import Meiqia from './Meiqia'
@@ -156,7 +156,10 @@ class BasicLayout extends React.PureComponent {
             .dispatch({
                 type: 'user/fetchCurrent',
                 callback: (user) => {
-                    
+                    var load =  document.querySelector('#load');
+                    if(load){
+                        load.style.display = 'none'
+                    }
 
                 },
                 handleError: (res) => {
@@ -292,6 +295,24 @@ class BasicLayout extends React.PureComponent {
     handleCurrTeamNoRegion = () => {
         this.setState({openRegion: true, canCancelOpenRegion: false})
     }
+    handleOpenRegion = (regions) => {
+        const team_name = globalUtil.getCurrTeamName();
+        this.props
+            .dispatch({
+                type: 'teamControl/openRegion',
+                payload: {
+                    team_name: team_name,
+                    region_names: regions.join(',')
+                },
+                callback: (data) => {
+                    notification.success({message: `开通成功`});
+                    this.cancelOpenRegion();
+                    this.props.dispatch({type: 'user/fetchCurrent', callback: ()=>{
+                        this.props.dispatch(routerRedux.replace(`/team/${team_name}/region/${regions[0]}/index`));
+                    }});
+                }
+            })
+    }
     render() {
         const {
             currentUser,
@@ -310,18 +331,52 @@ class BasicLayout extends React.PureComponent {
         } = this.props;
         const bashRedirect = this.getBashRedirect();
         const layout = () => {
-            const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
-            const isRegionMaintain = region.region_status === '3';
-            return <Layout>
-                {
-                    isRegionMaintain ? null :
-                    
-                    <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} // 不带Authorized参数的情况下如果没有权限,会强制跳到403界面
-                    // If you do not have the Authorized parameter
-                    // you will be forced to jump to the 403 interface without permission
-                    Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
+
+            const team = userUtil.getTeamByTeamName(currentUser, globalUtil.getCurrTeamName());
+            const hasRegion = !!(team.region && team.region.length);
+            var renderContent = () => {
+
+                //当前团队没有数据中心
+                if(!hasRegion){
+                    return <OpenRegion mode="card" onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>
+                    return null;
                 }
-                
+
+                const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
+                const isRegionMaintain = region.region_status === '3';
+                //数据中心维护中
+                if(isRegionMaintain){
+                    return <div style={{textAlign: 'center', padding: '50px 0'}}>
+                        <Icon style={{fontSize: 50, marginBottom: 32}} type="warning" />
+                        <h1 style={{fontSize: 50, color: 'rgba(0, 0, 0, 0.65)', marginBottom: 8}}>数据中心维护中</h1>
+                        <p>请稍后访问当前数据中心</p>
+                    </div>
+                }else{
+                    return <Switch>
+                            {redirectData.map(item => <Redirect key={item.from} exact from={item.from} to={item.to}/>)}
+                            {getRoutes(match.path, routerData).map(item => {
+                                return (<AuthorizedRoute
+                                    key={item.key}
+                                    path={item.path}
+                                    component={item.component}
+                                    exact={item.exact}
+                                    authority={item.authority}
+                                    logined={true}
+                                    redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
+                            })}
+
+                            <Redirect exact from="/" to={bashRedirect}/>
+                            <Route render={NotFound}/>
+                        </Switch>
+                }
+            }
+
+            return <Layout>
+                    {
+                        hasRegion && <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} 
+                        Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
+                    }
+                    
                 <Layout>
                     <GlobalHeader
                         logo={logo}
@@ -345,56 +400,8 @@ class BasicLayout extends React.PureComponent {
                         margin: '24px 24px 0',
                         height: '100%'
                     }}>
-                        
-                        {
-                            !isRegionMaintain ? 
-                            <Switch>
-                                {redirectData.map(item => <Redirect key={item.from} exact from={item.from} to={item.to}/>)
-    }
-                                {getRoutes(match.path, routerData).map(item => {
-                                    return (<AuthorizedRoute
-                                        key={item.key}
-                                        path={item.path}
-                                        component={item.component}
-                                        exact={item.exact}
-                                        authority={item.authority}
-                                        logined={true}
-                                        redirectPath={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/exception/403`} />)
-                                })
-    }
-
-                                <Redirect exact from="/" to={bashRedirect}/>
-                                <Route render={NotFound}/>
-                            </Switch>
-                            :
-                            <div style={{textAlign: 'center', padding: '50px 0'}}>
-                               <Icon style={{fontSize: 50, marginBottom: 32}} type="warning" />
-                               <h1 style={{fontSize: 50, color: 'rgba(0, 0, 0, 0.65)', marginBottom: 8}}>数据中心维护中</h1>
-                               <p>请稍后访问当前数据中心</p>
-                            </div>
-                        }
-                        
+                        {renderContent()} 
                     </Content>
-                    <GlobalFooter
-                        links={[
-                        {
-                            key: 'Pro 首页',
-                            title: 'Pro 首页',
-                            href: 'http://pro.ant.design',
-                            blankTarget: true
-                        }, {
-                            key: 'github',
-                            title: <Icon type="github"/>,
-                            href: 'https://github.com/ant-design/ant-design-pro',
-                            blankTarget: true
-                        }, {
-                            key: 'Ant Design',
-                            title: 'Ant Design',
-                            href: 'http://ant.design',
-                            blankTarget: true
-                        }
-                    ]}
-                        copyright={< div > Copyright < Icon type = "copyright" /> 2018 蚂蚁金服体验技术部出品 < /div>}/>
                 </Layout>
             </Layout>
         }
@@ -408,7 +415,7 @@ class BasicLayout extends React.PureComponent {
                         </ContainerQuery>
                     </CheckUserInfo>
                 </DocumentTitle>
-                {this.state.openRegion && <OpenRegion closable={this.state.canCancelOpenRegion} onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
+                {this.state.openRegion && <OpenRegion onSubmit={this.handleOpenRegion} onCancel={this.cancelOpenRegion}/>}
                 {this.state.createTeam && <CreateTeam onOk={this.handleCreateTeam} onCancel={this.cancelCreateTeam}/>}
                 {this.state.showChangePassword && <ChangePassword onOk={this.handleChangePass} onCancel={this.cancelChangePass}/>}
                 <Loading/>
