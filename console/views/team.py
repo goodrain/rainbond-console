@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q
 from rest_framework.response import Response
-
+import re
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from console.services.enterprise_services import enterprise_services
@@ -702,6 +702,9 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(400, "team alias is null", "团队名称不能为空"), status=400)
             if not region_name:
                 return Response(general_message(400, "region name is null", "请选择数据中心"), status=400)
+            r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+            if not r.match(team_alias.decode("utf-8")):
+                return Response(general_message(400, "team alias is not allow", "组名称只支持中英文下划线和中划线"), status=400)
             team = team_services.get_team_by_team_alias(team_alias)
             if team:
                 return Response(general_message(409,"region alias is exist","团队名称{0}已存在".format(team_alias)),status=409)
