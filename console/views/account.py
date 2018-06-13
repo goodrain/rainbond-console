@@ -197,6 +197,9 @@ class GoodrainSSONotify(AlowAnyApiView):
                             logger.debug('account.login', 'agent manage team success: {}'.format(perm_info))
                     else:
                         user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+                user.is_active = True
+                user.save()
+
             logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
             teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
             data_list = [{
