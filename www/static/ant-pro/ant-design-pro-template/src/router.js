@@ -8,6 +8,7 @@ import Authorized from './utils/Authorized';
 import IsPubCloud from './components/IsPubCloud';
 import styles from './index.less';
 import InitRainbondInfo from './components/InitRainbondInfo';
+import globalUtil from './utils/global';
 
 const {ConnectedRouter} = routerRedux;
 const {AuthorizedRoute} = Authorized;
@@ -33,6 +34,7 @@ function RouterConfig({history, app}) {
               logined={false}
               redirectPath="/"/>
             <AuthorizedRoute
+              key={globalUtil.getCurrTeamName()+globalUtil.getCurrRegionName()}
               path="/"
               render={props => <BasicLayout {...props}/>}
               authority={['admin', 'user']}

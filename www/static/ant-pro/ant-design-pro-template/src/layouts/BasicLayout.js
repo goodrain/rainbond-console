@@ -435,8 +435,8 @@ export default connect(({user, global, loading}) => {
         groups: global.groups,
         fetchingNotices: loading.effects['global/fetchNotices'],
         notices: global.notices,
-        currTeam: global.currTeam,
-        currRegion: global.currRegion,
+        currTeam: globalUtil.getCurrTeamName(),
+        currRegion: globalUtil.getCurrRegionName(),
         rainbondInfo: global.rainbondInfo,
         payTip: global.payTip
     })
