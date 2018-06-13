@@ -131,6 +131,8 @@ class ExportBtn extends PureComponent {
         })
     }
     queryExport = (type) => {
+
+
         const item = this.props.app || {}
           this
             .props
@@ -198,12 +200,18 @@ class ExportBtn extends PureComponent {
                 {
                     app.source !== 'market' ? 
                     <Tooltip title="导出后的文件可直接在Rainbond平台及其他容器平台安装">
-                    <a onClick={() => {this.queryExport('docker-compose')}} style={{marginRight: 8}} href="javascript:;">导出Compose包{this.state.is_docker_compose_exporting ? '(导出中)': ''}</a>
+                    <a onClick={() => {
+                        if(this.state.is_docker_compose_exporting) return;
+                        this.queryExport('docker-compose')
+                    }} style={{marginRight: 8}} href="javascript:;">导出Compose包{this.state.is_docker_compose_exporting ? '(导出中)': ''}</a>
                     </Tooltip>
                     :null
                 }
                 <Tooltip title="导出后的文件可直接在Rainbond平台安装">
-                <a  onClick={() => {this.queryExport('rainbond-app')}} style={{marginRight: 8}} href="javascript:;">导出平台应用{this.state.is_rainbond_app_exporting ? '(导出中)': ''}</a>
+                <a  onClick={() => {
+                    if(this.state.is_rainbond_app_exporting) return;
+                    this.queryExport('rainbond-app')
+                    }} style={{marginRight: 8}} href="javascript:;">导出平台应用{this.state.is_rainbond_app_exporting ? '(导出中)': ''}</a>
                 </Tooltip>
              </Fragment>
         )

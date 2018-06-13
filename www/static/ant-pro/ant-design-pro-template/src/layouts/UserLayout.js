@@ -56,13 +56,13 @@ class UserLayout extends React.PureComponent {
             <div className={styles.top}>
               <div className={styles.header}>
                 <Link to="/">
-                  <img
+                  {/* <img
                     style={{
                     verticalAlign: 'middle'
                   }}
                     alt="logo"
                     className={styles.logo}
-                    src={rainbondInfo.logo || logo}/>
+                    src={rainbondInfo.logo || logo}/> */}
                   <h1
                     style={{
                     display: 'inline-block',

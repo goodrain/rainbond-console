@@ -668,7 +668,7 @@ class Main extends PureComponent {
                 tab: '端口'
             }, {
                 key: 'plugin',
-                tab: '扩展'
+                tab: '插件'
             }, {
                 key: 'setting',
                 tab: '设置'
