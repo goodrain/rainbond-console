@@ -113,9 +113,9 @@ class AppResourceQueryView(AppBaseView):
             bean = body["bean"]
             result = bean.get(self.service.service_id)
             resource = dict()
-            resource["memory"] = result.get("memory", 0)
-            resource["disk"] = result.get("disk", 0)
-            resource["cpu"] = result.get("cpu", 0)
+            resource["memory"] = result.get("memory", 0) if result else 0
+            resource["disk"] = result.get("disk", 0) if result else 0
+            resource["cpu"] = result.get("cpu", 0) if result else 0
             result = general_message(200, "success", "查询成功", bean=resource)
         except Exception as e:
             logger.exception(e)
