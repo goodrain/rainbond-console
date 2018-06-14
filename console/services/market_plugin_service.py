@@ -78,59 +78,36 @@ class MarketPluginService(object):
 
         return len(plugins), data
 
-    def sync_market_plugins(self, tenant, user):
-        market_plugins = market_api.get_plugins(tenant.tenant_id)
+    def sync_market_plugins(self, tenant, user, page, limit, plugin_name=''):
+        market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
-        plugins = []
+        plugins = RainbondCenterPlugin.objects.filter(
+            source='market', enterprise_id__in=["public", tenant.enterprise_id]
+        )
+
         for p in market_plugins:
-            try:
-                rcp = RainbondCenterPlugin.objects.get(
-                    plugin_key=p.get('plugin_key'), version=p.get('version'), source='market',
-                    enterprise_id__in=["public", tenant.enterprise_id]
-                )
-                rcp.pic = p.get('pic')
-                rcp.desc = p.get('intro')
-                rcp.version = p.get('version')
-                rcp.save()
-            except RainbondCenterPlugin.DoesNotExist:
-                enterprise_id = tenant.enterprise_id
-                if common_services.is_public() and user.is_sys_admin:
-                    enterprise_id = "public"
-                rcp = RainbondCenterPlugin(
-                    plugin_key=p.get('plugin_key'),
-                    plugin_name=p.get('name'),
-                    version=p.get('version'),
-                    desc=p.get('intro'),
-                    pic=p.get('logo'),
-                    build_version=p.get('build_version'),
-                    record_id=0,
-                    category=p.get('category'),
-                    scope='goodrain',
-                    source='market',
-                    share_user=0,
-                    share_team='',
-                    enterprise_id=enterprise_id,
-                    plugin_template=''
-                )
-                plugins.append(rcp)
-        RainbondCenterPlugin.objects.bulk_create(plugins)
-        return True
+            if plugins.filter(plugin_key=p.get('plugin_key'), version=p.get('version')).exists():
+                p['is_complete'] = True
+            else:
+                p['is_complete'] = False
 
-    def sync_market_plugin_templates(self, tenant, plugin_data):
+        return market_plugins, total
+
+    def sync_market_plugin_templates(self, user, tenant, plugin_data):
+        plugin_template = market_api.get_plugin_templates(
+            tenant.tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
+        )
+        market_plugin = plugin_template.get('plugin')
+        if not market_plugin:
+            return True
+
         try:
-            plugin_template = market_api.get_plugin_templates(
-                tenant.tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
-            )
-            template = plugin_template.get('template')
-            if not template:
-                return True
-
             rcp = RainbondCenterPlugin.objects.get(
-                plugin_key=template.get('plugin_key'), version=template.get('major_version'),
+                plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('version'),
                 source='market', enterprise_id__in=["public", tenant.enterprise_id]
             )
             rcp.share_user = 0
-            user_name = template.get('share_user')
+            user_name = market_plugin.get('share_user')
             if user_name:
                 try:
                     user = user_repo.get_user_by_username(user_name)
@@ -138,12 +115,35 @@ class MarketPluginService(object):
                 except Exception as e:
                     logger.exception(e)
 
-            rcp.plugin_template = template.get('template_content')
-            rcp.is_complete = True
+            rcp.plugin_template = market_plugin.get('template_content')
+            rcp.pic = market_plugin.get('pic')
+            rcp.desc = market_plugin.get('info')
+            rcp.version = market_plugin.get('version')
             rcp.save()
             return True
         except RainbondCenterPlugin.DoesNotExist:
-            pass
+            enterprise_id = tenant.enterprise_id
+            if common_services.is_public() and user.is_sys_admin:
+                enterprise_id = "public"
+            rcp = RainbondCenterPlugin(
+                plugin_key=market_plugin.get('plugin_key'),
+                plugin_name=market_plugin.get('name'),
+                version=market_plugin.get('version'),
+                desc=market_plugin.get('intro'),
+                pic=market_plugin.get('logo'),
+                build_version=market_plugin.get('build_version'),
+                record_id=0,
+                category=market_plugin.get('category'),
+                scope='goodrain',
+                source='market',
+                share_user=0,
+                share_team='',
+                enterprise_id=enterprise_id,
+                plugin_template='',
+                is_complete=True
+            )
+            rcp.save()
+            return True
 
     @transaction.atomic
     def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):

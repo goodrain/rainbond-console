@@ -58,16 +58,23 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                                    status=403)
+                    return Response(
+                        general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403
+                    )
 
             ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
                 return Response(result, 500)
 
-            market_plugin_service.sync_market_plugins(self.tenant, self.user)
-            result = general_message(200, "success", "同步成功")
+            page = request.GET.get('page', 1)
+            limit = request.GET.get('limit', 10)
+            plugin_name = request.GET.get('plugin_name', '')
+
+            plugins, total = market_plugin_service.sync_market_plugins(
+                self.tenant, self.user, page, limit, plugin_name
+            )
+            result = general_message(200, "success", "同步成功", list=plugins, total=total)
             return Response(result, 200)
         except Exception as e:
             logger.exception(e)
@@ -101,7 +108,7 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
                 'version': plugin_data['version']
             }
 
-            market_plugin_service.sync_market_plugin_templates(self.tenant, data)
+            market_plugin_service.sync_market_plugin_templates(self.user, self.tenant, data)
             result = general_message(200, "success", "同步成功")
             return Response(result, 200)
         except Exception as e:
@@ -181,7 +188,7 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
             )
 
             installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
-                filter(origin='market')
+                filter(origin='local_market')
 
             for p in plugins:
                 if installed.filter(plugin_alias=p["plugin_name"]).exists():

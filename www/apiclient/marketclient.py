@@ -124,11 +124,13 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
-    def get_plugins(self, tenant_id):
+    def get_plugins(self, tenant_id, page, limit, plugin_name=''):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/plugins"
+        url = url + "/openapi/console/v1/enter-market/plugins?page={0}&limit={1}&plugin_name={2}".format(
+            page, limit, plugin_name)
+
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        return self._unpack(body)
+        return self._unpack(body), body['data']['total']
 
     def get_plugin_templates(self, tenant_id, plugin_key, version):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
