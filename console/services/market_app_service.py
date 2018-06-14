@@ -620,45 +620,45 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-    def down_market_group_list(self, user, tenant):
-        app_group_list = market_api.get_service_group_list(tenant.tenant_id)
-        rainbond_apps = []
-        for app_group in app_group_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app_group["group_key"],
-                                                                          app_group["group_version"])
-
-            if rbc:
-                rbc.describe = app_group["info"]
-                rbc.pic = app_group["pic"]
-                rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-                rbc.template_version = app_group.get("template_version", rbc.template_version)
-                rbc.save()
-                # 应用更新，删除导出记录
-                app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
-                                                                 app_group["group_version"])
-            else:
-                if common_services.is_public() and user.is_sys_admin:
-                    enterprise_id = "public"
-                else:
-                    enterprise_id = tenant.enterprise_id
-
-                rainbond_app = RainbondCenterApp(
-                    group_key=app_group["group_key"],
-                    group_name=app_group["group_name"],
-                    version=app_group['group_version'],
-                    share_user=0,
-                    record_id=0,
-                    share_team="",
-                    source="market",
-                    scope="goodrain",
-                    describe=app_group["info"],
-                    pic=app_group["pic"],
-                    app_template="",
-                    enterprise_id=enterprise_id,
-                    template_version=app_group.get("template_version", "")
-                )
-                rainbond_apps.append(rainbond_app)
-        rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
+    # def down_market_group_list(self, user, tenant):
+    #     app_group_list = market_api.get_service_group_list(tenant.tenant_id)
+    #     rainbond_apps = []
+    #     for app_group in app_group_list:
+    #         rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app_group["group_key"],
+    #                                                                       app_group["group_version"])
+    #
+    #         if rbc:
+    #             rbc.describe = app_group["info"]
+    #             rbc.pic = app_group["pic"]
+    #             rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+    #             rbc.template_version = app_group.get("template_version", rbc.template_version)
+    #             rbc.save()
+    #             # 应用更新，删除导出记录
+    #             app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
+    #                                                              app_group["group_version"])
+    #         else:
+    #             if common_services.is_public() and user.is_sys_admin:
+    #                 enterprise_id = "public"
+    #             else:
+    #                 enterprise_id = tenant.enterprise_id
+    #
+    #             rainbond_app = RainbondCenterApp(
+    #                 group_key=app_group["group_key"],
+    #                 group_name=app_group["group_name"],
+    #                 version=app_group['group_version'],
+    #                 share_user=0,
+    #                 record_id=0,
+    #                 share_team="",
+    #                 source="market",
+    #                 scope="goodrain",
+    #                 describe=app_group["info"],
+    #                 pic=app_group["pic"],
+    #                 app_template="",
+    #                 enterprise_id=enterprise_id,
+    #                 template_version=app_group.get("template_version", "")
+    #             )
+    #             rainbond_apps.append(rainbond_app)
+    #     rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     def down_market_group_app_detail(self, user, tenant, group_key, group_version, template_version):
         logger.debug(template_version)
