@@ -620,56 +620,52 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-    def down_market_group_list(self, user, tenant):
-        app_group_list = market_api.get_service_group_list(tenant.tenant_id)
-        rainbond_apps = []
-        for app_group in app_group_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app_group["group_key"],
-                                                                          app_group["group_version"])
+    # def down_market_group_list(self, user, tenant):
+    #     app_group_list = market_api.get_service_group_list(tenant.tenant_id)
+    #     rainbond_apps = []
+    #     for app_group in app_group_list:
+    #         rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app_group["group_key"],
+    #                                                                       app_group["group_version"])
+    #
+    #         if rbc:
+    #             rbc.describe = app_group["info"]
+    #             rbc.pic = app_group["pic"]
+    #             rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+    #             rbc.template_version = app_group.get("template_version", rbc.template_version)
+    #             rbc.save()
+    #             # 应用更新，删除导出记录
+    #             app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
+    #                                                              app_group["group_version"])
+    #         else:
+    #             if common_services.is_public() and user.is_sys_admin:
+    #                 enterprise_id = "public"
+    #             else:
+    #                 enterprise_id = tenant.enterprise_id
+    #
+    #             rainbond_app = RainbondCenterApp(
+    #                 group_key=app_group["group_key"],
+    #                 group_name=app_group["group_name"],
+    #                 version=app_group['group_version'],
+    #                 share_user=0,
+    #                 record_id=0,
+    #                 share_team="",
+    #                 source="market",
+    #                 scope="goodrain",
+    #                 describe=app_group["info"],
+    #                 pic=app_group["pic"],
+    #                 app_template="",
+    #                 enterprise_id=enterprise_id,
+    #                 template_version=app_group.get("template_version", "")
+    #             )
+    #             rainbond_apps.append(rainbond_app)
+    #     rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
-            if rbc:
-                rbc.describe = app_group["info"]
-                rbc.pic = app_group["pic"]
-                rbc.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-                rbc.template_version = app_group.get("template_version", rbc.template_version)
-                rbc.save()
-                # 应用更新，删除导出记录
-                app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
-                                                                 app_group["group_version"])
-            else:
-                if common_services.is_public() and user.is_sys_admin:
-                    enterprise_id = "public"
-                else:
-                    enterprise_id = tenant.enterprise_id
+    def down_market_group_app_detail(self, user, tenant, group_key, group_version, template_version):
+        logger.debug(template_version)
+        data = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version)
+        self.save_market_app_template(user, tenant, data)
 
-                rainbond_app = RainbondCenterApp(
-                    group_key=app_group["group_key"],
-                    group_name=app_group["group_name"],
-                    version=app_group['group_version'],
-                    share_user=0,
-                    record_id=0,
-                    share_team="",
-                    source="market",
-                    scope="goodrain",
-                    describe=app_group["info"],
-                    pic=app_group["pic"],
-                    app_template="",
-                    enterprise_id=enterprise_id,
-                    template_version=app_group.get("template_version", "")
-                )
-                rainbond_apps.append(rainbond_app)
-        rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
-
-    def batch_down_market_group_app_details(self, tenant, data):
-        app_group_detail_templates = market_api.batch_get_group_details(tenant.tenant_id, data)
-        for app_templates in app_group_detail_templates:
-            self.save_market_app_template(tenant, app_templates)
-
-    def down_market_group_app_detail(self, tenant, group_key, group_version, template_version):
-        data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version, template_version)
-        self.save_market_app_template(tenant, data)
-
-    def save_market_app_template(self, tenant, app_templates):
+    def save_market_app_template(self, user, tenant, app_templates):
         template_version = app_templates["template_version"]
         is_v1 = bool(template_version == "v1")
         if is_v1:
@@ -679,34 +675,53 @@ class AppMarketSynchronizeService(object):
         rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id,
                                                                                v2_template["group_key"],
                                                                                v2_template["group_version"])
-        if rainbond_app:
-            if is_v1:
-                rainbond_app.share_user = v2_template["share_user"]
-                rainbond_app.share_team = v2_template["share_team"]
-                rainbond_app.pic = v2_template["pic"]
-                rainbond_app.describe = v2_template["describe"]
-                rainbond_app.app_template = json.dumps(v2_template)
-                rainbond_app.is_complete = True
-                rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-                rainbond_app.save()
-            else:
-                user_name = v2_template.get("publish_user", None)
-                user_id = 0
-                if user_name:
-                    try:
-                        user = user_repo.get_user_by_username(user_name)
-                        user_id = user.user_id
-                    except Exception as e:
-                        logger.exception(e)
-                rainbond_app.share_user = user_id
-                rainbond_app.share_team = v2_template.get("publish_team", "")
-                rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
-                rainbond_app.describe = v2_template.get("update_note", rainbond_app.describe)
-                rainbond_app.app_template = v2_template["template_content"]
-                rainbond_app.is_complete = True
-                rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
-                rainbond_app.save()
 
+        if not rainbond_app:
+            if common_services.is_public() and user.is_sys_admin:
+                enterprise_id = "public"
+            else:
+                enterprise_id = tenant.enterprise_id
+            rainbond_app = RainbondCenterApp(
+                group_key=app_templates["group_key"],
+                group_name=app_templates["group_name"],
+                version=app_templates['group_version'],
+                share_user=0,
+                record_id=0,
+                share_team="",
+                source="market",
+                scope="goodrain",
+                describe=app_templates["info"],
+                pic=app_templates["pic"],
+                app_template="",
+                enterprise_id=enterprise_id,
+                template_version=app_templates.get("template_version", "")
+            )
+        if is_v1:
+            rainbond_app.share_user = v2_template["share_user"]
+            rainbond_app.share_team = v2_template["share_team"]
+            rainbond_app.pic = v2_template["pic"]
+            rainbond_app.describe = v2_template["describe"]
+            rainbond_app.app_template = json.dumps(v2_template)
+            rainbond_app.is_complete = True
+            rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app.save()
+        else:
+            user_name = v2_template.get("publish_user", None)
+            user_id = 0
+            if user_name:
+                try:
+                    user = user_repo.get_user_by_username(user_name)
+                    user_id = user.user_id
+                except Exception as e:
+                    logger.exception(e)
+            rainbond_app.share_user = user_id
+            rainbond_app.share_team = v2_template.get("publish_team", "")
+            rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
+            rainbond_app.describe = v2_template.get("update_note", rainbond_app.describe)
+            rainbond_app.app_template = v2_template["template_content"]
+            rainbond_app.is_complete = True
+            rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app.save()
 
 market_app_service = MarketAppService()
 template_transform_service = MarketTemplateTranslateService()
