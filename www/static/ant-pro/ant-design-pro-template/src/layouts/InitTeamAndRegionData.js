@@ -1,6 +1,7 @@
 import React, {Fragment} from 'react';
 import {connect} from 'dva';
 import globalUtil from '../utils/global';
+import {routerRedux} from 'dva/router';
 
 @connect()
 export default class Index extends React.PureComponent {
@@ -35,6 +36,8 @@ export default class Index extends React.PureComponent {
                 region_name: currRegion
             }
         })
+    }
+    componentWillUnmount(){
     }
     render(){
         return (
