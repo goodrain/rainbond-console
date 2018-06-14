@@ -48,9 +48,9 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
-from console.views.plugin.plugin_market import MarketPluginsView, SyncMarketPluginsView, \
+from console.views.plugin.plugin_market import SyncMarketPluginsView, \
     SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
-    UninstallPluginTemplateView, InstallableInteralPluginsView
+    UninstallPluginTemplateView, InstallableInteralPluginsView, MarketPluginsView
 from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
     PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \

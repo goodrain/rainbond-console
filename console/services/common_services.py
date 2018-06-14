@@ -4,6 +4,8 @@ import logging
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import TenantRegionInfo
 from www.region import RegionInfo
+from django.conf import settings
+
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -48,5 +50,7 @@ class CommonServices(object):
             min_cpu = min_cpu * 2
         return min_cpu
 
+    def is_public(self):
+        return settings.MODULES.get('SSO_LOGIN')
 
 common_services = CommonServices()

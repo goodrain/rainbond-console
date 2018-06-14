@@ -29,10 +29,11 @@ region_api = RegionInvokeApi()
 
 
 class AppExportService(object):
-    def create_export_repo(self, event_id, export_format, group_key, version):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(group_key, version, export_format)
+    def create_export_repo(self, event_id, export_format, group_key, version, enterprise_id):
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, group_key, version,
+                                                                                     export_format)
         if export_record:
-            return 409, "已存在改导出类型的文件", None
+            return 409, "已存在该导出类型的文件", None
 
         if event_id is None:
             event_id = make_uuid()
@@ -41,7 +42,8 @@ class AppExportService(object):
             "group_key": group_key,
             "version": version,
             "format": export_format,
-            "status": "exporting"
+            "status": "exporting",
+            "enterprise_id": enterprise_id
         }
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
@@ -54,8 +56,9 @@ class AppExportService(object):
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
         region_api.export_app(region, team.tenant_name, data)
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-                                                                               export_format)
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.tenant_id, app.group_key,
+                                                                                     app.version,
+                                                                                     export_format)
         if export_record:
             logger.debug("update export record !")
             export_record.event_id = event_id
@@ -65,7 +68,8 @@ class AppExportService(object):
             new_export_record = export_record
         else:
             logger.debug("create export record !")
-            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version)
+            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version,
+                                                                   team.enterprise_id)
             if code != 200:
                 return code, msg, None
         return 200, "success", new_export_record
@@ -123,7 +127,7 @@ class AppExportService(object):
             return None
 
     def get_export_status(self, team, app):
-        app_export_records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
+        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(team.enterprise_id, app.group_key, app.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -187,8 +191,8 @@ class AppExportService(object):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                       export_format)
 
-    def get_export_record_status(self, app):
-        records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
+    def get_export_record_status(self, enterprise_id, app):
+        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, app.group_key, app.version)
         export_status = "other"
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:

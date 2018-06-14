@@ -90,6 +90,7 @@ ALTER TABLE `rainbond_center_plugin` ADD COLUMN category VARCHAR(32) AFTER plugi
 ALTER TABLE `rainbond_center_plugin` ADD COLUMN plugin_id VARCHAR(32) AFTER plugin_key;
 ALTER TABLE `rainbond_center_plugin` ADD COLUMN record_id INTEGER AFTER plugin_key;
 ALTER TABLE `rainbond_center_plugin` ADD COLUMN `desc` VARCHAR(400) AFTER share_team;
+ALTER TABLE `rainbond_center_plugin` ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
 
 -- 插件分享记录事件表
 CREATE TABLE plugin_share_record_event(
@@ -108,3 +109,8 @@ CREATE TABLE plugin_share_record_event(
 
 -- 域名添加域名类型和二级域名名称字段
 ALTER TABLE service_domain ADD domain_type varchar(20) DEFAULT 'www' NULL;
+
+ALTER TABLE rainbond_center_app ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
+DROP INDEX rainbond_center_app_group_key_uindex ON rainbond_center_app;
+
+ALTER TABLE app_export_record ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;

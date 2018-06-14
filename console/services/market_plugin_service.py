@@ -13,6 +13,7 @@ from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.services.common_services import common_services
 from console.services.plugin import plugin_version_service, plugin_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -27,7 +28,7 @@ logger = logging.getLogger('default')
 class MarketPluginService(object):
     def get_paged_plugins(self, plugin_name="", is_complete=None, scope="", source="",
                           tenant=None, page=1, limit=10, order_by="", category=""):
-        q = Q()
+        q = Q(enterprise_id__in=[tenant.enterprise_id, "public"])
 
         if source:
             q = q & Q(source=source)
@@ -77,20 +78,24 @@ class MarketPluginService(object):
 
         return len(plugins), data
 
-    def sync_market_plugins(self, tenant_id):
-        market_plugins = market_api.get_plugins(tenant_id)
+    def sync_market_plugins(self, tenant, user):
+        market_plugins = market_api.get_plugins(tenant.tenant_id)
 
         plugins = []
         for p in market_plugins:
             try:
                 rcp = RainbondCenterPlugin.objects.get(
-                    plugin_key=p.get('plugin_key'), version=p.get('version'), source='market'
+                    plugin_key=p.get('plugin_key'), version=p.get('version'), source='market',
+                    enterprise_id__in=["public", tenant.enterprise_id]
                 )
                 rcp.pic = p.get('pic')
                 rcp.desc = p.get('intro')
                 rcp.version = p.get('version')
                 rcp.save()
             except RainbondCenterPlugin.DoesNotExist:
+                enterprise_id = tenant.enterprise_id
+                if common_services.is_public() and user.is_sys_admin:
+                    enterprise_id = "public"
                 rcp = RainbondCenterPlugin(
                     plugin_key=p.get('plugin_key'),
                     plugin_name=p.get('name'),
@@ -104,22 +109,25 @@ class MarketPluginService(object):
                     source='market',
                     share_user=0,
                     share_team='',
+                    enterprise_id=enterprise_id,
                     plugin_template=''
                 )
                 plugins.append(rcp)
         RainbondCenterPlugin.objects.bulk_create(plugins)
         return True
 
-    def sync_market_plugin_templates(self, tenant_id, plugin_data):
+    def sync_market_plugin_templates(self, tenant, plugin_data):
         try:
             plugin_template = market_api.get_plugin_templates(
-                tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
+                tenant.tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
             )
             template = plugin_template.get('template')
+            if not template:
+                return True
 
             rcp = RainbondCenterPlugin.objects.get(
                 plugin_key=template.get('plugin_key'), version=template.get('major_version'),
-                source='market'
+                source='market', enterprise_id__in=["public", tenant.enterprise_id]
             )
             rcp.share_user = 0
             user_name = template.get('share_user')
@@ -225,6 +233,7 @@ class MarketPluginService(object):
                 share_user=user_id,
                 share_team=tenant_name,
                 desc=plugin_info.get("desc"),
+                enterprise_id=tenant.enterprise_id,
                 plugin_template=json.dumps(plugin_template),
                 category=plugin_info.get('category')
             )

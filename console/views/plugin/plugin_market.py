@@ -3,7 +3,7 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
+from console.services.user_services import user_services
 from console.models import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
@@ -34,7 +34,7 @@ class MarketPluginsView(RegionTenantHeaderView):
             # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
             total, plugins = market_plugin_service.get_paged_plugins(
                 plugin_name, page=page, limit=limit, order_by='is_complete', source='market',
-                scope='goodrain'
+                scope='goodrain', tenant=self.tenant
             )
             result = general_message(
                 200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1
@@ -56,12 +56,17 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         :return:
         """
         try:
+            if not self.user.is_sys_admin:
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
+
             ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
                 return Response(result, 500)
 
-            market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
+            market_plugin_service.sync_market_plugins(self.tenant, self.user)
             result = general_message(200, "success", "同步成功")
             return Response(result, 200)
         except Exception as e:
@@ -80,6 +85,11 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         :return:
         """
         try:
+            if not self.user.is_sys_admin:
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
+
             ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
@@ -91,7 +101,7 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
                 'version': plugin_data['version']
             }
 
-            market_plugin_service.sync_market_plugin_templates(self.tenant.tenant_id, data)
+            market_plugin_service.sync_market_plugin_templates(self.tenant, data)
             result = general_message(200, "success", "同步成功")
             return Response(result, 200)
         except Exception as e:

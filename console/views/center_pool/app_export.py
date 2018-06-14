@@ -2,16 +2,13 @@
 """
   Created on 18/5/5.
 """
+import contextlib
 import logging
+import urllib2
 
-from django.http import FileResponse
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from django.http import StreamingHttpResponse
-import urllib2
-import contextlib
-import requests
 
 from console.exception.main import ResourceNotEnoughException
 from console.services.app_import_and_export_service import export_service
@@ -95,8 +92,6 @@ class CenterAppExportView(RegionTenantHeaderView):
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            # if app.source == "market":
-            #     return Response(general_message(412, "current type not support", "云市导入应用暂不支持导出"), status=412)
 
             code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
             if code != 200:

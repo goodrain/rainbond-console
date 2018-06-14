@@ -347,8 +347,10 @@ class AppTcpOuterManageView(AppBaseView):
                 return Response(general_message(400, "params error", u"缺少需要修改的负载均衡端口参数"), status=400)
             if not mapping_service_id:
                 return Response(general_message(400, "params error", u"缺少端口对应的服务ID"), status=400)
-            port_service.change_lb_mapping_port(self.tenant, self.service, container_port,
-                                                lb_mapping_port, mapping_service_id)
+            code, msg = port_service.change_lb_mapping_port(self.tenant, self.service, container_port,
+                                                            lb_mapping_port, mapping_service_id)
+            if code != 200:
+                return Response(general_message(code, "error", msg), status=code)
 
             result = general_message(200, "success", "端口修改成功")
         except Exception as e:

@@ -55,6 +55,7 @@ class RainbondCenterApp(BaseModel):
     template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"应用包")
 
     def __unicode__(self):
         return self.to_dict()
@@ -97,6 +98,7 @@ class RainbondCenterPlugin(BaseModel):
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
+    enterprise_id = models.CharField(max_length=32, default='public', help_text=u"企业id")
 
     def __unicode__(self):
         return self.to_dict()
@@ -428,7 +430,7 @@ class AppExportRecord(BaseModel):
 
     class Meta:
         db_table = 'app_export_record'
-        unique_together = ('group_key', 'version', 'format')
+
 
     group_key = models.CharField(max_length=32, help_text=u"导出应用的key")
     version = models.CharField(max_length=20, help_text=u"导出应用的版本")
@@ -438,6 +440,7 @@ class AppExportRecord(BaseModel):
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    enterprise_id = models.CharField(max_length=32, help_text=u"导出应用的key")
 
 
 class UserMessage(BaseModel):

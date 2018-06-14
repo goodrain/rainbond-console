@@ -26,6 +26,7 @@ from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.models.main import RainbondCenterApp
+from console.services.common_services import common_services
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -326,9 +327,9 @@ class MarketAppService(object):
     def get_visiable_apps(self, tenant, scope, app_name):
 
         if scope == "team":
-            rt_apps = self.get_current_team_shared_apps(tenant.tenant_name)
+            rt_apps = self.get_current_team_shared_apps(tenant.enterprise_id, tenant.tenant_name)
         elif scope == "goodrain":
-            rt_apps = self.get_public_market_shared_apps()
+            rt_apps = self.get_public_market_shared_apps(tenant.enterprise_id)
         elif scope == "enterprise":
             rt_apps = self.get_current_enterprise_shared_apps(tenant.enterprise_id)
         else:
@@ -337,17 +338,17 @@ class MarketAppService(object):
             rt_apps = rt_apps.filter(Q(group_name__icontains=app_name))
         return rt_apps
 
-    def get_current_team_shared_apps(self, current_team_name):
-        return rainbond_app_repo.get_complete_rainbond_apps().filter(share_team=current_team_name)
+    def get_current_team_shared_apps(self, enterprise_id, current_team_name):
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team=current_team_name)
 
     def get_current_enterprise_shared_apps(self, enterprise_id):
         tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
         # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_complete_rainbond_apps().filter(share_team__in=tenant_names).exclude(scope="team")
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team__in=tenant_names).exclude(scope="team")
 
-    def get_public_market_shared_apps(self):
-        return rainbond_app_repo.get_complete_rainbond_apps().filter(scope="goodrain")
+    def get_public_market_shared_apps(self, enterprise_id):
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(scope="goodrain")
 
     def get_team_visiable_apps(self, tenant):
         tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
@@ -356,7 +357,7 @@ class MarketAppService(object):
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
-        return rainbond_app_repo.get_complete_rainbond_apps().filter(public_apps | enterprise_apps | team_apps)
+        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(public_apps | enterprise_apps | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
@@ -594,15 +595,13 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-    def down_market_group_list(self, tenant):
+    def down_market_group_list(self, user, tenant):
         app_group_list = market_api.get_service_group_list(tenant.tenant_id)
         rainbond_apps = []
         for app_group in app_group_list:
-            rbc = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_group["group_key"],
-                                                                        app_group["group_version"])
-            # 应用更新，删除导出记录
-            app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
-                                                             app_group["group_version"])
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app_group["group_key"],
+                                                                          app_group["group_version"])
+
             if rbc:
                 rbc.describe = app_group["info"]
                 rbc.pic = app_group["pic"]
@@ -613,6 +612,11 @@ class AppMarketSynchronizeService(object):
                 app_export_record_repo.delete_by_key_and_version(app_group["group_key"],
                                                                  app_group["group_version"])
             else:
+                if common_services.is_public() and user.is_sys_admin:
+                    enterprise_id = "public"
+                else:
+                    enterprise_id = tenant.enterprise_id
+
                 rainbond_app = RainbondCenterApp(
                     group_key=app_group["group_key"],
                     group_name=app_group["group_name"],
@@ -625,6 +629,7 @@ class AppMarketSynchronizeService(object):
                     describe=app_group["info"],
                     pic=app_group["pic"],
                     app_template="",
+                    enterprise_id=enterprise_id,
                     template_version=app_group.get("template_version", "")
                 )
                 rainbond_apps.append(rainbond_app)
@@ -633,22 +638,22 @@ class AppMarketSynchronizeService(object):
     def batch_down_market_group_app_details(self, tenant, data):
         app_group_detail_templates = market_api.batch_get_group_details(tenant.tenant_id, data)
         for app_templates in app_group_detail_templates:
-            self.save_market_app_template(app_templates)
+            self.save_market_app_template(tenant, app_templates)
 
     def down_market_group_app_detail(self, tenant, group_key, group_version, template_version):
         data = market_api.get_service_group_detail(tenant.tenant_id, group_key, group_version, template_version)
-        self.save_market_app_template(data)
+        self.save_market_app_template(tenant, data)
 
-    def save_market_app_template(self, app_templates):
+    def save_market_app_template(self, tenant, app_templates):
         template_version = app_templates["template_version"]
         is_v1 = bool(template_version == "v1")
         if is_v1:
             v2_template = template_transform_service.v1_to_v2(app_templates)
         else:
             v2_template = app_templates
-        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(v2_template["group_key"],
-                                                                             v2_template["group_version"])
-        logger.debug("=========> {0}".format(json.dumps(v2_template)))
+        rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id,
+                                                                               v2_template["group_key"],
+                                                                               v2_template["group_version"])
         if rainbond_app:
             if is_v1:
                 rainbond_app.share_user = v2_template["share_user"]

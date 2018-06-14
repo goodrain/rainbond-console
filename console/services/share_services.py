@@ -618,6 +618,7 @@ class ShareService(object):
                 source="local",
                 record_id=share_record.ID,
                 version=group_info["version"],
+                enterprise_id=share_team.enterprise_id,
                 scope=group_info["scope"],
                 describe=group_info["describe"],
                 app_template=json.dumps(app_templete))

@@ -18,6 +18,7 @@ from console.services.market_app_service import market_sycn_service
 import json
 from console.services.app_import_and_export_service import export_service
 from console.services.enterprise_services import enterprise_services
+from console.services.user_services import user_services
 
 logger = logging.getLogger('default')
 
@@ -62,7 +63,7 @@ class CenterAppListView(RegionTenantHeaderView):
             app_list = []
             for app in show_apps:
                 min_memory = self.__get_service_group_memory(app.app_template)
-                export_status = export_service.get_export_record_status(app)
+                export_status = export_service.get_export_record_status(self.tenant.enterprise_id, app)
                 app_bean = app.to_dict()
                 app_bean["min_memory"] = min_memory
                 app_bean["export_status"] = export_status
@@ -162,7 +163,9 @@ class CenterAppManageView(RegionTenantHeaderView):
         """
         try:
             if not self.user.is_sys_admin:
-                return Response(general_message(403, "you are not admin", "此操作需平台管理员才能操作"), status=403)
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
             app_id = request.data.get("app_id", None)
             action = request.data.get("action", None)
             if not app_id:
@@ -201,13 +204,15 @@ class DownloadMarketAppGroupView(RegionTenantHeaderView):
         """
         try:
             if not self.user.is_sys_admin:
-                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             logger.debug("start synchronized market apps")
-            market_sycn_service.down_market_group_list(self.tenant)
-            result = general_message(200, "success", "创建成功")
+            market_sycn_service.down_market_group_list(self.user, self.tenant)
+            result = general_message(200, "success", "同步成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -234,9 +239,11 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
         """
         try:
             if not self.user.is_sys_admin:
-                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
             logger.debug("start synchronized market apps detail")
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             group_data = request.data
@@ -286,7 +293,9 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         is_complete = request.GET.get("is_complete", None)
         try:
             if not self.user.is_sys_admin:
-                return Response(general_message(403, "you are not admin", "无权限执行此操作"), status=403)
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                                    status=403)
 
             apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
                 .order_by('is_complete')

@@ -495,8 +495,13 @@ class AppPortService(object):
 
         current_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         exchange_port_info = port_repo.get_service_port_by_lb_mapping_port(mapping_service_id, new_lb_mapping_port)
-
+        if not current_port:
+            404, "应用端口{0}不存在".format(container_port)
+        if not exchange_port_info:
+            s = service_repo.get_service_by_service_id(mapping_service_id)
+            404, "应用{0}的端口{1}不存在".format(s.service_cname, new_lb_mapping_port)
         exchange_port_info.lb_mapping_port = current_port.lb_mapping_port
         exchange_port_info.save()
         current_port.lb_mapping_port = new_lb_mapping_port
         current_port.save()
+        return 200, "success"
