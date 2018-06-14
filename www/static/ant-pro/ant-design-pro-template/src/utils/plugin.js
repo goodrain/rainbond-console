@@ -65,5 +65,4 @@ export default {
 		return bean.plugin_version_status !== 'fixed' && 
 		bean.build_status !== 'building'
 	}
-
 }

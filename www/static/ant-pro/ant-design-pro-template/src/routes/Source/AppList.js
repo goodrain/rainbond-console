@@ -536,12 +536,13 @@ export default class AppList extends PureComponent {
                                             actions={this.state.showCloudApp ? null : [item.is_complete
                                                 ? <Fragment>
                                                 <ExportBtn app={item} />
-                                                <a
+                                                {item.source === 'market' &&  <a
                                                     style={{marginRight: 8}}
                                                         href="javascript:;"
                                                         onClick={() => {
                                                         this.handleLoadAppDetail(item)
-                                                    }}>云端更新</a>
+                                                    }}>云端更新</a>}
+                                               
                                                     <a
                                                         href="javascript:;"
                                                         onClick={() => {

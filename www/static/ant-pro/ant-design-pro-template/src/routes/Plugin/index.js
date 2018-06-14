@@ -86,9 +86,12 @@ class MarketPlugin extends PureComponent {
                avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                title={item.plugin_name}
                description={(
-               <Ellipsis className={styles.item} lines={3}>< p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
+                <Fragment>
+                  <p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
                  pluginUtil.getCategoryCN(item.category)
-               } < /p>{item.desc}</Ellipsis>
+               } </p>
+                  <Ellipsis className={styles.item} lines={3}>{item.desc}</Ellipsis>
+               </Fragment>
              )}/>
            </Card>
          </List.Item>
@@ -268,9 +271,14 @@ class PluginList extends PureComponent {
                     avatar={< Icon style = {{fontSize: 50, color:'rgba(0, 0, 0, 0.2)'}}type = "api" />}
                     title={this.getItemTitle(item)}
                     description={(
-                    <Ellipsis className={styles.item} lines={3}>< p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
+                      <Fragment>
+                        <p style={{ display: 'block',color:'rgb(220, 220, 220)', marginBottom:8}} > {
                       pluginUtil.getCategoryCN(item.category)
-                    } < /p>{item.desc}</Ellipsis>
+                    } </p>
+                       <Ellipsis className={styles.item} lines={3}>{item.desc}</Ellipsis>
+                      </Fragment>
+
+                    
                   )}/>
                 </Card>
               </List.Item>
