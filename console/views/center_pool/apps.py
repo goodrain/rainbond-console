@@ -189,34 +189,34 @@ class CenterAppManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class DownloadMarketAppGroupView(RegionTenantHeaderView):
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        """
-        同步下载云市组概要模板到云帮
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-        """
-        try:
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                                    status=403)
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
-            if not enterprise.is_active:
-                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
-            logger.debug("start synchronized market apps")
-            market_sycn_service.down_market_group_list(self.user, self.tenant)
-            result = general_message(200, "success", "同步成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+# class DownloadMarketAppGroupView(RegionTenantHeaderView):
+#     @never_cache
+#     def get(self, request, *args, **kwargs):
+#         """
+#         同步下载云市组概要模板到云帮
+#         ---
+#         parameters:
+#             - name: tenantName
+#               description: 团队名称
+#               required: true
+#               type: string
+#               paramType: path
+#         """
+#         try:
+#             if not self.user.is_sys_admin:
+#                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+#                     return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+#                                     status=403)
+#             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+#             if not enterprise.is_active:
+#                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
+#             logger.debug("start synchronized market apps")
+#             market_sycn_service.down_market_group_list(self.user, self.tenant)
+#             result = general_message(200, "success", "同步成功")
+#         except Exception as e:
+#             logger.exception(e)
+#             result = error_message(e.message)
+#         return Response(result, status=result["code"])
 
 
 class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
@@ -263,7 +263,7 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):
         """
-        查询从公有云同步的应用
+        查询远端云市的应用
         ---
         parameters:
             - name: app_name
@@ -290,25 +290,18 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         app_name = request.GET.get("app_name", None)
-        is_complete = request.GET.get("is_complete", None)
         try:
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                                    status=403)
+            # if not self.user.is_sys_admin:
+            #     if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+            #         return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+            #                         status=403)
 
-            apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
-                .order_by('is_complete')
+            # apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
+            #     .order_by('is_complete')
 
-            paginator = JuncheePaginator(apps, int(page_size))
-            show_apps = paginator.page(int(page))
-            app_list = []
-            for app in show_apps:
-                app_bean = app.to_dict()
-                app_bean.pop("app_template")
-                app_list.append(app_bean)
+            total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
 
-            result = general_message(200, "success", "查询成功", list=app_list, total=paginator.count,
+            result = general_message(200, "success", "查询成功", list=apps, total=total,
                                      next_page=int(page) + 1)
         except Exception as e:
             logger.exception(e)

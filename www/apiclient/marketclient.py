@@ -23,11 +23,13 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
-    def get_service_group_list(self, tenant_id):
+    def get_service_group_list(self, tenant_id, page, limit, app_group_name):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/apps"
+        url = url + "/openapi/console/v1/enter-market/apps?page={0}&limit={1}".format(page, limit)
+        if app_group_name:
+            url += "&group_name={0}".format(app_group_name)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        return self._unpack(body)
+        return body
 
     def get_service_group_detail(self, tenant_id, group_key, group_version, template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)

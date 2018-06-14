@@ -29,7 +29,7 @@ from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView
-from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
+from console.views.center_pool.apps import CenterAppListView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
@@ -393,14 +393,17 @@ urlpatterns = patterns(
     url(r'^plugins/installable$', InstallableInteralPluginsView.as_view()),
 
     # 内部云市应用相关
+    # 获取可安装应用
     url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
     # 好雨云市应用同步
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
+    # 同步应用
+    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
+    # 同步某个应用回来
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
 
-    # 查询同步的所有app
+    # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
     # 下架应用
     url(r'^app_market/manage$', CenterAppManageView.as_view()),

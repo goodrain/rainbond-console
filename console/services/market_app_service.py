@@ -378,6 +378,31 @@ class MarketAppService(object):
                                                                         is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
+    def get_remote_market_apps(self, tenant, page, page_size, app_name):
+        body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
+        remote_apps = body["data"]['list']
+        total = body["data"]['total']
+        result_list = []
+        for app in remote_apps:
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+                                                                          app["group_version"])
+            is_complete = False
+            if rbc:
+                if rbc.is_complete:
+                    is_complete = True
+            rbapp = {
+                "group_key": app["group_key"],
+                "group_name": app["group_name"],
+                "version": app["group_version"],
+                "source": "market",
+                "scope": "goodrain",
+                "pic": app['pic'],
+                "describe": app['info'],
+                "template_version": app.get("template_version", ""),
+                "is_complete":is_complete
+            }
+            result_list.append(rbapp)
+        return total, result_list
 
 class MarketTemplateTranslateService(object):
     # 需要特殊处理的service_key
