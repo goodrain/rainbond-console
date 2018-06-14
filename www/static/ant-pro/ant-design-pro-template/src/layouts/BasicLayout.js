@@ -235,8 +235,8 @@ class BasicLayout extends React.PureComponent {
                 : regions[0].team_region_name;
             currRegionName = selectRegionName;
         }
-        location.hash = `/team/${key}/region/${currRegionName}/index`;
-        location.reload();
+        this.props.dispatch(routerRedux.push(`/team/${key}/region/${currRegionName}/index`))
+        //location.reload();
     }
 
     handleRegionClick = ({key}) => {
@@ -244,9 +244,8 @@ class BasicLayout extends React.PureComponent {
             this.onOpenRegion();
             return;
         }
-
-        location.hash = `/team/${globalUtil.getCurrTeamName()}/region/${key}/index`;
-        location.reload();
+        this.props.dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${key}/index`))
+        //location.reload();
 
     }
     showChangePass = () => {
@@ -391,7 +390,7 @@ class BasicLayout extends React.PureComponent {
             <Fragment>
                 <DocumentTitle title={this.getPageTitle()}>
                    <CheckUserInfo rainbondInfo={this.props.rainbondInfo} onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
-                    <InitTeamAndRegionData>
+                    <InitTeamAndRegionData key={currTeam+currRegion}>
                         <ContainerQuery query={query}>
                             {params => <div className={classNames(params)}>{layout()}</div>}
                         </ContainerQuery>

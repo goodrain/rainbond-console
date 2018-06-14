@@ -6,6 +6,7 @@ import {routerRedux} from 'dva/router';
 @connect()
 export default class Index extends React.PureComponent {
     componentWillMount(){
+        console.log('componentWillMount')
         const currTeam = globalUtil.getCurrTeamName();
         const currRegion = globalUtil.getCurrRegionName();
          //获取群组
@@ -38,6 +39,7 @@ export default class Index extends React.PureComponent {
         })
     }
     componentWillUnmount(){
+        console.log('componentWillUnMount')
     }
     render(){
         return (
