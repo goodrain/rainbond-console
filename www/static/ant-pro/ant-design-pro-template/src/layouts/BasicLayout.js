@@ -104,26 +104,6 @@ class BasicLayout extends React.PureComponent {
     cancelOpenRegion = () => {
         this.setState({openRegion: false, canCancelOpenRegion: true})
     }
-    handleOpenRegion = (regions) => {
-        const team_name = globalUtil.getCurrTeamName();
-        this
-            .props
-            .dispatch({
-                type: 'teamControl/openRegion',
-                payload: {
-                    team_name: team_name,
-                    region_names: regions.join(',')
-                },
-                callback: () => {
-                    notification.success({message: `开通成功`});
-                    this.cancelOpenRegion();
-                    this
-                        .props
-                        .dispatch({type: 'user/fetchCurrent'});
-
-                }
-            })
-    }
     onCreateTeam = () => {
         this.setState({createTeam: true})
     }
