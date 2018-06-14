@@ -390,8 +390,8 @@ class BasicLayout extends React.PureComponent {
         return (
             <Fragment>
                 <DocumentTitle title={this.getPageTitle()}>
-                   <CheckUserInfo onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
-                    <InitTeamAndRegionData key={currTeam+currRegion}>
+                   <CheckUserInfo rainbondInfo={this.props.rainbondInfo} onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
+                    <InitTeamAndRegionData>
                         <ContainerQuery query={query}>
                             {params => <div className={classNames(params)}>{layout()}</div>}
                         </ContainerQuery>

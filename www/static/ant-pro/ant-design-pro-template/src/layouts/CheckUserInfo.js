@@ -21,7 +21,7 @@ export default class CheckUserInfo extends React.PureComponent {
         
     }
     toDefaultTeam = () => {
-        
+        console.log('to default team')
         const user = this.props.userInfo;
         let team = userUtil.getDefaultTeam(user);
         //当前团队里没有数据中心
