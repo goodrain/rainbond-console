@@ -410,8 +410,8 @@ class BasicLayout extends React.PureComponent {
         return (
             <Fragment>
                 <DocumentTitle title={this.getPageTitle()}>
-                   <CheckUserInfo rainbondInfo={this.props.rainbondInfo} onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
-                    <InitTeamAndRegionData>
+                   <CheckUserInfo onCurrTeamNoRegion={this.handleCurrTeamNoRegion} userInfo={currentUser} onInitTeamOk={this.handleInitTeamOk}>
+                    <InitTeamAndRegionData key={currTeam+currRegion}>
                         <ContainerQuery query={query}>
                             {params => <div className={classNames(params)}>{layout()}</div>}
                         </ContainerQuery>
@@ -430,6 +430,7 @@ class BasicLayout extends React.PureComponent {
 }
 
 export default connect(({user, global, loading}) => {
+
     return ({
         currentUser: user.currentUser,
         notifyCount: user.notifyCount,
