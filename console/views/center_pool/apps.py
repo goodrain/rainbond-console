@@ -247,12 +247,10 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
             group_data = request.data
-            data_list = []
-            for d in group_data:
-                data_list.append("{0}:{1}:{2}".format(d["group_key"], d["version"], d.get("template_version", "v2")))
 
-            market_sycn_service.batch_down_market_group_app_details(self.tenant, data_list)
-            result = general_message(200, "success", "创建成功")
+            data = group_data[0]
+            market_sycn_service.down_market_group_app_detail(self.user, self.tenant, data["group_key"], data["version"], data.get("template_version", "v2"))
+            result = general_message(200, "success", "应用同步成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
