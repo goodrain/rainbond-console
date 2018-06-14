@@ -438,7 +438,7 @@ urlpatterns = patterns(
     # 获取一个团队中所有可展示的的角色及角色对应的权限信息展示(不含owner)
     url(r'^teams/(?P<team_name>[\w\-]+)/role-list$', UserRoleView.as_view()),
     # 修改团队中成员角色
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_id>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
     # 应用权限设置
