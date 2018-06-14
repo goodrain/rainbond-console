@@ -7,6 +7,7 @@ from console.repositories.app import service_repo
 from console.repositories.compose_repo import compose_repo
 import logging
 import re
+from console.repositories.backup_repo import backup_record_repo
 
 logger = logging.getLogger("default")
 
@@ -52,6 +53,9 @@ class GroupService(object):
     def delete_group(self, group_id):
         if not group_id or group_id < 0:
             return 400, u"需要删除的组不合法", None
+        backups = backup_record_repo.get_record_by_group_id(group_id)
+        if backups:
+            return 409, u"当前组有备份记录，暂无法删除", None
         # 删除组
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与组的关系
