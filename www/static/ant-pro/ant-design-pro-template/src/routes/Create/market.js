@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import {connect} from 'dva';
@@ -49,128 +49,6 @@ const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
 
-const token = cookie.get('token');
-let myheaders = {}
-if (token) {
-   myheaders.Authorization = `GRJWT ${token}`;  
-   myheaders['X_REGION_NAME'] = globalUtil.getCurrRegionName();
-   myheaders['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
-}
-
-const appstatus ={
-	'pending':'等待中',
-	'importing':'导入中',
-	'success':'成功',
-	'failed':'失败'
-}
-
-
-//上传文件
-@connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
-@Form.create()
-class UploadFile extends PureComponent {
-    constructor(props){
-      super(props);
-      this.state={
-        fileList: []
-      }
-    }
-    handleOk = () => {
-         const file = this.state.fileList;
-         if(file.length == 0){
-            notification.info({
-              message: '您还没有上传文件'
-            })
-            return;
-         }
-         if(file[0].status != 'done'){
-              notification.info({
-                message: '正在上传请稍后'
-              })
-              return;
-         }
-         const file_name = file[0].name;
-         const event_id = file[0].response.data.bean.event_id;
-        this
-        .props
-        .dispatch({
-            type: 'createApp/importApp',
-            payload: {
-                team_name: globalUtil.getCurrTeamName(),
-                scope: 'enterprise',
-                event_id: event_id,
-                file_name: file_name
-            },
-            callback: ((data) => {
-              notification.success({message: `操作成功，正在导入`});
-              this.props.onOk && this.props.onOk(data);
-            })
-        })
-    } 
-  
-    // onChange= ({ fileList }) => {
-    //     this.setState({fileList})
-    // }
-
-    onChange = (info) => {
-      let fileList = info.fileList;
-  
-      // // 1. Limit the number of uploaded files
-      // //    Only to show two recent uploaded files, and old ones will be replaced by the new
-      // fileList = fileList.slice(-2);
-  
-      // 2. read from response and show file link
-      // fileList = fileList.map((file) => {
-      //   if (file.response) {
-      //     // Component will show file.url as link
-      //     file.file_name = file.name;
-      //   }
-      //   return file;
-      // });
-  
-      // 3. filter successfully uploaded files according to response from server
-      fileList = fileList.filter((file) => {
-        if (file.response) {
-          return file.response.msg === 'success';
-        }
-        return true;
-      });
-  
-      this.setState({ fileList });
-    }
-
-    onRemove = ()=>{
-       this.setState({fileList:[]})
-    }
-    render(){
-      const form = this.props.form;
-      const {getFieldDecorator} = form;
-      const team_name = globalUtil.getCurrTeamName();
-      const uploadUrl = config.baseUrl + '/console/teams/'+ team_name +'/apps/upload';
-      const fileList = this.state.fileList;
-      
-      return (
-         <Modal
-           visible={true}
-           onOk={this.handleOk}
-           onCancel={this.props.onCancel}
-           title="请上传应用模板"
-           okText="确定上传"
-         >
-            <Upload 
-               action={uploadUrl}
-               fileList={fileList}
-               onChange={this.onChange}
-               onRemove={this.onRemove}
-               headers = {myheaders}
-            >
-                
-                {fileList.length > 0? null: <Button>请选择文件</Button>}
-            </Upload>
-         </Modal>
-      )
-    }
-}
 
 @connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 @Form.create()
@@ -186,30 +64,13 @@ export default class Main extends PureComponent {
       page: 1,
       pageSize: 9,
       total: 0,
-      showUpload: false,
-      target: 'searchWrap',
-      visiblebox:{},
-      querydatabox:{},
-      exportTit:{},
-      is_public:this.props.rainbondInfo.is_public,
-      showBatchImport:false,
-      showBatchImportList:false,
-      source_dir:'',
-      importEvent_id:'',
-      importNameList:[],
-      importingList:[]
+      target: 'searchWrap'
     }
     this.mount = false;
-    this.mountquery = false;
   }
   componentDidMount() {
     this.mount = true;
-    this.mountquery = true;
-    this.queryImportingApp();
     this.getApps();
-    setTimeout(()=>{
-      this.setState({target: 'importApp'});
-    }, 3000)
   }
   componentWillUnmount() {
     this.mount = false;
@@ -227,9 +88,6 @@ export default class Main extends PureComponent {
     })
   }
   getApps = (v) => {
-    var datavisible = {};
-    var dataquery = {};
-    var dataexportTit = {}
     this
       .props
       .dispatch({
@@ -243,11 +101,7 @@ export default class Main extends PureComponent {
         callback: ((data) => {
           this.setState({
             list: data.list || [],
-            total: data.total,
-            visiblebox:datavisible,
-            querydatabox:dataquery,
-            exportTit:dataexportTit,
-            importingList:data.list || []
+            total: data.total
           })
         })
       })
@@ -309,28 +163,6 @@ export default class Main extends PureComponent {
       })
 
   }
- 
-  handleCancelUpload = () => {
-     this.setState({showUpload: false})
-  }
-  handleUploadOk =()=>{
-    this.setState({showUpload: false})
-    this.getApps();
-  }
-  handleCancelBatchImport = () => {
-    this.setState({showBatchImport: false})
- }
- handleBatchImportOk = (data) => {
-   this.setState({showBatchImport: false,showBatchImportList:true,importNameList:data})
-}
- 
-handleCancelBatchImportList = () => {
-  this.setState({showBatchImportList: false})
-  this.queryImportingApp();
-}
-handleOKBatchImportList = () => {
-    this.setState({showBatchImportList: false})
-}
   
   handleVisibleChange = (item,flag) =>{
     var newvisible = this.state.visiblebox;
@@ -339,62 +171,9 @@ handleOKBatchImportList = () => {
     this.setState({ visiblebox: newvisible });
     this.queryExport(item);
   }
-  handleImportMenuClick = (e)=>{
-    if(e.key == '1'){
-       this.setState({showUpload:true})
-    }
-    if(e.key == '2'){
-      this.setState({showBatchImport:true})
-      this
-        .props
-        .dispatch({
-            type: 'createApp/importDir',
-            payload: {
-                team_name: globalUtil.getCurrTeamName()
-            },
-            callback: ((data) => {
-                this.setState({
-                   source_dir:data.bean.source_dir,
-                   importEvent_id:data.bean.event_id
-                })
-            })
-        })
-    }
-  }
-
-  queryImportingApp = ()=>{
-    if (!this.mountquery) 
-    return;
-    this
-        .props
-        .dispatch({
-            type: 'createApp/queryImportingApp',
-            payload: {
-                team_name: globalUtil.getCurrTeamName()
-            },
-            callback: ((data) => {
-                if(data.list.length == [] ){
-                   this.getApps();
-                }else{
-                  var applist = data.list
-                  const list = this.state.list
-                  const imList = applist.concat(list)
-                  this.setState({importingList:imList},function(){
-                    setTimeout(()=>{
-                      this.queryImportingApp();
-                    }, 3000)
-                  })
-              }
-           })
-      })
-  }
 
   renderApp = (item) => {
     const ismarket = item.source;
-    const itemID= item.ID;
-    const querydata = this.state.querydatabox;
-    const exportStatus = item.export_status;
-    const exportText = this.state.exportTit[itemID];
     const title = (item) => {
       return <div
         title={item.group_name || ''}
@@ -409,16 +188,10 @@ handleOKBatchImportList = () => {
      return <Card
      className={PluginStyles.card}
      actions={
-      ismarket == 'market' ? 
       [<span onClick={() => {
        this.showCreate(item)
      }}>安装</span>
      ]
-     :
-     [<span onClick={() => {
-      this.showCreate(item)
-    }}>安装</span>
-    ]
     }>
      <Card.Meta
          style={{height: 112, overflow: 'hidden'}}
@@ -433,12 +206,18 @@ handleOKBatchImportList = () => {
          } />}
          title={title(item)}
          description={(
-         <Ellipsis className={PluginStyles.item} lines={3}><span style={{ display: 'block',color:'rgb(200, 200, 200)', marginBottom:8, fontSize: 12}} > 
+        <Fragment>
+          <span style={{ display: 'block',color:'rgb(200, 200, 200)', marginBottom:8, fontSize: 12}} > 
            版本: {item.version} 
            <br />
            内存: {sourceUtil.unit(item.min_memory||128, 'MB')}
-         < /span><span title={item.describe}>{item.describe}</span></Ellipsis>
-       )}/>
+         </span>
+         <Ellipsis className={PluginStyles.item} lines={3}>
+            <span title={item.describe}>{item.describe}</span>
+         </Ellipsis>
+         </Fragment>
+       )}
+       />
    </Card>
   }
   render() {
@@ -457,10 +236,8 @@ handleOKBatchImportList = () => {
         this.hanldePageChange(v);
       }
     };
-    const importingList = this.state.importingList;
       
-    const cardList = importingList
-      ? (
+    const cardList = (
 
         <List
           bordered={false}
@@ -472,30 +249,16 @@ handleOKBatchImportList = () => {
             xs: 1
         }}
           pagination={paginationProps}
-          dataSource={importingList}
+          dataSource={list}
           renderItem={item => (
             <List.Item
               style={{border: 'none'}}
               >
-              {
-                item.ID ?
-                this.renderApp(item)
-                :
-                <Card  className={PluginStyles.card} style={{height:'200px',overflowY:'auto'}}>
-                     {
-                       item.map((order)=>{
-                         return(
-                            <p>{order.file_name}<span>{appstatus[order.status]}</span></p>
-                         )
-                       })
-                     }
-                </Card>
-              }
+              {this.renderApp(item)}
               
             </List.Item>
         )}/>
       )
-      : null;
 
 
     const mainSearch = (
@@ -552,9 +315,6 @@ handleOKBatchImportList = () => {
           disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
-          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload}  />}
-          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} source_dir={this.state.source_dir} event_id={this.state.importEvent_id}/>}
-          {this.state.showBatchImportList && <BatchImportListForm  onOk={this.handleOKBatchImportList} onCancel={this.handleCancelBatchImportList} event_id={this.state.importEvent_id} file_name={this.state.importNameList} source_dir={this.state.source_dir} />}
           
           {/* <GuideManager /> */}
       </PageHeaderLayout>
