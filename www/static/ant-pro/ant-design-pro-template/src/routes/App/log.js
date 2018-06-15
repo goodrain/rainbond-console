@@ -134,7 +134,7 @@ class HistoryLog extends PureComponent {
                       {
                         list.map((item)=>{
                             return (
-                              <p><a target="_blank" href={"//"+item.file_url}>{item.file_name}</a></p>
+                              <p><a target="_blank" href={item.file_url}>{item.file_name}</a></p>
                             )
                         })
                       }
