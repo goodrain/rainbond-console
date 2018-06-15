@@ -250,9 +250,12 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
             page = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 10))
             backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.response_region, group_id)
+            is_configed = groupapp_backup_service.is_hub_and_sftp_info_configed()
             paginator = JuncheePaginator(backups, int(page_size))
             backup_records = paginator.page(int(page))
-            result = general_message(200, "success", "查询成功", list=[backup.to_dict() for backup in backup_records],
+            bean = {"is_configed": is_configed}
+            result = general_message(200, "success", "查询成功", bean=bean,
+                                     list=[backup.to_dict() for backup in backup_records],
                                      total=paginator.count)
         except Exception as e:
             logger.exception(e)
