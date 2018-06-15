@@ -149,12 +149,12 @@ class AppPortService(object):
         if port_info.is_outer_service:
             return 409, u"请关闭外部服务", None
         if service.create_status == "complete":
-            # 删除env
-            env_var_service.delete_env_by_container_port(tenant, service, container_port)
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
                                            container_port, tenant.enterprise_id)
 
+        # 删除env
+        env_var_service.delete_env_by_container_port(tenant, service, container_port)
         # 删除端口
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
