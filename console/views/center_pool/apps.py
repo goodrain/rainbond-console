@@ -177,6 +177,11 @@ class CenterAppManageView(RegionTenantHeaderView):
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+            if app.enterprise_id == "public":
+                if not self.user.is_sys_admin:
+                    return Response(general_message(403, "only system admin can manage public app", "非平台管理员无权操作"),
+                                    status=403)
+
             if action == "online":
                 app.is_complete = True
             else:
