@@ -101,11 +101,19 @@ class MarketPluginService(object):
         if not market_plugin:
             return True
 
-        try:
-            rcp = RainbondCenterPlugin.objects.get(
-                plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('version'),
-                source='market', enterprise_id__in=["public", tenant.enterprise_id]
-            )
+        rcps = RainbondCenterPlugin.objects.filter(
+            plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('version'),
+            source='market', enterprise_id__in=[tenant.enterprise_id, "public"]
+        )
+        rcp = None
+        if rcps:
+            # 优先获取企业的插件
+            enter_rcp = rcps.filter(tenant.enterprise_id)
+            if enter_rcp:
+                rcp = enter_rcp[0]
+            else:
+                rcp = rcps[0]
+        if rcp:
             rcp.share_user = 0
             user_name = market_plugin.get('share_user')
             if user_name:
@@ -121,7 +129,7 @@ class MarketPluginService(object):
             rcp.version = market_plugin.get('version')
             rcp.save()
             return True
-        except RainbondCenterPlugin.DoesNotExist:
+        else:
             enterprise_id = tenant.enterprise_id
             if common_services.is_public() and user.is_sys_admin:
                 enterprise_id = "public"
@@ -144,6 +152,7 @@ class MarketPluginService(object):
             )
             rcp.save()
             return True
+
 
     @transaction.atomic
     def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):

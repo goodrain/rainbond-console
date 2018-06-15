@@ -24,6 +24,8 @@ import DescriptionList from '../../components/DescriptionList';
 import ConfirmModal from '../../components/ConfirmModal';
 import Port from '../../components/Port';
 import AddDomain from '../../components/AddDomain';
+import SubDomain from '../../components/SubDomain';
+import SubPort from '../../components/SubPort';
 const {Description} = DescriptionList;
 import ScrollerX from '../../components/ScrollerX';
 import AddPort from '../../components/AddPort';
@@ -100,7 +102,7 @@ class EditAlias extends PureComponent {
                 }
               ]
             })(<Input placeholder="请填写端口别名"/>)
-}
+          }
           </FormItem>
         </Form>
 
@@ -217,7 +219,14 @@ export default class Index extends PureComponent {
       showAddPort: false,
       showAddDomain: null,
       showAddKey: false,
-      showEditAlias: null
+      showEditAlias: null,
+      showSubDomain:false,
+      showSubPort:false,
+      sld_suffix:'',
+      single_port:null,
+      tcp_ports:[],
+      single_service_id:'',
+      subPort:''
     }
   }
 
@@ -316,11 +325,95 @@ export default class Index extends PureComponent {
     this.setState({showAddPort: true})
   }
 
+  showSubPort = (port) => { 
+    this
+      .props
+      .dispatch({
+        type: 'appControl/getSubPort',
+        payload: {
+          team_name: globalUtil.getCurrTeamName(),
+          service_alias: this.props.appAlias,
+          port: port.container_port
+        },
+        callback: (data) => {
+            let portlist = data.list
+            if(portlist.length == 0){
+              notification.info({message: '端口不能修改'});
+            }else{
+              this.setState({showSubPort: true,tcp_ports:portlist,single_service_id:port.service_id,subPort:port.container_port})
+            }
+        }
+      })
+  }
+  handleSubPort=(values)=>{
+    console.log(values)
+    var valList = values.port.split("||")
+    console.log(valList)
+    this
+      .props
+      .dispatch({
+        type: 'appControl/SubPort',
+        payload: {
+          team_name: globalUtil.getCurrTeamName(),
+          service_alias: this.props.appAlias,
+          port: this.state.subPort,
+          lb_mapping_port:valList[1],
+          service_id:valList[0]
+        },
+        callback: (data) => {
+           this.setState({showSubPort: false})
+           notification.success({message: '端口修改成功'});
+           this.fetchPorts();
+        }
+      })
+    
+  }
+  hideSubPort = () => {
+    this.setState({showSubPort: false})
+  }
+  showSubDomain = (port) => {
+    this.setState({showSubDomain: true,single_port:port.mapping_port})
+    this
+      .props
+      .dispatch({
+        type: 'appControl/getSubDomain',
+        payload: {
+          team_name: globalUtil.getCurrTeamName(),
+          service_alias: this.props.appAlias
+        },
+        callback: (data) => {
+           this.setState({sld_suffix:data.bean.sld_suffix})
+        }
+      })
+  }
+  hideSubDomain = () => {
+      this.setState({showSubDomain: false})
+  }
+  handleSubDomain =(values)=>{
+      console.log(values.domain)
+      console.log(this.state.single_port)
+      var newdomain = values.domain + '.' + this.state.sld_suffix;
+      this
+      .props
+      .dispatch({
+        type: 'appControl/SubDomain',
+        payload: {
+          team_name: globalUtil.getCurrTeamName(),
+          service_alias: this.props.appAlias,
+          domain_name:newdomain,
+          container_port:this.state.single_port
+        },
+        callback: (data) => {
+           this.setState({sld_suffix:null,showSubDomain: false})
+           notification.success({message: '二级域名添加成功'});
+           this.fetchPorts();
+        }
+      })
+  }
   onCancelAddPort = () => {
     this.setState({showAddPort: false})
   }
-  handleAddPort = (val) => {
-
+  handleAddPort = (val) => { 
     this
       .props
       .dispatch({
@@ -529,7 +622,10 @@ export default class Index extends PureComponent {
                 onOpenOuter={this.handleOpenOuter}
                 onCloseOuter={this.onCloseOuter}
                 onAddDomain={this.onAddDomain}
-                onDeleteDomain={this.handleDeleteDomain}/>
+                onDeleteDomain={this.handleDeleteDomain}
+                onSubDomain={this.showSubDomain}
+                onSubPort={this.showSubPort}
+                />
             })
 }
           </ScrollerX>
@@ -558,6 +654,16 @@ export default class Index extends PureComponent {
           port={this.state.showEditAlias}
           onOk={this.handleEditAlias}
           onCancel={this.hideEditAlias}/>}
+          {this.state.showSubDomain  && <SubDomain
+            sld_suffix={this.state.sld_suffix}
+            onCancel={this.hideSubDomain}
+            onOk={this.handleSubDomain}
+          />}
+           {this.state.showSubPort  && <SubPort
+            postList={this.state.tcp_ports}
+            onCancel={this.hideSubPort}
+            onOk = {this.handleSubPort}
+           />}
       </Fragment>
     );
   }

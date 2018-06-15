@@ -55,13 +55,18 @@ class GroupAppBackupService(object):
 
         return 200, running_state_services
 
+    def is_hub_and_sftp_info_configed(self):
+        slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
+        image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
+        if not slug_config or not image_config:
+            return False
+        return True
+
     def back_up_group_apps(self, tenant, user, region, group_id, mode, note):
         service_slug = app_store.get_slug_connection_info("enterprise", tenant.tenant_name)
         service_image = app_store.get_image_connection_info("enterprise", tenant.tenant_name)
         if mode == "full-online":
-            slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
-            image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-            if not slug_config or not image_config:
+            if not self.is_hub_and_sftp_info_configed():
                 return 412, "未配置sftp和hub仓库信息", None
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()

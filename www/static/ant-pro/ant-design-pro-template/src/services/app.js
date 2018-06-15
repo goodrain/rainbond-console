@@ -1537,3 +1537,76 @@ export async function getAppResource(body={team_name, app_alias}){
 		method: 'get'
 });
 }
+
+
+/*
+   查询自定义二级域名后缀
+*/
+export async function getSubDomain(body = {
+	team_name,
+	service_alias
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/sld-domain`, {
+		method: 'get',
+		params: {
+			team_name: body.team_name,
+			service_alias: body.service_alias
+		}
+	});
+}
+
+/*
+   修改二级域名
+*/
+export async function SubDomain(body = {
+	team_name,
+	service_alias,
+	domain_name,
+	container_port
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/sld-domain`, {
+		method: 'put',
+		data: {
+			domain_name: body.domain_name,
+			container_port: body.container_port
+		}
+	});
+}
+
+
+/*
+   查询可修改tcp端口
+*/
+export async function getSubPort(body = {
+	team_name,
+	service_alias,
+	port
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/tcp-ports/${body.port}`, {
+		method: 'get',
+		params: {
+			team_name: body.team_name,
+			service_alias: body.service_alias,
+			port:body.port
+		}
+	});
+}
+
+/*
+   修改端口
+*/
+export async function SubPort(body = {
+	team_name,
+	service_alias,
+	port,
+	lb_mapping_port,
+	service_id
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/tcp-ports/${body.port}`, {
+		method: 'put',
+		data: {
+			lb_mapping_port: body.lb_mapping_port,
+			service_id: body.service_id
+		}
+	});
+}

@@ -16,6 +16,7 @@ from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message, error_message
 from console.services.perm_services import app_perm_service
+from console.repositories.user_repo import user_repo
 
 logger = logging.getLogger("default")
 
@@ -365,7 +366,7 @@ class UserRoleView(JWTAuthApiView):
 
 class UserModifyPemView(JWTAuthApiView):
     @perm_required('manage_team_member_permissions')
-    def post(self, request, team_name, user_name, *args, **kwargs):
+    def post(self, request, team_name, user_id, *args, **kwargs):
         """
         修改团队成员角色
         ---
@@ -375,8 +376,8 @@ class UserModifyPemView(JWTAuthApiView):
               required: true
               type: string
               paramType: path
-            - name: user_name
-              description: 被修改权限的团队成员
+            - name: user_id
+              description: 被修改权限的团队成员id
               required: true
               type: string
               paramType: path
@@ -411,7 +412,7 @@ class UserModifyPemView(JWTAuthApiView):
                         result = general_message(code, "params is empty", "参数格式不正确")
                         return Response(result, status=code)
 
-                    other_user = user_services.get_user_by_username(user_name=user_name)
+                    other_user = user_repo.get_user_by_user_id(user_id=int(user_id))
                     if other_user.user_id == request.user.user_id:
                         result = general_message(400, "failed", "您不能修改自己的权限！")
                         return Response(result, status=400)
@@ -433,7 +434,7 @@ class UserModifyPemView(JWTAuthApiView):
 
                     team_services.change_tenant_role(user_id=other_user.user_id, tenant_name=team_name,
                                                      role_id_list=role_id_list)
-                    result = general_message(code, "identity modify success", "{}角色修改成功".format(user_name))
+                    result = general_message(code, "identity modify success", "{}角色修改成功".format(other_user.nick_name))
                 else:
                     result = general_message(400, "identity failed", "修改角色时，角色不能为空")
         except UserNotExistError as e:
