@@ -39,24 +39,7 @@ export default class CloudApp extends PureComponent {
         this.props.onClose && this.props.onClose();
     }
     handleSync = () => {
-        this.setState({
-            sync: true
-        }, () => {
-            this
-                .props
-                .dispatch({
-                    type: 'global/syncMarketApp',
-                    payload: {
-                        team_name: globalUtil.getCurrTeamName()
-                    }
-                }).then(()=>{
-                    this.setState({
-                        sync: false
-                    }, () => {
-                        this.loadApps();
-                    })
-                })
-        })
+        this.loadApps();
     }
     handleSearch = (app_name) => {
         this.setState({

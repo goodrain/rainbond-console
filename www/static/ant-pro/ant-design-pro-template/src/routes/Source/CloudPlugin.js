@@ -45,13 +45,15 @@ export default class CloudPlugin extends PureComponent {
                     type: 'global/syncMarketPlugins',
                     payload: {
                         team_name: globalUtil.getCurrTeamName()
+                    },
+                    callback: (data) => {
+                        this.setState({
+                            sync: false,
+                            plugins: data.list || [],
+                            loading: false,
+                            total: data.total
+                        })
                     }
-                }).then(()=>{
-                    this.setState({
-                        sync: false
-                    }, () => {
-                        this.loadPlugins();
-                    })
                 })
         })
     }
@@ -64,29 +66,6 @@ export default class CloudPlugin extends PureComponent {
             page: 1
         }, () => {
             this.loadPlugins();
-        })
-    }
-    loadPlugins = () => {
-        this.setState({
-            loading: true
-        }, () => {
-            this
-                .props
-                .dispatch({
-                    type: 'global/getCloudPlugin',
-                    payload: {
-                        plugin_name: this.state.app_name,
-                        page: this.state.page,
-                        pageSize: this.state.pageSize
-                    },
-                    callback: (data) => {
-                        this.setState({
-                            plugins: data.list || [],
-                            loading: false,
-                            total: data.total
-                        })
-                    }
-                })
         })
     }
     handleLoadPluginDetail = (data) => {

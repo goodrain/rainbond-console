@@ -107,6 +107,9 @@ class Backup extends PureComponent {
 	componentDidMount(){
 		
 	}
+	state = {
+		
+	}
 	onOk = (e) => {
 		e.preventDefault();
 		const form = this.props.form;
@@ -118,7 +121,7 @@ class Backup extends PureComponent {
 	render(){
 		const { getFieldDecorator, getFieldValue } = this.props.form;
 		const data  = this.props.data || {};
-		
+		const is_configed =  this.props.is_configed;
 		const formItemLayout = {
 			labelCol: {
 			  span: 5,
@@ -127,6 +130,7 @@ class Backup extends PureComponent {
 			  span: 19,
 			},
 		};
+		const cloudBackupTip = is_configed ? '备份到云端存储上，可实现跨数据中心迁移' : '请在Rainbond管理后台开启器此功能'
 		return	<Modal
 			title={"新增备份"}
 			visible={true}
@@ -139,14 +143,14 @@ class Backup extends PureComponent {
 					label={<span>备份方式</span>}
 					>
 					{getFieldDecorator('mode', {
-						initialValue: data.mode || 'full-online',
+						initialValue: is_configed ? (data.mode || 'full-online') : 'full-offline',
 						rules: [{ required: true, message: '要创建的应用还没有名字' }],
 					})(
 						<RadioGroup>
-							<Tooltip title="备份到Rainbond平台">
-							<RadioButton value="full-online">云端备份</RadioButton>
+							<Tooltip title={cloudBackupTip}>
+							 <RadioButton disabled={!is_configed} value="full-online">云端备份</RadioButton>
 							</Tooltip>
-							<Tooltip title="备份到服务器指定目录">
+							<Tooltip title="备份到当前数据中心本地，不能跨数据中心迁移">
 								<RadioButton value="full-offline">本地备份</RadioButton>
 							</Tooltip>
 						</RadioGroup>
@@ -190,7 +194,8 @@ export default class AppList extends PureComponent {
 			showExport:false,
 			showImport:false,
 			backup_id:'',
-			groupName:''
+			groupName:'',
+			is_configed: null
 		}
 	}
 	componentDidMount() {
@@ -211,7 +216,7 @@ export default class AppList extends PureComponent {
 				page_size: this.state.pageSize
 			},
 			callback: (data) => {
-				this.setState({list: data.list ||[], total: data.total})
+				this.setState({list: data.list ||[], total: data.total, is_configed: data.bean.is_configed})
 			}
 		})
 	}
@@ -436,7 +441,7 @@ export default class AppList extends PureComponent {
 					   </ScrollerX>
                    </Card>
 				   
-				   {this.state.showBackup && <Backup onOk={this.handleBackup} onCancel={this.cancelBackup} />}
+				   {this.state.showBackup && <Backup is_configed={this.state.is_configed} onOk={this.handleBackup} onCancel={this.cancelBackup} />}
 				   {this.state.showMove && <MigrationBackup onOk={this.handleMoveBackup} onCancel={this.cancelMoveBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()} />}
 				   {this.state.showRecovery && <RestoreBackup onOk={this.handleRecoveryBackup} onCancel={this.cancelRecoveryBackup} propsParams={this.props.match.params} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}
 				   {this.state.showImport && <ImportBackup onReLoad={this.handleImportBackup} onCancel={this.cancelImportBackup} backupId = {this.state.backup_id} groupId = {this.getGroupId()}/>}

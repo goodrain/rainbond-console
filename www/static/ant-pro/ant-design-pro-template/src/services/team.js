@@ -6,7 +6,7 @@ import config from '../config/config';
 获取所有的权限
 */
 export async function getAllPerms(body={}){
-  return request(config.baseUrl + `console/teams/operate_options`,{
+  return request(config.baseUrl + `/console/teams/operate_options`,{
     method: 'get'
   })
 }
@@ -15,7 +15,7 @@ export async function getAllPerms(body={}){
 修改角色
  */
 export async function editRole(body={team_name, role_id, role_name, options_ids}){
-  return request(config.baseUrl + `console/teams/${body.team_name}/update_role_perms`,{
+  return request(config.baseUrl + `/console/teams/${body.team_name}/update_role_perms`,{
     method: 'post',
     data:{
       role_id: body.role_id,
@@ -30,7 +30,7 @@ export async function editRole(body={team_name, role_id, role_name, options_ids}
 删除角色
  */
 export async function removeRole(body={team_name, role_id}){
-  return request(config.baseUrl + `console/teams/${body.team_name}/del-role`,{
+  return request(config.baseUrl + `/console/teams/${body.team_name}/del-role`,{
     method: 'delete',
     data:{
       role_id: body.role_id
@@ -43,7 +43,7 @@ export async function removeRole(body={team_name, role_id}){
 创建角色
  */
 export async function createRole(body={team_name, role_name, options_ids}){
-  return request(config.baseUrl + `console/teams/${body.team_name}/add-role`,{
+  return request(config.baseUrl + `/console/teams/${body.team_name}/add-role`,{
     method: 'post',
     data:{
       role_name: body.role_name,
@@ -58,7 +58,7 @@ export async function createRole(body={team_name, role_name, options_ids}){
 获取团队下所有角色
  */
 export async function getRoles(body={team_name, page, page_size}){
-  return request(config.baseUrl + `console/teams/${body.team_name}/role-list`,{
+  return request(config.baseUrl + `/console/teams/${body.team_name}/role-list`,{
     method: 'get',
     params:{
       page: body.page,
@@ -106,11 +106,10 @@ export async function getTeamPermissions() {
 */
 export async function editMember(body = {
   team_name,
-  user_name,
-  role_ids,
-  user_name
+  user_id,
+  role_ids
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/${body.user_name}/mod-role`, {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/${body.user_id}/mod-role`, {
     method: 'post',
     data: {
       role_ids: body.role_ids
