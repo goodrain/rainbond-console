@@ -165,9 +165,7 @@ export default class PluginList extends PureComponent {
     render() {
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
-                <RadioGroup value="">
-                    <RadioButton onClick={()=>{this.setState({showCloudPlugin: true})}} value="">云端同步</RadioButton>
-                </RadioGroup>
+                <Button type="primary" onClick={()=>{this.setState({showCloudPlugin: true})}} value="">云端同步</Button>
             </div>
         );
 
@@ -213,6 +211,14 @@ export default class PluginList extends PureComponent {
                     <List
                         size="large"
                         rowKey="id"
+                        locale = {
+                            {
+                                emptyText: <p style={{paddingTop: 80, lineHeight: 1.3}}>
+                                    暂无插件， 你可以<br /><br />
+                                    分享插件到内部市场 或 <a  onClick={()=>{this.setState({showCloudPlugin: true})}} href="javascript:;">从云端同步</a>
+                                </p>
+                            }
+                        }
                         loading={this.state.loading}
                         pagination={paginationProps}
                         dataSource={this.state.plugins}

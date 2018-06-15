@@ -248,6 +248,14 @@ export default class Main extends PureComponent {
             sm: 1,
             xs: 1
         }}
+        locale = {
+          {
+              emptyText: <p style={{paddingTop: 80, lineHeight: 1.3}}>
+                  暂无应用， 你可以<br /><br />
+                  分享应用 或 <Link  to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source`}>从云端同步</Link>
+              </p>
+          }
+      }
           pagination={paginationProps}
           dataSource={list}
           renderItem={item => (

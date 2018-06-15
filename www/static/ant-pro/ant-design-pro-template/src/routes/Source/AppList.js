@@ -40,6 +40,7 @@ const {Step} = Steps;
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
 const {Search} = Input;
+const ButtonGroup = Button.Group;
 
 const appstatus ={
 	'pending':'等待中',
@@ -487,14 +488,14 @@ export default class AppList extends PureComponent {
           );
         const extraContent = (
             <div className={BasicListStyles.extraContent}>
-                <RadioGroup value="">
+                <ButtonGroup value="">
                     <Dropdown overlay={ImportMenu}>
-                        <RadioButton>
+                        <Button>
                             导入应用
-                        </RadioButton>
+                        </Button>
                     </Dropdown>
-                    <RadioButton value="test" onClick={()=>{this.setState({showCloudApp: true})}}>云端同步</RadioButton>
-                </RadioGroup>
+                    <Button type="primary" value="test" onClick={()=>{this.setState({showCloudApp: true})}}>云端同步</Button>
+                </ButtonGroup>
             </div>
         );
 
@@ -528,6 +529,14 @@ export default class AppList extends PureComponent {
                     <List
                         size="large"
                         rowKey="ID"
+                        locale = {
+                            {
+                                emptyText: <p style={{paddingTop: 80, lineHeight: 1.3}}>
+                                    暂无应用， 你可以<br /><br />
+                                    分享应用到内部市场 或 <a onClick={()=>{this.setState({showCloudApp: true})}} href="javascript:;">从云端同步</a>
+                                </p>
+                            }
+                        }
                         loading={this.state.loading}
                         pagination={paginationProps}
                         dataSource={this.state.apps}
