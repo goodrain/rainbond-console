@@ -142,7 +142,7 @@ export default class CloudPlugin extends PureComponent {
                         }
                         shape = "square" size = "large" />}
                             title={item.plugin_name}
-                            description={item.desc || '-'}/>
+                            description={item.intro || '-'}/>
 
                     </List.Item>
                 )}/>
