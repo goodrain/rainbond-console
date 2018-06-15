@@ -25,6 +25,8 @@ from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesSe
     ServicePluginResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
+from django.conf import settings
+
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -149,6 +151,9 @@ class AppService(object):
             "reason": reason,
             "eid": tenant.enterprise_id
         }
+        is_public = settings.MODULES.get('SSO_LOGIN')
+        if not is_public or new_add_memory <= 0:
+            return allow_create, tips
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
             logger.debug("verify body {0}".format(body))

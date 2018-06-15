@@ -34,7 +34,7 @@ class AppDependencyView(AppBaseView):
               required: true
               type: string
               paramType: path
-            - name: page_num
+            - name: page
               description: 页码
               required: false
               type: string

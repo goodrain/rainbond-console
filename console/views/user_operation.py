@@ -107,80 +107,34 @@ class TenantServiceView(BaseApiView):
                 user.enterprise_id = enterprise.enterprise_id
                 user.save()
 
-                try:
-                    if Users.objects.count() == 1:
-                        SuperAdminUser.objects.create(user_id=user.user_id)
-                    enterprise = enterprise_services.get_enterprise_first()
-                    register_type = request.data.get("register_type", None)
-                    value = request.data.get("value", None)
-                    if register_type == "invitation":
-                        perm = perms_repo.add_user_tenant_perm(
-                            perm_info={
-                                "user_id": user.user_id,
-                                "tenant_id": value,
-                                "identity": "viewer",
-                                "enterprise_id": enterprise.ID
-                            }
-                        )
-                        if not perm:
-                            result = general_message(400, "invited failed", "团队关联失败，注册失败")
-                            return Response(result, status=400)
-                    else:
-                        team_alias = "{0}的团队".format(nick_name)
-                        regions = region_services.get_open_regions()
-                        if not regions:
-                            result = general_message(400, "failed", "无可用数据中心")
-                            return Response(result, status=400)
-                        region_name = [regions[0].region_name]
-                        region_list = [r.region_name for r in regions]
-                        code, msg, tenant = team_services.create_team(user, enterprise, region_list)
-                        # code, msg, tenant = team_services.add_team(team_alias=team_alias, user=user,
-                        #                                            region_names=region_name)
-                        if tenant:
-                            perm = perms_repo.add_user_tenant_perm(
-                                perm_info={
-                                    "user_id": user.user_id,
-                                    "tenant_id": tenant.ID,
-                                    "identity": "owner",
-                                    "enterprise_id": enterprise.ID
-                                }
-                            )
-
-                            code, msg, tenant_region = region_services.create_tenant_on_region(tenant.tenant_name,
-                                                                                               tenant.region)
-                            if code != 200:
-                                return Response(general_message(code, "register fail", msg), status=code)
-
-                            data = dict()
-                            data["user_id"] = user.user_id
-                            data["nick_name"] = user.nick_name
-                            data["email"] = user.email
-                            data["enterprise_id"] = user.enterprise_id
-                            data["creater"] = tenant.creater
-                            payload = jwt_payload_handler(user)
-                            token = jwt_encode_handler(payload)
-                            data["token"] = token
-                            result = general_message(200, "success", "注册成功", bean=data)
-                            return Response(result, status=200)
-                        else:
-                            result = general_message(code=code, msg="failed", msg_show=msg)
-                            return Response(result, status=400)
-                    data = dict()
-                    data["user_id"] = user.user_id
-                    data["nick_name"] = user.nick_name
-                    data["email"] = user.email
-                    data["enterprise_id"] = user.enterprise_id
-                    payload = jwt_payload_handler(user)
-                    token = jwt_encode_handler(payload)
-                    data["token"] = token
-                    result = general_message(200, "register success", "注册成功", bean=data)
-                    response = Response(result, status=200)
-                    return response
-                except Exception as e:
-                    logger.exception(e)
-                    user.delete()
-                    result = general_message(500, "failed", "团队初始化错误")
-                    return Response(result, status=500)
+                if Users.objects.count() == 1:
+                    SuperAdminUser.objects.create(user_id=user.user_id)
+                enterprise = enterprise_services.get_enterprise_first()
+                register_type = request.data.get("register_type", None)
+                value = request.data.get("value", None)
+                if register_type == "invitation":
+                    perm = perms_repo.add_user_tenant_perm(
+                        perm_info={
+                            "user_id": user.user_id,
+                            "tenant_id": value,
+                            "identity": "viewer",
+                            "enterprise_id": enterprise.ID
+                        }
+                    )
+                    if not perm:
+                        result = general_message(400, "invited failed", "团队关联失败，注册失败")
+                        return Response(result, status=400)
+                data = dict()
+                data["user_id"] = user.user_id
+                data["nick_name"] = user.nick_name
+                data["email"] = user.email
+                data["enterprise_id"] = user.enterprise_id
+                payload = jwt_payload_handler(user)
+                token = jwt_encode_handler(payload)
+                data["token"] = token
+                result = general_message(200, "register success", "注册成功", bean=data)
+                response = Response(result, status=200)
+                return response
             else:
                 error = {
                     "error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")

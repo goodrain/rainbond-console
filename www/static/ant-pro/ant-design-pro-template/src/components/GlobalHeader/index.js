@@ -30,6 +30,7 @@ import {Route, Redirect, Switch, routerRedux} from 'dva/router';
 class DialogMessage extends PureComponent {
     componentDidMount(){
         const data = this.props.data;
+
         if(data && data.length){
             const ids = data.map((item)=>{
                   return item.ID
@@ -46,17 +47,19 @@ class DialogMessage extends PureComponent {
                 })
             })
 
+
             Modal.info({
                 title: data[0].title,
-                content: (
-                    <div dangerouslySetInnerHTML={{__html:data[0].content}} style={{whiteSpace: 'pre-wrap'}}></div>
-                ),
                 okText: '知道了',
                 onOk: () => {
-                    this.props.onCancel && this.props.onCancel();
-                }
+                    this.props.onCancel();
+                },
+                content: (
+                    <div dangerouslySetInnerHTML={{__html:data[0].content}} style={{whiteSpace: 'pre-wrap'}}></div>
+                  )
             })
-            
+
+
         }
 
     }
@@ -161,11 +164,11 @@ export default class GlobalHeader extends PureComponent {
                 var newTotal = datalist.filter((item)=>{
                     return item.is_read === false
                 }).length
-                
+
                 this.setState({total:newTotal,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
                     return item.level === 'high' && item.is_read === false;
                 }) },()=>{
-                    
+
                     const newNotices = this.getNoticeData(this.state.noticeList);
                     this.setState({newNoticeList:newNotices})
                 })
@@ -366,12 +369,12 @@ export default class GlobalHeader extends PureComponent {
               console.log('enter', value); // eslint-disable-line
             }}
           /> */}
-          
-           <NoticeIcon 
-            
-            count={this.state.total} 
-            className="notice-icon" 
-            popupVisible={this.state.popupVisible} 
+
+           <NoticeIcon
+
+            count={this.state.total}
+            className="notice-icon"
+            popupVisible={this.state.popupVisible}
             onPopupVisibleChange={this.handleVisibleChange}
             onClear={this.onClear}
             onItemClick = {(item)=> {
@@ -394,9 +397,9 @@ export default class GlobalHeader extends PureComponent {
                     list={noticesList['warn']}
                 />
             </NoticeIcon>
-          
-     
-       
+
+
+
                     {currentUser
                         ? (
                             <Dropdown overlay={menu}>

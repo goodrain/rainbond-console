@@ -45,7 +45,7 @@ export async function complatePluginShare(body={team_name, share_id}){
 
 /* 同步插件模版 */
 export async function syncMarketPluginTmp(body={plugin_key, version}){
-  
+
   return request(config.baseUrl + `/console/market/plugins/sync-template`, {
     method: 'post',
     data: {
@@ -74,6 +74,17 @@ export async function getMarketPlugins(body={plugin_name, page}){
   });
 }
 
+
+
+/*
+  初始化一个团队
+*/
+export async function InitTeam(body={team_alias, region_name}){
+  return request(config.baseUrl + `/console/teams/init`, {
+    method: 'post',
+    data: body
+  });
+}
 
 /* 获取某个数据中心的资源详情 */
 export async function getRegionSource(body={team_name, region}){

@@ -15,10 +15,16 @@ const userUtil = {
 		return '';
 	},
 	getDefaultTeam(bean) {
-		if (bean && bean.teams && bean.teams.length) {
-			return bean.teams[0]
+		//先判断自己的，如果有自己的团队，则返回
+		var team = (bean.teams || []).filter((team) => {
+			return team.role_name_list.indexOf('owner') > -1 || bean.user_id === team.creater
+		})[0]
+
+		//也有可能他没有自己的团队，比如移交给别人了
+		if(!team){
+			team = bean.teams[0];
 		}
-		return '';
+		return team;
 	},
 	getDefaultRegionName(bean) {
 		var dTeam = this.getDefaultTeam(bean);
@@ -47,7 +53,7 @@ const userUtil = {
 		return region;
 	},
 	//获取某个团队的默认数据中心
-	
+
 	//是否开通了gitlab账号
 	hasGitlatAccount(user) {
 		return user.git_user_id !== 0

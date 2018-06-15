@@ -21,6 +21,8 @@ import {
   getCloudPlugin,
   syncCloudPlugin,
   deleteMarketPlugin
+  getAllRegion,
+  InitTeam
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -49,6 +51,11 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(deleteMarketPlugin, payload);
+    *InitTeam({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(InitTeam, payload);
       if (data) {
         callback && callback(data)
       }
@@ -103,6 +110,11 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(syncMarketPluginTmp, payload);
+    *getAllRegion({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getAllRegion, payload);
       if (data) {
         callback && callback(data)
       }
@@ -221,7 +233,6 @@ export default {
           callback && callback();
         })
       }
-
     },
     *fetchIsPublic(_, {call, put}) {
       const data = yield call(isPubCloud);
@@ -256,7 +267,7 @@ export default {
         setTimeout(()=>{
           callback && callback(response.list);
         })
-        
+
       }
     },
     *bindGithub({

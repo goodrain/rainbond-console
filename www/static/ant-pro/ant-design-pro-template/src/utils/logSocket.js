@@ -43,7 +43,7 @@ LogSocket.prototype = {
 
 		}else{
 			var data = JSON.parse(evt.data);
-			
+
 			//判断是否最后一步
 			if (data.step == "callback" || data.step == "last") {
 				this.webSocket.close();
@@ -68,9 +68,17 @@ LogSocket.prototype = {
 		this.onError();
 	},
 	destroy: function() {
-	    this.destroyed = true;
 		this.webSocket.close();
 		this.webSocket = null;
+
+		this.onMessage = null;
+		this.onError = null;
+		this.onClose = null;
+		this.onTimeout = null;
+		this.onSuccess = null;
+		this.onComplete = null;
+		this.onFail = null;
+		this.destroyed = true;
 	}
 }
 

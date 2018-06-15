@@ -1,6 +1,6 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Button, Table, Modal, notification} from 'antd';
+import { Button, Table, Modal, notification, Card} from 'antd';
 import { unOpenRegion } from '../../services/team';
 import globalUtil from '../../utils/global';
 
@@ -45,35 +45,59 @@ class OpenRegion extends PureComponent {
      this.props.onCancel && this.props.onCancel();
    }
    render(){
+      const mode = this.props.mode || 'modal';
       const rowSelection = {
         onChange: (selectedRowKeys, selectedRows) => {
            this.setState({selectedRowKeys: selectedRows.map((item)=>{return item.region_name})})
         }
       };
 
-      return (
-        <Modal
-        title="开通数据中心"
-        width={600}
-        visible={true}
-        onOk={this.handleSubmit}
-        onCancel = {this.handleCancel}
-        >
-        <Table
-          size="small"
-          pagination = {false}
-          dataSource={this.state.regions || []}
-          rowSelection = {rowSelection}
-          columns={[{
-            title: '数据中心',
-            dataIndex: 'region_alias'
-          },{
-            title: '简介',
-            dataIndex: 'desc'
-          }]}
-         />
-         </Modal>
-      )
+      if(mode === 'modal'){
+        return (
+          <Modal
+          title="开通数据中心"
+          width={600}
+          visible={true}
+          onOk={this.handleSubmit}
+          onCancel = {this.handleCancel}
+          >
+          <Table
+            size="small"
+            pagination = {false}
+            dataSource={this.state.regions || []}
+            rowSelection = {rowSelection}
+            columns={[{
+              title: '数据中心',
+              dataIndex: 'region_alias'
+            },{
+              title: '简介',
+              dataIndex: 'desc'
+            }]}
+           />
+           </Modal>
+        )
+      }
+
+      return <Card title="当前团队没有数据中心，请先开通">
+           <Table
+            size="small"
+            pagination = {false}
+            dataSource={this.state.regions || []}
+            rowSelection = {rowSelection}
+            columns={[{
+              title: '数据中心',
+              dataIndex: 'region_alias'
+            },{
+              title: '简介',
+              dataIndex: 'desc'
+            }]}
+           />
+           <div style={{textAlign: 'right', paddingTop: 16}}>
+              <Button type="primary" onClick={this.handleSubmit}>开通</Button>
+           </div>
+      </Card>
+
+     
    }
 }
 

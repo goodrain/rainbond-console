@@ -358,7 +358,6 @@ class AppManageService(AppManageBase):
             return 400, "内存必须为128的倍数", None
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
-        new_add_memory = new_memory * service.min_node - service.min_memory * service.min_node
 
         code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
@@ -584,6 +583,8 @@ class AppManageService(AppManageBase):
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             services = service_repo.get_services_by_service_ids(*sids).values_list("service_cname", flat=True)
+            if not services:
+                return False, ""
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""

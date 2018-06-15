@@ -147,7 +147,7 @@ class AppCompileEnvView(AppBaseView):
                 user_dependency = {}
                 if compile_env.user_dependency:
                     user_dependency = json.loads(compile_env.user_dependency)
-                    selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies",{}).keys()]
+                    selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies", {}).keys()]
                 bean["check_dependency"] = check_dependency
                 bean["user_dependency"] = user_dependency
                 bean["service_id"] = compile_env.service_id
