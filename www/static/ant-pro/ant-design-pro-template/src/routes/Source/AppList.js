@@ -219,7 +219,11 @@ class ExportBtn extends PureComponent {
 }
 
 
-@connect()
+@connect(({user}) => {
+    return {
+        currentUser: user.currentUser
+    }
+})
 export default class AppList extends PureComponent {
     constructor(props) {
         super(props);
@@ -542,12 +546,23 @@ export default class AppList extends PureComponent {
                                                         onClick={() => {
                                                         this.handleLoadAppDetail(item)
                                                     }}>云端更新</a>}
-                                               
-                                                    <a
-                                                        href="javascript:;"
-                                                        onClick={() => {
-                                                        this.showOfflineApp(item)
-                                                    }}>删除</a>
+                                                    {
+                                                        item.enterprise_id === 'public' ?
+                                                        (userUtil.isSystemAdmin(this.props.currentUser) && 
+                                                        <a
+                                                            href="javascript:;"
+                                                            onClick={() => {
+                                                            this.showOfflineApp(item)
+                                                        }}>删除</a>)
+                                                        :
+                                                        (userUtil.isCompanyAdmin(this.props.currentUser) && 
+                                                        <a
+                                                            href="javascript:;"
+                                                            onClick={() => {
+                                                            this.showOfflineApp(item)
+                                                        }}>删除</a>)
+                                                    }
+                                                    
                                                 </Fragment>
                                                 : <a
                                                     href="javascript:;"

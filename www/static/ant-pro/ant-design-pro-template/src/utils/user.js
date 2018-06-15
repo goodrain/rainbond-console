@@ -10,29 +10,29 @@ const userUtil = {
 	getDefaultTeamName(bean) {
 		var dTeam = this.getDefaultTeam(bean);
 		if (dTeam) {
-						return dTeam.team_name
+			return dTeam.team_name
 		}
 		return '';
 	},
 	getDefaultTeam(bean) {
 		if (bean && bean.teams && bean.teams.length) {
-						return bean.teams[0]
+			return bean.teams[0]
 		}
 		return '';
 	},
 	getDefaultRegionName(bean) {
 		var dTeam = this.getDefaultTeam(bean);
 		if (dTeam && dTeam.region.length) {
-						return dTeam.region[0].team_region_name
+			return dTeam.region[0].team_region_name
 		}
 		return '';
 	},
 	getTeamByTeamName(user, currTeamName) {
 		const currTeam = user
-						.teams
-						.filter((item) => {
-										return item.team_name === currTeamName;
-						})[0];
+			.teams
+			.filter((item) => {
+				return item.team_name === currTeamName;
+			})[0];
 		return currTeam;
 	},
 	//用户是否在某个团队下，拥有某个数据中心
@@ -64,17 +64,13 @@ const userUtil = {
 	getCurrRegionSoketUrl(currUser){
 		var currTeam = this.getTeamByTeamName(currUser, globalUtil.getCurrTeamName());
 		var currRegionName = globalUtil.getCurrRegionName();
-	
 		if (currTeam) {
 		  var region = teamUtil.getRegionByName(currTeam, currRegionName);
-	
 		  if (region) {
 			return regionUtil.getEventWebSocketUrl(region);
 		  }
 		}
 		return '';
 	}
-
 }
-
 export default userUtil;
