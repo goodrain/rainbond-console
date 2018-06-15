@@ -20,7 +20,7 @@ import {
   complatePluginShare,
   getCloudPlugin,
   syncCloudPlugin,
-  deleteMarketPlugin
+  deleteMarketPlugin,
   getAllRegion,
   InitTeam
 } from '../services/api';
@@ -51,6 +51,10 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(deleteMarketPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *InitTeam({
       payload,
       callback
@@ -110,6 +114,10 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(syncMarketPluginTmp, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *getAllRegion({
       payload,
       callback
