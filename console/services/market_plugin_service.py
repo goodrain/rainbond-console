@@ -103,7 +103,7 @@ class MarketPluginService(object):
 
         rcps = RainbondCenterPlugin.objects.filter(
             plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('major_version'),
-            source='market', enterprise_id__in=[tenant.enterprise_id, "public"]
+            enterprise_id__in=[tenant.enterprise_id, "public"]
         )
         rcp = None
         if rcps:
