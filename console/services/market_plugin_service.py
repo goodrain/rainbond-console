@@ -127,6 +127,7 @@ class MarketPluginService(object):
             rcp.pic = market_plugin.get('pic')
             rcp.desc = market_plugin.get('intro')
             rcp.version = market_plugin.get('major_version')
+            rcp.is_complete = True
             rcp.save()
             return True
         else:
