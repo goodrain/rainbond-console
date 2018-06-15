@@ -79,7 +79,7 @@ export default class CloudPlugin extends PureComponent {
                 },
                 callback: (data) => {
                     notification.success({message: '操作成功'});
-                    this.loadPlugins();
+                    this.handleSync();
                     this.props.onSyncSuccess && this.props.onSyncSuccess();
                 }
             })
@@ -88,7 +88,7 @@ export default class CloudPlugin extends PureComponent {
         this.setState({
             page: page
         }, () => {
-            this.loadPlugins();
+            this.handleSync();
         })
     }
     render(){
@@ -142,7 +142,7 @@ export default class CloudPlugin extends PureComponent {
                         }
                         shape = "square" size = "large" />}
                             title={item.plugin_name}
-                            description={item.intro || '-'}/>
+                            description={item.desc || '-'}/>
 
                     </List.Item>
                 )}/>

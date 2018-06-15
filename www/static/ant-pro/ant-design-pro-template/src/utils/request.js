@@ -142,6 +142,7 @@ export default function request(url, options) {
 
                 if (resData.code === 10407) {
                     dispatch && dispatch({type: 'global/showAuthCompany'});
+                    return;
                 }
 
                 if (resData.code === 10405) {
