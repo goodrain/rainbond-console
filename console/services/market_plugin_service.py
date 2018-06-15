@@ -102,13 +102,13 @@ class MarketPluginService(object):
             return True
 
         rcps = RainbondCenterPlugin.objects.filter(
-            plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('version'),
+            plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('major_version'),
             source='market', enterprise_id__in=[tenant.enterprise_id, "public"]
         )
         rcp = None
         if rcps:
             # 优先获取企业的插件
-            enter_rcp = rcps.filter(tenant.enterprise_id)
+            enter_rcp = rcps.filter(enterprise_id=tenant.enterprise_id)
             if enter_rcp:
                 rcp = enter_rcp[0]
             else:
@@ -126,7 +126,7 @@ class MarketPluginService(object):
             rcp.plugin_template = market_plugin.get('template_content')
             rcp.pic = market_plugin.get('pic')
             rcp.desc = market_plugin.get('info')
-            rcp.version = market_plugin.get('version')
+            rcp.version = market_plugin.get('major_version')
             rcp.save()
             return True
         else:
@@ -136,7 +136,7 @@ class MarketPluginService(object):
             rcp = RainbondCenterPlugin(
                 plugin_key=market_plugin.get('plugin_key'),
                 plugin_name=market_plugin.get('name'),
-                version=market_plugin.get('version'),
+                version=market_plugin.get('major_version'),
                 desc=market_plugin.get('intro'),
                 pic=market_plugin.get('logo'),
                 build_version=market_plugin.get('build_version'),
@@ -152,7 +152,6 @@ class MarketPluginService(object):
             )
             rcp.save()
             return True
-
 
     @transaction.atomic
     def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):

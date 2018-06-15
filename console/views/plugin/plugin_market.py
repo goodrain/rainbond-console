@@ -222,9 +222,7 @@ class UninstallPluginTemplateView(RegionTenantHeaderView):
 
         try:
             plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
-            plugin.plugin_template = ''
-            plugin.is_complete = False
-            plugin.save()
+            plugin.delete()
             return Response(general_message(200, '', ''), 200)
         except RainbondCenterPlugin.DoesNotExist:
             return Response(general_message(404, "plugin not exist", "插件不存在"), status=404)

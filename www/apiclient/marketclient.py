@@ -142,7 +142,7 @@ class MarketOpenAPI(HttpClient):
     def get_plugin_templates(self, tenant_id, plugin_key, version):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
 
-        url = url + "/openapi/console/v1/enter-market/plugins/templates?plugin_key={0}&version={1}".format(
+        url = url + "/openapi/console/v1/enter-market/plugins/{0}?version={1}".format(
             plugin_key, version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
