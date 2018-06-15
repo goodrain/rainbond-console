@@ -69,7 +69,11 @@ import {
   getAutoDeployStatus,
   cancelAutoDeploy,
   openAutoDeploy,
-  getPhpConfig
+  getPhpConfig,
+  getSubDomain,
+  SubDomain,
+  getSubPort,
+  SubPort
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -131,6 +135,42 @@ export default {
     members: []
   },
   effects : {
+    *getSubDomain({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getSubDomain, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *SubDomain({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(SubDomain, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *getSubPort({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getSubPort, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *SubPort({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(SubPort, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getPhpConfig({
       payload,
       callback
