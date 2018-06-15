@@ -82,7 +82,7 @@ class MarketPluginService(object):
         market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
         plugins = RainbondCenterPlugin.objects.filter(
-            source='market', enterprise_id__in=["public", tenant.enterprise_id]
+            enterprise_id__in=["public", tenant.enterprise_id]
         )
 
         for p in market_plugins:
@@ -100,11 +100,11 @@ class MarketPluginService(object):
         market_plugin = plugin_template.get('plugin')
         if not market_plugin:
             return True
-
         rcps = RainbondCenterPlugin.objects.filter(
             plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('major_version'),
             enterprise_id__in=[tenant.enterprise_id, "public"]
         )
+
         rcp = None
         if rcps:
             # 优先获取企业的插件
@@ -123,7 +123,7 @@ class MarketPluginService(object):
                 except Exception as e:
                     logger.exception(e)
 
-            rcp.plugin_template = market_plugin.get('template_content')
+            rcp.plugin_template = market_plugin.get("template").get('template_content')
             rcp.pic = market_plugin.get('pic')
             rcp.desc = market_plugin.get('intro')
             rcp.version = market_plugin.get('major_version')
@@ -148,7 +148,7 @@ class MarketPluginService(object):
                 share_user=0,
                 share_team='',
                 enterprise_id=enterprise_id,
-                plugin_template='',
+                plugin_template=market_plugin.get("template").get('template_content'),
                 is_complete=True
             )
             rcp.save()
