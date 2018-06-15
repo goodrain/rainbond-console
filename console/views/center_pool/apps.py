@@ -7,6 +7,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException
+from console.repositories.enterprise_repo import enterprise_repo
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
@@ -243,6 +244,11 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
               paramType: body
         """
         try:
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            if ent and not ent.is_active:
+                result = general_message(10407, "failed", "用户未跟云市认证")
+                return Response(result, 500)
+
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
                     return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
@@ -294,13 +300,10 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         page_size = request.GET.get("page_size", 10)
         app_name = request.GET.get("app_name", None)
         try:
-            # if not self.user.is_sys_admin:
-            #     if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-            #         return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-            #                         status=403)
-
-            # apps = market_app_service.get_all_goodrain_market_apps(app_name, is_complete) \
-            #     .order_by('is_complete')
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            if ent and not ent.is_active:
+                result = general_message(10407, "failed", "用户未跟云市认证")
+                return Response(result, 500)
 
             total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
 
