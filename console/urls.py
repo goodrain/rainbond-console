@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import patterns, url
-from django.views.decorators.csrf import csrf_exempt
 
 from console.captcha.captcha_code import CaptchaView
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
@@ -54,7 +53,9 @@ from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
     ServiceEventsView, TeamServiceOverViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
-    GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView
+    GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice
+from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
+    UserModifyPemView, TeamAddUserView, ServicePermissionView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
@@ -67,8 +68,6 @@ from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, 
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
-from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
 
 urlpatterns = patterns(
     '',
@@ -173,9 +172,11 @@ urlpatterns = patterns(
     # 账户与费用相关
     url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
     url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
+
     # 数据中心相关
     url(r'^enterprise/regions$', PublicRegionListView.as_view()),
     url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
+    url(r'^enterprise/region/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),

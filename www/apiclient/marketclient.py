@@ -5,7 +5,6 @@ import logging
 
 from www.apiclient.baseclient import HttpClient, client_auth_service
 
-
 logger = logging.getLogger('default')
 
 
@@ -30,9 +29,10 @@ class MarketOpenAPI(HttpClient):
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
-    def get_service_group_detail(self, tenant_id, group_key, group_version,template_version="v1"):
+    def get_service_group_detail(self, tenant_id, group_key, group_version, template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/apps/templates?group_key={0}&group_version={1}&template_version={2}".format(group_key, group_version,template_version)
+        url = url + "/openapi/console/v1/enter-market/apps/templates?group_key={0}&group_version={1}&template_version={2}".format(
+            group_key, group_version, template_version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
@@ -66,6 +66,46 @@ class MarketOpenAPI(HttpClient):
         # data = self._unpack(body)
         return res, body
 
+    def get_region_res_price(self, region_name, tenant_id, enterprise_id, memory, disk, rent_time):
+        try:
+            url, market_client_id, market_client_token = \
+                client_auth_service.get_market_access_token_by_tenant(tenant_id)
+
+            url = url + "/openapi/console/v1/enterprises/{0}/regions/{1}/fee".format(enterprise_id, region_name)
+            data = {
+                'memory': memory,
+                'disk': disk,
+                'rent_time': rent_time
+            }
+            res, body = self._post(
+                url, self.__auth_header(market_client_id, market_client_token), json.dumps(data)
+            )
+            return self._unpack(body), '', res.status
+        except self.ApiSocketError as e:
+            logger.exception(e)
+            msg = e.body.get('msg_show') if e.body else e.message
+            return None, msg, e.status
+
+    def buy_region_res(self, region_name, tenant_id, enterprise_id, memory, disk, rent_time):
+        try:
+            url, market_client_id, market_client_token = \
+                client_auth_service.get_market_access_token_by_tenant(tenant_id)
+
+            url = url + "/openapi/console/v1/enterprises/{0}/regions/{1}/purchase".format(enterprise_id, region_name)
+            data = {
+                'memory': memory,
+                'disk': disk,
+                'rent_time': rent_time
+            }
+            res, body = self._post(
+                url, self.__auth_header(market_client_id, market_client_token), json.dumps(data)
+            )
+            return self._unpack(body), '', res.status
+        except self.ApiSocketError as e:
+            logger.exception(e)
+            msg = e.body.get('msg_show') if e.body else e.message
+            return None, msg, e.status
+
     def get_public_regions_list(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/regions"
@@ -74,10 +114,9 @@ class MarketOpenAPI(HttpClient):
         data = self._unpack(body)
         return res, data
 
-    def get_enterprise_regions_resource(self, tenant_id, region, enterprise_id):
+    def get_enterprise_regions_resource(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        # url = url + "/openapi/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
-        url = url + "/openapi/console/v1/enterprises/" + enterprise_id + "/res-usage?region={0}".format(region)
+        url = url + "/openapi/console/v1/enterprises/" + enterprise_id + "/res-usage"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data

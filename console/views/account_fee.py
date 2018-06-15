@@ -37,12 +37,14 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             try:
-                res, data = market_api.get_enterprise_account_info(tenant_id=team.tenant_id,
-                                                                   enterprise_id=team.enterprise_id)
+                res, data = market_api.get_enterprise_account_info(
+                    tenant_id=team.tenant_id, enterprise_id=team.enterprise_id
+                )
                 result = general_message(200, "success", "查询成功", bean=data)
             except Exception as e:
                 logger.exception(e)
-                result = general_message(400, "corporate account information failed", "企业账户信息获取失败")
+                result = general_message(
+                    400, "corporate account information failed", "企业账户信息获取失败")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -91,7 +93,7 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 elif 'list' in data_body and data_body['list']:
                     rt_list = data_body['list']
 
-                result = general_message(200, "success", "查询成功",bean=bean, list=rt_list)
+                result = general_message(200, "success", "查询成功", bean=bean, list=rt_list)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
