@@ -264,7 +264,8 @@ export default class SiderMenu extends PureComponent {
              return ItemDom;
           }
        }
-       return null;
+      //  return null;
+      return ItemDom;
     } else {
       return ItemDom;
     }
