@@ -10,6 +10,7 @@ from console.repositories.app_config import volume_repo, mnt_repo
 from www.apiclient.regionapi import RegionInvokeApi
 import logging
 from console.utils.urlutil import is_path_legal
+from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -25,17 +26,20 @@ class AppVolumeService(object):
     def get_service_volumes(self, tenant, service):
         return volume_repo.get_service_volumes(service.service_id)
 
-    def check_volume_name(self, service_id, volume_name):
+    def check_volume_name(self, service, volume_name):
         r = re.compile(u'^[a-zA-Z0-9_]+$')
         if not r.match(volume_name):
-            return 400, u"持久化名称只支持数字字母下划线"
-        
-        volume = volume_repo.get_service_volume_by_name(service_id, volume_name)
+            if service.service_source != AppConstants.MARKET:
+                return 400, u"持久化名称只支持数字字母下划线", volume_name
+            else:
+                volume_name = service.service_cname + make_uuid()[-3:]
+
+        volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
-            return 412, u"持久化名称{0}已存在".format(volume_name)
+            return 412, u"持久化名称{0}已存在".format(volume_name), volume_name
         else:
-            return 200, u"success"
+            return 200, u"success", volume_name
 
     def check_volume_path(self, service, volume_path):
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
@@ -64,7 +68,7 @@ class AppVolumeService(object):
         return 200, u"success"
 
     def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
-        code, msg = self.check_volume_name(service.service_id, volume_name)
+        code, msg, volume_name = self.check_volume_name(service, volume_name)
         if code != 200:
             return code, msg, None
         code, msg = self.check_volume_path(service, volume_path)
