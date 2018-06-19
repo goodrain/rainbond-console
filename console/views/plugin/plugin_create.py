@@ -171,6 +171,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
                                                                                 category, "image",
                                                                                 image_url, "")
             plugin_base_info.origin = "local_market"
+            plugin_base_info.origin_share_id = "perf_analyze_plugin"
             plugin_base_info.save()
 
             plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
