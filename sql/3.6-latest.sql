@@ -115,3 +115,5 @@ ALTER TABLE rainbond_center_app ADD enterprise_id varchar(32) DEFAULT 'public' N
 DROP INDEX rainbond_center_app_group_key_uindex ON rainbond_center_app;
 
 ALTER TABLE app_export_record ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
+
+ALTER TABLE region_info MODIFY scope varchar(15) DEFAULT 'private';
