@@ -613,5 +613,10 @@ class PluginService(object):
         return 200, "删除成功"
 
     def get_default_plugin(self, region, tenant):
-        return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
+        # 兼容3.5版本升级
+        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
             origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin"])
+        if plugins:
+            return plugins
+        else:
+            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(category="analyst-plugin:perf",image="goodrain.me/tcm")
