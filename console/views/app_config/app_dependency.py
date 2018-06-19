@@ -188,18 +188,17 @@ class AppNotDependencyView(AppBaseView):
             page_size = int(request.GET.get("page_size", 25))
             search_key = request.GET.get("search_key", None)
             condition = request.GET.get("condition", None)
-            flag = search_key and condition
             un_dependencies = dependency_service.get_undependencies(self.tenant, self.service)
             service_ids = [s.service_id for s in un_dependencies]
             service_group_map = group_service.get_services_group_name(service_ids)
             un_dep_list = []
-            order_by_dict = {}
             for un_dep in un_dependencies:
                 dep_service_info = {"service_cname": un_dep.service_cname, "service_id": un_dep.service_id,
                                     "service_type": un_dep.service_type, "service_alias": un_dep.service_alias,
                                     "group_name": service_group_map[un_dep.service_id]["group_name"],
                                     "group_id": service_group_map[un_dep.service_id]["group_id"]}
-                if flag:
+
+                if search_key is not None and condition:
                     if condition == "group_name":
                         if search_key.lower() in service_group_map[un_dep.service_id]["group_name"].lower():
                             un_dep_list.append(dep_service_info)
@@ -209,15 +208,12 @@ class AppNotDependencyView(AppBaseView):
                     else:
                         result = general_message(400, "error", u"condition参数错误")
                         return Response(result, status=400)
-                else:
-                    group_id = service_group_map[un_dep.service_id]["group_id"]
-                    if group_id not in order_by_dict:
-                        order_by_dict[group_id] = [dep_service_info]
-                    else:
-                        order_by_dict[group_id].append(dep_service_info)
-            if not flag:
-                for dep_service_info_list in order_by_dict.values():
-                    un_dep_list.extend(dep_service_info_list)
+                elif search_key is not None and not condition:
+                    if search_key.lower() in service_group_map[un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
+                        un_dep_list.append(dep_service_info)
+                elif search_key is None and not condition:
+                    un_dep_list.append(dep_service_info)
+
             rt_list = un_dep_list[(page_num - 1) * page_size:page_num * page_size]
             result = general_message(200, "success", "查询成功", list=rt_list, total=len(un_dep_list))
         except Exception as e:
