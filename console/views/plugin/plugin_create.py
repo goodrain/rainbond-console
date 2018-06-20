@@ -110,7 +110,7 @@ class PluginCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "plugin desc is null", "请填写插件描述"), status=400)
 
             image_tag = ""
-            if image:
+            if image and build_source == "image":
                 image_and_tag = image.split(":")
                 if len(image_and_tag) > 1:
                     image = image_and_tag[0]
