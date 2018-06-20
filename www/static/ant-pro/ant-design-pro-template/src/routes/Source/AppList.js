@@ -35,6 +35,7 @@ import BatchImportListForm from '../../components/BatchImportmListForm';
 import config from '../../config/config'
 import CloudApp from './CloudApp';
 import UploadFile from './UploadFile';
+import localMarketUtil from '../../utils/localMarket';
 const FormItem = Form.Item;
 const {Step} = Steps;
 const RadioButton = Radio.Button;
@@ -92,14 +93,16 @@ class ExportBtn extends PureComponent {
     componentWillUnmount(){
         this.mounted = false
     }
-    download = (path) => {
+    download = (app_id, format) => {
         var aEle = document.querySelector("#down-a-element");
         if(!aEle){
             aEle = document.createElement('a');
             aEle.setAttribute('download',"filename");
             document.body.appendChild(aEle);
         }
-        aEle.href=path;
+        const href = localMarketUtil.getAppExportUrl({team_name: globalUtil.getCurrTeamName(), app_id: app_id, format: format});
+        alert(href)
+        aEle.href=href;
         if(document.all) {
             aEle.click();
         }else {
@@ -147,9 +150,9 @@ class ExportBtn extends PureComponent {
                     //点击导出平台应用
                     if(type === 'rainbond-app'){
                         var rainbond_app = data.bean.rainbond_app || {};
-                        if(rainbond_app.status === 'success' && rainbond_app.file_path){
+                        if(rainbond_app.status === 'success'){
                             this.setState({is_rainbond_app_exporting: false})
-                            this.download(rainbond_app.file_path);
+                            this.download(item.ID, type);
                             return;
                         }
 
@@ -173,7 +176,7 @@ class ExportBtn extends PureComponent {
                         var docker_compose = data.bean.docker_compose || {};
                         if(docker_compose.status === 'success' && docker_compose.file_path){
                             this.setState({is_docker_compose_exporting: false})
-                            this.download(docker_compose.file_path);
+                            this.download(item.ID, type);
                             return;
                         }
                         //导出中
@@ -584,7 +587,10 @@ export default class AppList extends PureComponent {
                                             }
                                             shape = "square" size = "large" />}
                                                 title={item.group_name}
-                                                description={item.describe || '-'}/>
+                                                description={<div>
+                                                    <p>版本: {item.version}</p>
+                                                    {item.describe || '-'}
+                                                </div>}/>
                                         </List.Item>
                         if(index === 0 && this.state.importingApps && this.state.importingApps.length) {
                             return <Fragment>

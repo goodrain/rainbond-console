@@ -153,7 +153,10 @@ export default class CloudApp extends PureComponent {
                         }
                         shape = "square" size = "large" />}
                             title={item.group_name}
-                            description={item.describe || '-'}/>
+                            description={<div>
+                                <p>版本: {item.version}</p>
+                                {item.describe || '-'}
+                            </div>}/>
 
                     </List.Item>
                 )}/>

@@ -40,21 +40,21 @@ export default class CloudPlugin extends PureComponent {
             sync: true
         }, () => {
             this
-                .props
-                .dispatch({
-                    type: 'global/syncMarketPlugins',
-                    payload: {
-                        team_name: globalUtil.getCurrTeamName()
-                    },
-                    callback: (data) => {
-                        this.setState({
-                            sync: false,
-                            plugins: data.list || [],
-                            loading: false,
-                            total: data.total
-                        })
-                    }
-                })
+            .props
+            .dispatch({
+                type: 'global/syncMarketPlugins',
+                payload: {
+                    team_name: globalUtil.getCurrTeamName()
+                },
+                callback: (data) => {
+                    this.setState({
+                        sync: false,
+                        plugins: data.list || [],
+                        loading: false,
+                        total: data.total
+                    })
+                }
+            })
         })
     }
     handleClose = () => {
