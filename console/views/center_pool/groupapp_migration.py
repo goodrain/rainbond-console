@@ -154,7 +154,7 @@ class GroupAppsView(RegionTenantHeaderView):
               description: 组ID
               required: true
               type: string
-              paramType: path
+              paramType: query
 
         """
         try:
