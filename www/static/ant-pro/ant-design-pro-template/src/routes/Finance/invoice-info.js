@@ -5,7 +5,7 @@ import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip,
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
-
+import InvoiceTab from '../../components/InvoiceTab';
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
 const { Search } = Input;
@@ -19,22 +19,24 @@ export default class BasicList extends PureComponent {
   constructor(props){
       super(props);
       this.state = {
-         selectedRowKeys: []
-          
+         list: [],
+         showInfo:false
       }
   }
   componentDidMount() {
      
   }
- 
+  showInfo =()=>{
+    this.setState({showInfo:true})
+  }
+  InfoContent =() =>{
+    this.setState({showInfo:false})
+  }
+  getInviceInfo = ()=>{
+      this.setState({list:[]})
+  }
   render() {
     const { loading } = this.props;
-    const { selectedRowKeys } = this.state;
-    const extraContent = (
-      <div className={styles.extraContent}>
-          
-      </div>
-    );
     const columns = [{
       title: '申请时间',
       dataIndex: 'time',
@@ -62,7 +64,7 @@ export default class BasicList extends PureComponent {
      	dataIndex: 'action',
 			render: (val, data) => {
 							return (
-                <a href="javascript:;">查看</a>
+                <a href="javascript:;" onClick={this.showInfo.bind(this, val, data)}>查看</a>
 							)
 						}
     }];
@@ -85,7 +87,6 @@ export default class BasicList extends PureComponent {
         <Button style={{float:'right'}}><a target="_blank" href="https://www.goodrain.com/spa/#/personalCenter/my/recharge">发票申请</a></Button>
     );
     const rowSelection = {
-      selectedRowKeys,
       onChange: this.onSelectChange,
     };
 
@@ -112,11 +113,14 @@ export default class BasicList extends PureComponent {
             title="发票查询"
             style={{ marginTop: 24 }}
             bodyStyle={{ padding: '0 32px 40px 32px' }}
-            extra={extraContent}
           >
             <Table  dataSource={data} columns={columns} />
           </Card>
-          
+          {this.state.showInfo && <InvoiceTab
+            onOk={this.InfoContent}
+            title="发票订单详情"
+            onCancel={this.InfoContent}
+          />}
         </div>
       </PageHeaderLayout>
     );

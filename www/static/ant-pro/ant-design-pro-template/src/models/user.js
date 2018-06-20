@@ -56,7 +56,12 @@ export default {
       payload
     }, {call, put, select}) {
       const response = yield call(login, payload);
-
+      // 
+      cookie.set('token',"f8ocCLBCjzn4qHJU4oOzGwbLgzkdMI"); 
+      window
+          .location
+          .reload();
+          // 
       if (response) {
         yield put({type: 'changeLoginStatus', payload: response});
 

@@ -20,8 +20,8 @@ export default class BasicList extends PureComponent {
   constructor(props){
       super(props);
       this.state = {
-         selectedRowKeys: []
-          
+         selectedRowKeys: [],
+         showForm:false
       }
   }
   componentDidMount() {
@@ -30,6 +30,15 @@ export default class BasicList extends PureComponent {
   onSelectChange = (selectedRowKeys) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
     this.setState({ selectedRowKeys });
+  }
+  handleinvoice =()=>{
+     this.setState({showForm:true})
+  }
+  handleOkInvoice =()=>{
+
+  }
+  handleCancelInvoice =()=>{
+    this.setState({showForm:false})
   }
   render() {
     const { loading } = this.props;
@@ -97,9 +106,13 @@ export default class BasicList extends PureComponent {
             extra={extraContent}
           >
             <Table rowSelection={rowSelection} dataSource={data} columns={columns} />
-            <div style={{textAlign:'center'}}><Button type="primary">申请开票</Button></div>
+            <div style={{textAlign:'center'}}><Button type="primary" onClick={this.handleinvoice}>申请开票</Button></div>
           </Card>
-          <InvoiceForm/>
+          {this.state.showForm && <InvoiceForm 
+             onOk={this.handleOkInvoice}
+             title="发票订单详情"
+             onCancel={this.handleCancelInvoice}
+          />}
         </div>
       </PageHeaderLayout>
     );

@@ -354,7 +354,7 @@ export default class Index extends PureComponent {
                 rules: [{ required: true, message: '请输入配置组名' }],
               })(
                 <RadioGroup>
-                  <Radio style={{display: metaType === 'un_define' ? '' :'none'}} value="env">增值税专业发票</Radio>
+                  <Radio  value="env">增值税专业发票</Radio>
                   <Radio value="auto">增值税普通发票</Radio>
                 </RadioGroup>
               )}
