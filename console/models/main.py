@@ -421,7 +421,7 @@ class UserMessage(BaseModel):
 
     message_id = models.CharField(max_length=32, help_text=u"消息ID")
     receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
-    content = models.CharField(max_length=256, help_text=u"消息内容")
+    content = models.CharField(max_length=1000, help_text=u"消息内容")
     is_read = models.BooleanField(default=False, help_text=u"是否已读")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
