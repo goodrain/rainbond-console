@@ -81,12 +81,12 @@ class RainbondCenterPlugin(BaseModel):
     class Meta:
         db_table = "rainbond_center_plugin"
 
-    plugin_key = models.CharField(max_length=32, unique=True, help_text=u"插件分享key")
+    plugin_key = models.CharField(max_length=32,  help_text=u"插件分享key")
     plugin_name = models.CharField(max_length=32, help_text=u"插件名称")
     plugin_id = models.CharField(max_length=32, null=True, help_text=u"插件id")
     category = models.CharField(max_length=32, help_text=u"插件类别")
     record_id = models.IntegerField(help_text=u"分享流程id")
-    version = models.CharField(max_length=20, unique=True, help_text=u"版本")
+    version = models.CharField(max_length=20, help_text=u"版本")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
     pic = models.CharField(max_length=100,null=True, blank=True, help_text=u"插件头像信息")
     scope = models.CharField(max_length=10, choices=plugin_scope, help_text=u"可用范围")
