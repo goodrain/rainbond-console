@@ -314,6 +314,13 @@ class BasicLayout extends React.PureComponent {
 
             const team = userUtil.getTeamByTeamName(currentUser, globalUtil.getCurrTeamName());
             const hasRegion = !!(team.region && team.region.length);
+            let region = null;
+            let isRegionMaintain = false;
+            if(hasRegion){
+                region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
+                isRegionMaintain = region.region_status === '3' && !userUtil.isSystemAdmin(currentUser);
+            }
+            
             var renderContent = () => {
 
                 //当前团队没有数据中心
@@ -322,8 +329,6 @@ class BasicLayout extends React.PureComponent {
                     return null;
                 }
 
-                const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
-                const isRegionMaintain = region.region_status === '3';
                 //数据中心维护中
                 if(isRegionMaintain){
                     return <div style={{textAlign: 'center', padding: '50px 0'}}>
@@ -353,7 +358,7 @@ class BasicLayout extends React.PureComponent {
 
             return <Layout>
                     {
-                        hasRegion && <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} 
+                        (!isRegionMaintain && hasRegion) && <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} 
                         Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
                     }
                     
