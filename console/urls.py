@@ -59,6 +59,7 @@ from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
     ServiceShareCompleteView, ServiceShareRecordView
+from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
@@ -431,4 +432,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
     url(r'^teams/init', TeamRegionInitView.as_view()),
+
+    # 应用版本管理
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$', AppVersionManageView.as_view()),
 )
