@@ -263,3 +263,31 @@ export async function deleteMsg(body={team_name, msg_ids}){
   });
 }
 
+/* 资源价格计算 */
+export async function resPrice(body={team_name, region_name,memory,disk,rent_time}){
+  return request(config.baseUrl + `/console/enterprise/regions/${body.region_name}/res-price`, {
+    method: 'post',
+    data: {
+      team_name: body.team_name,
+      region_name: body.region_name,
+      memory: body.memory,
+      disk: body.disk,
+      rent_time: body.rent_time
+    }
+  });
+}
+
+
+/* 资源购买 */
+export async function buyPurchase(body={team_name, region_name,memory,disk,rent_time}){
+  return request(config.baseUrl + `/console/enterprise/regions/${body.region_name}/purchase`, {
+    method: 'post',
+    data: {
+      team_name: body.team_name,
+      region_name: body.region_name,
+      memory: body.memory,
+      disk: body.disk,
+      rent_time: body.rent_time
+    }
+  });
+}

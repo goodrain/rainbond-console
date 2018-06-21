@@ -15,7 +15,9 @@ import {
   putMsgAction,
   deleteMsg,
   getAllRegion,
-  InitTeam
+  InitTeam,
+  resPrice,
+  buyPurchase
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -108,6 +110,26 @@ export default {
       callback
     }, {call, put}) {
       const data = yield call(deleteMsg, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    //资源价格计算
+    *resPrice({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(resPrice, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    //资源购买
+    *buyPurchase({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(buyPurchase, payload);
       if (data) {
         callback && callback(data)
       }

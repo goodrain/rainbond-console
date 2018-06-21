@@ -136,7 +136,7 @@ export default class BasicList extends PureComponent {
             style={{ marginTop: 24 }}
             bodyStyle={{ padding: '0 32px 40px 32px' }}
           >
-            <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id}/> 
+            <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
           </Card>
         </div>
       </PageHeaderLayout>

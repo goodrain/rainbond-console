@@ -14,7 +14,8 @@ import {
 		Select,
 		Input,
 		Modal,
-		message
+		message,
+		Divider
 } from 'antd';
 import globalUtil from '../../utils/global';
 
@@ -53,11 +54,8 @@ export default class Index extends PureComponent {
 		}
 		  //调用图表
 		  chartMap(datalist){
-			console.log('000000')
-			console.log(datalist)
 			datalist.map((region) => {
 			  var id = region.name;
-				console.log(id)
 			  var limit_disk = region.disk.limit   // 磁盘最大值  
 			  var limit_memory = region.memory.limit  // 内存最大值最大值 
 			  
@@ -109,8 +107,6 @@ export default class Index extends PureComponent {
 			      memorydata.dataname = ['已使用内存']
 			      memorydata.data = [{value:diskUsed, name:'已使用内存'}]
 				}
-				console.log(diskdata)
-				console.log(memorydata)
 			    this.showChart(diskdata);
 			    this.showChart(memorydata);
 		
@@ -178,7 +174,7 @@ export default class Index extends PureComponent {
 					{
 						datalist.map((order)=>{
 							return(
-								<div  style={{borderBottom:'1px #ececec solid',textAlign:'center',padding:'10px 0'}}>
+								<div  style={{textAlign:'center'}}>
 									<p style={{fontSize:'16px',lineHeight:'30px'}}>{order.alias}</p>
 									<Row>
 										<Col span={12}>
@@ -207,8 +203,9 @@ export default class Index extends PureComponent {
 										</Col>
 									</Row>
 									<p>
-										<Button type='primary'><a>购买资源</a></Button>
+										<Button type='primary'><Link to={`/team/${globalUtil.getCurrTeamName()}/region/${order.name}/resources`}>购买资源</Link></Button>
 									</p>
+									<Divider />
 								</div>
 							)
 						})
