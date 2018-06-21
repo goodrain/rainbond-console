@@ -1,6 +1,22 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+
+
+/* 删除应用的某个版本 */
+export function delAppVersion(body={team_name, service_alias, version_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/version/${body.version_id}`, {
+		method: 'DELETE'
+	});
+}
+
+/* 获取应用所有的版本列表 */
+export function getAppVersionList(body={team_name, service_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/version`, {
+		method: 'get'
+	});
+}
+
  /*
   获取php语言扩展
  */

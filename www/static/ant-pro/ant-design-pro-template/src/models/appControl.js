@@ -69,7 +69,9 @@ import {
   getAutoDeployStatus,
   cancelAutoDeploy,
   openAutoDeploy,
-  getPhpConfig
+  getPhpConfig,
+  getAppVersionList,
+  delAppVersion
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -131,6 +133,24 @@ export default {
     members: []
   },
   effects : {
+    *getAppVersionList({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getAppVersionList, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *delAppVersion({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(delAppVersion, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getPhpConfig({
       payload,
       callback
