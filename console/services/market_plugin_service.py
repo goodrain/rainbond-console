@@ -393,8 +393,14 @@ class MarketPluginService(object):
             plugin_base_info.origin_share_id = share_plugin_info.get("plugin_key")
             plugin_base_info.save()
 
+            build_version = plugin_template.get('build_version')
+            min_memory = build_version.get('min_memory')
+            image_tag = build_version.get('image_tag')
+
             plugin_build_version = plugin_version_service.create_build_version(
-                region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
+                region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id,
+                "", "unbuild", min_memory, image_tag=image_tag
+            )
 
             config_groups, config_items = [], []
             share_config_groups = share_plugin_info.get('config_groups', [])
