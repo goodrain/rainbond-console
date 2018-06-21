@@ -53,7 +53,7 @@ from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
     ServiceEventsView, TeamServiceOverViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
-    GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice
+    GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
     UserModifyPemView, TeamAddUserView, ServicePermissionView
 from console.views.service_docker import DockerContainerView
@@ -176,7 +176,8 @@ urlpatterns = patterns(
     # 数据中心相关
     url(r'^enterprise/regions$', PublicRegionListView.as_view()),
     url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
-    url(r'^enterprise/region/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
+    url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
+    url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/purchase$', RegionResPurchage.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
