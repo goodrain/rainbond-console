@@ -114,9 +114,13 @@ class MarketOpenAPI(HttpClient):
         data = self._unpack(body)
         return res, data
 
-    def get_enterprise_regions_resource(self, tenant_id, enterprise_id):
+    def get_enterprise_regions_resource(self, tenant_id, enterprise_id, region):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url = url + "/openapi/console/v1/enterprises/" + enterprise_id + "/res-usage"
+
+        if region:
+            url = '{0}?region={1}'.format(url, region)
+
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         data = self._unpack(body)
         return res, data

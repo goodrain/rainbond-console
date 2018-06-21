@@ -274,13 +274,14 @@ class RegionResourceDetailView(JWTAuthApiView):
         """
         try:
             team_name = request.GET.get("team_name", None)
+            region = request.GET.get("region", None)
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             if not team:
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
             res, data = market_api.get_enterprise_regions_resource(
-                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id
+                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id, region=region
             )
             result = general_message(200, "success", "查询成功", bean=data)
 
