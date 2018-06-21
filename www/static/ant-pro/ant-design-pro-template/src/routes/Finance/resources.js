@@ -141,7 +141,7 @@ export default class BasicList extends PureComponent {
                       </Col>
                       <Col span={2}></Col>
                       <Col span={22}>
-
+                          <Slider  />
                       </Col>
                   </Row>
                   <Row style={{padding:'5px 0'}}>
@@ -152,7 +152,7 @@ export default class BasicList extends PureComponent {
                           包月用量:{limitDisk}(G)／实际用量:{usedDisk}(G)／到期时间:{timeDisk}
                       </Col>
                       <Col span={2}></Col>
-                      <Col span={22}></Col>
+                      <Col span={22}><Slider  /></Col>
                   </Row>
                   <Row style={{padding:'5px 0'}}>
                       <Col span={2} style={{fontSize:'16px'}}>
@@ -168,7 +168,7 @@ export default class BasicList extends PureComponent {
               <Divider />
               <div>
                   <strong>费用详情</strong>
-                  
+
               </div>
             </div>
         </Card>
