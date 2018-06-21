@@ -94,6 +94,9 @@ export const getRouterData = (app) => {
     '/team/:team/region/:region/info': {
       component: dynamicWrapper(app, [], () => import ('../routes/Finance/invoice-info'))
     },
+    '/team/:team/region/:region/resources': {
+      component: dynamicWrapper(app, [], () => import ('../routes/Finance/resources'))
+    },
     '/team/:team/region/:region/index': {
       component: dynamicWrapper(app, ['index'], () => import ('../routes/Index/Index'))
     },
