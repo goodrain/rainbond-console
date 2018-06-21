@@ -117,3 +117,5 @@ DROP INDEX rainbond_center_app_group_key_uindex ON rainbond_center_app;
 ALTER TABLE app_export_record ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
 
 ALTER TABLE region_info MODIFY scope varchar(15) DEFAULT 'private';
+-- 修改字段长度
+ALTER TABLE plugin_build_version MODIFY image_tag varchar(100) default '';

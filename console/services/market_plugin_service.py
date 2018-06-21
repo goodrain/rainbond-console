@@ -374,6 +374,17 @@ class MarketPluginService(object):
         sid = transaction.savepoint()
 
         try:
+            image = None
+            image_tag = None
+            if plugin_template["share_image"]:
+                image_and_tag = plugin_template["share_image"].rsplit(":", 1)
+                if len(image_and_tag) > 1:
+                    image = image_and_tag[0]
+                    image_tag = image_and_tag[1]
+                else:
+                    image = image_and_tag[0]
+                    image_tag = "latest"
+
             status, msg, plugin_base_info = plugin_service.create_tenant_plugin(
                 tenant,
                 user.user_id,
@@ -381,8 +392,8 @@ class MarketPluginService(object):
                 share_plugin_info.get("desc"),
                 plugin_template["plugin_name"],
                 plugin_template["category"],
-                plugin_template["build_source"],
-                plugin_template["image"],
+                "image",
+                image,
                 plugin_template["code_repo"]
             )
 
@@ -395,12 +406,10 @@ class MarketPluginService(object):
 
             build_version = plugin_template.get('build_version')
             min_memory = build_version.get('min_memory')
-            image_tag = build_version.get('image_tag')
-            code_version = build_version.get('code_version')
 
             plugin_build_version = plugin_version_service.create_build_version(
                 region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id,
-                "", "unbuild", min_memory, image_tag=image_tag, code_version=code_version
+                "", "unbuild", min_memory, image_tag=image_tag, code_version=""
             )
 
             config_groups, config_items = [], []
@@ -443,7 +452,7 @@ class MarketPluginService(object):
 
             ret = plugin_service.build_plugin(
                 region_name, plugin_base_info, plugin_build_version, user, tenant, event_id
-            )
+                , share_plugin_info.get("plugin_image", None))
             plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
 

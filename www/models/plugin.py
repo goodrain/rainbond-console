@@ -50,7 +50,7 @@ class PluginBuildVersion(BaseModel):
     min_cpu = models.IntegerField(help_text=u"构建cpu大小")
     event_id = models.CharField(max_length=32, default="", blank=True, null=True, help_text=u"事件ID")
     build_cmd = models.CharField(max_length=128, null=True, blank=True, help_text=u"构建命令")
-    image_tag = models.CharField(max_length=32, null=True, blank=True, default="latest", help_text=u"镜像版本")
+    image_tag = models.CharField(max_length=100, null=True, blank=True, default="latest", help_text=u"镜像版本")
     code_version = models.CharField(max_length=32, null=True, blank=True, default="master", help_text=u"代码版本")
     build_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
