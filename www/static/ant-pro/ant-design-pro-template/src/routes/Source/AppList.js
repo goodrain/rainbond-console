@@ -101,7 +101,6 @@ class ExportBtn extends PureComponent {
             document.body.appendChild(aEle);
         }
         const href = localMarketUtil.getAppExportUrl({team_name: globalUtil.getCurrTeamName(), app_id: app_id, format: format});
-        alert(href)
         aEle.href=href;
         if(document.all) {
             aEle.click();
