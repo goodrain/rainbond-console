@@ -347,5 +347,5 @@ class RegionResPurchage(JWTAuthApiView):
 
             return Response(status=status, data=general_message(status, msg, msg, ret))
         except Exception as e:
-            data = general_message(500, "buy res error", "无法计算费用")
+            data = general_message(500, "buy res error", "资源购买失败")
             return Response(status=500, data=data)
