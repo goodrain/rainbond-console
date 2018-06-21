@@ -396,10 +396,11 @@ class MarketPluginService(object):
             build_version = plugin_template.get('build_version')
             min_memory = build_version.get('min_memory')
             image_tag = build_version.get('image_tag')
+            code_version = build_version.get('code_version')
 
             plugin_build_version = plugin_version_service.create_build_version(
                 region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id,
-                "", "unbuild", min_memory, image_tag=image_tag
+                "", "unbuild", min_memory, image_tag=image_tag, code_version=code_version
             )
 
             config_groups, config_items = [], []
