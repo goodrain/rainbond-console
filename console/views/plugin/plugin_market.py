@@ -188,7 +188,7 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
             )
 
             installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
-                filter(origin='local_market')
+                filter(origin__in=['local_market','market'])
 
             for p in plugins:
                 if installed.filter(plugin_alias=p["plugin_name"]).exists():
