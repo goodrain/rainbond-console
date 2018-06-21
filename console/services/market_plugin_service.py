@@ -439,12 +439,12 @@ class MarketPluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            plugin_service.create_region_plugin(region_name, tenant, plugin_base_info)
+            plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
 
-            plugin_service.build_plugin(
+            ret = plugin_service.build_plugin(
                 region_name, plugin_base_info, plugin_build_version, user, tenant, event_id
             )
-            plugin_build_version.build_status = "build_success"
+            plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
 
             return 200, '安装成功'
