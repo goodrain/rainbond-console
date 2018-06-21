@@ -124,7 +124,7 @@ class MarketPluginService(object):
                     logger.exception(e)
 
             rcp.plugin_template = market_plugin.get("template").get('template_content')
-            rcp.pic = market_plugin.get('pic')
+            rcp.pic = market_plugin.get('logo')
             rcp.desc = market_plugin.get('intro')
             rcp.version = market_plugin.get('major_version')
             rcp.is_complete = True
@@ -400,21 +400,20 @@ class MarketPluginService(object):
             share_config_groups = share_plugin_info.get('config_groups', [])
 
             for group in share_config_groups:
-                share_config_items = share_plugin_info.get('config_items', [])
-
                 plugin_config_group = PluginConfigGroup(
-                    plugin_id=group.get("plugin_id"),
-                    build_version=group.get("build_version"),
+                    plugin_id=plugin_base_info.plugin_id,
+                    build_version=plugin_build_version.build_version,
                     config_name=group.get("config_name"),
                     service_meta_type=group.get("service_meta_type"),
                     injection=group.get("injection")
                 )
                 config_groups.append(plugin_config_group)
 
+                share_config_items = group.get('config_items', [])
                 for item in share_config_items:
                     plugin_config_item = PluginConfigItems(
-                        plugin_id=item.get("plugin_id"),
-                        build_version=item.get("build_version"),
+                        plugin_id=plugin_base_info.plugin_id,
+                        build_version=plugin_build_version.build_version,
                         service_meta_type=item.get("service_meta_type"),
                         attr_name=item.get("attr_name"),
                         attr_alt_value=item.get("attr_alt_value"),
