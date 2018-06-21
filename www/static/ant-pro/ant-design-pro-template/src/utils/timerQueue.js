@@ -9,7 +9,7 @@ function TimerQueue(option) {
     this.queue = new Queue();
     this.timer = null;
     this.isStarted = false;
-    this.interval = option.interval || 150;
+    this.interval = option.interval || 70;
     this.onExecute = option.onExecute || util.noop;
 }
 TimerQueue.prototype = {
