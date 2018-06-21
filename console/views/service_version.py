@@ -64,6 +64,7 @@ class AppVersionsView(AppBaseView):
                     "commit_msg": info["CommitMsg"],
                     "author": info["Author"],
                     "create_time": info["CreatedAt"],
+                    "status": info["FinalStatus"],
                     "build_user": version_user_map.get(info["BuildVersion"], "未知")
                 })
 
