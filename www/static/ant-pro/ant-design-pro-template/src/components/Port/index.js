@@ -249,9 +249,9 @@ export default class Index extends PureComponent {
                       <Button size="small" style={{float:'right'}} onClick={this.showSubDomain}>
                       {
                         DomainText?
-                        '修改二级域名'
+                        '修改默认域名'
                         :
-                        '添加二级域名'
+                        '修改默认域名'
                       }
                       </Button>
                       :
