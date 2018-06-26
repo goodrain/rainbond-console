@@ -39,7 +39,7 @@ Choose Rainbond for the same reasons disruptive companies do: it serve as a easy
 
 ## Roadmap
 
-[>>3.5](https://github.com/goodrain/rainbond/projects/3)
+Read the [Roadmap](https://github.com/goodrain/rainbond-docs/blob/master/v3.6/architecture/roadmap.md).
 
 ## Contributing
 
