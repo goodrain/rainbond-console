@@ -398,8 +398,9 @@ export default class Main extends PureComponent {
           this.share_group_info['group_name'] = values.group_name;
           this.share_group_info['scope'] = values.scope;
           this.share_group_info['version'] = values.version;
-          console.log(this.state.fileList)
-          console.log(this.state.fileList[0] )
+
+
+
           if(this.state.fileList[0]!= undefined){
             this.state.fileList[0].response ?
             this.share_group_info['pic'] = this.state.fileList[0].response.data.bean.file_url
@@ -424,13 +425,11 @@ export default class Main extends PureComponent {
         .validateFields((err, values) => {
           if (!err) {
             appvalue = values;
-            console.log(values)
           }
         });
       //////
       share_service_data.map((option) => {
         if (option.service_alias == apptab) {
-          console.log(option.service_alias);
           for (var index in appvalue) {
             var indexname = '';
             var indexarr = [];
@@ -457,6 +456,7 @@ export default class Main extends PureComponent {
       })
       //////
     })
+
     newinfo['share_group_info'] = this.share_group_info;
     newinfo['share_service_list'] = share_service_data;
     const team_name = globalUtil.getCurrTeamName();
