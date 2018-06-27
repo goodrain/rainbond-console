@@ -106,7 +106,7 @@ const teamUtil = {
 	canViewApp(teamBean={}){
 		var actions = teamBean.tenant_actions || [];
 		return actions.indexOf('view_service') > -1
-	},
+	}
 }
 
 export default teamUtil;
