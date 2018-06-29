@@ -74,6 +74,7 @@ from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, 
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
+from console.views.receipt import *
 
 urlpatterns = patterns(
     '',
@@ -471,4 +472,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
     url(r'^teams/init', TeamRegionInitView.as_view()),
+
+    # 企业发票相关
+    url(r'receipts$', EnterReceiptAPIView.as_view()),
+    url(r'receipts/confirm$', EnterReceiptConfirmAPIView.as_view()),
+    url(r'receipts/(?P<receipt_id>\d+)$', EnterReceiptDetailAPIView.as_view()),
+    url(r'receipt-orders$', EnterReceiptOrdersAIPView.as_view()),
 )
