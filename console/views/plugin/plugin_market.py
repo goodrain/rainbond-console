@@ -191,7 +191,8 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
                 filter(origin__in=['local_market','market'])
 
             for p in plugins:
-                if installed.filter(plugin_alias=p["plugin_name"]).exists():
+                if installed.filter(origin_share_id=p["plugin_key"]).exists():
+                # if installed.filter(plugin_alias=p["plugin_name"]).exists():
                     p["is_installed"] = True
                 else:
                     p["is_installed"] = False
