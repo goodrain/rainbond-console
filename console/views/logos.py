@@ -8,6 +8,7 @@ from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
 from console.repositories.perm_repo import role_perm_repo
+from console.repositories.user_repo import user_repo
 logger = logging.getLogger("default")
 
 
@@ -41,12 +42,21 @@ class ConfigInfoView(AlowAnyApiView):
                 config = config_service.add_config("TITLE", "好雨云帮", "string", "云帮title")
                 title = config.value
             data["title"] = title
+            if settings.MODULES.get('SSO_LOGIN'):
+                data["is_user_register"] = True
+            else:
+                users = user_repo.get_all_users()
+                if users:
+                    data["is_user_register"] = True
+                else:
+                    data["is_user_register"] = False
 
             github_config = config_service.get_github_config()
             data["github_config"] = github_config
 
             gitlab_config = config_service.get_gitlab_config()
             data["gitlab_config"] = gitlab_config
+
 
             result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)

@@ -50,5 +50,8 @@ class UserRepo(object):
             return u[0]
         return None
 
+    def get_all_users(self):
+        return Users.objects.all()
+
 
 user_repo = UserRepo()
