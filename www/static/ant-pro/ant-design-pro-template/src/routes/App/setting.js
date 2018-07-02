@@ -1533,6 +1533,17 @@ export default class Index extends PureComponent {
                 </FormItem>
               : ''
 }
+            {appDetail.service.version
+              ? <FormItem
+                  style={{
+                  marginBottom: 0
+                }}
+                  {...formItemLayout}
+                  label="版本">
+                  {appDetail.service.version}
+                </FormItem>
+              : ''
+            }
             <FormItem
               style={{
               marginBottom: 0
