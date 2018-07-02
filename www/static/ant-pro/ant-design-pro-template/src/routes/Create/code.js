@@ -77,6 +77,16 @@ export default class Main extends PureComponent {
 
     return (
       <PageHeaderLayout
+        breadcrumbList={[{
+          title: "首页",
+          href: `/`
+        }, {
+          title: "创建应用",
+          href: ``
+        }, {
+          title: "从源码创建",
+          href: ``
+        }]}
         title={"由源码创建应用"}
         onTabChange={this.handleTabChange}
         content={< p > 从指定源码仓库中获取源码，基于源码信息创建新应用 < /p>}

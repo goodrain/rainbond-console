@@ -60,7 +60,7 @@ DATABASES = {
 }
 
 APP_SERVICE_API = {
-    'url': 'http://api.goodrain.com:80',
+    'url': os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80'),
     'apitype': 'app service'
 }
 
@@ -70,6 +70,7 @@ APP_SERVICE_API = {
 # SESSION_COOKIE_DOMAIN = '.goodrain.com'
 # SESSION_COOKIE_AGE = 3600
 
+SSO_LOGIN = os.getenv("SSO_LOGIN","").upper()
 MODULES = {
     "Owned_Fee": True,
     "Memory_Limit": True,
@@ -88,7 +89,7 @@ MODULES = {
     "Publish_YunShi": True,
     "Publish_Service": False,
     "Privite_Github": False,
-    "SSO_LOGIN": os.getenv("SSO_LOGIN") == "true",
+    "SSO_LOGIN": SSO_LOGIN == "TRUE",
 }
 
 if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):

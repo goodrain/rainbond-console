@@ -3,6 +3,7 @@ import logging
 
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
+from rest_framework.response import Response
 
 from backends.services.exceptions import AccountNotExistError
 from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
@@ -11,9 +12,12 @@ from backends.services.tenantservice import tenant_service as tenantService, Ema
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from www.gitlab_http import GitlabApi
-from www.models import Tenants, Users, PermRelTenant, TenantServiceInfo
+from www.models import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.services.app_actions import app_manage_service
+from console.services.app_actions import event_service
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 codeRepositoriesService = CodeRepositoriesService()
@@ -199,6 +203,21 @@ class UserService(object):
 
     def get_user_by_phone(self, phone):
         return user_repo.get_user_by_phone(phone)
+
+    def get_user_by_user_id(self, user_id):
+        return user_repo.get_user_by_user_id(user_id=user_id)
+
+    def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
+        """重新部署"""
+        code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, committer_name)
+        bean = {}
+        if event:
+            bean = event.to_dict()
+            bean["type_cn"] = event_service.translate_event_type(event.type)
+        if code != 200:
+            return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
+        result = general_message(code, "success", "重新部署成功", bean=bean)
+        return Response(result, status=200)
 
 
 user_services = UserService()

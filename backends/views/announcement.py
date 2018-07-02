@@ -17,8 +17,13 @@ class AllAnnouncementView(BaseAPIView):
 
         """
         try:
-            announcements = Announcement.objects.all()
-            announce_list = [model_to_dict(a) for a in announcements]
+            announce_list = []
+            announcements = Announcement.objects.all().order_by('-create_time')
+            for a in announcements:
+                a_dict = model_to_dict(a)
+                a_dict["create_time"] = a.create_time
+                announce_list.append(a_dict)
+
             result = generate_result(
                 "0000", "success", "查询成功", list=announce_list
             )
@@ -85,7 +90,7 @@ class AnnouncementView(BaseAPIView):
         ---
         parameters:
         -   name: body
-            description: 修改内容 字段有 content,a_tag,a_tag_url,type,active(启用)
+            description: 修改内容 字段有 content,a_tag,a_tag_url,type,active(启用)，title，level
             required: true
             type: string
             paramType: body

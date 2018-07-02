@@ -69,6 +69,16 @@ export default class Main extends PureComponent {
 
     return (
       <PageHeaderLayout
+      breadcrumbList={[{
+        title: "首页",
+        href: `/`
+      }, {
+        title: "创建应用",
+        href: ``
+      }, {
+        title: "从Docker镜像创建应用",
+        href: ``
+      }]}
         title={"从Docker镜像创建应用"}
         onTabChange={this.handleTabChange}
         content={"支持从单一镜像、Docker命令、Docker-Compose配置创建应用"}

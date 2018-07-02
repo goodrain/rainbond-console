@@ -17,6 +17,9 @@ from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.perm_repo import service_perm_repo
+from console.repositories.compose_repo import compose_relation_repo
+from console.repositories.label_repo import service_label_repo
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -202,8 +205,8 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
+    def deploy(self, tenant, service, user, committer_name=None):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
         if code != 200:
             return code, msg, event
 
@@ -355,7 +358,6 @@ class AppManageService(AppManageBase):
             return 400, "内存必须为128的倍数", None
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
-        new_add_memory = new_memory * service.min_node - service.min_memory * service.min_node
 
         code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
@@ -507,6 +509,10 @@ class AppManageService(AppManageBase):
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
+        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
+        service_perm_repo.delete_service_perm(service.ID)
+        compose_relation_repo.delete_relation_by_service_id(service.service_id)
+        service_label_repo.delete_service_all_labels(service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
@@ -577,6 +583,8 @@ class AppManageService(AppManageBase):
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             services = service_repo.get_services_by_service_ids(*sids).values_list("service_cname", flat=True)
+            if not services:
+                return False, ""
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""

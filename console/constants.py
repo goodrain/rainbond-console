@@ -89,3 +89,9 @@ class PluginMetaType(object):
 class PluginInjection(object):
     AUTO = "auto"
     EVN = "env"
+
+
+class MessageType(object):
+    ANNOUNCEMENT = "announcement"
+    NEWS = "news"
+    WARN = "warn"

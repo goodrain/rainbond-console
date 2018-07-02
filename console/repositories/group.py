@@ -44,6 +44,9 @@ class GroupRepository(object):
     def get_tenant_region_groups(self,team_id,region):
         return ServiceGroup.objects.filter(tenant_id=team_id,region_name=region)
 
+    def get_group_by_id(self, group_id):
+        return ServiceGroup.objects.filter(pk=group_id).first()
+
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).delete()

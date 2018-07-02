@@ -65,7 +65,11 @@ import {
   getPluginConfigs,
   editPluginConfigs,
   getAnalyzePlugins,
-  getAppResource
+  getAppResource,
+  getAutoDeployStatus,
+  cancelAutoDeploy,
+  openAutoDeploy,
+  getPhpConfig
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -127,6 +131,42 @@ export default {
     members: []
   },
   effects : {
+    *getPhpConfig({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getPhpConfig, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *openAutoDeploy({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(openAutoDeploy, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *cancelAutoDeploy({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(cancelAutoDeploy, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *getAutoDeployStatus({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getAutoDeployStatus, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getAppResource({
       payload,
       callback

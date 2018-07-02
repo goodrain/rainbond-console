@@ -17,7 +17,7 @@ logger = logging.getLogger("default")
 
 class AppExtendView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取应用扩展方式

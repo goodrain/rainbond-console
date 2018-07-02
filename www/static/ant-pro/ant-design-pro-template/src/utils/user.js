@@ -1,4 +1,7 @@
 import cookie from './cookie';
+import globalUtil from './global';
+import teamUtil from './team';
+import regionUtil from './region';
 
 const userUtil = {
 	isLogin() {
@@ -12,10 +15,16 @@ const userUtil = {
 		return '';
 	},
 	getDefaultTeam(bean) {
-		if (bean && bean.teams && bean.teams.length) {
-						return bean.teams[0]
+		//先判断自己的，如果有自己的团队，则返回
+		var team = (bean.teams || []).filter((team) => {
+			return team.role_name_list.indexOf('owner') > -1 || bean.user_id === team.creater
+		})[0]
+		
+		//也有可能他没有自己的团队，比如移交给别人了
+		if(!team){
+			team = bean.teams[0];
 		}
-		return '';
+		return team;
 	},
 	getDefaultRegionName(bean) {
 		var dTeam = this.getDefaultTeam(bean);
@@ -52,6 +61,20 @@ const userUtil = {
 	//是否是系统管理员
 	isSystemAdmin(userBean) {
 		return userBean.is_sys_admin
+	},
+	//获取当前的soketUrl
+	getCurrRegionSoketUrl(currUser){
+		var currTeam = this.getTeamByTeamName(currUser, globalUtil.getCurrTeamName());
+		var currRegionName = globalUtil.getCurrRegionName();
+	
+		if (currTeam) {
+		  var region = teamUtil.getRegionByName(currTeam, currRegionName);
+	
+		  if (region) {
+			return regionUtil.getEventWebSocketUrl(region);
+		  }
+		}
+		return '';
 	}
 
 }

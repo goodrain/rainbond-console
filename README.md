@@ -29,17 +29,17 @@ Choose Rainbond for the same reasons disruptive companies do: it serve as a easy
 
 ## Quick Start
 
-1. [Install Rainbond](http://www.rainbond.com/docs/stable/getting-started/pre-install.html)
-2. [Create First Application](http://www.rainbond.com/docs/stable/user-app-docs/addapp/addapp-code.html)
-3. [Build Microservice Architecture](http://www.rainbond.com/docs/stable/user-app-docs/addapp/addapp-cloud_framework.html)
+1. [Install Rainbond](https://www.rainbond.com/docs/stable/getting-started/before-installation.html)
+2. [Create First Application](https://www.rainbond.com/docs/stable/user-manual/create-an-app.html)
+3. [Build Microservice Architecture](https://www.rainbond.com/docs/stable/microservice/service-mesh/overview.html)
 
 ## Architecture
 
-<img src="https://www.rainbond.com/images/bannertwo.jpg" href="http://www.rainbond.com/docs/stable/getting-started/architecture.html">
+<img src="https://static.goodrain.com/images/docs/3.6/architecture/architecture.png" href="https://www.rainbond.com/docs/stable/architecture/architecture.html">
 
 ## Roadmap
 
-[>>3.5](https://github.com/goodrain/rainbond/projects/3)
+Read the [Roadmap](https://github.com/goodrain/rainbond-docs/blob/master/v3.6/architecture/roadmap.md).
 
 ## Contributing
 

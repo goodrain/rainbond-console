@@ -197,7 +197,7 @@ export default {
       currentUser.teams.push(action.team);
       return {
         ...state,
-        currentUser: currentUser
+        currentUser: Object.assign({}, currentUser)
       };
     },
     changeNotifyCount(state, action) {

@@ -22,7 +22,7 @@ import AppList from './AppList';
 import AppShape from './AppShape';
 import AppShare from './AppShare';
 import ConfirmModal from '../../components/ConfirmModal';
-
+import NoPermTip from '../../components/NoPermTip';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import teamUtil from '../../utils/team';
@@ -170,7 +170,7 @@ class Main extends PureComponent {
         group_id: this.getGroupId()
       },
       callback: () => {
-        location.hash = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`;
+        
         this.cancelDelete();
         this
           .props
@@ -178,6 +178,18 @@ class Main extends PureComponent {
             type: 'global/fetchGroups',
             payload: {
               team_name: globalUtil.getCurrTeamName()
+            },
+            callback: (list) => {
+              if(list && list.length){
+                this
+                .props
+                .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${list[0].group_id}`));
+              }else{
+                this
+                .props
+                .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`));
+              }
+             
             }
           })
       }
@@ -301,6 +313,16 @@ class Main extends PureComponent {
     if (group_id == -1) {
       return (
         <PageHeaderLayout
+          breadcrumbList={[{
+            title: "首页",
+            href: `/`
+        },{
+            title: "我的应用",
+            href: ``
+        },{
+            title: this.props.groupDetail.group_name,
+            href: ``
+        }]}
           content={(
           <div className={styles.pageHeaderContent}>
             <div className={styles.content}>
@@ -336,15 +358,24 @@ class Main extends PureComponent {
           {(teamUtil.canShareApp(team) && hasService && !this.state.recordShare)
             ? <Button onClick={this.handleShare}>分享</Button>
             : ''}
+          {/*<Button><Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/backup/${this.getGroupId()}`}>备份组</Link></Button>*/}
           <Dropdown
             overlay={(
             <Menu>
-              <Menu.Item>
-                <a onClick={this.toEdit} href="javascript:;">修改组名</a>
-              </Menu.Item>
-              <Menu.Item>
-                <a onClick={this.toDelete} href="javascript:;">删除当前组</a>
-              </Menu.Item>
+              {
+                teamUtil.canManageGroup(team) && 
+                <Menu.Item>
+                  <a onClick={this.toEdit} href="javascript:;">修改组名</a>
+                </Menu.Item>
+              }
+              {
+                teamUtil.canManageGroup(team) && 
+                <Menu.Item>
+                  <a onClick={this.toDelete} href="javascript:;">删除当前组</a>
+                </Menu.Item>
+              }
+              
+              
               <Menu.Item>
                 <a onClick={this.toAdd} href="javascript:;">新增组</a>
               </Menu.Item>
@@ -375,7 +406,18 @@ class Main extends PureComponent {
     );
 
     return (
-      <PageHeaderLayout content={pageHeaderContent} extraContent={extraContent}>
+      <PageHeaderLayout
+        breadcrumbList={[{
+            title: "首页",
+            href: `/`
+        },{
+            title: "我的应用",
+            href: ``
+        },{
+            title: this.props.groupDetail.group_name,
+            href: ``
+        }]}
+       content={pageHeaderContent} extraContent={extraContent}>
         {(!hasService || this.state.type === 'list') && <AppList groupId={this.getGroupId()}/>}
         {(hasService && this.state.type === 'shape') && <AppShape group_id={group_id}/>}
         {this.state.toDelete && <ConfirmModal
@@ -395,7 +437,7 @@ class Main extends PureComponent {
   }
 }
 
-@connect(({user, groupControl}) => ({}), null, null, {pure: false})
+@connect(({user, groupControl, }) => ({currUser: user.currentUser}), null, null, {pure: false})
 export default class Index extends PureComponent {
   constructor(arg) {
     super(arg);
@@ -425,6 +467,10 @@ export default class Index extends PureComponent {
       groupDetail,
       groups
     } = this.props;
+    const team_name = globalUtil.getCurrTeamName();
+    const team = userUtil.getTeamByTeamName(currUser, team_name);
+   
+    if(!teamUtil.canViewApp(team))  return <NoPermTip />
 
     if (this.id !== this.getGroupId()) {
       this.id = this.getGroupId();

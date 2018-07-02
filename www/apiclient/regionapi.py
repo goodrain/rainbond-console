@@ -8,7 +8,6 @@ from django.conf import settings
 
 from backends.models import RegionConfig
 from www.apiclient.baseclient import HttpClient, client_auth_service
-from www.utils.conf_tool import regionConfig
 from www.models.main import TenantRegionInfo, Tenants
 import os
 
@@ -23,10 +22,6 @@ class RegionInvokeApi(HttpClient):
             'Content-Type': 'application/json'
         }
 
-    # def _get_region_request_info(self, region):
-    #     region_map = self.get_region_map(region)
-    #     token = region_map[region]['token']
-    #     return token, region_map[region]['url']
 
     def make_proxy_http(self, region_service_info):
         proxy_info = region_service_info['proxy']
@@ -40,22 +35,6 @@ class RegionInvokeApi(HttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-    def get_region_map(self, region):
-        region_service_infos = regionConfig.region_service_api()
-        region_map = {}
-        for region_service_info in region_service_infos:
-            client_info = {"url": region_service_info["url"]}
-            token = region_service_info.get("token", None)
-            client_info['token'] = token
-            if 'proxy' in region_service_info and region_service_info.get(
-                    'proxy_priority', False) is True:
-                client_info['client'] = self.make_proxy_http(
-                    region_service_info)
-            else:
-                client_info['client'] = httplib2.Http(timeout=5)
-
-            region_map[region_service_info["region_name"]] = client_info
-        return region_map
 
     def _set_headers(self, token):
         if settings.MODULES["RegionToken"]:
@@ -89,14 +68,6 @@ class RegionInvokeApi(HttpClient):
             raise http.Http404
         return tenant_regions[0]
 
-    # def get_all_tenant_resources(self, region):
-    #     """获取所有租户的资源使用情况"""
-    #     region_map = self.get_region_map(region)
-    #     token = region_map[region]['token']
-    #     url = region_map[region]['url'] + "/v2/resources/tenants"
-    #     self._set_headers(token)
-    #     res, body = self._get(url, self.default_headers, region=region)
-    #     return body
 
     def get_tenant_resources(self, region, tenant_name, enterprise_id):
         """获取指定租户的资源使用情况"""
@@ -1370,7 +1341,7 @@ class RegionInvokeApi(HttpClient):
     def get_events_by_event_ids(self, region_name, event_ids):
         """获取多个event的事件"""
         region_info = self.get_region_info(region_name)
-        url = region_info.url + "/v2/events"
+        url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}))
         return body
@@ -1524,3 +1495,104 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region)
         return body
+
+    def export_app(self, region, tenant_name, data):
+        """导出应用"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/app/export"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_app_export_status(self, region, tenant_name, event_id):
+        """查询应用导出状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/export/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def import_app(self, region, tenant_name, data):
+        """导入应用"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url += "/v2/app/import"
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_app_import_status(self, region, tenant_name, event_id):
+        """查询导入状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_import_file_dir(self, region, tenant_name, event_id):
+        """查询导入状态"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def create_import_file_dir(self, region, tenant_name, event_id):
+        """创建导入目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_import_file_dir(self, region, tenant_name, event_id):
+        """删除导入目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return res, body
+
+
+    def backup_group_apps(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(body))
+        return body
+
+    def get_backup_status_by_backup_id(self, region, tenant_name, backup_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + str(
+            backup_id)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_backup_status_by_group_id(self, region, tenant_name, group_uuid):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups?group_id=" + str(
+            group_uuid)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def star_apps_migrate_task(self, region, tenant_name, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        # TODO 对接接口
+        pass
+        # url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
+        #
+        # self._set_headers(token)
+        # res, body = self._post(
+        #     url, self.default_headers, region=region, body=json.dumps(data))
+        # return body

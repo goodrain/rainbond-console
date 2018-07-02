@@ -11,6 +11,8 @@ import styles from './Log.less';
 import globalUtil from '../../utils/global';
 import { getMonitorLog, getMonitorWebSocketUrl, getHistoryLog } from '../../services/app';
 import AppLogSocket from '../../utils/appLogSocket';
+import NoPermTip from '../../components/NoPermTip';
+import appUtil from '../../utils/app';
 
 class History1000Log extends PureComponent {
     constructor(props){
@@ -132,7 +134,7 @@ class HistoryLog extends PureComponent {
                       {
                         list.map((item)=>{
                             return (
-                              <p><a target="_blank" href={"//"+item.file_url}>{item.file_name}</a></p>
+                              <p><a target="_blank" href={item.file_url}>{item.file_name}</a></p>
                             )
                         })
                       }
@@ -169,10 +171,14 @@ export default class Index extends PureComponent {
   }
 
   componentDidMount() {
+    if(!this.canView()) return;
     const { dispatch } = this.props;
     this.loadLog();
     this.loadWebSocketUrl();
    
+  }//是否可以浏览当前界面
+  canView(){
+    return appUtil.canManageAppLog(this.props.appDetail);
   }
   loadLog(){
       getMonitorLog({
@@ -180,7 +186,7 @@ export default class Index extends PureComponent {
          app_alias: this.props.appAlias
       }).then((data) => {
           if(data){
-              this.setState({logs: data.list || []})
+              this.setState({logs: (data.list || []).reverse()})
           }
       })
   }
@@ -198,7 +204,7 @@ export default class Index extends PureComponent {
   }
   componentWillUnmount(){
       if(this.socket){
-          this.socket.close();
+          this.socket.destroy();
           this.socket = null;
       }
   }
@@ -208,6 +214,7 @@ export default class Index extends PureComponent {
          this.socket = new AppLogSocket({
           url: this.state.websocketUrl,
           serviceId: appDetail.service.service_id,
+          isAutoConnect: true,
           onMessage: (msg) =>  {
             if(this.state.started){
                 var logs = this.state.logs || [];
@@ -229,7 +236,6 @@ export default class Index extends PureComponent {
   hideDownHistoryLog = () =>{
       this.setState({showHistoryLog: false})
   }
-
   showDownHistory1000Log = () =>{
       this.setState({showHistory1000Log: true})
   }
@@ -237,6 +243,7 @@ export default class Index extends PureComponent {
       this.setState({showHistory1000Log: false})
   }
   render() {
+    if(!this.canView()) return <NoPermTip />;
     const logs = this.state.logs;
     return (
      <Card

@@ -1,5 +1,5 @@
-import { createAppByCode, createAppByCompose, createAppByDockerrun, getMarketApp, installApp,
-getAppsByComposeId } from '../services/createApp';
+import { createAppByCode, createAppByCompose, createAppByDockerrun, getMarketApp, installApp , queryExport,appExport,getExport,
+getAppsByComposeId,uploadApp,importApp,queryImportApp,importDir,queryImportDirApp } from '../services/createApp';
 
 export default {
   namespace: 'createApp',
@@ -54,8 +54,57 @@ export default {
       if(data){
           callback && callback(data);
       }
+    },
+    *queryExport({payload, callback}, {call, put}) {
+      const data = yield call(queryExport, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *appExport({payload, callback}, {call, put}) {
+      const data = yield call(appExport, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *getExport({payload, callback}, {call, put}) {
+      const data = yield call(getExport, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *uploadApp({payload, callback}, {call, put}) {
+      const data = yield call(uploadApp, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *importApp({payload, callback}, {call, put}) {
+      const data = yield call(importApp, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *queryImportApp({payload, callback}, {call, put}) {
+      const data = yield call(queryImportApp, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *importDir({payload, callback}, {call, put}) {
+      const data = yield call(importDir, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+     *queryImportDirApp({payload, callback}, {call, put}) {
+      const data = yield call(queryImportDirApp, payload);
+      if(data){
+          callback && callback(data);
+      }
     }
   },
+ 
   reducers: {
     saveRuntimeInfo(state, {payload}){
        console.log(payload)

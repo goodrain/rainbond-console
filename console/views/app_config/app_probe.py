@@ -17,7 +17,6 @@ logger = logging.getLogger("default")
 
 class AppProbeView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取服务指定模式的探针
@@ -54,7 +53,7 @@ class AppProbeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         添加服务探针
@@ -79,7 +78,7 @@ class AppProbeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改服务探针,包括启用停用 mode参数必填

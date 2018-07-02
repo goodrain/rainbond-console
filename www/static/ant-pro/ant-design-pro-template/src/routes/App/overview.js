@@ -39,7 +39,7 @@ import StatusIcon from '../../components/StatusIcon';
 import LogProcress from '../../components/LogProcress';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
-import applUtil from '../../utils/app';
+import appUtil from '../../utils/app';
 import userUtil from '../../utils/user';
 import teamUtil from '../../utils/team';
 import regionUtil from '../../utils/region';
@@ -269,7 +269,7 @@ class LogItem extends PureComponent {
               <span className="action-user"></span>
             </label>
             <div className={styles.btns}>
-              {appAcionLogUtil.canRollback(data)
+              {appAcionLogUtil.canRollback(data) && appUtil.canRollback(this.props.appDetail)
                 ? <span onClick={this.handleRollback} className={styles.btn}>回滚到此版本</span>
                 : ''
 }
@@ -356,7 +356,7 @@ class LogList extends PureComponent {
     return (
       <div className={styles.logs}>
         {list.map((item) => {
-          return (<LogItem key={item.event_id} appAlias={this.props.appAlias} data={item}/>)
+          return (<LogItem appDetail={this.props.appDetail} key={item.event_id} appAlias={this.props.appAlias} data={item}/>)
         })
 }
       </div>
@@ -396,6 +396,7 @@ export default class Index extends PureComponent {
     this.mounted = true;
     this.getAnalyzePlugins();
     this.fetchAppDiskAndMemory();
+    console.log(this.props)
 
   }
   componentWillUnmount() {
@@ -722,7 +723,7 @@ export default class Index extends PureComponent {
         <Row gutter={24}>
           <Col xs={24} xm={24} md={24} lg={24} xl={24}>
             <Card bordered={false} title="操作日志">
-              <LogList appAlias={this.props.appAlias} list={logList || []}/> {this.state.hasNext && <p
+              <LogList appDetail={this.props.appDetail} appAlias={this.props.appAlias} list={logList || []}/> {this.state.hasNext && <p
                 style={{
                 textAlign: 'center',
                 fontSize: 30

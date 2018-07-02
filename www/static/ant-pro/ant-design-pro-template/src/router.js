@@ -8,6 +8,7 @@ import Authorized from './utils/Authorized';
 import IsPubCloud from './components/IsPubCloud';
 import styles from './index.less';
 import InitRainbondInfo from './components/InitRainbondInfo';
+import globalUtil from './utils/global';
 
 const {ConnectedRouter} = routerRedux;
 const {AuthorizedRoute} = Authorized;
@@ -20,6 +21,7 @@ function RouterConfig({history, app}) {
   const UserLayout = routerData['/user'].component;
   const BasicLayout = routerData['/'].component;
   return (
+    
     <InitRainbondInfo>
       <LocaleProvider locale={zhCN}>
         <ConnectedRouter history={history}>

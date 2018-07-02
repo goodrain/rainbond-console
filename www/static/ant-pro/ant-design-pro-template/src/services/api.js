@@ -2,6 +2,17 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+
+/*
+  初始化一个团队
+*/
+export async function InitTeam(body={team_alias, region_name}){
+  return request(config.baseUrl + `/console/teams/init`, {
+    method: 'post',
+    data: body
+  });
+}
+
 /* 获取某个数据中心的资源详情 */
 export async function getRegionSource(body={team_name, region}){
   return request(config.baseUrl + `/console/enterprise/region/resource`, {
@@ -215,4 +226,39 @@ export async function fakeRegister(params) {
 
 export async function queryNotices() {
   return request('/api/notices');
+}
+
+
+/* 查询用户站内信 */
+export async function getuserMessage(body={team_name, page_num, page_size,msg_type,is_read}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/message`, {
+    method: 'get',
+    params: {
+      page_num: body.page_num,
+      page_size: body.page_size,
+      msg_type:body.msg_type,
+      is_read:body.is_read
+    }
+  });
+}
+
+/* 消息标记为已读未读 */
+export async function putMsgAction(body={team_name, msg_ids, action}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/message`, {
+    method: 'put',
+    data: {
+      action: body.action,
+      msg_ids: body.msg_ids
+    }
+  });
+}
+
+/* 删除站内信 */
+export async function deleteMsg(body={team_name, msg_ids}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/message`, {
+    method: 'delete',
+    data: {
+      msg_ids: body.msg_ids
+    }
+  });
 }

@@ -19,7 +19,7 @@ logger = logging.getLogger("default")
 
 class AppCheck(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('view_service')
     @transaction.atomic
     def get(self, request, *args, **kwargs):
         """
@@ -78,7 +78,7 @@ class AppCheck(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def post(self, request, *args, **kwargs):
         """
         服务信息检测
@@ -111,7 +111,7 @@ class AppCheck(AppBaseView):
 class GetCheckUUID(AppBaseView):
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         result = general_message(200, u"success", "获取成功", bean={"check_uuid": self.service.check_uuid})
         return Response(result, status=200)
@@ -119,7 +119,7 @@ class GetCheckUUID(AppBaseView):
 
 class AppCheckUpdate(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         服务检测信息修改

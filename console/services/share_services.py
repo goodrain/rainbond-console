@@ -614,7 +614,7 @@ class ShareService(object):
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
                 tenant_service_group_id=share_record.group_id,
-                pic=group_info["pic"],
+                pic=group_info.get("pic",""),
                 source="local",
                 record_id=share_record.ID,
                 version=group_info["version"],
@@ -663,6 +663,7 @@ class ShareService(object):
         data["update_note"] = app.describe
         data["group_template"] = app.app_template
         data["group_share_alias"] = app.group_name
+        data["logo"] = app.pic
         result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
         # 云市url
         app_url = result["app_url"]

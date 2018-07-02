@@ -1,6 +1,7 @@
 import React, { PureComponent, Fragment } from 'react';
-import styles from './style.less';
-class Mask extends PureComponent {
+import styles from '../style.less';
+import Base from './base';
+class Mask extends Base {
     constructor(props){
         super(props);
         this.state = {
@@ -12,19 +13,6 @@ class Mask extends PureComponent {
             this.setState({show: true})
         })
         
-    }
-    getViewWH = () => {
-        return {
-            width: document.documentElement.clientWidth || document.body.clientWidth,
-            height: document.documentElement.clientHeight || document.body.clientHeight 
-        }
-    }
-    getTargetRect = () => {
-        var target = document.querySelector(this.props.target);
-        if(target){
-            return target.getBoundingClientRect();
-        }
-        return null;
     }
     getTopStyle = () => {
          var rect = this.getTargetRect();

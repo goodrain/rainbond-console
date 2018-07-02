@@ -4,14 +4,19 @@ import {
   deleteTeam,
   getTeamPermissions,
   removeMember,
-  editMemberPermission,
+  editMember,
   moveTeam,
   addMember,
   createTeam,
   getRegions,
   openRegion,
   getRegionKey,
-  exitTeam
+  exitTeam,
+  getAllPerms,
+  editRole,
+  removeRole,
+  createRole,
+  getRoles
 } from '../services/team';
 import cookie from '../utils/cookie';
 
@@ -26,7 +31,51 @@ export default {
     regions: []
   },
   effects : {
-
+    *getRoles({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getRoles, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *createRole({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(createRole, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *removeRole({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(removeRole, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *editRole({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(editRole, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
+    *getAllPerms({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getAllPerms, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *exitTeam({
       payload,
       callback
@@ -70,7 +119,7 @@ export default {
       payload,
       callback
     }, {call, put}) {
-      const response = yield call(getTeamPermissions);
+      const response = yield call(getAllPerms);
       if (response && !response.status) {
         yield put({type: 'savePerm', payload: response.list});
       }
@@ -84,11 +133,11 @@ export default {
         callback && callback();
       }
     },
-    *editAction({
+    *editMember({
       payload,
       callback
     }, {call, put}) {
-      const response = yield call(editMemberPermission, payload);
+      const response = yield call(editMember, payload);
       if (response && !response.status) {
         callback && callback();
       }

@@ -3,6 +3,74 @@ import config from '../config/config';
 
 
 
+
+/*
+获取所有的权限
+*/
+export async function getAllPerms(body={}){
+  return request(config.baseUrl + `console/teams/operate_options`,{
+    method: 'get'
+  })
+}
+
+/*
+修改角色
+ */
+export async function editRole(body={team_name, role_id, role_name, options_ids}){
+  return request(config.baseUrl + `console/teams/${body.team_name}/update_role_perms`,{
+    method: 'post',
+    data:{
+      role_id: body.role_id,
+      new_role_name: body.role_name,
+      new_options_id_list: body.options_ids
+    }
+  })
+}
+
+
+/*
+删除角色
+ */
+export async function removeRole(body={team_name, role_id}){
+  return request(config.baseUrl + `console/teams/${body.team_name}/del-role`,{
+    method: 'delete',
+    data:{
+      role_id: body.role_id
+    }
+  })
+}
+
+
+/*
+创建角色
+ */
+export async function createRole(body={team_name, role_name, options_ids}){
+  return request(config.baseUrl + `console/teams/${body.team_name}/add-role`,{
+    method: 'post',
+    data:{
+      role_name: body.role_name,
+      options_id_list: body.options_ids
+    }
+  })
+}
+
+
+
+/*
+获取团队下所有角色
+ */
+export async function getRoles(body={team_name, page, page_size}){
+  return request(config.baseUrl + `console/teams/${body.team_name}/role-list`,{
+    method: 'get',
+    params:{
+      page: body.page,
+      page_size: body.page_size
+    }
+  })
+}
+
+
+
 /*
 	团队下用户的信息
 */
@@ -36,17 +104,18 @@ export async function getTeamPermissions() {
 }
 
 /*
-	修改成员权限
+	修改成员角色
 */
-export async function editMemberPermission(body = {
+export async function editMember(body = {
   team_name,
   user_name,
-  identitys
+  role_ids,
+  user_name
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/${body.user_name}/modidentity`, {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/${body.user_name}/mod-role`, {
     method: 'post',
     data: {
-      identitys: body.identitys
+      role_ids: body.role_ids
     }
   });
 }
@@ -92,13 +161,13 @@ export async function getMembers(body = {
 export async function addMember(body = {
   team_name,
   user_ids,
-  identity
+  role_ids
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/add-user`, {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/add_team_user`, {
     method: 'post',
     data: {
       user_ids: body.user_ids,
-      identitys: body.identity
+      role_ids: body.role_ids
     }
   });
 }

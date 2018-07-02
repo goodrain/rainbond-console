@@ -203,5 +203,24 @@ class RegionService(object):
             logger.exception(e)
             return False
 
+    def get_region_access_info(self,team_name, region_name):
+        """获取一个团队在指定数据中心的身份认证信息"""
+        url, token = client_auth_service.get_region_access_token_by_tenant(
+            team_name, region_name)
+        # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
+        region_info = region_repo.get_region_by_region_name(region_name)
+        url = region_info.url
+        if not token:
+            token = region_info.token
+        else:
+            token = "Token {}".format(token)
+        return url, token
+
+    def get_team_usable_regions(self, team_name):
+        usable_regions = region_repo.get_usable_regions()
+        region_names = [r.region_name for r in usable_regions]
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,region_name__in=region_names)
+        return team_opened_regions
+
 
 region_services = RegionService()

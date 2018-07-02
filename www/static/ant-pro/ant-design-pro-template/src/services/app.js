@@ -1,6 +1,52 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+ /*
+  获取php语言扩展
+ */
+export function getPhpConfig(){
+	return request(config.baseUrl + `/console/php`, {
+		method: 'get'
+});
+}
+
+
+/*
+	获取自动部署设置状态
+
+ */
+export function getAutoDeployStatus(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/get-url`, {
+			method: 'get'
+	});
+}
+
+
+/*
+	取消自动部署
+ */
+export function cancelAutoDeploy(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/status`, {
+			method: 'post',
+			data: {
+				action: 'close'
+			}
+	});
+}
+
+/*
+	开启自动部署
+ */
+export function openAutoDeploy(body={team_name, app_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/webhooks/status`, {
+			method: 'post',
+			data: {
+				action: 'open'
+			}
+	});
+}
+
+
 /*
 	获取应用的历史操作日志
 */
@@ -273,9 +319,19 @@ export function getRelationedApp(body = {
 */
 export function getUnRelationedApp(body = {
 				team_name,
-				app_alias
+				app_alias,
+				page,
+				page_size
 }) {
-				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {method: 'get'});
+	console.log(body)
+				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {
+					method: 'get',
+					params:{
+						page: body.page ||1,
+						page_size: body.page_size || 8
+					}
+					
+			});
 }
 
 /*
@@ -1197,15 +1253,15 @@ export async function setMemberAction(body = {
 				team_name,
 				app_alias,
 				user_ids: [],
-				identity
+				perm_ids
 }) {
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/perms`, {
-								method: 'patch',
+								method: 'post',
 								data: {
-												user_ids: body
-																.user_ids
-																.join(','),
-												identity: body.identity
+									user_ids: body
+											.user_ids
+											.join(','),
+									perm_ids: body.perm_ids
 								}
 				});
 }
@@ -1232,14 +1288,15 @@ export async function deleteMember(body = {
 export async function editMemberAction(body = {
 				team_name,
 				app_alias,
-				user_ids,
-				identity
+				user_id,
+				perm_ids
 }) {
+
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/perms`, {
 								method: 'put',
 								data: {
 												user_id: body.user_id,
-												identity: body.identity
+												perm_ids: body.perm_ids
 								}
 				});
 }

@@ -176,12 +176,7 @@ class AppEnvService(object):
             checkJson["language"] = 'PHP'
             checkJson["runtimes"] = "5.6.11"
             checkJson["procfile"] = "apache"
-            dependencies = {"ext-bcmath": "*", "ext-redis": "*", "ext-apcu": "*", "ext-calendar": "*",
-                            "ext-blackfire": "*", "ext-gettext": "*", "ext-pcntl": "*", "ext-xmlrpc": "*",
-                            "ext-mongo": "*", "ext-imagick": "*", "ext-xsl": "*", "ext-gd": "*", "ext-exif": "*",
-                            "ext-pdo_sqlite": "*", "ext-intl": "*", "ext-oauth": "*", "ext-soap": "*",
-                            "ext-memcached": "*", "ext-shmop": "*", "ext-mbstring": "*", "ext-newrelic": "*",
-                            "ext-ftp": "*", "ext-sqlite3": "*"}
+            dependencies = {}
             checkJson["dependencies"] = dependencies
         elif language == "Java-maven":
             checkJson["language"] = 'Java-maven'

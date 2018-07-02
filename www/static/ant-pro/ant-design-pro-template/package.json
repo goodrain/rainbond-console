@@ -11,10 +11,10 @@
     "analyze": "cross-env ANALYZE=true roadhog build"
   },
   "dependencies": {
-    "axios": "^0.17.1",
     "@antv/data-set": "^0.8.0",
     "@babel/polyfill": "^7.0.0-beta.36",
     "antd": "^3.1.0",
+    "axios": "^0.17.1",
     "babel-runtime": "^6.9.2",
     "bizcharts": "^3.1.0-beta.4",
     "bizcharts-plugin-slider": "^2.0.1",
@@ -34,6 +34,7 @@
     "rc-drawer-menu": "^0.5.0",
     "react": "^16.2.0",
     "react-container-query": "^0.9.1",
+    "react-copy-to-clipboard": "^5.0.1",
     "react-document-title": "^2.0.3",
     "react-dom": "^16.2.0",
     "react-fittext": "^1.0.0",

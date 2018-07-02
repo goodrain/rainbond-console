@@ -13,6 +13,7 @@ import logging
 from console.repositories.app_config import domain_repo
 from django.conf import settings
 from console.services.region_services import region_services
+from console.constants import AppConstants
 
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
@@ -26,6 +27,10 @@ class AppPortService(object):
             return 400, u"端口{0}已存在".format(container_port)
         if not (1 <= container_port <= 65535):
             return 412, u"端口必须为1到65535的整数"
+        if service.service_source == AppConstants.SOURCE_CODE:
+            if service.language in ("dockerfile", "docker"):
+                if container_port <= 1024:
+                    return 400, u"源码应用非Dockerfile构建的应用端口不能小于1024"
         return 200, "success"
 
     def check_port_alias(self, port_alias):
@@ -35,10 +40,10 @@ class AppPortService(object):
             return 400, u"端口别名不合法"
         return 200, "success"
 
-    def is_open_outer_steam_port(self, tenant_id, service_id):
+    def is_open_outer_steam_port(self, tenant_id, service_id, current_port):
         """判断是否有对外打开的非http协议端口"""
         ports = port_repo.get_service_ports(tenant_id, service_id).filter(is_outer_service=True).exclude(
-            protocol="http")
+            protocol="http").exclude(container_port=current_port)
         if ports:
             return True
         return False
@@ -73,7 +78,7 @@ class AppPortService(object):
                 return code, msg, None
         if is_outer_service:
             if protocol != "http":
-                if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+                if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, container_port):
                     return 412, u"非http协议端口只能对外开放一个"
 
         service_port = {"tenant_id": tenant.tenant_id, "service_id": service.service_id,
@@ -149,12 +154,12 @@ class AppPortService(object):
         if port_info.is_outer_service:
             return 409, u"请关闭外部服务", None
         if service.create_status == "complete":
-            # 删除env
-            env_var_service.delete_env_by_container_port(tenant, service, container_port)
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
                                            container_port, tenant.enterprise_id)
 
+        # 删除env
+        env_var_service.delete_env_by_container_port(tenant, service, container_port)
         # 删除端口
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
@@ -220,7 +225,7 @@ class AppPortService(object):
     
     def __open_outer(self, tenant, service, deal_port):
         if deal_port.protocol != "http":
-            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
         deal_port.is_outer_service = True
         if service.create_status == "complete":
@@ -292,7 +297,7 @@ class AppPortService(object):
         if protocol != "http":
             if deal_port.is_outer_service:
                 return 400, u"请关闭外部访问"
-            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id):
+            if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
 
         if service.create_status == "complete":

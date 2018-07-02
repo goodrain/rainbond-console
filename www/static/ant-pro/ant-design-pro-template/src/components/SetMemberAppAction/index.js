@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'dva';
 import { Button, Icon, Modal, Form, Checkbox, Select } from 'antd';
-import TeamPermissionSelect from '../TeamPermissionSelect';
+import RolePermsSelect from '../RolePermsSelect';
 import globalUtil from '../../utils/global';
 const FormItem = Form.Item;
 const CheckboxGroup = Checkbox.Group;
@@ -73,6 +73,7 @@ class ConfirmModal extends PureComponent{
           <Modal
             title={"设置成员应用权限"}
             visible={true}
+            width={800}
             onOk={this.handleSubmit}
             onCancel={onCancel}
           >
@@ -104,14 +105,14 @@ class ConfirmModal extends PureComponent{
                 {...formItemLayout}
                 label="选择权限"
               >
-                {getFieldDecorator('identity', {
-                    initialValue:'viewer',
+                {getFieldDecorator('perm_ids', {
+                    initialValue:[],
                     rules: [{
                       required: true,
                       message: '请选择权限',
                     }],
                   })(
-                    <TeamPermissionSelect value="access" options={options} />
+                    <RolePermsSelect showGroupName={false} hides={['团队相关']} datas={options} />
                 )}
                 
               </FormItem>

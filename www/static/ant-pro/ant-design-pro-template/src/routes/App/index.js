@@ -49,6 +49,7 @@ import {
     getDetail,
     getStatus
 } from '../../services/app';
+import ManageAppGuide from '../../components/ManageAppGuide';
 
 
 /*转移到其他应用组*/
@@ -214,14 +215,12 @@ class ManageContainer extends PureComponent {
             </Menu>
         )
         return (
-            <Tooltip title=" 选择实例进入WEB控制台，可以进行容器内部shell管理操作">
-                <Dropdown
-                    onVisibleChange={this.handleVisibleChange}
-                    overlay={renderPods}
-                    placement="bottomRight">
-                    <Button>管理容器</Button>
-                </Dropdown>
-            </Tooltip>
+            <Dropdown
+                onVisibleChange={this.handleVisibleChange}
+                overlay={renderPods}
+                placement="bottomRight">
+                <Button>管理容器</Button>
+            </Dropdown>
         )
     }
 }
@@ -499,7 +498,7 @@ class Main extends PureComponent {
                         });
                     this
                         .props
-                        .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`));
+                        .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${this.props.appDetail.service.group_id}`));
                 }
 
             })
@@ -605,27 +604,25 @@ class Main extends PureComponent {
                         ? <VisitBtn app_alias={this.getAppAlias()}/>
                         : null}
 
-                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStart(status)
+                    {(appUtil.canStopApp(appDetail)) && !appStatusUtil.canStart(status)
                         ? <Button disabled={!appStatusUtil.canStop(status)} onClick={this.handleStop}>关闭</Button>
                         : null}
-                    {(appUtil.canManageApp(appDetail)) && !appStatusUtil.canStop(status)
+                    {(appUtil.canStartApp(appDetail)) && !appStatusUtil.canStop(status)
                         ? <Button disabled={!appStatusUtil.canStart(status)} onClick={this.handleStart}>启动</Button>
                         : null}
-                    {(appUtil.canManageApp(appDetail))
-                        ?
-                        (this.state.showreStartTips && appStatusUtil.canRestart(status))?
+                    
+                        {(this.state.showreStartTips && appUtil.canRestartApp(appDetail) && appStatusUtil.canRestart(status))?
                         <Tooltip title="应用配置已更改，重启后生效">
                              <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
-                        </Tooltip>
-                        :
-                        <Tooltip title="关闭应用并使用最新的配置重新启动应用">
-                            <Button
-                                disabled={!appStatusUtil.canRestart(status)}
-                                onClick={this.handleRestart}>重启</Button>
-                         </Tooltip>
-                        : null
-}
-                    {(appUtil.canManageApp(appDetail)) && appStatusUtil.canManageDocker(status)
+                        </Tooltip> : null}
+
+                        {appUtil.canRestartApp(appDetail) && <Button
+                            disabled={!appStatusUtil.canRestart(status)}
+                            onClick={this.handleRestart}>重启</Button>}
+                        
+
+
+                    {(appUtil.canManageContainter(appDetail)) && appStatusUtil.canManageDocker(status)
                         ? <ManageContainer app_alias={appDetail.service.service_alias}/>
                         : null
 }
@@ -641,9 +638,7 @@ class Main extends PureComponent {
                             <Button onClick={this.handleDeploy} type="primary" className={styles.blueant}>重新部署</Button>
                         </Tooltip>
                         : 
-                        <Tooltip title="基于最新代码或镜像构建云帮应用，并滚动更新实例。">
-                            <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
-                        </Tooltip>
+                        <Button onClick={this.handleDeploy} type="primary">重新部署</Button>
                     : ''}
 
             </div>
@@ -700,6 +695,19 @@ class Main extends PureComponent {
         const Com = map[type];
         return (
             <PageHeaderLayout
+                breadcrumbList={[{
+                    title: "首页",
+                    href: `/`
+                },{
+                    title: "我的应用",
+                    href: ``
+                },{
+                    title: this.props.appDetail.service.group_name,
+                    href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups/${this.props.appDetail.service.group_id}`
+                },{
+                    title: this.props.appDetail.service.service_cname,
+                    href: ''
+                }]}
                 action={action}
                 title={this.renderTitle(appDetail.service.service_cname)}
                 onTabChange={this.handleTabChange}
@@ -734,6 +742,7 @@ class Main extends PureComponent {
                     groups={groups}
                     onOk={this.handleMoveGroup}
                     onCancel={this.hideMoveGroup}/>}
+                    <ManageAppGuide />
             </PageHeaderLayout>
         );
     }

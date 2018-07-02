@@ -123,7 +123,7 @@ class ServiceShareRecordEvent(BaseModel):
         db_table = "service_share_record_event"
 
     record_id = models.IntegerField(help_text=u"关联的订单ID")
-    region_share_id = models.CharField(max_length=32, help_text=u"应用数据中心分享反馈ID")
+    region_share_id = models.CharField(max_length=36, help_text=u"应用数据中心分享反馈ID")
     team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
     service_key = models.CharField(max_length=32, help_text=u"对应应用key")
     service_id = models.CharField(max_length=32, help_text=u"对应应用ID")
@@ -187,7 +187,6 @@ class ServiceSourceInfo(BaseModel):
 
 
 class TeamGitlabInfo(BaseModel):
-
     class Meta:
         db_table = "team_gitlab_info"
 
@@ -316,6 +315,7 @@ class ServiceRelationRecycleBin(BaseModel):
 
 class EnterpriseUserPerm(BaseModel):
     """用户在企业的权限"""
+
     class Meta:
         db_table = 'enterprise_user_perm'
 
@@ -323,3 +323,159 @@ class EnterpriseUserPerm(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(
         max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
+
+
+class TenantUserRole(BaseModel):
+    """用户在一个团队中的角色"""
+
+    class Meta:
+        db_table = 'tenant_user_role'
+        unique_together = (('role_name', 'tenant_id'),)
+
+    role_name = models.CharField(max_length=32, help_text=u'角色名称')
+    tenant_id = models.IntegerField(null=True, blank=True, help_text=u'团队id')
+    is_default = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class TenantUserPermission(BaseModel):
+    """权限及对应的操作"""
+
+    class Meta:
+        db_table = 'tenant_user_permission'
+        unique_together = (('codename', 'per_info'),)
+
+    codename = models.CharField(max_length=32, help_text=u'权限名称')
+    per_info = models.CharField(max_length=32, help_text=u'权限对应的操作信息')
+    is_select = models.BooleanField(default=True, help_text=u'自定义权限时是否可以做选项')
+    group = models.IntegerField(help_text=u'这个权限属于哪个权限组', null=True, blank=True)
+    per_explanation = models.CharField(max_length=132, null=True, blank=True, help_text=u'这一条权限操作的具体说明')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class TenantUserRolePermission(BaseModel):
+    """团队中一个角色与权限的关系对应表"""
+
+    class Meta:
+        db_table = 'tenant_user_role_permission'
+
+    role_id = models.IntegerField(help_text=u'团队中的一个角色的id')
+    per_id = models.IntegerField(help_text=u'一个权限操作的id')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class PermGroup(BaseModel):
+    """权限组，用于给权限分组分类"""
+
+    class Meta:
+        db_table = 'tenant_permission_group'
+
+    group_name = models.CharField(max_length=64, help_text=u'组名')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class ServiceRelPerms(BaseModel):
+    """一个用户在一个应用下的权限"""
+
+    class Meta:
+        db_table = 'service_user_perms'
+
+    user_id = models.IntegerField(help_text=u"用户id")
+    service_id = models.IntegerField(help_text=u"服务id")
+    perm_id = models.IntegerField(help_text=u'权限id')
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
+class AppExportRecord(BaseModel):
+    """应用导出"""
+
+    class Meta:
+        db_table = 'app_export_record'
+        unique_together = ('group_key', 'version', 'format')
+
+    group_key = models.CharField(max_length=32, help_text=u"导出应用的key")
+    version = models.CharField(max_length=20, help_text=u"导出应用的版本")
+    format = models.CharField(max_length=15, help_text=u"导出应用的格式")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"时间请求状态")
+    file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+
+
+class UserMessage(BaseModel):
+    """用户站内信"""
+
+    class Meta:
+        db_table = 'user_message'
+
+    message_id = models.CharField(max_length=32, help_text=u"消息ID")
+    receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
+    content = models.CharField(max_length=1000, help_text=u"消息内容")
+    is_read = models.BooleanField(default=False, help_text=u"是否已读")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    msg_type = models.CharField(max_length=32, help_text=u"消息类型")
+    announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")
+    title = models.CharField(max_length=64, help_text=u"消息标题", default=u"title")
+    level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
+
+class AppImportRecord(BaseModel):
+    class Meta:
+        db_table = 'app_import_record'
+
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    scope = models.CharField(max_length=10, null=True, blank=True, default="", help_text=u"导入范围")
+    format = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"类型")
+    source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+
+
+class GroupAppBackupRecord(BaseModel):
+    class Meta:
+        db_table = 'groupapp_backup'
+
+    group_id = models.IntegerField(help_text=u"组ID")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
+    version = models.CharField(max_length=32, null=True, blank=True, help_text=u"备份版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份版本")
+    team_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"团队ID")
+    user = models.CharField(max_length=20, null=True, blank=True, help_text=u"备份人")
+    region = models.CharField(max_length=15, null=True, blank=True, help_text=u"数据中心")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    note = models.CharField(max_length=128, null=True, blank=True, default="", help_text=u"备份说明")
+    mode = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"备份类型")
+    source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
+    backup_size = models.IntegerField(help_text=u"备份文件大小")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    backup_server_info = models.CharField(max_length=400, null=True, blank=True, default="", help_text=u"备份服务信息")
+
+
+class GroupAppMigrateRecord(BaseModel):
+    class Meta:
+        db_table = 'groupapp_migrate'
+    group_id = models.IntegerField(help_text=u"组ID")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
+    group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
+    version = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"迁移的版本")
+    migrate_team = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
+    user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
+    migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")

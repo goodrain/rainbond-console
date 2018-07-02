@@ -34,8 +34,20 @@ class AppDependencyView(AppBaseView):
               required: true
               type: string
               paramType: path
+            - name: page
+              description: 页码
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页数量
+              required: false
+              type: string
+              paramType: query
         """
         try:
+            page_num = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 25))
             dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
             service_ids = [s.service_id for s in dependencies]
             service_group_map = group_service.get_services_group_name(service_ids)
@@ -46,14 +58,15 @@ class AppDependencyView(AppBaseView):
                                     "group_name": service_group_map[dep.service_id]["group_name"],
                                     "group_id": service_group_map[dep.service_id]["group_id"]}
                 dep_list.append(dep_service_info)
-            result = general_message(200, "success", "查询成功", list=dep_list)
+            rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
+            result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为应用添加依赖应用
@@ -92,7 +105,7 @@ class AppDependencyView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def patch(self, request, *args, **kwargs):
         """
         为应用添加依赖应用
@@ -149,8 +162,20 @@ class AppNotDependencyView(AppBaseView):
               required: true
               type: string
               paramType: path
+            - name: page
+              description: 页码
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页数量
+              required: false
+              type: string
+              paramType: query
         """
         try:
+            page_num = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 25))
             un_dependencies = dependency_service.get_undependencies(self.tenant, self.service)
             service_ids = [s.service_id for s in un_dependencies]
             service_group_map = group_service.get_services_group_name(service_ids)
@@ -161,7 +186,8 @@ class AppNotDependencyView(AppBaseView):
                                     "group_name": service_group_map[un_dep.service_id]["group_name"],
                                     "group_id": service_group_map[un_dep.service_id]["group_id"]}
                 un_dep_list.append(dep_service_info)
-            result = general_message(200, "success", "查询成功", list=un_dep_list)
+            rt_list = un_dep_list[(page_num - 1) * page_size:page_num * page_size]
+            result = general_message(200, "success", "查询成功", list=rt_list, total=len(un_dep_list))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -170,7 +196,7 @@ class AppNotDependencyView(AppBaseView):
 
 class AppDependencyManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service')
+    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除应用的某个依赖

@@ -23,6 +23,8 @@ from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import general_message, error_message
 
+from console.repositories.perm_repo import role_perm_repo, role_repo
+
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
@@ -96,6 +98,7 @@ class TenantServiceView(BaseApiView):
                 user_info["is_active"] = 1
                 user = Users(**user_info)
                 user.set_password(password)
+                user.save()
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enterprise = enterprise_services.create_enterprise()
@@ -104,81 +107,34 @@ class TenantServiceView(BaseApiView):
                 user.enterprise_id = enterprise.enterprise_id
                 user.save()
 
-                try:
-                    if Users.objects.count() == 1:
-                        SuperAdminUser.objects.create(user_id=user.user_id)
-                    enterprise = enterprise_services.get_enterprise_first()
-                    register_type = request.data.get("register_type", None)
-                    value = request.data.get("value", None)
-                    if register_type == "invitation":
-                        perm = perms_repo.add_user_tenant_perm(
-                            perm_info={
-                                "user_id": user.user_id,
-                                "tenant_id": value,
-                                "identity": "viewer",
-                                "enterprise_id": enterprise.ID
-                            }
-                        )
-                        if not perm:
-                            result = general_message(400, "invited failed", "团队关联失败，注册失败")
-                            return Response(result, status=400)
-                    else:
-                        team_alias = "{0}的团队".format(nick_name)
-                        regions = region_services.get_open_regions()
-                        if not regions:
-                            result = general_message(400, "failed", "无可用数据中心")
-                            return Response(result, status=400)
-                        region_name = [regions[0].region_name]
-                        region_list = [r.region_name for r in regions]
-                        code, msg, tenant = team_services.create_team(user, enterprise, region_list)
-                        # code, msg, tenant = team_services.add_team(team_alias=team_alias, user=user,
-                        #                                            region_names=region_name)
-                        if tenant:
-                            perm = perms_repo.add_user_tenant_perm(
-                                perm_info={
-                                    "user_id": user.user_id,
-                                    "tenant_id": tenant.ID,
-                                    "identity": "owner",
-                                    "enterprise_id": enterprise.ID
-                                }
-                            )
-
-                            code, msg, tenant_region = region_services.create_tenant_on_region(tenant.tenant_name,
-                                                                                               tenant.region)
-                            if code != 200:
-                                return Response(general_message(code, "register fail", msg), status=code)
-                            plugin_service.add_default_plugin(user, tenant, region_name)
-
-                            data = dict()
-                            data["user_id"] = user.user_id
-                            data["nick_name"] = user.nick_name
-                            data["email"] = user.email
-                            data["enterprise_id"] = user.enterprise_id
-                            data["creater"] = tenant.creater
-                            payload = jwt_payload_handler(user)
-                            token = jwt_encode_handler(payload)
-                            data["token"] = token
-                            result = general_message(200, "success", "注册成功", bean=data)
-                            return Response(result, status=200)
-                        else:
-                            result = general_message(code=code, msg="failed", msg_show=msg)
-                            return Response(result, status=400)
-                    data = dict()
-                    data["user_id"] = user.user_id
-                    data["nick_name"] = user.nick_name
-                    data["email"] = user.email
-                    data["enterprise_id"] = user.enterprise_id
-                    payload = jwt_payload_handler(user)
-                    token = jwt_encode_handler(payload)
-                    data["token"] = token
-                    result = general_message(200, "register success", "注册成功", bean=data)
-                    response = Response(result, status=200)
-                    return response
-                except Exception as e:
-                    logger.exception(e)
-                    user.delete()
-                    result = general_message(500, "failed", "团队初始化错误")
-                    return Response(result, status=500)
+                if Users.objects.count() == 1:
+                    SuperAdminUser.objects.create(user_id=user.user_id)
+                enterprise = enterprise_services.get_enterprise_first()
+                register_type = request.data.get("register_type", None)
+                value = request.data.get("value", None)
+                if register_type == "invitation":
+                    perm = perms_repo.add_user_tenant_perm(
+                        perm_info={
+                            "user_id": user.user_id,
+                            "tenant_id": value,
+                            "identity": "viewer",
+                            "enterprise_id": enterprise.ID
+                        }
+                    )
+                    if not perm:
+                        result = general_message(400, "invited failed", "团队关联失败，注册失败")
+                        return Response(result, status=400)
+                data = dict()
+                data["user_id"] = user.user_id
+                data["nick_name"] = user.nick_name
+                data["email"] = user.email
+                data["enterprise_id"] = user.enterprise_id
+                payload = jwt_payload_handler(user)
+                token = jwt_encode_handler(payload)
+                data["token"] = token
+                result = general_message(200, "register success", "注册成功", bean=data)
+                response = Response(result, status=200)
+                return response
             else:
                 error = {
                     "error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")
@@ -376,10 +332,28 @@ class UserDetailsView(JWTAuthApiView):
                 tenant_info["create_time"] = tenant.create_time
                 perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
                                                                                  tenant_name=tenant.tenant_name)
-                final_identity = perms.get_highest_identity(perms_list)
-                tenant_info["identity"] = final_identity
-                tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
-                user.actions.set_actions('tenant', tenant_actions)
+                perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id,
+                                                                                       tenant_name=tenant.tenant_name)
+
+                perms_tuple = ()
+
+                if perms_list:
+                    final_identity = perms.get_highest_identity(perms_list)
+                    tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
+                    perms_tuple += tenant_actions
+                else:
+                    final_identity = []
+
+                role_name_list = [role_repo.get_role_name_by_role_id(role_id=role_id) for role_id in perms_role_id_list]
+
+                for role_id in perms_role_id_list:
+                    tenant_actions = role_perm_repo.get_perm_by_role_id(role_id=role_id)
+                    perms_tuple += tenant_actions
+                if final_identity:
+                    tenant_info["role_name_list"] = [final_identity] + role_name_list
+                else:
+                    tenant_info["role_name_list"] = role_name_list
+                user.actions.set_actions('tenant', tuple(set(perms_tuple)))
                 tenant_info["tenant_actions"] = user.actions.tenant_actions
                 tenant_list.append(tenant_info)
             user_detail["teams"] = tenant_list

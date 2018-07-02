@@ -28,17 +28,112 @@ import KVinput from '../../components/KVinput';
 import SetMemberAppAction from '../../components/SetMemberAppAction';
 import {getCodeBranch, setCodeBranch} from '../../services/app';
 import teamUtil from '../../utils/team';
-import TeamPermissionSelect from '../../components/TeamPermissionSelect'
+import RolePermsSelect from '../../components/RolePermsSelect'
 import ScrollerX from '../../components/ScrollerX';
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import appProbeUtil from '../../utils/appProbe-util';
 import appUtil from '../../utils/app';
+import userUtil from '../../utils/user';
+import NoPermTip from '../../components/NoPermTip';
+import {CopyToClipboard} from 'react-copy-to-clipboard';
+
 const {Description} = DescriptionList;
 const FormItem = Form.Item;
 const Option = Select.Option;
 const RadioGroup = Radio.Group;
 const CheckableTag = Tag.CheckableTag;
+
+@connect()
+class AutoDeploy extends PureComponent {
+    constructor(props){
+      super(props);
+      this.state = {
+        display: false,
+        status: false,
+        url:''
+      }
+    }
+    componentDidMount(){
+       this.getInfo();
+    }
+    getInfo = () => {
+      this.props.dispatch({
+        type: 'appControl/getAutoDeployStatus',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.setState({display: data.bean.display, status: data.bean.status||false, url: data.bean.url})
+        }
+      })
+    }
+    handleCancel = () => {
+      this.props.dispatch({
+        type: 'appControl/cancelAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
+    handleOpen = () => {
+      this.props.dispatch({
+        type: 'appControl/openAutoDeploy',
+        payload:{
+           team_name: globalUtil.getCurrTeamName(),
+           app_alias: this.props.app.service.service_alias
+        },
+        callback: (data) =>{
+           this.getInfo();
+        }
+      })
+    }
+    render(){
+       if(!this.state.display) return null;
+       return (
+        <Card style={{
+          marginBottom: 24
+        }} title="自动部署"
+        >
+        {
+          this.state.status === false && 
+          <div>
+            <h3>未开启</h3>
+          </div>
+        }
+        {
+          this.state.status === true && 
+          <div>
+            <h3>使用以下地址设置(Gitlab,Github)Webhook:</h3>
+            <p>{this.state.url} <CopyToClipboard text={this.state.url}
+          onCopy={() => {notification.success({message: '复制成功'})}}><Button  size="small">复制</Button></CopyToClipboard></p>
+            <p>当提交信息包含“@deploy”时将自动触发应用自动部署</p>
+          </div>
+        }
+        <div
+              style={{
+              marginTop: 10,
+              textAlign: 'right'
+            }}>
+              {
+                  this.state.status === false && 
+                  <Button onClick={this.handleOpen}>开启自动部署</Button>   
+              }
+              {
+                  this.state.status === true && 
+                  <Button onClick={this.handleCancel}>关闭自动部署</Button>  
+              }
+            </div>
+        </Card>
+       )
+    }
+}
+
 
 @Form.create()
 class EditActions extends PureComponent {
@@ -70,9 +165,9 @@ class EditActions extends PureComponent {
         onOk={this.handleSubmit}
         onCancel={this.onCancel}>
         <Form onSubmit={this.handleSubmit}>
-
+          
           <FormItem label="">
-            {getFieldDecorator('identity', {
+            {getFieldDecorator('perm_ids', {
               initialValue: value,
               rules: [
                 {
@@ -80,7 +175,7 @@ class EditActions extends PureComponent {
                   message: '不能为空!'
                 }
               ]
-            })(<TeamPermissionSelect options={actions}/>)}
+            })(<RolePermsSelect showGroupName={false} hides={['团队相关']} datas={actions} />)}
           </FormItem>
 
         </Form>
@@ -953,6 +1048,7 @@ export default class Index extends PureComponent {
     }
   }
   componentDidMount() {
+    if(!this.canView()) return;
     const {dispatch} = this.props;
     this
       .props
@@ -974,6 +1070,11 @@ export default class Index extends PureComponent {
     dispatch({type: 'appControl/clearStartProbe'})
     dispatch({type: 'appControl/clearRunningProbe'})
     dispatch({type: 'appControl/clearMembers'})
+  }
+   //是否可以浏览当前界面
+   canView(){
+     return true;
+    //return appUtil.canManageAppSetting(this.props.appDetail);
   }
   fetchBaseInfo = () => {
     const {dispatch} = this.props;
@@ -1079,7 +1180,7 @@ export default class Index extends PureComponent {
     this.setState({showAddMember: false})
   }
   handleAddMember = (values) => {
-
+    console.log(values)
     this
       .props
       .dispatch({
@@ -1335,7 +1436,7 @@ export default class Index extends PureComponent {
   hideEditAction = () => {
     this.setState({toEditAction: null})
   }
-  handleEditAction = ({identity}) => {
+  handleEditAction = (value) => {
     const team_name = globalUtil.getCurrTeamName();
     this
       .props
@@ -1345,7 +1446,7 @@ export default class Index extends PureComponent {
           team_name: team_name,
           user_id: this.state.toEditAction.user_id,
           app_alias: this.props.appAlias,
-          identity: identity
+          ...value
         },
         callback: () => {
           this.loadMembers();
@@ -1380,6 +1481,9 @@ export default class Index extends PureComponent {
       })
   }
   render() {
+
+    if(!this.canView()) return <NoPermTip />;
+
     var self = this;
     const formItemLayout = {
       labelCol: {
@@ -1487,6 +1591,8 @@ export default class Index extends PureComponent {
           </Form>
         </Card>
 
+        <AutoDeploy app={appDetail} />
+        
         <Card style={{
           marginBottom: 24
         }} title="自定义环境变量">
@@ -1667,7 +1773,7 @@ export default class Index extends PureComponent {
           style={{
           marginBottom: 24
         }}
-          title={< Fragment > 成员应用权限 < Tooltip title = "成员的应用权限高于团队权限" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
+          title={< Fragment > 成员应用权限 < Tooltip title = "示例：成员所属角色包含 `启动`权限, 成员应用权限包含`关闭`权限，则该成员对该应用的最终权限为 `启动`+`关闭`" > <Icon type="info-circle-o"/> < /Tooltip></Fragment >}>
           <ScrollerX sm={600}>
           <Table
             columns={[
@@ -1678,15 +1784,24 @@ export default class Index extends PureComponent {
               title: '邮箱',
               dataIndex: 'email'
             }, {
-              title: '权限',
-              dataIndex: 'identity',
+              title: '操作权限',
+              width:'50%',
+              dataIndex: 'service_perms',
               render(val) {
-                return <span>{teamUtil.actionToCN([val])}</span>
+                var arr = val || []
+                return <span>{
+                  arr.map((item)=>{
+                    return <Tag>{item.perm_info}</Tag>
+                  })
+                }</span>
               }
             }, {
               title: '操作',
               dataIndex: 'action',
-              render(val, data) {
+              render :(val, data) => {
+
+                if(!appUtil.canManageAppMember(this.props.appDetail)) return null;
+
                 return <div>
                   <a
                     onClick={() => {
@@ -1705,14 +1820,18 @@ export default class Index extends PureComponent {
             pagination={false}
             dataSource={members}/>
           </ScrollerX>
-          <div
-            style={{
-            marginTop: 10,
-            textAlign: 'right'
-          }}>
-            <Button onClick={this.showAddMember}><Icon type="plus"/>
-              设置成员应用权限</Button>
-          </div>
+          {
+            appUtil.canManageAppMember(this.props.appDetail) && 
+            <div
+              style={{
+              marginTop: 10,
+              textAlign: 'right'
+            }}>
+              <Button onClick={this.showAddMember}><Icon type="plus"/>
+                设置成员应用权限</Button>
+            </div>
+          }
+          
         </Card>
 
         {this.state.addTag && <AddTag
@@ -1754,7 +1873,9 @@ export default class Index extends PureComponent {
           onSubmit={this.handleEditAction}
           onCancel={this.hideEditAction}
           actions={teamControl.actions}
-          value={this.state.toEditAction.identity}/>}
+          value={this.state.toEditAction.service_perms.map((item)=>{
+            return item.id
+          })}/>}
         {this.state.viewRunHealth && <ViewRunHealthCheck
           title="运行时检查查看"
           data={this.state.viewRunHealth}

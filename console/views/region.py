@@ -11,6 +11,7 @@ from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import error_message, general_message
 from console.services.user_services import user_services
+from www.decorator import perm_required
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -86,6 +87,7 @@ class RegUnopenView(JWTAuthApiView):
 
 
 class OpenRegionView(JWTAuthApiView):
+    @perm_required('tenant_open_region')
     def post(self, request, team_name, *args, **kwargs):
         """
         为团队开通数据中心
@@ -122,6 +124,7 @@ class OpenRegionView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, result["code"])
 
+    @perm_required('tenant_open_region')
     def patch(self, request, team_name, *args, **kwargs):
         """
         为团队批量开通数据中心
@@ -217,25 +220,29 @@ class PublicRegionListView(JWTAuthApiView):
         try:
             team_name = request.GET.get("team_name", None)
             if not team_name:
-                return Response(general_message(400, "params error", "参数错误"),status=400)
+                return Response(general_message(400, "params error", "参数错误"), status=400)
             perm_list = team_services.get_user_perm_identitys_in_permtenant(
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            if "owner" in perm_list or "admin" in perm_list:
+
+            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id,
+                                                                            tenant_name=team_name)
+
+            if "owner" not in perm_list and "admin" not in perm_list and "owner" not in role_name_list and "admin" not in role_name_list:
                 code = 400
-                result = general_message(code, "no identity", "您不是管理员或拥有者，没有权限做此操作")
+                result = general_message(code, "no identity", "您不是owner或admin，没有权限做此操作")
                 return Response(result, status=code)
+
+            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+            res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
+            if res["status"] == 200:
+                code = 200
+                result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功",
+                                         list=data)
             else:
-                team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
-                res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
-                if res["status"] == 200:
-                    code = 200
-                    result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功",
-                                             list=data)
-                else:
-                    code = 400
-                    result = general_message(code, msg="query the data center failed", msg_show="公有云数据中心获取失败")
+                code = 400
+                result = general_message(code, msg="query the data center failed", msg_show="公有云数据中心获取失败")
         except Exception as e:
             code = 500
             logger.exception(e)

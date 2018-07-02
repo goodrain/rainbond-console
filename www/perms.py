@@ -4,9 +4,12 @@ import logging
 from rest_framework.response import Response
 
 from console.exception.main import BusinessException
+from console.repositories.perm_repo import role_perm_repo
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from www.utils.return_message import general_message
+from console.models.main import ServiceRelPerms
+from console.services.team_services import team_services
 
 logger = logging.getLogger('default')
 
@@ -14,32 +17,38 @@ logger = logging.getLogger('default')
 class PermActions(object):
     tenant_access_actions = (
         ('tenant_access', u"登入团队"),
-        ('tenant_account', u"租户账户"),
-        ('app_add_advantage', u"评论应用"),
-        ('app_vote', u"对应用投票"),
-        ('view_service', u"查看单个服务"),
+
+        ('view_service', u"查看应用信息"),
     )
 
     tenant_viewer_actions = (
-                                ('list_all_services', u"查看所有服务"),
-                                ('view_service', u"查看单个服务"),
-                                ('view_plugin', u"查看插件"),
+
+                                ('view_plugin', u"查看插件信息"),
                             ) + tenant_access_actions
 
     tenant_developer_actions = (
-                                   ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
-                                   ('code_deploy', u"部署代码"), ('deploy_service', u"部署服务"),
-                                   ('manage_service', u"维护服务"),
+                                   ('manage_group', u"应用组管理"),
+                                   ('deploy_service', u"部署应用"),
+                                   ('create_service', u"创建应用"),
+                                   ('stop_service', u"关闭应用"),
+                                   ('start_service', u"启动应用"),
+                                   ('restart_service', u"重启应用"),
+                                   ('rollback_service', u"回滚应用"),
+                                   ('manage_service_container', u"应用容器管理"),
+                                   ('manage_service_extend', u"应用伸缩管理"),
+                                   ('manage_service_config', u"应用配置管理"),
+                                   ('manage_service_plugin', u"应用扩展管理"),
+                                   ('manage_plugin', u"插件管理"),
+                                   ('import_and_export_service', u'应用导入导出'),
                                ) + tenant_viewer_actions
 
     tenant_admin_actions = (
-                               ('modify_team_member_permissions', u'编辑权限'), ('add_tenant_members', u'添加团队成员'),
-                               ('create_service', u"创建服务"), ('delete_service', u"删除服务"),
-                               ('setting', u"租户设置"), ('perm_setting', u"权限管理"),
-                               ('service_monitor', u"服务资源监控"), ('service_alert', u"服务资源报警"),
-                               ('share_service', u"分享服务"), ('manage_group', u"操作服务组"), ('create_plugin', u"创建插件"),
-                               ('manage_plugin', u"创建插件"), ('drop_tenant_members', u'删除团队成员'),
-                               ('app_publish', u"应用发布"), ('app_download', u"应用下载")
+                               ('manage_team_member_permissions', u'团队权限设置'),
+                               ('tenant_open_region', u'开通数据中心'),
+                               ('delete_service', u"删除应用"),
+                               ('share_service', u"应用组分享"),
+                               ('manage_service_member_perms', u'应用权限设置'),
+                               ('tenant_manage_role', u'自定义角色')
                            ) + tenant_developer_actions
 
     tenant_owner_actions = (
@@ -51,18 +60,25 @@ class PermActions(object):
                           ) + tenant_admin_actions
 
     service_viewer_actions = (
-        ('view_service', u"查看单个服务"),
+        ('view_service', u"查看应用信息"),
     )
 
     service_developer_actions = (
-                                    ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
-                                    ('manage_service', u"维护服务"),
-                                    ('code_deploy', u"部署代码"), ('deploy_service', u"部署服务"),
+                                    ('deploy_service', u"部署应用"),
+                                    ('stop_service', u"关闭应用"),
+                                    ('start_service', u"启动应用"),
+                                    ('restart_service', u"重启应用"),
+                                    ('rollback_service', u"回滚应用"),
+                                    ('manage_service_container', u"应用容器管理"),
+                                    ('manage_service_extend', u"应用伸缩管理"),
+                                    ('manage_service_config', u"应用配置管理"),
+                                    ('manage_service_plugin', u"应用扩展管理"),
+
                                 ) + service_viewer_actions
 
     service_admin_actions = (
-                                ('code_deploy', u"部署代码"),
-                                ('setting', u"服务设置"), ('perm_setting', u"权限管理")
+
+                                ('manage_service_member_perms', u'应用权限设置'),
                             ) + service_developer_actions
 
     def keys(self, tag):
@@ -128,6 +144,7 @@ def get_highest_identity(identitys):
             identity_num = num
     return final_identity
 
+
 def check_perm(perm, user, tenantName=None, serviceAlias=None):
     if isinstance(user, AnonymousUser):
         raise PermissionDenied('this resource need login status', redirect_url='/login')
@@ -142,25 +159,33 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenantName)
-            identitys = PermRelTenant.objects.filter(user_id=user.pk, tenant_id=tenant.pk).values_list("identity",
-                                                                                                       flat=True)
-            if not identitys:
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=user.pk,
+                                                                            tenant_name=tenant.tenant_name)
+            role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.pk,
+                                                                             tenant_name=tenant.tenant_name)
+            if not identitys and not role_id_list:
                 raise PermRelTenant.DoesNotExist
-            # 获取最高权限
-            tenant_identity = get_highest_identity(identitys)
-            # 获取团队所有的可操作内容
-            tenant_actions = p.keys('tenant_{0}_actions'.format(tenant_identity))
-            # 封装设置权限
-            user.actions.set_actions('tenant', tenant_actions)
+
+            tenant_actions_tuple = ()
+            if identitys:
+                tenant_identity = get_highest_identity(identitys)
+                tenant_actions = p.keys('tenant_{0}_actions'.format(tenant_identity))
+                tenant_actions_tuple += tenant_actions
+            if role_id_list:
+                for role_id in role_id_list:
+                    perm_tuple = role_perm_repo.get_perm_by_role_id(role_id=role_id)
+                    tenant_actions_tuple += perm_tuple
+            user.actions.set_actions('tenant', tuple(set(tenant_actions_tuple)))
+
             if serviceAlias is not None:
-                # 应用对象
                 service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=serviceAlias)
-                # 应用权限
-                service_identity = PermRelService.objects.get(user_id=user.pk, service_id=service.pk).identity
-                # 获取应用所有的可操作内容
-                service_actions = p.keys('service_{0}_actions'.format(service_identity))
-                # 封装应用权限信息
-                user.actions.set_actions('service', service_actions)
+                user_service_perms_id_list = ServiceRelPerms.objects.filter(user_id=user.pk,
+                                                                            service_id=service.pk).values_list(
+                    "perm_id",
+                    flat=True)
+                perm_codename_list = role_perm_repo.get_perm_list_by_perm_id_list(
+                    perm_id_list=user_service_perms_id_list)
+                user.actions.set_actions('service', perm_codename_list)
         except Tenants.DoesNotExist:
             raise UrlParseError(404, 'no matching tenantName for {0}'.format(tenantName))
         except TenantServiceInfo.DoesNotExist:

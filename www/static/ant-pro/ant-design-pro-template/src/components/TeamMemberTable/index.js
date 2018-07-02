@@ -37,15 +37,25 @@ class TeamMemberTable extends PureComponent {
         title: '邮箱',
         dataIndex: 'email'
       }, {
-        title: '权限',
-        dataIndex: 'identity',
+        title: '角色',
+        dataIndex: 'role_info',
         render(val) {
-          return <span>{teamUtil.actionToCN(val)}</span>
+          return <span>{(val||[]).map((item)=>{
+            return item.role_name
+          }).join(', ')}</span>
         }
       }, {
         title: '操作',
         dataIndex: 'action',
         render(val, data) {
+          var roles = data.role_info || [];
+          var creater = roles.filter((item)=>{
+              return item.role_name === 'owner'
+          })[0];
+          if(creater){
+            return null;
+          }
+
           return <div>
             {teamUtil.canDeleteMember(team) && <a
               href="javascript:;"
@@ -54,14 +64,14 @@ class TeamMemberTable extends PureComponent {
             }}>删除</a>
 }
 
-            {teamUtil.canEditMemberAction(team) && <a
+            {teamUtil.canEditMemberRole(team) && <a
               style={{
               marginLeft: 6
             }}
               onClick={() => {
               onEditAction(data)
             }}
-              href="javascript:;">编辑权限</a>
+              href="javascript:;">修改角色</a>
 }
 
             {teamUtil.canChangeOwner(team) && <a
