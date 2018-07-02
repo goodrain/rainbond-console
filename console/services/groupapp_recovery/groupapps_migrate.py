@@ -248,6 +248,7 @@ class GroupappsMigrateService(object):
             volume.pop("ID")
             new_volume = TenantServiceVolume(**volume)
             new_volume.service_id = service.service_id
+            volume_list.append(new_volume)
         if volume_list:
             TenantServiceVolume.objects.bulk_create(volume_list)
 
