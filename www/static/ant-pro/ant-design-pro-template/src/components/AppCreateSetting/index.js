@@ -1750,7 +1750,7 @@ export default class Index extends PureComponent {
             className={styles.content}
             style={{
             overflow: 'hidden',
-            marginBottom: 30
+            marginBottom: 90
           }}>
             <RenderDeploy appDetail={appDetail} visible={type === 'deploy'}/>
             <RenderProperty appDetail={appDetail} visible={type !== 'deploy'}/>
