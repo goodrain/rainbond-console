@@ -38,5 +38,7 @@ class ServiceEventRepository(object):
         """查询指定条数的日志"""
         return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-ID")[:num]
 
+    def get_specified_region_events(self, tenant_id, region):
+        return ServiceEvent.objects.filter(tenant_id=tenant_id, region=region).order_by("-ID")
 
 event_repo = ServiceEventRepository()

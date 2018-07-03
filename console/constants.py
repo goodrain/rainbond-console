@@ -43,6 +43,7 @@ class ServiceEventConstants(object):
         "service_state": "应用状态修改",
         "reboot": "重启",
         "market_sync": "云市同步",
+        "truncate": "删除"
     }
 
 
