@@ -33,7 +33,6 @@ class AppVolumeService(object):
                 return 400, u"持久化名称只支持数字字母下划线", volume_name
             else:
                 volume_name = service.service_cname + make_uuid()[-3:]
-        
         volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:

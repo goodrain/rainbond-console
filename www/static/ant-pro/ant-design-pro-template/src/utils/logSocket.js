@@ -67,10 +67,8 @@ LogSocket.prototype = {
 	_onError: function() {
 		this.onError();
 	},
-	destroy: function() {
-		this.webSocket.close();
-		this.webSocket = null;
 
+	destroy: function(){
 		this.onMessage = null;
 		this.onError = null;
 		this.onClose = null;
@@ -79,6 +77,7 @@ LogSocket.prototype = {
 		this.onComplete = null;
 		this.onFail = null;
 		this.destroyed = true;
+		this.close();
 	}
 }
 

@@ -19,7 +19,6 @@ const userUtil = {
 		var team = (bean.teams || []).filter((team) => {
 			return team.role_name_list.indexOf('owner') > -1 || bean.user_id === team.creater
 		})[0]
-
 		//也有可能他没有自己的团队，比如移交给别人了
 		if(!team){
 			team = bean.teams[0];

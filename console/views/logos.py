@@ -25,16 +25,17 @@ class ConfigInfoView(AlowAnyApiView):
             data = dict()
             logo = config_service.get_image()
             host_name = request.get_host()
-            if not logo:
-                data["logo"] = ""
-            else:
-                data["logo"] = "{0}://{1}{2}".format(request.scheme, str(host_name), str(logo))
+            build_absolute_uri = request.build_absolute_uri()
+            scheme = "http"
+            if build_absolute_uri.startswith("https"):
+                scheme = "https"
+            data["logo"] = "{0}://{1}{2}".format(scheme, str(host_name), str(logo))
             # 判断是否为公有云
             if settings.MODULES.get('SSO_LOGIN'):
                 data["url"] = "https://sso.goodrain.com/#/login/"
                 data["is_public"] = True
             else:
-                data["url"] = "{0}://{1}/index#/user/login".format(request.scheme, request.get_host())
+                data["url"] = "{0}://{1}/index#/user/login".format(scheme, request.get_host())
                 data["is_public"] = False
 
             title = config_service.get_config_by_key("TITLE")
@@ -115,6 +116,7 @@ class LogoView(BaseApiView):
 
 class PhpConfigView(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
+
         """获取php的环境配置"""
 
         versions = ["5.6.11", "5.6.30", "5.6.35", "7.0.16", "7.0.29", "7.1.2", "7.1.16"]

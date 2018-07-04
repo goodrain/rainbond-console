@@ -46,7 +46,7 @@ export default {
 	},
 	//是否从云市安装的插件
 	isMarketPlugin: function(bean){
-		 return bean.origin === 'local_market'
+		 return bean.origin === 'market' || bean.origin === 'local_market';
 	},
 	//获取插件版本构建状态的中文描述
 	getBuildStatusCN: function(status) {
@@ -62,7 +62,7 @@ export default {
 	},
 	//是否可以构建
 	canBuild: function(bean) {
-		return bean.plugin_version_status !== 'fixed' && 
+		return bean.plugin_version_status !== 'fixed' &&
 		bean.build_status !== 'building'
 	}
 }

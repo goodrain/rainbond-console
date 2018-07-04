@@ -10,7 +10,6 @@ import {enquireScreen} from 'enquire-js';
 import GlobalHeader from '../components/GlobalHeader';
 import GlobalFooter from '../components/GlobalFooter';
 import SiderMenu from '../components/SiderMenu';
-import AuthCompany from '../components/AuthCompany';
 import NotFound from '../routes/Exception/404';
 import {getRoutes} from '../utils/utils';
 import userUtil from '../utils/user';
@@ -18,7 +17,7 @@ import globalUtil from '../utils/global';
 import cookie from '../utils/cookie';
 import Authorized from '../utils/Authorized';
 import {getMenuData} from '../common/menu';
-import logo from '../../public/logo.png';
+import logo from '../../public/logo-icon-35.png';
 import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
@@ -130,7 +129,7 @@ class BasicLayout extends React.PureComponent {
         const {location, routerData, currTeam, currRegion} = this.props;
         return {location, breadcrumbNameMap: routerData};
     }
-
+    
     fetchUserInfo = () => {
         //获取用户信息、保存团队和数据中心信息
         this
@@ -221,7 +220,7 @@ class BasicLayout extends React.PureComponent {
         const currentUser = this.props.currentUser;
         let currRegionName = globalUtil.getCurrRegionName();
         const currTeam = userUtil.getTeamByTeamName(currentUser, key);
-
+        
         if (currTeam) {
             const regions = currTeam.region || [];
             if(!regions.length){
@@ -268,7 +267,7 @@ class BasicLayout extends React.PureComponent {
                 }
             })
     }
-
+    
     handleInitTeamOk = () => {
         this.setState({showWelcomeCreateTeam: false});
         this.fetchUserInfo();
@@ -315,6 +314,13 @@ class BasicLayout extends React.PureComponent {
 
             const team = userUtil.getTeamByTeamName(currentUser, globalUtil.getCurrTeamName());
             const hasRegion = !!(team.region && team.region.length);
+            let region = null;
+            let isRegionMaintain = false;
+            if(hasRegion){
+                region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
+                isRegionMaintain = region.region_status === '3' && !userUtil.isSystemAdmin(currentUser);
+            }
+            
             var renderContent = () => {
 
                 //当前团队没有数据中心
@@ -323,8 +329,6 @@ class BasicLayout extends React.PureComponent {
                     return null;
                 }
 
-                const region = userUtil.hasTeamAndRegion(currentUser, currTeam, currRegion) || {};
-                const isRegionMaintain = region.region_status === '3';
                 //数据中心维护中
                 if(isRegionMaintain){
                     return <div style={{textAlign: 'center', padding: '50px 0'}}>
@@ -354,10 +358,10 @@ class BasicLayout extends React.PureComponent {
 
             return <Layout>
                     {
-                        hasRegion && <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo}
+                        (!isRegionMaintain && hasRegion) && <SiderMenu title={rainbondInfo.title} currentUser={currentUser} logo={rainbondInfo.logo || logo} 
                         Authorized={Authorized} menuData={getMenuData(groups)} collapsed={collapsed} location={location} isMobile={this.state.isMobile} onCollapse={this.handleMenuCollapse}/>
                     }
-
+                    
                 <Layout>
                     <GlobalHeader
                         logo={logo}
@@ -381,7 +385,7 @@ class BasicLayout extends React.PureComponent {
                         margin: '24px 24px 0',
                         height: '100%'
                     }}>
-                        {renderContent()}
+                        {renderContent()} 
                     </Content>
                 </Layout>
             </Layout>
@@ -404,7 +408,6 @@ class BasicLayout extends React.PureComponent {
                 <Loading/>
                 {rainbondInfo.is_public && <Meiqia />}
                 {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
-                {this.props.showAuthCompany && <AuthCompany />}
             </Fragment>
         );
     }
@@ -422,7 +425,6 @@ export default connect(({user, global, loading}) => {
         currTeam: globalUtil.getCurrTeamName(),
         currRegion: globalUtil.getCurrRegionName(),
         rainbondInfo: global.rainbondInfo,
-        payTip: global.payTip,
-        showAuthCompany: global.showAuthCompany
+        payTip: global.payTip
     })
 })(BasicLayout);

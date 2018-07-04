@@ -11,6 +11,7 @@ import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelation
 import styles from './Index.less';
 import globalUtil from '../../utils/global';
 import ConfirmModal from '../../components/ConfirmModal';
+import AddRelation from '../../components/AddRelation';
 import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -54,7 +55,7 @@ class ViewRelationInfo extends PureComponent {
         onCancel = {this.props.onCancel}
         footer={[<Button onClick={this.props.onCancel}>关闭</Button>]}
         >
-        <Table 
+        <Table
         pagination={false}
         columns={[{
           title:'变量名',
@@ -328,7 +329,7 @@ export default class Index extends PureComponent {
     this.setState({showAddRelation: false})
   }
   handleSubmitAddRelation = (ids) => {
-     
+
     batchAddRelationedApp({
         team_name: globalUtil.getCurrTeamName(),
          app_alias: this.props.appAlias,
@@ -440,7 +441,7 @@ export default class Index extends PureComponent {
 
      >
       <ScrollerX sm={650}>
-      <Table 
+      <Table
         pagination={false}
         columns={[{
           title:'变量名',
