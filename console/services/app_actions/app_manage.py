@@ -20,6 +20,8 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.label_repo import service_label_repo
+from www.utils.crypt import make_uuid
+from console.repositories.event_repo import event_repo
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -40,6 +42,7 @@ class AppManageBase(object):
         self.ROLLBACK = "callback"
         self.VERTICAL_UPGRADE = "VerticalUpgrade"
         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
+        self.TRUNCATE = "truncate"
 
     def isOwnedMoney(self, tenant):
         if self.MODULES["Owned_Fee"]:
@@ -466,7 +469,7 @@ class AppManageService(AppManageBase):
             return 200, "success", event
         else:
             try:
-                code, msg = self.truncate_service(tenant, service)
+                code, msg = self.truncate_service(tenant, service, user)
                 if code != 200:
                     event = event_service.update_event(event, msg, "failure")
                     return code, msg, event
@@ -481,7 +484,7 @@ class AppManageService(AppManageBase):
                     event.save()
                 return 507, u"删除异常", event
 
-    def truncate_service(self, tenant, service):
+    def truncate_service(self, tenant, service, user=None):
         """彻底删除应用"""
 
         try:
@@ -518,9 +521,32 @@ class AppManageService(AppManageBase):
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
-
+        self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
+
+    def __create_service_delete_event(self, tenant, service, user):
+        if not user:
+            return None
+        try:
+            event_info = {
+                "event_id": make_uuid(),
+                "service_id": service.service_id,
+                "tenant_id": tenant.tenant_id,
+                "type": "truncate",
+                "deploy_version": service.deploy_version,
+                "old_deploy_version": "",
+                "user_name": user.nick_name,
+                "start_time": datetime.datetime.now(),
+                "message": service.service_cname,
+                "final_status": "complete",
+                "status": "success",
+                "region": service.service_region
+            }
+            return event_repo.create_event(**event_info)
+        except Exception as e:
+            logger.exception(e)
+            return None
 
     def move_service_into_recycle_bin(self, service):
         """将服务移入回收站"""

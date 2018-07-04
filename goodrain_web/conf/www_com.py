@@ -60,7 +60,7 @@ DATABASES = {
 }
 
 APP_SERVICE_API = {
-    'url': 'http://api.goodrain.com:80',
+    'url': os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80'),
     'apitype': 'app service'
 }
 

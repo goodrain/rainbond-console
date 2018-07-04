@@ -334,7 +334,7 @@ export function getUnRelationedApp(body = {
 						condition: body.condition,
 						search_key: body.search_key
 					}
-					
+
 			});
 }
 

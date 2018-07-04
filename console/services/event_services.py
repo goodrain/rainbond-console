@@ -11,6 +11,7 @@ from goodrain_web.tools import JuncheePaginator
 from console.repositories.app import service_repo
 from console.services.app_actions.app_log import AppEventService
 from console.repositories.team_repo import team_repo
+from console.repositories.event_repo import event_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -43,6 +44,36 @@ class ServiceEventDynamic(object):
                 event.service_alias = bean["service_alias"]
                 event.service_cname = bean["service_cname"]
         return events
+
+    def get_current_region_service_events(self,region, team, page, page_size):
+        events = event_repo.get_specified_region_events(team.tenant_id,region)
+        paginator = JuncheePaginator(events, int(page_size))
+        show_events = paginator.page(int(page))
+        service_ids = [e.service_id for e in show_events]
+        services = service_repo.get_services_by_service_ids(*service_ids)
+        id_service_map = {s.service_id: s for s in services}
+        event_list = []
+        try:
+            self.__sync_region_service_event_status(region, team.tenant_name, show_events, False)
+        except Exception as e:
+            logger.exception("synchorized services events error !")
+
+        for event in show_events:
+            result = event.to_dict()
+            result["nick_name"] = result["user_name"]
+            result["type_cn"] = result["user_name"]
+            s = id_service_map.get(event.service_id, None)
+            if s:
+                result["service_alias"] = s.service_alias
+                result["service_cname"] = s.service_cname
+            else:
+                if event.type == "truncate":
+                    logger.debug("========> {0}".format(event.message))
+                    result["service_alias"] = event.message
+                    result["service_cname"] = event.message
+            event_list.append(result)
+
+        return event_list
 
 
     def get_services_events(self, page, page_size, create_time, status, team):

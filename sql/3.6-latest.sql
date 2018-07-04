@@ -119,3 +119,8 @@ ALTER TABLE app_export_record ADD enterprise_id varchar(32) DEFAULT 'public' NOT
 ALTER TABLE region_info MODIFY scope varchar(15) DEFAULT 'private';
 -- 修改字段长度
 ALTER TABLE plugin_build_version MODIFY image_tag varchar(100) default '';
+
+-- 应用事件添加数据中心字段
+ALTER TABLE service_event ADD region varchar(32) DEFAULT '' NULL;
+-- 更新数据
+update service_event e,tenant_service ts set e.region = ts.service_region where ts.service_id=e.service_id;

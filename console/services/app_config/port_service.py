@@ -13,6 +13,7 @@ import logging
 from console.repositories.app_config import domain_repo
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
+from console.constants import AppConstants
 
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
@@ -26,6 +27,10 @@ class AppPortService(object):
             return 400, u"端口{0}已存在".format(container_port)
         if not (1 <= container_port <= 65535):
             return 412, u"端口必须为1到65535的整数"
+        if service.service_source == AppConstants.SOURCE_CODE:
+            if service.language in ("dockerfile", "docker"):
+                if container_port <= 1024:
+                    return 400, u"源码应用非Dockerfile构建的应用端口不能小于1024"
         return 200, "success"
 
     def check_port_alias(self, port_alias):

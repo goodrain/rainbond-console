@@ -51,6 +51,7 @@ class DialogMessage extends PureComponent {
             Modal.info({
                 title: data[0].title,
                 okText: '知道了',
+                width: 600,
                 onOk: () => {
                     this.props.onCancel();
                 },
@@ -58,7 +59,6 @@ class DialogMessage extends PureComponent {
                     <div dangerouslySetInnerHTML={{__html:data[0].content}} style={{whiteSpace: 'pre-wrap'}}></div>
                   )
             })
-
 
         }
 

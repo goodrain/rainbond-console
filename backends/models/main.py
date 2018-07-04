@@ -83,7 +83,7 @@ class Announcement(BaseModel):
         db_table = "announcement"
 
     announcement_id = models.CharField(max_length=32, null=False, help_text=u"通知id")
-    content = models.CharField(max_length=256, help_text=u"通知内容")
+    content = models.CharField(max_length=1000, help_text=u"通知内容")
     a_tag = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"A标签文字")
     a_tag_url = models.CharField(max_length=1024, null=True, blank=True, default="", help_text=u"a标签跳转地址")
     type = models.CharField(max_length=32, null=True, blank=True, default="all", help_text=u"通知类型")
