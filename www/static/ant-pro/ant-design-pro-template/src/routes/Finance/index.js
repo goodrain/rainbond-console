@@ -5,7 +5,7 @@ import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip,
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
-// import InvoiceEcharts from '../../components/InvoiceEcharts';
+import InvoiceEcharts from '../../components/InvoiceEcharts';
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
@@ -136,7 +136,7 @@ export default class BasicList extends PureComponent {
             style={{ marginTop: 24 }}
             bodyStyle={{ padding: '0 32px 40px 32px' }}
           >
-            {/* <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} />  */}
+            <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
           </Card>
         </div>
       </PageHeaderLayout>
