@@ -323,7 +323,6 @@ class GroupappsMigrateService(object):
             probe.pop("ID")
             new_service_probe = ServiceProbe(**probe)
             new_service_probe.service_id = service.service_id
-            new_service_probe.probe_id = make_uuid()
             service_probe_list.append(new_service_probe)
         if service_probe_list:
             ServiceProbe.objects.bulk_create(service_probe_list)
