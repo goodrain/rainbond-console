@@ -163,7 +163,12 @@ class GroupappsMigrateService(object):
             migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
             if status == "success":
                 with transaction.atomic():
-                    self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata), migrate_record.group_id)
+                    try:
+                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata), migrate_record.group_id)
+                    except Exception as e:
+                        migrate_record.status = "failed"
+                        migrate_record.save()
+                        raise e
                     if migrate_record.migrate_type == "recover":
                         # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
                         backup_record_repo.get_record_by_group_id(migrate_record.original_group_id).update(
