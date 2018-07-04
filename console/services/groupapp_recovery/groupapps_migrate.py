@@ -329,6 +329,7 @@ class GroupappsMigrateService(object):
 
     def __save_service_source(self, tenant, service, service_source):
         if service_source:
+            service_source.pop("ID")
             new_service_source = ServiceSourceInfo(**service_source)
             new_service_source.service_id = service.service_id
             new_service_source.team_id = tenant.tenant_id
@@ -337,6 +338,7 @@ class GroupappsMigrateService(object):
     def __save_service_auth(self, service, service_auth):
         service_auth_list = []
         for auth in service_auth:
+            auth.pop("ID")
             new_service_auth = TenantServiceAuth(**auth)
             new_service_auth.service_id = service.service_id
             service_auth_list.append(new_service_auth)
@@ -345,6 +347,7 @@ class GroupappsMigrateService(object):
 
     def __save_service_image_relation(self, tenant, service, service_image_relation):
         if service_image_relation:
+            service_image_relation.pop("ID")
             new_image_relation = ImageServiceRelation(**service_image_relation)
             new_image_relation.tenant_id = tenant.tenant_id
             new_image_relation.service_id = service.service_id
