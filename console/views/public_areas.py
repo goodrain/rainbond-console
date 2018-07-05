@@ -82,7 +82,9 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["user_nums"] = user_nums
                 team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
                                                                                 region_name=self.response_region)
-                total_memory, total_disk = common_services.calculate_real_used_resource(tenant=self.team)
+                total_memory, total_disk = common_services.get_current_region_used_resource(self.team,
+                                                                                            self.response_region)
+
                 overview_detail["team_service_num"] = team_service_num
                 overview_detail["team_service_memory_count"] = total_memory
                 overview_detail["team_service_total_disk"] = total_disk

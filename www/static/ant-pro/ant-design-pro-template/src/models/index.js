@@ -37,10 +37,12 @@ export default {
     },
     *fetchOverview({ payload }, { call, put }) {
       const response = yield call(getTeamRegionOverview, payload);
-      yield put({
-        type: 'saveOverviewInfo',
-        payload: response.bean
-      });
+      if(response){
+        yield put({
+          type: 'saveOverviewInfo',
+          payload: response.bean
+        });
+      }
     },
     *fetchApps({ payload }, { put, select, call }) {
       const response = yield call(getTeamRegionApps, payload);
