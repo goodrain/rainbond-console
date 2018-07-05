@@ -43,7 +43,9 @@ import appUtil from '../../utils/app';
 import userUtil from '../../utils/user';
 import teamUtil from '../../utils/team';
 import regionUtil from '../../utils/region';
-import monitorDataUtil from '../../utils/monitorDataUtil'
+import monitorDataUtil from '../../utils/monitorDataUtil';
+import AppVersionManage from '../../components/AppVersionManage';
+
 const ButtonGroup = Button.Group;
 
 @connect(({user, appControl}) => ({currUser: user.currentUser, appDetail: appControl.appDetail}))
@@ -238,7 +240,6 @@ class LogItem extends PureComponent {
     if (this.state.resultStatus === 'success') {
       return styles.success;
     }
-
     return '';
   }
   handleRollback = () => {
@@ -386,18 +387,21 @@ export default class Index extends PureComponent {
       //安装的性能分析插件
       anaPlugins: [],
       disk: 0,
-      memory: 0
+      memory: 0,
+      showVersionManage: false
     }
     this.inerval = 5000;
   }
-
+  static contextTypes = {
+    isActionIng: PropTypes.func,
+    appRolback: PropTypes.func
+  }
   componentDidMount() {
     const {dispatch, appAlias} = this.props;
     this.loadLog();
     this.mounted = true;
     this.getAnalyzePlugins();
     this.fetchAppDiskAndMemory();
-    console.log(this.props)
 
   }
   componentWillUnmount() {
@@ -597,6 +601,17 @@ export default class Index extends PureComponent {
   getStep() {
     return 60;
   }
+  showVersionManage = () => {
+      this.setState({showVersionManage: true})
+  }
+  hideVersionManage = () => {
+    this.setState({showVersionManage: false})
+  }
+  handleRollback = (version) => {
+    this
+    .context
+    .appRolback(version);
+  }
   render() {
 
     const topColResponsiveProps = {
@@ -723,7 +738,7 @@ export default class Index extends PureComponent {
         </Row>
         <Row gutter={24}>
           <Col xs={24} xm={24} md={24} lg={24} xl={24}>
-            <Card bordered={false} title="操作日志">
+            <Card bordered={false} title="操作日志" extra={<a onClick={this.showVersionManage} href="javascript:;">构建版本管理</a>}>
               <LogList appDetail={this.props.appDetail} appAlias={this.props.appAlias} list={logList || []}/> {this.state.hasNext && <p
                 style={{
                 textAlign: 'center',
@@ -736,6 +751,7 @@ export default class Index extends PureComponent {
                 type="down"/></p>
 }
 
+            {this.state.showVersionManage && <AppVersionManage onRollback={this.handleRollback} onCancel={this.hideVersionManage} team_name={globalUtil.getCurrTeamName()} service_alias={this.props.appAlias} />}
             </Card>
           </Col>
 

@@ -37,6 +37,10 @@ class ServiceEventRepository(object):
     def delete_events(self, service_id):
         ServiceEvent.objects.filter(service_id=service_id).delete()
 
+    def delete_event_by_build_version(self, service_id, deploy_version):
+        ServiceEvent.objects.filter(deploy_version=deploy_version, service_id=service_id).delete()
+
+
     def get_specified_num_events(self, tenant_id, service_id, num=6):
         """查询指定条数的日志"""
         return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-ID")[:num]

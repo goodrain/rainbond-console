@@ -74,6 +74,8 @@ import {
   SubDomain,
   getSubPort,
   SubPort
+  getAppVersionList,
+  delAppVersion
 } from '../services/app';
 
 import {getCertificates, addCertificate} from '../services/team';
@@ -140,6 +142,11 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(getSubDomain, payload);
+    *getAppVersionList({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(getAppVersionList, payload);
       if (response) {
         callback && callback(response);
       }
@@ -167,6 +174,11 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(SubPort, payload);
+    *delAppVersion({
+      payload,
+      callback
+    }, {call, put}) {
+      const response = yield call(delAppVersion, payload);
       if (response) {
         callback && callback(response);
       }

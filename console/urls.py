@@ -66,6 +66,7 @@ from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
     ServiceShareCompleteView, ServiceShareRecordView
+from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
@@ -478,4 +479,8 @@ urlpatterns = patterns(
     url(r'receipts/confirm$', EnterReceiptConfirmAPIView.as_view()),
     url(r'receipts/(?P<receipt_id>\d+)$', EnterReceiptDetailAPIView.as_view()),
     url(r'receipt-orders$', EnterReceiptOrdersAIPView.as_view()),
+    # 应用版本管理
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$',
+        AppVersionManageView.as_view()),
 )

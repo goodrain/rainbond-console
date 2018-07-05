@@ -1657,3 +1657,38 @@ class RegionInvokeApi(HttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return body
+
+    def get_service_build_versions(self, region, tenant_name, service_alias):
+        """获取应用的构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-list"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def delete_service_build_version(self, region, tenant_name, service_alias,
+                                     version_id):
+        """删除应用的某次构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" + version_id
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
+    def get_service_build_version_by_id(self, region, tenant_name, service_alias,
+                                        version_id):
+        """查询应用的某次构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" + version_id
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
