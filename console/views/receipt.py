@@ -21,8 +21,9 @@ class EnterReceiptAPIView(JWTAuthApiView):
         receipt_status = request.GET.get('receipt_status', 'Not') or 'Not'
         team = team_services.get_tenant(tenant_name=team_name)
         try:
-            data = market_api.get_enterprise_receipts(team.tenant_id, team.enterprise_id, receipt_status, page, limit)
-            result = general_message(200, 'success', '查询成功', bean=data)
+            body = market_api.get_enterprise_receipts(team.tenant_id, team.enterprise_id, receipt_status, page, limit)
+            data = body["data"]
+            result = general_message(200, 'success', '查询成功', list=data['list'])
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'receipt info query failed', '企业发票信息查询失败')
@@ -85,8 +86,9 @@ class EnterReceiptOrdersAIPView(JWTAuthApiView):
         end = request.GET.get('end')
         team = team_services.get_tenant(tenant_name=team_name)
         try:
-            data = market_api.get_enterprise_receipt_orders(team.tenant_id, team.enterprise_id, start, end)
-            result = general_message(200, 'success', '查询成功', list=data)
+            body = market_api.get_enterprise_receipt_orders(team.tenant_id, team.enterprise_id, start, end)
+            data = body["data"]
+            result = general_message(200, 'success', '查询成功', list=data['list'])
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '获取未开发票订单接口调用失败')
