@@ -73,7 +73,7 @@ import {
   getSubDomain,
   SubDomain,
   getSubPort,
-  SubPort
+  SubPort,
   getAppVersionList,
   delAppVersion
 } from '../services/app';
@@ -142,6 +142,10 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(getSubDomain, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *getAppVersionList({
       payload,
       callback
@@ -174,6 +178,10 @@ export default {
       callback
     }, {call, put}) {
       const response = yield call(SubPort, payload);
+      if (response) {
+        callback && callback(response);
+      }
+    },
     *delAppVersion({
       payload,
       callback
