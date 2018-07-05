@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
+import {Link} from 'dva/router';
 import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown} from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
@@ -30,7 +31,7 @@ export default class BasicList extends PureComponent {
   }
   componentDidMount() {
       this.getCompanyInfo();
-      // this.getRegionResource();
+      this.getRegionResource();
       // this.getRegionOneDayMoney();
   }
   // 获取某个数据中心的资源详情  // 新-- 数据中心列表
@@ -109,7 +110,7 @@ export default class BasicList extends PureComponent {
                     <Info title="企业账户"  value={`${companyInfo.balance || 0}元`} bordered />
                     <p style={{textAlign:'center'}}>
                       <a href='' style={{paddingRight:'10px'}}>储值</a>
-                      <a href=''>申请发票</a>
+                      <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/invoiceManage`}>发票管理</Link>
                     </p>
               </Col>
               <Col sm={8} xs={24}>

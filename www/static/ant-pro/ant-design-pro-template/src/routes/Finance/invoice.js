@@ -1,11 +1,13 @@
 import React, { PureComponent } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
-import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown} from 'antd';
+import { Table, Card, Row, Col, Radio, Input, Button, Icon, DatePicker, Tooltip, Menu, Dropdown, notification} from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
 import InvoiceForm from '../../components/InvoiceForm';
+
+const {RangePicker} = DatePicker;
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
@@ -19,61 +21,102 @@ const { Search } = Input;
 export default class BasicList extends PureComponent {
   constructor(props){
       super(props);
+      const now = Date.now();
       this.state = {
          selectedRowKeys: [],
-         showForm:false
+         showForm:false,
+         startDate: moment(now - (1000 * 60 * 60 * 24 * 30)).format('YYYY-MM-DD'),
+         endDate: moment(now).format('YYYY-MM-DD'),
+         data:[],
+         invoiceInfo:{},
+         
       }
   }
   componentDidMount() {
-     
+     this.loadOrders()
+  }
+  loadOrders(){
+    this.props.dispatch({
+      type:'invoice/getOrders',
+      payload:{
+        team_name: globalUtil.getCurrTeamName(),
+        start: this.state.startDate,
+        end: this.state.endDate,
+        selectedRowKeys:[]
+      },
+      callback: (data) => {
+        this.setState({data: data.list || []})
+      }
+    })
   }
   onSelectChange = (selectedRowKeys) => {
-    console.log('selectedRowKeys changed: ', selectedRowKeys);
     this.setState({ selectedRowKeys });
   }
   handleinvoice =()=>{
-     this.setState({showForm:true})
+     this.props.dispatch({
+       type: 'invoice/confirmApplyInvoice',
+       payload: {
+         team_name: globalUtil.getCurrTeamName(),
+         orders: this.state.selectedRowKeys.join(',')
+       },
+       callback: (data) => {
+          this.setState({invoiceInfo: data.bean || {}, showForm: true})
+       }
+     })
   }
-  handleOkInvoice =()=>{
-
+  
+  handleOkInvoice =(value)=>{
+    this.props.dispatch({
+      type: 'invoice/submitApplyInvoice',
+      payload: {
+        team_name: globalUtil.getCurrTeamName(),
+        orders: this.state.selectedRowKeys.join(','),
+        ...value
+      },
+      callback: (data) => {
+         this.handleCancelInvoice();
+         this.loadOrders();
+         notification.success({
+           message: '申请成功， 请在注意查看进度'
+         })
+      }
+    })
   }
   handleCancelInvoice =()=>{
-    this.setState({showForm:false})
+    this.setState({invoiceInfo: {}, showForm: false})
+  }
+  handleDateChange = (value) => {
+    const start = value[0];
+    const end = value[1];
+    this.state.startDate = start.format('YYYY-MM-DD');
+    this.state.startDate = end.format('YYYY-MM-DD');
+    this.loadOrders();
   }
   render() {
     const { loading } = this.props;
     const { selectedRowKeys } = this.state;
+    const data = this.state.data || [];
     const extraContent = (
       <div className={styles.extraContent}>
-        <DatePicker onChange={this.handleDateChange} allowClear={false} defaultValue={moment(this.state.date, "YYYY-MM-DD")} />
+        <RangePicker onChange={this.handleDateChange} allowClear={false} defaultValue={[moment(this.state.startDate), moment(this.state.endDate)]} />
       </div>
     );
     const columns = [{
       title: '订单号',
-      dataIndex: 'order',
+      dataIndex: 'order_no',
     }, {
       title: '储值金额',
-      dataIndex: 'money',
+      dataIndex: 'order_price',
     }, {
       title: '储值方式',
-      dataIndex: 'type',
+      dataIndex: 'pay_type',
     },
     {
       title: '订单时间',
-      dataIndex: 'time',
+      dataIndex: 'pay_time',
     }];
-    const data = [];
-    for (let i = 0; i < 20; i++) {
-      data.push({
-        key: i,
-        order: `${i}`,
-        money: '10000',
-        type: `alipay`,
-        time:i
-      });
-    }
     const pageHeaderContent = (
-        <Button style={{float:'right'}}><a target="_blank" href="https://www.goodrain.com/spa/#/personalCenter/my/recharge">发票查询</a></Button>
+        null
     );
     const rowSelection = {
       selectedRowKeys,
@@ -87,12 +130,14 @@ export default class BasicList extends PureComponent {
           href: `/`
         }, {
           title: "财务中心",
-          href: ``
+          href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/finance`
+        }, {
+          title: "发票管理",
+          href: `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/invoiceManage`
         }, {
           title: "发票申请",
           href: ``
         }]}
-        title={"发票申请"}
         content={pageHeaderContent}
       >
         <div className={styles.standardList}>
@@ -100,17 +145,17 @@ export default class BasicList extends PureComponent {
           <Card
             className={styles.listCard}
             bordered={false}
-            title="选择开票订单"
+            title={<Button disabled={!this.state.selectedRowKeys.length} type="primary" onClick={() => {this.handleinvoice()}}>申请发票</Button>}
             style={{ marginTop: 24 }}
             bodyStyle={{ padding: '0 32px 40px 32px' }}
             extra={extraContent}
           >
-            <Table rowSelection={rowSelection} dataSource={data} columns={columns} />
-            <div style={{textAlign:'center'}}><Button type="primary" onClick={this.handleinvoice}>申请开票</Button></div>
+            <Table rowKey={'order_no'} rowSelection={rowSelection} pagination={false} dataSource={data} columns={columns} />
           </Card>
           {this.state.showForm && <InvoiceForm 
+             data={this.state.invoiceInfo}
              onOk={this.handleOkInvoice}
-             title="发票订单详情"
+             title="发票申请"
              onCancel={this.handleCancelInvoice}
           />}
         </div>

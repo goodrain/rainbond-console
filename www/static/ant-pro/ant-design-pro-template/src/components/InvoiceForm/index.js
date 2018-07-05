@@ -9,267 +9,6 @@ import globalUtil from '../../utils/global';
 const RadioGroup = Radio.Group;
 const Option = Select.Option;
 
-@Form.create()
-class EvnOption extends React.Component {
-    checkAttrAltValue = (rule, value, callback) => {
-        const { getFieldValue } = this.props.form
-        if (getFieldValue('attr_type') !== 'string' && !value) {
-            callback('请输入可选值');
-        }else{
-             callback()
-        }
-    }
-    componentWillMount(){
-        
-        this.props.onDidMount && this.props.onDidMount(this.props.index, this);
-    }
-    componentDidMount(){
-        this.props.onChange && this.props.onChange(this.props.index, this.props.form.getFieldsValue());
-    }
-    componentWillUnmount(){
-       this.props.onUnmount && this.props.onUnmount(this.props.index);
-    }
-    validAttrName = (rule, value, callback) => {
-      
-      if(!value){
-          callback("属性名");
-          return;
-      }
-
-      if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(value||'')){
-          callback("大小写英文_");
-          return;
-      }
-      callback()
-    }
-    check(callback){
-       var form = this.props.form;
-       form.validateFields((err, fieldsValue) => {
-          callback && callback(err)
-          
-       });
-    }
-    handleOnchange = (key) => {
-       this.props.form.validateFields([key], (err, fieldsValue) => {
-        setTimeout(()=> {
-          this.props.onChange && this.props.onChange(this.props.index, this.props.form.getFieldsValue());
-        })
-        if (err) return;
-      });
-    }
-    render(){
-      const { getFieldDecorator, getFieldValue } = this.props.form;
-      const attr_type = getFieldValue('attr_type') || 'string';
-      const data = this.props.data || {};
-      const protocols = this.props.protocols || [];
-     
-      return(
-         <Form style={{display: 'inline-block', verticalAlign: 'middle'}} layout="inline" >
-            <Form.Item
-              hasFeedback={false}
-              style={{display: 'none'}}
-            >
-                {getFieldDecorator('ID', {
-                initialValue: data.ID || '',
-              })(
-                <Input />
-              )}
-            </Form.Item>
-            <Form.Item
-               hasFeedback={false}
-            >
-                {getFieldDecorator('attr_name', {
-                initialValue: data.attr_name || '',
-                rules: [{ validator: this.validAttrName }]
-              })(
-                <Input onChange={()=>{this.handleOnchange('attr_name')}}   style={{width: 80}} placeholder="属性名" />
-              )}
-            </Form.Item>
-            <Form.Item
-              hasFeedback={false}
-            >
-                {getFieldDecorator('protocol', {
-                initialValue: data.protocol || '',
-                rules: [{ required: false, message: '协议' }],
-              })(
-                <Select onChange={()=>{this.handleOnchange('protocal')}} style={{width: 100}}>
-                <Option value="">协议</Option>
-                {
-                  protocols.map((item)=>{
-                    return <Option value={item}>{item}</Option>
-                  })
-                }
-                </Select>
-            )}
-            </Form.Item>
-            <Form.Item
-              hasFeedback={false}
-            >
-                {getFieldDecorator('attr_type', {
-                initialValue: data.attr_type || 'string',
-                rules: [{ required: true, message: '属性名' }],
-              })(
-                <Select onChange={()=>{this.handleOnchange('attr_type')}}  style={{width: 100}}>
-                  <Option value="string">字符串</Option>
-                  <Option value="radio">单选</Option>
-                  <Option value="checkbox">多选</Option>
-                </Select>
-            )}
-            </Form.Item>
-            <Form.Item
-                hasFeedback={false}
-            >
-                {getFieldDecorator('attr_default_value', {
-                initialValue: data.attr_default_value || '',
-                rules: [{ required: false, message: '默认值' }],
-              })(
-                <Input  onChange={()=>{this.handleOnchange('attr_default_value')}} style={{width: 80}} placeholder="默认值" />
-              )}
-            </Form.Item>
-            <Form.Item
-              hasFeedback={false}
-              style={{display: attr_type === 'string' ? 'none' : ''}}
-            >
-             <Tooltip title="单选或多选的可选值， 多个用逗号分割，如：value1, value2">
-                {getFieldDecorator('attr_alt_value', {
-                initialValue: data.attr_alt_value || '',
-                rules: [{ validator: this.checkAttrAltValue }],
-              })(
-                <Input  onChange={()=>{this.handleOnchange('attr_alt_value')}}  style={{width: 100}} placeholder="可选值" />
-              )}
-             </Tooltip>
-            </Form.Item>
-            <Form.Item
-              hasFeedback={false}
-            >
-                {getFieldDecorator('is_change', {
-                initialValue: data.is_change === void 0 ? true : data.is_change,
-                rules: [{ required: false, message: '默认值' }],
-              })(
-                <Select onChange={()=>{this.handleOnchange('is_change')}}  style={{width: 100}}>
-                  <Option value={true}>可修改</Option>
-                  <Option value={false}>不可修改</Option>
-                </Select>
-              )}
-            </Form.Item>
-            <Form.Item
-              hasFeedback={false}
-            >
-                {getFieldDecorator('attr_info', {
-                initialValue: data.attr_info || '',
-                rules: [{ required: false, message: '默认值' }],
-              })(
-                <Input onChange={()=>{this.handleOnchange('attr_info')}} style={{width: 100}} placeholder="简要说明" />
-              )}
-            </Form.Item>
-        </Form>
-      )
-       
-    }
-}
-
-@Form.create()
-class EnvGroup extends PureComponent {
-    constructor(props){
-     super(props);
-     var group = (this.props.value || []).map((item) => {
-         return {
-             key: Math.random(),
-             value: item
-         }
-     })
-
-     if(!group.length){
-         group = [{key: Math.random()}]
-     }
-
-     this.state = {
-       group:group
-     }
-
-     //保存组建引用
-     this.groupItem=[];
-    }
-    componentWillMount(){
-      this.props.onDidMount && this.props.onDidMount(this);
-    }
-    check(){
-       var res = true;
-       for(var i=0;i<this.groupItem.length;i++){
-          this.groupItem[i].com.check((err)=>{
-              res = err ? false : true;
-          });
-          if(!res) break;
-       }
-       return res;
-    }
-    handlePlus = (key) => {
-        var group = this.state.group;
-        var index = 0;
-        group = group.filter((item, i )=>{
-             if(item.key === key){
-                index = i;
-             }
-             return true;
-        })
-        group.splice(index+1, 0, {key: Math.random()});
-        this.state.group = group;
-        this.setState({group: group});
-        this.forceUpdate();
-    }
-    handleMinus = (key) => {
-          var group = [].concat(this.state.group);
-          if(group.length === 1) return;
-          group = group.filter((item)=>{
-             return !!item;
-          }).filter((item) => {
-              return item.key !== key;
-          })
-          this.state.group = group;
-          this.setState({group: group});
-          this.props.onChange && this.props.onChange(this.state.group.map((item)=>{return item.value}))
-          this.forceUpdate();
-    }
-    handleChange = (index, val) => {
-        this.state.group.map((item)=>{
-            if(item.key === index){
-                item.value = val;
-            }
-            return item;
-        })
-        var onchangeVal = this.state.group.map((item)=>{return item.value});
-        this.props.onChange && this.props.onChange(onchangeVal)
-    }
-    handleOptionMount = (k, com) => {
-      this.groupItem.push({key: k, com: com});
-    }
-    handleOptionUnmout = (k) => {
-      this.groupItem = this.groupItem.filter((item) => {
-        return item.key !== k;
-      })
-    }
-    render(){
-        const { getFieldDecorator, getFieldValue } = this.props.form;
-        var group = this.state.group;
-        group = group.filter((item)=>{
-           return !!item;
-        })
-        return (
-          <div>
-            {
-             (group || []).map((item, index) => {
-                 return <div key={item.key}>
-                 <EvnOption onDidMount={this.handleOptionMount} onUnmount={this.handleOptionUnmout} protocols={this.props.protocols} data={item.value} key={item.key} index={item.key} onChange={this.handleChange} />
-                 <Icon onClick={()=>{this.handlePlus(item.key)}} style={{verticalAlign: 'middle', cursor:'pointer', fontSize: 20}} type="plus" />
-                 <Icon onClick={()=>{this.handleMinus(item.key)}} style={{verticalAlign: 'middle', cursor:'pointer', fontSize: 20}} type="minus" />
-                 </div>
-             })
-            }
-          </div>
-        )
-    }
-}
-
 
 const formItemLayout = {
   labelCol: {
@@ -302,7 +41,7 @@ export default class Index extends PureComponent {
       const form = this.props.form;
       form.validateFields((err, fieldsValue) => {
           if (err) return;
-          this.props.onSubmit && this.props.onSubmit(fieldsValue)
+          this.props.onOk && this.props.onOk(fieldsValue)
       });
    }
    handleCancel = () => {
@@ -345,30 +84,31 @@ export default class Index extends PureComponent {
         onCancel = {this.handleCancel}
         >
         <Form>
+            <h3 style={{color: '#dedede', borderBottom: '1px solid #dedede', paddingBottom: 8, marginBottom: 16}}>发票基础信息</h3>
             <Form.Item
               {...formItemLayout}
-              label="发票类型"
+              style={{marginBottom: 10}}
+              label="申请人姓名"
             >
-              {getFieldDecorator('injection', {
-                initialValue: data.injection || 'env',
-                rules: [{ required: true, message: '请输入配置组名' }],
+              {getFieldDecorator('user_name', {
+                initialValue: data.user_name || '',
+                rules: [{ required: true, message: '请输入申请人姓名' }],
               })(
-                <RadioGroup>
-                  <Radio  value="env">增值税专业发票</Radio>
-                  <Radio value="auto">增值税普通发票</Radio>
-                </RadioGroup>
+                <Input placeholder="请输入申请人姓名" />
               )}
             </Form.Item>
             <Form.Item
               {...formItemLayout}
-              label="发票主体"
+              style={{marginBottom: 10}}
+              label="发票类型"
             >
-              {getFieldDecorator('injection', {
-                initialValue: data.injection || 'env',
-                rules: [{ required: true, message: '请输入配置组名' }],
+              {getFieldDecorator('receipt_type', {
+                initialValue: data.receipt_type || 'special',
+                rules: [{ required: true, message: '发票类型' }],
               })(
                 <RadioGroup>
-                  <Radio value="auto">公司</Radio>
+                  <Radio  value="special">增值税专业发票</Radio>
+                  <Radio value="normal">增值税普通发票</Radio>
                 </RadioGroup>
               )}
             </Form.Item>
@@ -377,12 +117,12 @@ export default class Index extends PureComponent {
               {...formItemLayout}
               label="发票抬头"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
+              {getFieldDecorator('subject', {
+                initialValue: data.subject || '',
+                rules: [{ required: true, message: '请输入发票抬头' }],
                 validateFirst: true
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input placeholder="请输入发票抬头" />
               )}
             </Form.Item>
             <Form.Item
@@ -390,92 +130,127 @@ export default class Index extends PureComponent {
               {...formItemLayout}
               label="纳税人识别号"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
+              {getFieldDecorator('taxes_id', {
+                initialValue: data.taxes_id || '',
+                rules: [{ required: true, message: '请输入纳税人识别号' }],
                 validateFirst: true
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input placeholder="请输入纳税人识别号" />
               )}
             </Form.Item>
             <Form.Item
-              style={{marginRight: 8}}
+              style={{marginBottom: 10}}
               {...formItemLayout}
               label="开户行"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
+              {getFieldDecorator('bank', {
+                initialValue: data.bank || '',
+                rules: [{ required: true, message: '请输入开户行' }],
                 validateFirst: true
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input placeholder="请输入开户行" />
               )}
             </Form.Item>
             <Form.Item
-              style={{marginRight: 8}}
+              style={{marginBottom: 10}}
               {...formItemLayout}
               label="银行账号"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
-                validateFirst: true
+              {getFieldDecorator('bank_account', {
+                initialValue: data.bank_account || '',
+                rules: [{ required: true, message: '请输入银行账号' }]
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input placeholder="请输入银行账号" />
               )}
             </Form.Item>
             <Form.Item
-              style={{marginRight: 8}}
+              style={{marginBottom: 10}}
               {...formItemLayout}
-              label="电话"
+              label="开户人手机"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
+              {getFieldDecorator('phone', {
+                initialValue: data.phone || '',
+                rules: [{ required: true, message: '请输入手机' }, {pattern: /^[0-9]{11}$/, message: '格式不正确, 请输入11位数字'}],
                 validateFirst: true
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input type="number" maxLength="11" placeholder="请输入手机" />
               )}
             </Form.Item>
+
             <Form.Item
-              style={{marginRight: 8}}
+              style={{marginBottom: 10}}
               {...formItemLayout}
-              label="地址"
+              label="开户行地址"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
+              {getFieldDecorator('address', {
+                initialValue: data.address || '',
+                rules: [{ required: true, message: '请输入开户行地址' }],
                 validateFirst: true
               })(
-                <Input placeholder="请输入配置组名" />
+                <Input placeholder="请输入开户行地址" />
               )}
             </Form.Item>
             <Form.Item
-              style={{marginRight: 8}}
-              {...formItemLayout}
-              label="发票金额"
-            >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
-                validateFirst: true
-              })(
-                <Input placeholder="请输入配置组名" />
-              )}
-            </Form.Item>
-            <Form.Item
-              style={{marginRight: 8}}
+              style={{marginBottom: 10}}
               {...formItemLayout}
               label="发票内容"
             >
-              {getFieldDecorator('config_name', {
-                initialValue: data.config_name || '',
-                rules: [{ required: true, message: '请输入配置组名' }, {pattern: /^[A-Z][A-Z0-9_]*$/, message: '格式不正确, /^[A-Z][A-Z0-9_]*$/'}],
-                validateFirst: true
+              {getFieldDecorator('content', {
+                initialValue: data.content || '服务费',
+                rules: [{ required: true, message: '' }]
               })(
-                <Input placeholder="请输入配置组名" />
+                <Select placeholder="">
+                  <Select.Option value="服务费">服务费</Select.Option>
+                  <Select.Option value="技术服务费">技术服务费</Select.Option>
+                </Select>
               )}
             </Form.Item>
+            <Form.Item
+              style={{marginBottom: 10}}
+              {...formItemLayout}
+              label="发票金额"
+            >
+              <span>{data.receipt_money || 0}  元</span>
+            </Form.Item>
+            <h3 style={{color: '#dedede', borderBottom: '1px solid #dedede', paddingBottom: 8, marginBottom: 16}}>发票邮寄信息</h3>
+            <Form.Item
+              style={{marginBottom: 10}}
+              {...formItemLayout}
+              label="邮寄地址"
+            >
+              {getFieldDecorator('post_address', {
+                initialValue: data.post_address || '',
+                rules: [{ required: true, message: '请输入邮寄地址' }]
+              })(
+                <Input placeholder="请输入邮寄地址" />
+              )}
+            </Form.Item>
+            <Form.Item
+              style={{marginBottom: 10}}
+              {...formItemLayout}
+              label="收件人"
+            >
+              {getFieldDecorator('post_contact', {
+                initialValue: data.post_contact || '',
+                rules: [{ required: true, message: '请输入收件人' }]
+              })(
+                <Input placeholder="请输入收件人" />
+              )}
+            </Form.Item>
+            <Form.Item
+              style={{marginBottom: 10}}
+              {...formItemLayout}
+              label="联系人手机"
+            >
+              {getFieldDecorator('post_contact_phone', {
+                initialValue: data.post_contact_phone || '',
+                rules: [{ required: true, message: '请输入手机' }, {pattern: /^[0-9]{11}$/, message: '格式不正确, 请输入11位数字'}],
+                validateFirst: true
+              })(
+                <Input type="number" maxLength="11" placeholder="请输入手机" />
+              )}
+            </Form.Item>
+           
         </Form>
         </Modal>
       )
