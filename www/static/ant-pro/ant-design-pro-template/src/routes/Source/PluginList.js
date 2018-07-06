@@ -226,12 +226,12 @@ export default class PluginList extends PureComponent {
                         <List.Item
                             actions={this.state.showCloudPlugin ? null : [item.is_complete
                                 ? <Fragment>
-                                 <a
+                                 {item.source === 'market' && <a
                                     style={{marginRight: 8}}
                                         href="javascript:;"
                                         onClick={() => {
                                         this.handleLoadPluginDetail(item)
-                                    }}>云端更新</a>
+                                    }}>云端更新</a>}
                                     <a
                                         href="javascript:;"
                                         onClick={() => {
