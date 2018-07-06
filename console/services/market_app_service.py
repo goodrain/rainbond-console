@@ -345,7 +345,8 @@ class MarketAppService(object):
         tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
         # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team__in=tenant_names).exclude(scope="team")
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(
+            share_team__in=tenant_names).exclude(scope="team")
 
     def get_public_market_shared_apps(self, enterprise_id):
         return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(scope="goodrain")
@@ -357,7 +358,8 @@ class MarketAppService(object):
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
-        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(public_apps | enterprise_apps | team_apps)
+        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(
+            public_apps | enterprise_apps | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
@@ -399,10 +401,12 @@ class MarketAppService(object):
                 "pic": app['pic'],
                 "describe": app['info'],
                 "template_version": app.get("template_version", ""),
-                "is_complete":is_complete
+                "is_complete": is_complete,
+                "is_official": app["is_official"]
             }
             result_list.append(rbapp)
         return total, result_list
+
 
 class MarketTemplateTranslateService(object):
     # 需要特殊处理的service_key
@@ -436,6 +440,7 @@ class MarketTemplateTranslateService(object):
         new_templet["template_version"] = "v2"
         new_templet["describe"] = old_templete["info"]
         new_templet["pic"] = old_templete["pic"]
+        new_templet["is_official"] = old_templete["is_official"]
         # process apps
         apps = old_templete["apps"]
         new_apps = []
@@ -577,7 +582,7 @@ class MarketTemplateTranslateService(object):
                     "volume_type": volume["volume_type"],
                     "volume_name": volume["volume_name"]
                 } for volume in volumes
-                ]
+            ]
         else:
             volume_mount_path = app.get("volume_mount_path", None)
             if volume_mount_path:
@@ -694,7 +699,8 @@ class AppMarketSynchronizeService(object):
                 pic=app_templates["pic"],
                 app_template="",
                 enterprise_id=enterprise_id,
-                template_version=app_templates.get("template_version", "")
+                template_version=app_templates.get("template_version", ""),
+                is_official=app_templates["is_official"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
@@ -704,6 +710,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.app_template = json.dumps(v2_template)
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app.is_official = v2_template["is_official"]
             rainbond_app.save()
         else:
             user_name = v2_template.get("publish_user", None)
@@ -721,7 +728,9 @@ class AppMarketSynchronizeService(object):
             rainbond_app.app_template = v2_template["template_content"]
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.save()
+
 
 market_app_service = MarketAppService()
 template_transform_service = MarketTemplateTranslateService()

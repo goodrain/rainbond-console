@@ -20,6 +20,8 @@ import json
 from console.services.app_import_and_export_service import export_service
 from console.services.enterprise_services import enterprise_services
 from console.services.user_services import user_services
+from console.models.main import RainbondCenterApp
+from django.db.models import F
 
 logger = logging.getLogger('default')
 
@@ -57,8 +59,8 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name) \
-                .order_by('-update_time')
+            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).order_by(
+                "-is_official", "-install_number")
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
@@ -133,6 +135,7 @@ class CenterAppView(RegionTenantHeaderView):
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
+            RainbondCenterApp.objects.filter(ID=app_id).update(install_number=F("install_number")+1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
@@ -260,7 +263,8 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             group_data = request.data
 
             data = group_data[0]
-            market_sycn_service.down_market_group_app_detail(self.user, self.tenant, data["group_key"], data["version"], data.get("template_version", "v2"))
+            market_sycn_service.down_market_group_app_detail(self.user, self.tenant, data["group_key"], data["version"],
+                                                             data.get("template_version", "v2"))
             result = general_message(200, "success", "应用同步成功")
         except Exception as e:
             logger.exception(e)
