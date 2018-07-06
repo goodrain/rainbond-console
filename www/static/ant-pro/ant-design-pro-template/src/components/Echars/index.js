@@ -27,7 +27,7 @@ class Echarts extends Component {
 		var className = this.props.className || '';
 		var style = this.props.style || {};
 		return (
-			<div ref={this.saveRef} className={'echars-wrap '+className} style={{display: 'inline-bock', ...style}}>
+			<div ref={this.saveRef} className={'echars-wrap '+className} style={{display: 'inline-bock', marginLeft: 'auto',marginRight:'auto', ...style}}>
 			</div>
 		)
 	}

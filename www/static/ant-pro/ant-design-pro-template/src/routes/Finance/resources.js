@@ -36,12 +36,13 @@ export default class BasicList extends PureComponent {
   }
   
   getRegionResource(){
+    const regionName = this.props.match.params.regionName;
     this.props.dispatch({
       type: 'global/getRegionSource',
       payload:{
          team_name: globalUtil.getCurrTeamName(),
          enterprise_id: this.props.user.enterprise_id,
-         region: globalUtil.getCurrRegionName()
+         region: regionName
       },
       callback: (data) => {this.setState({dataCenter:data.bean,disk:data.bean.disk,memory:data.bean.memory})
       }
@@ -96,7 +97,12 @@ export default class BasicList extends PureComponent {
       }
     })
   }
-
+  handleMemoryChange = (value) => {
+     console.log(value)
+  }
+  handleDiskChange = (value) => {
+    console.log(value)
+ }
   render() {
     const dataCenter = this.state.dataCenter;
     const usedDisk = this.state.disk.used || 0;
@@ -107,7 +113,7 @@ export default class BasicList extends PureComponent {
     const timeMemory = this.state.memory.expire_date || '未包月或已到期'
 
     const pageHeaderContent = (
-        <Button style={{float:'right'}}><a target="_blank" href="https://www.goodrain.com/spa/#/personalCenter/my/recharge">发票查询</a></Button>
+        null
     );
     return (
       <PageHeaderLayout
@@ -121,7 +127,6 @@ export default class BasicList extends PureComponent {
           title: "资源规划",
           href: ``
         }]}
-        title={"资源规划"}
         content={pageHeaderContent}
       >
       
@@ -133,26 +138,23 @@ export default class BasicList extends PureComponent {
               <div>
                   <strong>配置计算资源</strong>
                   <Row style={{padding:'5px 0'}}>
-                      <Col span={2} style={{fontSize:'16px'}}>
+                      <Col span={2} style={{fontSize:'16px', paddingTop: 8}}>
                         内存
                       </Col>
-                      <Col span={22}>
-                          包月用量:{limitMemory}(M)／实际用量:{usedMemory}(M)／到期时间:{timeMemory}
-                      </Col>
-                      <Col span={2}></Col>
-                      <Col span={22}>
-                          <Slider  />
-                      </Col>
+
+                      <Col span={16}> 
+                        <Slider onAfterChange={this.handleMemoryChange} step={1} min={0} max={1024 * 100} marks={{
+                      }}  /></Col>
+                      <Col span={4} style={{fontSize:'16px', paddingTop: 8}}>MB</Col>
                   </Row>
                   <Row style={{padding:'5px 0'}}>
-                      <Col span={2} style={{fontSize:'16px'}}>
+                      <Col span={2} style={{fontSize:'16px', paddingTop: 8}}>
                         磁盘
                       </Col>
-                      <Col span={22}>
-                          包月用量:{limitDisk}(G)／实际用量:{usedDisk}(G)／到期时间:{timeDisk}
-                      </Col>
-                      <Col span={2}></Col>
-                      <Col span={22}><Slider  /></Col>
+                      <Col span={16}> 
+                        <Slider  onAfterChange={this.handleDiskChange} step={1} min={0} max={1024 * 100} marks={{
+                      }}  /></Col>
+                      <Col span={4} style={{fontSize:'16px', paddingTop: 8}}>GB</Col>
                   </Row>
                   <Row style={{padding:'5px 0'}}>
                       <Col span={2} style={{fontSize:'16px'}}>

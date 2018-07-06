@@ -115,16 +115,13 @@ export default class BasicList extends PureComponent {
               </Col>
               <Col sm={8} xs={24}>
                     <Info title="上一小时按需消费" value={`${companyInfo.last_hour_cost || 0}元`} bordered />
-                    <p style={{textAlign:'center'}}>
-                      <span style={{paddingRight:'5px'}}>{companyInfo.last_hour_used_mem || 0}M内存</span>／
-                      <span  style={{paddingLeft:'5px'}}>{companyInfo.last_hour_used_disk || 0}G磁盘</span>
-                    </p>
+
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="xx月资源" value={`${companyInfo.cost || 0}元/${companyInfo.recharge || 0} 元`} />
+                    <Info title="本月账单" value={`花费${companyInfo.cost || 0}元 / 充值${companyInfo.recharge || 0} 元`} />
                     <p style={{textAlign:'center'}}>
-                      <a href=''style={{paddingRight:'10px'}}>消费明细</a>
-                      <a href=''>储值明细</a>
+                      <a href=''style={{paddingRight:'10px'}}>花费明细</a>
+                      <a href=''>充值明细</a>
                     </p>
               </Col>
             </Row>
