@@ -130,15 +130,7 @@ export default class BasicList extends PureComponent {
             </Row>
           </Card>
 
-          <Card
-            className={styles.listCard}
-            bordered={false}
-            title="数据中心资源展示"
-            style={{ marginTop: 24 }}
-            bodyStyle={{ padding: '0 32px 40px 32px' }}
-          >
-            <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
-          </Card>
+          <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
         </div>
       </PageHeaderLayout>
     );
