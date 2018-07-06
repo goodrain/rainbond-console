@@ -73,6 +73,7 @@ class MarketPluginService(object):
             'desc': p.desc,
             'id': p.ID,
             'is_complete': p.is_complete,
+            'source': p.source,
             'update_time': p.update_time
         } for p in paged_plugins]
 
