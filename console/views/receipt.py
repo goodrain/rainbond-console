@@ -14,24 +14,25 @@ class EnterReceiptAPIView(JWTAuthApiView):
     def get(self, request):
         team_name = request.GET.get('team_name', None)
         if not team_name:
-            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'))
+            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'),status=400)
 
         limit = int(request.GET.get('limit', 10) or 10)
         page = int(request.GET.get('page', 1) or 1)
         receipt_status = request.GET.get('receipt_status', 'Not') or 'Not'
         team = team_services.get_tenant(tenant_name=team_name)
         try:
-            data = market_api.get_enterprise_receipts(team.tenant_id, team.enterprise_id, receipt_status, page, limit)
-            result = general_message(200, 'success', '查询成功', bean=data)
+            body = market_api.get_enterprise_receipts(team.tenant_id, team.enterprise_id, receipt_status, page, limit)
+            data = body["data"]
+            result = general_message(200, 'success', '查询成功', list=data['list'])
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'receipt info query failed', '企业发票信息查询失败')
-        return JsonResponse(data=result)
+        return JsonResponse(data=result,status=result["code"])
 
     def post(self, request):
         team_name = request.data.get('team_name', None)
         if not team_name:
-            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'))
+            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'),status=400)
 
         team = team_services.get_tenant(tenant_name=team_name)
         data = {
@@ -55,14 +56,14 @@ class EnterReceiptAPIView(JWTAuthApiView):
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '创建新发票接口调用失败')
-        return JsonResponse(data=result)
+        return JsonResponse(data=result, status=result["code"])
 
 
 class EnterReceiptDetailAPIView(JWTAuthApiView):
     def get(self, request, receipt_id):
         team_name = request.GET.get('team_name', None)
         if not team_name:
-            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'))
+            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'),status=400)
 
         team = team_services.get_tenant(tenant_name=team_name)
         try:
@@ -71,7 +72,7 @@ class EnterReceiptDetailAPIView(JWTAuthApiView):
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '获取发票详情接口调用失败')
-        return JsonResponse(data=result)
+        return JsonResponse(data=result,status=result["code"])
 
 
 class EnterReceiptOrdersAIPView(JWTAuthApiView):
@@ -79,25 +80,26 @@ class EnterReceiptOrdersAIPView(JWTAuthApiView):
 
         team_name = request.GET.get('team_name', None)
         if not team_name:
-            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'))
+            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'),status=400)
 
         start = request.GET.get('start')
         end = request.GET.get('end')
         team = team_services.get_tenant(tenant_name=team_name)
         try:
-            data = market_api.get_enterprise_receipt_orders(team.tenant_id, team.enterprise_id, start, end)
-            result = general_message(200, 'success', '查询成功', bean=data)
+            body = market_api.get_enterprise_receipt_orders(team.tenant_id, team.enterprise_id, start, end)
+            data = body["data"]
+            result = general_message(200, 'success', '查询成功', list=data['list'])
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '获取未开发票订单接口调用失败')
-        return JsonResponse(data=result)
+        return JsonResponse(data=result,status=result["code"])
 
 
 class EnterReceiptConfirmAPIView(JWTAuthApiView):
     def post(self, request):
         team_name = request.data.get('team_name', None)
         if not team_name:
-            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'))
+            return JsonResponse(data=general_message(400, 'team name is null', '参数错误'), status=400)
 
         orders = request.data.get('orders')
         data = {
@@ -110,4 +112,4 @@ class EnterReceiptConfirmAPIView(JWTAuthApiView):
         except Exception as e:
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '获取企业发票信息接口调用失败')
-        return JsonResponse(data=result)
+        return JsonResponse(data=result, status=result["code"])

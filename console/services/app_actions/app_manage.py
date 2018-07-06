@@ -308,12 +308,14 @@ class AppManageService(AppManageBase):
             return code, msg, event
         if service.create_status == "complete":
             if deploy_version == service.deploy_version:
-                return 409, u"当前版本与所需回滚版本一致，无需回滚", event
+                event.delete()
+                return 409, u"当前版本与所需回滚版本一致，无需回滚", None
 
             res, data = region_api.get_service_build_version_by_id(service.service_region, tenant.tenant_name,
                                                                    service.service_alias, deploy_version)
             is_version_exist = data['bean']['status']
             if not is_version_exist:
+                event.delete()
                 return 404, u"当前版本可能已被系统清理或删除", event
 
             body = {}

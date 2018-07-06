@@ -277,8 +277,6 @@ class RegionResourceDetailView(JWTAuthApiView):
             region = request.GET.get("region", None)
             if not team_name:
                 return Response(general_message(400, "team name is null", "参数错误"), status=400)
-            if not region:
-                return Response(general_message(400, "region name is null", "请指明数据中心"), status=400)
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             if not team:
