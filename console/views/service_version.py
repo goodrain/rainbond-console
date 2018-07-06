@@ -67,8 +67,10 @@ class AppVersionsView(AppBaseView):
                     "status": info["FinalStatus"],
                     "build_user": version_user_map.get(info["BuildVersion"], "未知")
                 })
+            res_versions = sorted(version_list,
+                                  key=lambda version: version["build_version"], reverse=True)
 
-            result = general_message(200, "success", "查询成功", list=version_list)
+            result = general_message(200, "success", "查询成功", list=res_versions)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
