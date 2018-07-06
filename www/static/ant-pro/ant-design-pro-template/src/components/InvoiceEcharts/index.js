@@ -41,7 +41,7 @@ export default class Index extends PureComponent {
 			payload:{
 				team_name: globalUtil.getCurrTeamName(),
 				enterprise_id: this.props.enterprise_id,
-				region: globalUtil.getCurrRegionName()
+				region: ''
 			},
 			callback: (data) => {
 				this.setState({datalist:data.list},()=>{

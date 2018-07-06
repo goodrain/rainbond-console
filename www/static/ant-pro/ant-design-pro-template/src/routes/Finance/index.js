@@ -31,7 +31,7 @@ export default class BasicList extends PureComponent {
   }
   componentDidMount() {
       this.getCompanyInfo();
-      this.getRegionResource();
+      //this.getRegionResource();
       // this.getRegionOneDayMoney();
   }
   // 获取某个数据中心的资源详情  // 新-- 数据中心列表
