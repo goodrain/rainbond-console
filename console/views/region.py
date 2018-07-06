@@ -284,7 +284,12 @@ class RegionResourceDetailView(JWTAuthApiView):
             res, data = market_api.get_enterprise_regions_resource(tenant_id=team.tenant_id,
                                                                    region=region,
                                                                    enterprise_id=team.enterprise_id)
-            result = general_message(200, "success", "查询成功", bean=data)
+            if isinstance(data, dict):
+                result = general_message(200, "success", "查询成功", bean=data)
+            elif isinstance(data, list):
+                result = general_message(200, "success", "查询成功", list=data)
+            else:
+                result = general_message(200, "success", "查询成功", bean=data)
 
         except Exception as e:
             logger.exception(e)
