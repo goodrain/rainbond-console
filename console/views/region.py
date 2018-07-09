@@ -344,7 +344,8 @@ class RegionResPurchage(JWTAuthApiView):
             ret, msg, status = market_api.buy_region_res(
                 region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time
             )
-
+            if status == 10408:
+                return Response(status=412, data=general_message(status, msg, msg, ret))
             return Response(status=status, data=general_message(status, msg, msg, ret))
         except Exception as e:
             logger.exception(e)

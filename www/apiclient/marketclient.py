@@ -106,7 +106,7 @@ class MarketOpenAPI(HttpClient):
             msg = e.body.get('msg_show') if e.body else e.message
             return None, msg, e.status
         except self.CallApiError as ex:
-            logger.exception(ex)
+            logger.error("invoke market api error !")
             if ex.status != 412:
                 return None, "系统异常", ex.status
             else:
