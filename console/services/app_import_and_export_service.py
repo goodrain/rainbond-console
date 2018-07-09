@@ -225,7 +225,10 @@ class AppExportService(object):
 
         req = urllib2.Request(download_url)
         if token:
-            req.add_header("Authorization", "Token {}".format(token))
+            if token.startswith("Token"):
+                req.add_header("Authorization", "{}".format(token))
+            else:
+                req.add_header("Authorization", "Token {}".format(token))
 
         return req, file_name
 
