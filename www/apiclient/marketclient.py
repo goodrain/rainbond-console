@@ -105,6 +105,12 @@ class MarketOpenAPI(HttpClient):
             logger.exception(e)
             msg = e.body.get('msg_show') if e.body else e.message
             return None, msg, e.status
+        except self.CallApiError as ex:
+            logger.exception(ex)
+            if ex.status != 412:
+                return None, "系统异常", ex.status
+            else:
+                return None, "企业余额不足", 10408
 
     def get_public_regions_list(self, tenant_id, enterprise_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
