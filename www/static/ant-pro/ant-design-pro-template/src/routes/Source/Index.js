@@ -26,6 +26,8 @@ import globalUtil from '../../utils/global';
 import userUtil from '../../utils/user';
 import cookie from '../../utils/cookie';
 import {routerRedux} from 'dva/router';
+
+
 const FormItem = Form.Item;
 const {Step} = Steps;
 const RadioButton = Radio.Button;
@@ -333,7 +335,7 @@ class AppList extends PureComponent {
         this.state = {
             isChecked: true,
             loading: false,
-            currStep: 0
+            currStep: 0,
         }
     }
     componentDidMount() {}
@@ -453,7 +455,6 @@ class AppList extends PureComponent {
         return (
             <PageHeaderLayout content={pageHeaderContent}>
                 {this.renderContent()}
-                
             </PageHeaderLayout>
         );
     }

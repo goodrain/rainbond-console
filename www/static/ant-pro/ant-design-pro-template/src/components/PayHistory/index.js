@@ -29,6 +29,7 @@ export default class Index extends PureComponent {
        this.props.dispatch({
            type:'global/getPayHistory',
            payload:{
+               team_name: globalUtil.getCurrTeamName(),
                page: this.state.page,
                page_size: this.state.page_size,
                end: this.state.end,
@@ -46,10 +47,11 @@ export default class Index extends PureComponent {
        if(value === 'all'){
            this.state.start = this.state.end = '';
        }else{
-           const d = moment().subtract(value, 'days').format('YYY-MM-DD');
+           this.state.end = moment().subtract(value, 'days').format('YYY-MM-DD');
+           this.state.start = moment().format('YYYY-MM-DD');
+           this.setState({start})
        }
        this.loadPayHistory();
-       
    }
    render(){
 
@@ -59,9 +61,9 @@ export default class Index extends PureComponent {
         width={1000}
         visible={true}
         onCancel = {this.handleCancel}
-        footer=[{
+        footer={[
             <Button onClick={this.handleCancel}>关闭</Button>
-        }]
+        ]}
         >
         <p>
             <Select onChange={this.handleDateChange}>

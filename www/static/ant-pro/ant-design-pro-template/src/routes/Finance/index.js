@@ -7,6 +7,7 @@ import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
 import InvoiceEcharts from '../../components/InvoiceEcharts';
+import PayHistory from '../../components/PayHistory';
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
@@ -26,8 +27,15 @@ export default class BasicList extends PureComponent {
           disk:{},
           memory:{},
           list:[],
-          datalist:[]
+          datalist:[],
+          showPayHistory: false
       }
+  }
+  showPayHistory = () => {
+    this.setState({showPayHistory: true})
+  }
+  hidePayHistory = () => {
+    this.setState({showPayHistory: false})
   }
   componentDidMount() {
       this.getCompanyInfo();
@@ -119,7 +127,7 @@ export default class BasicList extends PureComponent {
                     <Info title="本月账单" value={`花费${companyInfo.cost || 0}元 / 充值${companyInfo.recharge || 0} 元`} />
                     <p style={{textAlign:'center'}}>
                       <a href=''style={{paddingRight:'10px'}}>花费明细</a>
-                      <a href=''>充值明细</a>
+                      <a href='javascript:;' onClick={this.showPayHistory}>充值明细</a>
                     </p>
               </Col>
             </Row>
@@ -127,6 +135,7 @@ export default class BasicList extends PureComponent {
 
           <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
         </div>
+        {this.state.showPayHistory && <PayHistory onCancel={this.hidePayHistory} />}
       </PageHeaderLayout>
     );
   }
