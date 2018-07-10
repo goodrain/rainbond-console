@@ -112,6 +112,7 @@ export default class Index extends PureComponent {
                         message: '认证成功'
                     })
                     this.hidden();
+                    this.props.onOk && this.props.onOk();
                 }
             })
     }

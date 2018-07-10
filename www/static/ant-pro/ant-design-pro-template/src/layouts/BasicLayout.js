@@ -22,6 +22,7 @@ import OpenRegion from '../components/OpenRegion';
 import CreateTeam from '../components/CreateTeam';
 import Loading from '../components/Loading';
 import ChangePassword from '../components/ChangePassword';
+import AuthCompany from '../components/AuthCompany';
 
 import CheckUserInfo from './CheckUserInfo'
 import InitTeamAndRegionData from './InitTeamAndRegionData'
@@ -408,10 +409,12 @@ class BasicLayout extends React.PureComponent {
                 <Loading/>
                 {rainbondInfo.is_public && <Meiqia />}
                 {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
+                {this.props.showAuthCompany && <AuthCompany onOk={()=>{location.reload()}} />}
             </Fragment>
         );
     }
 }
+
 
 export default connect(({user, global, loading}) => {
 
@@ -425,6 +428,8 @@ export default connect(({user, global, loading}) => {
         currTeam: globalUtil.getCurrTeamName(),
         currRegion: globalUtil.getCurrRegionName(),
         rainbondInfo: global.rainbondInfo,
-        payTip: global.payTip
+        payTip: global.payTip,
+        showAuthCompany: global.showAuthCompany
+        
     })
 })(BasicLayout);
