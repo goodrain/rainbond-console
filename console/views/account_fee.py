@@ -8,6 +8,7 @@ from console.utils.timeutil import current_time_to_str
 from console.views.base import JWTAuthApiView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import general_message, error_message
+from console.services.enterprise_services import enterprise_services
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -97,6 +98,56 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class EnterpriseRechargeRecordsView(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        查询企业的充值记录
+        ---
+        parameters:
+            - name: start
+              description: 开始时间
+              required: true
+              type: string
+              paramType: query
+            - name: end
+              description: 结束时间
+              required: true
+              type: string
+              paramType: query
+            - name: page
+              description: 页数(默认第一页)
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页展示个数(默认10个)
+              required: false
+              type: string
+              paramType: query
+        """
+        try:
+            start_time = request.GET.get("start")
+            end_time = request.GET.get("end")
+            page = request.GET.get("page", 1)
+            page_size = request.GET.get("page_size", 10)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not start_time or not end_time:
+                return Response(general_message(400, "param error", "请指明查询的开始时间和结束时间"), status=400)
+            if not team:
+                return Response(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status=404)
+
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(team.enterprise_id)
+            res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
+                                                                   end_time,
+                                                                   page, page_size)
+            result = general_message(200, "get recharge record success", "查询成功", list=data)
+
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

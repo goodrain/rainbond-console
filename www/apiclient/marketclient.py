@@ -164,3 +164,13 @@ class MarketOpenAPI(HttpClient):
         }
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
+
+    def get_enterprise_recharge_records(self, tenant_id, enterprise_id, start_time, end_time, page, page_size):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{eid}/orders?type={type}&start={start_time}&end={end_time}&page={page}&limit={page_size}".format(
+            eid=enterprise_id, type="recharge", start_time=start_time, end_time=end_time, page=page,
+            page_size=page_size)
+        logger.debug("--- recharge request url {0}".format(url))
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        data = self._unpack(body)
+        return res, data
