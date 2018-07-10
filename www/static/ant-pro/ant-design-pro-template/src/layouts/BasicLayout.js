@@ -26,6 +26,7 @@ import ChangePassword from '../components/ChangePassword';
 import CheckUserInfo from './CheckUserInfo'
 import InitTeamAndRegionData from './InitTeamAndRegionData'
 import PayTip from './PayTip'
+import PayMoneyTip from './PayMoneyTip';
 import Meiqia from './Meiqia'
 
 const {Content} = Layout;
@@ -403,6 +404,7 @@ class BasicLayout extends React.PureComponent {
                 <Loading/>
                 {rainbondInfo.is_public && <Meiqia />}
                 {this.props.payTip && <PayTip dispatch={this.props.dispatch} />}
+                {this.props.noMoneyTip && <PayMoneyTip dispatch={this.props.dispatch} />}
             </Fragment>
         );
     }
@@ -420,6 +422,7 @@ export default connect(({user, global, loading}) => {
         currTeam: globalUtil.getCurrTeamName(),
         currRegion: globalUtil.getCurrRegionName(),
         rainbondInfo: global.rainbondInfo,
-        payTip: global.payTip
+        payTip: global.payTip,
+        noMoneyTip: global.noMoneyTip
     })
 })(BasicLayout);

@@ -37,7 +37,8 @@ export default {
     rainbondInfo: null,
     apploadingnum: 0,
     //显示充值提示
-    payTip: false
+    payTip: false,
+    noMoneyTip: false
   },
   effects : {
     *InitTeam({
@@ -245,6 +246,18 @@ export default {
       return {
         ...state,
         payTip: true
+      };
+    },
+    showNoMoneyTip(state){
+      return {
+        ...state,
+        noMoneyTip: true
+      };
+    },
+    hideNoMoneyTip(state){
+      return {
+        ...state,
+        noMoneyTip: false
       };
     },
     hidePayTip(state){

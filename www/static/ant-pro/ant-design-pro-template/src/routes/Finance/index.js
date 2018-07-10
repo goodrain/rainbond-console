@@ -31,8 +31,6 @@ export default class BasicList extends PureComponent {
   }
   componentDidMount() {
       this.getCompanyInfo();
-      //this.getRegionResource();
-      // this.getRegionOneDayMoney();
   }
   // 获取某个数据中心的资源详情  // 新-- 数据中心列表
   getRegionResource(){
@@ -109,7 +107,7 @@ export default class BasicList extends PureComponent {
               <Col sm={8} xs={24}>
                     <Info title="企业账户"  value={`${companyInfo.balance || 0}元`} bordered />
                     <p style={{textAlign:'center'}}>
-                      <a href='' style={{paddingRight:'10px'}}>储值</a>
+                      <a target="_blank" href='https://www.goodrain.com/spa/#/personalCenter/my/recharge' style={{paddingRight:'10px'}}>充值</a>
                       <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/invoiceManage`}>发票管理</Link>
                     </p>
               </Col>
