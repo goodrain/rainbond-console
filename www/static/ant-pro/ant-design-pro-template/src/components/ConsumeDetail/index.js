@@ -34,7 +34,61 @@ export default class Index extends PureComponent {
      this.props.onCancel && this.props.onCancel();
    }
    render(){
-
+    const columns = [{
+        title: '时间',
+        dataIndex: 'time',
+        key: 'time',
+      },{
+        title: '内存费用',
+        dataIndex: 'memory_fee',
+        key: 'memory_fee',
+        render: (v,data) => {
+          return ( 
+                  data.memory_limit  === '0'?
+                  <Tooltip placement="topLeft" title={'已使用内存' +  data.memory_usage + 'GB，已超出内存' + data.memory_over + '(GB)'}>
+                    {v + '元'}
+                  </Tooltip>
+                  :
+                  <Tooltip placement="topLeft" title={'包月内存'+ data.memory_limit  +'(GB)，已使用内存' + data.memory_usage +'GB，已超出内存' + data.memory_over + '(GB)'}>
+                  {v + '元'}
+                  </Tooltip>
+              )
+        }
+      }, {
+        title: '磁盘费用',
+        dataIndex: 'disk_fee',
+        key: 'disk_fee',
+        render: (v,data) => {
+          return ( 
+              data.disk_limit  === '0'?
+              <Tooltip placement="topLeft" title={'已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
+              { v + '元'}
+              </Tooltip>
+              :
+              <Tooltip placement="topLeft" title={'包月磁盘'+ data.disk_limit +'(GB)，已使用磁盘' + data.disk_usage +'GB，已超出磁盘' + data.disk_over + '(GB)'}>
+              {v + '元'}
+              </Tooltip>
+          )
+        }
+      }, {
+        title: '流量费用',
+        dataIndex: 'net_fee',
+        key: 'net_fee',
+        render: (v,data) => {
+          return ( 
+              <Tooltip placement="topLeft" title={'已使用流量' + data.net_usage +'(GB)'}>
+                { v + '元'}
+              </Tooltip>
+            )
+        }
+      }, {
+        title: '总费用',
+        dataIndex: 'total_fee',
+        key: 'total_fee',
+        render: (v,data) => {
+          return v + '元'
+        }
+      }];
       return (
         <Modal
         title="花费明细"
@@ -47,14 +101,8 @@ export default class Index extends PureComponent {
         >
         <Table
           pagination = {false}
-          dataSource={this.state.apps || []}
-          columns={[{
-            title: '应用名',
-            dataIndex: 'service_cname'
-          },{
-            title: '所属组',
-            dataIndex: 'group_name'
-          }]}
+          dataSource={this.state.list || []}
+          columns={columns}
          />
          </Modal>
       )
