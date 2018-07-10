@@ -9,6 +9,7 @@ from console.views.base import JWTAuthApiView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import general_message, error_message
 from console.services.enterprise_services import enterprise_services
+from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -137,8 +138,6 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
             team = team_services.get_tenant_by_tenant_name(team_name)
-            if not start_time or not end_time:
-                return Response(general_message(400, "param error", "请指明查询的开始时间和结束时间"), status=400)
             if not team:
                 return Response(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status=404)
 
@@ -146,8 +145,63 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
             res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
                                                                    end_time,
                                                                    page, page_size)
-            result = general_message(200, "get recharge record success", "查询成功", list=data)
 
+            result = general_message(200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class EnterpriseAllRegionFeeView(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        企业所有信息
+        ---
+        parameters:
+            - name: date
+              description: 日期(格式：2018-01-30)
+              required: true
+              type: string
+              paramType: query
+        """
+        try:
+            default_time = current_time_to_str()
+            date = request.GET.get("date", default_time)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
+
+            regions = region_repo.get_all_regions()
+            total_dict = {}
+            for region in regions:
+                try:
+                    res, dict_body = market_api.get_enterprise_team_fee(region=region,
+                                                                        enterprise_id=team.enterprise_id,
+                                                                        team_id=None, date=date)
+
+                    rt_list = dict_body["data"]["list"]
+                    for rt in rt_list:
+                        bean = total_dict.get(rt['time'])
+                        if bean:
+                            bean['disk_fee'] += rt["disk_fee"]
+                            bean['disk_limit'] += rt["disk_limit"]
+                            bean['disk_over'] += rt["disk_over"]
+                            bean['disk_usage'] += rt["disk_usage"]
+                            bean['memory_fee'] += rt["memory_fee"]
+                            bean['memory_limit'] += rt["memory_limit"]
+                            bean['memory_over'] += rt["memory_over"]
+                            bean['memory_usage'] += rt["memory_usage"]
+                            bean['net_fee'] += rt["net_fee"]
+                            bean['net_usage'] += rt["net_usage"]
+                        else:
+                            total_dict[rt['time']] = rt
+
+                except Exception as e:
+                    logger.exception(e)
+                    continue
+            result = general_message(200, "success", "查询成功", list=list(total_dict.values()))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

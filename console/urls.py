@@ -2,7 +2,7 @@
 from django.conf.urls import patterns, url
 
 from console.captcha.captcha_code import CaptchaView
-from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseRechargeRecordsView
+from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseRechargeRecordsView, EnterpriseAllRegionFeeView
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView
@@ -173,6 +173,7 @@ urlpatterns = patterns(
     url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
     url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
     url(r'^enterprise/team/(?P<team_name>[\w\-]+)/recharge-records$', EnterpriseRechargeRecordsView.as_view()),
+url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
     # 数据中心相关
     url(r'^enterprise/regions$', PublicRegionListView.as_view()),
     url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
