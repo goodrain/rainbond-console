@@ -16,8 +16,8 @@ import ScrollerX from '../../components/ScrollerX';
 const FormItem = Form.Item;
 const Option = Select.Option;
 
-//查看连接信息
 
+//查看连接信息
 @connect(({ user, appControl }) => ({
   relationOuterEnvs: appControl.relationOuterEnvs,
 }))
