@@ -130,7 +130,7 @@ class Backup extends PureComponent {
 			  span: 19,
 			},
 		};
-		const cloudBackupTip = is_configed ? '备份到云端存储上，可实现跨数据中心迁移' : '请在Rainbond管理后台开启器此功能'
+		const cloudBackupTip = is_configed ? '备份到云端存储上，可实现跨数据中心迁移' : '请在Rainbond管理后台开启此功能'
 		return	<Modal
 			title={"新增备份"}
 			visible={true}

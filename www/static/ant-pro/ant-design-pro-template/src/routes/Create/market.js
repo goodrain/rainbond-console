@@ -43,6 +43,7 @@ import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
 import config from '../../config/config';
 import cookie from '../../utils/cookie';
+import GoodrainRZ from '../../components/GoodrainRenzheng';
 
 
 const ButtonGroup = Button.Group;
@@ -185,7 +186,9 @@ export default class Main extends PureComponent {
       </div>
     }
 
-     return <Card
+     return <Fragment>
+        {item.is_official && <GoodrainRZ style={{marginLeft: 6, marginTop: 6}} />}
+        <Card
      className={PluginStyles.card}
      actions={
       [<span onClick={() => {
@@ -219,6 +222,7 @@ export default class Main extends PureComponent {
        )}
        />
    </Card>
+   </Fragment>
   }
   render() {
 
