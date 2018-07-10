@@ -7,7 +7,7 @@ import config from '../config/config';
   获取企业充值记录
  */
 export async function getPayHistory(body={team_name, start, end, page, page_size}){
-  return request(config.baseUrl + `/console/enterprise/teams/${body.team_name}/recharge-records`, {
+  return request(config.baseUrl + `/console/enterprise/team/${body.team_name}/recharge-records`, {
     method: 'get',
     params: {
       start: body.start,
