@@ -177,9 +177,9 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             total_dict = {}
             for region in regions:
                 try:
-                    res, dict_body = market_api.get_enterprise_team_fee(region=region,
+                    res, dict_body = market_api.get_enterprise_region_fee(region=region.region_name,
                                                                         enterprise_id=team.enterprise_id,
-                                                                        team_id=None, date=date)
+                                                                        team_id=team.tenant_id, date=date)
 
                     rt_list = dict_body["data"]["list"]
                     for rt in rt_list:
