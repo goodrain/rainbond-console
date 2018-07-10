@@ -25,7 +25,8 @@ class MessageService(object):
                 msg_type=MessageType.ANNOUNCEMENT,
                 announcement_id=announce.announcement_id,
                 title=announce.title,
-                level=announce.level
+                level=announce.level,
+                create_time=announce.create_time
             ))
         UserMessage.objects.bulk_create(msg_list)
         # 更新已有的公告
