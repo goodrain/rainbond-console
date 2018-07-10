@@ -5,7 +5,7 @@ import React, { PureComponent, Fragment } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { Link, Switch, Route } from 'dva/router';
-import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Modal, notification} from 'antd';
+import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Modal, DatePicker} from 'antd';
 import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelationedApp } from '../../services/app';
 import globalUtil from '../../utils/global';
 
@@ -99,6 +99,9 @@ export default class Index extends PureComponent {
             <Button onClick={this.handleCancel}>关闭</Button>
         }]
         >
+        <p style={{textAlign: 'right'}}>
+            <DatePicker onChange={this.handleDateChange} allowClear={false} defaultValue={moment(this.state.date, "YYYY-MM-DD")} />
+        </p>
         <Table
           pagination = {false}
           dataSource={this.state.list || []}
