@@ -47,7 +47,10 @@ export default class Index extends PureComponent {
       apps: [],
       sharedId: '',
       isShareing: false,
-      shareStep: ''
+      shareStep: '',
+      page: 1,
+      page_size: 6,
+      total:0
     }
     this.mount = false;
   }
@@ -83,11 +86,14 @@ export default class Index extends PureComponent {
         type: 'plugin/getUsedApp',
         payload: {
           team_name: globalUtil.getCurrTeamName(),
-          plugin_id: this.getId()
+          plugin_id: this.getId(),
+          page: this.state.page,
+          page_size: this.state.page_size,
         },
         callback: (data) => {
           this.setState({
-            apps: data.list || []
+            apps: data.list || [],
+            total: data.total
           })
         }
       })
@@ -321,6 +327,11 @@ export default class Index extends PureComponent {
   canEditInfoAndConfig = () => {
     return !pluginUtil.isMarketPlugin(this.state.currInfo) && pluginUtil.canEditInfoAndConfig(this.state.currInfo)
   }
+  onPageChange = (page) => {
+    this.setState({page: page}, ()=>{
+       this.getUsedApp();
+    })
+  }
   sharePlugin = () => {
     const {dispatch} = this.props;
     dispatch({
@@ -544,7 +555,12 @@ export default class Index extends PureComponent {
             }
           ]}
             dataSource={this.state.apps}
-            pagination={false}/>
+            pagination = {{
+              current: this.state.page,
+              pageSize: this.state.page_size,
+              total: this.state.total,
+              onChange: this.onPageChange
+            }} />
         </Card>
         {this.state.showAddConfig && <AddOrEditConfig
           onCancel={this.hiddenAddConfig}

@@ -333,9 +333,18 @@ export async function getBuildVersionLog(body = {
 */
 export async function getUsedApp(body = {
   team_name,
-  plugin_id
+  plugin_id,
+  page,
+  page_size
+
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/used_services`, {method: 'get'});
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/used_services`, {
+    method: 'get',
+    params: {
+      page: body.page,
+      page_size: body.page_size
+    }
+ });
 }
 
 /*
