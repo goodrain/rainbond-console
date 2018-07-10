@@ -86,6 +86,11 @@ export default class Index extends PureComponent {
        this.state.page = 1;
        this.loadPayHistory();
    }
+   onPageChange = (page) => {
+       this.setState({page}, ()=>{
+           this.loadPayHistory();
+       })
+   }
    render(){
 
       return (
@@ -107,7 +112,12 @@ export default class Index extends PureComponent {
             </Select>
         </p>
         <Table
-          pagination = {false}
+          pagination = {{
+            current: this.state.page,
+            pageSize: this.state.page_size,
+            total: this.state.total,
+            onChange: this.onPageChange
+          }}
           dataSource={this.state.list || []}
           columns={[{
             title: '订单号',
