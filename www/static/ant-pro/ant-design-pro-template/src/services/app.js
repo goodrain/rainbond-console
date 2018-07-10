@@ -1077,7 +1077,7 @@ export async function getAppOnlineNumber(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requestclient{service_id="' + body.serviceId + '"})'
+												query: 'max(app_requestclient{service_id="' + body.serviceId + '"})'
 								},
 								showLoading: false
 				});
@@ -1098,7 +1098,7 @@ export async function getAppOnlineNumberRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requestclient{service_id="' + body.serviceId + '"})',
+												query: 'max(app_requestclient{service_id="' + body.serviceId + '"})',
 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step
