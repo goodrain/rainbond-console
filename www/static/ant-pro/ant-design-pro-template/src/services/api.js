@@ -4,6 +4,22 @@ import config from '../config/config';
 
 
 /*
+  获取企业充值记录
+ */
+export async function getPayHistory(body={team_name, start, end, page, page_size}){
+  return request(config.baseUrl + `/console/enterprise/teams/${body.team_name}/recharge-records`, {
+    method: 'get',
+    params: {
+      start: body.start,
+      end: body.end,
+      page: body.page,
+      page_size: body.page_size
+    }
+  });
+}
+
+
+/*
   初始化一个团队
 */
 export async function InitTeam(body={team_alias, region_name}){

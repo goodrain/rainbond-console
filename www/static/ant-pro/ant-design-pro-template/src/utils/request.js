@@ -118,7 +118,7 @@ export default function request(url, options) {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
             const res = response.data.data || {};
             res._code = response.status;
-            return res;
+            return res; 
         })
         .catch((error) => {
             if (showLoading) {
