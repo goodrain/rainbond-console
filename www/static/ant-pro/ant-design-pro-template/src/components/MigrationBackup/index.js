@@ -117,7 +117,7 @@ export default class Index extends PureComponent {
 						location.reload();
 					}
 					if(data.bean.status == 'failed'){
-						this.props.onCancel && this.props.onCancel()
+						//this.props.onCancel && this.props.onCancel()
 					}
 					if(data.bean.status == 'starting'){
 						setTimeout(() => {
