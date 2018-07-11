@@ -69,8 +69,8 @@ export default class Index extends PureComponent {
 					}
 				}catch(e){
 					ele.innerHTML = this.getItemHtml(data);
-
 					domUtil.prependChild(this.ref, ele);
+					console.log(e)
 
 				}
 			},
@@ -100,8 +100,8 @@ export default class Index extends PureComponent {
 				if(message.id){
 					msg += message.id+':'
 				}
-				msg += message.status||'';
-				msg += message.progress||'';
+				msg += (message.status||'');
+				msg += (message.progress||'');
 				if(data.step != 'build-progress'){
 					return `<span className="time" style="margin-right: 8px">${moment(data.time).format("HH:mm:ss")}</span><span>${msg||''}</span>`
 				}else{
