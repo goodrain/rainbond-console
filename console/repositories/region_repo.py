@@ -44,6 +44,9 @@ class RegionRepo(object):
             return region_configs[0]
         return None
 
+    def get_region_by_region_names(self, region_names):
+        return RegionConfig.objects.filter(region_name__in=region_names)
+
     def get_team_region_by_tenant_and_region(self, tenant_id, region):
         tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenant_id, region_name=region)
         if tenant_regions:
@@ -55,5 +58,9 @@ class RegionRepo(object):
 
     def get_all_regions(self):
         return RegionConfig.objects.all()
+
+    def get_regions_by_tenant_ids(self, tenant_ids):
+        return TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_init=True).values_list("region_name", flat=True)
+
 
 region_repo = RegionRepo()

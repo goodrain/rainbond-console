@@ -5,6 +5,7 @@ from django.conf import settings
 
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.enterprise_repo import enterprise_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.marketclient import MarketOpenAPI
@@ -222,5 +223,10 @@ class RegionService(object):
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,region_name__in=region_names)
         return team_opened_regions
 
+    def get_regions_by_enterprise_id(self,enterprise_id):
+        teams = team_repo.get_team_by_enterprise_id(enterprise_id)
+        team_ids = [t.tenant_id for t in teams]
+        region_names = region_repo.get_regions_by_tenant_ids(team_ids)
+        return region_repo.get_region_by_region_names(region_names)
 
 region_services = RegionService()
