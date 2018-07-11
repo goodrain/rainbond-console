@@ -173,7 +173,7 @@ urlpatterns = patterns(
     url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
     url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
     url(r'^enterprise/team/(?P<team_name>[\w\-]+)/recharge-records$', EnterpriseRechargeRecordsView.as_view()),
-url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
+    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
     # 数据中心相关
     url(r'^enterprise/regions$', PublicRegionListView.as_view()),
     url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
