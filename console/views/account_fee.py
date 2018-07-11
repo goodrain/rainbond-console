@@ -187,27 +187,29 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
                     for rt in rt_list:
                         bean = enter_total.get(rt['time'])
                         if bean:
-                            bean['disk_fee'] += rt["disk_fee"]
-                            bean['disk_limit'] += rt["disk_limit"]
-                            bean['disk_over'] += rt["disk_over"]
-                            bean['disk_usage'] += rt["disk_usage"]
-                            bean['memory_fee'] += rt["memory_fee"]
-                            bean['memory_limit'] += rt["memory_limit"]
-                            bean['memory_over'] += rt["memory_over"]
-                            bean['memory_usage'] += rt["memory_usage"]
-                            bean['net_fee'] += rt["net_fee"]
-                            bean['net_usage'] += rt["net_usage"]
-                            bean['total_fee'] += rt["total_fee"]
+                            if rt["total_fee"] > 0:
+                                bean['disk_fee'] += rt["disk_fee"]
+                                bean['disk_limit'] += rt["disk_limit"]
+                                bean['disk_over'] += rt["disk_over"]
+                                bean['disk_usage'] += rt["disk_usage"]
+                                bean['memory_fee'] += rt["memory_fee"]
+                                bean['memory_limit'] += rt["memory_limit"]
+                                bean['memory_over'] += rt["memory_over"]
+                                bean['memory_usage'] += rt["memory_usage"]
+                                bean['net_fee'] += rt["net_fee"]
+                                bean['net_usage'] += rt["net_usage"]
+                                bean['total_fee'] += rt["total_fee"]
                         else:
-                            rt["region"] = region.region_alias
-                            enter_total[rt['time']] = rt
+                            if rt["total_fee"] > 0:
+                                rt["region"] = region.region_alias
+                                enter_total[rt['time']] = rt
 
                     total_list[0:0] = [v for v in enter_total.values() if v["total_fee"] > 0]
 
                 except Exception as e:
                     logger.exception(e)
                     continue
-            result_list = sorted(total_list, key=lambda b: (b['time'], b['region']))
+            result_list = sorted(total_list, key=lambda b: (b['time'], b['region']), reverse=True)
             result = general_message(200, "success", "查询成功", list=result_list)
         except Exception as e:
             logger.exception(e)
