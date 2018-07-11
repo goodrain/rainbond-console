@@ -9,7 +9,8 @@ import {
   Switch,
   Select,
   Modal,
-  Input
+  Input,
+  Alert
 } from 'antd';
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -87,7 +88,7 @@ export default class AddDomain extends PureComponent {
         onOk={this.handleSubmit}
         visible={true}
         onCancel={this.handleCancel}>
-
+        <Alert style={{textAlign: 'center', marginBottom: 16}}  message="请确保将域名cname指向到本应用的对外服务访问地址" type="warning" />
         <Form onSubmit={this.handleSubmit}>
 
           <FormItem {...formItemLayout} label="协议">

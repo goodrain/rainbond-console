@@ -1,11 +1,15 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Form, Tabs } from 'antd';
+import {connect} from 'dva';
+import {routerRedux} from 'dva/router';
 import classNames from 'classnames';
 import LoginItem from './LoginItem';
 import LoginTab from './LoginTab';
 import LoginSubmit from './LoginSubmit';
 import styles from './index.less';
+
+
 
 @Form.create()
 class Login extends Component {
@@ -31,6 +35,12 @@ class Login extends Component {
     tabs: [],
     active: {},
   };
+  componentWillMount() {
+     const rainbondInfo = this.props.rainbondInfo;
+     if(rainbondInfo && !rainbondInfo.is_user_register){
+        this.props.dispatch(routerRedux.replace('/user/register'))
+     }
+  }
   getChildContext() {
     return {
       tabUtil: {
@@ -118,4 +128,8 @@ Object.keys(LoginItem).forEach((item) => {
   Login[item] = LoginItem[item];
 });
 
-export default Login;
+export default connect(({global}) => {
+  return ({
+      rainbondInfo: global.rainbondInfo
+  })
+})(Login);

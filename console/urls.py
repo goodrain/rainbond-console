@@ -5,12 +5,12 @@ from console.captcha.captcha_code import CaptchaView
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseRechargeRecordsView, EnterpriseAllRegionFeeView
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
-    DomainView
+    DomainView, SecondLevelDomainView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_port import AppPortView, AppPortManageView
+from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
@@ -29,11 +29,12 @@ from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView
-from console.views.center_pool.apps import CenterAppListView, DownloadMarketAppGroupView, \
+from console.views.center_pool.apps import CenterAppListView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
-    GroupAppsBackupStatusView
+    GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView
+from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
@@ -47,6 +48,11 @@ from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCr
 from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
     PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
 from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
+from console.views.plugin.plugin_market import SyncMarketPluginsView, \
+    SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
+    UninstallPluginTemplateView, InstallableInteralPluginsView, MarketPluginsView
+from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
+    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
 from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
@@ -60,6 +66,7 @@ from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
     ServiceShareCompleteView, ServiceShareRecordView
+from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
@@ -68,6 +75,7 @@ from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, 
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
+from console.views.receipt import *
 
 urlpatterns = patterns(
     '',
@@ -256,6 +264,9 @@ urlpatterns = patterns(
         AppPortView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$',
         AppPortManageView.as_view()),
+    # 对外访问tcp端口修改
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
+        AppTcpOuterManageView.as_view()),
     # 持久化路径配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
@@ -277,6 +288,7 @@ urlpatterns = patterns(
 
     # 服务域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view()),
     # 服务操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),
@@ -369,15 +381,36 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$',
         ServicePluginConfigView.as_view()),
 
+    # 插件分享
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/share/record$', PluginShareRecordView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)$', PluginShareInfoView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events$', PluginShareEventsView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
+        PluginShareEventView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/complete$',
+        PluginShareCompletionView.as_view()),
+
+    # 插件市场
+    url(r'^market/plugins$', MarketPluginsView.as_view()),
+    url(r'^market/plugins/sync$', SyncMarketPluginsView.as_view()),
+    url(r'^market/plugins/sync-template$', SyncMarketPluginTemplatesView.as_view()),
+    url(r'^market/plugins/uninstall-template$', UninstallPluginTemplateView.as_view()),
+    url(r'^market/plugins/install$', InstallMarketPlugin.as_view()),
+    url(r'^plugins$', InternalMarketPluginsView.as_view()),
+    url(r'^plugins/installable$', InstallableInteralPluginsView.as_view()),
+
     # 内部云市应用相关
+    # 获取可安装应用
     url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
     # 好雨云市应用同步
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
+    # 同步应用
+    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
+    # 同步某个应用回来
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
 
-    # 查询同步的所有app
+    # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
     # 下架应用
     url(r'^app_market/manage$', CenterAppManageView.as_view()),
@@ -412,7 +445,7 @@ urlpatterns = patterns(
     # 获取一个团队中所有可展示的的角色及角色对应的权限信息展示(不含owner)
     url(r'^teams/(?P<team_name>[\w\-]+)/role-list$', UserRoleView.as_view()),
     # 修改团队中成员角色
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_id>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
     # 应用权限设置
@@ -424,7 +457,17 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
         GroupAppsBackupStatusView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$',
+        GroupAppsBackupExportView.as_view()),
+
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$',
+        GroupAppsBackupImportView.as_view()),
+
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
+    # 应用迁移恢复
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate$', GroupAppsMigrateView.as_view()),
+    # 应用组删除
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
     # webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
@@ -434,4 +477,14 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
     url(r'^teams/init', TeamRegionInitView.as_view()),
+
+    # 企业发票相关
+    url(r'receipts$', EnterReceiptAPIView.as_view()),
+    url(r'receipts/confirm$', EnterReceiptConfirmAPIView.as_view()),
+    url(r'receipts/(?P<receipt_id>\d+)$', EnterReceiptDetailAPIView.as_view()),
+    url(r'receipt-orders$', EnterReceiptOrdersAIPView.as_view()),
+    # 应用版本管理
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$',
+        AppVersionManageView.as_view()),
 )

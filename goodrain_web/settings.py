@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import sys
 from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
 
 SETTING_DIR = os.path.dirname(__file__)
@@ -17,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['file_handler', 'console', 'zmq_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
@@ -25,7 +26,7 @@ IS_OPEN_API = False
 
 DEBUG = False
 
-conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, "www_com")
+conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
 
 if os.path.exists(conf_file):
     execfile(conf_file)
@@ -167,6 +168,12 @@ LOGGING = {
             'address': ZMQ_LOG_ADDRESS,
             'root_topic': 'goodrain_web',
             'formatter': 'zmq_formatter',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+            'formatter': 'standard'
         }
     },
     'loggers': {
@@ -176,6 +183,11 @@ LOGGING = {
             'propagate': True,
         },
         'request_api': {
+            'handlers': ['request_api'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.request': {
             'handlers': ['request_api'],
             'level': 'DEBUG',
             'propagate': True,

@@ -1,6 +1,112 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+/* 安装内部市场的插件 */
+export async function installMarketPlugin(body={plugin_id}){
+  return request(config.baseUrl + `/console/market/plugins/install`,{
+    method: 'POST',
+    data:body
+  })
+}
+
+/* 获取内部市场可安装的插件 */
+export async function getUnInstalledPlugin(body={plugin_name, page, limit}){
+  return request(config.baseUrl + `/console/plugins/installable`,{
+    method: 'get',
+    params:body
+  })
+}
+
+/*
+查询分享单个任务的状态
+ */
+export async function startShareOneEvent(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events/${body.eventId}`, {
+    method: 'post'
+  });
+}
+
+/*
+查询分享单个任务的状态
+ */
+export async function getShareOneEventInfo(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events/${body.eventId}`, {
+    method: 'get'
+  });
+}
+
+/*
+  插件分享提交
+*/
+export async function getShareEventInfo(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}/events`, {
+    method: 'get'
+  });
+}
+
+/*
+  插件分享提交
+*/
+export async function submitSharePlugin(body={}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}`, {
+    method: 'post',
+    data:{
+      share_plugin_info: body.share_plugin_info
+    }
+  });
+}
+
+/**
+  获取插件分享的信息
+ */
+export async function getPluginShareInfo(body={
+  team_name,
+  pluginId,
+  shareId
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.shareId}`, {
+    method: 'get'
+  });
+}
+
+
+/**
+  放弃分享插件
+ */
+export async function giveupSharePlugin(body={
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}`, {
+    method: 'delete'
+  });
+}
+
+/**
+  分享插件
+ */
+export async function sharePlugin(body={
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/share/record`, {
+    method: 'post'
+  });
+}
+
+/*
+  查询未完成插件分享记录
+ */
+export async function getShareRecord(body = {
+  team_name,
+  plugin_id
+}) {
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/share/record`, {
+    method: 'get'
+  });
+}
+
+
 /*
 	获取应用的历史操作日志
 */
@@ -227,9 +333,18 @@ export async function getBuildVersionLog(body = {
 */
 export async function getUsedApp(body = {
   team_name,
-  plugin_id
+  plugin_id,
+  page,
+  page_size
+
 }) {
-  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/used_services`, {method: 'get'});
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugins/${body.plugin_id}/used_services`, {
+    method: 'get',
+    params: {
+      page: body.page,
+      page_size: body.page_size
+    }
+ });
 }
 
 /*

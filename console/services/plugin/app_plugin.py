@@ -2,32 +2,33 @@
 """
   Created on 18/1/29.
 """
+import copy
+import json
 import logging
 import os
+
+from addict import Dict
+
 from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
+from console.repositories.app import service_repo
+from console.repositories.app_config import port_repo
+from console.repositories.base import BaseConnection
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
     app_plugin_attr_repo, plugin_version_repo
-from console.repositories.app import service_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.services.app_config.app_relation_service import AppServiceRelationService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
 from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
-from console.repositories.base import BaseConnection
-from console.repositories.app_config import port_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from www.models.plugin import ServicePluginConfigVar,PluginConfigGroup,PluginConfigItems
-import json
-import copy
-from console.repositories.plugin import service_plugin_config_repo
-from addict import Dict
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
-
 
 
 class AppPluginService(object):
@@ -44,6 +45,7 @@ class AppPluginService(object):
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
         services = service_repo.get_services_by_service_ids(*service_ids).filter(tenant_id=tenant_id)
         paginator = JuncheePaginator(services, int(page_size))
+        total = paginator.count
         show_apps = paginator.page(int(page))
         result_list = []
         for s in show_apps:
@@ -53,7 +55,7 @@ class AppPluginService(object):
             data["service_cname"] = s.service_cname
             data["build_version"] = service_plugin_version_map[s.service_id]
             result_list.append(data)
-        return result_list
+        return result_list,total
 
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
@@ -363,7 +365,6 @@ class AppPluginService(object):
                             "dest_service_alias": dep_service.service_alias
                         })
 
-
         result_bean["undefine_env"] = undefine_env
         result_bean["upstream_env"] = upstream_env_list
         result_bean["downstream_env"] = downstream_env_list
@@ -416,6 +417,7 @@ class AppPluginService(object):
                 protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):
@@ -480,7 +482,7 @@ class PluginService(object):
     def get_tenant_plugins(self, region, tenant):
         return plugin_repo.get_tenant_plugins(tenant.tenant_id, region)
 
-    def build_plugin(self, region, plugin, plugin_version, user, tenant, event_id):
+    def build_plugin(self, region, plugin, plugin_version, user, tenant, event_id, image_info=None):
 
         build_data = dict()
 
@@ -494,6 +496,7 @@ class PluginService(object):
         build_data["plugin_cpu"] = plugin_version.min_cpu
         build_data["repo_url"] = plugin_version.code_version
         build_data["tenant_id"] = tenant.tenant_id
+        build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
         if origin == "local_market":
@@ -522,7 +525,8 @@ class PluginService(object):
             code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region,
                                                                     needed_plugin_config["desc"],
                                                                     needed_plugin_config["plugin_alias"],
-                                                                    needed_plugin_config["category"], needed_plugin_config["build_source"],
+                                                                    needed_plugin_config["category"],
+                                                                    needed_plugin_config["build_source"],
                                                                     needed_plugin_config["image"],
                                                                     needed_plugin_config["code_repo"])
             plugin_base_info.origin = "local_market"
@@ -611,5 +615,10 @@ class PluginService(object):
         return 200, "删除成功"
 
     def get_default_plugin(self, region, tenant):
-        return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(origin_share_id__in=["perf_analyze_plugin","downstream_net_plugin"])
-
+        # 兼容3.5版本升级
+        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
+            origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin"])
+        if plugins:
+            return plugins
+        else:
+            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(category="analyst-plugin:perf",image="goodrain.me/tcm")

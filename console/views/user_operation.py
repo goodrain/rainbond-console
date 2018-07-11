@@ -74,6 +74,11 @@ class TenantServiceView(BaseApiView):
               required: false
               type: string
               paramType: body
+            - name: enter_name
+              description: 企业名称
+              required: false
+              type: string
+              paramType: body
         """
         try:
             import copy
@@ -101,7 +106,8 @@ class TenantServiceView(BaseApiView):
                 user.save()
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
-                    enterprise = enterprise_services.create_enterprise()
+                    enter_name = request.data.get("enter_name", None)
+                    enterprise = enterprise_services.create_enterprise(enter_name,enter_name)
                     # 创建用户在企业的权限
                     user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
                 user.enterprise_id = enterprise.enterprise_id

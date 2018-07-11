@@ -11,8 +11,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
-from django.conf import settings
 from console.services.region_services import region_services
+from console.repositories.app import service_repo
+from console.constants import AppConstants
 
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
@@ -26,6 +27,10 @@ class AppPortService(object):
             return 400, u"端口{0}已存在".format(container_port)
         if not (1 <= container_port <= 65535):
             return 412, u"端口必须为1到65535的整数"
+        if service.service_source == AppConstants.SOURCE_CODE:
+            if service.language in ("dockerfile", "docker"):
+                if container_port <= 1024:
+                    return 400, u"源码应用非Dockerfile构建的应用端口不能小于1024"
         return 200, "success"
 
     def check_port_alias(self, port_alias):
@@ -149,12 +154,12 @@ class AppPortService(object):
         if port_info.is_outer_service:
             return 409, u"请关闭外部服务", None
         if service.create_status == "complete":
-            # 删除env
-            env_var_service.delete_env_by_container_port(tenant, service, container_port)
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
                                            container_port, tenant.enterprise_id)
 
+        # 删除env
+        env_var_service.delete_env_by_container_port(tenant, service, container_port)
         # 删除端口
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
@@ -453,7 +458,6 @@ class AppPortService(object):
         for e in both_outer_fix_env:
             env_list.append({"name": e.name, "attr_name": e.attr_name, "attr_value": e.attr_value})
         return env_list
-   
 
     def __get_port_access_url(self, tenant, service, port):
         domain = region_services.get_region_httpdomain(service.service_region)
@@ -479,7 +483,30 @@ class AppPortService(object):
 
         return urls
 
-    def get_outer_port_opend_services_ids(self, tenant, service_ids):
-        service_ports = port_repo.get_http_opend_services_ports(tenant.tenant_id, service_ids)
-        ids = [p.service_id for p in service_ports]
-        return list(set(ids))
+    def get_team_region_usable_tcp_ports(self, tenant, service):
+        services = service_repo.get_service_by_region_and_tenant(service.service_region, tenant.tenant_id)
+        current_service_tcp_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id).filter(
+            is_outer_service=True).exclude(protocol__in=("http", "https"))
+        lb_mapping_ports = [p.lb_mapping_port for p in current_service_tcp_ports]
+        service_ids = [s.service_id for s in services]
+        res = port_repo.get_tcp_outer_opend_ports(service_ids).exclude(lb_mapping_port__in=lb_mapping_ports)
+        return res
+
+    def change_lb_mapping_port(self, tenant, service, container_port, new_lb_mapping_port, mapping_service_id):
+        data = {"change_port": new_lb_mapping_port}
+        body = region_api.change_service_lb_mapping_port(service.service_region, tenant.tenant_name,
+                                                         service.service_alias,
+                                                         container_port, data)
+
+        current_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+        exchange_port_info = port_repo.get_service_port_by_lb_mapping_port(mapping_service_id, new_lb_mapping_port)
+        if not current_port:
+            404, "应用端口{0}不存在".format(container_port)
+        if not exchange_port_info:
+            s = service_repo.get_service_by_service_id(mapping_service_id)
+            404, "应用{0}的端口{1}不存在".format(s.service_cname, new_lb_mapping_port)
+        exchange_port_info.lb_mapping_port = current_port.lb_mapping_port
+        exchange_port_info.save()
+        current_port.lb_mapping_port = new_lb_mapping_port
+        current_port.save()
+        return 200, "success"

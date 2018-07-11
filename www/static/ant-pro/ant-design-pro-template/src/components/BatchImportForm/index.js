@@ -43,7 +43,9 @@ export default class Index extends PureComponent {
 					file_name: this.state.file_name
 				},
 				callback: ((data) => {
-					message.success('操作成功，正在导入',2);
+					notification.success({
+						message: '操作成功，正在导入'
+					})
 					// this.props.onOk && this.props.onOk(data);
 				})
         	})
@@ -62,13 +64,13 @@ export default class Index extends PureComponent {
 				},
 				callback: ((data) => {
 					this.setState({fileList:data.list},()=>{
-						 if(this.state.fileList.length >0){
-							 this.props.onOk && this.props.onOk(this.state.fileList)
-						 }else{
-							message.info('您还没有放入文件，请先放入文件！',2);
-						 }
+						if(this.state.fileList.length  == 0){
+							notification.info({
+								message: '没有检测到文件，请注意拷贝状态！'
+							})
+						}
+						this.props.onOk && this.props.onOk(this.state.fileList);
 					});
-
 				})
 			})
 		}
@@ -83,7 +85,7 @@ export default class Index extends PureComponent {
 					title="批量导入应用"
 					>
 					<div>
-						<p>请将要上传的文件，放入<strong>{source_dir}</strong>目录，然后点击“确认”按钮</p>
+						<p>请将要上传的文件，放入<br/><span style={{color:'#1890ff'}}>{source_dir}</span><br/>目录，然后点击“确认”按钮</p>
 					</div>
 				</Modal>
 			)

@@ -47,7 +47,7 @@ class NodeUpdateSerilizer(serializers.Serializer):
 
 
 class AnnouncementSerilizer(serializers.Serializer):
-    content = serializers.CharField(max_length=256, required=True, help_text=u"通知内容")
+    content = serializers.CharField(max_length=1000, required=True, help_text=u"通知内容")
     a_tag = serializers.CharField(max_length=256, required=False, help_text=u"A标签文字")
     a_tag_url = serializers.CharField(max_length=1024, required=False, help_text=u"a标签跳转地址")
     type = serializers.CharField(max_length=15, required=False, help_text=u"通知类型")

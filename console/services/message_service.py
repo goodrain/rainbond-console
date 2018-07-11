@@ -25,7 +25,8 @@ class MessageService(object):
                 msg_type=MessageType.ANNOUNCEMENT,
                 announcement_id=announce.announcement_id,
                 title=announce.title,
-                level=announce.level
+                level=announce.level,
+                create_time=announce.create_time
             ))
         UserMessage.objects.bulk_create(msg_list)
         # 更新已有的公告
@@ -52,7 +53,10 @@ class MessageService(object):
             query &= Q(msg_type=msg_type)
         if is_read is not None:
             query &= Q(is_read=is_read)
-        msgs = msg_repo.get_user_all_msgs(user.user_id).filter(query)
+        if msg_type and is_read:
+            msgs = msg_repo.get_user_all_msgs(user.user_id).order_by("-create_time")
+        else:
+            msgs = msg_repo.get_user_all_msgs(user.user_id).filter(query).order_by("-create_time")
         msg_paginator = JuncheePaginator(msgs, int(page_size))
         total = msg_paginator.count
         page_msgs = msg_paginator.page(page_num)

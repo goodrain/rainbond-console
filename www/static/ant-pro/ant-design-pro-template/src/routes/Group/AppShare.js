@@ -68,7 +68,7 @@ const tailFormItemLayout = {
 const token = cookie.get('token');
 let myheaders = {}
 if (token) {
-   myheaders.Authorization = `GRJWT ${token}`;  
+   myheaders.Authorization = `GRJWT ${token}`;
 }
 
 const uploadButton = (
@@ -291,7 +291,7 @@ class AppInfo extends PureComponent {
                   }
                 ]
               })(<InputNumber style={{width: '100%'}}
-                
+
                 placeholder='请输入最小内存'
                 min={app.extend_method_map.min_memory}
                 max={app.extend_method_map.max_memory}
@@ -372,7 +372,7 @@ export default class Main extends PureComponent {
               status: 'done',
               url: data.bean.share_group_info.pic
            }]})
-         }    
+         }
         this.share_group_info = data.bean.share_group_info;
         this.share_service_list = data.bean.share_service_list;
       },
@@ -422,13 +422,11 @@ export default class Main extends PureComponent {
         .validateFields((err, values) => {
           if (!err) {
             appvalue = values;
-            console.log(values)
           }
         });
       //////
       share_service_data.map((option) => {
         if (option.service_alias == apptab) {
-          console.log(option.service_alias);
           for (var index in appvalue) {
             var indexname = '';
             var indexarr = [];
@@ -455,6 +453,7 @@ export default class Main extends PureComponent {
       })
       //////
     })
+
     newinfo['share_group_info'] = this.share_group_info;
     newinfo['share_service_list'] = share_service_data;
     const team_name = globalUtil.getCurrTeamName();
@@ -493,7 +492,7 @@ export default class Main extends PureComponent {
   }
 
   handleLogoChange = ({ fileList }) =>{
-    
+
       // fileList = fileList.map((file) => {
       //     if (file.response) {
       //       // Component will show file.url as link
@@ -513,7 +512,7 @@ export default class Main extends PureComponent {
       //   }
       //   return true;
       // });
-     
+
       this.setState({ fileList })
   }
   handleLogoRemove = () => {
@@ -542,7 +541,7 @@ export default class Main extends PureComponent {
     const {getFieldDecorator, getFieldValue} = this.props.form;
     const loading = this.props.loading;
     const fileList = this.state.fileList
-   
+
     const pageHeaderContent = (
       <div className={styles.pageHeaderContent}>
         <div className={styles.content}>

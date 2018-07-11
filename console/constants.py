@@ -43,6 +43,7 @@ class ServiceEventConstants(object):
         "service_state": "应用状态修改",
         "reboot": "重启",
         "market_sync": "云市同步",
+        "truncate": "删除"
     }
 
 
@@ -95,3 +96,18 @@ class MessageType(object):
     ANNOUNCEMENT = "announcement"
     NEWS = "news"
     WARN = "warn"
+
+
+class AppMigrateType(object):
+    CURRENT_REGION_CURRENT_TENANT = "cdct"
+    OTHER_REGION = "od"
+    CURRENT_REGION_OTHER_TENANT = "cdot"
+
+
+class StorageUnit(object):
+    ONE_MB=1048576
+
+
+class DomainType(object):
+    SLD_DOMAIN = "goodrain-sld"
+    WWW = "www"

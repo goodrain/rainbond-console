@@ -1076,6 +1076,26 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def share_plugin(self, region_name, tenant_name, plugin_id, body):
+        """分享插件"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = "{0}/v2/tenants/{1}/plugins/{2}/share".format(
+            url, tenant_region.region_tenant_name, plugin_id)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return res, body
+
+    def share_plugin_result(self, region_name, tenant_name, plugin_id, region_share_id):
+        """查询分享插件状态"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = "{0}/v2/tenants/{1}/plugins/{2}/share/{3}".format(
+            url, tenant_region.region_tenant_name, plugin_id, region_share_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
     def bindDomain(self, region, tenant_name, service_alias, body):
         # region_map = self.get_region_map(region)
         # token = region_map[region]['token']
@@ -1575,6 +1595,16 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
+    def delete_backup_by_backup_id(self, region, tenant_name, backup_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + str(
+            backup_id)
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
     def get_backup_status_by_group_id(self, region, tenant_name, group_uuid):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -1585,14 +1615,80 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def star_apps_migrate_task(self, region, tenant_name, data):
+    def star_apps_migrate_task(self, region, tenant_name, backup_id, data):
+        """发起迁移命令"""
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        # TODO 对接接口
-        pass
-        # url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
-        #
-        # self._set_headers(token)
-        # res, body = self._post(
-        #     url, self.default_headers, region=region, body=json.dumps(data))
-        # return body
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def get_apps_migrate_status(self, region, tenant_name, backup_id, restore_id):
+        """获取迁移结果"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore/" + restore_id
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def copy_backup_data(self, region, tenant_name, data):
+        """数据中心备份数据进行拷贝"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backupcopy"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def change_service_lb_mapping_port(self, region, tenant_name, service_alias, container_port, data):
+        """修改应用负载均衡端口"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
+            container_port) + "/changelbport"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def get_service_build_versions(self, region, tenant_name, service_alias):
+        """获取应用的构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-list"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def delete_service_build_version(self, region, tenant_name, service_alias,
+                                     version_id):
+        """删除应用的某次构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" + version_id
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
+    def get_service_build_version_by_id(self, region, tenant_name, service_alias,
+                                        version_id):
+        """查询应用的某次构建版本"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" + version_id
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body

@@ -14,6 +14,13 @@ import {
   getuserMessage,
   putMsgAction,
   deleteMsg,
+  getMarketPlugins,
+  syncMarketPlugins,
+  syncMarketPluginTmp,
+  complatePluginShare,
+  getCloudPlugin,
+  syncCloudPlugin,
+  deleteMarketPlugin,
   getAllRegion,
   InitTeam,
   resPrice,
@@ -40,10 +47,12 @@ export default {
     apploadingnum: 0,
     //显示充值提示
     payTip: false,
-    noMoneyTip: false
+    noMoneyTip: false,
+    showAuthCompany: false
   },
+
   effects : {
-    *getAllRegionFee({
+     *getAllRegionFee({
       payload,
       callback
     }, {call, put}) {
@@ -61,11 +70,74 @@ export default {
         callback && callback(data)
       }
     },
+    *deleteMarketPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(deleteMarketPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *InitTeam({
       payload,
       callback
     }, {call, put}) {
       const data = yield call(InitTeam, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getCloudPlugin({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getCloudPlugin, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *complatePluginShare({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(complatePluginShare, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *getMarketPlugins({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getMarketPlugins, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncMarketPlugins({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketPlugins, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
+    *syncMarketPluginTmp({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(syncMarketPluginTmp, payload);
       if (data) {
         callback && callback(data)
       }
@@ -247,7 +319,7 @@ export default {
         setTimeout(()=>{
           callback && callback(response.list);
         })
-        
+
       }
     },
     *bindGithub({
@@ -342,7 +414,19 @@ export default {
         ...state,
         apploadingnum: state.apploadingnum - 1
       }
-    }
+    },
+    showAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: true
+      }
+    },
+    hideAuthCompany(state, {}) {
+      return {
+        ...state,
+        showAuthCompany: false
+      }
+    },
   },
 
   subscriptions : {

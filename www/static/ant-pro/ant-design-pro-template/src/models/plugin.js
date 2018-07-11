@@ -1,7 +1,18 @@
 import { getMyPlugins, createPlugin, getPluginInfo, getPluginVersions, getPluginVersionInfo,
 getPluginVersionConfig, editPluginVersionInfo, addPluginVersionConfig, removePluginVersionConfig,
 editPluginVersionConfig, removePluginVersion, createPluginVersion, buildPluginVersion,
-getBuildPluginVersionStatus, getBuildVersionLog, getUsedApp, deletePlugin, getDefaultPlugin, installDefaultPlugin } from '../services/plugin';
+getBuildPluginVersionStatus, getBuildVersionLog, getUsedApp, deletePlugin, getDefaultPlugin, installDefaultPlugin,
+getShareRecord,
+sharePlugin,
+giveupSharePlugin,
+getPluginShareInfo,
+submitSharePlugin,
+getShareEventInfo,
+getShareOneEventInfo,
+startShareOneEvent,
+installMarketPlugin,
+getUnInstalledPlugin
+} from '../services/plugin';
 import cookie from '../utils/cookie';
 
 export default {
@@ -13,6 +24,66 @@ export default {
     apps:[]
   },
   effects: {
+    *installMarketPlugin({ payload, callback }, { call, put }) {
+      const response = yield call(installMarketPlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getUnInstalledPlugin({ payload, callback }, { call, put }) {
+      const response = yield call(getUnInstalledPlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *startShareOneEvent({ payload, callback }, { call, put }) {
+      const response = yield call(startShareOneEvent, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getShareOneEventInfo({ payload, callback }, { call, put }) {
+      const response = yield call(getShareOneEventInfo, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getShareEventInfo({ payload, callback }, { call, put }) {
+      const response = yield call(getShareEventInfo, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *submitSharePlugin({ payload, callback }, { call, put }) {
+      const response = yield call(submitSharePlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getPluginShareInfo({ payload, callback }, { call, put }) {
+      const response = yield call(getPluginShareInfo, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *giveupSharePlugin({ payload, callback }, { call, put }) {
+      const response = yield call(giveupSharePlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *sharePlugin({ payload, callback }, { call, put }) {
+      const response = yield call(sharePlugin, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
+    *getShareRecord({ payload, callback }, { call, put }) {
+      const response = yield call(getShareRecord, payload);
+      if(response) {
+          callback && callback(response);
+      }
+    },
     *installDefaultPlugin({ payload, callback }, { call, put }) {
       const response = yield call(installDefaultPlugin, payload);
       if(response) {

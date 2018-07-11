@@ -23,16 +23,25 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
-    def get_service_group_list(self, tenant_id):
+    def get_service_group_list(self, tenant_id, page, limit, app_group_name):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/apps"
+        url = url + "/openapi/console/v1/enter-market/apps?page={0}&limit={1}".format(page, limit)
+        if app_group_name:
+            url += "&group_name={0}".format(app_group_name)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        return self._unpack(body)
+        return body
 
     def get_service_group_detail(self, tenant_id, group_key, group_version, template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url = url + "/openapi/console/v1/enter-market/apps/templates?group_key={0}&group_version={1}&template_version={2}".format(
             group_key, group_version, template_version)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return self._unpack(body)
+
+    def get_remote_app_templates(self, tenant_id, group_key, group_version):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url = url + "/openapi/console/v1/enter-market/apps/{0}?group_version={1}".format(
+            group_key, group_version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
@@ -149,6 +158,12 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
+    def publish_plugin_template_data(self, tenant_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enter-market/plugins/share"
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
+        return self._unpack(body)
+
     def get_region_access_token(self, tenant_id, enterprise_id, region):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enterprises/{0}/regions/{1}/token".format(enterprise_id, region)
@@ -181,3 +196,50 @@ class MarketOpenAPI(HttpClient):
             url += "&start={start_time}&end={end_time}".format(start_time=start_time, end_time=end_time)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return res, body
+
+    def get_plugins(self, tenant_id, page, limit, plugin_name=''):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url = url + "/openapi/console/v1/enter-market/plugins?page={0}&limit={1}&plugin_name={2}".format(
+            page, limit, plugin_name)
+
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return self._unpack(body), body['data']['total']
+
+    def get_plugin_templates(self, tenant_id, plugin_key, version):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+
+        url = url + "/openapi/console/v1/enter-market/plugins/{0}?version={1}".format(
+            plugin_key, version)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return self._unpack(body)
+
+    def get_enterprise_receipts(self, tenant_id, enterprise_id, receipt_status='Not', page=1, limit=10):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/receipts?receipt_status={1}&page={2}&limit={3}".format(
+            enterprise_id, receipt_status, page, limit)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return body
+
+    def create_enterprise_receipts(self, tenant_id, enterprise_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/receipts".format(enterprise_id)
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
+        return self._unpack(body)
+
+    def confirm_enterprise_receipts(self, tenant_id, enterprise_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/receipts/confirm".format(enterprise_id)
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
+        return self._unpack(body)
+
+    def get_enterprise_receipt(self, tenant_id, enterprise_id, receipt_id):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/receipts/{1}".format(enterprise_id, receipt_id)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return self._unpack(body)
+
+    def get_enterprise_receipt_orders(self, tenant_id, enterprise_id, start, end):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/receipt-orders?start={1}&end={2}".format(enterprise_id, start, end)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return body

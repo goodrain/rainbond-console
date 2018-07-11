@@ -16,6 +16,7 @@ import {
   Menu
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
+import {routerRedux} from 'dva/router';
 import globalUtil from '../../utils/global';
 import styles from './Index.less';
 import CreatePluginForm from '../../components/CreatePluginForm';
@@ -43,7 +44,13 @@ export default class Index extends PureComponent {
       showDeleteVersion: false,
       showBuildLog: false,
       event_id: '',
-      apps: []
+      apps: [],
+      sharedId: '',
+      isShareing: false,
+      shareStep: '',
+      page: 1,
+      page_size: 6,
+      total:0
     }
     this.mount = false;
   }
@@ -51,9 +58,26 @@ export default class Index extends PureComponent {
     this.mount = true;
     this.getVersions();
     this.getUsedApp();
+    this.getShareRecord();
   }
+
   componentWillUnmount() {
     this.mount = false;
+  }
+  getShareRecord = () => {
+    this
+    .props
+    .dispatch({
+      type: 'plugin/getShareRecord',
+      payload: {
+        team_name: globalUtil.getCurrTeamName(),
+        plugin_id: this.getId()
+      },
+      callback: (data) => {
+          this.setState({isShareing:data._code === '20021' }, ()=>{
+          })
+      }
+    })
   }
   getUsedApp = () => {
     this
@@ -62,11 +86,14 @@ export default class Index extends PureComponent {
         type: 'plugin/getUsedApp',
         payload: {
           team_name: globalUtil.getCurrTeamName(),
-          plugin_id: this.getId()
+          plugin_id: this.getId(),
+          page: this.state.page,
+          page_size: this.state.page_size,
         },
         callback: (data) => {
           this.setState({
-            apps: data.list || []
+            apps: data.list || [],
+            total: data.total
           })
         }
       })
@@ -132,7 +159,6 @@ export default class Index extends PureComponent {
     return this.props.match.params.pluginId;
   }
   handleSubmit = (val) => {
-    alert(val)
     this
       .props
       .dispatch({
@@ -301,6 +327,29 @@ export default class Index extends PureComponent {
   canEditInfoAndConfig = () => {
     return !pluginUtil.isMarketPlugin(this.state.currInfo) && pluginUtil.canEditInfoAndConfig(this.state.currInfo)
   }
+  onPageChange = (page) => {
+    this.setState({page: page}, ()=>{
+       this.getUsedApp();
+    })
+  }
+  sharePlugin = () => {
+    const {dispatch} = this.props;
+    dispatch({
+      type: 'plugin/sharePlugin',
+      payload: {
+        team_name: globalUtil.getCurrTeamName(),
+        plugin_id: this.getId()
+      },
+      callback: (data) => {
+        if (data.bean.step === 1) {
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-one/${this.getId()}/${data.bean.ID}`))
+        }
+        if (data.bean.step === 2) {
+          dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/shareplugin/step-two/${this.getId()}/${data.bean.ID}`))
+        }
+      }
+    })
+  }
   render() {
     const versions = this.state.versions || [];
     const {form} = this.props;
@@ -340,6 +389,11 @@ export default class Index extends PureComponent {
 }
           {/* <Button type="default" onClick={this.handleCreatePluginVersion}>创建新版本</Button> */}
           {/* <Button onClick={this.showDeleteVersion} type="default">删除当前版本</Button> */}
+          {pluginUtil.isMarketPlugin(this.state.currInfo)
+            ? null
+            : <Button type="default" onClick={this.sharePlugin}>{this.state.isShareing ? '继续分享' : '分享插件'}</Button>
+          }
+          
         </ButtonGroup>
 
       </div>
@@ -501,7 +555,12 @@ export default class Index extends PureComponent {
             }
           ]}
             dataSource={this.state.apps}
-            pagination={false}/>
+            pagination = {{
+              current: this.state.page,
+              pageSize: this.state.page_size,
+              total: this.state.total,
+              onChange: this.onPageChange
+            }} />
         </Card>
         {this.state.showAddConfig && <AddOrEditConfig
           onCancel={this.hiddenAddConfig}

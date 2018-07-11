@@ -17,7 +17,7 @@ class AppPluginRelationRepo(object):
 
     def get_used_plugin_services(self, plugin_id):
         """获取使用了某个插件的服务"""
-        return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id, plugin_status=True)
+        return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id)
 
     def create_service_plugin_relation(self, **params):
         """创建服务插件关系"""

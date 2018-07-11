@@ -785,6 +785,7 @@ class ServiceDomain(BaseModel):
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='http', help_text=u"域名类型 http https httptphttps httpandhttps")
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
+    domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
 
     def __unicode__(self):
         return self.domain_name
@@ -1356,6 +1357,7 @@ class ServiceEvent(BaseModel):
     old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
+    region = models.CharField(max_length=32, default="", help_text=u"服务所属数据中心")
 
 
 class GroupCreateTemp(BaseModel):

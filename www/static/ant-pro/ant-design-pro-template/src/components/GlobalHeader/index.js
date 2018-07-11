@@ -25,6 +25,7 @@ import userIcon from '../../../public/images/user-icon-small.png';
 import ScrollerX from '../../components/ScrollerX';
 import teamUtil from '../../utils/team';
 import globalUtil from '../../utils/global';
+import {Route, Redirect, Switch, routerRedux} from 'dva/router';
 
 class DialogMessage extends PureComponent {
     componentDidMount(){
@@ -50,17 +51,15 @@ class DialogMessage extends PureComponent {
             Modal.info({
                 title: data[0].title,
                 okText: '知道了',
+                width: 600,
                 onOk: () => {
                     this.props.onCancel();
                 },
                 content: (
-                    <div style={{whiteSpace: 'pre-wrap'}}>
-                      {data[0].content}
-                    </div>
+                    <div dangerouslySetInnerHTML={{__html:data[0].content}} style={{whiteSpace: 'pre-wrap'}}></div>
                   )
             })
 
-            
         }
 
     }
@@ -138,26 +137,12 @@ export default class GlobalHeader extends PureComponent {
     }
     handleVisibleChange = (flag) =>{
         this.setState({popupVisible:flag,total:0},()=>{
-            // if(this.state.popupVisible){
-            //     this.props.dispatch({
-            //         type: 'global/putMsgAction',
-            //         payload: {
-            //           team_name:globalUtil.getCurrTeamName(),
-            //           msg_ids:this.state.msg_ids,
-            //           action:"mark_read"
-            //         },
-            //         callback: ((data) => {
-            //             console.log(data)
-            //         })
-            //     })
-            // }
         })
     }
-    onClear = (tablist)=>{
-        const tabTit = noticeTit[tablist];
-        var newList = this.state.newNoticeList;
-        newList[tabTit] = [];
-        this.forceUpdate();
+    onClear = ()=>{
+        this
+            .props
+            .dispatch(routerRedux.replace(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/message`));
     }
     getuserMessage = (page_num,page_size,msg_type,is_read) => {
         this.props.dispatch({
@@ -176,11 +161,14 @@ export default class GlobalHeader extends PureComponent {
                     ids += order.ID + ','
                 })
                 ids = ids.slice(0,(ids.length-1));
-                
-                this.setState({total:data.total,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
-                    return item.level === 'high';
+                var newTotal = datalist.filter((item)=>{
+                    return item.is_read === false
+                }).length
+
+                this.setState({total:newTotal,noticeList:data.list,msg_ids:ids,showDialogMessage: data.list.filter((item)=>{
+                    return item.level === 'high' && item.is_read === false;
                 }) },()=>{
-                    
+
                     const newNotices = this.getNoticeData(this.state.noticeList);
                     this.setState({newNoticeList:newNotices})
                 })
@@ -381,38 +369,37 @@ export default class GlobalHeader extends PureComponent {
               console.log('enter', value); // eslint-disable-line
             }}
           /> */}
-          
-           <NoticeIcon 
-            
-            count={this.state.total} 
-            className="notice-icon" 
-            popupVisible={this.state.popupVisible} 
+
+           <NoticeIcon
+
+            count={this.state.total}
+            className="notice-icon"
+            popupVisible={this.state.popupVisible}
             onPopupVisibleChange={this.handleVisibleChange}
             onClear={this.onClear}
             onItemClick = {(item)=> {
-                
                 this.setState({showDialogMessage: [item]})
             }}
             >
                 <NoticeIcon.Tab
                     title="公告"
-                    emptyText="你已查看所有公告"
+                    emptyText="暂无数据"
                     list={noticesList['announcement']}
                 />
                 <NoticeIcon.Tab
                     title="消息"
-                    emptyText="你已查看所有消息"
+                    emptyText="暂无数据"
                     list={noticesList['news']}
                 />
                 <NoticeIcon.Tab
                     title="提醒"
-                    emptyText="你已查看所有提醒"
+                    emptyText="暂无数据"
                     list={noticesList['warn']}
                 />
             </NoticeIcon>
-          
-     
-       
+
+
+
                     {currentUser
                         ? (
                             <Dropdown overlay={menu}>

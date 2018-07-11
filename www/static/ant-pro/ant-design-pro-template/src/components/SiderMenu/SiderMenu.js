@@ -97,7 +97,7 @@ export default class SiderMenu extends PureComponent {
         })[0]
         return res;
       })[0]
-      
+
       if (currGroup) {
         return currGroup.path;
       }
@@ -231,7 +231,7 @@ export default class SiderMenu extends PureComponent {
     return menusData
       .filter(item => item.name && !item.hideInMenu)
       .map((item) => {
-        
+
         const ItemDom = this.getSubMenuOrItem(item);
         return this.checkPermissionItem(item.authority, ItemDom);
       })
@@ -251,7 +251,7 @@ export default class SiderMenu extends PureComponent {
     const team_name = globalUtil.getCurrTeamName();
     const team = userUtil.getTeamByTeamName(user, team_name);
     if (ItemDom.key.indexOf('source') > -1) {
-      if (user.is_sys_admin) {
+      if (user.is_sys_admin || user.is_user_enter_amdin) {
         return ItemDom;
       }
       return null;

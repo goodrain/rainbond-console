@@ -42,8 +42,10 @@ CREATE TABLE groupapp_backup
     event_id VARCHAR(32) NOT NULL ,
     status VARCHAR(15),
     source_dir VARCHAR(256) DEFAULT '',
-    backup_server_info VARCHAR(256) DEFAULT '',
+    backup_server_info VARCHAR(400) DEFAULT '',
     backup_size INT DEFAULT 0,
+    total_memory INT DEFAULT 0,
+    source_type VARCHAR (32) DEFAULT '',
     create_time DATETIME
 );
 
@@ -74,6 +76,51 @@ CREATE TABLE groupapp_migrate
     user varchar(20),
     migrate_region varchar(15),
     status varchar(15),
+    restore_id varchar(36) default null ,
+    original_group_id int,
+    original_group_uuid varchar(32) NOT NULL,
+    migrate_type varchar (15) default 'migrate',
     create_time datetime
 );
 CREATE UNIQUE INDEX groupapp_migrate_ID_uindex ON groupapp_migrate (ID);
+
+-- 插件分享增加字段
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN plugin_name VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN build_version VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN category VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN plugin_id VARCHAR(32) AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN record_id INTEGER AFTER plugin_key;
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN `desc` VARCHAR(400) AFTER share_team;
+ALTER TABLE `rainbond_center_plugin` ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
+
+-- 插件分享记录事件表
+CREATE TABLE plugin_share_record_event(
+	ID INT AUTO_INCREMENT PRIMARY KEY,
+	record_id INT,
+	region_share_id VARCHAR(36),
+	team_id VARCHAR(32),
+	team_name VARCHAR(32),
+	plugin_id VARCHAR(32),
+	plugin_name VARCHAR(32),
+	event_id VARCHAR(32),
+	event_status VARCHAR(32),
+	create_time datetime NOT NULL,
+	update_time datetime NOT NULL
+);
+
+-- 域名添加域名类型和二级域名名称字段
+ALTER TABLE service_domain ADD domain_type varchar(20) DEFAULT 'www' NULL;
+
+ALTER TABLE rainbond_center_app ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
+DROP INDEX rainbond_center_app_group_key_uindex ON rainbond_center_app;
+
+ALTER TABLE app_export_record ADD enterprise_id varchar(32) DEFAULT 'public' NOT NULL;
+
+ALTER TABLE region_info MODIFY scope varchar(15) DEFAULT 'private';
+-- 修改字段长度
+ALTER TABLE plugin_build_version MODIFY image_tag varchar(100) default '';
+
+-- 应用事件添加数据中心字段
+ALTER TABLE service_event ADD region varchar(32) DEFAULT '' NULL;
+-- 更新数据
+update service_event e,tenant_service ts set e.region = ts.service_region where ts.service_id=e.service_id;

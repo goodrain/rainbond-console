@@ -16,7 +16,7 @@ from django.db import transaction
 from console.constants import AppConstants
 import json
 import datetime
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
 
 logger = logging.getLogger("default")
 
@@ -618,6 +618,7 @@ class ShareService(object):
                 source="local",
                 record_id=share_record.ID,
                 version=group_info["version"],
+                enterprise_id=share_team.enterprise_id,
                 scope=group_info["scope"],
                 describe=group_info["describe"],
                 app_template=json.dumps(app_templete))
@@ -649,6 +650,8 @@ class ShareService(object):
             share_record.step = 3
             share_record.update_time = datetime.datetime.now()
             share_record.save()
+        # 应用有更新，删除导出记录
+        app_export_record_repo.delete_by_key_and_version(app.group_key, app.version)
         return app_market_url
 
     def publish_app_to_public_market(self, tenant, user_name, app):

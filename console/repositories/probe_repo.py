@@ -19,14 +19,14 @@ class ServiceProbeRepository(object):
     def add_service_probe(self, **probe_data):
         return ServiceProbe.objects.create(**probe_data)
 
-    def update_service_probe(self, probe_id, **update_params):
-        ServiceProbe.objects.filter(probe_id=probe_id).update(**update_params)
+    def update_service_probe(self, service_id, probe_id, **update_params):
+        ServiceProbe.objects.filter(service_id=service_id, probe_id=probe_id).update(**update_params)
 
-    def delete_probe_by_probe_id(self, probe_id):
-        ServiceProbe.objects.filter(probe_id=probe_id).delete()
+    def delete_probe_by_probe_id(self, service_id, probe_id):
+        ServiceProbe.objects.filter(service_id=service_id, probe_id=probe_id).delete()
 
-    def get_probe_by_probe_id(self, probe_id):
-        probes = ServiceProbe.objects.filter(probe_id=probe_id)
+    def get_probe_by_probe_id(self, service_id, probe_id):
+        probes = ServiceProbe.objects.filter(service_id=service_id, probe_id=probe_id)
         if probes:
             return probes[0]
         return None

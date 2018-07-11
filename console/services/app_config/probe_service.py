@@ -144,12 +144,13 @@ class ProbeService(object):
                                                         service.service_alias, prob_data)
             logger.debug("update probe action status {0}".format(res.status))
         console_probe.pop("probe_id")
-        probe_repo.update_service_probe(probe.probe_id, **console_probe)
+        console_probe.pop("service_id")
+        probe_repo.update_service_probe(service.service_id, probe.probe_id, **console_probe)
         new_probe = probe_repo.get_probe_by_mode(service.service_id, probe.mode)
         return 200, "success", new_probe
 
     def delete_service_probe(self, tenant, service, probe_id):
-        probe = probe_repo.get_probe_by_probe_id(probe_id)
+        probe = probe_repo.get_probe_by_probe_id(service.service_id, probe_id)
         if not probe:
             return 404, u"未找到探针"
         body = {"probe_id": probe_id}

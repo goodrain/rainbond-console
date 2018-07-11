@@ -91,11 +91,13 @@ class AppEventService(object):
         if event.type == "deploy" or event.type == "create":
             if (datetime.datetime.now() - start_time).seconds > 180:
                 event.final_status = "timeout"
+                event.status = "timeout"
                 event.save()
                 return True
         else:
             if (datetime.datetime.now() - start_time).seconds > 30:
                 event.final_status = "timeout"
+                event.status = "timeout"
                 event.save()
                 return True
         return False
@@ -125,6 +127,7 @@ class AppEventService(object):
                 "deploy_version": service.deploy_version,
                 "old_deploy_version": old_deploy_version,
                 "user_name": committer_name,
+                "region": service.service_region,
                 "start_time": datetime.datetime.now()
             }
         else:
@@ -135,6 +138,7 @@ class AppEventService(object):
                 "type": action,
                 "deploy_version": service.deploy_version,
                 "old_deploy_version": old_deploy_version,
+                "region": service.service_region,
                 "user_name": user.nick_name,
                 "start_time": datetime.datetime.now()
             }
@@ -162,9 +166,7 @@ class AppEventService(object):
 
     def get_service_event(self, tenant, service, page, page_size, start_time_str):
         # 前端传入时间到分钟，默认会加上00，这样一来刚部署的应用的日志无法查询到，所有将当前时间添加一分钟
-        if not start_time_str:
-            start_time_str = current_time_str(fmt="%Y-%m-%d %H:%M:%S")
-        else:
+        if start_time_str:
             start_time = str_to_time(start_time_str, fmt="%Y-%m-%d %H:%M")
             start_time_str = time_to_str(start_time + datetime.timedelta(minutes=1))
 
@@ -230,7 +232,7 @@ class AppEventService(object):
     def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()
         for event in events:
-            if event.final_status == '':
+            if not event.final_status or not event.status:
                 local_events_not_complete[event.event_id] = event
 
         if not local_events_not_complete:

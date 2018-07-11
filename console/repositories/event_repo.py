@@ -25,8 +25,11 @@ class ServiceEventRepository(object):
             return None
 
     def get_events_before_specify_time(self, tenant_id, service_id, start_time):
-        return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id,
-                                           start_time__lte=start_time).order_by("-start_time")
+        if start_time:
+            return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id,
+                                               start_time__lte=start_time).order_by("-start_time")
+        else:
+            return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-start_time")
 
     def create_event(self, **event_info):
         return ServiceEvent.objects.create(**event_info)
@@ -34,9 +37,15 @@ class ServiceEventRepository(object):
     def delete_events(self, service_id):
         ServiceEvent.objects.filter(service_id=service_id).delete()
 
+    def delete_event_by_build_version(self, service_id, deploy_version):
+        ServiceEvent.objects.filter(deploy_version=deploy_version, service_id=service_id).delete()
+
+
     def get_specified_num_events(self, tenant_id, service_id, num=6):
         """查询指定条数的日志"""
         return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-ID")[:num]
 
+    def get_specified_region_events(self, tenant_id, region):
+        return ServiceEvent.objects.filter(tenant_id=tenant_id, region=region).order_by("-ID")
 
 event_repo = ServiceEventRepository()

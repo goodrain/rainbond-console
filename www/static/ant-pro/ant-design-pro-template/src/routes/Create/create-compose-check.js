@@ -362,7 +362,12 @@ export default class CreateCheck extends PureComponent {
         return <Result
               type="success"
               title="应用检测通过"
-              description="请核对已下信息后开始构建。如信息有误，请点高级设置进行修改"
+              description={
+                <div>
+                  <div>应用检测通过仅代表平台可以检测到代码语言类型和代码源。</div>
+                  90%以上的用户在检测通过后可部署成功，如遇部署失败，可参考  <a href="http://www.rainbond.com/docs/stable/user-manual/create-an-app.html" target="_blank">rainbond文档</a>   对代码包进行调整。
+                </div>
+              }
               extra={extra}
               actions={actions}
               style={{ marginTop: 48, marginBottom: 16 }}

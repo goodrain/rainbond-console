@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react';
+import React, {PureComponent, Fragment} from 'react';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import {connect} from 'dva';
@@ -43,97 +43,13 @@ import Ellipsis from '../../components/Ellipsis';
 import PluginStyles from '../Plugin/Index.less';
 import config from '../../config/config';
 import cookie from '../../utils/cookie';
+import GoodrainRZ from '../../components/GoodrainRenzheng';
 
 
 const ButtonGroup = Button.Group;
 const {Option} = Select;
 const FormItem = Form.Item;
 
-const token = cookie.get('token');
-let myheaders = {}
-if (token) {
-   myheaders.Authorization = `GRJWT ${token}`;  
-   myheaders['X_REGION_NAME'] = globalUtil.getCurrRegionName();
-   myheaders['X_TEAM_NAME'] = globalUtil.getCurrTeamName();
-}
-
-//上传文件
-
-@connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
-@Form.create()
-class UploadFile extends PureComponent {
-    constructor(props){
-      super(props);
-      this.state={
-        fileList: []
-      }
-    }
-    handleOk = () => {
-         const file = this.state.fileList;
-         if(file.length == 0){
-            message.info('您还没有上传文件',2);
-            return;
-         }
-         if(file[0].status != 'done'){
-              message.info('正在上传请稍后',2);
-              return;
-         }
-         const file_name = file[0].name;
-         const event_id = file[0].response.data.bean.event_id;
-         console.log(event_id)
-        this
-        .props
-        .dispatch({
-            type: 'createApp/importApp',
-            payload: {
-                team_name: globalUtil.getCurrTeamName(),
-                scope: 'enterprise',
-                event_id: event_id,
-                file_name: file_name
-            },
-            callback: ((data) => {
-              message.success('操作成功，正在导入',2);
-              this.props.onOk && this.props.onOk(data);
-            })
-        })
-    } 
-  
-    onChange= ({ fileList }) => {
-        this.setState({fileList},function(){
-          console.log(this.state.fileList)
-        })
-    }
-    onRemove = ()=>{
-       this.setState({fileList:[]})
-    }
-    render(){
-      const form = this.props.form;
-      const {getFieldDecorator} = form;
-      const team_name = globalUtil.getCurrTeamName();
-      const uploadUrl = config.baseUrl + '/console/teams/'+ team_name +'/apps/upload';
-      const fileList = this.state.fileList;
-      
-      return (
-         <Modal
-           visible={true}
-           onOk={this.handleOk}
-           onCancel={this.props.onCancel}
-           title="请上传应用模板"
-           okText="确定上传"
-         >
-            <Upload 
-               action={uploadUrl}
-               fileList={fileList}
-               onChange={this.onChange}
-               onRemove={this.onRemove}
-               headers = {myheaders}
-            >
-                {fileList.length > 0? null: <Button>请选择文件</Button>}
-            </Upload>
-         </Modal>
-      )
-    }
-}
 
 @connect(({user, groupControl, global, loading}) => ({rainbondInfo: global.rainbondInfo, loading: loading}), null, null, {pure: false})
 @Form.create()
@@ -149,29 +65,17 @@ export default class Main extends PureComponent {
       page: 1,
       pageSize: 9,
       total: 0,
-      showUpload: false,
-      target: 'searchWrap',
-      visiblebox:{},
-      querydatabox:{},
-      exportTit:{},
-      is_public:this.props.rainbondInfo.is_public,
-      showBatchImport:false,
-      showBatchImportList:false,
-      source_dir:'',
-      importEvent_id:'',
-      importNameList:[]
+      target: 'searchWrap'
     }
     this.mount = false;
   }
   componentDidMount() {
     this.mount = true;
     this.getApps();
-    setTimeout(()=>{
-      this.setState({target: 'importApp'});
-    }, 3000)
   }
   componentWillUnmount() {
     this.mount = false;
+    this.mountquery = false;
   }
   handleChange = (v) => {
 
@@ -185,9 +89,6 @@ export default class Main extends PureComponent {
     })
   }
   getApps = (v) => {
-    var datavisible = {};
-    var dataquery = {};
-    var dataexportTit = {}
     this
       .props
       .dispatch({
@@ -199,123 +100,13 @@ export default class Main extends PureComponent {
           page: this.state.page
         },
         callback: ((data) => {
-          if(data.list.length != 0){
-            data.list.map((app)=>{
-              datavisible[app.ID] = false;
-              dataquery[app.ID] = {};
-              if(app.export_status == 'exporting'){
-                dataexportTit[app.ID] = '导出中'
-                // this.queryExport(app);
-              }else if(app.export_status ==  'success'){
-                dataexportTit[app.ID] = '导出(可下载)'
-              }else{
-                dataexportTit[app.ID] = '导出'
-              }
-            })
-          }
           this.setState({
             list: data.list || [],
-            total: data.total,
-            visiblebox:datavisible,
-            querydatabox:dataquery,
-            exportTit:dataexportTit
+            total: data.total
           })
         })
       })
   }
-
-
-  appExport = (app_id,format) => {
-    this
-      .props
-      .dispatch({
-        type: 'createApp/appExport',
-        payload: {
-          team_name:globalUtil.getCurrTeamName(),
-           app_id:app_id,
-           format:format
-        },
-        callback: ((data) => {
-          notification.success({message: `操作成功，开始导出，请稍等！`});
-        })
-      })
-  }
-
-  getExport = (app_id,format) => {
-    this
-      .props
-      .dispatch({
-        type: 'createApp/getExport',
-        payload: {
-          team_name:globalUtil.getCurrTeamName(),
-           app_id:app_id,
-           format:format
-        },
-        callback: ((data) => {
-          // message.success('操作成功，开始导出，请稍等！');
-        })
-      })
-  }
-  
-
- queryExport = (item) => {
-  if (!this.mount) 
-  return;
-    this
-      .props
-      .dispatch({
-        type: 'createApp/queryExport',
-        payload: {
-           app_id:item.ID,
-           team_name:globalUtil.getCurrTeamName()
-        },
-        callback: ((data) => {
-          var newexportTit = this.state.exportTit;
-          var newquerydata = this.state.querydatabox;
-           var querydataid = data.bean;
-           newquerydata[item.ID] = querydataid;
-           if(data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
-               if((data.bean.docker_compose.status == "exporting" && data.bean.rainbond_app.status != "success") || (data.bean.rainbond_app.status == "exporting" && data.bean.docker_compose.status != "success")){
-                   newexportTit[item.ID] = '导出中'
-                  //  setTimeout(() => {
-                  //     this.queryExport(item);
-                  //   }, 5000)
-               }else if(data.bean.docker_compose.status == "success" || data.bean.rainbond_app.status == "success"){
-                  newexportTit[item.ID] = '导出(可下载)'
-               }else{
-                  newexportTit[item.ID] = '导出' 
-               }
-           }else if(data.bean.docker_compose.is_export_before && !data.bean.rainbond_app.is_export_before){
-              if(data.bean.docker_compose.status == "exporting"){
-                    newexportTit[item.ID] = '导出中'
-                    // setTimeout(() => {
-                    //   this.queryExport(item);
-                    // }, 5000)
-                }else if(data.bean.docker_compose.status == "success"){
-                  newexportTit[item.ID] = '导出(可下载)'
-                }else{
-                  newexportTit[item.ID] = '导出' 
-                }
-           }else if(!data.bean.docker_compose.is_export_before && data.bean.rainbond_app.is_export_before){
-              if(data.bean.rainbond_app.status == "exporting"){
-                newexportTit[item.ID] = '导出中'
-                // setTimeout(() => {
-                //   this.queryExport(item);
-                // }, 5000)
-              }else if(data.bean.rainbond_app.status == "success"){
-                 newexportTit[item.ID] = '导出(可下载)'
-              }else{
-                newexportTit[item.ID] = '导出' 
-              }
-           }else{
-               newexportTit[item.ID] = '导出' 
-           }
-          
-           this.setState({querydatabox:newquerydata})
-        })
-      })
-  }
-
 
   hanldePageChange = (page) => {
     this.setState({
@@ -373,110 +164,6 @@ export default class Main extends PureComponent {
       })
 
   }
- 
-  handleCancelUpload = () => {
-     this.setState({showUpload: false})
-  }
-  handleUploadOk =()=>{
-    this.setState({showUpload: false})
-  }
-  handleCancelBatchImport = () => {
-    this.setState({showBatchImport: false})
- }
- handleBatchImportOk = (data) => {
-   console.log(data)
-   this.setState({showBatchImport: false,showBatchImportList:true,importNameList:data})
-}
- 
-handleCancelBatchImportList = () => {
-  this.setState({showBatchImportList: false})
-}
-handleOKBatchImportList = () => {
-    this.setState({showBatchImportList: false})
-}
-
-  handleMenuClick = (e) => {
-     var key = e.key;
-     var keyArr  = key.split("||");
-     console.log(keyArr);
-     var format = keyArr[0];
-     var id = keyArr[1];
-     var isexport = keyArr[2];
-     var team_name = globalUtil.getCurrTeamName()
-     if(isexport =='success'){
-        // var newurl = config.baseUrl + '/console/teams/'+ team_name +'/apps/export/down?app_id='+ id +'&format=' + format;
-        // window.open(newurl);
-     }else if(isexport == 'loading'){
-        notification.info({message: `正在导出，请稍后！`});
-     }else{
-       this.appExport(id,format);
-     }
-    
-  }
-
-  renderSubMenu = (item,querydata) => {
-    const id = item.ID;
-    const exportbox  = querydata[id];
-    const appquery = exportbox.rainbond_app;
-    const composequery = exportbox.docker_compose;
-    var apptext ='rainbond-app(点击导出)';
-    var composetext = 'docker_compose(点击导出)';
-    var appurl='javascript:;';
-    var composeurl ='javascript:;';
-    var appisSuccess = 'none';
-    var composeisSuccess = 'none';
-    const export_status = item.export_status;
-    if(appquery){
-      //
-      
-       if(appquery.is_export_before)  {
-          if(appquery.status== 'success'){
-            apptext = 'rainbond-app(点击下载)';
-            appisSuccess = 'success';
-            appurl = appquery.file_path ;
-          }else if(appquery.status  == 'exporting'){
-            apptext = 'rainbond-app(导出中)';
-            appisSuccess = 'loading';
-          }else{
-            apptext = 'rainbond-app(导出失败)';
-          }
-       }else{
-        apptext = 'rainbond-app(点击导出)';
-       }
-       //
-       if(composequery.is_export_before)  {
-        if(composequery.status== 'success'){
-          composetext = 'docker_compose(点击下载)';
-          composeisSuccess = 'success';
-          composeurl = composequery.file_path ;
-        }else if(composequery.status  == 'exporting'){
-          composetext = 'docker_compose(导出中)';
-          composeisSuccess = 'loading';
-        }else{
-          composetext = 'docker_compose(导出失败)';
-        }
-     }else{
-        composetext = 'docker_compose(点击导出)';
-     }
-       //
-
-       //
-       
-    }else{
-      composetext = 'docker_compose(点击下载)';
-      apptext = 'rainbond-app(点击下载)';
-    }
-
-    return <Menu onClick={this.handleMenuClick}>
-            <Menu.Item key={ 'rainbond-app||' +  id  + '||' + appisSuccess}>
-              <a target="_blank"  href={appurl} download="filename">{apptext}</a>
-            </Menu.Item>
-            <Menu.Item key={'docker-compose||' + id  + '||' + composeisSuccess}>
-              <a target="_blank" href={composeurl}  download="filename">{composetext}</a>
-            </Menu.Item>
-      </Menu>
-		
-  }
   
   handleVisibleChange = (item,flag) =>{
     var newvisible = this.state.visiblebox;
@@ -485,34 +172,9 @@ handleOKBatchImportList = () => {
     this.setState({ visiblebox: newvisible });
     this.queryExport(item);
   }
-  handleImportMenuClick = (e)=>{
-    if(e.key == '1'){
-       this.setState({showUpload:true})
-    }
-    if(e.key == '2'){
-      this.setState({showBatchImport:true})
-      this
-        .props
-        .dispatch({
-            type: 'createApp/importDir',
-            payload: {
-                team_name: globalUtil.getCurrTeamName()
-            },
-            callback: ((data) => {
-                this.setState({
-                   source_dir:data.bean.source_dir,
-                   importEvent_id:data.bean.event_id
-                })
-            })
-        })
-    }
-  }
+
   renderApp = (item) => {
     const ismarket = item.source;
-    const itemID= item.ID;
-    const querydata = this.state.querydatabox;
-    const exportStatus = item.export_status;
-    const exportText = this.state.exportTit[itemID];
     const title = (item) => {
       return <div
         title={item.group_name || ''}
@@ -524,25 +186,15 @@ handleOKBatchImportList = () => {
       </div>
     }
 
-     return <Card
+     return <Fragment>
+        {item.is_official && <GoodrainRZ style={{marginLeft: 6, marginTop: 6}} />}
+        <Card
      className={PluginStyles.card}
      actions={
-      ismarket == 'market' ? 
       [<span onClick={() => {
        this.showCreate(item)
      }}>安装</span>
      ]
-     :
-     [<span onClick={() => {
-      this.showCreate(item)
-    }}>安装</span>
-    // ,
-    // <Dropdown overlay={this.renderSubMenu(item,querydata)}  visible={this.state.visiblebox[itemID]} onVisibleChange={this.handleVisibleChange.bind(this,item)}>
-    //    <a  className="ant-dropdown-link" href="javascript:;" >
-    //      {exportText}<Icon type="down" />
-    //    </a>
-    //  </Dropdown>
-    ]
     }>
      <Card.Meta
          style={{height: 112, overflow: 'hidden'}}
@@ -557,13 +209,20 @@ handleOKBatchImportList = () => {
          } />}
          title={title(item)}
          description={(
-         <Ellipsis className={PluginStyles.item} lines={3}><span style={{ display: 'block',color:'rgb(200, 200, 200)', marginBottom:8, fontSize: 12}} > 
+        <Fragment>
+          <span style={{ display: 'block',color:'rgb(200, 200, 200)', marginBottom:8, fontSize: 12}} > 
            版本: {item.version} 
            <br />
            内存: {sourceUtil.unit(item.min_memory||128, 'MB')}
-         < /span><span title={item.describe}>{item.describe}</span></Ellipsis>
-       )}/>
+         </span>
+         <Ellipsis className={PluginStyles.item} lines={3}>
+            <span title={item.describe}>{item.describe}</span>
+         </Ellipsis>
+         </Fragment>
+       )}
+       />
    </Card>
+   </Fragment>
   }
   render() {
 
@@ -581,8 +240,8 @@ handleOKBatchImportList = () => {
         this.hanldePageChange(v);
       }
     };
-    const cardList = list
-      ? (
+      
+    const cardList = (
 
         <List
           bordered={false}
@@ -593,6 +252,14 @@ handleOKBatchImportList = () => {
             sm: 1,
             xs: 1
         }}
+        locale = {
+          {
+              emptyText: <p style={{paddingTop: 80, lineHeight: 1.3}}>
+                  暂无应用， 你可以<br /><br />
+                  分享应用 或 <Link  to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source`}>从云端同步</Link>
+              </p>
+          }
+      }
           pagination={paginationProps}
           dataSource={list}
           renderItem={item => (
@@ -600,10 +267,10 @@ handleOKBatchImportList = () => {
               style={{border: 'none'}}
               >
               {this.renderApp(item)}
+              
             </List.Item>
         )}/>
       )
-      : null;
 
 
     const mainSearch = (
@@ -643,12 +310,6 @@ handleOKBatchImportList = () => {
       }
     ];
     const loading = this.props.loading;
-    const ImportMenu = (
-      <Menu onClick={this.handleImportMenuClick}>
-        <Menu.Item key="1">文件上传</Menu.Item>
-        <Menu.Item key="2">批量导入</Menu.Item>
-      </Menu>
-    );
     
     return (
       <PageHeaderLayout
@@ -659,18 +320,6 @@ handleOKBatchImportList = () => {
           {/* <div className="btns" style={{marginTop: -10, marginBottom: 16, textAlign: 'right'}}>
             <Button id="importApp" onClick={this.onUpload} type="primary">导入应用</Button>
           </div> */}
-          {/* <div style={{marginBottom:'10px',textAlign:'right'}}>
-          {
-            this.state.is_public?
-            ''
-            :
-             <Dropdown overlay={ImportMenu}>
-              <Button>
-                导入 <Icon type="down" />
-              </Button>
-            </Dropdown>
-          }
-          </div> */}
           <div className={PluginStyles.cardList}>
             {cardList}
           </div>
@@ -678,9 +327,6 @@ handleOKBatchImportList = () => {
           disabled={loading.effects['createApp/installApp']}
           onSubmit={this.handleCreate}
           onCancel={this.onCancelCreate}/>}
-          {this.state.showUpload && <UploadFile onOk={this.handleUploadOk} onCancel={this.handleCancelUpload}  />}
-          {this.state.showBatchImport && <BatchImportForm  onOk={this.handleBatchImportOk} onCancel={this.handleCancelBatchImport} source_dir={this.state.source_dir} event_id={this.state.importEvent_id}/>}
-          {this.state.showBatchImportList && <BatchImportListForm  onOk={this.handleOKBatchImportList} onCancel={this.handleCancelBatchImportList} event_id={this.state.importEvent_id} file_name={this.state.importNameList}/>}
           
           {/* <GuideManager /> */}
       </PageHeaderLayout>

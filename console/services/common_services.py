@@ -4,6 +4,8 @@ import logging
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import TenantRegionInfo
 from www.region import RegionInfo
+from django.conf import settings
+
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -30,6 +32,17 @@ class CommonServices(object):
                 totalDisk += disk
         return totalMemory,totalDisk
 
+    def get_current_region_used_resource(self, tenant, region_name):
+        data = {"tenant_name": [tenant.tenant_name]}
+        res = region_api.get_region_tenants_resources(region_name, data, tenant.enterprise_id)
+        d_list = res["list"]
+        if d_list:
+            resource = d_list[0]
+            memory = int(resource["memory"])
+            disk = int(resource["disk"])
+            return memory, disk
+        return 0, 0
+
     def calculate_cpu(self, region, memory):
         """根据内存和数据中心计算cpu"""
         min_cpu = int(memory) * 20 / 128
@@ -37,5 +50,7 @@ class CommonServices(object):
             min_cpu = min_cpu * 2
         return min_cpu
 
+    def is_public(self):
+        return settings.MODULES.get('SSO_LOGIN')
 
 common_services = CommonServices()

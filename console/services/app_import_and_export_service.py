@@ -29,10 +29,11 @@ region_api = RegionInvokeApi()
 
 
 class AppExportService(object):
-    def create_export_repo(self, event_id, export_format, group_key, version):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(group_key, version, export_format)
+    def create_export_repo(self, event_id, export_format, group_key, version, enterprise_id):
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, group_key, version,
+                                                                                     export_format)
         if export_record:
-            return 409, "已存在改导出类型的文件", None
+            return 409, "已存在该导出类型的文件", None
 
         if event_id is None:
             event_id = make_uuid()
@@ -41,7 +42,8 @@ class AppExportService(object):
             "group_key": group_key,
             "version": version,
             "format": export_format,
-            "status": "exporting"
+            "status": "exporting",
+            "enterprise_id": enterprise_id
         }
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
@@ -54,8 +56,9 @@ class AppExportService(object):
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
         region_api.export_app(region, team.tenant_name, data)
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-                                                                               export_format)
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.tenant_id, app.group_key,
+                                                                                     app.version,
+                                                                                     export_format)
         if export_record:
             logger.debug("update export record !")
             export_record.event_id = event_id
@@ -65,7 +68,8 @@ class AppExportService(object):
             new_export_record = export_record
         else:
             logger.debug("create export record !")
-            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version)
+            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version,
+                                                                   team.enterprise_id)
             if code != 200:
                 return code, msg, None
         return 200, "success", new_export_record
@@ -83,6 +87,8 @@ class AppExportService(object):
         return json.dumps(app_template)
 
     def encode_image(self, image_url):
+        if not image_url:
+            return None
         if image_url.startswith("http"):
             response = urllib2.urlopen(image_url)
         else:
@@ -102,18 +108,26 @@ class AppExportService(object):
             if group:
                 region = group.region_name
             else:
-                return None
+                region = None
 
         if region:
             region_config = region_repo.get_region_by_region_name(region)
             if region_config:
                 return region
-            return None
+            region = None
+        else:
+            region = None
+        if not region and app.source == "market":
+            regions = region_repo.get_usable_regions()
+            if not regions:
+                return None
+            else:
+                return regions[0].region_name
         else:
             return None
 
     def get_export_status(self, team, app):
-        app_export_records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
+        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(team.enterprise_id, app.group_key, app.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -177,8 +191,8 @@ class AppExportService(object):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                       export_format)
 
-    def get_export_record_status(self, app):
-        records = app_export_record_repo.get_by_key_and_version(app.group_key, app.version)
+    def get_export_record_status(self, enterprise_id, app):
+        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, app.group_key, app.version)
         export_status = "other"
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:
@@ -211,7 +225,10 @@ class AppExportService(object):
 
         req = urllib2.Request(download_url)
         if token:
-            req.add_header("Authorization", "Token {}".format(token))
+            if token.startswith("Token"):
+                req.add_header("Authorization", "{}".format(token))
+            else:
+                req.add_header("Authorization", "Token {}".format(token))
 
         return req, file_name
 
@@ -292,16 +309,23 @@ class AppImportService(object):
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
+        key_and_version_list = []
         for app_template in metadata:
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
             if app:
+                app.is_complete = True
+                app.save()
                 continue
             image_base64_string = app_template.pop("image_base64_string", "")
             pic_url = ""
             if image_base64_string:
                 pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
 
+            key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
+            if key_and_version in key_and_version_list:
+                continue
+            key_and_version_list.append(key_and_version)
             rainbond_app = RainbondCenterApp(
                 group_key=app_template["group_key"],
                 group_name=app_template["group_name"],
@@ -321,6 +345,8 @@ class AppImportService(object):
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     def decode_image(self, image_base64_string, suffix):
+        if not image_base64_string:
+            return ""
         try:
             file_name = make_uuid() + "."+suffix
             file_path = "{0}/{1}".format("/data/media/uploads", file_name)

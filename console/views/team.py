@@ -652,6 +652,10 @@ class TeamDetailView(JWTAuthApiView):
             if not user_team_perm:
                 if not self.user.is_sys_admin and team_name != "grdemo":
                     return Response(general_message(403, "you right to see this team", "您无权查看此团队"), 403)
+                else:
+                    tenant_info["identity"] = "viewer"
+                    perms = p.keys('tenant_{0}_actions'.format("viewer"))
+                    tenant_info["tenant_actions"] = perms
             else:
                 perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                                  tenant_name=tenant.tenant_name)

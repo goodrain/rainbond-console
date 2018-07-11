@@ -1,13 +1,29 @@
 import request from '../utils/request';
 import config from '../config/config';
 
+
+
+/* 删除应用的某个版本 */
+export function delAppVersion(body={team_name, service_alias, version_id}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/version/${body.version_id}`, {
+		method: 'DELETE'
+	});
+}
+
+/* 获取应用所有的版本列表 */
+export function getAppVersionList(body={team_name, service_alias}){
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/version`, {
+		method: 'get'
+	});
+}
+
  /*
   获取php语言扩展
  */
 export function getPhpConfig(){
 	return request(config.baseUrl + `/console/php`, {
 		method: 'get'
-});
+	});
 }
 
 
@@ -321,16 +337,20 @@ export function getUnRelationedApp(body = {
 				team_name,
 				app_alias,
 				page,
-				page_size
+				page_size,
+				search_key,
+				condition
 }) {
-	console.log(body)
+
 				return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/un_dependency`, {
 					method: 'get',
 					params:{
 						page: body.page ||1,
-						page_size: body.page_size || 8
+						page_size: body.page_size || 8,
+						condition: body.condition,
+						search_key: body.search_key
 					}
-					
+
 			});
 }
 
@@ -1057,7 +1077,7 @@ export async function getAppOnlineNumber(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requestclient{service_id="' + body.serviceId + '"})'
+												query: 'max(app_requestclient{service_id="' + body.serviceId + '"})'
 								},
 								showLoading: false
 				});
@@ -1078,7 +1098,7 @@ export async function getAppOnlineNumberRange(body = {
 								method: 'get',
 								showMessage: false,
 								params: {
-												query: 'sum(app_requestclient{service_id="' + body.serviceId + '"})',
+												query: 'max(app_requestclient{service_id="' + body.serviceId + '"})',
 												start: body.start,
 												end: body.end || (new Date().getTime() / 1000),
 												step: body.step
@@ -1532,4 +1552,77 @@ export async function getAppResource(body={team_name, app_alias}){
 	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.app_alias}/resource`, {
 		method: 'get'
 });
+}
+
+
+/*
+   查询自定义二级域名后缀
+*/
+export async function getSubDomain(body = {
+	team_name,
+	service_alias
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/sld-domain`, {
+		method: 'get',
+		params: {
+			team_name: body.team_name,
+			service_alias: body.service_alias
+		}
+	});
+}
+
+/*
+   修改二级域名
+*/
+export async function SubDomain(body = {
+	team_name,
+	service_alias,
+	domain_name,
+	container_port
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/sld-domain`, {
+		method: 'put',
+		data: {
+			domain_name: body.domain_name,
+			container_port: body.container_port
+		}
+	});
+}
+
+
+/*
+   查询可修改tcp端口
+*/
+export async function getSubPort(body = {
+	team_name,
+	service_alias,
+	port
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/tcp-ports/${body.port}`, {
+		method: 'get',
+		params: {
+			team_name: body.team_name,
+			service_alias: body.service_alias,
+			port:body.port
+		}
+	});
+}
+
+/*
+   修改端口
+*/
+export async function SubPort(body = {
+	team_name,
+	service_alias,
+	port,
+	lb_mapping_port,
+	service_id
+}) {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/apps/${body.service_alias}/tcp-ports/${body.port}`, {
+		method: 'put',
+		data: {
+			lb_mapping_port: body.lb_mapping_port,
+			service_id: body.service_id
+		}
+	});
 }

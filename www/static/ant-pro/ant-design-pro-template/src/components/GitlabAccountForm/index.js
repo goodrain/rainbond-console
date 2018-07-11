@@ -40,7 +40,7 @@ export default class Index extends PureComponent {
 			        <Form  layout="horizontal" hideRequiredMark>
 			          <Form.Item
 			            {...formItemLayout}
-			            label="好雨Git密码"
+			            label="Gitlab密码"
 			          >
 			            {getFieldDecorator('password', {
 			              initialValue: data.password || '',

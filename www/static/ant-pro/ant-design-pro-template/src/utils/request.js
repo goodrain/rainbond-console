@@ -29,7 +29,7 @@ function checkStatus(response) {
     }
 
     const errortext = codeMessage[response.status] || response.statusText;
-    notification.error({message: `请求错误 ${response.status}: ${response.url}`, description: errortext});
+    notification.error({message: `请求错误 : ${response.url}`, description: errortext});
 
     const error = new Error(errortext);
     error.name = response.status;
@@ -118,7 +118,7 @@ export default function request(url, options) {
             showLoading && dispatch && dispatch({type: 'global/hiddenLoading'});
             const res = response.data.data || {};
             res._code = response.status;
-            return res; 
+            return res;
         })
         .catch((error) => {
             if (showLoading) {
@@ -144,6 +144,11 @@ export default function request(url, options) {
                     dispatch && dispatch({type: 'global/showNoMoneyTip', payload: {
                         message: resData.msg_show
                     }});
+                    return;
+                }
+
+                if (resData.code === 10407) {
+                    dispatch && dispatch({type: 'global/showAuthCompany'});
                     return;
                 }
 
@@ -180,7 +185,7 @@ export default function request(url, options) {
                         return;
                     }
 
-                    notification.error({message: `请求错误 ${response.status}`, description: msg});
+                    notification.error({message: `请求错误`, description: msg});
                 }
 
                 // if (status <= 504 && status >= 500) {

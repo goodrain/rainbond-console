@@ -37,7 +37,7 @@ class CreateNewProject extends PureComponent{
 	    };
 		return(
 			<Modal
-				title="新建好雨Git项目"
+				title="新建Gitlab项目"
 				visible={true}
 				onOk={this.handleOk}
 				onCancel={this.handleCancel}
@@ -275,7 +275,7 @@ export default class Index extends PureComponent {
 			          </Form.Item>
 			          <Form.Item
 			            {...formItemLayout}
-			            label="好雨Git项目"
+			            label="Gitlab项目"
 			          >
 			            {getFieldDecorator('git_project_id', {
 			              initialValue: defaultProject,

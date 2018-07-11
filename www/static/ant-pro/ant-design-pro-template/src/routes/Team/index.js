@@ -150,6 +150,7 @@ export default class Index extends PureComponent {
       showAddRole: false,
       deleteRole: null,
       editRole: null
+      
     }
   }
   componentDidMount() {
@@ -363,13 +364,14 @@ export default class Index extends PureComponent {
   }
   handleEditAction = (data) => {
     const team_name = globalUtil.getCurrTeamName();
+    const toEditMember = this.state.toEditAction;
     this
       .props
       .dispatch({
         type: 'teamControl/editMember',
         payload: {
           team_name: team_name,
-          user_name: data.user_name,
+          user_id: toEditMember.user_id,
           role_ids: data.role_ids.join(',')
         },
         callback: () => {

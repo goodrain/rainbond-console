@@ -37,7 +37,7 @@ const menuData = function(){
       icon: 'team',
       path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/team`
     }, {
-      name: '连接云市',
+      name: '内部市场',
       icon: 'usb',
       path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/source`
     }, {
@@ -46,7 +46,7 @@ const menuData = function(){
       path: `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/finance`
     }
   ];
-} 
+}
 
 function formatter(data, parentPath = '', parentAuthority) {
   return data.map((item) => {

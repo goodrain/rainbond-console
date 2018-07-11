@@ -616,9 +616,9 @@ class Main extends PureComponent {
                              <Button onClick={this.handleRestart} className={styles.blueant}>重启</Button>
                         </Tooltip> : null}
 
-                        {appUtil.canRestartApp(appDetail) && <Button
-                            disabled={!appStatusUtil.canRestart(status)}
-                            onClick={this.handleRestart}>重启</Button>}
+                        {(!this.state.showreStartTips && appUtil.canRestartApp(appDetail) && appStatusUtil.canRestart(status))?
+                             <Button onClick={this.handleRestart}>重启</Button>
+                         : null}
                         
 
 
@@ -668,7 +668,7 @@ class Main extends PureComponent {
                 tab: '端口'
             }, {
                 key: 'plugin',
-                tab: '扩展'
+                tab: '插件'
             }, {
                 key: 'setting',
                 tab: '设置'

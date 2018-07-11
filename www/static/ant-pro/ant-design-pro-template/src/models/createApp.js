@@ -1,5 +1,5 @@
 import { createAppByCode, createAppByCompose, createAppByDockerrun, getMarketApp, installApp , queryExport,appExport,getExport,
-getAppsByComposeId,uploadApp,importApp,queryImportApp,importDir,queryImportDirApp } from '../services/createApp';
+getAppsByComposeId,uploadApp,importApp,queryImportApp,importDir,queryImportDirApp,queryImportingApp } from '../services/createApp';
 
 export default {
   namespace: 'createApp',
@@ -99,6 +99,12 @@ export default {
     },
      *queryImportDirApp({payload, callback}, {call, put}) {
       const data = yield call(queryImportDirApp, payload);
+      if(data){
+          callback && callback(data);
+      }
+    },
+    *queryImportingApp({payload, callback}, {call, put}) {
+      const data = yield call(queryImportingApp, payload);
       if(data){
           callback && callback(data);
       }

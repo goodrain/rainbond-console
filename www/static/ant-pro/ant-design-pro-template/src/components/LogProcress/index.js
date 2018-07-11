@@ -1,10 +1,10 @@
-import React, { PureComponent, Fragment } from 'react';  
+import React, { PureComponent, Fragment } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { Link } from 'dva/router';
 import { Card, Button, Table, notification, Badge } from 'antd';
-import LogSocket from '../../utils/logSocket'
-
+import LogSocket from '../../utils/logSocket';
+import domUtil from '../../utils/dom-util';
 
 export default class Index extends PureComponent {
 	constructor(props){
@@ -22,8 +22,13 @@ export default class Index extends PureComponent {
 		})[0];
 		return d;
 	}
+	createTmpElement(){
+		this.ele = document.createElement('p');
+		this.ele.cssText = "margin-bottom:0"
+	}
 	componentDidMount(){
 		const resover = this.props.resover;
+		this.createTmpElement();
 		this.socket = new LogSocket({
 			eventId: this.eventId,
 			url: this.socketUrl,
@@ -40,23 +45,30 @@ export default class Index extends PureComponent {
 		    	this.props.onFail && this.props.onFail(data)
 		  	},
 			onMessage: (data) => {
+				var ele = this.ele.cloneNode();
 				try{
-					data.message = JSON.parse(data.message);
-					const msg  = data.message;
-					if(msg.id){
-						var hasData = this.findProgressById(msg.id);
-						if(hasData){
-							hasData.message.progress = msg.progress || '';
+					if(this.ref){
+						data.message = JSON.parse(data.message);
+						var msg = data.message;
+						ele.innerHTML = this.getItemHtml(data);
+						if(msg.id){
+							ele.setAttribute('data-id', msg.id);
+							var hasEle = document.querySelector(`[data-id]=${msg.id}`);
+							if(hasEle){
+								this.ref.replaceChild(ele, hasEle)
+							}else{
+								domUtil.prependChild(this.ref, ele);
+							}
 						}else{
-							this.state.datas.unshift(data);
+							domUtil.prependChild(this.ref, ele);
 						}
-					}else{
-						this.state.datas.unshift(data);
 					}
 				}catch(e){
-					this.state.datas.unshift(data);
+					ele.innerHTML = this.getItemHtml(data);
+
+					domUtil.prependChild(this.ref, ele);
+
 				}
-				this.forceUpdate();
 			},
 			onComplete: () => {
 				this.props.onComplete && this.props.onComplete()
@@ -70,12 +82,12 @@ export default class Index extends PureComponent {
 		}
 		this.state.datas = [];
 	}
-	
-	renderLogItem = (data) => {
-		
+
+	getItemHtml = (data) => {
+
 		if(typeof data.message === 'string'){
 			var msg = data.message;
-			return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span dangerouslySetInnerHTML={{__html: msg||''}}></span></p>
+			return `<span className="time" style="margin-right: 8px">${moment(data.time).format("HH:mm:ss")}</span><span>${msg||''}</span>`
 		}else{
 			try{
 				const message = data.message;
@@ -86,25 +98,25 @@ export default class Index extends PureComponent {
 				msg += message.status||'';
 				msg += message.progress||'';
 				if(data.step != 'build-progress'){
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: msg}}></span></p>
+					return `<span className="time" style="margin-right: 8px">${moment(data.time).format("HH:mm:ss")}</span><span>${msg||''}</span>`
 				}else{
-					return <p style={{marginBottom:0}}><span className="time" style={{marginRight: 8}}>{moment(data.time).format("HH:mm:ss")}</span><span  dangerouslySetInnerHTML={{__html: message.stream||''}}></span></p>
-				}				
+					return `<span className="time" style="margin-right: 8px">${moment(data.time).format("HH:mm:ss")}</span><span>${message.stream}</span>`
+				}
 			}catch(e){
-				return null;
+				return '';
 			}
 		}
+	}
+	saveRef = (ref) => {
+		this.ref = ref;
 	}
 	render(){
 		const datas = this.state.datas || [];
 
 		return (
-			<div style={{maxHeight: 300, overflowY: 'auto'}}>
-			{
-				datas.map((data) => {
-					return this.renderLogItem(data);
-				})
-			}
+
+			<div style={{maxHeight: 300, overflowY: 'auto'}} ref={this.saveRef}>
+
 			</div>
 		)
 	}

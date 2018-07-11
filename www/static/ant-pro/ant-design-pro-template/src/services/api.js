@@ -14,6 +14,35 @@ export async function getAllRegionFee(body={team_name, date}){
   });
 }
 
+/* 内部市场删除插件 */
+export async function deleteMarketPlugin(body={plugin_id}){
+  return request(config.baseUrl + `/console/market/plugins/uninstall-template`, {
+    method: 'post',
+    data: {
+      plugin_id: body.plugin_id
+    }
+  });
+}
+
+/* 云端同步插件 */
+export async function syncCloudPlugin(){
+  return request(config.baseUrl + `/console/market/plugins/sync`, {
+    method: 'post'
+  });
+}
+
+/* 获取云端插件 */
+export async function getCloudPlugin(body={plugin_name, page}){
+  return request(config.baseUrl + `/console/market/plugins`, {
+    method: 'get',
+    params: {
+      plugin_name: body.plugin_name,
+      page: body.page,
+      limit: body.limit
+    }
+  });
+}
+
 
 /*
   获取企业充值记录
@@ -26,6 +55,48 @@ export async function getPayHistory(body={team_name, start, end, page, page_size
       end: body.end,
       page: body.page,
       page_size: body.page_size
+    }
+  });
+}
+
+/* 完成分享 */
+export async function complatePluginShare(body={team_name, share_id}){
+  return request(config.baseUrl + `/console/teams/${body.team_name}/plugin-share/${body.share_id}/complete`, {
+    method: 'post',
+    data: {
+      plugin_key: body.plugin_key,
+      version: body.version
+    }
+  });
+}
+
+/* 同步插件模版 */
+export async function syncMarketPluginTmp(body={plugin_key, version}){
+
+  return request(config.baseUrl + `/console/market/plugins/sync-template`, {
+    method: 'post',
+    data: {
+      plugin_key: body.plugin_key,
+      version: body.version
+    }
+  });
+}
+
+/* 同步云市插件 */
+export async function syncMarketPlugins(){
+  return request(config.baseUrl + `/console/market/plugins/sync`, {
+    method: 'post'
+  });
+}
+
+/* 获取内部市场插件 */
+export async function getMarketPlugins(body={plugin_name, page}){
+  return request(config.baseUrl + `/console/plugins`, {
+    method: 'get',
+    params: {
+      plugin_name: body.plugin_name,
+      page: body.page,
+      limit: body.limit
     }
   });
 }

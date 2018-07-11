@@ -82,7 +82,8 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["user_nums"] = user_nums
                 team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
                                                                                 region_name=self.response_region)
-                total_memory, total_disk = common_services.calculate_real_used_resource(tenant=self.team)
+                total_memory, total_disk = common_services.get_current_region_used_resource(self.team,
+                                                                                            self.response_region)
                 overview_detail["team_service_num"] = team_service_num
                 overview_detail["team_service_memory_count"] = total_memory
                 overview_detail["team_service_total_disk"] = total_disk
@@ -235,24 +236,12 @@ class ServiceEventsView(RegionTenantHeaderView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
-            # event_service_dynamic_list = service_event_dynamic.get_event_service_dynamic(team_id=self.team.tenant_id,
-            #                                                                              region_name=
-            #                                                                              self.response_region)
-
-            event_service_dynamic_list = service_event_dynamic.get_team_current_region_service_events(
-                self.response_region, self.tenant, page,
-                page_size)
-            event_list = []
+            event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant, page, page_size)
             for event in event_service_dynamic_list:
-                event_bean = event.to_dict()
-                event_bean["service_alias"] = event.service_alias
-                event_bean["service_cname"] = event.service_cname
-                type_cn = event_service.translate_event_type(event.type)
-                event_bean["type_cn"] = type_cn
-                event_bean["nick_name"] = event.user_name
+                type_cn = event_service.translate_event_type(event["type"])
+                event["type_cn"] = type_cn
 
-                event_list.append(event_bean)
-            result = general_message(200, 'success', "查询成功", list=event_list)
+            result = general_message(200, 'success', "查询成功", list=event_service_dynamic_list)
             return Response(result, status=result["code"])
 
         except Exception as e:

@@ -428,6 +428,11 @@ class RolePermRepo(object):
                                                       group=team_group)
             perms_dict["manage_plugin"] = obj.pk
 
+            obj = TenantUserPermission.objects.create(codename="share_plugin", per_info="插件分享",
+                                                      is_select=True,
+                                                      group=team_group)
+            perms_dict["share_plugin"] = obj.pk
+
             obj = TenantUserPermission.objects.create(codename="drop_tenant", per_info="删除团队",
                                                       is_select=False,
                                                       group=team_group)
@@ -485,6 +490,7 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("tenant_manage_role"))
             TenantUserRolePermission.objects.create(role_id=owner_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("share_plugin"))
 
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
@@ -511,6 +517,7 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_manage_role"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("share_plugin"))
 
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_group"))

@@ -80,12 +80,15 @@ class ChangeProtocol extends PureComponent {
   }
 }
 
+@connect(({user, appControl}) => ({currUser: user.currentUser}))
 export default class Index extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       editProtocol: false,
-      showEditAlias: null
+      showEditAlias: null,
+      showDomain:false,
+      showPort:false
     }
   }
   onSubmitProtocol = (protocol) => {
@@ -133,6 +136,25 @@ export default class Index extends PureComponent {
   cancelEditProtocol = () => {
     this.setState({editProtocol: false})
   }
+  showSubDomain =()=>{
+    this.props.onSubDomain && this
+    .props
+    .onSubDomain(this.props.port);
+  }
+  showSubPort =()=>{
+    this.props.onSubPort && this
+    .props
+    .onSubPort(this.props.port);
+  }
+  domainsText = (domains)=>{
+    var textBl = false;
+    domains.map((order)=>{
+        if(order.domain_type == 'goodrain-sld'){
+          textBl = true;
+        }
+    })
+    return textBl;
+  }
   render() {
     const port = this.props.port;
     const outerUrl = appPortUtil.getOuterUrl(port);
@@ -140,6 +162,7 @@ export default class Index extends PureComponent {
     const showAlias = appPortUtil.getShowAlias(port);
     const domains = appPortUtil.getDomains(port);
     var showDomain = this.props.showDomain;
+    var DomainText = this.domainsText(domains);
     //是否显示对外访问地址,创建过程中不显示
     const showOuterUrl = this.props.showOuterUrl === void 0
       ? true
@@ -220,16 +243,69 @@ export default class Index extends PureComponent {
               </div>
               <div>
                 <p>
+                  {
+                    (showOuterUrl && outerUrl)?
+                      port.protocol=='http'?
+                      <Button size="small" style={{float:'right'}} onClick={this.showSubDomain}>
+                      {
+                        DomainText?
+                        '修改默认域名'
+                        :
+                        '修改默认域名'
+                      }
+                      </Button>
+                      :
+                      <Button size="small" style={{float:'right'}} onClick={this.showSubPort}>修改端口</Button>
+                      :
+                      ''
+                  }   
                   <span className={styles.label}>对外服务</span>
                   <Switch
                     checked={appPortUtil.isOpenOuter(port)}
                     onChange={this.handleOuterChange}
-                    size="small"/></p>
+                    size="small"/>
+                </p>
                 <p className={styles.lr}>
                   <span className={styles.label}>访问地址</span>
                   {(showOuterUrl && outerUrl)
                     ? <a href={outerUrl} target={outerUrl} target="_blank">{outerUrl}</a>
                     : '-'}</p>
+                  {/* // */}
+                  {
+                  (showOuterUrl && outerUrl)?
+                  <div>
+                    {domains.map((domain) => {
+                      return <div style={{paddingLeft:'70px'}}>
+                        {
+                          domain.domain_type == 'goodrain-sld'?
+                          <p>
+                            <a
+                            href={(domain.protocol === 'http'
+                            ? 'http'
+                            : 'https') + '://' + domain.domain_name}
+                            target="_blank">{(domain.protocol === 'http'
+                              ? 'http'
+                              : 'https') + '://' + domain.domain_name}</a>
+                            <a
+                              title="解绑"
+                              onClick={() => {
+                              this
+                                .props
+                                .onDeleteDomain({port: port.container_port, domain: domain.domain_name})
+                            }}
+                              className={styles.removePort}
+                              href="javascript:;"><Icon type="close"/></a>
+                          </p>
+                          :
+                          ''
+                        }
+                      </div>
+                    })
+                    }
+                  </div>
+                  :''
+                  } 
+               {/*  */}
               </div>
             </td>
             {showDomain && <td>
@@ -237,22 +313,29 @@ export default class Index extends PureComponent {
                 ? <div>
                     {domains.map((domain) => {
                       return <div>
-                        <a
-                          href={(domain.protocol === 'http'
-                          ? 'http'
-                          : 'https') + '://' + domain.domain_name}
-                          target="_blank">{(domain.protocol === 'http'
+                        {
+                          domain.domain_type == 'www'?
+                          <p>
+                            <a
+                            href={(domain.protocol === 'http'
                             ? 'http'
-                            : 'https') + '://' + domain.domain_name}</a>
-                        <a
-                          title="解绑"
-                          onClick={() => {
-                          this
-                            .props
-                            .onDeleteDomain({port: port.container_port, domain: domain.domain_name})
-                        }}
-                          className={styles.removePort}
-                          href="javascript:;"><Icon type="close"/></a>
+                            : 'https') + '://' + domain.domain_name}
+                            target="_blank">{(domain.protocol === 'http'
+                              ? 'http'
+                              : 'https') + '://' + domain.domain_name}</a>
+                            <a
+                              title="解绑"
+                              onClick={() => {
+                              this
+                                .props
+                                .onDeleteDomain({port: port.container_port, domain: domain.domain_name})
+                            }}
+                              className={styles.removePort}
+                              href="javascript:;"><Icon type="close"/></a>
+                          </p>
+                          :
+                          ''
+                        }
                       </div>
                     })
 }

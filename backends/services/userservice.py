@@ -2,7 +2,7 @@
 import logging
 
 from django.db.models import Q
-
+import re
 from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
 from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
     PasswordTooShortError
@@ -20,20 +20,49 @@ gitClient = GitlabApi()
 class UserService(object):
 
     def check_params(self, user_name, phone, email, password, re_password):
-        if not user_name:
-            return False, "用户名不能为空"
-        if not phone:
-            return False, "手机号不能为空"
-        if not email:
-            return False, "邮箱不能为空"
-        if console_user_service.is_user_exist(user_name):
-            return False, "用户{0}已存在".format(user_name)
-        if console_user_service.get_user_by_phone(phone):
-            return False, "手机号{0}已存在".format(phone)
-        if console_user_service.get_user_by_phone(email):
-            return False, "邮箱{0}已存在".format(email)
+        is_pass, msg = self.__check_user_name(user_name)
+        if not is_pass:
+            return is_pass, msg
+        is_pass, msg = self.__check_email(email)
+        if not is_pass:
+            return is_pass, msg
+
+        is_pass, msg = self.__check_phone(phone)
+        if not is_pass:
+            return is_pass, msg
+
         if password != re_password:
             return False, "两次输入的密码不一致"
+        return True, "success"
+
+    def __check_user_name(self, user_name):
+        if not user_name:
+            return False, "用户名不能为空"
+        if console_user_service.is_user_exist(user_name):
+            return False, "用户{0}已存在".format(user_name)
+        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+        if not r.match(user_name.decode("utf-8")):
+            return False, "用户名称只支持中英文下划线和中划线"
+        return True, "success"
+
+    def __check_email(self, email):
+        if not email:
+            return False, "邮箱不能为空"
+        if console_user_service.get_user_by_phone(email):
+            return False, "邮箱{0}已存在".format(email)
+        r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
+        if not r.match(email):
+            return False, "邮箱地址不合法"
+        return True, "success"
+
+    def __check_phone(self, phone):
+        if not phone:
+            return False, "手机号不能为空"
+        if console_user_service.get_user_by_phone(phone):
+            return False, "手机号{0}已存在".format(phone)
+        r = re.compile(r'^1[35678]\d{9}$|^147\d{8}$')
+        if not r.match(phone):
+            return False, "请填写正确的手机号"
         return True, "success"
 
     def create_user(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
