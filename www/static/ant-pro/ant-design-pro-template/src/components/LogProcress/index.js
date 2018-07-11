@@ -14,6 +14,9 @@ export default class Index extends PureComponent {
 		}
 		this.socketUrl = this.props.socketUrl;
 		this.eventId = this.props.eventId;
+		this.idMap = {
+
+		}
 	}
 	findProgressById = (id) => {
 		const datas = this.state.datas;
@@ -24,7 +27,7 @@ export default class Index extends PureComponent {
 	}
 	createTmpElement(){
 		this.ele = document.createElement('p');
-		this.ele.cssText = "margin-bottom:0"
+		this.ele.style.marginBottom = 0
 	}
 	componentDidMount(){
 		const resover = this.props.resover;
@@ -52,13 +55,14 @@ export default class Index extends PureComponent {
 						var msg = data.message;
 						ele.innerHTML = this.getItemHtml(data);
 						if(msg.id){
-							ele.setAttribute('data-id', msg.id);
-							var hasEle = document.querySelector(`[data-id]=${msg.id}`);
-							if(hasEle){
-								this.ref.replaceChild(ele, hasEle)
+							const dom = this.idMap[msg.id]
+							if(dom){
+								this.ref.replaceChild(ele, dom);
+								
 							}else{
 								domUtil.prependChild(this.ref, ele);
 							}
+							this.idMap[msg.id] = ele;
 						}else{
 							domUtil.prependChild(this.ref, ele);
 						}
@@ -81,6 +85,7 @@ export default class Index extends PureComponent {
 			this.socket = null;
 		}
 		this.state.datas = [];
+		this.idMap = {};
 	}
 
 	getItemHtml = (data) => {

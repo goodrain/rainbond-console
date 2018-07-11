@@ -20,7 +20,7 @@ function LogSocket(option){
 	this.webSocket.onerror = this._onError.bind(this);
 	this.timerQueue = new TimerQueue({
 		onExecute:this.onMessage,
-		interval:option.interval || 150
+		interval:option.interval || 50
 	})
 
 }
