@@ -104,7 +104,7 @@ export default class BasicList extends PureComponent {
       },
       callback: (data) => {
          this.getRegionResource();
-         notification.success({message: '操作成功'})
+         notification.success({message: '包月成功'})
       }
     })
   }
@@ -191,7 +191,7 @@ export default class BasicList extends PureComponent {
                       <Col span={16}> 
                         <Slider tipFormatter={(value) => {
                            return sourceUnit.unit(value, 'MB')
-                        }} value={this.state.buymemory || 1} onChange={this.checkMemoryChange} onAfterChange={this.handleMemoryChange} step={1} min={1024} max={1024 * 100} marks={memoryMasks}  /></Col>
+                        }} value={this.state.buymemory || 1} onChange={this.checkMemoryChange} onAfterChange={this.handleMemoryChange} step={512} min={0} max={1024 * 100} marks={memoryMasks}  /></Col>
                       <Col span={4} style={{fontSize:'16px', paddingTop: 8}}> {sourceUnit.unit(this.state.buymemory, 'MB')} </Col>
                   </Row>
                   <Row>
@@ -203,7 +203,7 @@ export default class BasicList extends PureComponent {
                          onChange={this.checkDiskChange}
                          tipFormatter={(value) => {
                            return sourceUnit.unit(value, 'GB')
-                        }}  value={this.state.buydisk || 1}  onAfterChange={this.handleDiskChange} step={1} min={1} max={1024} marks={diskMasks}  /></Col>
+                        }}  value={this.state.buydisk || 1}  onAfterChange={this.handleDiskChange} step={1} min={0} max={1024} marks={diskMasks}  /></Col>
                       <Col span={4} style={{fontSize:'16px', paddingTop: 8}}> {sourceUnit.unit(this.state.buydisk, 'GB')}</Col>
                   </Row>
                   <Row style={{padding:'5px 0'}}>

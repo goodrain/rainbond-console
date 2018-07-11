@@ -45,6 +45,10 @@ export default class Index extends PureComponent {
         dataIndex: 'time',
         key: 'time',
       },{
+        title: '数据中心',
+        dataIndex: 'region',
+        key: 'region',
+      } ,{
         title: '内存费用',
         dataIndex: 'memory_fee',
         key: 'memory_fee',
