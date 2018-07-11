@@ -59,7 +59,7 @@ export default class Index extends PureComponent {
 					{
 						datalist.map((order)=>{
 							const hasDate = order.disk.expire_date || order.memory.expire_date;
-							const normalColor = '#39CCCC';
+							const normalColor = '#1890ff';
 							const warningColor = '#f5222d';
 							const blackColor = 'rgba(0,0,0,0.1)';
 							return(

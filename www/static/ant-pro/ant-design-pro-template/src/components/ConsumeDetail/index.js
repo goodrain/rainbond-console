@@ -5,33 +5,39 @@ import React, { PureComponent, Fragment } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { Link, Switch, Route } from 'dva/router';
-import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Modal, DatePicker} from 'antd';
-import { getRelationedApp , getUnRelationedApp, addRelationedApp, removeRelationedApp } from '../../services/app';
+import { Row, Col, Card, Form, Button, Icon, Menu, Input,  Dropdown, Table, Modal, DatePicker, Tooltip} from 'antd';
 import globalUtil from '../../utils/global';
 
+@connect()
 export default class Index extends PureComponent {
    constructor(props){
      super(props);
      this.state = {
-       selectedRowKeys:[],
-       apps:[]
+       date:moment().format('YYYY-MM-DD'),
+       list:[]
      }
    }
    componentDidMount(){
-     this.getUnRelationedApp();
+     this.loadData();
    }
-   getUnRelationedApp = () => {
-       getUnRelationedApp({
-         team_name: globalUtil.getCurrTeamName(),
-         app_alias: this.props.appAlias
-      }).then((data) => {
-          if(data){
-              this.setState({apps: data.list || []})
-          }
-      })
+   loadData = () => {
+       this.props.dispatch({
+         type:'global/getAllRegionFee',
+         payload: {
+          team_name: globalUtil.getCurrTeamName(),
+          date: this.state.date
+         },
+         callback: (data) =>{
+          this.setState({list: data.list || []})
+         }
+       })
    }
    handleCancel = () => {
      this.props.onCancel && this.props.onCancel();
+   }
+   handleDateChange = (mom) => {
+     this.state.date = mom.format('YYYY-MM-DD');
+     this.loadData();
    }
    render(){
     const columns = [{
@@ -95,9 +101,9 @@ export default class Index extends PureComponent {
         width={1000}
         visible={true}
         onCancel = {this.handleCancel}
-        footer=[{
+        footer={[
             <Button onClick={this.handleCancel}>关闭</Button>
-        }]
+        ]}
         >
         <p style={{textAlign: 'right'}}>
             <DatePicker onChange={this.handleDateChange} allowClear={false} defaultValue={moment(this.state.date, "YYYY-MM-DD")} />

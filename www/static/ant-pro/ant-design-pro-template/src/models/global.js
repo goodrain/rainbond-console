@@ -18,7 +18,8 @@ import {
   InitTeam,
   resPrice,
   buyPurchase,
-  getPayHistory
+  getPayHistory,
+  getAllRegionFee
 } from '../services/api';
 import {getTeamRegionGroups} from '../services/team'
 
@@ -42,6 +43,15 @@ export default {
     noMoneyTip: false
   },
   effects : {
+    *getAllRegionFee({
+      payload,
+      callback
+    }, {call, put}) {
+      const data = yield call(getAllRegionFee, payload);
+      if (data) {
+        callback && callback(data)
+      }
+    },
     *getPayHistory({
       payload,
       callback

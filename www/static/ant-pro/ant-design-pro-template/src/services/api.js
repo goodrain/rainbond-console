@@ -2,6 +2,18 @@ import {stringify} from 'qs';
 import request from '../utils/request';
 import config from '../config/config';
 
+/*
+  获取企业所有数据中心的每小时按需消费明细
+ */
+export async function getAllRegionFee(body={team_name, date}){
+  return request(config.baseUrl + `/console/enterprise/team/${body.team_name}/all-region-fee`, {
+    method: 'get',
+    params: {
+      date: body.date
+    }
+  });
+}
+
 
 /*
   获取企业充值记录

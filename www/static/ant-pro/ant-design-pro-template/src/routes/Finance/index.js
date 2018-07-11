@@ -8,6 +8,7 @@ import styles from '../List/BasicList.less';
 import globalUtil from '../../utils/global';
 import InvoiceEcharts from '../../components/InvoiceEcharts';
 import PayHistory from '../../components/PayHistory';
+import ConsumeDetail from '../../components/ConsumeDetail';
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
@@ -28,8 +29,15 @@ export default class BasicList extends PureComponent {
           memory:{},
           list:[],
           datalist:[],
-          showPayHistory: false
+          showPayHistory: false,
+          showConsumeDetail: false
       }
+  }
+  showConsumeDetail = () => {
+    this.setState({showConsumeDetail: true})
+  }
+  hideConsumeDetail = () => {
+    this.setState({showConsumeDetail: false})
   }
   showPayHistory = () => {
     this.setState({showPayHistory: true})
@@ -121,12 +129,11 @@ export default class BasicList extends PureComponent {
               </Col>
               <Col sm={8} xs={24}>
                     <Info title="上一小时按需消费" value={`${companyInfo.last_hour_cost || 0}元`} bordered />
-
               </Col>
               <Col sm={8} xs={24}>
-                    <Info title="本月账单" value={`花费${companyInfo.cost || 0}元 / 充值${companyInfo.recharge || 0} 元`} />
+                    <Info title="本月账单" value={`消耗${companyInfo.cost || 0}元 / 充值${companyInfo.recharge || 0} 元`} />
                     <p style={{textAlign:'center'}}>
-                      <a href=''style={{paddingRight:'10px'}}>花费明细</a>
+                      <a href='javascript:;' onClick={this.showConsumeDetail} style={{paddingRight:'10px'}}>消耗明细</a>
                       <a href='javascript:;' onClick={this.showPayHistory}>充值明细</a>
                     </p>
               </Col>
@@ -136,6 +143,7 @@ export default class BasicList extends PureComponent {
           <InvoiceEcharts  enterprise_id={this.props.user.enterprise_id} /> 
         </div>
         {this.state.showPayHistory && <PayHistory onCancel={this.hidePayHistory} />}
+        {this.state.showConsumeDetail && <ConsumeDetail onCancel={this.hideConsumeDetail} />}
       </PageHeaderLayout>
     );
   }

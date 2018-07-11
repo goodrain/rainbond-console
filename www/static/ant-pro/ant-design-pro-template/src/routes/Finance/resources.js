@@ -191,7 +191,7 @@ export default class BasicList extends PureComponent {
                       <Col span={16}> 
                         <Slider tipFormatter={(value) => {
                            return sourceUnit.unit(value, 'MB')
-                        }} value={this.state.buymemory || 1} onChange={this.checkMemoryChange} onAfterChange={this.handleMemoryChange} step={1} min={1} max={1024 * 100} marks={memoryMasks}  /></Col>
+                        }} value={this.state.buymemory || 1} onChange={this.checkMemoryChange} onAfterChange={this.handleMemoryChange} step={1} min={1024} max={1024 * 100} marks={memoryMasks}  /></Col>
                       <Col span={4} style={{fontSize:'16px', paddingTop: 8}}> {sourceUnit.unit(this.state.buymemory, 'MB')} </Col>
                   </Row>
                   <Row>
