@@ -9,7 +9,6 @@ from console.views.base import JWTAuthApiView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import general_message, error_message
 from console.services.enterprise_services import enterprise_services
-from console.repositories.region_repo import region_repo
 from console.services.region_services import region_services
 
 logger = logging.getLogger("default")
