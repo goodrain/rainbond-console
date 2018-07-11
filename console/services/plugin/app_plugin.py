@@ -45,6 +45,7 @@ class AppPluginService(object):
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
         services = service_repo.get_services_by_service_ids(*service_ids).filter(tenant_id=tenant_id)
         paginator = JuncheePaginator(services, int(page_size))
+        total = paginator.count
         show_apps = paginator.page(int(page))
         result_list = []
         for s in show_apps:
@@ -54,7 +55,7 @@ class AppPluginService(object):
             data["service_cname"] = s.service_cname
             data["build_version"] = service_plugin_version_map[s.service_id]
             result_list.append(data)
-        return result_list
+        return result_list,total
 
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)

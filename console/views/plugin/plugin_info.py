@@ -398,10 +398,10 @@ class PluginUsedServiceView(PluginBaseView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
-            data = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
+            data,total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
                                                                page_size)
 
-            result = general_message(200, "success", "查询成功", list=data)
+            result = general_message(200, "success", "查询成功", list=data, total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
