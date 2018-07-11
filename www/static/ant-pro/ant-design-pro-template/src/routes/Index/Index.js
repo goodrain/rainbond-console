@@ -347,7 +347,7 @@ export default class Index extends PureComponent {
        money = `欠费 ${this.state.companyInfo.owed_amt} 元`;
     }
     const extraContent = (
-      <div className={styles.extraContent}>
+      <div className={styles.extraContent} style={{minWidth: 576}}>
        
         <div className={styles.statItem}>
           <p>应用数</p>

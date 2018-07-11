@@ -200,7 +200,7 @@ export default class GlobalHeader extends PureComponent {
             {teams.map((item) => {
                 return (
                     <Menu.Item key={item.team_name}>
-                        <Ellipsis tooltip>{item.team_alias}</Ellipsis>
+                        <span title={item.team_alias}>{item.team_alias}</span>
                     </Menu.Item>
                 )
             })
@@ -237,7 +237,7 @@ export default class GlobalHeader extends PureComponent {
     getCurrTeamTit() {
         var team = this.getCurrTeam();
         if (team) {
-            return team.team_alias;
+            return team.team_alias
         }
         return ''
     }
@@ -323,8 +323,7 @@ export default class GlobalHeader extends PureComponent {
                         <a className={styles.dropdown}>
                             <span className={styles.smShow}>团队</span>
                             <span className={styles.smHidden}>
-                                {this.getCurrTeamTit()
-}
+                                {this.getCurrTeamTit()}
                                 <Icon type="down"/>
                             </span>
                         </a>
@@ -339,8 +338,7 @@ export default class GlobalHeader extends PureComponent {
                         <a className={styles.dropdown}>
                             <span className={styles.smShow}>数据中心</span>
                             <span className={styles.smHidden}>
-                                {this.getCurrRegionTit()
-}
+                                {this.getCurrRegionTit()}
                                 <Icon type="down"/>
                             </span>
                         </a>
