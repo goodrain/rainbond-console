@@ -101,7 +101,7 @@ class AppVolumeService(object):
             # 判断当前共享目录是否被使用
             mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
             if mnt:
-                return 403, u"当前路径被共享,无法上传", None
+                return 403, u"当前持久化路径被共享,无法删除", None
         if service.create_status == "complete":
             res, body = region_api.delete_service_volumes(
                 service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
