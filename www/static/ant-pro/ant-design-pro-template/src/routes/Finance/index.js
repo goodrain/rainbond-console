@@ -23,8 +23,7 @@ export default class BasicList extends PureComponent {
           companyInfo: {},
           disk:{},
           memory:{},
-          list:[],
-          
+          list:[]
       }
   }
   componentDidMount() {
