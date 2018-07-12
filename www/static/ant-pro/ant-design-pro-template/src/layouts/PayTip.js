@@ -13,7 +13,7 @@ export default class PayTip extends React.PureComponent {
         })
     }
     handleClick = () => {
-        this.props.dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/finance`))
+        window.open('https://www.goodrain.com/spa/#/personalCenter/my/recharge')
         this.handleCancel();
     }
     getRegionId = () => {
@@ -30,8 +30,7 @@ export default class PayTip extends React.PureComponent {
     handleBuySource = () => {
         const regionId = this.getRegionId();
         if(regionId){
-
-            window.open(`https://www.goodrain.com/spa/#/resBuy/${regionId}`)
+            this.props.dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName}/finance`))
         }else{
             notification.warning({message: '当前数据中心不可购买'})
         }
