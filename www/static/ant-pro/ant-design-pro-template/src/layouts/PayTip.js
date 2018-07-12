@@ -45,10 +45,9 @@ export default class PayTip extends React.PureComponent {
             visible={true}
             title="提示"
             onCancel={this.handleCancel}
-            footer={[regionId ? <Button onClick={this.handleBuySource} type="primary" size="sm">购买资源</Button> : null,
-            <Button onClick={this.handleClick} size="sm">账户充值</Button>]}
+            footer={[regionId ? <Button onClick={this.handleBuySource} type="primary" size="sm">购买资源</Button> : null]}
         >
-             <h4 style={{textAlign: 'center'}}>资源及企业账户余额不足</h4>
+             <h4 style={{textAlign: 'center'}}>资源不足</h4>
         </Modal>;
     }
 }
