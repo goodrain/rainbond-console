@@ -212,7 +212,7 @@ export default class Index extends PureComponent {
 											</Col>
 										</Row>
 										<p style={{paddingTop: 24}}>
-											<Button type='primary'><Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/resources/buy/${order.name}`}>{hasDate ? '修改包月' : '购买包月'}</Link></Button>
+											<Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/resources/buy/${order.name}`}><Button type='primary'>{hasDate ? '修改包月' : '购买包月'}</Button></Link>
 										</p>
 									</Card>
 								</Col>
