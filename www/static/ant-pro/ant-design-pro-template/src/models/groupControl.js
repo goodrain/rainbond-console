@@ -275,7 +275,7 @@ export default {
       payload,
       callback
     }, {call, put}) {
-      const response = yield call(delRestore, payload);
+      const response = yield call(delBackup, payload);
       if (response) {
         callback && callback(response);
       }

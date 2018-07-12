@@ -383,7 +383,7 @@ export default class AppList extends PureComponent {
 									{ 
 										(data.status == 'failed')?
 										<Fragment>
-											 <a  href="javascript:;"onClick={this.handleDel.bind(this,data)}>删除</a>
+											 <a  href="javascript:;" onClick={this.handleDel.bind(this,data)}>删除</a>
 										</Fragment>
 										:''
 									}
