@@ -28,7 +28,7 @@ class AppPortService(object):
         if not (1 <= container_port <= 65535):
             return 412, u"端口必须为1到65535的整数"
         if service.service_source == AppConstants.SOURCE_CODE:
-            if service.language in ("dockerfile", "docker"):
+            if service.language not in ("dockerfile", "docker"):
                 if container_port <= 1024:
                     return 400, u"源码应用非Dockerfile构建的应用端口不能小于1024"
         return 200, "success"
