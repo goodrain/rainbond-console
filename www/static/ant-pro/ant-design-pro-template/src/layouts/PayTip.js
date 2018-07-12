@@ -1,8 +1,11 @@
 import React, {Fragment} from 'react';
 import globalUtil from '../utils/global';
+import {connect} from 'dva';
 import {Layout, Icon, message, notification, Modal, Button} from 'antd';
+import {routerRedux} from 'dva/router';
 
 //提示充值或购买资源
+@connect()
 export default class PayTip extends React.PureComponent {
     handleCancel = () => {
         this.props.dispatch({
@@ -10,7 +13,7 @@ export default class PayTip extends React.PureComponent {
         })
     }
     handleClick = () => {
-        window.open('https://www.goodrain.com/spa/#/personalCenter/my/recharge')
+        this.props.dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/finance`))
         this.handleCancel();
     }
     getRegionId = () => {
@@ -27,6 +30,7 @@ export default class PayTip extends React.PureComponent {
     handleBuySource = () => {
         const regionId = this.getRegionId();
         if(regionId){
+
             window.open(`https://www.goodrain.com/spa/#/resBuy/${regionId}`)
         }else{
             notification.warning({message: '当前数据中心不可购买'})

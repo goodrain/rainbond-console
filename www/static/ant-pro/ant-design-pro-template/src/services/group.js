@@ -328,7 +328,7 @@ export async function delRestore(body = {team_name,group_id,new_group_id}) {
   应用备份删除
 */
 export async function delBackup(body = {team_name,group_id,backup_id}) {
-	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/delete`, {
+	return request(config.baseUrl + `/console/teams/${body.team_name}/groupapp/${body.group_id}/backup`, {
 				method: 'DELETE',
 				data: {
 					backup_id: body.backup_id
