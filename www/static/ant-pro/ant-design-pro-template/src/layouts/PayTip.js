@@ -30,7 +30,8 @@ export default class PayTip extends React.PureComponent {
     handleBuySource = () => {
         const regionId = this.getRegionId();
         if(regionId){
-            this.props.dispatch(routerRedux.push(`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName}/finance`))
+            const url = `/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/finance`;
+            this.props.dispatch(routerRedux.push(url))
         }else{
             notification.warning({message: '当前数据中心不可购买'})
         }
