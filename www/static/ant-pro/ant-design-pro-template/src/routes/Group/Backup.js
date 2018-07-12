@@ -324,6 +324,7 @@ export default class AppList extends PureComponent {
 					duration:'2'
 				});
 				this.fetchBackup();
+				this.cancelDelete();
 			}
 		})
 	}
