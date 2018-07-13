@@ -123,6 +123,7 @@ class MarketOpenAPI(HttpClient):
             return None, msg, e.status
         except self.CallApiError as ex:
             logger.error("invoke market api error !")
+            logger.exception(ex)
             if ex.status != 412:
                 return None, "系统异常", ex.status
             else:
@@ -241,5 +242,12 @@ class MarketOpenAPI(HttpClient):
     def get_enterprise_receipt_orders(self, tenant_id, enterprise_id, start, end):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enterprises/{0}/receipt-orders?start={1}&end={2}".format(enterprise_id, start, end)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return body
+
+    def get_enterprise_purchase_detail(self, tenant_id, enterprise_id, start, end, page, page_size):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enterprises/{0}/purchase-detail?page={1}&page_size={2}start={3}&end={4}".format(
+            enterprise_id, page, page_size, start, end)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return body

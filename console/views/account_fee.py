@@ -214,3 +214,53 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class EnterprisePurchaseDetails(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        企业购买明细
+        ---
+        parameters:
+            - name: start
+              required: true
+              type: string
+              location: 'query'
+              description: 开始时间
+            - name: end
+              required: true
+              type: string
+              location: 'query'
+              description: 结束时间
+            - name: page
+              required: true
+              type: string
+              location: 'query'
+              description: 第几页
+            - name: page_size
+              required: true
+              type: string
+              location: 'query'
+              description: 每页条数
+        """
+        try:
+            start = request.GET.get('start')
+            end = request.GET.get('end')
+            page = request.GET.get('page', 1)
+            page_size = request.GET.get('page_size', 10)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
+            total = 0
+            result_list = []
+            try:
+                res, dict_body = market_api.get_enterprise_purchase_detail(team.tenant_id,team.enterprise_id, start,end, page, page_size)
+                result_list = dict_body["data"]["list"]
+                total = dict_body["data"]["total"]
+            except Exception as ex:
+                logger.exception(ex)
+            result = general_message(200, "success", "查询成功", list=result_list,total=total)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
