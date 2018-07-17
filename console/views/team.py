@@ -175,7 +175,7 @@ class AddTeamView(JWTAuthApiView):
                 return Response(result, status=400)
             if useable_regions:
                 regions = useable_regions.split(",")
-            if Tenants.objects.filter(tenant_alias=team_alias).exists():
+            if Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=user.enterprise_id).exists():
                 result = general_message(400, "failed", "该团队名已存在")
                 return Response(result, status=400)
             else:
