@@ -709,7 +709,7 @@ class TeamRegionInitView(JWTAuthApiView):
             r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
             if not r.match(team_alias.decode("utf-8")):
                 return Response(general_message(400, "team alias is not allow", "组名称只支持中英文下划线和中划线"), status=400)
-            team = team_services.get_team_by_team_alias(team_alias)
+            team = team_services.get_team_by_team_alias_and_enter_id(team_alias, self.user.enterprise_id)
             if team:
                 return Response(general_message(409,"region alias is exist","团队名称{0}已存在".format(team_alias)),status=409)
             region = region_repo.get_region_by_region_name(region_name)

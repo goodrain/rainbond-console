@@ -107,6 +107,9 @@ class TeamRepo(object):
     def get_team_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
+    def get_team_by_team_alias_and_enterprise_id(self, team_alias, enterprise_id):
+        return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
+
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):
         return TeamGitlabInfo.objects.filter(team_id=team_id)
