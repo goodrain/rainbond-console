@@ -241,6 +241,7 @@ class AppManageService(AppManageBase):
         if kind == "build_from_source_code" or kind == "source":
             body["repo_url"] = clone_url
             body["branch"] = service.code_version
+            body["server_type"] = service.server_type
         body["kind"] = kind
         body["service_alias"] = service.service_alias
         body["tenant_name"] = tenant.tenant_name

@@ -37,7 +37,7 @@ class AppCheckService(object):
             password = service_source.password
         if service.service_source == AppConstants.SOURCE_CODE:
 
-            sb = {"server_type": "git", "repository_url": service.git_url,
+            sb = {"server_type": service.server_type, "repository_url": service.git_url,
                   "branch": service.code_version, "user": user_name,
                   "password": password, "tenant_id": tenant.tenant_id}
             source_body = json.dumps(sb)

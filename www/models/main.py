@@ -564,6 +564,8 @@ class TenantServiceInfo(BaseModel):
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
+    server_type = models.CharField(
+        max_length=5, default='git', help_text=u"源码仓库类型")
 
     def __unicode__(self):
         return self.service_alias
@@ -688,7 +690,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
-
+    server_type = models.CharField(
+        max_length=5, default='git', help_text=u"源码仓库类型")
 
 class TenantServiceLog(BaseModel):
     class Meta:

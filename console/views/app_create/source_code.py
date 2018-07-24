@@ -72,6 +72,11 @@ class SourceCodeCreateView(RegionTenantHeaderView):
               required: false
               type: string
               paramType: form
+            - name: server_type
+              description: 仓库类型git或svn
+              required: false
+              type: string
+              paramType: form
 
         """
 
@@ -83,12 +88,15 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         git_user_name = request.data.get("username", None)
         service_code_id = request.data.get("git_project_id", None)
         service_code_version = request.data.get("code_version", "master")
+        server_type = request.data.get("server_type", "git")
         result = {}
         try:
             if not service_code_clone_url:
                 return Response(general_message(400, "code url is null", "仓库地址未指明"), status=400)
             if not service_code_from:
                 return Response(general_message(400, "params error", "参数service_code_from未指明"), status=400)
+            if not server_type:
+                return Response(general_message(400, "params error", "仓库类型未指明"), status=400)
             # 创建源码应用
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
@@ -96,7 +104,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                                                                              self.user, service_code_from,
                                                                              service_cname, service_code_clone_url,
                                                                              service_code_id,
-                                                                             service_code_version)
+                                                                             service_code_version, server_type)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息
