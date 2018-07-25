@@ -199,7 +199,7 @@ class ComposeServiceRelation(BaseModel):
 
     team_id = models.CharField(max_length=32, help_text=u"团队 id")
     service_id = models.CharField(max_length=32, help_text=u"服务 id")
-    compose_id = models.CharField(max_length=32, unique=True, help_text=u"compose id")
+    compose_id = models.CharField(max_length=32, help_text=u"compose id")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
 
 
