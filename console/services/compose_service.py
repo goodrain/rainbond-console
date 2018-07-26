@@ -131,7 +131,7 @@ class ComposeService(object):
             service_info_list = data["service_info"]
             # 默认128 M
             new_add_memory = len(service_info_list) * 128
-            return app_service.verify_source(tenant, region, new_add_memory, "compose service create")
+            return app_service.verify_source(tenant, region, new_add_memory, "compose_service_create")
         else:
             return True, "check is not success"
 
