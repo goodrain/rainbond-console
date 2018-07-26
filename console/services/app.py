@@ -99,7 +99,7 @@ class AppService(object):
         service_alias = "gr" + service_id[-6:]
         # 判断是否超过资源
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "创建源码应用")
+                                                "source code app create")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id
@@ -222,7 +222,7 @@ class AppService(object):
         service_id = make_uuid(tenant.tenant_id)
         service_alias = "gr" + service_id[-6:]
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "创建镜像应用")
+                                                "image create app")
         if not allow_create:
             return 412, tips, None
         new_service.service_id = service_id
