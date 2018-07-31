@@ -547,6 +547,6 @@ class Applicants(BaseModel):
     # 申请时间
     apply_time = models.DateField(auto_now_add=True, null=True, blank=True, help_text=u"申请时间")
     # is_pass是否通过
-    is_pass = models.BooleanField(default=False, help_text=u'是否通过')
+    is_pass = models.IntegerField(default=0, help_text=u'0表示审核中，1表示通过审核，2表示审核未通过')
     # 团队名
     team_alias = models.CharField(max_length=30, null=False, help_text=u"团队名")

@@ -487,7 +487,7 @@ urlpatterns = patterns(
         AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
-    # 获取所有企业下所有团队的列表
+    # 获取企业下所有团队的列表
     url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
 )

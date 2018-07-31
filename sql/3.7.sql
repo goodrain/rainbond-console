@@ -18,7 +18,7 @@ CREATE TABLE applicants
     team_name varchar(20) NOT NULL,
     apply_time datetime NOT NULL,
     team_alias varchar(30) NOT NULL,
-    is_pass tinyint DEFAULT FALSE  NOT NULL
+    is_pass int DEFAULT 0  NOT NULL
 );
 CREATE UNIQUE INDEX applicants_id_uindex ON applicants (id);
 

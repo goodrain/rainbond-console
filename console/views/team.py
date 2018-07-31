@@ -12,6 +12,7 @@ from backends.services.resultservice import *
 from cadmin.models import ConsoleSysConfig
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
@@ -812,13 +813,14 @@ class AllTeamsView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
         """
-        获取所有可加入的团队列表
+        获取企业可加入的团队列表
         """
         try:
-            first_enter = enterprise_services.get_enterprise_first()
-            if not first_enter:
-                return Response(general_message(404, "enterprise not found ", "不存在企业"), status=404)
-            team_list = team_services.get_enterprise_teams(enterprise_id=first_enter.enterprise_id). \
+            enterprise_id = request.GET.get("enterprise_id",None)
+            if not enterprise_id:
+                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
+                enterprise_id = enter.enterprise_id
+            team_list = team_services.get_enterprise_teams(enterprise_id=enterprise_id). \
                 values("tenant_id", "tenant_alias", "tenant_name", "enterprise_id")
             result = general_message(200, "success", "查询成功", list=team_list)
         except Exception as e:
