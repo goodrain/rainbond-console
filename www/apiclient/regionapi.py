@@ -85,9 +85,9 @@ class RegionInvokeApi(HttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_region_publickey(self, tenant_name, region, enterprise_id):
+    def get_region_publickey(self, tenant_name, region, enterprise_id, tenant_id):
         url, token = self.__get_region_access_info(tenant_name, region)
-        url += "/v2/builder/publickey"
+        url += "/v2/builder/publickey/"+ tenant_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body

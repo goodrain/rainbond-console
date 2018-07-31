@@ -29,7 +29,7 @@ class ConfigInfoView(AlowAnyApiView):
             scheme = "http"
             if build_absolute_uri.startswith("https"):
                 scheme = "https"
-            data["logo"] = "{0}://{1}{2}".format(scheme, str(host_name), str(logo))
+            data["logo"] = "{0}".format(str(logo))
             # 判断是否为公有云
             if settings.MODULES.get('SSO_LOGIN'):
                 data["url"] = "https://sso.goodrain.com/#/login/"
