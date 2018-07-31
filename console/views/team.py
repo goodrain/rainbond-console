@@ -6,8 +6,11 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q
 from rest_framework.response import Response
 import re
+import datetime
 from backends.services.exceptions import *
 from backends.services.resultservice import *
+from cadmin.models import ConsoleSysConfig
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
@@ -822,3 +825,51 @@ class AllTeamsView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class RegisterStatusView(JWTAuthApiView):
+
+    def get(self, request, *args, **kwargs):
+        try:
+            register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
+            if not register_config:
+                config_key = "REGISTER_STATUS"
+                config_value = "yes"
+                config_type = "string"
+                config_desc = "开启/关闭注册"
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                ConsoleSysConfig.objects.create(key=config_key, type=config_type, value=config_value, desc=config_desc,
+                                                create_time=create_time)
+            elif register_config[0].value != "yes":
+                return Response(general_message(200, "status is close", "注册关闭状态"), status=200)
+            else:
+                return Response(general_message(200, "status is open", "注册开启状态"), status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
+
+    def put(self, request, *args, **kwargs):
+        try:
+            register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
+            # 判断角色
+            user_id = request.user.user_id
+            enterprise_id = request.user.enterprise_id
+            admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id,enterprise_id=enterprise_id)
+            action = request.data.get("action")
+            if admin:
+                if action == "close":
+                    # 修改全局配置
+                    register_config.update(value="no")
+                    return Response(general_message(200, "close register", "关闭注册"), status=200)
+                elif action == "open":
+                    register_config.update(value="yes")
+                    return Response(general_message(200, "open register", "开启注册"), status=200)
+            else:
+                return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
+
+
