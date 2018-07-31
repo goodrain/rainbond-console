@@ -90,7 +90,7 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
