@@ -841,9 +841,9 @@ class RegisterStatusView(JWTAuthApiView):
                 ConsoleSysConfig.objects.create(key=config_key, type=config_type, value=config_value, desc=config_desc,
                                                 create_time=create_time)
             elif register_config[0].value != "yes":
-                return Response(general_message(200, "status is close", "注册关闭状态"), status=200)
+                return Response(general_message(200, "status is close", "注册关闭状态", bean={"status": False}), status=200)
             else:
-                return Response(general_message(200, "status is open", "注册开启状态"), status=200)
+                return Response(general_message(200, "status is open", "注册开启状态", bean={"status": True}), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
