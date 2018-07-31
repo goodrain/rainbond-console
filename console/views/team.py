@@ -810,10 +810,6 @@ class AllTeamsView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """
         获取所有可加入的团队列表
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
         """
         try:
             first_enter = enterprise_services.get_enterprise_first()
