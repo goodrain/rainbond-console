@@ -70,12 +70,14 @@ from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
-    TeamRegionInitView
+    TeamRegionInitView, AllTeamsView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
 from console.views.receipt import *
+from console.views.team import ApplicantsView
+
 
 urlpatterns = patterns(
     '',
@@ -483,4 +485,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$',
         AppVersionManageView.as_view()),
+    # 获取当前团队所有的申请者
+    url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
+    # 获取所有企业下所有团队的列表
+    url(r'^enterprise/teams$', AllTeamsView.as_view()),
 )

@@ -532,3 +532,21 @@ class GroupAppBackupImportRecord(BaseModel):
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+
+
+class Applicants(BaseModel):
+    class Meta:
+        db_table = 'applicants'
+
+    # 用户ID
+    user_id = models.IntegerField(help_text=u'申请用户ID')
+    user_name = models.CharField(max_length=20, null=False, help_text=u"申请用户名")
+    # 团队
+    team_id = models.IntegerField(help_text=u'所属团队id')
+    team_name = models.CharField(max_length=20,null=False, help_text=u"申请组名")
+    # 申请时间
+    apply_time = models.DateField(auto_now_add=True, null=True, blank=True, help_text=u"申请时间")
+    # is_pass是否通过
+    is_pass = models.BooleanField(default=False, help_text=u'是否通过')
+    # 团队名
+    team_alias = models.CharField(max_length=30, null=False, help_text=u"团队名")

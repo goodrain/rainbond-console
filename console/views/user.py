@@ -7,6 +7,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from backends.services.exceptions import SameIdentityError, UserNotExistError
+from console.repositories.user_repo import user_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView

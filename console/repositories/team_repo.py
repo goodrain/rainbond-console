@@ -6,7 +6,7 @@ from django.db.models import Q
 from backends.models import RegionConfig
 from backends.services.exceptions import TenantNotExistError, UserNotExistError
 from www.models import PermRelTenant, Users, Tenants, TenantRegionInfo, ServiceGroupRelation
-from console.models.main import TeamGitlabInfo
+from console.models.main import TeamGitlabInfo, Applicants
 
 logger = logging.getLogger("default")
 
@@ -104,6 +104,9 @@ class TeamRepo(object):
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
 
+
+    def get_applicants(self,team_id):
+        return Applicants.objects.filter(team_id=team_id)
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):

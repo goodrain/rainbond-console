@@ -8,12 +8,14 @@ from rest_framework.response import Response
 import re
 from backends.services.exceptions import *
 from backends.services.resultservice import *
+from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import perm_services
 from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
+from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants
 from www.perms import PermActions, get_highest_identity
 from www.utils.return_message import general_message, error_message
@@ -730,7 +732,7 @@ class TeamRegionInitView(JWTAuthApiView):
             }
             perm_services.add_user_tenant_perm(perm_info)
             # 创建用户在企业的权限
-            user_services.make_user_as_admin_for_enterprise(self.user.user_id, enterprise.enterprise_id)
+            # user_services.make_user_as_admin_for_enterprise(self.user.user_id, enterprise.enterprise_id)
             # 为团队开通默认数据中心并在数据中心创建租户
             code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
             if code != 200:
@@ -751,3 +753,79 @@ class TeamRegionInitView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class ApplicantsView(JWTAuthApiView):
+
+    def get(self, request, team_name, *args, **kwargs):
+        """
+        初始化团队和数据中心信息
+        ---
+        parameters:
+            - name: team_name
+              description: 团队别名
+              required: true
+              type: string
+              paramType: path
+            - name: page_num
+              description: 页码
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页数量
+              required: false
+              type: string
+              paramType: query
+        """
+        try:
+            # 判断角色
+            identity_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id,
+                tenant_name=team_name
+            )
+            team = team_repo.get_team_by_team_name(team_name)
+            page_num = int(request.GET.get("page_num", 1))
+            page_size = int(request.GET.get("page_size", 5))
+            rt_list = []
+            total = 0
+            # 是管理员
+            if "owner" or "admin" in identity_list:
+                # 查询申请用户
+                applicants = team_repo.get_applicants(team_id=team.ID)
+                apc_paginator = JuncheePaginator(applicants, int(page_size))
+                total = apc_paginator.count
+                page_aplic = apc_paginator.page(page_num)
+                rt_list = [apc.to_dict() for apc in page_aplic]
+            # 返回
+            result = general_message(200,"success", "查询成功",list=rt_list,total=total)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class AllTeamsView(JWTAuthApiView):
+
+    def get(self, request, *args, **kwargs):
+        """
+        获取所有可加入的团队列表
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            enterprise = Tenants.objects.all()
+            for ent in enterprise:
+                team_list = team_services.get_enterprise_teams(enterprise_id=ent.enterprise_id).values("tenant_id", "tenant_alias", "tenant_name", "enterprise_id")
+            result = general_message(200, "success", "查询成功", list=team_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+
+
+
