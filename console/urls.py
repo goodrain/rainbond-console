@@ -70,7 +70,7 @@ from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
-    TeamRegionInitView, AllTeamsView, RegisterStatusView
+    TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -490,4 +490,6 @@ urlpatterns = patterns(
     # 获取企业下所有团队的列表
     url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
+    # 获取企业信息
+    url(r'^enterprise/info$', EnterpriseInfoView.as_view())
 )

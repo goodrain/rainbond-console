@@ -10,7 +10,7 @@ import datetime
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from cadmin.models import ConsoleSysConfig
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.enterprise_repo import enterprise_user_perm_repo, enterprise_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
@@ -852,6 +852,9 @@ class RegisterStatusView(JWTAuthApiView):
             return Response(result, status=result["code"])
 
     def put(self, request, *args, **kwargs):
+        """
+        修改开启、关闭注册状态
+        """
         try:
             register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
             # 判断角色
@@ -875,3 +878,19 @@ class RegisterStatusView(JWTAuthApiView):
             return Response(result, status=result["code"])
 
 
+class EnterpriseInfoView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        查询企业信息
+        """
+        try:
+            enterprise_id = request.GET.get("enterprise_id",None)
+            if not enterprise_id:
+                enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.user.enterprise_id)
+                enterprise_id = enter.enterprise_id
+            enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
+            result = general_message(200, "success", "查询成功", list=enterprise_info.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
