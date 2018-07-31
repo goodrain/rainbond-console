@@ -798,7 +798,7 @@ class ApplicantsView(JWTAuthApiView):
                 page_aplic = apc_paginator.page(page_num)
                 rt_list = [apc.to_dict() for apc in page_aplic]
             # 返回
-            result = general_message(200,"success", "查询成功",list=rt_list,total=total)
+            result = general_message(200, "success", "查询成功", list=rt_list, total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -816,16 +816,13 @@ class AllTeamsView(JWTAuthApiView):
         :return:
         """
         try:
-            enterprise = Tenants.objects.all()
-            for ent in enterprise:
-                team_list = team_services.get_enterprise_teams(enterprise_id=ent.enterprise_id).values("tenant_id", "tenant_alias", "tenant_name", "enterprise_id")
+            first_enter = enterprise_services.get_enterprise_first()
+            if not first_enter:
+                return Response(general_message(404, "enterprise not found ", "不存在企业"), status=404)
+            team_list = team_services.get_enterprise_teams(enterprise_id=first_enter.enterprise_id). \
+                values("tenant_id", "tenant_alias", "tenant_name", "enterprise_id")
             result = general_message(200, "success", "查询成功", list=team_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-
-
-
