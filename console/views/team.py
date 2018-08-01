@@ -996,7 +996,11 @@ class TeamUserCanJoin(JWTAuthApiView):
                     join_list.append(join_team)
             join_list_paginator = JuncheePaginator(join_list, int(page_size))
             page_join_list = join_list_paginator.page(page_num)
-            join_list = [j_team.to_dict() for j_team in page_join_list]
+            join_list = [{
+                "team_name":j_team.tenant_name,
+                "team_alias":j_team.tenant_alias,
+                "team_id":j_team.tenant_id
+            } for j_team in page_join_list]
             result = general_message(200, "success", "查询成功", list=join_list)
         except Exception as e:
             logger.exception(e)
