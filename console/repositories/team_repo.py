@@ -108,6 +108,9 @@ class TeamRepo(object):
     def get_applicants(self,team_id):
         return Applicants.objects.filter(team_id=team_id)
 
+    def get_applicants_team(self, user_id):
+        return Applicants.objects.filter(user_id=user_id)
+
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):
         return TeamGitlabInfo.objects.filter(team_id=team_id)

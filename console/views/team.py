@@ -843,9 +843,9 @@ class RegisterStatusView(JWTAuthApiView):
                 ConsoleSysConfig.objects.create(key=config_key, type=config_type, value=config_value, desc=config_desc,
                                                 create_time=create_time)
             elif register_config[0].value != "yes":
-                return Response(general_message(200, "status is close", "注册关闭状态", bean={"status": False}), status=200)
+                return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
             else:
-                return Response(general_message(200, "status is open", "注册开启状态", bean={"status": True}), status=200)
+                return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -861,13 +861,13 @@ class RegisterStatusView(JWTAuthApiView):
             user_id = request.user.user_id
             enterprise_id = request.user.enterprise_id
             admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id,enterprise_id=enterprise_id)
-            action = request.data.get("action")
+            is_regist = request.data.get("is_regist")
             if admin:
-                if action == "close":
+                if is_regist is False:
                     # 修改全局配置
                     register_config.update(value="no")
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
-                elif action == "open":
+                else:
                     register_config.update(value="yes")
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
@@ -884,12 +884,32 @@ class EnterpriseInfoView(JWTAuthApiView):
         查询企业信息
         """
         try:
-            enterprise_id = request.GET.get("enterprise_id",None)
+            enterprise_id = request.GET.get("enterprise_id", None)
             if not enterprise_id:
                 enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.user.enterprise_id)
                 enterprise_id = enter.enterprise_id
             enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
-            result = general_message(200, "success", "查询成功", list=enterprise_info.to_dict())
+            result = general_message(200, "success", "查询成功", bean=enterprise_info.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class UserApplyStatusView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        """查询用户的申请状态"""
+        try:
+            user_id = request.GET.get("user_id", None)
+            if user_id:
+                user_list = team_repo.get_applicants_team(user_id=user_id)
+                status_list = [user_status.to_dict() for user_status in user_list]
+                result = general_message(200, "success", "查询成功", list=status_list)
+                return Response(result, status=result["code"])
+            else:
+                user_list = team_repo.get_applicants_team(user_id=self.user.user_id)
+                status_list = [user_status.to_dict() for user_status in user_list]
+                result = general_message(200, "success", "查询成功", list=status_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

@@ -70,7 +70,7 @@ from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
-    TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView
+    TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -491,5 +491,7 @@ urlpatterns = patterns(
     url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
-    url(r'^enterprise/info$', EnterpriseInfoView.as_view())
+    url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 查看用户审核状态
+    url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
 )
