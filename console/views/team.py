@@ -943,6 +943,25 @@ class UserApplyStatusView(JWTAuthApiView):
 
 class JoinTeamView(JWTAuthApiView):
 
+    def get(self, request, *args, **kwargs):
+        """查看指定用户加入的团队的状态"""
+        try:
+            user_id = request.GET.get("user_id")
+            if user_id:
+                apply_user = apply_repo.get_applicants_team(user_id=user_id)
+                team_list = [team.to_dict() for team in apply_user]
+                result = general_message(200, "success", "查询成功", list=team_list)
+            else:
+                apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
+                team_list = [team.to_dict() for team in apply_user]
+                result = general_message(200, "success", "查询成功", list=team_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+
     def post(self, request, *args, **kwargs):
         """指定用户加入指定团队"""
         try:
