@@ -946,7 +946,7 @@ class JoinTeamView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """查看指定用户加入的团队的状态"""
         try:
-            user_id = request.GET.get("user_id")
+            user_id = request.GET.get("user_id", None)
             if user_id:
                 apply_user = apply_repo.get_applicants_team(user_id=user_id)
                 team_list = [team.to_dict() for team in apply_user]
@@ -977,4 +977,30 @@ class JoinTeamView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class TeamUserCanJoin(JWTAuthApiView):
+
+    def get(self, request, *args, **kwargs):
+        """指定用户可以加入哪些团队"""
+        try:
+            page_num = int(request.GET.get("page_num", 1))
+            page_size = int(request.GET.get("page_size", 5))
+            enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
+            team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
+            apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in [team_name.team_name for team_name in apply_team]]
+            join_list = []
+            for join_team in team_list:
+                if join_team not in applied_team:
+                    join_list.append(join_team)
+            join_list_paginator = JuncheePaginator(join_list, int(page_size))
+            page_join_list = join_list_paginator.page(page_num)
+            join_list = [j_team.to_dict() for j_team in page_join_list]
+            result = general_message(200, "success", "查询成功", list=join_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 
