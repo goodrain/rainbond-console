@@ -984,11 +984,17 @@ class TeamUserCanJoin(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """指定用户可以加入哪些团队"""
         try:
+            user_id = request.GET.get("user_id", None)
             page_num = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 5))
-            enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
-            team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-            apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            if user_id:
+                enterprise_id = user_repo.get_by_user_id(user_id=user_id).enterprise_id
+                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
+                apply_team = apply_repo.get_applicants_team(user_id=user_id)
+            else:
+                enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
+                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
+                apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
             applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in [team_name.team_name for team_name in apply_team]]
             join_list = []
             for join_team in team_list:
