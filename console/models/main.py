@@ -542,7 +542,7 @@ class Applicants(BaseModel):
     user_id = models.IntegerField(help_text=u'申请用户ID')
     user_name = models.CharField(max_length=20, null=False, help_text=u"申请用户名")
     # 团队
-    team_id = models.IntegerField(help_text=u'所属团队id')
+    team_id = models.CharField(max_length=33, help_text=u'所属团队id')
     team_name = models.CharField(max_length=20,null=False, help_text=u"申请组名")
     # 申请时间
     apply_time = models.DateField(auto_now_add=True, null=True, blank=True, help_text=u"申请时间")

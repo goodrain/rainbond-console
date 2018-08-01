@@ -14,7 +14,7 @@ CREATE TABLE applicants
     id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id int NOT NULL,
     user_name varchar(20) NOT NULL,
-    team_id int NOT NULL,
+    team_id varchar(33) NOT NULL,
     team_name varchar(20) NOT NULL,
     apply_time datetime NOT NULL,
     team_alias varchar(30) NOT NULL,

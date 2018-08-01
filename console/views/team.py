@@ -10,9 +10,11 @@ import datetime
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from cadmin.models import ConsoleSysConfig
+from console.repositories.apply_repo import apply_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo, enterprise_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.services.apply_service import apply_service
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
@@ -788,7 +790,6 @@ class ApplicantsView(JWTAuthApiView):
                 user_id=request.user.user_id,
                 tenant_name=team_name
             )
-            team = team_repo.get_team_by_team_name(team_name)
             page_num = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 5))
             rt_list = []
@@ -796,7 +797,7 @@ class ApplicantsView(JWTAuthApiView):
             # 是管理员
             if "owner" or "admin" in identity_list:
                 # 查询申请用户
-                applicants = team_repo.get_applicants(team_id=team.ID)
+                applicants = apply_repo.get_applicants(team_name=team_name)
                 apc_paginator = JuncheePaginator(applicants, int(page_size))
                 total = apc_paginator.count
                 page_aplic = apc_paginator.page(page_num)
@@ -902,15 +903,35 @@ class UserApplyStatusView(JWTAuthApiView):
         try:
             user_id = request.GET.get("user_id", None)
             if user_id:
-                user_list = team_repo.get_applicants_team(user_id=user_id)
+                user_list = apply_repo.get_applicants_team(user_id=user_id)
                 status_list = [user_status.to_dict() for user_status in user_list]
                 result = general_message(200, "success", "查询成功", list=status_list)
                 return Response(result, status=result["code"])
             else:
-                user_list = team_repo.get_applicants_team(user_id=self.user.user_id)
+                user_list = apply_repo.get_applicants_team(user_id=self.user.user_id)
                 status_list = [user_status.to_dict() for user_status in user_list]
                 result = general_message(200, "success", "查询成功", list=status_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class JoinTeamView(JWTAuthApiView):
+
+    def post(self, request, *args, **kwargs):
+        """指定用户加入指定团队"""
+        try:
+            user_id = self.user.user_id
+            team_name = request.data.get("team_name")
+            info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
+            if not info:
+                result = general_message(400, "already apply", "已申请")
+                return Response(result, status=result["code"])
+            else:
+                result = general_message(200, "apply success", "申请加入")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
