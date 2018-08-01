@@ -810,6 +810,30 @@ class ApplicantsView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
+    def put(self, request, team_name, *args, **kwargs):
+        """管理员审核用户"""
+        try:
+            # 判断角色
+            identity_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id,
+                tenant_name=team_name
+            )
+            if "owner" or "admin" in identity_list:
+                user_id = request.data.get("user_id")
+                action = request.data.get("action")
+                team = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+                if action is True:
+                    team.update(is_pass=1)
+                    return Response(general_message(200, "join success", "加入成功"), status=200)
+                else:
+                    team.update(is_pass=2)
+                    return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
+
+
 class AllTeamsView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
@@ -926,7 +950,7 @@ class JoinTeamView(JWTAuthApiView):
             team_name = request.data.get("team_name")
             info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
             if not info:
-                result = general_message(400, "already apply", "已申请")
+                result = general_message(200, "already apply", "已申请")
                 return Response(result, status=result["code"])
             else:
                 result = general_message(200, "apply success", "申请加入")
