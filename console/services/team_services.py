@@ -228,6 +228,19 @@ class TeamService(object):
         else:
             return None
 
+    def add_user_to_team_by_viewer(self, tenant, user_id):
+        """在团队中添加一个用户并给用户分配一个默认viewer权限"""
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
+        if enterprise:
+            try:
+              PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, identity="viewer",
+                                                               enterprise_id=enterprise.pk)
+            except Exception as e:
+                logging.exception(e)
+                raise Exception("创建失败:%s" % e.message)
+        else:
+            return None
+
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
         tenant = self.get_tenant(tenant_name=tenant_name)
