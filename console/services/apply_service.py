@@ -29,7 +29,7 @@ class ApplyService(object):
                 "identity": "viewer",
                 "enterprise_id": team.enterprise_id
             }
-            team_repo.create_tenant(**perms_info)
+            team_repo.create_team_perms(**perms_info)
             return info
         else:
             return None

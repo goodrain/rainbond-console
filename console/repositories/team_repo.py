@@ -104,6 +104,8 @@ class TeamRepo(object):
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
 
+    def create_team_perms(self, **params):
+        return PermRelTenant.objects.create(**params)
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):
