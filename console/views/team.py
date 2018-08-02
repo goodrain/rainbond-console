@@ -828,6 +828,12 @@ class ApplicantsView(JWTAuthApiView):
                 team = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
                 if action is True:
                     team.update(is_pass=1)
+                    perms_info = {
+                        "user_id": user_id,
+                        "tenant_id": team.tenant_id,
+                        "identity": "viewer"
+                    }
+                    team_repo.create_team_perms(**perms_info)
                     return Response(general_message(200, "join success", "加入成功"), status=200)
                 else:
                     team.update(is_pass=2)
