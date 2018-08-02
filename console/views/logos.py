@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
+import datetime
 import logging
 
 from rest_framework.response import Response
 
 from backends.services.configservice import config_service
+from cadmin.models import ConsoleSysConfig
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -27,6 +29,7 @@ class ConfigInfoView(AlowAnyApiView):
             host_name = request.get_host()
             build_absolute_uri = request.build_absolute_uri()
             scheme = "http"
+
             if build_absolute_uri.startswith("https"):
                 scheme = "https"
             data["logo"] = "{0}".format(str(logo))
@@ -51,6 +54,20 @@ class ConfigInfoView(AlowAnyApiView):
                     data["is_user_register"] = True
                 else:
                     data["is_user_register"] = False
+
+            register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
+            if not register_config:
+                config_key = "REGISTER_STATUS"
+                config_value = "yes"
+                config_type = "string"
+                config_desc = "开启/关闭注册"
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                ConsoleSysConfig.objects.create(key=config_key, type=config_type, value=config_value, desc=config_desc,
+                                                create_time=create_time)
+            if register_config[0].value != "yes":
+                data["is_regist"] = False
+            else:
+                data["is_regist"] = True
 
             github_config = config_service.get_github_config()
             data["github_config"] = github_config

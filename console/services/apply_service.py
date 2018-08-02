@@ -23,6 +23,13 @@ class ApplyService(object):
                 "apply_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             apply_repo.create_apply_info(**info)
+            perms_info = {
+                "user_id": user_id,
+                "tenant_id": team.tenant_id,
+                "identity": "viewer",
+                "enterprise_id": team.enterprise_id
+            }
+            team_repo.create_tenant(**perms_info)
             return info
         else:
             return None
