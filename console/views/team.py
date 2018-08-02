@@ -520,21 +520,17 @@ class TeamDelView(JWTAuthApiView):
             tenant_name=team_name
         )
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
-
-        if "owner" not in identity_list and "drop_tenant" not in perm_tuple:
-            code = 400
-            result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
-            return Response(result, status=code)
-
+        team = team_services.get_tenant_by_tenant_name(team_name)
+        if not user_services.is_user_admin_in_current_enterprise(request.user, team.enterprise_id):
+            if "owner" not in identity_list and "drop_tenant" not in perm_tuple:
+                code = 400
+                result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
+                return Response(result, status=code)
         try:
             service_count = team_services.get_team_service_count_by_team_name(team_name=team_name)
             if service_count >= 1:
                 result = general_message(400, "failed", "当前团队内有应用,不可以删除")
                 return Response(result, status=400)
-            tenants = team_services.get_current_user_tenants(self.user.user_id)
-            if len(tenants) == 1:
-                return Response(general_message(409, "you have to keep one team","您必须保留一个团队"),status=409)
-
             status = team_services.delete_tenant(tenant_name=team_name)
             if not status:
                 result = general_message(code, "delete a tenant successfully", "删除团队成功")
