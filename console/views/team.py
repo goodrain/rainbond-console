@@ -852,21 +852,24 @@ class AllTeamsView(JWTAuthApiView):
                 enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
                 enterprise_id = enter.enterprise_id
             total = 0
-            team_info_list = []
+            t_list = []
+            owner_name = None
             team_list = team_services.get_enterprise_teams(enterprise_id=enterprise_id)
-            dict = {}
-            for team in team_list:
-                dict["enterprice_id"] = team.enterprise_id
-                dict["team_name"] = team.tenant_name
-                dict["create_time"] = team.create_time
-                user = user_repo.get_user_by_user_id(user_id=team.creater)
-                dict["user_name"] = user.nick_name
-                team_info_list.append(dict)
-            team_paginator = JuncheePaginator(team_info_list, int(page_size))
+            for creater in team_list:
+                owner = user_repo.get_by_user_id(user_id=creater.creater)
+                if owner:
+                    owner_name = owner.nick_name
+            team_paginator = JuncheePaginator(team_list, int(page_size))
             total = team_paginator.count
             page_team = team_paginator.page(page_num)
-            page_team_info = [team_info for team_info in page_team]
-            result = general_message(200, "success", "查询成功", list=page_team_info, total=total)
+            t_list = [{
+                "enterprise_id": team_info.enterprise_id,
+                "create_time": team_info.create_time,
+                "team_name": team_info.tenant_name,
+                "team_alias": team_info.tenant_alias,
+                "owner":owner_name
+            } for team_info in page_team]
+            result = general_message(200, "success", "查询成功", list=t_list, total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
