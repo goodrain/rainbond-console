@@ -825,18 +825,19 @@ class ApplicantsView(JWTAuthApiView):
             if "owner" or "admin" in identity_list:
                 user_id = request.data.get("user_id")
                 action = request.data.get("action")
-                team = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+                join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
                 if action is True:
-                    team.update(is_pass=1)
+                    join.update(is_pass=1)
+                    team = team_repo.get_team_by_team_name(team_name=team_name)
                     perms_info = {
                         "user_id": user_id,
-                        "tenant_id": team.tenant_id,
+                        "tenant_id": team.ID,
                         "identity": "viewer"
                     }
                     team_repo.create_team_perms(**perms_info)
                     return Response(general_message(200, "join success", "加入成功"), status=200)
                 else:
-                    team.update(is_pass=2)
+                    join.update(is_pass=2)
                     return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
         except Exception as e:
             logger.exception(e)
