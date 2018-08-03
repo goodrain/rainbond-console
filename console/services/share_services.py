@@ -224,10 +224,10 @@ class ShareService(object):
                 extend_method = extend_method_map.get(service.service_key)
                 if extend_method:
                     e_m = dict()
-                    e_m['min_node'] = extend_method.min_node
+                    e_m['min_node'] = service.min_node
                     e_m['max_node'] = extend_method.max_node
                     e_m['step_node'] = extend_method.step_node
-                    e_m['min_memory'] = extend_method.min_memory
+                    e_m['min_memory'] = service.min_memory
                     e_m['max_memory'] = extend_method.max_memory
                     e_m['step_memory'] = extend_method.step_memory
                     e_m['is_restart'] = extend_method.is_restart
