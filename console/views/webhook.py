@@ -368,7 +368,8 @@ class WebHooksStatus(AppBaseView):
 class CustomWebHooksDeploy(AlowAnyApiView):
     def post(self, request, service_id, *args, **kwargs):
         """自定义回调接口出发自动部署"""
-
+        print logger.debug(request.data)
+        
         committer_name = request.data.get("committer_name")
         password = request.data.get("password")
 
