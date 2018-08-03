@@ -75,7 +75,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy
 from console.views.receipt import *
 from console.views.team import ApplicantsView
 
@@ -473,6 +473,10 @@ urlpatterns = patterns(
 
     # webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
+
+    # 自定义自动部署回调地址
+    url(r'^custom/webhooks/(?P<service_id>[\w\-]+)', CustomWebHooksDeploy.as_view()),
+
     # 获取自动部署回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/get-url', GetWebHooksUrl.as_view()),
     # 自动部署功能状态与操作
