@@ -21,7 +21,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
         """
         try:
-            print service_id
+
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             if not service_obj.open_webhooks:
@@ -160,15 +160,15 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "failed", "应用状态不支持")
                     return Response(result, status=400)
             # gitee
-            elif request.META.get("HTTP_X_GITEE_EVENT", None) or request.META.get("HTTP_X_GIT_OSCHINA_EVENT",None):
+            elif request.META.get("HTTP_X_GITEE_EVENT", None) or request.META.get("HTTP_X_GIT_OSCHINA_EVENT", None):
                 logger.debug(request.data)
 
-                commits_info = request.data.get("commits")
+                commits_info = request.data.get("head_commit")
                 if not commits_info:
                     logger.debug("提交信息获取失败")
                     result = general_message(400, "failed", "提交信息获取失败")
                     return Response(result, status=400)
-                message = commits_info[0].get("message")
+                message = commits_info.get("message")
                 if "@deploy" not in message:
                     logger.debug("提交信息无效")
                     result = general_message(400, "failed", "提交信息无效")
