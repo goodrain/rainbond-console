@@ -216,7 +216,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=400)
             # gogs
             elif request.META.get("HTTP_X_GOGS_EVENT", None):
-                print logger.debug(request.data)
+                logger.debug(request.data)
 
                 commits_info = request.data.get("commits")
                 if not commits_info:
