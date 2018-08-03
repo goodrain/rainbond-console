@@ -159,6 +159,62 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态不支持")
                     return Response(result, status=400)
+            # gitee
+            elif request.META.get("HTTP_X_GITEE_EVENT", None) or request.META.get("HTTP_X_GIT_OSCHINA_EVENT",None):
+                logger.debug(request.data)
+
+                commits_info = request.data.get("commits")
+                if not commits_info:
+                    logger.debug("提交信息获取失败")
+                    result = general_message(400, "failed", "提交信息获取失败")
+                    return Response(result, status=400)
+                message = commits_info[0].get("message")
+                if "@deploy" not in message:
+                    logger.debug("提交信息无效")
+                    result = general_message(400, "failed", "提交信息无效")
+                    return Response(result, status=400)
+                ref = request.data.get("ref")
+                if not ref:
+                    logger.debug("获取分支信息失败")
+                    result = general_message(400, "failed", "获取分支信息失败")
+                    return Response(result, status=400)
+                ref = ref.split("/")[2]
+                if not service_obj.code_version == ref:
+                    logger.debug("当前分支与部署分支不同")
+                    result = general_message(400, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=400)
+
+                repository = request.data.get("repository")
+                if not repository:
+                    logger.debug("却少repository信息")
+                    result = general_message(400, "failed", "却少repository信息")
+                    return Response(result, status=400)
+                clone_url = repository.get("clone_url")
+                ssh_url = repository.get("ssh_url")
+                logger.debug("git_url", service_obj.git_url)
+                logger.debug("clone_url", clone_url)
+                logger.debug("ssh_url", ssh_url)
+                if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
+                    logger.debug("github地址不相符")
+                    result = general_message(400, "failed", "仓库地址不相符")
+                    return Response(result, status=400)
+
+                # 获取应用状态
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
+                status = status_map.get("status", None)
+                logger.debug(status)
+
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info.get("author").get("username")
+                if status == "running" or status == "abnormal":
+                    return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
+                    return Response(result, status=400)
+
             else:
                 logger.debug("暂时仅支持github与gitlab")
                 result = general_message(400, "failed", "暂时仅支持github与gitlab哦～")
