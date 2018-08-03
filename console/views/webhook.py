@@ -260,7 +260,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
 
                 user_obj = Users.objects.get(user_id=service_obj.creater)
-                committer_name = commits_info.get("author").get("username")
+                committer_name = commits_info[0].get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
                                                         user=user_obj,
