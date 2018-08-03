@@ -65,7 +65,7 @@ from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRo
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
-    ServiceShareCompleteView, ServiceShareRecordView
+    ServiceShareCompleteView, ServiceShareRecordView, ServicePluginShareEventPost
 from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
@@ -175,7 +175,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events$', ServiceShareEventList.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
         ServiceShareEventPost.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)/plugin',
+        ServicePluginShareEventPost.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
+
 
     # 安装应用
     # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),

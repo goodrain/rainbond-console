@@ -7,7 +7,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from backends.services.exceptions import UserNotExistError
-from console.models.main import ServiceShareRecordEvent
+from console.models.main import ServiceShareRecordEvent, PluginShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
@@ -135,7 +135,7 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
                 return Response(result, status=404)
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，无法放弃")
-                return Response(result, status=404)
+                return Response(result, status=400)
             app = share_service.get_app_by_key(key=share_record.group_share_id)
             if app and not app.is_complete:
                 share_service.delete_app(app)
@@ -221,8 +221,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             service_info_list = share_service.query_share_service_info(
                 team=self.team, group_id=share_record.group_id)
             data["share_service_list"] = service_info_list
-            plugins = share_service.query_group_service_plugin_list(
-                team=self.team, group_id=share_record.group_id)
+            plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
             data["share_plugin_list"] = plugins
             result = general_message(200, "query success", "获取成功", bean=data)
             return Response(result, status=200)
@@ -306,7 +305,18 @@ class ServiceShareEventList(RegionTenantHeaderView):
             for event in events:
                 if event.event_status != "success":
                     result["is_compelte"] = False
-                result["event_list"].append(event.to_dict())
+                service_event_map = event.to_dict()
+                service_event_map["type"] = "service"
+                result["event_list"].append(service_event_map)
+            # 查询插件分享事件
+            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id)
+            for plugin_event in plugin_events:
+                if plugin_event.event_status != "success":
+                    result["is_compelte"] = False
+                plugin_event_map = plugin_event.to_dict()
+                plugin_event_map["type"] = "plugin"
+                result["event_list"].append(plugin_event_map)
+
             result = general_message(200, "query success", "获取成功", bean=result)
             return Response(result, status=200)
         except Exception as e:
@@ -364,6 +374,60 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
+class ServicePluginShareEventPost(RegionTenantHeaderView):
+    @perm_required('share_service')
+    def post(self, request, team_name, share_id, event_id, *args, **kwargs):
+        try:
+            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+            if not share_record:
+                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+                return Response(result, status=404)
+            if share_record.is_success or share_record.step >= 3:
+                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+                return Response(result, status=400)
+
+            events = ServiceShareRecordEvent.objects.filter(record_id=share_id, ID=event_id)
+            if not events:
+                result = general_message(404, "not exist", "分享事件不存在")
+                return Response(result, status=404)
+
+            code, msg, bean = share_service.sync_service_plugin_event(self.user, self.response_region,
+                                                                      self.tenant.tenant_name, share_id, events[0])
+            result = general_message(code, "sync share event", msg, bean=bean.to_dict())
+            return Response(result, status=code)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
+
+    @perm_required('share_service')
+    def get(self, request, team_name, share_id, event_id, *args, **kwargs):
+        try:
+            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+            if not share_record:
+                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+                return Response(result, status=404)
+            if share_record.is_success or share_record.step >= 3:
+                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+                return Response(result, status=400)
+
+            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id).order_by("ID")
+            if not plugin_events:
+                result = general_message(404, "not exist", "分享事件不存在")
+                return Response(result, status=404)
+
+            if plugin_events[0].event_status == "success":
+                result = general_message(200, "get sync share event result", "查询成功", bean=plugin_events[0].to_dict())
+                return Response(result, status=200)
+            bean = share_service.get_sync_plugin_events(self.response_region, team_name, plugin_events[0])
+            result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
+            return Response(result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
 class ServiceShareCompleteView(RegionTenantHeaderView):
     @perm_required('share_service')
     def post(self, request, team_name, share_id, *args, **kwargs):
@@ -377,8 +441,9 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            if count > 0:
-                result = general_message(415, "share complete can not do", "应用同步未全部完成")
+            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+            if count > 0 or plugin_count > 0:
+                result = general_message(415, "share complete can not do", "应用或插件同步未全部完成")
                 return Response(result, status=415)
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
             result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(),

@@ -31,10 +31,11 @@ class PluginBuildVersionService(object):
 
     def create_build_version(self, region, plugin_id, tenant_id, user_id, update_info,
                              build_status,
-                             min_memory, build_cmd="", image_tag="latest", code_version="master"):
+                             min_memory, build_cmd="", image_tag="latest", code_version="master", build_version=None):
         """创建插件版本信息"""
         min_cpu = self.calculate_cpu(region, int(min_memory))
-        build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        if not build_version:
+            build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
         build_version_params = {
             "plugin_id": plugin_id,

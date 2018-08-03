@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
+import datetime
+import json
 import logging
 
-from console.models.main import RainbondCenterApp, ServiceShareRecordEvent
+from django.db import transaction
+
 from console.appstore.appstore import app_store
+from console.constants import AppConstants
+from console.models.main import RainbondCenterApp, ServiceShareRecordEvent, PluginShareRecordEvent
+from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
+from console.repositories.plugin import plugin_repo, app_plugin_relation_repo,service_plugin_config_repo
+from console.repositories.share_repo import share_repo
+from console.services.plugin import plugin_service
 from console.services.service_services import base_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.share_repo import share_repo
-from console.repositories.plugin import plugin_repo
 from www.models import TenantServiceInfo, ServiceEvent, make_uuid
-from www.services import tenant_svc
-from console.services.plugin import plugin_service
-from www.utils.json_tool import json_dump
-from django.db import transaction
-from console.constants import AppConstants
-import json
-import datetime
-from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
+from console.services.group_service import group_service
+from console.services.plugin import plugin_config_service
 
 logger = logging.getLogger("default")
 
@@ -279,34 +280,19 @@ class ShareService(object):
                                 data['service_connect_info_map_list'].append(e_c)
                             else:
                                 data['service_env_map_list'].append(e_c)
+
+                data['service_related_plugin_config'] = list()
                 service_ids = [x.service_id for x in service_list]
-                plugins_attr_list = share_repo.get_plugins_attr_by_service_ids(service_ids=service_ids)
+                # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
                 plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=service_ids)
-                data['plugin_map_list'] = list()
-                for p_relation in plugins_relation_list:
-                    plugin_data = dict()
-                    if service.service_id == p_relation.service_id:
-                        plugin_data['plugin_id'] = p_relation.plugin_id
-                        plugin_data['build_version'] = p_relation.build_version
-                        plugin_data['service_meta_type'] = p_relation.service_meta_type
-                        plugin_data['plugin_status'] = p_relation.plugin_status
-                        plugin_data['create_time'] = p_relation.create_time
-                        plugin_data["attr"] = list()
-                        for p_attr in plugins_attr_list:
-                            if p_relation.service_id == p_attr.service_id:
-                                attr_data = {}
-                                attr_data['dest_service_id'] = p_attr.dest_service_id
-                                attr_data['dest_service_alias'] = p_attr.dest_service_alias
-                                attr_data['container_port'] = p_attr.container_port
-                                attr_data['attr_name'] = p_attr.attr_name
-                                attr_data['attr_value'] = p_attr.attr_value
-                                attr_data['attr_alt_value'] = p_attr.attr_alt_value
-                                attr_data['attr_type'] = p_attr.attr_type
-                                attr_data['attr_default_value'] = p_attr.attr_default_value
-                                attr_data['protocol'] = p_attr.protocol
-                                attr_data['attr_info'] = p_attr.attr_info
-                                plugin_data["attr"].append(attr_data)
-                    data['plugin_map_list'].append(plugin_data)
+                for spr in plugins_relation_list:
+                    service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(spr.service_id,
+                                                                                                         spr.plugin_id,
+                                                                                                         spr.build_version)
+                    plugin_data = spr.to_dict()
+                    plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
+                    data['service_related_plugin_config'].append(plugin_data)
+
                 all_data_map[service.service_id] = data
 
             all_data = list()
@@ -336,6 +322,54 @@ class ShareService(object):
             return plugins
         else:
             return []
+
+    def get_group_services_used_plugins(self, group_id):
+        service_list = group_service.get_group_services(group_id)
+        if not service_list:
+            return []
+        service_ids = [x.service_id for x in service_list]
+        sprs = app_plugin_relation_repo.get_service_plugin_relations_by_service_ids(service_ids)
+        plugin_list = []
+        for spr in sprs:
+            tenant_plugin = plugin_repo.get_plugin_by_plugin_ids([spr.plugin_id])[0]
+            plugin_dict = tenant_plugin.to_dict()
+
+            plugin_dict["build_version"] = spr.build_version
+            plugin_list.append(plugin_dict)
+
+        return plugin_list
+
+    # def get_service_plugins_config(self, service_id, shared_plugin_info):
+    #     id_key_map = {}
+    #     if shared_plugin_info:
+    #         id_key_map = {i["plugin_id"]: i["plugin_key"] for i in shared_plugin_info}
+    #
+    #     sprs = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
+    #     service_plugin_config_list = []
+    #     for spr in sprs:
+    #         service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(service_id,
+    #                                                                                              spr.plugin_id,
+    #                                                                                              spr.build_version)
+    #         plugin_service_config_map = dict()
+    #         for var in service_plugin_config_var:
+    #             config_var = var.to_dict()
+    #             config_var["plugin_key"] = id_key_map.get(spr.plugin_id)
+    #             plugin_service_config_map[spr.plugin_id] = config_var
+    #
+    #         service_plugin_config_list.append(plugin_service_config_map)
+    #     return service_plugin_config_list
+
+    def wrapper_service_plugin_config(self,service_related_plugin_config,shared_plugin_info):
+        """添加plugin key信息"""
+        id_key_map = {}
+        if shared_plugin_info:
+            id_key_map = {i["plugin_id"]: i["plugin_key"] for i in shared_plugin_info}
+
+        service_plugin_config_list = []
+        for config in service_related_plugin_config:
+            config["plugin_key"] = id_key_map.get(config["plugin_id"])
+            service_plugin_config_list.append(config)
+        return service_plugin_config_list
 
     def create_basic_app_info(self, **kwargs):
         return share_repo.add_basic_app_info(**kwargs)
@@ -421,6 +455,67 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享介质同步发生错误", None
 
+    @transaction.atomic
+    def sync_service_plugin_event(self, user, region_name, tenant_name, record_id, record_event):
+        rc_apps = RainbondCenterApp.objects.filter(record_id=record_id)
+        if not rc_apps:
+            return 404, "分享的应用不存在", None
+        rc_app = rc_apps[0]
+        app_template = json.loads(rc_app.app_template)
+        plugins_info = app_template["plugins"]
+
+        for plugin in plugins_info:
+            if record_event.plugin_id == plugin["plugin_id"]:
+                event_id = make_uuid()
+                body = {
+                    "plugin_id": plugin["plugin_id"],
+                    "plugin_version": plugin["build_version"],
+                    "plugin_key": "",
+                    "event_id": event_id,
+                    "share_user": user.nick_name,
+                    "share_scope": rc_app.scope,
+                    "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
+                }
+
+                try:
+                    res, body = region_api.share_plugin(region_name, tenant_name, plugin["plugin_id"], body)
+                    data = body.get("bean")
+                    sid = transaction.savepoint()
+                    if not data:
+                        transaction.savepoint_rollback(sid)
+                        return 400, "数据中心分享错误", None
+
+                    record_event.region_share_id = data.get("share_id", None)
+                    record_event.event_id = data.get("event_id", None)
+                    record_event.event_status = "start"
+                    record_event.update_time = datetime.now()
+                    record_event.save()
+                    image_name = data.get("image_name", None)
+                    if image_name:
+                        plugin["share_image"] = image_name
+
+                    transaction.savepoint_commit(sid)
+                    return 200, "数据中心分享开始", record_event
+                except Exception as e:
+                    logger.exception(e)
+                    if sid:
+                        transaction.savepoint_rollback(sid)
+                    return 500, "插件分享事件同步发生错误", None
+
+        rc_app.app_template = json.dumps(app_template)
+        rc_app.save()
+        return 200, "success", record_event
+
+    def get_sync_plugin_events(self, region_name, tenant_name, record_event):
+        res, body = region_api.share_plugin_result(
+            region_name, tenant_name, record_event.plugin_id, record_event.region_share_id
+        )
+        ret = body.get('bean')
+        if ret and ret.get('status'):
+            record_event.event_status = ret.get("status")
+            record_event.save()
+        return record_event
+
     def get_sync_event_result(self, region_name, tenant_name, record_event):
         res, re_body = region_api.share_service_result(region_name, tenant_name, record_event.service_alias, record_event.region_share_id)
         bean = re_body.get("bean")
@@ -500,6 +595,18 @@ class ShareService(object):
     def get_service_share_record_by_group_id(self, group_id):
         return share_repo.get_service_share_record_by_groupid(group_id=group_id)
 
+    def get_plugins_group_items(self, plugins):
+        rt_list = []
+        for p in plugins:
+            config_group_list = plugin_config_service.get_config_details(p["plugin_id"], p["build_version"])
+            p["config_groups"] = config_group_list
+            if p["origin_share_id"] == "new_create":
+                p["plugin_key"] = make_uuid()
+            else:
+                p["plugin_key"] = p["origin_share_id"]
+            rt_list.append(p)
+        return rt_list
+
     # 创建应用分享记录
     # 创建应用记录
     # 创建介质同步记录
@@ -524,39 +631,29 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "基本信息处理错误", None
-            # 处理插件相关,v3.5暂时不实现
             try:
                 # 确定分享的插件ID
-                share_plugin_ids = {}
                 plugins = share_info.get("share_plugin_list", None)
+                shared_plugin_info = None
                 if plugins:
-                    share_plugins = list()
-                    for plugin in plugins:
-                        version = plugin.get("build_version", "")
-                        plugin_id = plugin.get("plugin_id", "")
-                        if version and plugin_id:
-                            # 只有自己创建的插件需要分享出去
-                            if plugin["origin"] == "source_code" and plugin["is_share"]:
-                                plugin_version = plugin_repo.get_plugin_buildversion(
-                                    plugin_id, version)
-                                if plugin_version and plugin_version.plugin_version_status != "fixed":
-                                    plugin_version.plugin_version_status = "fixed"
-                                    plugin_version.save()
-                                plugin["config_groups"] = [
-                                    group.to_dict()
-                                    for group in plugin_repo.get_plugin_config_groups(
-                                        plugin_id, version)
-                                ]
-                                plugin["config_items"] = [
-                                    item.to_dict()
-                                    for item in plugin_repo.get_plugin_config_items(
-                                        plugin_id, version)
-                                ]
-                                plugin["version"] = plugin_version.to_dict()
-                                # TODO: 插件应该单独分享，此处暂时不处理，分享到应用内部
-                                share_plugin_ids[plugin_id] = True
-                                share_plugins.append(plugin)
-                    app_templete["plugins"] = share_plugins
+
+                    share_image_info = app_store.get_image_connection_info(
+                        group_info["scope"], share_team.tenant_name
+                    )
+                    for plugin_info in plugins:
+                        plugin_info["plugin_image"] = share_image_info
+                        event = PluginShareRecordEvent(
+                            record_id=share_record.ID,
+                            team_name=share_team.tenant_name,
+                            team_id=share_team.tenant_id,
+                            plugin_id=plugin_info['plugin_id'],
+                            plugin_name=plugin_info['plugin_name'],
+                            event_status='not_start'
+                        )
+                        event.save()
+
+                    shared_plugin_info = self.get_plugins_group_items(plugins)
+                    app_templete["plugins"] = shared_plugin_info
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -582,6 +679,9 @@ class ShareService(object):
                                 if sid:
                                     transaction.savepoint_rollback(sid)
                                 return 400, "获取镜像上传地址错误", None
+
+                        service["service_related_plugin_config"] = self.wrapper_service_plugin_config(service["service_related_plugin_config"], shared_plugin_info)
+
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
                                 team_id=share_team.tenant_id,
@@ -594,7 +694,6 @@ class ShareService(object):
                                 event_status="not_start")
                             ssre.save()
                         new_services.append(service)
-                        # TODO:处理应用继承关系RainbondCenterAppInherit
                     app_templete["apps"] = new_services
                 else:
                     if sid:
