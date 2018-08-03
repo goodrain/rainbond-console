@@ -22,3 +22,12 @@ CREATE TABLE applicants
 );
 CREATE UNIQUE INDEX applicants_id_uindex ON applicants (id);
 
+
+-- 添加自动触发部署关系表
+CREATE TABLE deploy_relation
+(
+    id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    service_id varchar(32) NOT NULL,
+    secret_key varchar(200) NOT NULL,
+    key_type varchar(10) NULL ,
+);

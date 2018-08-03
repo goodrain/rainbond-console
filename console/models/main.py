@@ -550,3 +550,14 @@ class Applicants(BaseModel):
     is_pass = models.IntegerField(default=0, help_text=u'0表示审核中，1表示通过审核，2表示审核未通过')
     # 团队名
     team_alias = models.CharField(max_length=30, null=False, help_text=u"团队名")
+
+
+class DeployRelation(BaseModel):
+    class Meta:
+        db_table = "deploy_relation"
+
+    # 应用服务id
+    service_id = models.CharField(
+        max_length=32, unique=True, help_text=u"服务id")
+    key_type = models.CharField(max_length=10, help_text=u"密钥类型")
+    secret_key = models.CharField(max_length=200, help_text=u"密钥")

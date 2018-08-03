@@ -15,6 +15,7 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo, ente
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
+from console.services.config_service import config_service_path
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
@@ -879,16 +880,8 @@ class RegisterStatusView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
         try:
-            register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
-            if not register_config:
-                config_key = "REGISTER_STATUS"
-                config_value = "yes"
-                config_type = "string"
-                config_desc = "开启/关闭注册"
-                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                ConsoleSysConfig.objects.create(key=config_key, type=config_type, value=config_value, desc=config_desc,
-                                                create_time=create_time)
-            elif register_config[0].value != "yes":
+            register_config = config_service_path.check_regist_status()
+            if register_config[0].value != "yes":
                 return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
             else:
                 return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)

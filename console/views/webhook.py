@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import socket
+
+from console.models import DeployRelation
 from console.views.base import AlowAnyApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
@@ -366,22 +368,27 @@ class WebHooksStatus(AppBaseView):
 
 
 class CustomWebHooksDeploy(AlowAnyApiView):
+
+
     def post(self, request, service_id, *args, **kwargs):
         """自定义回调接口出发自动部署"""
-        print logger.debug(request.data)
-
-        user_name = request.data.get("user_name")
-        password = request.data.get("password")
-
+        logger.debug(request.data)
+        import pickle , base64
+        secret_key = request.data.get("secret_key")
+        # 加密
+        pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
+        deploy = DeployRelation.objects.filter(secret_key=pwd)
+        deploy_key = deploy[0].secret_key
+        deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
+        # base64.b64encode(pickle.dumps({"secret_key": "zhufeng"}))
+        if not deploy and secret_key != deploy_key_decode:
+            result = general_message(400, "failed", "密钥错误")
+            return Response(result, status=400)
         service_obj = TenantServiceInfo.objects.get(service_id=service_id)
         tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
         status_map = app_service.get_service_status(tenant_obj, service_obj)
         user_obj = Users.objects.get(user_id=service_obj.creater)
-
-        if user_name != user_obj.nick_name and user_obj.check_password(password):
-            result = general_message(400, "failed", "用户名或密码不正确")
-            return Response(result, status=400)
-
+        user_name = user_obj.nick_name
         status = status_map.get("status", None)
         logger.debug(status)
         if status == "running" or status == "abnormal":
