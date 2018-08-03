@@ -369,8 +369,8 @@ class CustomWebHooksDeploy(AlowAnyApiView):
     def post(self, request, service_id, *args, **kwargs):
         """自定义回调接口出发自动部署"""
         print logger.debug(request.data)
-        
-        committer_name = request.data.get("committer_name")
+
+        user_name = request.data.get("user_name")
         password = request.data.get("password")
 
         service_obj = TenantServiceInfo.objects.get(service_id=service_id)
@@ -378,7 +378,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         status_map = app_service.get_service_status(tenant_obj, service_obj)
         user_obj = Users.objects.get(user_id=service_obj.creater)
 
-        if committer_name != user_obj.nick_name or user_obj.check_password(password):
+        if user_name != user_obj.nick_name and user_obj.check_password(password):
             result = general_message(400, "failed", "用户名或密码不正确")
             return Response(result, status=400)
 
@@ -387,7 +387,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         if status == "running" or status == "abnormal":
             return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
                                                 user=user_obj,
-                                                committer_name=committer_name)
+                                                committer_name=user_name)
         else:
             logger.debug("应用状态异常")
             result = general_message(400, "failed", "应用状态不支持")
