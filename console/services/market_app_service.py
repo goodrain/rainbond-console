@@ -22,16 +22,22 @@ from console.services.app_config.app_relation_service import AppServiceRelationS
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.marketclient import MarketOpenAPI
-from www.models import TenantServiceInfo
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models import TenantServiceInfo, PluginConfigGroup, PluginConfigItems
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.models.main import RainbondCenterApp
 from console.services.common_services import common_services
+from console.repositories.plugin import plugin_repo
+from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
+
+
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
 market_api = MarketOpenAPI()
+region_api = RegionInvokeApi()
 
 
 class MarketAppService(object):
@@ -41,12 +47,17 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
+        app_plugin_map = {}
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id,
                                                                       market_app.group_key, market_app.version,
                                                                       market_app.group_name)
+
+            status, msg = self.__create_plugin_for_tenant(region, tenant, user, app_templates.get("plugins",[]))
+            if status != 200:
+                raise Exception(msg)
             for app in apps:
                 ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
@@ -75,11 +86,15 @@ class MarketAppService(object):
                 if dep_apps_key:
                     service_key_dep_key_map[ts.service_key] = dep_apps_key
                 key_service_map[ts.service_key] = ts
+                app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
+
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
             # 数据中心创建应用
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+            # 创建应用插件
+            self.__create_service_plugins(tenant, service_list, app_plugin_map)
             # 部署所有应
             self.__deploy_services(tenant, user, new_service_list)
         except Exception as e:
@@ -92,6 +107,113 @@ class MarketAppService(object):
                 except Exception as le:
                     logger.exception(le)
             raise e
+
+    def __create_service_plugins(self, tenant, service_list, app_plugin_map):
+        try:
+            for service in service_list:
+                plugins = app_plugin_map.get(service.service_id)
+                if plugins:
+                    for plugin in plugins:
+                        plugin_id = plugin["plugin_id"]
+                        plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+                        build_version = plugin_version.build_version
+                        code, msg = app_plugin_service.save_default_plugin_config(tenant, service, plugin_id,
+                                                                                  build_version)
+                        if code != 200:
+                            raise Exception("msg")
+
+                        # 2.从console数据库取数据生成region数据
+                        region_config = app_plugin_service.get_region_config_from_db(service, plugin_id,
+                                                                                     build_version)
+
+                        data = dict()
+                        data["plugin_id"] = plugin_id
+                        data["switch"] = True
+                        data["version_id"] = build_version
+                        data.update(region_config)
+                        code, msg, relation = app_plugin_service.create_service_plugin_relation(
+                            service.service_id, plugin_id,
+                            build_version, "",
+                            True)
+                        if code != 200:
+                            raise Exception("msg")
+
+                        region_api.install_service_plugin(service.service_region, tenant.tenant_name,
+                                                          service.service_alias,
+                                                          data)
+
+        except Exception as e:
+            logger.exception(e)
+
+    def __create_plugin_for_tenant(self, region_name, user, tenant, plugins):
+        for plugin in plugins:
+            # 对需要安装的插件查看本地是否有安装
+            if plugin["origin_share_id"] != "new_create":
+                tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["origin_share_id"])
+                # 如果本地没有安装，进行安装操作
+                if not tenant_plugin:
+                    try:
+                        status, msg = self.__install_plugin(region_name, user, tenant, plugin)
+                        if status != 200:
+                            return status, msg
+                    except Exception as e:
+                        logger.exception(e)
+                        return 500, "create plugin error"
+        return 200, "success"
+
+    def __install_plugin(self, region_name, user, tenant, plugin_template):
+        image = None
+        image_tag = None
+        if plugin_template["share_image"]:
+            image_and_tag = plugin_template["share_image"].rsplit(":", 1)
+            if len(image_and_tag) > 1:
+                image = image_and_tag[0]
+                image_tag = image_and_tag[1]
+            else:
+                image = image_and_tag[0]
+                image_tag = "latest"
+
+        status, msg, plugin_base_info = plugin_service.create_tenant_plugin(
+            tenant,
+            user.user_id,
+            region_name,
+            plugin_template["desc"],
+            plugin_template["plugin_name"],
+            plugin_template["category"],
+            "image",
+            image,
+            plugin_template["code_repo"]
+        )
+        if status != 200:
+            return status, msg
+
+        plugin_base_info.origin = 'local_market'
+        plugin_base_info.origin_share_id = plugin_template.get("plugin_key")
+        plugin_base_info.save()
+
+        build_version = plugin_template.get('build_version')
+        min_memory = plugin_template.get('min_memory', 128)
+
+        plugin_build_version = plugin_version_service.create_build_version(
+            region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id,
+            "", "unbuild", min_memory, image_tag=image_tag, code_version="", build_version=build_version
+        )
+
+        share_config_groups = plugin_template.get('config_groups', [])
+
+        plugin_config_service.create_config_groups(plugin_base_info.plugin_id, build_version, share_config_groups)
+
+        event_id = make_uuid()
+        plugin_build_version.event_id = event_id
+        plugin_build_version.plugin_version_status = "fixed"
+
+        plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
+
+        ret = plugin_service.build_plugin(
+            region_name, plugin_base_info, plugin_build_version, user, tenant, event_id
+            , plugin_template.get("plugin_image", None))
+        plugin_build_version.build_status = ret.get('bean').get('status')
+        plugin_build_version.save()
 
     def __create_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
         group_name = self.__generator_group_name("gr")

@@ -2,7 +2,7 @@
 from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin
 from www.models import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, TenantServicePluginRelation, TenantServicePluginAttr, ServiceInfo, \
-    TenantServiceExtendMethod, ServiceProbe
+    TenantServiceExtendMethod, ServiceProbe,ServicePluginConfigVar
 
 
 class ShareRepo(object):
@@ -56,6 +56,9 @@ class ShareRepo(object):
     def get_plugins_attr_by_service_ids(self, service_ids):
         plugins_attr_list = TenantServicePluginAttr.objects.filter(service_id__in=service_ids).all()
         return plugins_attr_list or []
+
+    def get_plugin_config_var_by_service_ids(self, service_ids):
+        return ServicePluginConfigVar.objects.filter(service_id__in=service_ids)
 
     def get_plugins_relation_by_service_ids(self, service_ids):
         plugins_relation_list = TenantServicePluginRelation.objects.filter(service_id__in=service_ids).all()

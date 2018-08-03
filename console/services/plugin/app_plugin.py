@@ -389,19 +389,20 @@ class AppPluginService(object):
         config_bean = Dict(config_bean)
         service_plugin_var = []
         undefine_env = config_bean.undefine_env
-        attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
-        service_plugin_var.append(ServicePluginConfigVar(
-            service_id=service.service_id,
-            plugin_id=plugin_id,
-            build_version=build_version,
-            service_meta_type=undefine_env.service_meta_type,
-            injection=undefine_env.injection,
-            dest_service_id="",
-            dest_service_alias="",
-            container_port=0,
-            attrs=json.dumps(attrs_map),
-            protocol=""
-        ))
+        if undefine_env:
+            attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
+            service_plugin_var.append(ServicePluginConfigVar(
+                service_id=service.service_id,
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=undefine_env.service_meta_type,
+                injection=undefine_env.injection,
+                dest_service_id="",
+                dest_service_alias="",
+                container_port=0,
+                attrs=json.dumps(attrs_map),
+                protocol=""
+            ))
         upstream_config_list = config_bean.upstream_env
         for upstream_config in upstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}
