@@ -475,7 +475,7 @@ urlpatterns = patterns(
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
 
     # 自定义自动部署回调地址
-    url(r'^custom/deploy(?P<service_id>[\w\-]+)', CustomWebHooksDeploy.as_view()),
+    url(r'^custom/deploy/(?P<service_id>[\w\-]+)', CustomWebHooksDeploy.as_view()),
 
     # 获取自动部署回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/get-url', GetWebHooksUrl.as_view()),
