@@ -271,6 +271,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not share_group_info.get("group_key", None):
                 result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
+
             # 继续给app_template_incomplete赋值
             code, msg, bean = share_service.create_share_info(
                 share_record=share_record,
@@ -385,8 +386,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
                 return Response(result, status=400)
-
-            events = ServiceShareRecordEvent.objects.filter(record_id=share_id, ID=event_id)
+            events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id)
             if not events:
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)

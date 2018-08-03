@@ -470,7 +470,7 @@ class ShareService(object):
                 body = {
                     "plugin_id": plugin["plugin_id"],
                     "plugin_version": plugin["build_version"],
-                    "plugin_key": "",
+                    "plugin_key": plugin["plugin_key"],
                     "event_id": event_id,
                     "share_user": user.nick_name,
                     "share_scope": rc_app.scope,
@@ -488,7 +488,7 @@ class ShareService(object):
                     record_event.region_share_id = data.get("share_id", None)
                     record_event.event_id = data.get("event_id", None)
                     record_event.event_status = "start"
-                    record_event.update_time = datetime.now()
+                    record_event.update_time = datetime.datetime.now()
                     record_event.save()
                     image_name = data.get("image_name", None)
                     if image_name:
