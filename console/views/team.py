@@ -7,6 +7,8 @@ from django.db.models import Q
 from rest_framework.response import Response
 import re
 import datetime
+
+from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from cadmin.models import ConsoleSysConfig
@@ -15,7 +17,6 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo, ente
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.config_service import config_service_path
 from console.services.enterprise_services import enterprise_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
@@ -880,7 +881,15 @@ class RegisterStatusView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
         try:
-            register_config = config_service_path.check_regist_status()
+            # register_config = config_service_path.check_regist_status()
+            register_config = config_service.get_config_by_key("REGISTER_STATUS")
+            if not register_config:
+                register_config = config_service.add_config(
+                    key="REGISTER_STATUS",
+                    default_value="yes",
+                    type="string",
+                    desc="开启/关闭注册"
+                )
             if register_config[0].value != "yes":
                 return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
             else:
@@ -895,7 +904,14 @@ class RegisterStatusView(JWTAuthApiView):
         修改开启、关闭注册状态
         """
         try:
-            register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
+            # register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
+            regist_config = config_service.get_config_by_key(key="REGISTER_STATUS")
+            if not regist_config:
+                regist_config = config_service.add_config(
+                    key="REGISTER_STATUS",
+                    default_value="yes",
+                    type="string",
+                    desc="开启/关闭注册")
             # 判断角色
             user_id = request.user.user_id
             enterprise_id = request.user.enterprise_id
@@ -904,10 +920,10 @@ class RegisterStatusView(JWTAuthApiView):
             if admin:
                 if is_regist is False:
                     # 修改全局配置
-                    register_config.update(value="no")
+                    regist_config.update(value="no")
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    register_config.update(value="yes")
+                    regist_config.update(value="yes")
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)

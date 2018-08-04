@@ -6,7 +6,6 @@ from rest_framework.response import Response
 
 from backends.services.configservice import config_service
 from cadmin.models import ConsoleSysConfig
-from console.services.config_service import config_service_path
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -56,7 +55,14 @@ class ConfigInfoView(AlowAnyApiView):
                 else:
                     data["is_user_register"] = False
 
-            register_config = config_service_path.check_regist_status()
+            register_config = config_service.get_config_by_key("REGISTER_STATUS")
+            if not register_config:
+                register_config = config_service.add_config(
+                    key="REGISTER_STATUS",
+                    default_value="yes",
+                    type="string",
+                    desc="开启/关闭注册"
+                )
             if register_config[0].value != "yes":
                 data["is_regist"] = False
             else:
