@@ -63,10 +63,11 @@ class ConfigInfoView(AlowAnyApiView):
                     type="string",
                     desc="开启/关闭注册"
                 )
-            if register_config[0].value != "yes":
-                data["is_regist"] = False
-            else:
-                data["is_regist"] = True
+            data["is_regist"] = register_config.value
+            # if register_config[0].value != "yes":
+            #     data["is_regist"] = False
+            # else:
+            #     data["is_regist"] = True
 
             github_config = config_service.get_github_config()
             data["github_config"] = github_config
