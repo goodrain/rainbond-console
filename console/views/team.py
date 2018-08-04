@@ -890,7 +890,7 @@ class RegisterStatusView(JWTAuthApiView):
                     type="string",
                     desc="开启/关闭注册"
                 )
-            if register_config[0].value != "yes":
+            if register_config.value != "yes":
                 return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
             else:
                 return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
@@ -905,13 +905,13 @@ class RegisterStatusView(JWTAuthApiView):
         """
         try:
             # register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
-            regist_config = config_service.get_config_by_key(key="REGISTER_STATUS")
-            if not regist_config:
-                regist_config = config_service.add_config(
-                    key="REGISTER_STATUS",
-                    default_value="yes",
-                    type="string",
-                    desc="开启/关闭注册")
+            # regist_config = config_service.get_config_by_key(key="REGISTER_STATUS")
+            # if not regist_config:
+            #     regist_config = config_service.add_config(
+            #         key="REGISTER_STATUS",
+            #         default_value="yes",
+            #         type="string",
+            #         desc="开启/关闭注册")
             # 判断角色
             user_id = request.user.user_id
             enterprise_id = request.user.enterprise_id
@@ -920,10 +920,12 @@ class RegisterStatusView(JWTAuthApiView):
             if admin:
                 if is_regist is False:
                     # 修改全局配置
-                    regist_config.update(value="no")
+                    # regist_config.update(value="no")
+                    config_service.update_config("REGISTER_STATUS", "no")
+
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    regist_config.update(value="yes")
+                    config_service.update_config("REGISTER_STATUS", "yes")
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
