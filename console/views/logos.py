@@ -55,15 +55,15 @@ class ConfigInfoView(AlowAnyApiView):
                 else:
                     data["is_user_register"] = False
 
-            register_config = config_service.get_config_by_key("REGISTER_STATUS")
-            if not register_config:
-                register_config = config_service.add_config(
+            is_regist = config_service.get_config_by_key("REGISTER_STATUS")
+            if not is_regist:
+                config_service.add_config(
                     key="REGISTER_STATUS",
                     default_value="yes",
                     type="string",
                     desc="开启/关闭注册"
                 )
-            data["is_regist"] = register_config.value
+            data["is_regist"] = is_regist
             # if register_config[0].value != "yes":
             #     data["is_regist"] = False
             # else:
