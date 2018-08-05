@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import base64
 import logging
+import pickle
 import random
 import socket
 import string
@@ -314,8 +316,11 @@ class GetWebHooksUrl(AppBaseView):
             url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             custom_url = "https://" + host + "/custom/deploy/" + service_obj.service_id
-            secret_key = ''.join(random.sample(string.ascii_letters + string.digits, 8))
-            deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
+            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_obj.service_id)
+            secret_key = pickle.loads(base64.b64decode(deploy.secret_key)).get("secret_key")
+
+            # secret_key = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+            # deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
 
             status = self.service.open_webhooks
             result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True})

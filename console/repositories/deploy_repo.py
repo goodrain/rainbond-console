@@ -8,12 +8,15 @@ class DeployRepo(object):
         deploy_relation = DeployRelation.objects.filter(service_id=service_id)
         if not deploy_relation:
             return None
-        return deploy_relation
+        return deploy_relation[0]
 
 
 
     def create_deploy_relation(self, service_id, secret_key, key_type=None):
-        DeployRelation.objects.create(service_id=service_id, secret_key=secret_key, key_type=key_type)
+        deploy_relation = DeployRelation.objects.filter(service_id=service_id)
+        if not deploy_relation:
+            DeployRelation.objects.create(service_id=service_id, secret_key=secret_key, key_type=key_type)
+        return deploy_relation
 
 
 
