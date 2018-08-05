@@ -75,7 +75,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey
 from console.views.receipt import *
 from console.views.team import ApplicantsView
 
@@ -505,5 +505,7 @@ urlpatterns = patterns(
     # 用户申请某个团队
     url(r"^user/applicants/join$", JoinTeamView.as_view()),
     # 查询指定用户可以加入哪些团队
-    url(r"^user/jointeams$", TeamUserCanJoin.as_view())
+    url(r"^user/jointeams$", TeamUserCanJoin.as_view()),
+    # 修改部署密钥
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$", UpdateSecretKey.as_view()),
 )

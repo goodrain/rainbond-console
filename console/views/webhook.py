@@ -8,7 +8,8 @@ import string
 
 from console.models import DeployRelation
 from console.repositories.deploy_repo import deploy_repo
-from console.views.base import AlowAnyApiView
+from console.services.team_services import team_services
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
 from www.models.main import Tenants, TenantServiceInfo, Users
@@ -410,3 +411,25 @@ class CustomWebHooksDeploy(AlowAnyApiView):
             logger.debug("应用状态异常")
             result = general_message(400, "failed", "应用状态不支持")
             return Response(result, status=400)
+
+
+class UpdateSecretKey(AppBaseView):
+
+    def put(self, request, *args, **kwargs):
+        try:
+            secret_key = request.data.get("secret_key")
+            tenant_id = self.tenant.tenant_id
+            service_alias = self.service.service_alias
+            service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
+            deploy_obj = DeployRelation.objects.filter(service_id=service_obj.service_id)
+            pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
+            if deploy_obj:
+                deploy_obj.update(secret_key=pwd)
+                result = general_message(200, "success", "修改成功")
+            else:
+                result = general_message(404, "not found", "没有该应用")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=500)
+
