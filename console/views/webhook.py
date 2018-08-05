@@ -430,8 +430,10 @@ class UpdateSecretKey(AppBaseView):
             if deploy_obj:
                 deploy_obj.update(secret_key=pwd)
                 result = general_message(200, "success", "修改成功")
+                return Response(result, 200)
             else:
                 result = general_message(404, "not found", "没有该应用")
+                return Response(result, 404)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
