@@ -8,8 +8,11 @@ from console.models import DeployRelation
 
 
 class DeployRepo(object):
+    def get_deploy_get_deploy_relation_by_service_id(self, service_id):
+        deploy = DeployRelation.objects.filter(service_id=service_id)
+        return deploy[0]
 
-    def get_deploy_relation_by_service_id(self, service_id):
+    def create_deploy_relation_by_service_id(self, service_id):
         deploy_relation = DeployRelation.objects.filter(service_id=service_id)
         if not deploy_relation:
             secretkey = ''.join(random.sample(string.ascii_letters + string.digits, 8))

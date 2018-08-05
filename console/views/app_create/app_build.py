@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
@@ -52,6 +53,10 @@ class AppBuild(AppBaseView):
             label_service.update_service_state_label(self.tenant, self.service)
             # 部署应用
             app_manage_service.deploy(self.tenant, self.service, self.user)
+
+
+            # 添加应用部署关系
+            deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
             result = general_message(200, "success", "构建成功")
         except Exception as e:
