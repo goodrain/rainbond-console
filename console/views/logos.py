@@ -57,7 +57,7 @@ class ConfigInfoView(AlowAnyApiView):
 
             is_regist = config_service.get_config_by_key("REGISTER_STATUS")
             if not is_regist:
-                config_service.add_config(
+                is_regist = config_service.add_config(
                     key="REGISTER_STATUS",
                     default_value="yes",
                     type="string",
