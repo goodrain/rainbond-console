@@ -317,9 +317,10 @@ class GetWebHooksUrl(AppBaseView):
 
             custom_url = "https://" + host + "/custom/deploy/" + service_obj.service_id
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_obj.service_id)
-            if not deploy:
-                secret_key = ''.join(random.sample(string.ascii_letters + string.digits, 8))
-                deploy = deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
+            # deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
+            # if not deploy:
+            #     secretkey = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+            #     deploy = deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secretkey)
             secret_key = pickle.loads(base64.b64decode(deploy.secret_key)).get("secret_key")
             # deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
             status = self.service.open_webhooks
