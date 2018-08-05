@@ -12,7 +12,7 @@ class DeployRepo(object):
 
 
 
-    def create_deploy_relation(self, service_id, secret_key, key_type):
+    def create_deploy_relation(self, service_id, secret_key, key_type=None):
         DeployRelation.objects.create(service_id=service_id, secret_key=secret_key, key_type=key_type)
 
 
