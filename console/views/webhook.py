@@ -417,7 +417,7 @@ class UpdateSecretKey(AppBaseView):
 
     def put(self, request, *args, **kwargs):
         try:
-            secret_key = request.POST.get("secret_key", None)
+            secret_key = request.data.get("secret_key", None)
             if not secret_key:
                 code = 400
                 result = general_message(code, "no secret_key", "请输入密钥")
