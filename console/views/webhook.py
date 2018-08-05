@@ -417,7 +417,11 @@ class UpdateSecretKey(AppBaseView):
 
     def put(self, request, *args, **kwargs):
         try:
-            secret_key = request.data.get("secret_key")
+            secret_key = request.POST.get("secret_key", None)
+            if not secret_key:
+                code = 400
+                result = general_message(code, "no secret_key", "请输入密钥")
+                return Response(result, status=code)
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
