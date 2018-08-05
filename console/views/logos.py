@@ -62,7 +62,7 @@ class ConfigInfoView(AlowAnyApiView):
                     default_value="yes",
                     type="string",
                     desc="开启/关闭注册"
-                )
+                ).value
             data["is_regist"] = is_regist
             # if register_config[0].value != "yes":
             #     data["is_regist"] = False
