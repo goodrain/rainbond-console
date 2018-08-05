@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
+import random
 import socket
+import string
 
 from console.models import DeployRelation
+from console.repositories.deploy_repo import deploy_repo
 from console.views.base import AlowAnyApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
@@ -310,8 +313,12 @@ class GetWebHooksUrl(AppBaseView):
             host = request.get_host()
             url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
+            custom_url = "https://" + host + "/custom/deploy/" + service_obj.service_id
+            secret_key = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+            deploy_repo.create_deploy_relation(service_id=service_obj.service_id, secret_key=secret_key)
+
             status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True})
 
             return Response(result, status=200)
         except Exception as e:
