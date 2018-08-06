@@ -23,7 +23,7 @@ from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import TenantServiceInfo, PluginConfigGroup, PluginConfigItems
+from www.models import TenantServiceInfo, PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.models.main import RainbondCenterApp
@@ -47,7 +47,8 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
-        app_plugin_map = {}
+        app_plugin_map = {} # 新装服务对应的安装的插件映射
+        old_new_id_map = {} # 新旧服务映射关系
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
@@ -55,13 +56,15 @@ class MarketAppService(object):
                                                                       market_app.group_key, market_app.version,
                                                                       market_app.group_name)
 
-            status, msg = self.__create_plugin_for_tenant(region, tenant, user, app_templates.get("plugins",[]))
+            status, msg = self.__create_plugin_for_tenant(region, user,tenant, app_templates.get("plugins",[]))
             if status != 200:
                 raise Exception(msg)
+
             for app in apps:
                 ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
+                old_new_id_map[app["service_id"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
                 code, msg = self.__save_env(tenant, ts, app["service_env_map_list"],
@@ -94,8 +97,8 @@ class MarketAppService(object):
             # 数据中心创建应用
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建应用插件
-            self.__create_service_plugins(tenant, service_list, app_plugin_map)
-            # 部署所有应
+            self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
+            # 部署所有应用
             self.__deploy_services(tenant, user, new_service_list)
         except Exception as e:
             logger.exception(e)
@@ -108,19 +111,23 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def __create_service_plugins(self, tenant, service_list, app_plugin_map):
+    def __create_service_plugins(self,region, tenant, service_list, app_plugin_map, old_new_id_map):
         try:
+            plugin_version_service.update_plugin_build_status(region,tenant)
+
             for service in service_list:
                 plugins = app_plugin_map.get(service.service_id)
                 if plugins:
-                    for plugin in plugins:
-                        plugin_id = plugin["plugin_id"]
-                        plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+                    for plugin_config in plugins:
+                        plugin_key = plugin_config["plugin_key"]
+                        p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
+                        plugin_id = p[0].plugin_id
+                        service_plugin_config_vars = plugin_config["attr"]
+                        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
                         build_version = plugin_version.build_version
-                        code, msg = app_plugin_service.save_default_plugin_config(tenant, service, plugin_id,
-                                                                                  build_version)
-                        if code != 200:
-                            raise Exception("msg")
+
+                        self.__save_service_config_values( service,plugin_id, build_version, service_plugin_config_vars,
+                                                          old_new_id_map)
 
                         # 2.从console数据库取数据生成region数据
                         region_config = app_plugin_service.get_region_config_from_db(service, plugin_id,
@@ -145,20 +152,42 @@ class MarketAppService(object):
         except Exception as e:
             logger.exception(e)
 
+    def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars,
+                                     old_new_id_map):
+        config_list = []
+
+        for config in service_plugin_config_vars:
+            dest_service_id, dest_service_alias = "", ""
+            if config["service_meta_type"] == "downstream_port":
+                ts = old_new_id_map[config["dest_service_id"]]
+                if ts:
+                    dest_service_id, dest_service_alias = ts.service_id, ts.service_cname
+            config_list.append(ServicePluginConfigVar(
+                service_id=service.service_id,
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=config["service_meta_type"],
+                injection=config["injection"],
+                dest_service_id=dest_service_id,
+                dest_service_alias=dest_service_alias,
+                container_port=config["container_port"],
+                attrs=config["attrs"],
+                protocol=config["protocol"]))
+        ServicePluginConfigVar.objects.bulk_create(config_list)
+
     def __create_plugin_for_tenant(self, region_name, user, tenant, plugins):
         for plugin in plugins:
             # 对需要安装的插件查看本地是否有安装
-            if plugin["origin_share_id"] != "new_create":
-                tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["origin_share_id"])
-                # 如果本地没有安装，进行安装操作
-                if not tenant_plugin:
-                    try:
-                        status, msg = self.__install_plugin(region_name, user, tenant, plugin)
-                        if status != 200:
-                            return status, msg
-                    except Exception as e:
-                        logger.exception(e)
-                        return 500, "create plugin error"
+            tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["plugin_key"])
+            # 如果本地没有安装，进行安装操作
+            if not tenant_plugin:
+                try:
+                    status, msg = self.__install_plugin(region_name, user, tenant, plugin)
+                    if status != 200:
+                        return status, msg
+                except Exception as e:
+                    logger.exception(e)
+                    return 500, "create plugin error"
         return 200, "success"
 
     def __install_plugin(self, region_name, user, tenant, plugin_template):
@@ -178,7 +207,7 @@ class MarketAppService(object):
             user.user_id,
             region_name,
             plugin_template["desc"],
-            plugin_template["plugin_name"],
+            plugin_template["plugin_alias"],
             plugin_template["category"],
             "image",
             image,
@@ -214,6 +243,7 @@ class MarketAppService(object):
             , plugin_template.get("plugin_image", None))
         plugin_build_version.build_status = ret.get('bean').get('status')
         plugin_build_version.save()
+        return 200,"success"
 
     def __create_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
         group_name = self.__generator_group_name("gr")

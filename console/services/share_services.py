@@ -330,13 +330,16 @@ class ShareService(object):
         service_ids = [x.service_id for x in service_list]
         sprs = app_plugin_relation_repo.get_service_plugin_relations_by_service_ids(service_ids)
         plugin_list = []
+        temp_plugin_ids = []
         for spr in sprs:
+            if spr.plugin_id in temp_plugin_ids:
+                continue
             tenant_plugin = plugin_repo.get_plugin_by_plugin_ids([spr.plugin_id])[0]
             plugin_dict = tenant_plugin.to_dict()
 
             plugin_dict["build_version"] = spr.build_version
             plugin_list.append(plugin_dict)
-
+            temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
     # def get_service_plugins_config(self, service_id, shared_plugin_info):
@@ -463,7 +466,7 @@ class ShareService(object):
         rc_app = rc_apps[0]
         app_template = json.loads(rc_app.app_template)
         plugins_info = app_template["plugins"]
-
+        plugin_list = []
         for plugin in plugins_info:
             if record_event.plugin_id == plugin["plugin_id"]:
                 event_id = make_uuid()
@@ -495,13 +498,14 @@ class ShareService(object):
                         plugin["share_image"] = image_name
 
                     transaction.savepoint_commit(sid)
-                    return 200, "数据中心分享开始", record_event
                 except Exception as e:
                     logger.exception(e)
                     if sid:
                         transaction.savepoint_rollback(sid)
                     return 500, "插件分享事件同步发生错误", None
 
+            plugin_list.append(plugin)
+        app_template["plugins"] = plugin_list
         rc_app.app_template = json.dumps(app_template)
         rc_app.save()
         return 200, "success", record_event
@@ -664,10 +668,14 @@ class ShareService(object):
                 services = share_info["share_service_list"]
                 if services:
                     new_services = list()
+                    service_ids = [s["service_id"] for s in services]
+                    version_list = base_service.get_apps_deploy_versions(services[0]["service_region"],share_team.tenant_name, service_ids)
+                    delivered_type_map = {v["ServiceID"]: v["DeliveredType"] for v in version_list}
                     for service in services:
                         image = service["image"]
-                        # 源码应用
-                        if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
+                        # slug应用
+                        # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
+                        if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_connection_info(group_info["scope"], share_team.tenant_name)
                             if not service['service_slug']:
                                 if sid:
