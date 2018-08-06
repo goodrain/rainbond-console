@@ -28,6 +28,12 @@ class DeployRepo(object):
             DeployRelation.objects.create(service_id=service_id, secret_key=secret_key)
         # return deploy_relation[0]
 
+    def get_secret_key_by_service_id(self, service_id):
+        deploy_obj = DeployRelation.objects.filter(service_id=service_id)
+        if not deploy_obj:
+            return None
+        else:
+            return deploy_obj[0].secret_key
 
 
 deploy_repo = DeployRepo()

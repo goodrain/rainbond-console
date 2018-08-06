@@ -388,12 +388,9 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         import pickle , base64
         secret_key = request.data.get("secret_key")
         # 加密
-        pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
-        deploy = DeployRelation.objects.filter(secret_key=pwd)
-        deploy_key = deploy[0].secret_key
+        deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
         deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
-        # base64.b64encode(pickle.dumps({"secret_key": "zhufeng"}))
-        if not deploy and secret_key != deploy_key_decode:
+        if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
         service_obj = TenantServiceInfo.objects.get(service_id=service_id)
