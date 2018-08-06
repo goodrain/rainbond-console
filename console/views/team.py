@@ -855,10 +855,6 @@ class AllTeamsView(JWTAuthApiView):
             t_list = []
             owner_name = None
             team_list = team_services.get_enterprise_teams(enterprise_id=enterprise_id)
-            for creater in team_list:
-                owner = user_repo.get_by_user_id(user_id=creater.creater)
-                if owner:
-                    owner_name = owner.nick_name
             team_paginator = JuncheePaginator(team_list, int(page_size))
             total = team_paginator.count
             page_team = team_paginator.page(page_num)
@@ -867,7 +863,7 @@ class AllTeamsView(JWTAuthApiView):
                 "create_time": team_info.create_time,
                 "team_name": team_info.tenant_name,
                 "team_alias": team_info.tenant_alias,
-                "owner":owner_name
+                "owner": user_repo.get_user_nickname_by_id(user_id=team_info.creater)
             } for team_info in page_team]
             result = general_message(200, "success", "查询成功", list=t_list, total=total)
         except Exception as e:
