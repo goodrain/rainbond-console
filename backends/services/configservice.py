@@ -303,4 +303,24 @@ class ConfigService(object):
             elif type == "ftpconf":
                 ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=False)
         custom_settings.reload()
+
+
+    def get_regist_status(self):
+        regist_status = self.get_config_by_key("REGISTER_STATUS")
+        if not regist_status:
+            config = self.add_config(
+                key="REGISTER_STATUS",
+                default_value="yes",
+                type="string",
+                desc="开启/关闭注册"
+            )
+            regist_status = config.value
+            return regist_status
+
+    def update_regist_status(self, is_regist):
+        if is_regist:
+            self.update_config("REGISTER_STATUS", "yes")
+        else:
+            self.update_config("REGISTER_STATUS", "no")
+
 config_service = ConfigService()

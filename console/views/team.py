@@ -881,16 +881,8 @@ class RegisterStatusView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
         try:
-            # register_config = config_service_path.check_regist_status()
-            register_config = config_service.get_config_by_key("REGISTER_STATUS")
-            if not register_config:
-                register_config = config_service.add_config(
-                    key="REGISTER_STATUS",
-                    default_value="yes",
-                    type="string",
-                    desc="开启/关闭注册"
-                )
-            if register_config.value != "yes":
+            register_config = config_service.get_regist_status()
+            if register_config != "yes":
                 return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
             else:
                 return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
@@ -904,23 +896,14 @@ class RegisterStatusView(JWTAuthApiView):
         修改开启、关闭注册状态
         """
         try:
-            # register_config = ConsoleSysConfig.objects.filter(key='REGISTER_STATUS')
-            # regist_config = config_service.get_config_by_key(key="REGISTER_STATUS")
-            # if not regist_config:
-            #     regist_config = config_service.add_config(
-            #         key="REGISTER_STATUS",
-            #         default_value="yes",
-            #         type="string",
-            #         desc="开启/关闭注册")
-            # 判断角色
             user_id = request.user.user_id
             enterprise_id = request.user.enterprise_id
             admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id,enterprise_id=enterprise_id)
             is_regist = request.data.get("is_regist")
             if admin:
+
                 if is_regist is False:
                     # 修改全局配置
-                    # regist_config.update(value="no")
                     config_service.update_config("REGISTER_STATUS", "no")
 
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
