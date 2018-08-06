@@ -107,7 +107,7 @@ class TenantServiceView(BaseApiView):
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enter_name = request.data.get("enter_name", None)
-                    enterprise = enterprise_services.create_enterprise(enter_name,enter_name)
+                    enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)
                     # 创建用户在企业的权限
                     user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
                 user.enterprise_id = enterprise.enterprise_id
