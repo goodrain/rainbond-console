@@ -54,7 +54,6 @@ class AppBuild(AppBaseView):
             # 部署应用
             app_manage_service.deploy(self.tenant, self.service, self.user)
 
-
             # 添加应用部署关系
             deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 

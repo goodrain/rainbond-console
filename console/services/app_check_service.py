@@ -132,6 +132,7 @@ class AppCheckService(object):
         if image:
             service_image = image["name"] + ":" + image["tag"]
             service.image = service_image
+            service.version = image["tag"]
 
         library = service_info.get("dependencies", False)
         procfile = service_info.get("procfile", False)
