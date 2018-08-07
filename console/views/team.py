@@ -872,7 +872,6 @@ class AllTeamsView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-
 class RegisterStatusView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):

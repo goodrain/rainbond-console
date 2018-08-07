@@ -13,6 +13,7 @@ from console.services.common_services import common_services
 from console.services.event_services import service_event_dynamic
 from console.services.service_services import base_service
 from console.services.team_services import team_services
+from goodrain_web.tools import JuncheePaginator
 from www.utils.status_translate import get_status_info_map
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
@@ -235,13 +236,17 @@ class ServiceEventsView(RegionTenantHeaderView):
         """
         try:
             page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
+            page_size = request.GET.get("page_size", 5)
             event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant, page, page_size)
             for event in event_service_dynamic_list:
                 type_cn = event_service.translate_event_type(event["type"])
                 event["type_cn"] = type_cn
-
-            result = general_message(200, 'success', "查询成功", list=event_service_dynamic_list)
+            total = 0
+            event_paginator = JuncheePaginator(event_service_dynamic_list, int(page_size))
+            total = event_paginator.count
+            event_page_list = event_paginator.page(page)
+            event_list = [event.todict() for event in event_page_list]
+            result = general_message(200, 'success', "查询成功", list=event_list, total=total)
             return Response(result, status=result["code"])
 
         except Exception as e:
