@@ -237,9 +237,9 @@ class ServiceEventsView(RegionTenantHeaderView):
         """
         try:
             page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 5)
+            page_size = request.GET.get("page_size", 3)
             # event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant, page, page_size)
-            event_service_dynamic_list = event_repo.get_specified_region_events(self.tenant.tenant_id, self.response_region)
+            event_service_dynamic_list = event_repo.get_evevt_by_tenant_id_region(self.tenant.tenant_id, self.response_region)
             for event in event_service_dynamic_list:
                 type_cn = event_service.translate_event_type(event["type"])
                 event["type_cn"] = type_cn
