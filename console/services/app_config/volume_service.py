@@ -97,11 +97,11 @@ class AppVolumeService(object):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return 404, u"需要删除的路径不存在", None
-        if volume.volume_type == volume.SHARE:
+        # if volume.volume_type == volume.SHARE:
             # 判断当前共享目录是否被使用
-            mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
-            if mnt:
-                return 403, u"当前路径被共享,无法上传", None
+        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
+        if mnt:
+            return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
             res, body = region_api.delete_service_volumes(
                 service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
