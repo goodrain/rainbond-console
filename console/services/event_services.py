@@ -45,7 +45,7 @@ class ServiceEventDynamic(object):
                 event.service_cname = bean["service_cname"]
         return events
 
-    def get_current_region_service_events(self,region, team, page=1, page_size=10000):
+    def get_current_region_service_events(self,region, team):
         events = event_repo.get_specified_region_events(team.tenant_id, region)
         # paginator = JuncheePaginator(events, int(page_size))
         # show_events = paginator.page(int(page))

@@ -238,6 +238,7 @@ class ServiceEventsView(RegionTenantHeaderView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 3)
+            total = 0
             event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant)
             # event_service_dynamic_list = event_repo.get_evevt_by_tenant_id_region(self.tenant.tenant_id)
             event_service_list = []
@@ -245,8 +246,6 @@ class ServiceEventsView(RegionTenantHeaderView):
                 type_cn = event_service.translate_event_type(event["type"])
                 event["type_cn"] = type_cn
                 event_service_list.append(event)
-
-            total = 0
             event_paginator = JuncheePaginator(event_service_list, int(page_size))
             total = event_paginator.count
             event_page_list = event_paginator.page(page)
