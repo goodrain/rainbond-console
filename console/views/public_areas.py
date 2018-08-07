@@ -247,8 +247,8 @@ class ServiceEventsView(RegionTenantHeaderView):
                 event["type_cn"] = type_cn
                 event_service_list.append(event)
             event_paginator = JuncheePaginator(event_service_list, int(page_size))
-            total = event_paginator.count
             event_page_list = event_paginator.page(page)
+            total = event_paginator.count
             event_list = [event for event in event_page_list]
             result = general_message(200, 'success', "查询成功", list=event_list, total=total)
             return Response(result, status=result["code"])
