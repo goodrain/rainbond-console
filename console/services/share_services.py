@@ -282,9 +282,8 @@ class ShareService(object):
                                 data['service_env_map_list'].append(e_c)
 
                 data['service_related_plugin_config'] = list()
-                service_ids = [x.service_id for x in service_list]
                 # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
-                plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=service_ids)
+                plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
                 for spr in plugins_relation_list:
                     service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(spr.service_id,
                                                                                                          spr.plugin_id,
