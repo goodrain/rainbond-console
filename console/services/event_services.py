@@ -46,7 +46,7 @@ class ServiceEventDynamic(object):
         return events
 
     def get_current_region_service_events(self,region, team, page, page_size):
-        events = event_repo.get_specified_region_events(team.tenant_id,region)
+        events = event_repo.get_specified_region_events(team.tenant_id, region)
         paginator = JuncheePaginator(events, int(page_size))
         show_events = paginator.page(int(page))
         service_ids = [e.service_id for e in show_events]
