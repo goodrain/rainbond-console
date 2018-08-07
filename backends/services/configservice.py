@@ -306,16 +306,17 @@ class ConfigService(object):
 
 
     def get_regist_status(self):
-        regist_status = self.get_config_by_key("REGISTER_STATUS")
-        if not regist_status:
+        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        if not is_regist:
             config = self.add_config(
                 key="REGISTER_STATUS",
                 default_value="yes",
                 type="string",
                 desc="开启/关闭注册"
             )
-            regist_status = config.value
-            return regist_status
+            return config.value
+        else:
+            return is_regist
 
     def update_regist_status(self, is_regist):
         if is_regist:
