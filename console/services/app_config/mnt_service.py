@@ -51,14 +51,6 @@ class AppMntService(object):
                     })
         return mounted_dependencies, total
 
-    def get_local_vol_path(self, tenant, service):
-        all_mnt_relations = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        local_vol_path = []
-        for mount in all_mnt_relations:
-            local_vol_path.append(mount.mnt_dir)
-        return local_vol_path
-
-
 
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
 

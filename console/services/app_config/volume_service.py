@@ -65,9 +65,6 @@ class AppVolumeService(object):
             if volume_path.startswith(path["volume_path"] + "/"):
                 return 412, u"已存在以{0}开头的路径".format(volume_path)
 
-        local_path = mnt_service.get_local_vol_path(tenant, service)
-        if volume_path in local_path:
-            return 412, u"不能和挂载的本地路径一样"
 
 
         return 200, u"success"
