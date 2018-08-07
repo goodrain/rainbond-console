@@ -6,6 +6,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from backends.services.exceptions import GroupNotExistError
+from console.repositories.event_repo import event_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
@@ -237,7 +238,8 @@ class ServiceEventsView(RegionTenantHeaderView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 5)
-            event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant, page, page_size)
+            # event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant, page, page_size)
+            event_service_dynamic_list = event_repo.get_specified_region_events(self.tenant.tenant_id, self.response_region)
             for event in event_service_dynamic_list:
                 type_cn = event_service.translate_event_type(event["type"])
                 event["type_cn"] = type_cn
