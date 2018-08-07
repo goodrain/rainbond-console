@@ -412,7 +412,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
                 return Response(result, status=400)
 
-            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id).order_by("ID")
+            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id,ID=event_id).order_by("ID")
             if not plugin_events:
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)

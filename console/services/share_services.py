@@ -651,7 +651,7 @@ class ShareService(object):
                             team_name=share_team.tenant_name,
                             team_id=share_team.tenant_id,
                             plugin_id=plugin_info['plugin_id'],
-                            plugin_name=plugin_info['plugin_name'],
+                            plugin_name=plugin_info['plugin_alias'],
                             event_status='not_start'
                         )
                         event.save()
