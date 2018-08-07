@@ -51,6 +51,7 @@ class AppMntService(object):
                     })
         return mounted_dependencies, total
 
+
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
 
         services = service_repo.get_services_by_service_ids(*service_ids)

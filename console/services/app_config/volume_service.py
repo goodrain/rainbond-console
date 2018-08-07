@@ -6,6 +6,7 @@ import re
 
 from console.constants import AppConstants
 from console.repositories.app_config import volume_repo, mnt_repo
+from console.services.app_config import mnt_service
 
 from www.apiclient.regionapi import RegionInvokeApi
 import logging
@@ -40,7 +41,7 @@ class AppVolumeService(object):
         else:
             return 200, u"success", volume_name
 
-    def check_volume_path(self, service, volume_path):
+    def check_volume_path(self, tenant, service, volume_path):
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
             return 412, u"持久化路径 {0} 已存在".format(volume_path)
@@ -64,13 +65,15 @@ class AppVolumeService(object):
             if volume_path.startswith(path["volume_path"] + "/"):
                 return 412, u"已存在以{0}开头的路径".format(volume_path)
 
+
+
         return 200, u"success"
 
     def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
         code, msg, volume_name = self.check_volume_name(service, volume_name)
         if code != 200:
             return code, msg, None
-        code, msg = self.check_volume_path(service, volume_path)
+        code, msg = self.check_volume_path(tenant, service, volume_path)
         if code != 200:
             return code, msg, None
         host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
