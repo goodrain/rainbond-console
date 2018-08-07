@@ -392,8 +392,13 @@ class MarketAppService(object):
         """
         初始化应用市场创建的应用默认数据
         """
-        is_slug = bool(
-            app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+        # 判断分享类型是否为slug包
+        share_type = app.get("share_type")
+        if share_type:
+            is_slug = bool(share_type == "slug")
+        else:
+            is_slug = bool(
+                app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
 
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id

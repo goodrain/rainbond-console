@@ -677,12 +677,14 @@ class ShareService(object):
                         # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_connection_info(group_info["scope"], share_team.tenant_name)
+                            service["share_type"] = "slug"
                             if not service['service_slug']:
                                 if sid:
                                     transaction.savepoint_rollback(sid)
                                 return 400, "获取源码包上传地址错误", None
                         else:
                             service["service_image"] = app_store.get_image_connection_info(group_info["scope"], share_team.tenant_name)
+                            service["share_type"] = "image"
                             if not service["service_image"]:
                                 if sid:
                                     transaction.savepoint_rollback(sid)
