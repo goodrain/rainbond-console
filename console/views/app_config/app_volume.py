@@ -125,7 +125,7 @@ class AppVolumeManageView(AppBaseView):
         try:
             code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
             if code != 200:
-                return Response(general_message(code, "delete volume error", msg))
+                return Response(general_message(code, "delete volume error", msg), status=code)
 
             result = general_message(200, "success", u"删除成功", bean=volume.to_dict())
         except Exception as e:
