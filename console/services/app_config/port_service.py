@@ -416,7 +416,7 @@ class AppPortService(object):
             return access_type, port_info_list
         if http_inner_port:
             http_inner_map = {}
-            access_type = ServicePortConstants.HTTP_INNER
+            access_type = ServicePortConstants.NOT_HTTP_INNER
             for p in http_inner_port:
                 env_list = self.get_port_associated_env(tenant, service, p.container_port)
                 http_inner_map[p.container_port] = env_list
