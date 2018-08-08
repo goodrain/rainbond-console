@@ -75,7 +75,7 @@ class AppVolumeService(object):
         code, msg, volume_name = self.check_volume_name(service, volume_name)
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_dir',
                                                                                                               flat=True)
-        local_path = None
+        local_path = ""
         if dep_mnt_names:
             local_path = dep_mnt_names.values("mnt_dir")[0].get("mnt_dir")
         if code != 200:
