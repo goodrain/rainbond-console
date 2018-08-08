@@ -20,7 +20,7 @@ class ApplyService(object):
                 "team_id": team.tenant_id,
                 "team_name": team_name,
                 "team_alias": team.tenant_alias,
-                "apply_time": datetime.datetime.now()
+                "apply_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             apply_repo.create_apply_info(**info)
             return info
