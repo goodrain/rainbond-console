@@ -41,8 +41,10 @@ class AppVolumeService(object):
             return 200, u"success", volume_name
 
     def check_volume_path(self, service, volume_path, local_path):
-        if volume_path.startswith(local_path + '/'):
+        if volume_path.startswith(local_path):
             return 412, u"持久化路径不能和挂载共享路径相同"
+        if volume_path.startswith(local_path + "/"):
+            return 412, u"持久化路径不能再挂载共享路径下"
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
             return 412, u"持久化路径 {0} 已存在".format(volume_path)
