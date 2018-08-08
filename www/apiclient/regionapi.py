@@ -582,7 +582,7 @@ class RegionInvokeApi(HttpClient):
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def update_service_probe(self, region, tenant_name, service_alias, body):
+    def update_service_probec(self, region, tenant_name, service_alias, body):
         """更新应用探针信息"""
         # region_map = self.get_region_map(region)
         # token = region_map[region]['token']
