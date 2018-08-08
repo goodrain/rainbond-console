@@ -40,7 +40,9 @@ class AppVolumeService(object):
         else:
             return 200, u"success", volume_name
 
-    def check_volume_path(self, service, volume_path):
+    def check_volume_path(self, service, volume_path, local_path):
+        if volume_path.startswith(local_path + '/'):
+            return 412, u"持久化路径不能和挂载共享路径相同"
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
             return 412, u"持久化路径 {0} 已存在".format(volume_path)
@@ -68,9 +70,12 @@ class AppVolumeService(object):
 
     def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
         code, msg, volume_name = self.check_volume_name(service, volume_name)
+        dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_dir',
+                                                                                                              flat=True)
+        local_path = dep_mnt_names.values("mnt_dir")[0].get("mnt_dir")
         if code != 200:
             return code, msg, None
-        code, msg = self.check_volume_path(service, volume_path)
+        code, msg = self.check_volume_path(service, volume_path, local_path)
         if code != 200:
             return code, msg, None
         host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
