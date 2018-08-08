@@ -79,10 +79,10 @@ class ConfigInfoView(AlowAnyApiView):
             gitlab_config = config_service.get_gitlab_config()
             data["gitlab_config"] = gitlab_config
 
-            data["e_id"] = None
+            data["eid"] = None
             enterprise = enterprise_repo.get_enterprise_first()
             if enterprise:
-                data["e_id"] = enterprise.enterprise_id
+                data["eid"] = enterprise.enterprise_id
 
             result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)
