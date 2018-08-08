@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from backends.services.configservice import config_service
 from cadmin.models import ConsoleSysConfig
+from console.repositories.enterprise_repo import enterprise_repo
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -78,6 +79,10 @@ class ConfigInfoView(AlowAnyApiView):
             gitlab_config = config_service.get_gitlab_config()
             data["gitlab_config"] = gitlab_config
 
+            data["e_id"] = None
+            enterprise = enterprise_repo.get_enterprise_first()
+            if enterprise:
+                data["e_id"] = enterprise.enterprise_id
 
             result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)
