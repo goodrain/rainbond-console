@@ -468,11 +468,11 @@ class ImageAppView(AppBaseView):
 
         try:
             image = request.data.get("image")
-            options = request.data.get("options", None)
+            cmd = request.data.get("cmd", None)
             if not image:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
-            if options:
-                self.service.cmd = options
+            if cmd:
+                self.service.cmd = cmd
 
             version = image.partition(":")[2]
             if not version:
@@ -494,7 +494,7 @@ class BuildSourceinfo(AppBaseView):
     @perm_required('manage_service_config')
     def get(self, request, *args, **kwargs):
         """
-        修改镜像源地址
+        查询构建源信息
         ---
         """
         service_alias = self.service.service_alias
