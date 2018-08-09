@@ -415,12 +415,24 @@ class AppPortService(object):
                 port_info_list.append(port_dict)
             return access_type, port_info_list
         if http_inner_port:
-            http_inner_map = {}
-            access_type = ServicePortConstants.NOT_HTTP_INNER
+            # http_inner_map = {}
+
+            access_type = ServicePortConstants.HTTP_INNER
+            port_info_list = []
             for p in http_inner_port:
+                port_dict = p.to_dict()
                 env_list = self.get_port_associated_env(tenant, service, p.container_port)
-                http_inner_map[p.container_port] = env_list
-            return access_type, http_inner_map
+                port_dict["connect_info"] = env_list
+                port_info_list.append(port_dict)
+            # port_info_list = []
+            # for p in http_inner_port:
+            #     port_dict = p.to_dict()
+            #     env_list = self.get_port_associated_env(tenant, service, p.container_port)
+            #     # http_inner_map[p.container_port] = env_list
+            #     port_dict["connect_info"] = env_list
+            #     port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
+            #     port_info_list.append(port_dict)
+            return access_type, port_info_list
 
         if unopened_port:
             access_type = ServicePortConstants.NO_PORT
