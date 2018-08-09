@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
+from console.services.app_check_service import app_check_service
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -457,6 +458,21 @@ class AppAnalyzePluginView(AppBaseView):
 class ImageAppView(AppBaseView):
 
     @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取应用详情信息
+        ---
+        """
+        try:
+            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+    @never_cache
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
@@ -465,10 +481,19 @@ class ImageAppView(AppBaseView):
         """
 
         try:
-            docker_name = request.data.get("docker_name")
-            if not docker_name:
+            image = request.data.get("image")
+            options = request.data.get("options", None)
+            if not image:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
-            self.service.docker_cmd = docker_name
+            if options:
+                self.service.cmd = options
+
+            version = image.partition(":")[2]
+            if not version:
+                version = "latest"
+                image = image + ":" + version
+            self.service.image = image
+            self.service.version = version
             self.service.save()
             result = general_message(200, "success", "修改成功")
         except Exception as e:
