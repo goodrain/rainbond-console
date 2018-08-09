@@ -10,6 +10,7 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from console.services.app_check_service import app_check_service
+from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -458,21 +459,6 @@ class AppAnalyzePluginView(AppBaseView):
 class ImageAppView(AppBaseView):
 
     @never_cache
-    @perm_required('view_service')
-    def get(self, request, *args, **kwargs):
-        """
-        获取应用详情信息
-        ---
-        """
-        try:
-            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
-    @never_cache
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
@@ -496,6 +482,37 @@ class ImageAppView(AppBaseView):
             self.service.version = version
             self.service.save()
             result = general_message(200, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class BuildSourceinfo(AppBaseView):
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def get(self, request, *args, **kwargs):
+        """
+        修改镜像源地址
+        ---
+        """
+        service_alias = self.service.service_alias
+        tenant_id = self.service.tenant_id
+        try:
+            service_source = team_services.get_service_source(service_alias=service_alias, tenant_id=tenant_id)
+            if not service_source:
+                return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
+            bean = {}
+            bean["service_source"] = service_source.service_source
+            bean["image"] = service_source.image
+            bean["cmd"] = service_source.cmd
+            bean["code_from"] =service_source.code_from
+            bean["version"] = service_source.version
+            bean["docker_cmd"] = service_source.docker_cmd
+            bean["create_time"] = service_source.create_time
+            bean["git_url"] = service_source.git_url
+            result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

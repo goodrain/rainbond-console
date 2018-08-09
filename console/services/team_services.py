@@ -256,6 +256,14 @@ class TeamService(object):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
 
+
+    def get_service_source(self, service_alias, tenant_id):
+        service_source = TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=tenant_id)
+        if service_source:
+            return service_source[0]
+        else:
+            return []
+
     def delete_tenant(self, tenant_name):
         status = team_repo.delete_tenant(tenant_name=tenant_name)
         return status
