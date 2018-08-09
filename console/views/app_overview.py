@@ -452,3 +452,26 @@ class AppAnalyzePluginView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class ImageAppView(AppBaseView):
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        修改镜像源地址
+        ---
+        """
+
+        try:
+            docker_name = request.data.get("docker_name")
+            if not docker_name:
+                return Response(general_message(400, "param error", "参数错误"), status=400)
+            self.service.docker_cmd = docker_name
+            self.service.save()
+            result = general_message(200, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
