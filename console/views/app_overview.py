@@ -4,6 +4,7 @@
 """
 import logging
 
+from django.db import transaction
 from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
@@ -521,7 +522,7 @@ class BuildSourceinfo(AppBaseView):
             bean["create_time"] = service_source.create_time
             bean["git_url"] = service_source.git_url
             bean["code_version"] = service_source.code_version
-
+            bean["server_type"] = service_source.server_type
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
@@ -530,12 +531,13 @@ class BuildSourceinfo(AppBaseView):
 
     @never_cache
     @perm_required('manage_service_config')
+    @transaction.atomic
     def put(self, request, *args, **kwargs):
         """
         修改构建源
         ---
         """
-
+        s_id = transaction.savepoint()
         try:
             image = request.data.get("image", None)
             cmd = request.data.get("cmd", None)
@@ -543,6 +545,8 @@ class BuildSourceinfo(AppBaseView):
             docker_cmd = request.data.get("docker_cmd", None)
             git_url = request.data.get("git_url", None)
             code_version = request.data.get("code_version", None)
+            user_name = request.data.get("user_name", None)
+            password = request.data.get("password", None)
 
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -555,6 +559,7 @@ class BuildSourceinfo(AppBaseView):
                 if git_url:
                     self.service.git_url = git_url
                 self.service.save()
+                transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
                 if image:
                     version = image.partition(":")[2]
@@ -567,8 +572,11 @@ class BuildSourceinfo(AppBaseView):
                     self.service.cmd = cmd
                 if docker_cmd:
                     self.service.docker_cmd = docker_cmd
+                self.service.save()
+                transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
+            transaction.savepoint_rollback(s_id)
         return Response(result, status=result["code"])
