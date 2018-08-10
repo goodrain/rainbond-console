@@ -18,7 +18,7 @@ class EnterReceiptAPIView(JWTAuthApiView):
 
         limit = int(request.GET.get('limit', 10) or 10)
         page = int(request.GET.get('page', 1) or 1)
-        receipt_status = request.GET.get('receipt_status', 'Not') or 'Not'
+        receipt_status = request.GET.get('receipt_status', '') or ''
         team = team_services.get_tenant(tenant_name=team_name)
         try:
             body = market_api.get_enterprise_receipts(team.tenant_id, team.enterprise_id, receipt_status, page, limit)
