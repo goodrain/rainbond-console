@@ -59,7 +59,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
 
         # 私有docker仓库地址
         docker_password = request.data.get("password", None)
-        docker_user_name = request.data.get("username", None)
+        docker_user_name = request.data.get("user_name", None)
 
         try:
             if not image_type:
