@@ -147,7 +147,7 @@ class MarketOpenAPI(HttpClient):
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
-    def get_enterprise_receipts(self, tenant_id, enterprise_id, receipt_status='Not', page=1, limit=10):
+    def get_enterprise_receipts(self, tenant_id, enterprise_id, receipt_status="Not", page=1, limit=10):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enterprises/{0}/receipts?receipt_status={1}&page={2}&limit={3}".format(
             enterprise_id, receipt_status, page, limit)

@@ -550,6 +550,11 @@ class BuildSourceinfo(AppBaseView):
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
 
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
+            service_source_user.user_name = user_name
+            service_source_user.password = password
+            service_source_user.save()
             if service_source == "source_code":
                 if code_version:
                     self.service.code_version = code_version
@@ -567,8 +572,7 @@ class BuildSourceinfo(AppBaseView):
                         image = image + ":" + version
                     self.service.image = image
                     self.service.version = version
-                if cmd:
-                    self.service.cmd = cmd
+                self.service.cmd = cmd
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
