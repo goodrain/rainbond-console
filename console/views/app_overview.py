@@ -2,6 +2,7 @@
 """
   Created on 18/1/29.
 """
+import datetime
 import logging
 
 from django.db import transaction
@@ -553,7 +554,16 @@ class BuildSourceinfo(AppBaseView):
             service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
                                                                          service_id=self.service.service_id)
 
-            if service_source_user:
+            if not service_source_user:
+                service_source_info = {
+                    "service_id": self.service.service_id,
+                    "team_id": self.service.tenant_id,
+                    "user_name": user_name,
+                    "password": password,
+                    "create_time": datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                }
+                service_source_repo.create_service_source(**service_source_info)
+            else:
                 service_source_user.user_name = user_name
                 service_source_user.password = password
                 service_source_user.save()
