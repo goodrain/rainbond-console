@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
+from console.repositories.app import service_source_repo
 from console.services.app_check_service import app_check_service
 from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
@@ -500,9 +501,17 @@ class BuildSourceinfo(AppBaseView):
         service_alias = self.service.service_alias
         try:
             service_source = team_services.get_service_source(service_alias=service_alias)
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id, service_id=self.service.service_id)
+            user = ""
+            password = ""
+            bean = {}
+            if service_source_user:
+                user = service_source_user.user_name
+                password = service_source_user.password
+                bean["user_name"] = user
+                bean["password"] = password
             if not service_source:
                 return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
-            bean = {}
             bean["service_source"] = service_source.service_source
             bean["image"] = service_source.image
             bean["cmd"] = service_source.cmd
@@ -512,6 +521,7 @@ class BuildSourceinfo(AppBaseView):
             bean["create_time"] = service_source.create_time
             bean["git_url"] = service_source.git_url
             bean["code_version"] = service_source.code_version
+
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
@@ -529,33 +539,34 @@ class BuildSourceinfo(AppBaseView):
         try:
             image = request.data.get("image", None)
             cmd = request.data.get("cmd", None)
-            service_source = request.data.get("service_source", None)
+            service_source = request.data.get("service_source")
             docker_cmd = request.data.get("docker_cmd", None)
             git_url = request.data.get("git_url", None)
             code_version = request.data.get("code_version", None)
-            if code_version:
-                self.service.code_version = code_version
-            else:
-                self.service.code_version = "master"
-            if git_url:
-                self.service.git_url = git_url
-            if docker_cmd:
-                self.service.docker_cmd = docker_cmd
-            if service_source:
-                self.service.service_source = service_source
-            if image:
-                version = image.partition(":")[2]
-                if not version:
-                    version = "latest"
-                    image = image + ":" + version
-                self.service.image = image
-                self.service.version = version
-            else:
-                self.service.version = "81701"
-            if cmd:
-                self.service.cmd = cmd
 
-            self.service.save()
+            if not service_source:
+                return Response(general_message(400, "param error", "参数错误"), status=400)
+
+            if service_source == "source_code":
+                if code_version:
+                    self.service.code_version = code_version
+                else:
+                    self.service.code_version = "master"
+                if git_url:
+                    self.service.git_url = git_url
+                self.service.save()
+            elif service_source == "docker_run":
+                if image:
+                    version = image.partition(":")[2]
+                    if not version:
+                        version = "latest"
+                        image = image + ":" + version
+                    self.service.image = image
+                    self.service.version = version
+                if cmd:
+                    self.service.cmd = cmd
+                if docker_cmd:
+                    self.service.docker_cmd = docker_cmd
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
