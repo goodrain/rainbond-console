@@ -542,7 +542,6 @@ class BuildSourceinfo(AppBaseView):
             image = request.data.get("image", None)
             cmd = request.data.get("cmd", None)
             service_source = request.data.get("service_source")
-            docker_cmd = request.data.get("docker_cmd", None)
             git_url = request.data.get("git_url", None)
             code_version = request.data.get("code_version", None)
             user_name = request.data.get("user_name", None)
@@ -570,8 +569,6 @@ class BuildSourceinfo(AppBaseView):
                     self.service.version = version
                 if cmd:
                     self.service.cmd = cmd
-                if docker_cmd:
-                    self.service.docker_cmd = docker_cmd
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
