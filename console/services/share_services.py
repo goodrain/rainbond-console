@@ -233,10 +233,10 @@ class ShareService(object):
                     data['extend_method_map'] = e_m
                 else:
                     data['extend_method_map'] = {
-                        "min_node": 1,
+                        "min_node": service.min_node,
                         "max_node": 20,
                         "step_node": 1,
-                        "min_memory": 128,
+                        "min_memory": service.min_memory,
                         "max_memory": 65536,
                         "step_memory": 128,
                         "is_restart": 0
