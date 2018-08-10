@@ -43,6 +43,9 @@ class AppCheckService(object):
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             source_body = service.docker_cmd
+
+        body["username"] = user_name
+        body["password"] = password
         body["source_body"] = source_body
 
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)

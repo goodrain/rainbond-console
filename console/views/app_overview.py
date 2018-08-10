@@ -509,8 +509,8 @@ class BuildSourceinfo(AppBaseView):
             if service_source_user:
                 user = service_source_user.user_name
                 password = service_source_user.password
-                bean["user_name"] = user
-                bean["password"] = password
+            bean["user_name"] = user
+            bean["password"] = password
             if not service_source:
                 return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
             bean["service_source"] = service_source.service_source

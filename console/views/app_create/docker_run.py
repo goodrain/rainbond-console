@@ -58,7 +58,8 @@ class DockerRunCreateView(RegionTenantHeaderView):
         docker_cmd = request.data.get("docker_cmd", "")
 
         # 私有docker仓库地址
-        docker_image_url = request.data.get("docker_image_url", None)
+        docker_password = request.data.get("password", None)
+        docker_user_name = request.data.get("username", None)
 
         try:
             if not image_type:
@@ -71,6 +72,10 @@ class DockerRunCreateView(RegionTenantHeaderView):
                                                                             image_type)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+
+            # 添加username,password信息
+            if docker_password or docker_user_name:
+                app_service.create_service_source_info(self.tenant, new_service, docker_user_name, docker_password)
 
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
