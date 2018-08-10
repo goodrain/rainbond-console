@@ -498,9 +498,8 @@ class BuildSourceinfo(AppBaseView):
         ---
         """
         service_alias = self.service.service_alias
-        tenant_id = self.service.tenant_id
         try:
-            service_source = team_services.get_service_source(service_alias=service_alias, tenant_id=tenant_id)
+            service_source = team_services.get_service_source(service_alias=service_alias)
             if not service_source:
                 return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
             bean = {}
@@ -512,7 +511,52 @@ class BuildSourceinfo(AppBaseView):
             bean["docker_cmd"] = service_source.docker_cmd
             bean["create_time"] = service_source.create_time
             bean["git_url"] = service_source.git_url
+            bean["code_version"] = service_source.code_version
             result = general_message(200, "success", "查询成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        修改构建源
+        ---
+        """
+
+        try:
+            image = request.data.get("image", None)
+            cmd = request.data.get("cmd", None)
+            service_source = request.data.get("service_source", None)
+            docker_cmd = request.data.get("docker_cmd", None)
+            git_url = request.data.get("git_url", None)
+            code_version = request.data.get("code_version", None)
+            if code_version:
+                self.service.code_version = code_version
+            else:
+                self.service.code_version = "master"
+            if git_url:
+                self.service.git_url = git_url
+            if docker_cmd:
+                self.service.docker_cmd = docker_cmd
+            if service_source:
+                self.service.service_source = service_source
+            if image:
+                version = image.partition(":")[2]
+                if not version:
+                    version = "latest"
+                    image = image + ":" + version
+                self.service.image = image
+                self.service.version = version
+            else:
+                self.service.version = "81701"
+            if cmd:
+                self.service.cmd = cmd
+
+            self.service.save()
+            result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

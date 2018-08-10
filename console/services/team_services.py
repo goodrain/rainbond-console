@@ -257,8 +257,8 @@ class TeamService(object):
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
 
 
-    def get_service_source(self, service_alias, tenant_id):
-        service_source = TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=tenant_id)
+    def get_service_source(self, service_alias):
+        service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)
         if service_source:
             return service_source[0]
         else:
