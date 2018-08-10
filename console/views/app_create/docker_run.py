@@ -57,6 +57,9 @@ class DockerRunCreateView(RegionTenantHeaderView):
         service_cname = request.data.get("service_cname", None)
         docker_cmd = request.data.get("docker_cmd", "")
 
+        # 私有docker仓库地址
+        docker_image_url = request.data.get("docker_image_url", None)
+
         try:
             if not image_type:
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)

@@ -552,9 +552,11 @@ class BuildSourceinfo(AppBaseView):
 
             service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
                                                                          service_id=self.service.service_id)
-            service_source_user.user_name = user_name
-            service_source_user.password = password
-            service_source_user.save()
+
+            if service_source_user:
+                service_source_user.user_name = user_name
+                service_source_user.password = password
+                service_source_user.save()
             if service_source == "source_code":
                 if code_version:
                     self.service.code_version = code_version
