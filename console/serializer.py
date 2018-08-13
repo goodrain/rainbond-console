@@ -153,6 +153,6 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     extend_method = serializers.CharField(
         max_length=15, required=False, help_text=u"伸缩方式")
     user_name = serializers.CharField(
-        max_length=32, required=False, help_text=u"拉取仓库需要的用户名")
+        max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的用户名")
     password = serializers.CharField(
-        max_length=32, required=False, help_text=u"拉取仓库需要的密码")
+        max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的密码")
