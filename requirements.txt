@@ -9,6 +9,7 @@ wsgiref==0.1.2
 httplib2==0.9.1
 simplejson==3.8.0
 urllib3==1.12
+certifi
 whitenoise==2.0.3
 pillow==2.9.0
 djangorestframework==3.4.1
