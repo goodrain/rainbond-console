@@ -52,7 +52,9 @@ class RegionApiBaseHttpClient(object):
         return pybody
 
     def _check_status(self, url, method, status, content):
-        body = self._jsondecode(content)
+        body = None
+        if content:
+            body = self._jsondecode(content)
         res = Dict({"status": status})
         if isinstance(body, dict):
             body = Dict(body)
