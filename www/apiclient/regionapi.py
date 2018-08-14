@@ -7,21 +7,21 @@ from django import http
 from django.conf import settings
 
 from backends.models import RegionConfig
-from www.apiclient.baseclient import HttpClient, client_auth_service
+from www.apiclient.baseclient import client_auth_service
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo, Tenants
 import os
 
 logger = logging.getLogger('default')
 
 
-class RegionInvokeApi(HttpClient):
+class RegionInvokeApi(RegionApiBaseHttpClient):
     def __init__(self, *args, **kwargs):
-        HttpClient.__init__(self, *args, **kwargs)
+        RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {
             'Connection': 'keep-alive',
             'Content-Type': 'application/json'
         }
-
 
     def make_proxy_http(self, region_service_info):
         proxy_info = region_service_info['proxy']

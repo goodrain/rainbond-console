@@ -68,7 +68,6 @@ class ServiceEventDynamic(object):
                 result["service_cname"] = s.service_cname
             else:
                 if event.type == "truncate":
-                    logger.debug("========> {0}".format(event.message))
                     result["service_alias"] = event.message
                     result["service_cname"] = event.message
             event_list.append(result)

@@ -31,3 +31,9 @@ CREATE TABLE deploy_relation
     secret_key varchar(200) NOT NULL,
     key_type varchar(10) NULL ,
 );
+
+-- 添加https认证信息路径
+
+ALTER TABLE region_info ADD ssl_ca_cert varchar(128) NULL;
+ALTER TABLE region_info ADD cert_file varchar(128) NULL;
+ALTER TABLE region_info ADD key_file varchar(128) NULL;
