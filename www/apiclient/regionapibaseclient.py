@@ -107,7 +107,7 @@ class RegionApiBaseHttpClient(object):
                 #     record_body = '%s .....ignore.....' % body[:1000]
                 # else:
                 #     record_body = body
-                return response.status, response._body
+                return response.status, response.data
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
