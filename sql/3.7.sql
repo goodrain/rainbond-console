@@ -29,7 +29,7 @@ CREATE TABLE deploy_relation
     id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
     service_id varchar(32) NOT NULL,
     secret_key varchar(200) NOT NULL,
-    key_type varchar(10) NULL ,
+    key_type varchar(10) NULL 
 );
 
 -- 添加https认证信息路径
