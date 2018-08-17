@@ -208,8 +208,18 @@ class AppPodsView(AppBaseView):
             rt_list = []
             for d in data["list"]:
                 bean = dict()
-                bean["pod_name"] = d["PodName"]
+                bean["pod_name"] = d["pod_name"]
                 bean["manage_name"] = "manager"
+                container = d["container"]
+                container_list = []
+                for key, val in container.items():
+                    if key == "POD":
+                        continue
+                    container_dict = {}
+                    container_dict["container_name"] = key
+                    container_dict.update(val)
+                    container_list.append(container_dict)
+                bean["container"] = container_list
                 rt_list.append(bean)
             result = general_message(200, "success", "操作成功", list=rt_list)
         except Exception as e:
