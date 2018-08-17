@@ -505,6 +505,7 @@ class AppManageService(AppManageBase):
                 return 500, "删除应用失败 {0}".format(e.message)
         if service.create_status == "complete":
             data = service.toJSON()
+            data.pop("ID")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
