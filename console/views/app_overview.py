@@ -213,8 +213,10 @@ class AppPodsView(AppBaseView):
             rt_list = []
             for d in data["list"]:
                 bean = dict()
-                bean["pod_name"] = d["PodName"]
+                bean["pod_name"] = d["pod_name"]
                 bean["manage_name"] = "manager"
+                bean["pod_ip"] = d["pod_ip"]
+                bean["container"] = d["container"]
                 rt_list.append(bean)
             result = general_message(200, "success", "操作成功", list=rt_list)
         except Exception as e:
