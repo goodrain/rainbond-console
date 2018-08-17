@@ -37,3 +37,7 @@ CREATE TABLE deploy_relation
 ALTER TABLE region_info ADD ssl_ca_cert varchar(128) NULL;
 ALTER TABLE region_info ADD cert_file varchar(128) NULL;
 ALTER TABLE region_info ADD key_file varchar(128) NULL;
+
+-- 修改compose_group 中compose_content长度
+
+ALTER TABLE compose_group MODIFY compose_content text;

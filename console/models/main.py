@@ -179,7 +179,7 @@ class ComposeGroup(BaseModel):
     group_id = models.IntegerField(help_text=u"compose组关联的组id")
     team_id = models.CharField(max_length=32, help_text=u"团队 id")
     region = models.CharField(max_length=15, help_text=u"服务所属数据中心")
-    compose_content = models.CharField(max_length=4096, null=True, blank=True, help_text=u"compose文件内容")
+    compose_content = models.TextField(null=True, blank=True, help_text=u"compose文件内容")
     compose_id = models.CharField(max_length=32, unique=True, help_text=u"compose id")
     create_status = models.CharField(max_length=15, null=True, blank=True,
                                      help_text=u"compose组创建状态 creating|checking|checked|complete")
