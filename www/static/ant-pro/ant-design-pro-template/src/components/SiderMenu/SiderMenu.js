@@ -1,23 +1,23 @@
-import React, {PureComponent} from 'react';
-import {Layout, Menu, Icon} from 'antd';
-import pathToRegexp from 'path-to-regexp';
-import {Link} from 'dva/router';
-import styles from './index.less';
-import globalUtil from '../../utils/global';
-import userUtil from '../../utils/user';
-import teamUtil from '../../utils/team';
+import React, { PureComponent } from "react";
+import { Layout, Menu, Icon } from "antd";
+import pathToRegexp from "path-to-regexp";
+import { Link } from "dva/router";
+import styles from "./index.less";
+import globalUtil from "../../utils/global";
+import userUtil from "../../utils/user";
+import teamUtil from "../../utils/team";
 
-const {Sider} = Layout;
-const {SubMenu} = Menu;
+const { Sider } = Layout;
+const { SubMenu } = Menu;
 
 // Allow menu.js config icon as string or ReactNode   icon: 'setting',   icon:
 // 'http://demo.com/icon.png',   icon: <Icon type="setting" />,
-const getIcon = (icon) => {
-  if (typeof icon === 'string' && icon.indexOf('http') === 0) {
-    return <img src={icon} alt="icon" className={styles.icon}/>;
+const getIcon = icon => {
+  if (typeof icon === "string" && icon.indexOf("http") === 0) {
+    return <img src={icon} alt="icon" className={styles.icon} />;
   }
-  if (typeof icon === 'string') {
-    return <Icon type={icon}/>;
+  if (typeof icon === "string") {
+    return <Icon type={icon} />;
   }
   return icon;
 };
@@ -43,11 +43,11 @@ export default class SiderMenu extends PureComponent {
    * @param  props
    */
   getDefaultCollapsedSubMenus(props) {
-    const {location: {
-        pathname
-      }} = props || this.props;
+    const {
+      location: { pathname }
+    } = props || this.props;
     // eg. /list/search/articles = > ['','list','search','articles']
-    let snippets = pathname.split('/');
+    let snippets = pathname.split("/");
     // Delete the end eg.  delete 'articles' snippets.pop(); Delete the head eg.
     // delete ''
     snippets.shift();
@@ -57,46 +57,47 @@ export default class SiderMenu extends PureComponent {
       // If the array length > 1
       if (index > 0) {
         // eg. search => ['list','search'].join('/')
-        return snippets
-          .slice(0, index + 1)
-          .join('/');
+        return snippets.slice(0, index + 1).join("/");
       }
       // index 0 to not do anything
       return item;
     });
-    snippets = snippets.map((item) => {
-      let itemArr = item.split('/');
-      if (itemArr[itemArr.length - 1] === 'app') {
-        return `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups`
+    let withapp = false;
+    snippets = snippets.map(item => {
+      let itemArr = item.split("/");
+      if (itemArr[itemArr.length - 1] === "app") {
+        withapp = true;
+        return `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups`;
       }
 
-      if (itemArr[itemArr.length - 2] === 'app') {
-        return this.getOpenGroup(itemArr[itemArr.length - 1])
+      if (itemArr[itemArr.length - 2] === "app") {
+        withapp = true;
+        return this.getOpenGroup(itemArr[itemArr.length - 1]);
       }
       return this.getSelectedMenuKeys(`/${item}`)[0];
     });
+    if (!withapp) {
+      snippets.push(
+        `team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/groups`
+      );
+    }
     // eg. ['list','list/search']
     return snippets;
   }
   getOpenGroup(appAlias) {
     const data = this.props.menuData;
-    var groups = data.filter((item) => {
-      return item
-        .path
-        .indexOf('groups') > -1;
-    })[0]
+    var groups = data.filter(item => {
+      return item.path.indexOf("groups") > -1;
+    })[0];
 
     if (groups) {
       const childs = groups.children || [];
-      var currGroup = childs.filter((child) => {
-
-        var res = (child.children || []).filter((item) => {
-          return item
-            .path
-            .indexOf(appAlias) > -1
-        })[0]
+      var currGroup = childs.filter(child => {
+        var res = (child.children || []).filter(item => {
+          return item.path.indexOf(appAlias) > -1;
+        })[0];
         return res;
-      })[0]
+      })[0];
 
       if (currGroup) {
         return currGroup.path;
@@ -110,7 +111,7 @@ export default class SiderMenu extends PureComponent {
    */
   getFlatMenuKeys(menus) {
     let keys = [];
-    menus.forEach((item) => {
+    menus.forEach(item => {
       if (item.children) {
         keys.push(item.path);
         keys = keys.concat(this.getFlatMenuKeys(item.children));
@@ -124,27 +125,28 @@ export default class SiderMenu extends PureComponent {
    * Get selected child nodes
    * /user/chen => /user/:id
    */
-  getSelectedMenuKeys = (path) => {
+  getSelectedMenuKeys = path => {
     const flatMenuKeys = this.getFlatMenuKeys(this.props.menuData);
-    return flatMenuKeys.filter((item) => {
+    return flatMenuKeys.filter(item => {
       return path.indexOf(item) > -1;
       return pathToRegexp(`/${item}`).test(path);
     });
-  }
+  };
   /**
-  * 判断是否是http链接.返回 Link 或 a
-  * Judge whether it is http link.return a or Link
-  * @memberof SiderMenu
-  */
-  getMenuItemPath = (item) => {
+   * 判断是否是http链接.返回 Link 或 a
+   * Judge whether it is http link.return a or Link
+   * @memberof SiderMenu
+   */
+  getMenuItemPath = item => {
     const itemPath = this.conversionPath(item.path);
     const icon = getIcon(item.icon);
-    const {target, name} = item;
+    const { target, name } = item;
     // Is it a http link
     if (/^https?:\/\//.test(itemPath)) {
       return (
         <a href={itemPath} target={target}>
-          {icon}<span>{name}</span>
+          {icon}
+          <span>{name}</span>
         </a>
       );
     }
@@ -153,131 +155,138 @@ export default class SiderMenu extends PureComponent {
         to={itemPath}
         target={target}
         replace={itemPath === this.props.location.pathname}
-        onClick={this.props.isMobile
-        ? () => {
-          this
-            .props
-            .onCollapse(true);
+        onClick={
+          this.props.isMobile
+            ? () => {
+                this.props.onCollapse(true);
+              }
+            : undefined
         }
-        : undefined}>
-        {icon}<span>{name}</span>
+      >
+        {icon}
+        <span>{name}</span>
       </Link>
     );
-  }
+  };
   /**
    * get SubMenu or Item
    */
-  getSubMenuOrItem = (item) => {
+  getSubMenuOrItem = item => {
     if (item.children && item.children.some(child => child.name)) {
-
       if (item.link) {
         return (
           <SubMenu
-            title={item.icon
-            ? (
-              <span>
-                {getIcon(item.icon)}
+            title={
+              item.icon ? (
+                <span>
+                  {getIcon(item.icon)}
+                  <Link
+                    style={{
+                      color: "rgba(255, 255, 255, 0.65)"
+                    }}
+                    to={"/" + item.path}
+                  >
+                    {item.name}
+                  </Link>
+                </span>
+              ) : (
                 <Link
                   style={{
-                  color: 'rgba(255, 255, 255, 0.65)'
-                }}
-                  to={'/' + item.path}>{item.name}</Link>
-              </span>
-            )
-            : <Link
-              style={{
-              color: 'rgba(255, 255, 255, 0.65)'
-            }}
-              to={'/' + item.path}>{item.name}</Link>}
-            key={item.path}>
+                    color: "rgba(255, 255, 255, 0.65)"
+                  }}
+                  to={"/" + item.path}
+                >
+                  {item.name}
+                </Link>
+              )
+            }
+            key={item.path}
+          >
             {this.getNavMenuItems(item.children)}
           </SubMenu>
         );
       } else {
         return (
           <SubMenu
-            title={item.icon
-            ? (
-              <span>
-                {getIcon(item.icon)}
-                <span>{item.name}</span>
-              </span>
-            )
-            : item.name}
-            key={item.path}>
+            title={
+              item.icon ? (
+                <span>
+                  {getIcon(item.icon)}
+                  <span>{item.name}</span>
+                </span>
+              ) : (
+                item.name
+              )
+            }
+            key={item.path}
+          >
             {this.getNavMenuItems(item.children)}
           </SubMenu>
         );
       }
-
     } else {
       return (
-        <Menu.Item key={item.path}>
-          {this.getMenuItemPath(item)}
-        </Menu.Item>
+        <Menu.Item key={item.path}>{this.getMenuItemPath(item)}</Menu.Item>
       );
     }
-  }
+  };
   /**
-  * 获得菜单子节点
-  * @memberof SiderMenu
-  */
-  getNavMenuItems = (menusData) => {
-
+   * 获得菜单子节点
+   * @memberof SiderMenu
+   */
+  getNavMenuItems = menusData => {
     if (!menusData) {
       return [];
     }
 
     return menusData
       .filter(item => item.name && !item.hideInMenu)
-      .map((item) => {
-
+      .map(item => {
         const ItemDom = this.getSubMenuOrItem(item);
         return this.checkPermissionItem(item.authority, ItemDom);
       })
       .filter(item => !!item);
-  }
+  };
   // conversion Path 转化路径
-  conversionPath = (path) => {
-    if (path && path.indexOf('http') === 0) {
+  conversionPath = path => {
+    if (path && path.indexOf("http") === 0) {
       return path;
     } else {
-      return `/${path || ''}`.replace(/\/+/g, '/');
+      return `/${path || ""}`.replace(/\/+/g, "/");
     }
-  }
+  };
   // permission to check
   checkPermissionItem = (authority, ItemDom) => {
     const user = this.props.currentUser;
     const team_name = globalUtil.getCurrTeamName();
     const team = userUtil.getTeamByTeamName(user, team_name);
-    if (ItemDom.key.indexOf('source') > -1) {
+    if (ItemDom.key.indexOf("source") > -1) {
       if (user.is_sys_admin || user.is_user_enter_amdin) {
         return ItemDom;
       }
       return null;
-    } else if(ItemDom.key.indexOf('finance') > -1) {
-       var region_name = globalUtil.getCurrRegionName();
-       var region  = userUtil.hasTeamAndRegion(user, team_name, region_name);
-       if(region){
-          //当前是公有数据中心
-          if(region.region_scope === 'public' && (teamUtil.canViewFinance(team))){
-             return ItemDom;
-          }
-       }
+    } else if (ItemDom.key.indexOf("finance") > -1) {
+      var region_name = globalUtil.getCurrRegionName();
+      var region = userUtil.hasTeamAndRegion(user, team_name, region_name);
+      if (region) {
+        //当前是公有数据中心
+        if (region.region_scope === "public" && teamUtil.canViewFinance(team)) {
+          return ItemDom;
+        }
+      }
       //  return null;
       return ItemDom;
     } else {
       return ItemDom;
     }
     if (this.props.Authorized && this.props.Authorized.check) {
-      const {check} = this.props.Authorized;
+      const { check } = this.props.Authorized;
       return check(authority, ItemDom);
     }
 
     return ItemDom;
-  }
-  handleOpenChange = (openKeys) => {
-
+  };
+  handleOpenChange = openKeys => {
     // const lastOpenKey = openKeys[openKeys.length - 1]; const isMainMenu =
     // this.props.menuData.some(   item => lastOpenKey && (item.key === lastOpenKey
     // || item.path === lastOpenKey) );
@@ -285,18 +294,22 @@ export default class SiderMenu extends PureComponent {
     this.setState({
       openKeys: [...openKeys]
     });
-  }
+  };
   render() {
-    const {logo, collapsed, location: {
-        pathname
-      }, onCollapse, title} = this.props;
-    const {openKeys} = this.state;
+    const {
+      logo,
+      collapsed,
+      location: { pathname },
+      onCollapse,
+      title
+    } = this.props;
+    const { openKeys } = this.state;
     // Don't show popup menu when it is been collapsed
     const menuProps = collapsed
       ? {}
       : {
-        openKeys
-      };
+          openKeys
+        };
     // if pathname can't match, use the nearest parent's key
     let selectedKeys = this.getSelectedMenuKeys(pathname);
     if (!selectedKeys.length) {
@@ -311,10 +324,13 @@ export default class SiderMenu extends PureComponent {
         breakpoint="md"
         onCollapse={onCollapse}
         width={256}
-        className={styles.sider}>
+        className={styles.sider}
+      >
         <div className={styles.logo} key="logo">
-          <Link to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`}>
-            <img style={{maxHeight: 64}} src={logo} alt={title || 'logo'}/>
+          <Link
+            to={`/team/${globalUtil.getCurrTeamName()}/region/${globalUtil.getCurrRegionName()}/index`}
+          >
+            <img style={{ maxHeight: 64 }} src={logo} alt={title || "logo"} />
             <h1>{title}</h1>
           </Link>
         </div>
@@ -326,9 +342,10 @@ export default class SiderMenu extends PureComponent {
           onOpenChange={this.handleOpenChange}
           selectedKeys={selectedKeys}
           style={{
-          padding: '16px 0',
-          width: '100%'
-        }}>
+            padding: "16px 0",
+            width: "100%"
+          }}
+        >
           {this.getNavMenuItems(this.props.menuData || [])}
         </Menu>
       </Sider>

@@ -53,7 +53,7 @@ export default class Index extends PureComponent {
 						ele.innerHTML = this.getItemHtml(data);
 						if(msg.id){
 							ele.setAttribute('data-id', msg.id);
-							var hasEle = document.querySelector(`[data-id]=${msg.id}`);
+							var hasEle = document.querySelector(`p[data-id="${msg.id}"]`);
 							if(hasEle){
 								this.ref.replaceChild(ele, hasEle)
 							}else{
