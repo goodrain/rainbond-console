@@ -442,7 +442,7 @@ class AppExportRecord(BaseModel):
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
-    enterprise_id = models.CharField(max_length=32, help_text=u"导出应用的key")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业ID")
 
 
 class UserMessage(BaseModel):

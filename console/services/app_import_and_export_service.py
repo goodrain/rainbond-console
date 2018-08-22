@@ -56,7 +56,7 @@ class AppExportService(object):
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
         region_api.export_app(region, team.tenant_name, data)
-        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.tenant_id, app.group_key,
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.enterprise_id, app.group_key,
                                                                                      app.version,
                                                                                      export_format)
         if export_record:
