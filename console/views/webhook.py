@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import socket
+import os
 from console.views.base import AlowAnyApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
@@ -192,7 +193,8 @@ class GetWebHooksUrl(AppBaseView):
             if not (service_obj.service_source == "source_code" and service_code_from):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
-            host = request.get_host()
+            # 从环境变量中获取域名，没有再从请求中获取
+            host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
             url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             status = self.service.open_webhooks
