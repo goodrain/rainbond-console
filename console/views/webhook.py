@@ -5,6 +5,7 @@ import pickle
 import random
 import socket
 import string
+import os
 
 from console.models import DeployRelation
 from console.repositories.deploy_repo import deploy_repo
@@ -313,7 +314,8 @@ class GetWebHooksUrl(AppBaseView):
             if not (service_obj.service_source == "source_code" and service_code_from):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
-            host = request.get_host()
+            # 从环境变量中获取域名，没有在从请求中获取
+            host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
             url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             service_id = service_obj.service_id
