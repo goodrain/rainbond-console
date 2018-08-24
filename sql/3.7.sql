@@ -41,3 +41,6 @@ ALTER TABLE region_info ADD key_file varchar(128) NULL;
 -- 修改compose_group 中compose_content长度
 
 ALTER TABLE compose_group MODIFY compose_content text;
+
+-- 修改插件配置项长度
+ALTER TABLE service_plugin_config_var MODIFY attrs varchar(1024) DEFAULT '';
