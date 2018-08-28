@@ -76,8 +76,8 @@ class GroupService(object):
         return 200, u"success"
 
     def get_group_by_id(self, tenant, region, group_id):
-        if group_id == -1:
-            return 200, "success", {"group_id": -1, "group_name": "未分组"}
+        # if group_id == -1:
+        #     return 200, "success", {"group_id": -1, "group_name": "未分组"}
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             return 404, u"组不存在", None
@@ -121,10 +121,10 @@ class GroupService(object):
                 else:
                     service_list.append(service_info)
                 service_id_map.pop(k)
-        # 未分组应用
-        uncategory_services = []
-        for k, v in service_id_map.iteritems():
-            uncategory_services.append(v)
+        # # 未分组应用
+        # uncategory_services = []
+        # for k, v in service_id_map.iteritems():
+        #     uncategory_services.append(v)
 
         result = []
         for g in groups:
@@ -133,11 +133,11 @@ class GroupService(object):
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
             result.append(bean)
-        result.append({
-            "group_id": -1,
-            "group_name": "未分组",
-            "service_list": uncategory_services
-        })
+        # result.append({
+        #     "group_id": -1,
+        #     "group_name": "未分组",
+        #     "service_list": uncategory_services
+        # })
 
         return result
 

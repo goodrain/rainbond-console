@@ -44,3 +44,6 @@ ALTER TABLE compose_group MODIFY compose_content text;
 
 -- 修改插件配置项长度
 ALTER TABLE service_plugin_config_var MODIFY attrs varchar(1024) DEFAULT '';
+
+-- 添加分组表默认字段
+ALTER TABLE service_group ADD COLUMN `is_default` bool DEFAULT false NOT NULL;

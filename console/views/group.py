@@ -27,7 +27,7 @@ class TenantGroupView(RegionTenantHeaderView):
             data = []
             for group in groups:
                 data.append({"group_name": group.group_name, "group_id": group.ID})
-            data.append({"group_name": "未分组", "group_id": -1})
+            # data.append({"group_name": "未分组", "group_id": -1})
             result = general_message(200, "success", "查询成功", list=data)
         except Exception as e:
             logger.exception(e)

@@ -19,6 +19,7 @@ from console.services.region_services import region_services
 from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
 from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.models.main import TenantUserRole
+from console.repositories.group import group_repo
 
 logger = logging.getLogger("default")
 

@@ -14,8 +14,8 @@ class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
 
-    def add_group(self, tenant_id, region_name, group_name):
-        group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name=group_name)
+    def add_group(self, tenant_id, region_name, group_name, is_default=False):
+        group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name=group_name, is_default=is_default)
         return group
 
     def get_group_by_unique_key(self, tenant_id, region_name, group_name):

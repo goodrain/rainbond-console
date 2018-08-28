@@ -45,6 +45,7 @@ class TenantServiceInfoRepository(object):
         return TenantServiceInfo.objects.filter(tenant_service_group_id=service_group_id)
 
     def get_services_by_raw_sql(self, raw_sql):
+        print raw_sql
         return TenantServiceInfo.objects.raw(raw_sql)
 
     def get_service_by_tenant_and_alias(self, tenant_id, service_alias):

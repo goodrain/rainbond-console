@@ -8,6 +8,8 @@ from console.repositories.team_repo import team_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.marketclient import MarketOpenAPI
+from console.repositories.group import group_repo
+from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -174,7 +176,11 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-
+        default_group = ServiceGroup.objects.filter(is_default=True).first()
+        if not default_group:
+            group_repo.add_group(tenant.tenant_id, region_name, '默认组', True)
+        else:
+            pass
         return 200, u"success", tenant_region
 
     def get_enterprise_region_token_from_market(self, tenant_id, enterprise_id, region_name, region_url):
