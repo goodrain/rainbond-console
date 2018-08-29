@@ -224,7 +224,12 @@ class AppPodsView(AppBaseView):
                         continue
                     container_dict = {}
                     container_dict["container_name"] = key
-                    container_dict.update(val)
+                    memory_limit = float(val["memory_limit"]) / 1024 / 1024
+                    memory_usage = float(val["memory_usage"]) / 1024 / 1024
+                    usage_rate = memory_usage * 100 / memory_limit
+                    container_dict["memory_limit"] = round(memory_limit, 2)
+                    container_dict["memory_usage"] = round(memory_usage, 2)
+                    container_dict["usage_rate"] = round(usage_rate, 2)
                     container_list.append(container_dict)
                 bean["container"] = container_list
                 rt_list.append(bean)
@@ -515,7 +520,8 @@ class BuildSourceinfo(AppBaseView):
         service_alias = self.service.service_alias
         try:
             service_source = team_services.get_service_source(service_alias=service_alias)
-            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id, service_id=self.service.service_id)
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
             user = ""
             password = ""
             bean = {}
@@ -529,7 +535,7 @@ class BuildSourceinfo(AppBaseView):
             bean["service_source"] = service_source.service_source
             bean["image"] = service_source.image
             bean["cmd"] = service_source.cmd
-            bean["code_from"] =service_source.code_from
+            bean["code_from"] = service_source.code_from
             bean["version"] = service_source.version
             bean["docker_cmd"] = service_source.docker_cmd
             bean["create_time"] = service_source.create_time
