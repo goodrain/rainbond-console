@@ -211,28 +211,29 @@ class AppPodsView(AppBaseView):
                                                self.service.service_alias,
                                                self.tenant.enterprise_id)
             rt_list = []
-            for d in data["list"]:
-                bean = dict()
-                # bean["pod_name"] = d["PodName"]
-                # bean["manage_name"] = "manager"
-                bean["pod_name"] = d["pod_name"]
-                bean["manage_name"] = "manager"
-                container = d["container"]
-                container_list = []
-                for key, val in container.items():
-                    if key == "POD":
-                        continue
-                    container_dict = {}
-                    container_dict["container_name"] = key
-                    memory_limit = float(val["memory_limit"]) / 1024 / 1024
-                    memory_usage = float(val["memory_usage"]) / 1024 / 1024
-                    usage_rate = memory_usage * 100 / memory_limit
-                    container_dict["memory_limit"] = round(memory_limit, 2)
-                    container_dict["memory_usage"] = round(memory_usage, 2)
-                    container_dict["usage_rate"] = round(usage_rate, 2)
-                    container_list.append(container_dict)
-                bean["container"] = container_list
-                rt_list.append(bean)
+            if data["list"]:
+                for d in data["list"]:
+                    bean = dict()
+                    # bean["pod_name"] = d["PodName"]
+                    # bean["manage_name"] = "manager"
+                    bean["pod_name"] = d["pod_name"]
+                    bean["manage_name"] = "manager"
+                    container = d["container"]
+                    container_list = []
+                    for key, val in container.items():
+                        if key == "POD":
+                            continue
+                        container_dict = {}
+                        container_dict["container_name"] = key
+                        memory_limit = float(val["memory_limit"]) / 1024 / 1024
+                        memory_usage = float(val["memory_usage"]) / 1024 / 1024
+                        usage_rate = memory_usage * 100 / memory_limit
+                        container_dict["memory_limit"] = round(memory_limit, 2)
+                        container_dict["memory_usage"] = round(memory_usage, 2)
+                        container_dict["usage_rate"] = round(usage_rate, 2)
+                        container_list.append(container_dict)
+                    bean["container"] = container_list
+                    rt_list.append(bean)
             result = general_message(200, "success", "操作成功", list=rt_list)
         except Exception as e:
             logger.exception(e)
