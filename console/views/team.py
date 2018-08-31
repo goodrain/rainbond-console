@@ -607,6 +607,9 @@ class TeamExitView(JWTAuthApiView):
             return Response(result, status=409)
 
         try:
+            if request.user.nick_name == "rainbond-demo" and team_name == "a5qw69mz":
+                return Response(general_message(403, "permission denied!","您无法退出此团队"),status=403)
+
             code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
             if code == 200:
                 result = general_message(code=code, msg="success", msg_show=msg_show)
