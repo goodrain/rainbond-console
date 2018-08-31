@@ -7,12 +7,14 @@ import datetime
 import json
 from console.services.app_actions import AppEventService
 from console.services.app_config import AppServiceRelationService
+from www.models.main import ServiceGroupRelation
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
 from console.repositories.app_config import env_var_repo, mnt_repo, volume_repo, port_repo, \
     auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo
-from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, relation_recycle_bin_repo
+from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, \
+    relation_recycle_bin_repo
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
@@ -120,7 +122,7 @@ class AppManageService(AppManageBase):
         from console.services.app import app_service
         new_add_memory = service.min_memory * service.min_node
         allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory,
-                                                       "启动应用")
+                                                      "启动应用")
         if not allow_start:
             return 412, "资源不足，无法启动应用", None
 
@@ -287,7 +289,7 @@ class AppManageService(AppManageBase):
                 # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
-                if service.image .startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
+                if service.image.startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
                     return "build_from_market_slug"
                 else:
                     return "build_from_market_image"
@@ -297,7 +299,7 @@ class AppManageService(AppManageBase):
                 kind = "build_from_source_code"
             if service.category == "app_publish":
                 kind = "build_from_market_image"
-                if service.image .startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
+                if service.image.startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
                     kind = "build_from_market_slug"
                 if service.service_key == "0000":
                     kind = "build_from_image"
@@ -341,7 +343,7 @@ class AppManageService(AppManageBase):
             event = event_service.update_event(event, "应用未在数据中心创建", "failure")
         return 200, u"操作成功", event
 
-    def batch_action(self, tenant, user, action, service_ids):
+    def batch_action(self, tenant, user, action, service_ids, move_group_id):
         services = service_repo.get_services_by_service_ids(*service_ids)
         code = 500
         msg = "系统异常"
@@ -354,6 +356,12 @@ class AppManageService(AppManageBase):
                     self.stop(tenant, service, user)
                 elif action == "restart":
                     self.restart(tenant, service, user)
+                # 批量删除应用
+                elif action == "delete":
+                    self.delete(user, tenant, service, is_force=True)
+                # 批量变更应用分组
+                elif action == "move":
+                    self.move(service, move_group_id)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -474,7 +482,7 @@ class AppManageService(AppManageBase):
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
-            self.move_service_relation_info_recycle_bin(tenant,service)
+            self.move_service_relation_info_recycle_bin(tenant, service)
 
             return 200, "success", event
         else:
@@ -593,12 +601,12 @@ class AppManageService(AppManageBase):
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant.enterprise_id
                 try:
-                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
+                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name,
+                                                         service.service_alias,
                                                          task)
                 except Exception as e:
                     logger.exception(e)
                 recycle_relation.delete()
-
 
     def __is_service_bind_domain(self, service):
         domains = domain_repo.get_service_domains(service.service_id)
@@ -658,3 +666,11 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 500, "数据中心删除失败"
             return 200, "success"
+
+    # 变更应用分组
+    def move(self, service, move_group_id):
+        # 先删除分组应用关系表中该应用数据
+        group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
+        # 再新建该应用新的关联数据
+        group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
+                                                               service.service_region)

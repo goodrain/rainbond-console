@@ -341,6 +341,8 @@ class BatchActionView(RegionTenantHeaderView):
     @perm_required('stop_service')
     @perm_required('start_service')
     @perm_required('restart_service')
+    @perm_required('delete_service')
+    @perm_required('manage_group')
     def post(self, request, *args, **kwargs):
         """
         批量操作服务
@@ -352,7 +354,7 @@ class BatchActionView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: action
-              description: 操作名称 stop| start|restart
+              description: 操作名称 stop| start|restart|delete|move
               required: true
               type: string
               paramType: form
@@ -366,7 +368,8 @@ class BatchActionView(RegionTenantHeaderView):
         try:
             action = request.data.get("action", None)
             service_ids = request.data.get("service_ids", None)
-            if action not in ("stop", "start", "restart"):
+            move_group_id = request.data.get("move_group_id", None)
+            if action not in ("stop", "start", "restart", "delete", "move"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
@@ -381,9 +384,14 @@ class BatchActionView(RegionTenantHeaderView):
             if action == "restart":
                 if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
-
+            if action == "delete":
+                if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
+            if action == "move":
+                if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有变更应用分组权限"), status=400)
             service_id_list = service_ids.split(",")
-            code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list)
+            code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:
