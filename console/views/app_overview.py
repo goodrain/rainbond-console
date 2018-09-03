@@ -543,6 +543,7 @@ class BuildSourceinfo(AppBaseView):
             bean["git_url"] = service_source.git_url
             bean["code_version"] = service_source.code_version
             bean["server_type"] = service_source.server_type
+            bean["language"] = service_source.language
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
