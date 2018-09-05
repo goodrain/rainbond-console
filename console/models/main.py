@@ -55,7 +55,7 @@ class RainbondCenterApp(BaseModel):
     template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
-    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"应用包")
+    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     install_number = models.IntegerField(default=0, help_text=u'安装次数')
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
 
@@ -213,7 +213,7 @@ class ServiceSourceInfo(BaseModel):
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
     user_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"用户名")
     password = models.CharField(max_length=32, null=True, blank=True, help_text=u"密码")
-    extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text=u"密码")
+    extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text=u"扩展信息")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
 
 
@@ -455,7 +455,7 @@ class UserMessage(BaseModel):
     receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
     content = models.CharField(max_length=1000, help_text=u"消息内容")
     is_read = models.BooleanField(default=False, help_text=u"是否已读")
-    create_time = models.DateTimeField(null=True, blank=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text=u"更新时间")
     msg_type = models.CharField(max_length=32, help_text=u"消息类型")
     announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")
@@ -509,7 +509,7 @@ class GroupAppMigrateRecord(BaseModel):
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的版本")
-    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"迁移的版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     migrate_team = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
     migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")

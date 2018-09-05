@@ -45,6 +45,13 @@ class TeamRepo(object):
             return None
         return tenant_perms
 
+    # 返回该团队下的所有管理员
+    def get_tenant_admin_by_tenant_id(self, tenant_id):
+        admins = PermRelTenant.objects.filter(tenant_id=tenant_id, identity__in=['admin', 'owner'])
+        if not admins:
+            return None
+        return admins
+
     def get_user_perms_in_permtenant_list(self, user_id, tenant_id):
         """
         获取一个用户在一个团队中的所有身份列表

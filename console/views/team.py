@@ -12,12 +12,13 @@ from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from cadmin.models import ConsoleSysConfig
+from console.models import UserMessage
 from console.repositories.apply_repo import apply_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo, enterprise_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.enterprise_services import enterprise_services
+from console.services.enterprise_services import enterprise_services, make_uuid
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import perm_services
@@ -977,16 +978,28 @@ class JoinTeamView(JWTAuthApiView):
         try:
             user_id = self.user.user_id
             team_name = request.data.get("team_name")
+            tenant = Tenants.objects.filter(tenant_name=team_name).first()
             info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
             if not info:
                 result = general_message(200, "already apply", "已申请")
                 return Response(result, status=result["code"])
             else:
                 result = general_message(200, "apply success", "申请加入")
+                admins = team_repo.get_tenant_admin_by_tenant_id(tenant_id=tenant.ID)
+                self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.nick_name)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+    def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
+        tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
+        for admin in admins:
+            # nick_name = user_repo.get_user_by_user_id(user.user_id)
+            message_id = make_uuid()
+            content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
+            UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content, msg_type="service_abnormal", title="团队加入信息")
+
 
 
 class TeamUserCanJoin(JWTAuthApiView):

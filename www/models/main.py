@@ -730,9 +730,9 @@ class TenantServiceEnv(BaseModel):
     language = models.CharField(
         max_length=40, null=True, blank=True, help_text=u"代码语言")
     check_dependency = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=100, null=True, blank=True, help_text=u"检测运行环境依赖")
     user_dependency = models.CharField(
-        max_length=1000, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=1000, null=True, blank=True, help_text=u"用户自定义运行环境依赖")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
@@ -832,7 +832,7 @@ class PermRelTenant(BaseModel):
         db_table = 'tenant_perms'
 
     user_id = models.IntegerField(help_text=u"关联用户")
-    tenant_id = models.IntegerField(help_text=u"关联租户")
+    tenant_id = models.IntegerField(help_text=u"团队id")
     identity = models.CharField(
         max_length=15, choices=tenant_identity, help_text=u"租户身份", null=True, blank=True)
     enterprise_id = models.IntegerField(help_text=u"关联企业")
@@ -1358,7 +1358,7 @@ class ServiceEvent(BaseModel):
         help_text=u"操作状态，complete or timeout or null")
     message = models.CharField(max_length=200, help_text=u"操作说明")
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
-    old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
+    old_deploy_version = models.CharField(max_length=20, help_text=u"历史部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
     region = models.CharField(max_length=32, default="", help_text=u"服务所属数据中心")
@@ -1481,7 +1481,7 @@ class TenantServiceGroup(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_name = models.CharField(max_length=64, help_text=u"服务组名")
-    group_alias = models.CharField(max_length=64, help_text=u"服务组名")
+    group_alias = models.CharField(max_length=64, help_text=u"服务别名")
     group_key = models.CharField(max_length=32, help_text=u"服务组id")
     group_version = models.CharField(max_length=32, help_text=u"服务组版本")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
