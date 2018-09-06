@@ -227,9 +227,9 @@ class AppPodsView(AppBaseView):
                         container_dict["container_name"] = key
                         memory_limit = float(val["memory_limit"]) / 1024 / 1024
                         memory_usage = float(val["memory_usage"]) / 1024 / 1024
-                        usage_rate = memory_usage * 100 / memory_limit
-                        if not memory_limit:
-                            usage_rate = 0
+                        usage_rate = 0
+                        if memory_limit:
+                            usage_rate = memory_usage * 100 / memory_limit
                         container_dict["memory_limit"] = round(memory_limit, 2)
                         container_dict["memory_usage"] = round(memory_usage, 2)
                         container_dict["usage_rate"] = round(usage_rate, 2)
