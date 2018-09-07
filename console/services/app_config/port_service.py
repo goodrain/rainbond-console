@@ -7,7 +7,7 @@ from console.repositories.app_config import port_repo
 import re
 
 from www.apiclient.regionapi import RegionInvokeApi
-
+from django.conf import settings
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
@@ -44,7 +44,8 @@ class AppPortService(object):
         """判断是否有对外打开的非http协议端口"""
         ports = port_repo.get_service_ports(tenant_id, service_id).filter(is_outer_service=True).exclude(
             protocol="http").exclude(container_port=current_port)
-        if ports:
+        # 如果为公有云且已经开放端口
+        if ports and settings.MODULES.get('SSO_LOGIN'):
             return True
         return False
 
