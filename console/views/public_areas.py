@@ -90,7 +90,7 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["team_service_memory_count"] = total_memory
                 overview_detail["team_service_total_disk"] = total_disk
 
-                return Response(general_message(200, "success", "查询成功",bean=overview_detail ))
+                return Response(general_message(200, "success", "查询成功", bean=overview_detail))
             else:
                 data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0}
                 result = general_message(200, "success", "团队信息总览获取成功", bean=data)
@@ -116,8 +116,8 @@ class ServiceGroupView(RegionTenantHeaderView):
         try:
             code = 200
 
-            groups_services = group_service.get_groups_and_services(self.tenant,self.response_region)
-            return Response(general_message(200,"success","查询成功",list=groups_services), status=code)
+            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region)
+            return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -169,7 +169,7 @@ class GroupServiceView(RegionTenantHeaderView):
                 group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
                 if group_count == 0:
                     code = 400
-                    result = general_message(code, "group is not yours!", "这个组不是你的!")
+                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!")
                     return Response(result, status=502)
                 group_service_list = service_repo.get_group_service_by_group_id(group_id=group_id,
                                                                                 region_name=self.response_region,
@@ -239,7 +239,8 @@ class ServiceEventsView(RegionTenantHeaderView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 3)
             total = 0
-            event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region, self.tenant)
+            event_service_dynamic_list = service_event_dynamic.get_current_region_service_events(self.response_region,
+                                                                                                 self.tenant)
             # event_service_dynamic_list = event_repo.get_evevt_by_tenant_id_region(self.tenant.tenant_id)
             event_service_list = []
             for event in event_service_dynamic_list:

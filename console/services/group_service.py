@@ -8,6 +8,8 @@ from console.repositories.compose_repo import compose_repo
 import logging
 import re
 from console.repositories.backup_repo import backup_record_repo
+from console.syncservice.create_default_group import syncManager
+from www.models import ServiceGroupRelation, TenantServiceInfo, ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -50,7 +52,7 @@ class GroupService(object):
         group_repo.update_group_name(group_id, group_name)
         return 200, u"修改成功", group_name
 
-    def delete_group(self, group_id):
+    def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:
             return 400, u"需要删除的组不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
@@ -59,8 +61,7 @@ class GroupService(object):
         # 删除组
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与组的关系
-        group_service_relation_repo.delete_relation_by_group_id(group_id)
-        compose_repo.delete_group_compose_by_group_id(group_id)
+        group_service_relation_repo.update_service_relation(group_id, default_group_id)
         return 200, u"删除成功", group_id
 
     def add_service_to_group(self, tenant, region_name, group_id, service_id):

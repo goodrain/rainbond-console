@@ -47,6 +47,10 @@ class GroupRepository(object):
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
+    def get_default_by_service(self, service):
+        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.region_name, is_default=True
+                                           ).first()
+
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).delete()
@@ -94,6 +98,12 @@ class GroupServiceRelationRepository(object):
 
     def get_services_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id)
+
+    def get_service_by_group(self, group_id):
+        return ServiceGroupRelation.objects.filter(group_id=group_id).first()
+
+    def update_service_relation(self,group_id, default_group_id):
+        ServiceGroupRelation.objects.filter(group_id=group_id).update(group_id=default_group_id)
 
 class TenantServiceGroupRepository(object):
     def delete_tenant_service_group_by_pk(self, pk):

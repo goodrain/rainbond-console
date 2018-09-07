@@ -4,6 +4,7 @@
 """
 from rest_framework.response import Response
 
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
 import logging
 
@@ -122,7 +123,10 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         """
         try:
             group_id = int(kwargs.get("group_id", None))
-            code, msg, data = group_service.delete_group(group_id)
+            service = group_service_relation_repo.get_service_by_group(group_id)
+            default_group = group_repo.get_default_by_service(service)
+            default_group_id = default_group.ID
+            code, msg, data = group_service.delete_group(group_id, default_group_id)
             if code != 200:
                 result = general_message(code, "delete group error", msg)
             else:
