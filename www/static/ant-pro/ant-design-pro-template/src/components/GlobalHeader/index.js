@@ -4,12 +4,12 @@ import {
     Menu,
     Icon,
     Spin,
-    Tag,
     Dropdown,
     Avatar,
     Divider,
     Tooltip,
-    Modal
+    Modal,
+    Button
 } from 'antd';
 import {connect} from 'dva';
 import Ellipsis from '../Ellipsis';
@@ -18,14 +18,11 @@ import groupBy from 'lodash/groupBy';
 import Debounce from 'lodash-decorators/debounce';
 import {Link} from 'dva/router';
 import NoticeIcon from '../NoticeIcon';
-import HeaderSearch from '../HeaderSearch';
 import styles from './index.less';
-import cookie from '../../utils/cookie';
 import userIcon from '../../../public/images/user-icon-small.png';
-import ScrollerX from '../../components/ScrollerX';
 import teamUtil from '../../utils/team';
 import globalUtil from '../../utils/global';
-import {Route, Redirect, Switch, routerRedux} from 'dva/router';
+import {routerRedux} from 'dva/router';
 
 class DialogMessage extends PureComponent {
     componentDidMount(){
@@ -281,11 +278,11 @@ export default class GlobalHeader extends PureComponent {
         <Menu.Item disabled><Icon type="setting" />设置</Menu.Item>
         <Menu.Item key="triggerError"><Icon type="close-circle" />触发报错</Menu.Item>
         <Menu.Divider />*/}
-                {!isPubCloud &&< Menu.Item key = "cpw" > <Icon
+                {!isPubCloud &&<Menu.Item key = "cpw" > <Icon
                     type="edit"
                     style={{
                     marginRight: 8
-                }}/>修改密码 < /Menu.Item>}
+                }}/>修改密码 </Menu.Item>}
                 <Menu.Item key="logout"><Icon type="logout" style={{
                 marginRight: 8
             }}/>退出登录</Menu.Item>
@@ -315,16 +312,14 @@ export default class GlobalHeader extends PureComponent {
                     ? 'menu-unfold'
                     : 'menu-fold'}
                     onClick={this.toggle}/>
-
+                
                 <div className={styles.teamregion}>
-
                     <span className={styles.tit}>团队:</span>
                     <Dropdown overlay={this.renderTeams()}>
                         <a className={styles.dropdown}>
                             <span className={styles.smShow}>团队</span>
                             <span className={styles.smHidden}>
-                                {this.getCurrTeamTit()
-}
+                                {this.getCurrTeamTit()}
                                 <Icon type="down"/>
                             </span>
                         </a>
@@ -346,7 +341,12 @@ export default class GlobalHeader extends PureComponent {
                         </a>
                     </Dropdown>
                 </div>
-
+                <div className={styles.connect}>
+                   {this.props.currentUser.user_name=="rainbond-demo" && (
+                        <Button type="primary" size="large" href="https://sso.goodrain.com/#/register/https%3A%2F%2Fconsole.goodrain.com">注册试用</Button>
+                   )}
+                    <Button size="large" style={{marginLeft:16}} href="https://www.goodrain.com/industrycloud">咨询企业服务</Button>
+                </div>
                 <div className={styles.right}>
                     <Tooltip title="使用文档">
                         <a
@@ -369,7 +369,6 @@ export default class GlobalHeader extends PureComponent {
               console.log('enter', value); // eslint-disable-line
             }}
           /> */}
-
            <NoticeIcon
 
             count={this.state.total}
