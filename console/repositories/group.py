@@ -48,8 +48,9 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
     def get_default_by_service(self, service):
-        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.region_name, is_default=True
-                                           ).first()
+        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.region_name,
+                                           is_default=True).first()
+
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):

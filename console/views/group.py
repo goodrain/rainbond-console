@@ -124,9 +124,12 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         try:
             group_id = int(kwargs.get("group_id", None))
             service = group_service_relation_repo.get_service_by_group(group_id)
-            default_group = group_repo.get_default_by_service(service)
-            default_group_id = default_group.ID
-            code, msg, data = group_service.delete_group(group_id, default_group_id)
+            if not service:
+                code, msg, data = group_service.delete_group_no_service(group_id)
+            else:
+                default_group = group_repo.get_default_by_service(service)
+                default_group_id = default_group.ID
+                code, msg, data = group_service.delete_group(group_id, default_group_id)
             if code != 200:
                 result = general_message(code, "delete group error", msg)
             else:
