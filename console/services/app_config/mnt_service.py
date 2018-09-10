@@ -93,7 +93,7 @@ class AppMntService(object):
                 return code, msg
         for dep_vol in dep_vol_data:
             dep_vol_id = dep_vol['id']
-            source_path = dep_vol['path']
+            source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
             try:
                 code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume)

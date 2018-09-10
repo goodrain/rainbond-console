@@ -28,7 +28,8 @@ class AppEnvVarService(object):
 
     def add_service_env_var(self, tenant, service, container_port, name, attr_name, attr_value, isChange,
                             scope="outer"):
-
+        attr_name = str(attr_name).strip()
+        attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
@@ -103,6 +104,8 @@ class AppEnvVarService(object):
         return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 
     def update_env_by_attr_name(self, tenant, service, attr_name, name, attr_value):
+        attr_name = attr_name.strip()
+        attr_value = attr_value.strip()
         env = env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
         if not env:
             return 404, "环境变量不存在", None

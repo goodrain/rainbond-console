@@ -73,6 +73,8 @@ class AppVolumeService(object):
         return 200, u"success"
 
     def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
+        volume_name = volume_name.strip()
+        volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_dir',
                                                                                                               flat=True)
