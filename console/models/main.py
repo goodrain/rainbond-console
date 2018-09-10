@@ -433,7 +433,6 @@ class AppExportRecord(BaseModel):
     class Meta:
         db_table = 'app_export_record'
 
-
     group_key = models.CharField(max_length=32, help_text=u"导出应用的key")
     version = models.CharField(max_length=20, help_text=u"导出应用的版本")
     format = models.CharField(max_length=15, help_text=u"导出应用的格式")

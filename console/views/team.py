@@ -718,13 +718,15 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(400, "team alias is not allow", "组名称只支持中英文下划线和中划线"), status=400)
             team = team_services.get_team_by_team_alias(team_alias)
             if team:
-                return Response(general_message(409,"region alias is exist","团队名称{0}已存在".format(team_alias)),status=409)
+                return Response(general_message(409, "region alias is exist", "团队名称{0}已存在".format(team_alias)),
+                                status=409)
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                return Response(general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)), status=404)
+                return Response(general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)),
+                                status=404)
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             if not enterprise:
-                return Response(general_message(404, "user's enterprise is not found","无法找到用户所在的数据中心"))
+                return Response(general_message(404, "user's enterprise is not found", "无法找到用户所在的数据中心"))
 
             code, msg, team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             if not code:
@@ -812,7 +814,6 @@ class ApplicantsView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-
     def put(self, request, team_name, *args, **kwargs):
         """管理员审核用户"""
         try:
@@ -879,7 +880,8 @@ class RegisterStatusView(JWTAuthApiView):
         try:
             register_config = config_service.get_regist_status()
             if register_config != "yes":
-                return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
+                return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
+                                status=200)
             else:
                 return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
         except Exception as e:
@@ -894,7 +896,7 @@ class RegisterStatusView(JWTAuthApiView):
         try:
             user_id = request.user.user_id
             enterprise_id = request.user.enterprise_id
-            admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id,enterprise_id=enterprise_id)
+            admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id, enterprise_id=enterprise_id)
             is_regist = request.data.get("is_regist")
             if admin:
 
@@ -971,8 +973,6 @@ class JoinTeamView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-
-
     def post(self, request, *args, **kwargs):
         """指定用户加入指定团队"""
         try:
@@ -992,14 +992,15 @@ class JoinTeamView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    # 用户加入团队，给管理员发送站内信
     def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
         for admin in admins:
             # nick_name = user_repo.get_user_by_user_id(user.user_id)
             message_id = make_uuid()
             content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
-            UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content, msg_type="service_abnormal", title="团队加入信息")
-
+            UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content,
+                                       msg_type="warn", title="团队加入信息", level="mid")
 
 
 class TeamUserCanJoin(JWTAuthApiView):
@@ -1011,7 +1012,6 @@ class TeamUserCanJoin(JWTAuthApiView):
             team_names = tenants.values("tenant_name")
             team_name_list = [t_name.get("tenant_name") for t_name in team_names]
 
-
             user_id = request.GET.get("user_id", None)
             if user_id:
                 enterprise_id = user_repo.get_by_user_id(user_id=user_id).enterprise_id
@@ -1021,20 +1021,19 @@ class TeamUserCanJoin(JWTAuthApiView):
                 enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
                 team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
                 apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
-            applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in [team_name.team_name for team_name in apply_team]]
+            applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in
+                            [team_name.team_name for team_name in apply_team]]
             join_list = []
-            for join_team in team_list :
+            for join_team in team_list:
                 if join_team not in applied_team and join_team.tenant_name not in team_name_list:
                     join_list.append(join_team)
             join_list = [{
-                "team_name":j_team.tenant_name,
-                "team_alias":j_team.tenant_alias,
-                "team_id":j_team.tenant_id
+                "team_name": j_team.tenant_name,
+                "team_alias": j_team.tenant_alias,
+                "team_id": j_team.tenant_id
             } for j_team in join_list]
             result = general_message(200, "success", "查询成功", list=join_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
