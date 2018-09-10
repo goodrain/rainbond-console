@@ -1000,7 +1000,7 @@ class JoinTeamView(JWTAuthApiView):
             message_id = make_uuid()
             content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
             UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content,
-                                       msg_type="warn", title="团队加入信息", level="mid")
+                                       msg_type="warn", title="团队加入信息")
 
 
 class TeamUserCanJoin(JWTAuthApiView):

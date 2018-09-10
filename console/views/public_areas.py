@@ -166,10 +166,10 @@ class GroupServiceView(RegionTenantHeaderView):
                     result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
                     return Response(result, status=code)
                 team_id = self.team.tenant_id
-                group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
+                group_count = group_repo.get_group_count_by_team_id(team_id=team_id)
                 if group_count == 0:
                     code = 400
-                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!")
+                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看！")
                     return Response(result, status=502)
                 group_service_list = service_repo.get_group_service_by_group_id(group_id=group_id,
                                                                                 region_name=self.response_region,
