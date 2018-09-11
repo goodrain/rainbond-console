@@ -75,7 +75,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
             if group_count == 0:
                 code = 400
-                result = general_message(code, "group is not yours!", "这个应用组不是你的!")
+                result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!")
                 return Response(result, status=code)
             # 判断是否满足分享条件
             data = share_service.check_service_source(

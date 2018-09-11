@@ -92,7 +92,8 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,tenant.tenant_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,
+                                                        tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
@@ -205,7 +206,8 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name, user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id,
+                                                                                   region_name, user_name)))
             logger.exception(e)
             return False
 
@@ -225,7 +227,8 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,
+                                                                                   region_name__in=region_names)
         return team_opened_regions
 
 

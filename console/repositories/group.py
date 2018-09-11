@@ -37,8 +37,8 @@ class GroupRepository(object):
         logger.debug("delete group id {0}".format(group_id))
         ServiceGroup.objects.filter(pk=group_id).delete()
 
-    def get_group_count_by_team_id(self, team_id):
-        group_count = ServiceGroup.objects.filter(tenant_id=team_id).count()
+    def get_group_count_by_team_id_and_group_id(self, team_id, group_id):
+        group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
     def get_tenant_region_groups(self,team_id,region):
