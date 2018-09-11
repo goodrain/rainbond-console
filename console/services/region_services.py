@@ -177,11 +177,9 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-        default_group = ServiceGroup.objects.filter(is_default=True).first()
-        if not default_group:
-            group_repo.add_group(tenant.tenant_id, region_name, '默认组', True)
-        else:
-            pass
+
+        group_repo.get_or_create_default_group(tenant.tenant_id,region_name)
+
         return 200, u"success", tenant_region
 
     def get_enterprise_region_token_from_market(self, tenant_id, enterprise_id, region_name, region_url):

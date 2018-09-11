@@ -51,6 +51,13 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.region_name,
                                            is_default=True).first()
 
+    def get_or_create_default_group(self, tenant_id, region_name):
+        # 查询是否有团队在当前数据中心是否有默认组，没有创建
+        group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
+        if not group:
+            group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name='默认组',
+                                                is_default=True)
+        return group
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
