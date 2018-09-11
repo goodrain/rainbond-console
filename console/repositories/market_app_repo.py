@@ -90,6 +90,10 @@ class AppImportRepository(object):
     def get_importing_record(self):
         return AppImportRecord.objects.filter(status="importing")
 
+    def get_user_unfinished_import_record(self, team_name, user_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(
+            status__in=["success", "failed"])
+
 
 rainbond_app_repo = RainbondCenterAppRepository()
 app_export_record_repo = AppExportRepository()

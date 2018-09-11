@@ -467,7 +467,7 @@ class AppImportRecord(BaseModel):
         db_table = 'app_import_record'
 
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"导入状态")
     scope = models.CharField(max_length=10, null=True, blank=True, default="", help_text=u"导入范围")
     format = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"类型")
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
@@ -475,6 +475,7 @@ class AppImportRecord(BaseModel):
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+    user_name = models.CharField(max_length=24, null=True, blank=True, help_text=u"操作人")
 
 
 class GroupAppBackupRecord(BaseModel):

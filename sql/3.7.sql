@@ -47,3 +47,5 @@ ALTER TABLE service_plugin_config_var MODIFY attrs varchar(1024) DEFAULT '';
 
 -- 添加分组表默认字段
 ALTER TABLE service_group ADD COLUMN `is_default` bool DEFAULT false NOT NULL;
+
+ALTER TABLE app_import_record ADD user_name varchar(24) NULL;
