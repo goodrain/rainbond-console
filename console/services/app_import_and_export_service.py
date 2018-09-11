@@ -183,9 +183,9 @@ class AppExportService(object):
             if len(splits_texts) > 2:
                 temp_url = splits_texts[0] + "://" + region.tcpdomain
                 # index = region.url.index(":", 6)
-                return temp_url + ":6060/app" + raw_url
+                return temp_url + ":6060" + raw_url
             else:
-                return "http://" + region.tcpdomain + ":6060/app" + raw_url
+                return "http://" + region.tcpdomain + ":6060" + raw_url
 
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
