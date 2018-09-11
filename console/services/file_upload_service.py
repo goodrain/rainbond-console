@@ -106,12 +106,13 @@ class FileUploadService(object):
             logger.debug("file upload success !")
             import_record.status = "upload_success"
             import_record.save()
+            upload_file.close()
             return 200, "上传成功", import_record
         else:
             logger.debug("file upload failed !")
             import_record.delete()
+            upload_file.close()
             return 500, "上传失败", None
-
 
 
 upload_service = FileUploadService()

@@ -133,7 +133,7 @@ class GroupService(object):
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
-            result.append(bean)
+            result.insert(0, bean)
         # result.append({
         #     "group_id": -1,
         #     "group_name": "未分组",

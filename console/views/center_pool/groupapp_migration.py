@@ -75,8 +75,8 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             regions = region_services.get_team_usable_regions(migrate_team)
             if migrate_region not in [r.region_name for r in regions]:
                 return Response(general_message(412, "region is not usable",
-                                                "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(migrate_region,
-                                                                                                 migrate_team.tenant_name)),
+                                                "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(
+                                                    migrate_region, migrate_team.tenant_name)),
                                 status=412)
 
             code, msg, migrate_record = migrate_service.start_migrate(self.user, self.tenant,
