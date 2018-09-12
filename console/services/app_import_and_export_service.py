@@ -299,9 +299,14 @@ class AppImportService(object):
         return import_record
 
     def delete_import_app_dir(self, tenant, region, event_id):
-        res, body = region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+        try:
+            res, body = region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+            region_api.delete_import(region, tenant.tenant_name, event_id)
+        except Exception as e:
+            logger.exception(e)
+
         app_import_record_repo.delete_by_event_id(event_id)
-        return body
+
 
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
