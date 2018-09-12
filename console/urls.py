@@ -28,7 +28,7 @@ from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView
     AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
-    CenterAppImportingAppsView
+    CenterAppImportingAppsView, ImportingRecordView
 from console.views.center_pool.apps import CenterAppListView, \
     DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
@@ -429,6 +429,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view()),
     # 应用包目录查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/dir$', CenterAppTarballDirView.as_view()),
+    # 应用导入记录
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/record$', ImportingRecordView.as_view()),
     # 正在导入的应用查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/importing-apps$', CenterAppImportingAppsView.as_view()),
     # 应用导入状态查询
