@@ -161,7 +161,7 @@ class MarketAppService(object):
             if config["service_meta_type"] == "downstream_port":
                 ts = old_new_id_map[config["dest_service_id"]]
                 if ts:
-                    dest_service_id, dest_service_alias = ts.service_id, ts.service_cname
+                    dest_service_id, dest_service_alias = ts.service_id, ts.service_alias
             config_list.append(ServicePluginConfigVar(
                 service_id=service.service_id,
                 plugin_id=plugin_id,
