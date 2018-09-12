@@ -48,7 +48,6 @@ ALTER TABLE service_plugin_config_var MODIFY attrs varchar(1024) DEFAULT '';
 -- 添加分组表默认字段
 ALTER TABLE service_group ADD COLUMN `is_default` bool DEFAULT false NOT NULL;
 
-ALTER TABLE app_import_record ADD user_name varchar(24) NULL;
 
 --添加ssl_ca_cert, cert_file, key_file字段
 ALTER TABLE region_info ADD COLUMN `ssl_ca_cert` varchar(128) NOT NULL;
@@ -56,3 +55,6 @@ ALTER TABLE region_info ADD COLUMN `ssl_ca_cert` varchar(128) NOT NULL;
 ALTER TABLE region_info ADD COLUMN `cert_file` varchar(128) NOT NULL;
 
 ALTER TABLE region_info ADD COLUMN `key_file` varchar(128) NOT NULL;
+
+-- 3.7导入流程修复，添加字段user_name判断导入的具体用户
+ALTER TABLE app_import_record ADD user_name varchar(24) NULL;
