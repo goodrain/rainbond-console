@@ -278,7 +278,8 @@ class MarketAppService(object):
                             probe_ids.append(probe.probe_id)
                 else:
                     code, msg, probe = app_service.add_service_default_porbe(tenant, service)
-                    probe_ids.append(probe.probe_id)
+                    if probe:
+                        probe_ids.append(probe.probe_id)
                 if probe_ids:
                     service_prob_id_map[service.service_id] = probe_ids
 
