@@ -34,7 +34,7 @@ from console.views.center_pool.apps import CenterAppListView, \
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
     GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView
-from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView
+from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView, MigrateRecordView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
@@ -256,7 +256,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view()),
     # 应用访问
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/visit', AppVisitView.as_view()),
-    ## 应用配置
+    # 应用配置
     # 环境变量配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<attr_name>[\w\-]+)$',
@@ -470,6 +470,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate$', GroupAppsMigrateView.as_view()),
+
+    # 迁移与恢复未完成记录查询
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate/record$', MigrateRecordView.as_view()),
+
     # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 

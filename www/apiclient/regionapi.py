@@ -1192,7 +1192,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def get_import_file_dir(self, region, tenant_name, event_id):
-        """查询导入状态"""
+        """查询导入目录"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
@@ -1200,7 +1200,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def delete_import(self, region, tenant_name, event_id):
-        """查询导入状态"""
+        """删除导入"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
