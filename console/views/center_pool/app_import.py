@@ -18,11 +18,12 @@ logger = logging.getLogger('default')
 
 
 class ImportingRecordView(RegionTenantHeaderView):
+
     @never_cache
     @perm_required("import_and_export_service")
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """
-        查询当前用户是否有未完成的导入
+        查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
         ---
         parameters:
             - name: tenantName
@@ -33,8 +34,6 @@ class ImportingRecordView(RegionTenantHeaderView):
 
         """
         unfinished_records = import_service.get_user_unfinished_import_record(self.tenant, self.user)
-        is_finished = True
-        data = None
         if unfinished_records:
             r = unfinished_records[0]
             data = {
@@ -44,6 +43,16 @@ class ImportingRecordView(RegionTenantHeaderView):
                 "event_id": r.event_id
             }
             is_finished = False
+        else:
+            is_finished = True
+            upload_url,import_record = import_service.get_upload_url(self.tenant.tenant_name, self.user.nick_name, self.response_region)
+            data = {
+                "status": import_record.status,
+                "format": import_record.format,
+                "source_dir": import_record.source_dir,
+                "event_id": import_record.event_id,
+                "upload_url":upload_url
+            }
 
         bean = {
             "is_finished": is_finished,
@@ -90,30 +99,6 @@ class CenterAppUploadView(RegionTenantHeaderView):
             result = error_message(e.message)
             if upload_file:
                 upload_file.close()
-        return Response(result, status=result["code"])
-
-    @never_cache
-    @perm_required("import_and_export_service")
-    def get(self, request,*args,**kwargs):
-        """
-        获取应用包上传地址
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-        """
-        try:
-            url, import_record = import_service.get_upload_url(self.tenant.tenant_name, self.user.nick_name,
-                                                               self.response_region)
-
-            bean = {"upload_url": url, "event_id": import_record.event_id}
-            result = general_message(200, "success", "查询成功", bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
