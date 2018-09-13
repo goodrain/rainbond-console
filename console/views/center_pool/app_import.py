@@ -34,31 +34,21 @@ class ImportingRecordView(RegionTenantHeaderView):
 
         """
         unfinished_records = import_service.get_user_unfinished_import_record(self.tenant, self.user)
+        upload_url = import_service.get_upload_url(self.response_region)
         if unfinished_records:
             r = unfinished_records[0]
-            data = {
-                "status": r.status,
-                "format": r.format,
-                "source_dir": r.source_dir,
-                "event_id": r.event_id
-            }
-            is_finished = False
         else:
-            is_finished = True
-            upload_url,import_record = import_service.get_upload_url(self.tenant.tenant_name, self.user.nick_name, self.response_region)
-            data = {
-                "status": import_record.status,
-                "format": import_record.format,
-                "source_dir": import_record.source_dir,
-                "event_id": import_record.event_id,
-                "upload_url":upload_url
-            }
+            r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name,
+                                                        self.response_region)
 
-        bean = {
-            "is_finished": is_finished,
-            "data": data
+        data = {
+            "status": r.status,
+            "source_dir": r.source_dir,
+            "event_id": r.event_id,
+            "upload_url": upload_url
         }
-        return Response(general_message(200, "success", "查询成功", bean=bean), status=200)
+
+        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
 
 class CenterAppUploadView(RegionTenantHeaderView):

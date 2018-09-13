@@ -371,11 +371,13 @@ class AppImportService(object):
     def get_user_unfinished_import_record(self, tenant, user):
         return app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name, user.nick_name)
 
-    def get_upload_url(self, team_name, user_name, region):
+    def create_app_import_record(self,team_name,user_name,region):
         event_id = make_uuid()
         import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
                                 "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
-        import_record = app_import_record_repo.create_app_import_record(**import_record_params)
+        return app_import_record_repo.create_app_import_record(**import_record_params)
+
+    def get_upload_url(self, region):
         region = region_repo.get_region_by_region_name(region)
         raw_url = "/app/upload"
         upload_url = ""
@@ -386,7 +388,7 @@ class AppImportService(object):
                 upload_url = temp_url + ":6060" + raw_url
             else:
                 upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
-        return upload_url, import_record
+        return upload_url
 
 
 export_service = AppExportService()
