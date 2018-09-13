@@ -87,8 +87,8 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params):
         return AppImportRecord.objects.create(**params)
 
-    def get_importing_record(self):
-        return AppImportRecord.objects.filter(status="importing")
+    def get_importing_record(self,user_name, team_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name,status="importing")
 
     def get_user_unfinished_import_record(self, team_name, user_name):
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(

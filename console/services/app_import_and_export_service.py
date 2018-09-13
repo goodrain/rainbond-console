@@ -288,13 +288,13 @@ class AppImportService(object):
         app_tars = body["bean"]["apps"]
         return app_tars
 
-    def create_import_app_dir(self, tenant, region):
+    def create_import_app_dir(self, tenant, user, region):
         """创建一个应用包"""
         event_id = make_uuid()
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
         import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
-                                "team_name": tenant.tenant_name, "region": region}
+                                "team_name": tenant.tenant_name, "region": region, "user_name": user.nick_name}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
@@ -360,7 +360,7 @@ class AppImportService(object):
         return ""
 
     def get_importing_apps(self, tenant, user, region):
-        importing_records = app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name,user.nick_name)
+        importing_records = app_import_record_repo.get_importing_record(tenant.tenant_name,user.nick_name)
         importing_list = []
         for importing_record in importing_records:
             import_record, apps_status = self.get_and_update_import_status(tenant, region, importing_record.event_id)
@@ -370,6 +370,23 @@ class AppImportService(object):
 
     def get_user_unfinished_import_record(self, tenant, user):
         return app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name, user.nick_name)
+
+    def get_upload_url(self, team_name, user_name, region):
+        event_id = make_uuid()
+        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
+                                "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
+        import_record = app_import_record_repo.create_app_import_record(**import_record_params)
+        region = region_repo.get_region_by_region_name(region)
+        raw_url = "/app/upload"
+        upload_url = ""
+        if region:
+            splits_texts = region.url.split(":")
+            if len(splits_texts) > 2:
+                temp_url = splits_texts[0] + "://" + region.tcpdomain
+                upload_url = temp_url + ":6060" + raw_url
+            else:
+                upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+        return upload_url, import_record
 
 
 export_service = AppExportService()

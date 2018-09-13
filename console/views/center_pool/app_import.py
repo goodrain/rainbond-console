@@ -77,7 +77,7 @@ class CenterAppUploadView(RegionTenantHeaderView):
             if not request.FILES or not upload_file:
                 return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             file_name = upload_file.name
-            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,
+            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,self.user.nick_name,
                                                                                    self.response_region, upload_file)
             if code != 200:
                 return Response(general_message(code, "upload file faild", msg), status=code)
@@ -90,6 +90,30 @@ class CenterAppUploadView(RegionTenantHeaderView):
             result = error_message(e.message)
             if upload_file:
                 upload_file.close()
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required("import_and_export_service")
+    def get(self, request,*args,**kwargs):
+        """
+        获取应用包上传地址
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            url, import_record = import_service.get_upload_url(self.tenant.tenant_name, self.user.nick_name,
+                                                               self.response_region)
+
+            bean = {"upload_url": url, "event_id": import_record.event_id}
+            result = general_message(200, "success", "查询成功", bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -241,7 +265,7 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
               paramType: path
         """
         try:
-            import_record = import_service.create_import_app_dir(self.tenant, self.response_region)
+            import_record = import_service.create_import_app_dir(self.tenant,self.user, self.response_region)
 
             result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         except Exception as e:
