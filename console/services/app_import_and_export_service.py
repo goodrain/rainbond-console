@@ -263,7 +263,11 @@ class AppImportService(object):
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
                 import_record.save()
-
+                # 成功以后删除数据中心目录数据
+                try:
+                    region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+                except Exception as e:
+                    logger.exception(e)
             else:
                 import_record.status = status
                 import_record.save()
@@ -300,7 +304,6 @@ class AppImportService(object):
 
     def delete_import_app_dir(self, tenant, region, event_id):
         try:
-            res, body = region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
             region_api.delete_import(region, tenant.tenant_name, event_id)
         except Exception as e:
             logger.exception(e)
