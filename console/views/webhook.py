@@ -316,10 +316,10 @@ class GetWebHooksUrl(AppBaseView):
                 return Response(result, status=200)
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-            url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
+            url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
             service_id = service_obj.service_id
-            custom_url = "https://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
+            custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
             # deploy_key = deploy.secret_key
             print deploy
