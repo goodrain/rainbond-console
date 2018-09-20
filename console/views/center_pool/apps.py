@@ -78,16 +78,21 @@ class CenterAppListView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     def __get_service_group_memory(self, app_template_raw):
-        app_template = json.loads(app_template_raw)
-        apps = app_template["apps"]
-        total_memory = 0
-        for app in apps:
-            extend_method_map = app.get("extend_method_map", None)
-            if extend_method_map:
-                total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
-            else:
-                total_memory += 128
-        return total_memory
+        try:
+            app_template = json.loads(app_template_raw)
+            apps = app_template["apps"]
+            total_memory = 0
+            for app in apps:
+                extend_method_map = app.get("extend_method_map", None)
+                if extend_method_map:
+                    total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
+                else:
+                    total_memory += 128
+            return total_memory
+        except Exception as e:
+            logger.debug("==============================>{0}".format(e))
+        return 0
+
 
 
 class CenterAppView(RegionTenantHeaderView):
