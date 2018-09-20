@@ -91,7 +91,7 @@ class CenterAppListView(RegionTenantHeaderView):
             return total_memory
         except Exception as e:
             logger.debug("==============================>{0}".format(e))
-        return 0
+            return 0
 
 
 
