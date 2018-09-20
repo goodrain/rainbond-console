@@ -78,6 +78,7 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey
 from console.views.receipt import *
 from console.views.team import ApplicantsView
+from console.views.app_manage import BatchDelete
 
 
 urlpatterns = patterns(
@@ -300,6 +301,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/rollback$', RollBackAppView.as_view()),
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
+    # 批量删除应用
+    url(r'^teams/(?P<tenantName>[\w\-]+)/batch_delete$', BatchDelete.as_view()),
 
     # 某个服务的event
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view()),

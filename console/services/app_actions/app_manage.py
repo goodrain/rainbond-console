@@ -7,7 +7,6 @@ import datetime
 import json
 from console.services.app_actions import AppEventService
 from console.services.app_config import AppServiceRelationService
-from www.models.main import ServiceGroupRelation
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
@@ -356,9 +355,9 @@ class AppManageService(AppManageBase):
                     self.stop(tenant, service, user)
                 elif action == "restart":
                     self.restart(tenant, service, user)
-                # 批量删除应用
-                elif action == "delete":
-                    self.batch_delete(user, tenant, service, is_force=True)
+                # # 批量删除应用
+                # elif action == "delete":
+                #     self.batch_delete(user, tenant, service, is_force=True)
                 # 批量变更应用分组
                 elif action == "move":
                     self.move(service, move_group_id)
@@ -682,31 +681,39 @@ class AppManageService(AppManageBase):
             return code, msg, event
         # 判断服务是否是运行状态
         if self.__is_service_running(tenant, service):
-            msg = u"应用可能处于运行状态,请先关闭应用"
+            msg = "应用{0}可能处于运行状态,请先关闭应用".format(service.service_cname)
             event = event_service.update_event(event, msg, "failure")
-            return 409, msg, event
+            code = 409
+            return code, msg, event
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
             event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除", "failure")
-            return 412, "当前应用被{0}挂载, 不可删除".format(msg), event
+            code = 412
+            msg = "当前应用被{0}挂载, 不可删除".format(msg)
+            return code, msg, event
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
             event = event_service.update_event(event, "当前应用已绑定域名,请先解绑", "failure")
-            return 412, "请先解绑应用绑定的域名", event
+            code = 412
+            msg = "请先解绑应用{0}绑定的域名".format(service.service_cname)
+            return code, msg, event
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
             event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件", "failure")
-            return 412, "请先卸载应用安装的插件", event
+            code = 412
+            msg = "请先卸载应用{0}安装的插件".format(service.service_cname)
+            return code, msg, event
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
-
-            return 200, "success", event
+            code = 200
+            msg = "success"
+            return code, msg, event
         else:
             try:
                 code, msg = self.truncate_service(tenant, service, user)
@@ -714,7 +721,8 @@ class AppManageService(AppManageBase):
                     event = event_service.update_event(event, msg, "failure")
                     return code, msg, event
                 else:
-                    return code, "success", event
+                    msg = "success"
+                    return code, msg, event
             except Exception as e:
                 logger.exception(e)
                 if event:
@@ -722,4 +730,9 @@ class AppManageService(AppManageBase):
                     event.final_status = "complete"
                     event.status = "failure"
                     event.save()
-                return 507, u"删除异常", event
+                code = 507
+                msg = "删除异常"
+                return code, msg, event
+
+
+manage_service = AppManageService()

@@ -3,6 +3,8 @@
   Created on 18/1/15.
 """
 import logging
+from collections import defaultdict
+
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -17,6 +19,8 @@ from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
 from console.services.app import app_service
 from console.services.team_services import team_services
+from console.services.app_actions.app_manage import manage_service
+from console.repositories.app import service_repo
 
 logger = logging.getLogger("default")
 
@@ -341,7 +345,7 @@ class BatchActionView(RegionTenantHeaderView):
     @perm_required('stop_service')
     @perm_required('start_service')
     @perm_required('restart_service')
-    @perm_required('delete_service')
+    # @perm_required('delete_service')
     @perm_required('manage_group')
     def post(self, request, *args, **kwargs):
         """
@@ -369,7 +373,7 @@ class BatchActionView(RegionTenantHeaderView):
             action = request.data.get("action", None)
             service_ids = request.data.get("service_ids", None)
             move_group_id = request.data.get("move_group_id", None)
-            if action not in ("stop", "start", "restart", "delete", "move"):
+            if action not in ("stop", "start", "restart", "move"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
@@ -384,9 +388,9 @@ class BatchActionView(RegionTenantHeaderView):
             if action == "restart":
                 if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
-            if action == "delete":
-                if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                    return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
+            # if action == "delete":
+            #     if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+            #         return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             if action == "move":
                 if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有变更应用分组权限"), status=400)
@@ -442,3 +446,41 @@ class DeleteAppView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class BatchDelete(RegionTenantHeaderView):
+    @never_cache
+    @perm_required('delete_service')
+    def post(self, request, *args, **kwargs):
+        """
+        批量删除应用
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: service_ids
+              description: 批量操作的服务ID 多个以英文逗号分隔
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            service_ids = request.data.get("service_ids", None)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
+            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
+            service_id_list = service_ids.split(",")
+            services = service_repo.get_services_by_service_ids(*service_id_list)
+            msg_dict = defaultdict(dict)
+            for service in services:
+                service_id = service.service_id
+                code, msg, event = manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
+                msg_dict[service_id]['code'] = code
+                msg_dict[service_id]['msg'] = msg
+            return Response(msg_dict)
+        except Exception as e:
+            logger.exception(e)
