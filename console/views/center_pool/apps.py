@@ -63,7 +63,7 @@ class CenterAppListView(RegionTenantHeaderView):
             show_apps = paginator.page(int(page))
             app_list = []
             for app in show_apps:
-                min_memory = self.__get_service_group_memory(app.app_template, app_name)
+                min_memory = self.__get_service_group_memory(app.app_template, app.group_name)
                 export_status = export_service.get_export_record_status(self.tenant.enterprise_id, app)
                 app_bean = app.to_dict()
                 app_bean["min_memory"] = min_memory
@@ -77,7 +77,7 @@ class CenterAppListView(RegionTenantHeaderView):
             result = error_message()
         return Response(result, status=result["code"])
 
-    def __get_service_group_memory(self, app_template_raw, app_name):
+    def __get_service_group_memory(self, app_template_raw, group_name):
         try:
             app_template = json.loads(app_template_raw)
             apps = app_template["apps"]
@@ -91,7 +91,7 @@ class CenterAppListView(RegionTenantHeaderView):
             return total_memory
         except Exception as e:
             logger.debug("==============================>{0}".format(e))
-            logger.debug("==============================================>{0}".format(app_name))
+            logger.debug("==============================================>{0}".format(group_name))
             return 0
 
 
