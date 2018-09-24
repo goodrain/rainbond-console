@@ -127,6 +127,9 @@ class ShareRepo(object):
         tenant_service_plugin_relation.save()
         return tenant_service_plugin_relation
 
+    def delete_tenant_service_plugin_relation(self, service_id):
+        TenantServicePluginRelation.objects.filter(service_id=service_id).delete()
+
     def create_tenant_service_extend_method(self, **kwargs):
         tenant_service_extend_method = TenantServiceExtendMethod(**kwargs).save()
         return tenant_service_extend_method

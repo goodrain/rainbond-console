@@ -79,6 +79,7 @@ from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus
 from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
+from console.views.app_manage import AgainDelete
 
 
 urlpatterns = patterns(
@@ -303,6 +304,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
     # 批量删除应用
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_delete$', BatchDelete.as_view()),
+    # 二次确认删除应用
+    url(r'^teams/(?P<tenantName>[\w\-]+)/again_delete$', AgainDelete.as_view()),
 
     # 某个服务的event
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view()),

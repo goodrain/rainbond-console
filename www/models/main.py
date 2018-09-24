@@ -743,9 +743,9 @@ class TenantServiceAuth(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     user = models.CharField(
-        max_length=40, null=True, blank=True, help_text=u"代码语言")
+        max_length=40, null=True, blank=True, help_text=u"用户")
     password = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=100, null=True, blank=True, help_text=u"密码")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
