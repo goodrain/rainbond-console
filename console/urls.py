@@ -37,7 +37,8 @@ from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamG
 from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView, MigrateRecordView
 from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
     GitLabUserRegisterView, CodeBranchView
-from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
+from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
+    BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import TenantGroupView, TenantGroupOperationView
 from console.views.jwt_token_view import JWTTokenView
@@ -427,6 +428,8 @@ urlpatterns = patterns(
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
     # 云市认证
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
+    # 新版本优化云市认证
+    url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
