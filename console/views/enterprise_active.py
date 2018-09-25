@@ -52,8 +52,9 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
         try:
             logger.debug("bind market access token")
             enterprise_id = request.data.get('enterprise_id')
-            market_client_id = request.data.get('market_client_id')
-            market_client_token = request.data.get('market_client_token')
+            market_info = request.data.get('market_info')
+            market_client_id = market_info.get('market_client_id')
+            market_client_token = market_info.get('market_client_token')
             if not enterprise_id or not market_client_id or not market_client_token:
                 return Response(general_message(400, "param error", "请填写相关信息"), status=400)
             enter = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)

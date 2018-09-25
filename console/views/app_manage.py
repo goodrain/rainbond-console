@@ -4,7 +4,6 @@
 """
 import logging
 
-
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -463,7 +462,8 @@ class BatchDelete(RegionTenantHeaderView):
         """
         try:
             service_ids = request.data.get("service_ids", None)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
             if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
@@ -473,8 +473,10 @@ class BatchDelete(RegionTenantHeaderView):
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
                 if code != 200:
-                    msg_list.append(msg)
-                    msg_list.append(service.service_id)
+                    error_list = []
+                    error_list.append(msg)
+                    error_list.append(service.service_id)
+                    msg_list.append(error_list)
             return Response(msg_list)
         except Exception as e:
             logger.exception(e)
