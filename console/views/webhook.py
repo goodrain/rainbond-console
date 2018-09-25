@@ -310,7 +310,7 @@ class GetWebHooksUrl(AppBaseView):
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             code_from = service_obj.code_from
-            service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual" or code_from == "image_manual"
+            service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
             if not (service_obj.service_source == "source_code" and service_code_from):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
@@ -382,7 +382,6 @@ class WebHooksStatus(AppBaseView):
 
 
 class CustomWebHooksDeploy(AlowAnyApiView):
-
 
     def post(self, request, service_id, *args, **kwargs):
         """自定义回调接口出发自动部署"""
