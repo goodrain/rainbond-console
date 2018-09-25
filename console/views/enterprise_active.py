@@ -4,6 +4,7 @@
 """
 import logging
 import os
+import base64
 
 from django.conf import settings
 from django.views.decorators.cache import never_cache
@@ -52,9 +53,10 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
         try:
             logger.debug("bind market access token")
             enterprise_id = request.data.get('enterprise_id')
-            market_info = request.data.get('market_info')
-            market_client_id = market_info.get('market_client_id')
-            market_client_token = market_info.get('market_client_token')
+            result = request.data.get('market_info')
+            market_info = eval(base64.decodestring(result))
+            market_client_id = market_info.get('eid')
+            market_client_token = market_info.get('token')
             if not enterprise_id or not market_client_id or not market_client_token:
                 return Response(general_message(400, "param error", "请填写相关信息"), status=400)
             enter = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
