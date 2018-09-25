@@ -472,7 +472,9 @@ class BatchDelete(RegionTenantHeaderView):
             msg_list = []
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
-                msg_list.append(msg)
+                if code != 200:
+                    msg_list.append(msg)
+                    msg_list.append(service.service_id)
             return Response(msg_list)
         except Exception as e:
             logger.exception(e)
