@@ -34,13 +34,12 @@ class ImportingRecordView(RegionTenantHeaderView):
 
         """
         unfinished_records = import_service.get_user_unfinished_import_record(self.tenant, self.user)
-        upload_url = import_service.get_upload_url(self.response_region)
         if unfinished_records:
             r = unfinished_records[0]
         else:
             r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name,
                                                         self.response_region)
-
+        upload_url = import_service.get_upload_url(self.response_region, r.event_id)
         data = {
             "status": r.status,
             "source_dir": r.source_dir,

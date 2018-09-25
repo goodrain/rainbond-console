@@ -729,6 +729,7 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 scope=group_info["scope"],
                 describe=group_info["describe"],
+                details=group_info["details"],
                 app_template=json.dumps(app_templete))
             app.save()
             share_record.step = 2
@@ -775,6 +776,7 @@ class ShareService(object):
         data["group_template"] = app.app_template
         data["group_share_alias"] = app.group_name
         data["logo"] = app.pic
+        data["details"] = app.details
         result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
         # 云市url
         app_url = result["app_url"]

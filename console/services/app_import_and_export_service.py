@@ -384,7 +384,7 @@ class AppImportService(object):
                                 "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
         return app_import_record_repo.create_app_import_record(**import_record_params)
 
-    def get_upload_url(self, region):
+    def get_upload_url(self, region, event_id):
         region = region_repo.get_region_by_region_name(region)
         raw_url = "/app/upload"
         upload_url = ""
@@ -395,7 +395,7 @@ class AppImportService(object):
                 upload_url = temp_url + ":6060" + raw_url
             else:
                 upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
-        return upload_url
+        return upload_url + "/" + event_id
 
 
 export_service = AppExportService()

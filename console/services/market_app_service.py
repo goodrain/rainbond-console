@@ -560,7 +560,8 @@ class MarketAppService(object):
                 "describe": app['info'],
                 "template_version": app.get("template_version", ""),
                 "is_complete": is_complete,
-                "is_official": app["is_official"]
+                "is_official": app["is_official"],
+                "desc": app["desc"]
             }
             result_list.append(rbapp)
         return total, result_list
@@ -599,6 +600,7 @@ class MarketTemplateTranslateService(object):
         new_templet["describe"] = old_templete["info"]
         new_templet["pic"] = old_templete["pic"]
         new_templet["is_official"] = old_templete["is_official"]
+        new_templet["desc"] = old_templete["desc"]
         # process apps
         apps = old_templete["apps"]
         new_apps = []
@@ -858,7 +860,8 @@ class AppMarketSynchronizeService(object):
                 app_template="",
                 enterprise_id=enterprise_id,
                 template_version=app_templates.get("template_version", ""),
-                is_official=app_templates["is_official"]
+                is_official=app_templates["is_official"],
+                details=app_templates["desc"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
@@ -869,6 +872,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template["is_official"]
+            rainbond_app.details = v2_template["desc"]
             rainbond_app.save()
         else:
             user_name = v2_template.get("publish_user", None)
@@ -887,6 +891,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
+            rainbond_app.details = v2_template.get("desc", "")
             rainbond_app.save()
 
 
