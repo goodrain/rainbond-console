@@ -390,12 +390,21 @@ class AppImportService(object):
         upload_url = ""
         if region:
             splits_texts = region.url.split(":")
-            if len(splits_texts) > 2:
-                temp_url = splits_texts[0] + "://" + region.tcpdomain
-                upload_url = temp_url + ":6060" + raw_url
+            if splits_texts[0] == "wss":
+                upload_url = "https://" + region.tcpdomain + ":6060" + raw_url
+
             else:
                 upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
         return upload_url
+
+        # if region:
+        #     splits_texts = region.url.split(":")
+        #     if len(splits_texts) > 2:
+        #         temp_url = splits_texts[0] + "://" + region.tcpdomain
+        #         upload_url = temp_url + ":6060" + raw_url
+        #     else:
+        #         upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+        # return upload_url
 
 
 export_service = AppExportService()
