@@ -18,6 +18,7 @@ from console.services.app import app_service
 from www.utils.return_message import general_message, error_message
 from console.services.user_services import user_services
 from www.decorator import perm_required
+from console.constants import AppConstants
 
 logger = logging.getLogger("default")
 
@@ -309,27 +310,27 @@ class GetWebHooksUrl(AppBaseView):
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
-            code_from = service_obj.code_from
-            service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
-            if not (service_obj.service_source == "source_code" and service_code_from) and code_from != "image_manual":
+            if service_obj.service_source == AppConstants.MARKET:
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
+            support_type = 0
+            if service_obj.service_source == AppConstants.SOURCE_CODE :
+                support_type = 1
+            else:
+                support_type = 2
+
             service_id = service_obj.service_id
             # 生成秘钥
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
             secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-            if code_from == "image_manual":
-                result = general_message(200, "success", "支持基于API自动部署", bean={"display":True, "deployment":"api", "secret_key":secret_key})
-                return Response(result, status=200)
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
             url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-
             custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
             # deploy_key = deploy.secret_key
             print deploy
             status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True, "deployment":"source_code"})
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True, "support_type":support_type})
 
             return Response(result, status=200)
         except Exception as e:
