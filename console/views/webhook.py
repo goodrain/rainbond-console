@@ -311,21 +311,24 @@ class GetWebHooksUrl(AppBaseView):
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             code_from = service_obj.code_from
             service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
-            if not (service_obj.service_source == "source_code" and service_code_from):
+            if not (service_obj.service_source == "source_code" and service_code_from) and service_obj.service_source != "docker_run" and service_obj.service_source != "docker_compose":
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
+                return Response(result, status=200)
+            service_id = service_obj.service_id
+            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
+            secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+            if service_obj.service_source == "docker_run" or service_obj.service_source == "docker_compose":
+                result = general_message(200, "success", "支持基于API自动部署", bean={"display":True, "deployment":"api"})
                 return Response(result, status=200)
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
             url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
 
-            service_id = service_obj.service_id
             custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
-            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
             # deploy_key = deploy.secret_key
             print deploy
-            secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True})
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True, "deployment":"source_code"})
 
             return Response(result, status=200)
         except Exception as e:
@@ -384,7 +387,7 @@ class WebHooksStatus(AppBaseView):
 class CustomWebHooksDeploy(AlowAnyApiView):
 
     def post(self, request, service_id, *args, **kwargs):
-        """自定义回调接口出发自动部署"""
+        """自定义回调接口处发自动部署"""
         logger.debug(request.data)
         import pickle , base64
         secret_key = request.data.get("secret_key")
