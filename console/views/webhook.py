@@ -315,10 +315,11 @@ class GetWebHooksUrl(AppBaseView):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             service_id = service_obj.service_id
+            # 生成秘钥
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
             secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             if service_obj.service_source == "docker_run" or service_obj.service_source == "docker_compose":
-                result = general_message(200, "success", "支持基于API自动部署", bean={"display":True, "deployment":"api"})
+                result = general_message(200, "success", "支持基于API自动部署", bean={"display":True, "deployment":"api", "secret_key":secret_key})
                 return Response(result, status=200)
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
