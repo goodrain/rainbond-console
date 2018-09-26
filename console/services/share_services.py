@@ -387,7 +387,7 @@ class ShareService(object):
             start_time=datetime.datetime.now())
         event.save()
         return event
-    
+
     @transaction.atomic
     def sync_event(self, user, region_name, tenant_name, record_event):
         rc_apps = RainbondCenterApp.objects.filter(record_id=record_event.record_id)
@@ -444,7 +444,7 @@ class ShareService(object):
                             logger.error(re_body)
                         return 500, "数据中心分享错误", None
                 else:
-                    new_apps.append(app)  
+                    new_apps.append(app)
             app_templetes["apps"] = new_apps
             rc_app.app_template = json.dumps(app_templetes)
             rc_app.update_time = datetime.datetime.now()
@@ -729,7 +729,7 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 scope=group_info["scope"],
                 describe=group_info["describe"],
-                details=group_info["details"],
+                details=group_info.get("details", ""),
                 app_template=json.dumps(app_templete))
             app.save()
             share_record.step = 2
