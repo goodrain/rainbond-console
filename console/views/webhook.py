@@ -311,14 +311,14 @@ class GetWebHooksUrl(AppBaseView):
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             code_from = service_obj.code_from
             service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
-            if not (service_obj.service_source == "source_code" and service_code_from) and service_obj.service_source != "docker_run" and service_obj.service_source != "docker_compose":
+            if not (service_obj.service_source == "source_code" and service_code_from) and code_from != "image_manual":
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             service_id = service_obj.service_id
             # 生成秘钥
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
             secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-            if service_obj.service_source == "docker_run" or service_obj.service_source == "docker_compose":
+            if code_from == "image_manual":
                 result = general_message(200, "success", "支持基于API自动部署", bean={"display":True, "deployment":"api", "secret_key":secret_key})
                 return Response(result, status=200)
             # 从环境变量中获取域名，没有在从请求中获取
