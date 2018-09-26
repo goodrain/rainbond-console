@@ -600,7 +600,7 @@ class BuildSourceinfo(AppBaseView):
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
                 if image:
-                    version = image.partition(":")[2]
+                    version = image.split(':')[-1]
                     if not version:
                         version = "latest"
                         image = image + ":" + version
