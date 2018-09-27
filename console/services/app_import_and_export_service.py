@@ -284,6 +284,8 @@ class AppImportService(object):
         [{"file_name":"app1","status":"success"},{"file_name":"app2","status":"failed"} ]
         """
         status_list = []
+        if not app_status:
+            return status_list
         k_v_map_list = app_status.split(",")
         for value in k_v_map_list:
             kv_map_list = value.split(":")
