@@ -678,7 +678,7 @@ class AppManageService(AppManageBase):
             return code, msg, event
         # 判断服务是否是运行状态
         if self.__is_service_running(tenant, service):
-            msg = "应用{0}可能处于运行状态,请先关闭应用".format(service.service_cname)
+            msg = "当前应用处于运行状态,请先关闭应用"
             event = event_service.update_event(event, msg, "failure")
             code = 409
             return code, msg, event
@@ -687,20 +687,20 @@ class AppManageService(AppManageBase):
         if is_mounted:
             event = event_service.update_event(event, "当前应用被其他应用挂载", "failure")
             code = 412
-            msg = "当前应用被{0}挂载, 您确定要删除吗？".format(msg)
+            msg = "当前应用被其他应用挂载, 您确定要删除吗？"
             return code, msg, event
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
             event = event_service.update_event(event, "当前应用已绑定域名", "failure")
             code = 412
-            msg = "当前应用{0}绑定了域名， 您确定要删除吗？".format(service.service_cname)
+            msg = "当前应用绑定了域名， 您确定要删除吗？"
             return code, msg, event
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
             event = event_service.update_event(event, "当前应用已安装插件", "failure")
             code = 412
-            msg = "当前应用{0}安装了插件， 您确定要删除吗？".format(service.service_cname)
+            msg = "当前应用安装了插件， 您确定要删除吗？"
             return code, msg, event
 
         if not is_force:

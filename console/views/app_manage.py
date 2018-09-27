@@ -476,6 +476,7 @@ class BatchDelete(RegionTenantHeaderView):
                 msg_dict['status'] = code
                 msg_dict['msg'] = msg
                 msg_dict['service_id'] = service.service_id
+                msg_dict['service_cname'] = service.service_cname
                 msg_list.append(msg_dict)
             code = 200
             result = general_message(code, "success", "操作成功", list=msg_list)
