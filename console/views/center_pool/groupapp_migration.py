@@ -212,7 +212,10 @@ class MigrateRecordView(RegionTenantHeaderView):
             data = {
                 "status": r.status,
                 "event_id": r.event_id,
-                "migrate_type": r.migrate_type
+                "migrate_type": r.migrate_type,
+                "restore_id": r.restore_id,
+                "backup_id": r.backup_id,
+                "group_id": r.group_id,
             }
             is_finished = False
 
