@@ -545,16 +545,15 @@ class MarketAppService(object):
         result_list = []
         for app in remote_apps:
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
-                                                                        app["group_version"])
-            # 判断云市应用是否有小版本更新
-            if rbc.upgrade_time < app["update_time"]:
-                is_upgrade = 1
-            else:
-                is_upgrade = 0
+                                                                      app["group_version"])
+            is_upgrade = 0
             is_complete = False
             if rbc:
                 if rbc.is_complete:
                     is_complete = True
+                # 判断云市应用是否有小版本更新
+                if rbc.upgrade_time < app["update_time"]:
+                    is_upgrade = 1
             rbapp = {
                 "group_key": app["group_key"],
                 "group_name": app["group_name"],

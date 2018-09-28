@@ -74,6 +74,10 @@ class TenantService(object):
         tenant_region_list = TenantRegionInfo.objects.filter(region_name__in=regions)
         return tenant_region_list
 
+    def get_tenant_service_by_service_id(self, service_id):
+        service = TenantRegionInfo.objects.filter(service_id=service_id).first()
+        return service
+
     def get_tenant_service(self, enable_regions, start, end):
         """
         返回数据
@@ -172,5 +176,6 @@ class TenantService(object):
         if enterprise_id:
             query &= Q(enterprise_id=enterprise_id)
         return Tenants.objects.filter(query)
+
 
 tenant_service = TenantService()

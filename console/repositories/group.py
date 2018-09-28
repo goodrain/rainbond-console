@@ -120,6 +120,9 @@ class TenantServiceGroupRepository(object):
     def create_tenant_service_group(self, **params):
         return TenantServiceGroup.objects.create(**params)
 
+    def get_group_by_service_group_id(self, service_group_id):
+        return TenantServiceGroup.objects.filter(ID=service_group_id).first()
+
 
 group_repo = GroupRepository()
 group_service_relation_repo = GroupServiceRelationRepository()

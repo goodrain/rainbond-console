@@ -12,7 +12,8 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from console.repositories.app import service_source_repo
-from console.services.app_check_service import app_check_service
+from console.repositories.group import tenant_service_group_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
@@ -111,8 +112,22 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
-
-            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+            data = {}
+            data["is_upgrate"] = 0
+            if self.service.service_source == "market":
+                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                apps_list = rain_app.get("apps")
+                for app in apps_list:
+                    if app["service_key"] == self.service.service_key:
+                        if app["deploy_version"] > self.service.deploy_version:
+                            data["is_upgrate"] = 1
+                        else:
+                            pass
+                    else:
+                        pass
+            data["mydict"] = self.service.to_dict()
+            result = general_message(200, "success", "查询成功", bean=data)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
