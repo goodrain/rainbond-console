@@ -103,6 +103,7 @@ class RainbondCenterPlugin(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
     enterprise_id = models.CharField(max_length=32, default='public', help_text=u"企业id")
+    details = models.TextField(null=True, blank=True, help_text=u"插件详细信息")
 
     def __unicode__(self):
         return self.to_dict()

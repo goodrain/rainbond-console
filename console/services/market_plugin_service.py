@@ -74,7 +74,8 @@ class MarketPluginService(object):
             'id': p.ID,
             'is_complete': p.is_complete,
             'source': p.source,
-            'update_time': p.update_time
+            'update_time': p.update_time,
+            'details': p.details
         } for p in paged_plugins]
 
         return len(plugins), data
@@ -128,6 +129,7 @@ class MarketPluginService(object):
             rcp.pic = market_plugin.get('logo')
             rcp.desc = market_plugin.get('intro')
             rcp.version = market_plugin.get('major_version')
+            rcp.details = market_plugin.get("desc", "")
             rcp.is_complete = True
             rcp.save()
             return True
@@ -150,7 +152,8 @@ class MarketPluginService(object):
                 share_team='',
                 enterprise_id=enterprise_id,
                 plugin_template=market_plugin.get("template").get('template_content'),
-                is_complete=True
+                is_complete=True,
+                details=market_plugin.get("desc", "")
             )
             rcp.save()
             return True

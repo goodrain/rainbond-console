@@ -3,7 +3,9 @@
 
 ALTER TABLE `rainbond_center_app` ADD COLUMN `details` longtext NULL;
 
+-- 云市插件表添加详情信息字段
 
+ALTER TABLE `rainbond_center_plugin` ADD COLUMN `details` longtext NULL;
 
 -- 添加判断更新字段
 

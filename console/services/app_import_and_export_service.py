@@ -258,6 +258,7 @@ class AppImportService(object):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         # 去数据中心请求导入状态
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
+        print res["status"]
         status = body["bean"]["status"]
         if import_record.status != "success":
             if res["status"] == 404:
