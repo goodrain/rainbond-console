@@ -260,7 +260,9 @@ class AppImportService(object):
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
         status = body["bean"]["status"]
         if import_record.status != "success":
-            if status == "success":
+            if res["status"] == 404:
+                import_record.status = "uploading"
+            elif status == "success":
                 logger.debug("app import success !")
                 self.__save_import_info(tenant.tenant_name, import_record.scope, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
