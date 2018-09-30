@@ -251,6 +251,7 @@ class AppManageService(AppManageBase):
         body["enterprise_id"] = tenant.enterprise_id
         body["lang"] = service.language
         body["image_url"] = service.image
+        body["cmd"] = service.cmd
         service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if service_source:
             if service_source.user_name or service_source.password:

@@ -512,7 +512,7 @@ class ImageAppView(AppBaseView):
             if cmd:
                 self.service.cmd = cmd
 
-            version = image.partition(":")[2]
+            version = image.split(':')[-1]
             if not version:
                 version = "latest"
                 image = image + ":" + version

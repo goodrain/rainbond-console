@@ -379,6 +379,7 @@ class TenantRegionResource(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
+
 service_status = ((u"已发布", 'published'), (u"测试中", "test"),)
 
 service_category = ((u"应用", 'application'), (u"缓存", 'cache'), (u"存储", 'store'))
