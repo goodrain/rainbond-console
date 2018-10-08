@@ -4,6 +4,7 @@
 """
 import datetime
 import logging
+import json
 
 from django.db import transaction
 from django.shortcuts import redirect
@@ -115,15 +116,13 @@ class AppBriefView(AppBaseView):
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
-                apps_list = rain_app.get("apps")
+                apps_template = json.loads(rain_app.app_template)
+
+                apps_list = apps_template.get("apps")
                 for app in apps_list:
                     if app["service_key"] == self.service.service_key:
                         if app["deploy_version"] > self.service.deploy_version:
                             self.service.is_upgrate = True
-                        else:
-                            pass
-                    else:
-                        pass
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
