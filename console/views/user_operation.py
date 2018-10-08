@@ -10,7 +10,6 @@ from rest_framework_jwt.settings import api_settings
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
 from console.services.enterprise_services import enterprise_services
-from console.services.plugin import plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services

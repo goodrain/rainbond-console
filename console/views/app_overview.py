@@ -112,8 +112,6 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
-            data = {}
-            data["is_upgrate"] = 0
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
@@ -121,13 +119,12 @@ class AppBriefView(AppBaseView):
                 for app in apps_list:
                     if app["service_key"] == self.service.service_key:
                         if app["deploy_version"] > self.service.deploy_version:
-                            data["is_upgrate"] = 1
+                            self.service.is_upgrate = True
                         else:
                             pass
                     else:
                         pass
-            data["mydict"] = self.service.to_dict()
-            result = general_message(200, "success", "查询成功", bean=data)
+            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

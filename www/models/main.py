@@ -567,6 +567,7 @@ class TenantServiceInfo(BaseModel):
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
+    is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
 
     def __unicode__(self):
         return self.service_alias
