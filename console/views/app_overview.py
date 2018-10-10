@@ -234,8 +234,6 @@ class AppPodsView(AppBaseView):
                     for key, val in container.items():
                         if key == "POD":
                             continue
-                        if key != self.service.service_id:
-                            continue
                         container_dict = {}
                         container_dict["container_name"] = key
                         memory_limit = float(val["memory_limit"]) / 1024 / 1024
@@ -548,6 +546,16 @@ class BuildSourceinfo(AppBaseView):
             bean["password"] = password
             if not service_source:
                 return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
+            # if service_source.service_source == 'market':
+            #     # 获取组对象
+            #     group_obj = tenant_service_group_repo.get_group_by_service_group_id(service_source.tenant_service_group_id)
+            #     # 获取内部市场对象
+            #     rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+            #                                                                      group_obj.group_version)
+            #     bean["rain_app_name"] = rain_app.group_name
+            #     bean["app_share_user"] = rain_app.share_user
+            #     bean["app_describe"] = rain_app.describe
+            #     bean["app_version"] = rain_app.version
             bean["service_source"] = service_source.service_source
             bean["image"] = service_source.image
             bean["cmd"] = service_source.cmd
