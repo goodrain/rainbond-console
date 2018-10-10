@@ -146,6 +146,8 @@ class AppPluginService(object):
                 ))
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+                if not self.__check_ports_for_config_items(ports, items):
+                    return 409, "插件支持的协议与应用端口协议不一致"
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -169,6 +171,8 @@ class AppPluginService(object):
                     return 409, "应用没有依赖其他应用，不能安装此插件"
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
+                    if not self.__check_ports_for_config_items(ports, items):
+                        return 409, "该应用依赖的应用的端口协议与插件支持的协议不一致"
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
@@ -189,6 +193,18 @@ class AppPluginService(object):
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
         return 200, "success"
+
+    def __check_ports_for_config_items(self,ports, items):
+        for item in items:
+            if item.protocol == "":
+                return True
+            else:
+                protocols = item.protocol.split(",")
+                for port in ports:
+                    if port.protocol in protocols:
+                        return True
+        return False
+
 
     def get_region_config_from_db(self, service, plugin_id, build_version):
         attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
@@ -374,19 +390,20 @@ class AppPluginService(object):
         config_bean = Dict(config_bean)
         service_plugin_var = []
         undefine_env = config_bean.undefine_env
-        attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
-        service_plugin_var.append(ServicePluginConfigVar(
-            service_id=service.service_id,
-            plugin_id=plugin_id,
-            build_version=build_version,
-            service_meta_type=undefine_env.service_meta_type,
-            injection=undefine_env.injection,
-            dest_service_id="",
-            dest_service_alias="",
-            container_port=0,
-            attrs=json.dumps(attrs_map),
-            protocol=""
-        ))
+        if undefine_env:
+            attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
+            service_plugin_var.append(ServicePluginConfigVar(
+                service_id=service.service_id,
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=undefine_env.service_meta_type,
+                injection=undefine_env.injection,
+                dest_service_id="",
+                dest_service_alias="",
+                container_port=0,
+                attrs=json.dumps(attrs_map),
+                protocol=""
+            ))
         upstream_config_list = config_bean.upstream_env
         for upstream_config in upstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}

@@ -39,6 +39,9 @@ class AppPluginRelationRepo(object):
     def delete_service_plugin(self, service_id, plugin_id):
         TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
 
+    def get_service_plugin_relations_by_service_ids(self, service_ids):
+        return TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
+
 
 class ServicePluginAttrRepository(object):
     def delete_attr_by_plugin_id(self, plugin_id):

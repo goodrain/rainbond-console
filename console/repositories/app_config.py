@@ -60,7 +60,7 @@ class TenantServiceEnvVarRepository(object):
         for benv in buildEnvs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):
-                attr_name = attr_name.replace("BUILD_", "")
+                attr_name = attr_name.replace("BUILD_", "", 1)
             envs[attr_name] = benv.attr_value
         compile_env = compile_env_repo.get_service_compile_env(service_id)
         if compile_env:

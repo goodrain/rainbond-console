@@ -48,4 +48,11 @@ class ServiceEventRepository(object):
     def get_specified_region_events(self, tenant_id, region):
         return ServiceEvent.objects.filter(tenant_id=tenant_id, region=region).order_by("-ID")
 
+    def get_evevt_by_tenant_id_region(self, tenant_id):
+        event_list = ServiceEvent.objects.filter(tenant_id=tenant_id)
+        if not event_list:
+            return []
+        else:
+            return event_list
+
 event_repo = ServiceEventRepository()

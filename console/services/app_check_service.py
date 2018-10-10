@@ -37,12 +37,15 @@ class AppCheckService(object):
             password = service_source.password
         if service.service_source == AppConstants.SOURCE_CODE:
 
-            sb = {"server_type": "git", "repository_url": service.git_url,
+            sb = {"server_type": service.server_type, "repository_url": service.git_url,
                   "branch": service.code_version, "user": user_name,
                   "password": password, "tenant_id": tenant.tenant_id}
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             source_body = service.docker_cmd
+
+        body["username"] = user_name
+        body["password"] = password
         body["source_body"] = source_body
 
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
@@ -132,6 +135,7 @@ class AppCheckService(object):
         if image:
             service_image = image["name"] + ":" + image["tag"]
             service.image = service_image
+            service.version = image["tag"]
 
         library = service_info.get("dependencies", False)
         procfile = service_info.get("procfile", False)

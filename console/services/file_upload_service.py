@@ -89,13 +89,14 @@ class FileUploadService(object):
                 destination.write(chunk)
             return filename
 
-    def upload_file_to_region_center(self, team_name, region, upload_file):
+    def upload_file_to_region_center(self, team_name, user_name, region, upload_file):
         url, token = region_services.get_region_access_info(team_name, region)
         headers = {"Authorization": token}
         logger.debug("request header : {0}".format(headers))
         files = {'appTarFile': upload_file}
         event_id = make_uuid()
-        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region}
+        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
+                                "user_name": user_name}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
 
         data = {"eventId": event_id}
@@ -106,12 +107,13 @@ class FileUploadService(object):
             logger.debug("file upload success !")
             import_record.status = "upload_success"
             import_record.save()
+            upload_file.close()
             return 200, "上传成功", import_record
         else:
             logger.debug("file upload failed !")
             import_record.delete()
+            upload_file.close()
             return 500, "上传失败", None
-
 
 
 upload_service = FileUploadService()

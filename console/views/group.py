@@ -4,6 +4,7 @@
 """
 from rest_framework.response import Response
 
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
 import logging
 
@@ -27,7 +28,7 @@ class TenantGroupView(RegionTenantHeaderView):
             data = []
             for group in groups:
                 data.append({"group_name": group.group_name, "group_id": group.ID})
-            data.append({"group_name": "未分组", "group_id": -1})
+            # data.append({"group_name": "未分组", "group_id": -1})
             result = general_message(200, "success", "查询成功", list=data)
         except Exception as e:
             logger.exception(e)
@@ -122,7 +123,17 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         """
         try:
             group_id = int(kwargs.get("group_id", None))
-            code, msg, data = group_service.delete_group(group_id)
+            service = group_service_relation_repo.get_service_by_group(group_id)
+            group_object = group_repo.get_group_by_id(group_id)
+            if group_object.is_default:
+                result = general_message(400, "默认组不允许删除", None)
+                return Response(result, status=result["code"])
+            if not service:
+                code, msg, data = group_service.delete_group_no_service(group_id)
+            else:
+                default_group = group_repo.get_default_by_service(service)
+                default_group_id = default_group.ID
+                code, msg, data = group_service.delete_group(group_id, default_group_id)
             if code != 200:
                 result = general_message(code, "delete group error", msg)
             else:

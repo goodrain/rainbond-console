@@ -379,6 +379,7 @@ class TenantRegionResource(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
+
 service_status = ((u"已发布", 'published'), (u"测试中", "test"),)
 
 service_category = ((u"应用", 'application'), (u"缓存", 'cache'), (u"存储", 'store'))
@@ -564,6 +565,9 @@ class TenantServiceInfo(BaseModel):
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
+    server_type = models.CharField(
+        max_length=5, default='git', help_text=u"源码仓库类型")
+    is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
 
     def __unicode__(self):
         return self.service_alias
@@ -688,7 +692,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
-
+    server_type = models.CharField(
+        max_length=5, default='git', help_text=u"源码仓库类型")
 
 class TenantServiceLog(BaseModel):
     class Meta:
@@ -727,9 +732,9 @@ class TenantServiceEnv(BaseModel):
     language = models.CharField(
         max_length=40, null=True, blank=True, help_text=u"代码语言")
     check_dependency = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=100, null=True, blank=True, help_text=u"检测运行环境依赖")
     user_dependency = models.CharField(
-        max_length=1000, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=1000, null=True, blank=True, help_text=u"用户自定义运行环境依赖")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
@@ -740,9 +745,9 @@ class TenantServiceAuth(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     user = models.CharField(
-        max_length=40, null=True, blank=True, help_text=u"代码语言")
+        max_length=40, null=True, blank=True, help_text=u"用户")
     password = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
+        max_length=100, null=True, blank=True, help_text=u"密码")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
@@ -829,7 +834,7 @@ class PermRelTenant(BaseModel):
         db_table = 'tenant_perms'
 
     user_id = models.IntegerField(help_text=u"关联用户")
-    tenant_id = models.IntegerField(help_text=u"关联租户")
+    tenant_id = models.IntegerField(help_text=u"团队id")
     identity = models.CharField(
         max_length=15, choices=tenant_identity, help_text=u"租户身份", null=True, blank=True)
     enterprise_id = models.IntegerField(help_text=u"关联企业")
@@ -1084,6 +1089,7 @@ class ServiceGroup(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_name = models.CharField(max_length=32, help_text=u"组名")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    is_default = models.BooleanField(default=False, help_text=u"默认组")
 
 
 class ServiceGroupRelation(BaseModel):
@@ -1354,7 +1360,7 @@ class ServiceEvent(BaseModel):
         help_text=u"操作状态，complete or timeout or null")
     message = models.CharField(max_length=200, help_text=u"操作说明")
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
-    old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
+    old_deploy_version = models.CharField(max_length=20, help_text=u"历史部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
     region = models.CharField(max_length=32, default="", help_text=u"服务所属数据中心")
@@ -1477,7 +1483,7 @@ class TenantServiceGroup(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_name = models.CharField(max_length=64, help_text=u"服务组名")
-    group_alias = models.CharField(max_length=64, help_text=u"服务组名")
+    group_alias = models.CharField(max_length=64, help_text=u"服务别名")
     group_key = models.CharField(max_length=32, help_text=u"服务组id")
     group_version = models.CharField(max_length=32, help_text=u"服务组版本")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")

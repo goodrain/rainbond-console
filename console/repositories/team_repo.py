@@ -6,7 +6,7 @@ from django.db.models import Q
 from backends.models import RegionConfig
 from backends.services.exceptions import TenantNotExistError, UserNotExistError
 from www.models import PermRelTenant, Users, Tenants, TenantRegionInfo, ServiceGroupRelation
-from console.models.main import TeamGitlabInfo
+from console.models.main import TeamGitlabInfo, Applicants
 
 logger = logging.getLogger("default")
 
@@ -44,6 +44,13 @@ class TeamRepo(object):
         if not tenant_perms:
             return None
         return tenant_perms
+
+    # 返回该团队下的所有管理员
+    def get_tenant_admin_by_tenant_id(self, tenant_id):
+        admins = PermRelTenant.objects.filter(tenant_id=tenant_id, identity__in=['admin', 'owner'])
+        if not admins:
+            return None
+        return admins
 
     def get_user_perms_in_permtenant_list(self, user_id, tenant_id):
         """
@@ -104,11 +111,8 @@ class TeamRepo(object):
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
 
-    def get_team_by_enterprise_id(self, enterprise_id):
-        return Tenants.objects.filter(enterprise_id=enterprise_id)
-
-    def get_team_by_team_alias_and_enterprise_id(self, team_alias, enterprise_id):
-        return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
+    def create_team_perms(self, **params):
+        return PermRelTenant.objects.create(**params)
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):

@@ -54,5 +54,21 @@ class BaseService(object):
             logger.exception( e)
             return None
 
+    def get_apps_deploy_versions(self, region, tenant_name, service_ids):
+        data = {"service_ids": service_ids}
+        try:
+            res, body = region_api.get_team_services_deploy_version(region, tenant_name, data)
+            return body["list"]
+        except Exception as e:
+            logger.exception(e)
+            return None
+
+    def get_app_deploy_version(self, region, tenant_name,service_alias):
+        try:
+            res, body = region_api.get_service_deploy_version(region, tenant_name, service_alias)
+            return body["bean"]
+        except Exception as e:
+            logger.exception(e)
+            return None
 
 base_service = BaseService()

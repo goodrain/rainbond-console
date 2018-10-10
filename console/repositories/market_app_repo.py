@@ -19,7 +19,7 @@ class RainbondCenterAppRepository(object):
         return RainbondCenterApp.objects.filter(is_complete=True)
 
     def get_current_enter_visable_apps(self, enterprise_id):
-        return RainbondCenterApp.objects.filter(is_complete=True,enterprise_id__in=["public", enterprise_id])
+        return RainbondCenterApp.objects.filter(is_complete=True, enterprise_id__in=["public", enterprise_id])
 
     def get_rainbond_app_by_key_and_version(self, group_key, group_version):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version)
@@ -54,7 +54,8 @@ class AppExportRepository(object):
         return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
 
     def get_enter_export_record_by_unique_key(self, enterprise_id, group_key, version, export_format):
-        app_records = AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format, enterprise_id__in=[enterprise_id,"public"])
+        app_records = AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format,
+                                                     enterprise_id__in=[enterprise_id, "public"])
         if app_records:
             current_enter_records = app_records.filter(enterprise_id=enterprise_id)
             if current_enter_records:
@@ -86,8 +87,12 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params):
         return AppImportRecord.objects.create(**params)
 
-    def get_importing_record(self):
-        return AppImportRecord.objects.filter(status="importing")
+    def get_importing_record(self,user_name, team_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name,status="importing")
+
+    def get_user_unfinished_import_record(self, team_name, user_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(
+            status__in=["success", "failed"])
 
 
 rainbond_app_repo = RainbondCenterAppRepository()

@@ -109,7 +109,7 @@ class ProbeService(object):
         new_probe = probe_repo.add_service_probe(**console_prob)
         return 200, "success", new_probe
 
-    def update_service_probe(self, tenant, service, data):
+    def update_service_probea(self, tenant, service, data):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             return code, msg, None
@@ -140,12 +140,12 @@ class ProbeService(object):
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
-            res, body = region_api.update_service_probe(service.service_region, tenant.tenant_name,
+            res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name,
                                                         service.service_alias, prob_data)
             logger.debug("update probe action status {0}".format(res.status))
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
-        probe_repo.update_service_probe(service.service_id, probe.probe_id, **console_probe)
+        probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
         new_probe = probe_repo.get_probe_by_mode(service.service_id, probe.mode)
         return 200, "success", new_probe
 

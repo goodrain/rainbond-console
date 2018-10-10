@@ -51,6 +51,7 @@ class AppMntService(object):
                     })
         return mounted_dependencies, total
 
+
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
 
         services = service_repo.get_services_by_service_ids(*service_ids)
@@ -83,13 +84,16 @@ class AppMntService(object):
         return un_mount_dependencies, total
 
     def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data):
+        local_path = []
+        tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
+        local_path = [l_path.volume_path for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
-            code, msg = volume_service.check_volume_path(service, dep_vol["path"])
+            code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
             if code != 200:
                 return code, msg
         for dep_vol in dep_vol_data:
             dep_vol_id = dep_vol['id']
-            source_path = dep_vol['path']
+            source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
             try:
                 code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume)

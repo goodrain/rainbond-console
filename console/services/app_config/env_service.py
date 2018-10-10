@@ -22,13 +22,14 @@ class AppEnvVarService(object):
         if attr_name in self.SENSITIVE_ENV_NAMES:
             return False, u"不允许的变量名{0}".format(attr_name)
 
-        if not re.match(r'^[A-Z][A-Z0-9_]*$', attr_name):
+        if not re.match(r'^[A-Za-z][A-Za-z0-9_]*$', attr_name):
             return False, u"变量名称{0}不符合规范".format(attr_name)
         return True, u"success"
 
     def add_service_env_var(self, tenant, service, container_port, name, attr_name, attr_value, isChange,
                             scope="outer"):
-
+        attr_name = str(attr_name).strip()
+        attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
@@ -103,6 +104,8 @@ class AppEnvVarService(object):
         return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 
     def update_env_by_attr_name(self, tenant, service, attr_name, name, attr_value):
+        attr_name = attr_name.strip()
+        attr_value = attr_value.strip()
         env = env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
         if not env:
             return 404, "环境变量不存在", None

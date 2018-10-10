@@ -19,6 +19,7 @@ from console.services.region_services import region_services
 from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
 from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.models.main import TenantUserRole
+from console.repositories.group import group_repo
 
 logger = logging.getLogger("default")
 
@@ -228,6 +229,19 @@ class TeamService(object):
         else:
             return None
 
+    def add_user_to_team_by_viewer(self, tenant, user_id):
+        """在团队中添加一个用户并给用户分配一个默认viewer权限"""
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
+        if enterprise:
+            try:
+              PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, identity="viewer",
+                                                               enterprise_id=enterprise.pk)
+            except Exception as e:
+                logging.exception(e)
+                raise Exception("创建失败:%s" % e.message)
+        else:
+            return None
+
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
         tenant = self.get_tenant(tenant_name=tenant_name)
@@ -242,6 +256,14 @@ class TeamService(object):
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
+
+
+    def get_service_source(self, service_alias):
+        service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)
+        if service_source:
+            return service_source[0]
+        else:
+            return []
 
     def delete_tenant(self, tenant_name):
         status = team_repo.delete_tenant(tenant_name=tenant_name)

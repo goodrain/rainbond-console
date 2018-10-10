@@ -8,6 +8,8 @@ from console.repositories.compose_repo import compose_repo
 import logging
 import re
 from console.repositories.backup_repo import backup_record_repo
+from console.syncservice.create_default_group import syncManager
+from www.models import ServiceGroupRelation, TenantServiceInfo, ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -50,7 +52,7 @@ class GroupService(object):
         group_repo.update_group_name(group_id, group_name)
         return 200, u"修改成功", group_name
 
-    def delete_group(self, group_id):
+    def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:
             return 400, u"需要删除的组不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
@@ -59,8 +61,7 @@ class GroupService(object):
         # 删除组
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与组的关系
-        group_service_relation_repo.delete_relation_by_group_id(group_id)
-        compose_repo.delete_group_compose_by_group_id(group_id)
+        group_service_relation_repo.update_service_relation(group_id, default_group_id)
         return 200, u"删除成功", group_id
 
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
@@ -76,8 +77,8 @@ class GroupService(object):
         return 200, u"success"
 
     def get_group_by_id(self, tenant, region, group_id):
-        if group_id == -1:
-            return 200, "success", {"group_id": -1, "group_name": "未分组"}
+        # if group_id == -1:
+        #     return 200, "success", {"group_id": -1, "group_name": "未分组"}
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             return 404, u"组不存在", None
@@ -121,10 +122,10 @@ class GroupService(object):
                 else:
                     service_list.append(service_info)
                 service_id_map.pop(k)
-        # 未分组应用
-        uncategory_services = []
-        for k, v in service_id_map.iteritems():
-            uncategory_services.append(v)
+        # # 未分组应用
+        # uncategory_services = []
+        # for k, v in service_id_map.iteritems():
+        #     uncategory_services.append(v)
 
         result = []
         for g in groups:
@@ -132,12 +133,12 @@ class GroupService(object):
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
-            result.append(bean)
-        result.append({
-            "group_id": -1,
-            "group_name": "未分组",
-            "service_list": uncategory_services
-        })
+            result.insert(0, bean)
+        # result.append({
+        #     "group_id": -1,
+        #     "group_name": "未分组",
+        #     "service_list": uncategory_services
+        # })
 
         return result
 
@@ -147,5 +148,17 @@ class GroupService(object):
         service_ids = [gs.service_id for gs in gsr]
         services = service_repo.get_services_by_service_ids(*service_ids)
         return services
+
+    # 组内没有应用情况下删除组
+    def delete_group_no_service(self, group_id):
+        if not group_id or group_id < 0:
+            return 400, u"需要删除的组不合法", None
+        backups = backup_record_repo.get_record_by_group_id(group_id)
+        if backups:
+            return 409, u"当前组有备份记录，暂无法删除", None
+        # 删除组
+        group_repo.delete_group_by_pk(group_id)
+        return 200, u"删除成功", group_id
+
 
 group_service = GroupService()

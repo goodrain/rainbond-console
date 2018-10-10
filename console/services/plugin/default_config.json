@@ -153,7 +153,7 @@
             "is_change": true,
             "attr_alt_value": "YES,NO",
             "attr_info": "是否开启当前端口分析，用户自助选择服务端口",
-            "protocol": ""
+            "protocol": "http,mysql"
           }
         ]
       }

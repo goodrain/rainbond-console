@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
+import datetime
 import logging
 
 from rest_framework.response import Response
 
 from backends.services.configservice import config_service
+from cadmin.models import ConsoleSysConfig
+from console.repositories.enterprise_repo import enterprise_repo
 from console.views.base import BaseApiView, AlowAnyApiView
 from www.utils.return_message import general_message, error_message
 from django.conf import settings
@@ -27,6 +30,7 @@ class ConfigInfoView(AlowAnyApiView):
             host_name = request.get_host()
             build_absolute_uri = request.build_absolute_uri()
             scheme = "http"
+
             if build_absolute_uri.startswith("https"):
                 scheme = "https"
             data["logo"] = "{0}".format(str(logo))
@@ -52,12 +56,33 @@ class ConfigInfoView(AlowAnyApiView):
                 else:
                     data["is_user_register"] = False
 
+            is_regist = config_service.get_config_by_key("REGISTER_STATUS")
+            if not is_regist:
+                is_regist = config_service.add_config(
+                    key="REGISTER_STATUS",
+                    default_value="yes",
+                    type="string",
+                    desc="开启/关闭注册"
+                ).value
+            if is_regist == "yes":
+                data["is_regist"] = True
+            else:
+                data["is_regist"] = False
+            # if register_config[0].value != "yes":
+            #     data["is_regist"] = False
+            # else:
+            #     data["is_regist"] = True
+
             github_config = config_service.get_github_config()
             data["github_config"] = github_config
 
             gitlab_config = config_service.get_gitlab_config()
             data["gitlab_config"] = gitlab_config
 
+            data["eid"] = None
+            enterprise = enterprise_repo.get_enterprise_first()
+            if enterprise:
+                data["eid"] = enterprise.enterprise_id
 
             result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)

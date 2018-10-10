@@ -7,7 +7,7 @@ from console.repositories.app_config import port_repo
 import re
 
 from www.apiclient.regionapi import RegionInvokeApi
-
+from django.conf import settings
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
@@ -44,7 +44,8 @@ class AppPortService(object):
         """判断是否有对外打开的非http协议端口"""
         ports = port_repo.get_service_ports(tenant_id, service_id).filter(is_outer_service=True).exclude(
             protocol="http").exclude(container_port=current_port)
-        if ports:
+        # 如果为公有云且已经开放端口
+        if ports and settings.MODULES.get('SSO_LOGIN'):
             return True
         return False
 
@@ -415,12 +416,24 @@ class AppPortService(object):
                 port_info_list.append(port_dict)
             return access_type, port_info_list
         if http_inner_port:
-            http_inner_map = {}
+            # http_inner_map = {}
+
             access_type = ServicePortConstants.HTTP_INNER
+            port_info_list = []
             for p in http_inner_port:
+                port_dict = p.to_dict()
                 env_list = self.get_port_associated_env(tenant, service, p.container_port)
-                http_inner_map[p.container_port] = env_list
-            return access_type, http_inner_map
+                port_dict["connect_info"] = env_list
+                port_info_list.append(port_dict)
+            # port_info_list = []
+            # for p in http_inner_port:
+            #     port_dict = p.to_dict()
+            #     env_list = self.get_port_associated_env(tenant, service, p.container_port)
+            #     # http_inner_map[p.container_port] = env_list
+            #     port_dict["connect_info"] = env_list
+            #     port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
+            #     port_info_list.append(port_dict)
+            return access_type, port_info_list
 
         if unopened_port:
             access_type = ServicePortConstants.NO_PORT

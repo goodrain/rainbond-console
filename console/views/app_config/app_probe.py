@@ -94,7 +94,7 @@ class AppProbeView(AppBaseView):
                 return Response(result, status=result["code"])
             params = dict(serializer.data)
 
-            code, msg, probe = probe_service.update_service_probe(self.tenant, self.service, params)
+            code, msg, probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=params)
             if code != 200:
                 return Response(general_message(code, "update probe error", msg), status=code)
             result = general_message(200, u"success", "修改成功", bean=probe.to_dict())

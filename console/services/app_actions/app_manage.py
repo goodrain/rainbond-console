@@ -5,6 +5,8 @@
 from django.conf import settings
 import datetime
 import json
+
+from console.repositories.share_repo import share_repo
 from console.services.app_actions import AppEventService
 from console.services.app_config import AppServiceRelationService
 from www.apiclient.regionapi import RegionInvokeApi
@@ -12,7 +14,8 @@ from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
 from console.repositories.app_config import env_var_repo, mnt_repo, volume_repo, port_repo, \
     auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo
-from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, relation_recycle_bin_repo
+from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, \
+    relation_recycle_bin_repo
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
@@ -120,7 +123,7 @@ class AppManageService(AppManageBase):
         from console.services.app import app_service
         new_add_memory = service.min_memory * service.min_node
         allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory,
-                                                       "start_app")
+                                                      "启动应用")
         if not allow_start:
             return 412, "资源不足，无法启动应用", None
 
@@ -241,12 +244,14 @@ class AppManageService(AppManageBase):
         if kind == "build_from_source_code" or kind == "source":
             body["repo_url"] = clone_url
             body["branch"] = service.code_version
+            body["server_type"] = service.server_type
         body["kind"] = kind
         body["service_alias"] = service.service_alias
         body["tenant_name"] = tenant.tenant_name
         body["enterprise_id"] = tenant.enterprise_id
         body["lang"] = service.language
         body["image_url"] = service.image
+        body["cmd"] = service.cmd
         service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if service_source:
             if service_source.user_name or service_source.password:
@@ -286,7 +291,7 @@ class AppManageService(AppManageBase):
                 # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
-                if service.image .startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
+                if service.image.startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
                     return "build_from_market_slug"
                 else:
                     return "build_from_market_image"
@@ -296,7 +301,7 @@ class AppManageService(AppManageBase):
                 kind = "build_from_source_code"
             if service.category == "app_publish":
                 kind = "build_from_market_image"
-                if service.image .startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
+                if service.image.startswith('goodrain.me/runner') and service.language not in ("dockerfile", "docker"):
                     kind = "build_from_market_slug"
                 if service.service_key == "0000":
                     kind = "build_from_image"
@@ -340,7 +345,7 @@ class AppManageService(AppManageBase):
             event = event_service.update_event(event, "应用未在数据中心创建", "failure")
         return 200, u"操作成功", event
 
-    def batch_action(self, tenant, user, action, service_ids):
+    def batch_action(self, tenant, user, action, service_ids, move_group_id):
         services = service_repo.get_services_by_service_ids(*service_ids)
         code = 500
         msg = "系统异常"
@@ -353,6 +358,8 @@ class AppManageService(AppManageBase):
                     self.stop(tenant, service, user)
                 elif action == "restart":
                     self.restart(tenant, service, user)
+                elif action == "move":
+                    self.move(service, move_group_id)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -473,7 +480,7 @@ class AppManageService(AppManageBase):
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
-            self.move_service_relation_info_recycle_bin(tenant,service)
+            self.move_service_relation_info_recycle_bin(tenant, service)
 
             return 200, "success", event
         else:
@@ -505,13 +512,13 @@ class AppManageService(AppManageBase):
                 return 500, "删除应用失败 {0}".format(e.message)
         if service.create_status == "complete":
             data = service.toJSON()
+            data.pop("ID")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
-        env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
@@ -591,12 +598,12 @@ class AppManageService(AppManageBase):
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant.enterprise_id
                 try:
-                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
+                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name,
+                                                         service.service_alias,
                                                          task)
                 except Exception as e:
                     logger.exception(e)
                 recycle_relation.delete()
-
 
     def __is_service_bind_domain(self, service):
         domains = domain_repo.get_service_domains(service.service_id)
@@ -656,3 +663,141 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 500, "数据中心删除失败"
             return 200, "success"
+
+    # 变更应用分组
+    def move(self, service, move_group_id):
+        # 先删除分组应用关系表中该应用数据
+        group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
+        # 再新建该应用新的关联数据
+        group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
+                                                               service.service_region)
+
+    # 批量删除应用
+    def batch_delete(self, user, tenant, service, is_force):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
+        if code != 200:
+            return code, msg, event
+        # 判断服务是否是运行状态
+        if self.__is_service_running(tenant, service):
+            msg = "当前应用处于运行状态,请先关闭应用"
+            event = event_service.update_event(event, msg, "failure")
+            code = 409
+            return code, msg, event
+        # 判断服务是否被其他应用挂载
+        is_mounted, msg = self.__is_service_mnt_related(tenant, service)
+        if is_mounted:
+            event = event_service.update_event(event, "当前应用被其他应用挂载", "failure")
+            code = 412
+            msg = "当前应用被其他应用挂载, 您确定要删除吗？"
+            return code, msg, event
+        # 判断服务是否绑定了域名
+        is_bind_domain = self.__is_service_bind_domain(service)
+        if is_bind_domain:
+            event = event_service.update_event(event, "当前应用已绑定域名", "failure")
+            code = 412
+            msg = "当前应用绑定了域名， 您确定要删除吗？"
+            return code, msg, event
+        # 判断是否有插件
+        if self.__is_service_has_plugins(service):
+            event = event_service.update_event(event, "当前应用已安装插件", "failure")
+            code = 412
+            msg = "当前应用安装了插件， 您确定要删除吗？"
+            return code, msg, event
+
+        if not is_force:
+            # 如果不是真删除，将数据备份,删除tenant_service表中的数据
+            self.move_service_into_recycle_bin(service)
+            # 服务关系移除
+            self.move_service_relation_info_recycle_bin(tenant, service)
+            code = 200
+            msg = "success"
+            return code, msg, event
+        else:
+            try:
+                code, msg = self.truncate_service(tenant, service, user)
+                if code != 200:
+                    event = event_service.update_event(event, msg, "failure")
+                    return code, msg, event
+                else:
+                    msg = "success"
+                    return code, msg, event
+            except Exception as e:
+                logger.exception(e)
+                if event:
+                    event.message = u"应用删除".format(e.message)
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
+                code = 507
+                msg = "删除异常"
+                return code, msg, event
+
+    def delete_again(self, user, tenant, service, is_force):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
+        if code != 200:
+            return code, msg, event
+        if not is_force:
+            # 如果不是真删除，将数据备份,删除tenant_service表中的数据
+            self.move_service_into_recycle_bin(service)
+            # 服务关系移除
+            self.move_service_relation_info_recycle_bin(tenant, service)
+            return 200, "success", event
+        else:
+            try:
+                code, msg = self.again_delete_service(tenant, service, user)
+                if code != 200:
+                    event = event_service.update_event(event, msg, "failure")
+                    return code, msg, event
+                else:
+                    return code, "success", event
+            except Exception as e:
+                logger.exception(e)
+                if event:
+                    event.message = u"应用删除".format(e.message)
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
+                return 507, u"删除异常", event
+
+    def again_delete_service(self, tenant, service, user=None):
+        """二次删除应用"""
+
+        try:
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
+                                      tenant.enterprise_id)
+        except region_api.CallApiError as e:
+            if int(e.status) != 404:
+                logger.exception(e)
+                return 500, "删除应用失败 {0}".format(e.message)
+        if service.create_status == "complete":
+            data = service.toJSON()
+            data.pop("ID")
+            delete_service_repo.create_delete_service(**data)
+
+        env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
+        auth_repo.delete_service_auth(service.service_id)
+        domain_repo.delete_service_domain(service.service_id)
+        dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        mnt_repo.delete_mnt(service.service_id)
+        port_repo.delete_service_port(tenant.tenant_id, service.service_id)
+        volume_repo.delete_service_volumes(service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(service.service_id)
+        service_attach_repo.delete_service_attach(service.service_id)
+        create_step_repo.delete_create_step(service.service_id)
+        event_service.delete_service_events(service)
+        probe_repo.delete_service_probe(service.service_id)
+        service_payment_repo.delete_service_payment(service.service_id)
+        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
+        service_perm_repo.delete_service_perm(service.ID)
+        compose_relation_repo.delete_relation_by_service_id(service.service_id)
+        service_label_repo.delete_service_all_labels(service.service_id)
+        # 删除应用和插件的关系
+        share_repo.delete_tenant_service_plugin_relation(service.service_id)
+        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        if service.tenant_service_group_id > 0:
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            if count <= 1:
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+        self.__create_service_delete_event(tenant, service, user)
+        service.delete()
+        return 200, "success"

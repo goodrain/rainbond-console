@@ -10,7 +10,6 @@ from rest_framework_jwt.settings import api_settings
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
 from console.services.enterprise_services import enterprise_services
-from console.services.plugin import plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
@@ -107,7 +106,7 @@ class TenantServiceView(BaseApiView):
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enter_name = request.data.get("enter_name", None)
-                    enterprise = enterprise_services.create_enterprise(enter_name,enter_name)
+                    enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)
                     # 创建用户在企业的权限
                     user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
                 user.enterprise_id = enterprise.enterprise_id

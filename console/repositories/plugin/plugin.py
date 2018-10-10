@@ -67,3 +67,6 @@ class TenantPluginRepository(object):
 
     def get_tenant_plugins(self, tenant_id, region):
         return TenantPlugin.objects.filter(tenant_id=tenant_id, region=region)
+
+    def get_plugin_by_origin_share_id(self, tenant_id, origin_share_id):
+        return TenantPlugin.objects.filter(tenant_id=tenant_id, origin_share_id=origin_share_id)

@@ -17,7 +17,7 @@ from console.services.app import app_service
 from StringIO import StringIO
 from console.services.app_check_service import AppCheckService
 from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.repositories.group import group_repo
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 
@@ -210,7 +210,11 @@ class ComposeService(object):
         self.__delete_created_compose_info(tenant,compose_id)
 
         compose_repo.delete_group_compose_by_compose_id(compose_id)
-        group_service.delete_group(group_id)
+        group_repo.delete_group_by_pk(group_id)
+        # 删除应用与组的关系
+        group_service_relation_repo.delete_relation_by_group_id(group_id)
+        compose_repo.delete_group_compose_by_group_id(group_id)
+
 
     def __delete_created_compose_info(self, tenant, compose_id):
         services = self.get_compose_services(compose_id)

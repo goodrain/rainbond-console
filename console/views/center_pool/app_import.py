@@ -17,6 +17,39 @@ from console.services.app_import_and_export_service import import_service
 logger = logging.getLogger('default')
 
 
+class ImportingRecordView(RegionTenantHeaderView):
+
+    @never_cache
+    @perm_required("import_and_export_service")
+    def post(self, request, *args, **kwargs):
+        """
+        查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+
+        """
+        unfinished_records = import_service.get_user_unfinished_import_record(self.tenant, self.user)
+        if unfinished_records:
+            r = unfinished_records[0]
+        else:
+            r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name,
+                                                        self.response_region)
+        upload_url = import_service.get_upload_url(self.response_region, r.event_id)
+        data = {
+            "status": r.status,
+            "source_dir": r.source_dir,
+            "event_id": r.event_id,
+            "upload_url": upload_url
+        }
+
+        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
+
+
 class CenterAppUploadView(RegionTenantHeaderView):
     @never_cache
     @perm_required("import_and_export_service")
@@ -36,21 +69,25 @@ class CenterAppUploadView(RegionTenantHeaderView):
               type: file
               paramType: form
         """
+        upload_file = None
         try:
-            if not request.FILES or not request.FILES.get('file'):
-                return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             upload_file = request.FILES.get("file")
+            if not request.FILES or not upload_file:
+                return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             file_name = upload_file.name
-            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,
+            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,self.user.nick_name,
                                                                                    self.response_region, upload_file)
             if code != 200:
                 return Response(general_message(code, "upload file faild", msg), status=code)
             bean = import_record.to_dict()
             bean["file_name"] = file_name
             result = general_message(200, 'success', "上传成功", bean=bean)
+            upload_file.close()
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
+            if upload_file:
+                upload_file.close()
         return Response(result, status=result["code"])
 
 
@@ -133,6 +170,30 @@ class CenterAppImportView(RegionTenantHeaderView):
                 transaction.savepoint_rollback(sid)
         return Response(result, status=result["code"])
 
+    def delete(self, request, event_id, *args, **kwargs):
+        """
+        放弃导入
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: event_id
+              description: 事件ID
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            import_service.delete_import_app_dir(self.tenant, self.response_region, event_id)
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 
 class CenterAppTarballDirView(RegionTenantHeaderView):
     @never_cache
@@ -178,7 +239,7 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
               paramType: path
         """
         try:
-            import_record = import_service.create_import_app_dir(self.tenant, self.response_region)
+            import_record = import_service.create_import_app_dir(self.tenant,self.user, self.response_region)
 
             result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         except Exception as e:
@@ -233,7 +294,7 @@ class CenterAppImportingAppsView(RegionTenantHeaderView):
         """
         try:
 
-            apps = import_service.get_importing_apps(self.tenant, self.response_region)
+            apps = import_service.get_importing_apps(self.tenant, self.user, self.response_region)
             result = general_message(200, "success", "查询成功", list=apps)
         except Exception as e:
             logger.exception(e)

@@ -16,13 +16,13 @@ standard_regex_string_extend = "^[a-z0-9][a-z0-9\-]+[a-z0-9]$"
 def is_standard_word(value):
     r = re.compile(standard_regex_string)
     if not r.match(value):
-        raise forms.ValidationError(u"只可以使用小写英文字母、数字、下划线、中划线。")
+        raise forms.ValidationError(u"用户名只可以使用小写英文字母、数字、下划线、中划线。")
 
 
 def is_standard_word_extend(value):
     r = re.compile(standard_regex_string_extend)
     if not r.match(value):
-        raise forms.ValidationError(u"只可以使用小写英文字母、数字、中划线。")
+        raise forms.ValidationError(u"用户名只可以使用小写英文字母、数字、中划线。")
 
 
 def is_sensitive(value):

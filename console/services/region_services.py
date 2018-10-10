@@ -9,6 +9,8 @@ from console.repositories.enterprise_repo import enterprise_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.marketclient import MarketOpenAPI
+from console.repositories.group import group_repo
+from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -91,7 +93,8 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,
+                                                        tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
@@ -176,6 +179,8 @@ class RegionService(object):
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
 
+        group_repo.get_or_create_default_group(tenant.tenant_id,region_name)
+
         return 200, u"success", tenant_region
 
     def get_enterprise_region_token_from_market(self, tenant_id, enterprise_id, region_name, region_url):
@@ -200,7 +205,8 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name, user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id,
+                                                                                   region_name, user_name)))
             logger.exception(e)
             return False
 
@@ -220,7 +226,8 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,
+                                                                                   region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self,enterprise_id):

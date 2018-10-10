@@ -1,7 +1,16 @@
 # -*- coding: utf-8 -*-
+import base64
 import logging
+import pickle
+import random
 import socket
-from console.views.base import AlowAnyApiView
+import string
+import os
+
+from console.models import DeployRelation
+from console.repositories.deploy_repo import deploy_repo
+from console.services.team_services import team_services
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
 from www.models.main import Tenants, TenantServiceInfo, Users
@@ -9,6 +18,7 @@ from console.services.app import app_service
 from www.utils.return_message import general_message, error_message
 from console.services.user_services import user_services
 from www.decorator import perm_required
+from console.constants import AppConstants
 
 logger = logging.getLogger("default")
 
@@ -21,7 +31,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
         """
         try:
-            print service_id
+
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             if not service_obj.open_webhooks:
@@ -159,6 +169,119 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态不支持")
                     return Response(result, status=400)
+            # gitee
+            elif request.META.get("HTTP_X_GITEE_EVENT", None) or request.META.get("HTTP_X_GIT_OSCHINA_EVENT", None):
+                logger.debug(request.data)
+
+                commits_info = request.data.get("head_commit")
+                if not commits_info:
+                    logger.debug("提交信息获取失败")
+                    result = general_message(400, "failed", "提交信息获取失败")
+                    return Response(result, status=400)
+                message = commits_info.get("message")
+                if "@deploy" not in message:
+                    logger.debug("提交信息无效")
+                    result = general_message(400, "failed", "提交信息无效")
+                    return Response(result, status=400)
+                ref = request.data.get("ref")
+                if not ref:
+                    logger.debug("获取分支信息失败")
+                    result = general_message(400, "failed", "获取分支信息失败")
+                    return Response(result, status=400)
+                ref = ref.split("/")[2]
+                if not service_obj.code_version == ref:
+                    logger.debug("当前分支与部署分支不同")
+                    result = general_message(400, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=400)
+
+                repository = request.data.get("repository")
+                if not repository:
+                    logger.debug("却少repository信息")
+                    result = general_message(400, "failed", "却少repository信息")
+                    return Response(result, status=400)
+                clone_url = repository.get("clone_url")
+                ssh_url = repository.get("ssh_url")
+                logger.debug("git_url", service_obj.git_url)
+                logger.debug("clone_url", clone_url)
+                logger.debug("ssh_url", ssh_url)
+                if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
+                    logger.debug("gitee地址不相符")
+                    result = general_message(400, "failed", "仓库地址不相符")
+                    return Response(result, status=400)
+
+                # 获取应用状态
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
+                status = status_map.get("status", None)
+                logger.debug(status)
+
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info.get("author").get("username")
+                if status == "running" or status == "abnormal":
+                    return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
+                    return Response(result, status=400)
+            # gogs
+            elif request.META.get("HTTP_X_GOGS_EVENT", None):
+                logger.debug(request.data)
+
+                commits_info = request.data.get("commits")
+                if not commits_info:
+                    logger.debug("提交信息获取失败")
+                    result = general_message(400, "failed", "提交信息获取失败")
+                    return Response(result, status=400)
+                message = commits_info[0].get("message")
+                if "@deploy" not in message:
+                    logger.debug("提交信息无效")
+                    result = general_message(400, "failed", "提交信息无效")
+                    return Response(result, status=400)
+                ref = request.data.get("ref")
+                if not ref:
+                    logger.debug("获取分支信息失败")
+                    result = general_message(400, "failed", "获取分支信息失败")
+                    return Response(result, status=400)
+                ref = ref.split("/")[2]
+                if not service_obj.code_version == ref:
+                    logger.debug("当前分支与部署分支不同")
+                    result = general_message(400, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=400)
+
+                repository = request.data.get("repository")
+                if not repository:
+                    logger.debug("却少repository信息")
+                    result = general_message(400, "failed", "却少repository信息")
+                    return Response(result, status=400)
+                clone_url = repository.get("clone_url")
+                ssh_url = repository.get("ssh_url")
+                logger.debug("git_url", service_obj.git_url)
+                logger.debug("clone_url", clone_url)
+                logger.debug("ssh_url", ssh_url)
+                if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
+                    logger.debug("gogs地址不相符")
+                    result = general_message(400, "failed", "仓库地址不相符")
+                    return Response(result, status=400)
+
+                # 获取应用状态
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
+                status = status_map.get("status", None)
+                logger.debug(status)
+
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info[0].get("author").get("username")
+                if status == "running" or status == "abnormal":
+                    return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
+                    return Response(result, status=400)
+
+
+
             else:
                 logger.debug("暂时仅支持github与gitlab")
                 result = general_message(400, "failed", "暂时仅支持github与gitlab哦～")
@@ -187,16 +310,27 @@ class GetWebHooksUrl(AppBaseView):
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
-            code_from = service_obj.code_from
-            service_code_from = code_from == "github" or code_from == "gitlab_new" or code_from == "gitlab_exit" or code_from == "gitlab_manual"
-            if not (service_obj.service_source == "source_code" and service_code_from):
+            if service_obj.service_source == AppConstants.MARKET:
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
-            host = request.get_host()
-            url = "https://" + host + "/console/" + "webhooks/" + service_obj.service_id
+            support_type = 0
+            if service_obj.service_source == AppConstants.SOURCE_CODE :
+                support_type = 1
+            else:
+                support_type = 2
 
+            service_id = service_obj.service_id
+            # 生成秘钥
+            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
+            secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+            # 从环境变量中获取域名，没有在从请求中获取
+            host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+            url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
+            custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
+            # deploy_key = deploy.secret_key
+            print deploy
             status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "status": status, "display":True})
+            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True, "support_type":support_type})
 
             return Response(result, status=200)
         except Exception as e:
@@ -251,4 +385,60 @@ class WebHooksStatus(AppBaseView):
             return Response(result, status=500)
         return Response(result, status=200)
 
+
+class CustomWebHooksDeploy(AlowAnyApiView):
+
+    def post(self, request, service_id, *args, **kwargs):
+        """自定义回调接口处发自动部署"""
+        logger.debug(request.data)
+        import pickle , base64
+        secret_key = request.data.get("secret_key")
+        # 加密
+        deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
+        deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
+        if secret_key != deploy_key_decode:
+            result = general_message(400, "failed", "密钥错误")
+            return Response(result, status=400)
+        service_obj = TenantServiceInfo.objects.get(service_id=service_id)
+        tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
+        status_map = app_service.get_service_status(tenant_obj, service_obj)
+        user_obj = Users.objects.get(user_id=service_obj.creater)
+        user_name = user_obj.nick_name
+        status = status_map.get("status", None)
+        logger.debug(status)
+        if status == "running" or status == "abnormal":
+            return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj,
+                                                user=user_obj,
+                                                committer_name=user_name)
+        else:
+            logger.debug("应用状态异常")
+            result = general_message(400, "failed", "应用状态不支持")
+            return Response(result, status=400)
+
+
+class UpdateSecretKey(AppBaseView):
+
+    def put(self, request, *args, **kwargs):
+        try:
+            secret_key = request.data.get("secret_key", None)
+            if not secret_key:
+                code = 400
+                result = general_message(code, "no secret_key", "请输入密钥")
+                return Response(result, status=code)
+            tenant_id = self.tenant.tenant_id
+            service_alias = self.service.service_alias
+            service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
+            deploy_obj = DeployRelation.objects.filter(service_id=service_obj.service_id)
+            pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
+            if deploy_obj:
+                deploy_obj.update(secret_key=pwd)
+                result = general_message(200, "success", "修改成功")
+                return Response(result, 200)
+            else:
+                result = general_message(404, "not found", "没有该应用")
+                return Response(result, 404)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=500)
 

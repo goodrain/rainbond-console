@@ -2,13 +2,20 @@
 """
   Created on 18/1/29.
 """
+import datetime
 import logging
+import json
 
+from django.db import transaction
 from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
+from console.repositories.app import service_source_repo
+from console.repositories.group import tenant_service_group_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -106,7 +113,16 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
+            if self.service.service_source == "market":
+                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                apps_template = json.loads(rain_app.app_template)
 
+                apps_list = apps_template.get("apps")
+                for app in apps_list:
+                    if app["service_key"] == self.service.service_key:
+                        if app["deploy_version"] > self.service.deploy_version:
+                            self.service.is_upgrate = True
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
@@ -206,23 +222,31 @@ class AppPodsView(AppBaseView):
                                                self.service.service_alias,
                                                self.tenant.enterprise_id)
             rt_list = []
-            for d in data["list"]:
-                bean = dict()
-                bean["pod_name"] = d["PodName"]
-                bean["manage_name"] = "manager"
-                # bean["pod_name"] = d["pod_name"]
-                # bean["manage_name"] = "manager"
-                # container = d["container"]
-                # container_list = []
-                # for key, val in container.items():
-                #     if key == "POD":
-                #         continue
-                #     container_dict = {}
-                #     container_dict["container_name"] = key
-                #     container_dict.update(val)
-                #     container_list.append(container_dict)
-                # bean["container"] = container_list
-                rt_list.append(bean)
+            if data["list"]:
+                for d in data["list"]:
+                    bean = dict()
+                    # bean["pod_name"] = d["PodName"]
+                    # bean["manage_name"] = "manager"
+                    bean["pod_name"] = d["pod_name"]
+                    bean["manage_name"] = "manager"
+                    container = d["container"]
+                    container_list = []
+                    for key, val in container.items():
+                        if key == "POD":
+                            continue
+                        container_dict = {}
+                        container_dict["container_name"] = key
+                        memory_limit = float(val["memory_limit"]) / 1024 / 1024
+                        memory_usage = float(val["memory_usage"]) / 1024 / 1024
+                        usage_rate = 0
+                        if memory_limit:
+                            usage_rate = memory_usage * 100 / memory_limit
+                        container_dict["memory_limit"] = round(memory_limit, 2)
+                        container_dict["memory_usage"] = round(memory_usage, 2)
+                        container_dict["usage_rate"] = round(usage_rate, 2)
+                        container_list.append(container_dict)
+                    bean["container"] = container_list
+                    rt_list.append(bean)
             result = general_message(200, "success", "操作成功", list=rt_list)
         except Exception as e:
             logger.exception(e)
@@ -463,4 +487,142 @@ class AppAnalyzePluginView(AppBaseView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class ImageAppView(AppBaseView):
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        修改镜像源地址
+        ---
+        """
+
+        try:
+            image = request.data.get("image")
+            cmd = request.data.get("cmd", None)
+            if not image:
+                return Response(general_message(400, "param error", "参数错误"), status=400)
+            if cmd:
+                self.service.cmd = cmd
+
+            version = image.split(':')[-1]
+            if not version:
+                version = "latest"
+                image = image + ":" + version
+            self.service.image = image
+            self.service.version = version
+            self.service.save()
+            result = general_message(200, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class BuildSourceinfo(AppBaseView):
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def get(self, request, *args, **kwargs):
+        """
+        查询构建源信息
+        ---
+        """
+        service_alias = self.service.service_alias
+        try:
+            service_source = team_services.get_service_source(service_alias=service_alias)
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
+            user = ""
+            password = ""
+            bean = {}
+            if service_source_user:
+                user = service_source_user.user_name
+                password = service_source_user.password
+            bean["user_name"] = user
+            bean["password"] = password
+            if not service_source:
+                return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
+            bean["service_source"] = service_source.service_source
+            bean["image"] = service_source.image
+            bean["cmd"] = service_source.cmd
+            bean["code_from"] = service_source.code_from
+            bean["version"] = service_source.version
+            bean["docker_cmd"] = service_source.docker_cmd
+            bean["create_time"] = service_source.create_time
+            bean["git_url"] = service_source.git_url
+            bean["code_version"] = service_source.code_version
+            bean["server_type"] = service_source.server_type
+            bean["language"] = service_source.language
+            result = general_message(200, "success", "查询成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    @transaction.atomic
+    def put(self, request, *args, **kwargs):
+        """
+        修改构建源
+        ---
+        """
+        s_id = transaction.savepoint()
+        try:
+            image = request.data.get("image", None)
+            cmd = request.data.get("cmd", None)
+            service_source = request.data.get("service_source")
+            git_url = request.data.get("git_url", None)
+            code_version = request.data.get("code_version", None)
+            user_name = request.data.get("user_name", None)
+            password = request.data.get("password", None)
+
+            if not service_source:
+                return Response(general_message(400, "param error", "参数错误"), status=400)
+
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
+
+            if not service_source_user:
+                service_source_info = {
+                    "service_id": self.service.service_id,
+                    "team_id": self.service.tenant_id,
+                    "user_name": user_name,
+                    "password": password,
+                    "create_time": datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                }
+                service_source_repo.create_service_source(**service_source_info)
+            else:
+                service_source_user.user_name = user_name
+                service_source_user.password = password
+                service_source_user.save()
+            if service_source == "source_code":
+                if code_version:
+                    self.service.code_version = code_version
+                else:
+                    self.service.code_version = "master"
+                if git_url:
+                    self.service.git_url = git_url
+                self.service.save()
+                transaction.savepoint_commit(s_id)
+            elif service_source == "docker_run":
+                if image:
+                    version = image.split(':')[-1]
+                    if not version:
+                        version = "latest"
+                        image = image + ":" + version
+                    self.service.image = image
+                    self.service.version = version
+                self.service.cmd = cmd
+                self.service.save()
+                transaction.savepoint_commit(s_id)
+            result = general_message(200, "success", "修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            transaction.savepoint_rollback(s_id)
         return Response(result, status=result["code"])

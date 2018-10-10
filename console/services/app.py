@@ -87,7 +87,7 @@ class AppService(object):
 
     def create_source_code_app(self, region, tenant, user, service_code_from, service_cname, service_code_clone_url,
                                service_code_id,
-                               service_code_version):
+                               service_code_version, server_type):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -105,6 +105,7 @@ class AppService(object):
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk
+        new_service.server_type = server_type
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
                                            service_code_id,

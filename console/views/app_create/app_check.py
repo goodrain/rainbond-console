@@ -49,6 +49,10 @@ class AppCheck(AppBaseView):
             if not check_uuid:
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
             code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
+            # 如果已创建完成
+            if self.service.create_status == "complete":
+                check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
+                return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
             # 开启保存点
             sid = transaction.savepoint()
             logger.debug("start save check info ! {0}".format(self.service.create_status))

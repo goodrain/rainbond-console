@@ -45,20 +45,20 @@ class ServiceEventDynamic(object):
                 event.service_cname = bean["service_cname"]
         return events
 
-    def get_current_region_service_events(self,region, team, page, page_size):
-        events = event_repo.get_specified_region_events(team.tenant_id,region)
-        paginator = JuncheePaginator(events, int(page_size))
-        show_events = paginator.page(int(page))
-        service_ids = [e.service_id for e in show_events]
+    def get_current_region_service_events(self,region, team):
+        events = event_repo.get_specified_region_events(team.tenant_id, region)
+        # paginator = JuncheePaginator(events, int(page_size))
+        # show_events = paginator.page(int(page))
+        service_ids = [e.service_id for e in events]
         services = service_repo.get_services_by_service_ids(*service_ids)
         id_service_map = {s.service_id: s for s in services}
         event_list = []
         try:
-            self.__sync_region_service_event_status(region, team.tenant_name, show_events, False)
+            self.__sync_region_service_event_status(region, team.tenant_name, events, False)
         except Exception as e:
             logger.exception("synchorized services events error !")
 
-        for event in show_events:
+        for event in events:
             result = event.to_dict()
             result["nick_name"] = result["user_name"]
             result["type_cn"] = result["user_name"]
@@ -68,7 +68,6 @@ class ServiceEventDynamic(object):
                 result["service_cname"] = s.service_cname
             else:
                 if event.type == "truncate":
-                    logger.debug("========> {0}".format(event.message))
                     result["service_alias"] = event.message
                     result["service_cname"] = event.message
             event_list.append(result)

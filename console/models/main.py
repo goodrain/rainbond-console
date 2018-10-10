@@ -55,7 +55,11 @@ class RainbondCenterApp(BaseModel):
     template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
-    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"应用包")
+    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
+    install_number = models.IntegerField(default=0, help_text=u'安装次数')
+    is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
+    details = models.TextField(null=True, blank=True, help_text=u"应用详情")
+    upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
 
     def __unicode__(self):
         return self.to_dict()
@@ -99,6 +103,7 @@ class RainbondCenterPlugin(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
     enterprise_id = models.CharField(max_length=32, default='public', help_text=u"企业id")
+    details = models.TextField(null=True, blank=True, help_text=u"插件详细信息")
 
     def __unicode__(self):
         return self.to_dict()
@@ -177,7 +182,7 @@ class ComposeGroup(BaseModel):
     group_id = models.IntegerField(help_text=u"compose组关联的组id")
     team_id = models.CharField(max_length=32, help_text=u"团队 id")
     region = models.CharField(max_length=15, help_text=u"服务所属数据中心")
-    compose_content = models.CharField(max_length=4096, null=True, blank=True, help_text=u"compose文件内容")
+    compose_content = models.TextField(null=True, blank=True, help_text=u"compose文件内容")
     compose_id = models.CharField(max_length=32, unique=True, help_text=u"compose id")
     create_status = models.CharField(max_length=15, null=True, blank=True,
                                      help_text=u"compose组创建状态 creating|checking|checked|complete")
@@ -211,7 +216,7 @@ class ServiceSourceInfo(BaseModel):
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
     user_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"用户名")
     password = models.CharField(max_length=32, null=True, blank=True, help_text=u"密码")
-    extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text=u"密码")
+    extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text=u"扩展信息")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
 
 
@@ -431,7 +436,6 @@ class AppExportRecord(BaseModel):
     class Meta:
         db_table = 'app_export_record'
 
-
     group_key = models.CharField(max_length=32, help_text=u"导出应用的key")
     version = models.CharField(max_length=20, help_text=u"导出应用的版本")
     format = models.CharField(max_length=15, help_text=u"导出应用的格式")
@@ -440,7 +444,7 @@ class AppExportRecord(BaseModel):
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
-    enterprise_id = models.CharField(max_length=32, help_text=u"导出应用的key")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业ID")
 
 
 class UserMessage(BaseModel):
@@ -453,7 +457,7 @@ class UserMessage(BaseModel):
     receiver_id = models.IntegerField(help_text=u"接受消息用户ID")
     content = models.CharField(max_length=1000, help_text=u"消息内容")
     is_read = models.BooleanField(default=False, help_text=u"是否已读")
-    create_time = models.DateTimeField(null=True, blank=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text=u"更新时间")
     msg_type = models.CharField(max_length=32, help_text=u"消息类型")
     announcement_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"公告ID")
@@ -466,7 +470,7 @@ class AppImportRecord(BaseModel):
         db_table = 'app_import_record'
 
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text=u"导入状态")
     scope = models.CharField(max_length=10, null=True, blank=True, default="", help_text=u"导入范围")
     format = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"类型")
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
@@ -474,6 +478,7 @@ class AppImportRecord(BaseModel):
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+    user_name = models.CharField(max_length=24, null=True, blank=True, help_text=u"操作人")
 
 
 class GroupAppBackupRecord(BaseModel):
@@ -507,7 +512,7 @@ class GroupAppMigrateRecord(BaseModel):
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
     group_uuid = models.CharField(max_length=32, null=True, blank=True, help_text=u"group UUID")
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的版本")
-    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"迁移的版本")
+    backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     migrate_team = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
     user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
     migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
@@ -530,3 +535,32 @@ class GroupAppBackupImportRecord(BaseModel):
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+
+
+class Applicants(BaseModel):
+    class Meta:
+        db_table = 'applicants'
+
+    # 用户ID
+    user_id = models.IntegerField(help_text=u'申请用户ID')
+    user_name = models.CharField(max_length=20, null=False, help_text=u"申请用户名")
+    # 团队
+    team_id = models.CharField(max_length=33, help_text=u'所属团队id')
+    team_name = models.CharField(max_length=20,null=False, help_text=u"申请组名")
+    # 申请时间
+    apply_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"申请时间")
+    # is_pass是否通过
+    is_pass = models.IntegerField(default=0, help_text=u'0表示审核中，1表示通过审核，2表示审核未通过')
+    # 团队名
+    team_alias = models.CharField(max_length=30, null=False, help_text=u"团队名")
+
+
+class DeployRelation(BaseModel):
+    class Meta:
+        db_table = "deploy_relation"
+
+    # 应用服务id
+    service_id = models.CharField(
+        max_length=32, unique=True, help_text=u"服务id")
+    key_type = models.CharField(max_length=10, help_text=u"密钥类型")
+    secret_key = models.CharField(max_length=200, help_text=u"密钥")

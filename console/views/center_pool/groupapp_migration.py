@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.migration_repo import migrate_repo
 from console.services.app_actions import app_manage_service
 from console.services.groupapp_recovery.groupapps_migrate import migrate_service
 from console.services.region_services import region_services
@@ -75,8 +76,8 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             regions = region_services.get_team_usable_regions(migrate_team)
             if migrate_region not in [r.region_name for r in regions]:
                 return Response(general_message(412, "region is not usable",
-                                                "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(migrate_region,
-                                                                                                 migrate_team.tenant_name)),
+                                                "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(
+                                                    migrate_region, migrate_team.tenant_name)),
                                 status=412)
 
             code, msg, migrate_record = migrate_service.start_migrate(self.user, self.tenant,
@@ -187,3 +188,39 @@ class GroupAppsView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class MigrateRecordView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("import_and_export_service")
+    def get(self, request, group_id, *args, **kwargs):
+        """
+        查询当前用户是否有未完成的恢复和迁移
+        ---
+            name: group_id
+            description: 应用组id
+            required: true
+            type: string
+            paramType: path
+
+        """
+        unfinished_migrate_records = migrate_repo.get_user_unfinished_migrate_record(group_id)
+        is_finished = True
+        data = None
+        if unfinished_migrate_records:
+            r = unfinished_migrate_records[0]
+            data = {
+                "status": r.status,
+                "event_id": r.event_id,
+                "migrate_type": r.migrate_type,
+                "restore_id": r.restore_id,
+                "backup_id": r.backup_id,
+                "group_id": r.group_id,
+            }
+            is_finished = False
+
+        bean = {
+            "is_finished": is_finished,
+            "data": data
+        }
+        return Response(general_message(200, "success", "查询成功", bean=bean), status=200)

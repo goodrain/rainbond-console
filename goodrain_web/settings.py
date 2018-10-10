@@ -54,10 +54,10 @@ if IS_OPEN_API:
     INSTALLED_APPS = ('django.contrib.admin', 'django.contrib.auth',
                       'django.contrib.contenttypes', 'django.contrib.sessions',
                       'django.contrib.messages', 'django.contrib.staticfiles',
-                      'crispy_forms', 'rest_framework','rest_framework_jwt',
+                      'crispy_forms', 'rest_framework', 'rest_framework_jwt',
                       'rest_framework.authtoken', 'rest_framework_swagger',
                       'www', 'api', 'openapi', 'oauth2_provider', 'cadmin',
-                      'share', 'backends', 'marketapi','corsheaders','console')
+                      'share', 'backends', 'marketapi', 'corsheaders', 'console')
     OAUTH2_PROVIDER = {
         'SCOPES': {
             'read': 'Read scope',
@@ -71,7 +71,7 @@ else:
                       'django.contrib.staticfiles', 'crispy_forms',
                       'rest_framework', 'rest_framework.authtoken', 'rest_framework_jwt',
                       'rest_framework_swagger', 'www', 'api', 'cadmin',
-                      'share', 'backends', 'marketapi','corsheaders', 'console')
+                      'share', 'backends', 'marketapi', 'corsheaders', 'console')
 
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',
@@ -84,14 +84,17 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware', )
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'console.middleware.UserCookieMiddleware',  # Add validation user cookie information middleware
+)
+
 
 ROOT_URLCONF = 'goodrain_web.urls'
 
 WSGI_APPLICATION = 'goodrain_web.wsgi.application'
 
 TEMPLATE_CONTEXT_PROCESSORS = TCP + (
-    'django.core.context_processors.request', )
+    'django.core.context_processors.request',)
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
@@ -134,15 +137,15 @@ LOGGING = {
     'formatters': {
         'standard': {
             'format':
-            "%(asctime)s [%(levelname)s] localhost [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
+                "%(asctime)s [%(levelname)s] localhost [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
             'datefmt':
-            "%Y-%m-%d %H:%M:%S"
+                "%Y-%m-%d %H:%M:%S"
         },
         'zmq_formatter': {
             'format':
-            "%(asctime)s [%(levelname)s] %(hostname)s [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
+                "%(asctime)s [%(levelname)s] %(hostname)s [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
             'datefmt':
-            "%Y-%m-%d %H:%M:%S"
+                "%Y-%m-%d %H:%M:%S"
         },
     },
     'handlers': {
@@ -195,7 +198,7 @@ LOGGING = {
     }
 }
 
-#LICENSE = ""
+# LICENSE = ""
 
 # original is True
 CORS_ORIGIN_ALLOW_ALL = False

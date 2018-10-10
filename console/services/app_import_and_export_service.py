@@ -56,7 +56,7 @@ class AppExportService(object):
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
         region_api.export_app(region, team.tenant_name, data)
-        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.tenant_id, app.group_key,
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.enterprise_id, app.group_key,
                                                                                      app.version,
                                                                                      export_format)
         if export_record:
@@ -180,12 +180,16 @@ class AppExportService(object):
         region = region_repo.get_region_by_region_name(region_name)
         if region:
             splits_texts = region.url.split(":")
-            if len(splits_texts) > 2:
-                temp_url = splits_texts[0] + "://" + region.tcpdomain
-                # index = region.url.index(":", 6)
-                return temp_url + ":6060" + raw_url
+            if splits_texts[0] == "wss":
+                return "https://" + region.tcpdomain + ":6060" + raw_url
             else:
                 return "http://" + region.tcpdomain + ":6060" + raw_url
+
+            # if len(splits_texts) > 2:
+            #     temp_url = splits_texts[0] + "://" + region.tcpdomain
+            #     return temp_url + ":6060" + raw_url
+            # else:
+            #     return "http://" + region.tcpdomain + ":6060" + raw_url
 
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
@@ -257,16 +261,23 @@ class AppImportService(object):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         # 去数据中心请求导入状态
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
+        print res["status"]
         status = body["bean"]["status"]
         if import_record.status != "success":
-            if status == "success":
+            if res["status"] == 404:
+                import_record.status = "uploading"
+            elif status == "success":
                 logger.debug("app import success !")
                 self.__save_import_info(tenant.tenant_name, import_record.scope, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
                 import_record.save()
-
+                # 成功以后删除数据中心目录数据
+                try:
+                    region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+                except Exception as e:
+                    logger.exception(e)
             else:
                 import_record.status = status
                 import_record.save()
@@ -279,6 +290,8 @@ class AppImportService(object):
         [{"file_name":"app1","status":"success"},{"file_name":"app2","status":"failed"} ]
         """
         status_list = []
+        if not app_status:
+            return status_list
         k_v_map_list = app_status.split(",")
         for value in k_v_map_list:
             kv_map_list = value.split(":")
@@ -291,20 +304,24 @@ class AppImportService(object):
         app_tars = body["bean"]["apps"]
         return app_tars
 
-    def create_import_app_dir(self, tenant, region):
+    def create_import_app_dir(self, tenant, user, region):
         """创建一个应用包"""
         event_id = make_uuid()
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
         import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
-                                "team_name": tenant.tenant_name, "region": region}
+                                "team_name": tenant.tenant_name, "region": region, "user_name": user.nick_name}
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
     def delete_import_app_dir(self, tenant, region, event_id):
-        res, body = region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
+        try:
+            region_api.delete_import(region, tenant.tenant_name, event_id)
+        except Exception as e:
+            logger.exception(e)
+
         app_import_record_repo.delete_by_event_id(event_id)
-        return body
+
 
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
@@ -357,14 +374,46 @@ class AppImportService(object):
             logger.exception(e)
         return ""
 
-    def get_importing_apps(self, tenant, region):
-        importing_records = app_import_record_repo.get_importing_record()
+    def get_importing_apps(self, tenant, user, region):
+        importing_records = app_import_record_repo.get_importing_record(tenant.tenant_name,user.nick_name)
         importing_list = []
         for importing_record in importing_records:
             import_record, apps_status = self.get_and_update_import_status(tenant, region, importing_record.event_id)
             if import_record.status not in ("success", "failed"):
                 importing_list.append(apps_status)
         return importing_list
+
+    def get_user_unfinished_import_record(self, tenant, user):
+        return app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name, user.nick_name)
+
+    def create_app_import_record(self,team_name,user_name,region):
+        event_id = make_uuid()
+        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
+                                "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
+        return app_import_record_repo.create_app_import_record(**import_record_params)
+
+    def get_upload_url(self, region, event_id):
+        region = region_repo.get_region_by_region_name(region)
+        raw_url = "/app/upload"
+        upload_url = ""
+        if region:
+            splits_texts = region.url.split(":")
+            if splits_texts[0] == "wss":
+                upload_url = "https://" + region.tcpdomain + ":6060" + raw_url
+
+            else:
+                upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+        return upload_url + "/" + event_id
+
+        # if region:
+        #     splits_texts = region.url.split(":")
+        #     if len(splits_texts) > 2:
+        #         temp_url = splits_texts[0] + "://" + region.tcpdomain
+        #         upload_url = temp_url + ":6060" + raw_url
+        #     else:
+        #         upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+        # return upload_url
+
 
 export_service = AppExportService()
 import_service = AppImportService()
