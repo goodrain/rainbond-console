@@ -83,7 +83,7 @@ class ConfigInfoView(AlowAnyApiView):
             enterprise = enterprise_repo.get_enterprise_first()
             if enterprise:
                 data["eid"] = enterprise.enterprise_id
-
+            data["version"] = os.getenv("RELEASE_DESC","public-cloud")
             result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)
         except Exception as e:
