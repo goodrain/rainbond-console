@@ -121,6 +121,8 @@ class AppBriefView(AppBaseView):
                 apps_list = apps_template.get("apps")
                 for app in apps_list:
                     if app["service_key"] == self.service.service_key:
+                        logger.debug('---------------->'.format(app['deploy_version']))
+                        logger.debug('-------------++++=--->'.format(self.service.deploy_version))
                         if app["deploy_version"] > self.service.deploy_version:
                             self.service.is_upgrate = True
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
