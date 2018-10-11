@@ -229,10 +229,6 @@ class AppManageService(AppManageBase):
         event.save()
 
         clone_url = service.git_url
-        if service.code_from == "github":
-            code_user = clone_url.split("/")[3]
-            code_project_name = clone_url.split("/")[4].split(".")[0]
-            clone_url = "https://" + user.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
 
         body["deploy_version"] = service.deploy_version
         body["operator"] = str(user.nick_name)
