@@ -11,6 +11,8 @@ ALTER TABLE `rainbond_center_plugin` ADD COLUMN `details` longtext NULL;
 
 ALTER TABLE rainbond_center_app ADD `upgrade_time` varchar(30) DEFAULT "";
 
+ALTER TABLE tenant_service_delete ADD COLUMN `is_upgrate` bool DEFAULT false NOT NULL;
+
 
 -- 添加判断应用是否更新字段
 
