@@ -229,5 +229,11 @@ class RegionService(object):
                                                                                    region_name__in=region_names)
         return team_opened_regions
 
+    def get_regions_by_enterprise_id(self,enterprise_id):
+        teams = team_repo.get_team_by_enterprise_id(enterprise_id)
+        team_ids = [t.tenant_id for t in teams]
+        region_names = region_repo.get_regions_by_tenant_ids(team_ids)
+        return region_repo.get_region_by_region_names(region_names)
+
 
 region_services = RegionService()
