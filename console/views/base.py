@@ -46,6 +46,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
     def get_jwt_value(self, request):
         auth = get_authorization_header(request).split()
+        logger.debug(auth)
         auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
 
         if not auth:
@@ -126,6 +127,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             # msg = _('Invalid payload.')
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)
+            logger.debug('==========================>'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
 
         try:

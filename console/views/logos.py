@@ -37,7 +37,7 @@ class ConfigInfoView(AlowAnyApiView):
             data["logo"] = "{0}".format(str(logo))
             # 判断是否为公有云
             if settings.MODULES.get('SSO_LOGIN'):
-                data["url"] = "https://sso.goodrain.com/#/login/"
+                data["url"] = os.getenv("SSO_BASE_URL", "https://sso.goodrain.com") + "/#/login/"
                 data["is_public"] = True
             else:
                 data["url"] = "{0}://{1}/index#/user/login".format(scheme, request.get_host())
