@@ -3,6 +3,7 @@ import logging
 
 from rest_framework.response import Response
 
+from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.timeutil import current_time_to_str
 from console.views.base import JWTAuthApiView
@@ -95,6 +96,68 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class EnterpriseAllRegionFeeView(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        企业所有信息
+        ---
+        parameters:
+            - name: date
+              description: 日期(格式：2018-01-30)
+              required: true
+              type: string
+              paramType: query
+        """
+        try:
+            default_time = current_time_to_str()
+            date = request.GET.get("date", default_time)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
+
+            regions = region_services.get_regions_by_enterprise_id(team.enterprise_id)
+            total_list = []
+            for region in regions:
+                try:
+                    res, dict_body = market_api.get_enterprise_region_fee(region=region.region_name,
+                                                                          enterprise_id=team.enterprise_id,
+                                                                          team_id=team.tenant_id, date=date)
+
+                    rt_list = dict_body["data"]["list"]
+                    enter_total = {}
+                    for rt in rt_list:
+                        bean = enter_total.get(rt['time'])
+                        if bean:
+                            if rt["total_fee"] > 0:
+                                bean['disk_fee'] += rt["disk_fee"]
+                                bean['disk_limit'] += rt["disk_limit"]
+                                bean['disk_over'] += rt["disk_over"]
+                                bean['disk_usage'] += rt["disk_usage"]
+                                bean['memory_fee'] += rt["memory_fee"]
+                                bean['memory_limit'] += rt["memory_limit"]
+                                bean['memory_over'] += rt["memory_over"]
+                                bean['memory_usage'] += rt["memory_usage"]
+                                bean['net_fee'] += rt["net_fee"]
+                                bean['net_usage'] += rt["net_usage"]
+                                bean['total_fee'] += rt["total_fee"]
+                        else:
+                            if rt["total_fee"] > 0:
+                                rt["region"] = region.region_alias
+                                enter_total[rt['time']] = rt
+
+                    total_list[0:0] = [v for v in enter_total.values() if v["total_fee"] > 0]
+
+                except Exception as e:
+                    logger.exception(e)
+                    continue
+            result_list = sorted(total_list, key=lambda b: (b['time'], b['region']), reverse=True)
+            result = general_message(200, "success", "查询成功", list=result_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

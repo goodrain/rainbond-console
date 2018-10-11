@@ -2,7 +2,7 @@
 from django.conf.urls import patterns, url
 
 from console.captcha.captcha_code import CaptchaView
-from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView
+from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseAllRegionFeeView
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView
