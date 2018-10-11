@@ -114,6 +114,9 @@ class TeamRepo(object):
     def create_team_perms(self, **params):
         return PermRelTenant.objects.create(**params)
 
+    def get_team_by_enterprise_id(self, enterprise_id):
+        return Tenants.objects.filter(enterprise_id=enterprise_id)
+
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):
         return TeamGitlabInfo.objects.filter(team_id=team_id)
