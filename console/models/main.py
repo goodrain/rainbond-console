@@ -60,6 +60,8 @@ class RainbondCenterApp(BaseModel):
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
     upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
+    console_center_uuid = models.CharField(max_length=128, default="", help_text=u"console_service与内部市场service对接的唯一字段")
+
 
     def __unicode__(self):
         return self.to_dict()
