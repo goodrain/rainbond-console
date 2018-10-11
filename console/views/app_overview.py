@@ -113,9 +113,12 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
+            logger.debug('0------------------>'.format(self.service.service_source))
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+                logger.debug('---------------->'.format(group_obj))
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                logger.debug('-----77777777777----------->'.format(rain_app))
                 apps_template = json.loads(rain_app.app_template)
 
                 apps_list = apps_template.get("apps")
