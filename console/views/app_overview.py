@@ -116,21 +116,23 @@ class AppBriefView(AppBaseView):
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
-                apps_template = json.loads(rain_app.app_template)
+                if not rain_app:
+                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
+                    return Response(result, status=result["code"])
+                else:
+                    apps_template = json.loads(rain_app.app_template)
 
-                apps_list = apps_template.get("apps")
-                for app in apps_list:
-                    if app["console_center_uuid"] == self.service.console_center_uuid:
-                        logger.debug('---------------->'.format(app['deploy_version']))
-                        logger.debug('-------------++++=--->'.format(self.service.deploy_version))
-                        if app["deploy_version"] > self.service.deploy_version:
-                            self.service.is_upgrate = True
+                    apps_list = apps_template.get("apps")
+                    for app in apps_list:
+                        if app["console_center_uuid"] == self.service.console_center_uuid:
+                            logger.debug('---------------->'.format(app['deploy_version']))
+                            logger.debug('-------------++++=--->'.format(self.service.deploy_version))
+                            if app["deploy_version"] > self.service.deploy_version:
+                                self.service.is_upgrate = True
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
-            ret = error_message(e.message)
-            logger.debug('----------------------->'.format(ret))
-            result = general_message(200, "success", "当前云市应用已删除")
+            result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
