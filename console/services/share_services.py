@@ -197,7 +197,6 @@ class ShareService(object):
             all_data_map = {}
             for service in service_list:
                 data = dict()
-                data["console_center_uuid"] = service.console_center_uuid
                 data['service_id'] = service.service_id
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname

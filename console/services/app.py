@@ -106,7 +106,6 @@ class AppService(object):
         new_service.service_alias = service_alias
         new_service.creater = user.pk
         new_service.server_type = server_type
-        new_service.console_center_uuid = make_uuid()
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
                                            service_code_id,
@@ -221,7 +220,6 @@ class AppService(object):
         new_service.tenant_id = tenant.tenant_id
         new_service.service_cname = service_cname
         new_service.service_source = image_type
-        new_service.console_center_uuid = make_uuid()
         service_id = make_uuid(tenant.tenant_id)
         service_alias = "gr" + service_id[-6:]
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,

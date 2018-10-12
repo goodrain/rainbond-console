@@ -444,7 +444,6 @@ class MarketAppService(object):
         tenant_service.service_source = AppConstants.MARKET
         tenant_service.create_status = "creating"
         tenant_service.tenant_service_group_id = tenant_service_group_id
-        tenant_service.console_center_uuid = app['console_center_uuid']
         self.__init_service_source(tenant_service, app)
         # 存储并返回
         tenant_service.save()
@@ -665,7 +664,6 @@ class MarketTemplateTranslateService(object):
         new_app["image"] = app["image"]
         new_app["plugin_map_list"] = []
         new_app["probes"] = []
-        new_app["console_center_uuid"] = app['console_center_uuid']
         # 扩展信息
         new_app["extend_method_map"] = self.__v1_2_v2_extends_info(app)
         # 依赖信息

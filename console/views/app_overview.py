@@ -124,7 +124,7 @@ class AppBriefView(AppBaseView):
 
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
-                        if app["console_center_uuid"] == self.service.console_center_uuid:
+                        if app["service_key"] == self.service.service_key:
                             logger.debug('---------------->'.format(app['deploy_version']))
                             logger.debug('-------------++++=--->'.format(self.service.deploy_version))
                             if app["deploy_version"] > self.service.deploy_version:

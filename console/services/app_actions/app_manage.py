@@ -255,7 +255,7 @@ class AppManageService(AppManageBase):
 
                 apps_list = apps_template.get("apps")
                 for app in apps_list:
-                    if app['console_center_uuid'] == service.console_center_uuid:
+                    if app['service_key'] == service.service_key:
                         # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
                         if kind == "build_from_market_slug":
                             service_source.extend_info = app["service_slug"]
