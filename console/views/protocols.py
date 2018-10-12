@@ -44,7 +44,7 @@ class RegionProtocolView(RegionTenantHeaderView):
             pList = []
             for p in protocols:
                 pList.append(p["protocol_child"])
-            result = general_message(200, "success", "查询成功", list=pList)
+            result = general_message(200, "success", "查询成功", list=list(set(pList)))
         except Exception as e:
             logger.exception(e)
             result = general_message(200, e.message, "查询成功", list=["http", "stream"])
