@@ -394,7 +394,7 @@ class AppImportService(object):
         raw_url = "/app/upload"
         upload_url = ""
         if region:
-            splits_texts = region.url.split(":")
+            splits_texts = region.wsurl.split(":")
             if splits_texts[0] == "wss":
                 upload_url = "https://" + region.tcpdomain + ":6060" + raw_url
 
