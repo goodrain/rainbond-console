@@ -179,11 +179,11 @@ class AppExportService(object):
     def _wrapper_director_download_url(self, region_name, raw_url):
         region = region_repo.get_region_by_region_name(region_name)
         if region:
-            splits_texts = region.url.split(":")
+            splits_texts = region.wsurl.split("://")
             if splits_texts[0] == "wss":
-                return "https://" + region.tcpdomain + ":6060" + raw_url
+                return "https://" + splits_texts[1] + raw_url
             else:
-                return "http://" + region.tcpdomain + ":6060" + raw_url
+                return "http://" + splits_texts[1] + raw_url
 
             # if len(splits_texts) > 2:
             #     temp_url = splits_texts[0] + "://" + region.tcpdomain
@@ -394,12 +394,12 @@ class AppImportService(object):
         raw_url = "/app/upload"
         upload_url = ""
         if region:
-            splits_texts = region.wsurl.split(":")
+            splits_texts = region.wsurl.split("://")
             if splits_texts[0] == "wss":
-                upload_url = "https://" + region.tcpdomain + ":6060" + raw_url
+                upload_url = "https://" + splits_texts[1] + raw_url
 
             else:
-                upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+                upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
 
         # if region:
