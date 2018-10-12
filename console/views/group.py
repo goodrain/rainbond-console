@@ -131,9 +131,10 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             if not service:
                 code, msg, data = group_service.delete_group_no_service(group_id)
             else:
-                default_group = group_repo.get_default_by_service(service)
-                default_group_id = default_group.ID
-                code, msg, data = group_service.delete_group(group_id, default_group_id)
+                code = 400
+                msg = '当前组内有应用，无法删除'
+                result = general_message(code, msg, None)
+                return Response(result, status=result["code"])
             if code != 200:
                 result = general_message(code, "delete group error", msg)
             else:
