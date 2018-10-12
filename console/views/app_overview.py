@@ -113,17 +113,14 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
-            logger.debug('0------------------>'.format(self.service.service_source))
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
-                logger.debug('---------------->'.format(group_obj))
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
-                logger.debug('-----77777777777----------->'.format(rain_app))
                 apps_template = json.loads(rain_app.app_template)
 
                 apps_list = apps_template.get("apps")
                 for app in apps_list:
-                    if app["service_key"] == self.service.service_key:
+                    if app["console_center_uuid"] == self.service.console_center_uuid:
                         logger.debug('---------------->'.format(app['deploy_version']))
                         logger.debug('-------------++++=--->'.format(self.service.deploy_version))
                         if app["deploy_version"] > self.service.deploy_version:
@@ -131,7 +128,9 @@ class AppBriefView(AppBaseView):
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            ret = error_message(e.message)
+            logger.debug('----------------------->'.format(ret))
+            result = general_message(200, "success", "当前云市应用已删除")
         return Response(result, status=result["code"])
 
     @never_cache

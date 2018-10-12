@@ -696,6 +696,8 @@ class TenantServiceInfoDelete(BaseModel):
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
+    console_center_uuid = models.CharField(max_length=128, default="", help_text=u"console_service与内部市场service对接的唯一字段")
+
 
 class TenantServiceLog(BaseModel):
     class Meta:
