@@ -127,7 +127,9 @@ class AppExportService(object):
             return None
 
     def get_export_status(self, team, app):
-        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(team.enterprise_id, app.group_key, app.version)
+        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(team.enterprise_id,
+                                                                                               app.group_key,
+                                                                                               app.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -179,11 +181,11 @@ class AppExportService(object):
     def _wrapper_director_download_url(self, region_name, raw_url):
         region = region_repo.get_region_by_region_name(region_name)
         if region:
-            splits_texts = region.url.split(":")
+            splits_texts = region.wsurl.split("://")
             if splits_texts[0] == "wss":
-                return "https://" + region.tcpdomain + ":6060" + raw_url
+                return "https://" + splits_texts[1] + raw_url
             else:
-                return "http://" + region.tcpdomain + ":6060" + raw_url
+                return "http://" + splits_texts[1] + raw_url
 
             # if len(splits_texts) > 2:
             #     temp_url = splits_texts[0] + "://" + region.tcpdomain
@@ -196,7 +198,8 @@ class AppExportService(object):
                                                                       export_format)
 
     def get_export_record_status(self, enterprise_id, app):
-        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, app.group_key, app.version)
+        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, app.group_key,
+                                                                                    app.version)
         export_status = "other"
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:
@@ -322,7 +325,6 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
@@ -365,7 +367,7 @@ class AppImportService(object):
         if not image_base64_string:
             return ""
         try:
-            file_name = make_uuid() + "."+suffix
+            file_name = make_uuid() + "." + suffix
             file_path = "{0}/{1}".format("/data/media/uploads", file_name)
             with open(file_path, "wb") as f:
                 f.write(image_base64_string.decode("base64"))
@@ -375,7 +377,7 @@ class AppImportService(object):
         return ""
 
     def get_importing_apps(self, tenant, user, region):
-        importing_records = app_import_record_repo.get_importing_record(tenant.tenant_name,user.nick_name)
+        importing_records = app_import_record_repo.get_importing_record(tenant.tenant_name, user.nick_name)
         importing_list = []
         for importing_record in importing_records:
             import_record, apps_status = self.get_and_update_import_status(tenant, region, importing_record.event_id)
@@ -386,7 +388,7 @@ class AppImportService(object):
     def get_user_unfinished_import_record(self, tenant, user):
         return app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name, user.nick_name)
 
-    def create_app_import_record(self,team_name,user_name,region):
+    def create_app_import_record(self, team_name, user_name, region):
         event_id = make_uuid()
         import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
                                 "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
@@ -397,12 +399,11 @@ class AppImportService(object):
         raw_url = "/app/upload"
         upload_url = ""
         if region:
-            splits_texts = region.wsurl.split(":")
+            splits_texts = region.wsurl.split("://")
             if splits_texts[0] == "wss":
-                upload_url = "https://" + region.tcpdomain + ":6060" + raw_url
-
+                upload_url = "https://" + splits_texts[1] + raw_url
             else:
-                upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
+                upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
 
         # if region:
