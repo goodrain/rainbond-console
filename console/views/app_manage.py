@@ -261,7 +261,7 @@ class VerticalExtendAppView(AppBaseView):
             if new_add_memory < 0:
                 new_add_memory = 0
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
-                                                           "启动应用")
+                                                           "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
             code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user,
@@ -315,7 +315,7 @@ class HorizontalExtendAppView(AppBaseView):
             if new_add_memory < 0:
                 new_add_memory = 0
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
-                                                           "启动应用")
+                                                           "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
 
