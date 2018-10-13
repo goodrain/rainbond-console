@@ -262,14 +262,14 @@ class AppManageService(AppManageBase):
                                 service.image = app["image"]
                                 if app.get("service_slug", None):
                                     service.namespace = app["service_slug"]["namespace"]
-                                service_source.extend_info = app["service_slug"]
-                                service_source.extend_info["slug_path"] = app.get("share_slug_path", "")
+                                service_source.extend_info = json.dumps(app["service_slug"])
+                                service_source.extend_info["slug_path"] = json.dumps(app.get("share_slug_path", ""))
                             # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
                             else:
                                 service.image = app.get("share_image", app["image"])
                                 if app.get("service_image", None):
                                     service.namespace = app["service_image"]["namespace"]
-                                service_source.extend_info = app["service_image"]
+                                service_source.extend_info = json.dumps(app["service_image"])
                             service.cmd = app.get("cmd", "")
                             service.version = app["version"]
                             service.is_upgrate = False
