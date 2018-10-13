@@ -260,11 +260,14 @@ class AppManageService(AppManageBase):
                         if kind == "build_from_market_slug":
                             service_source.extend_info = app["service_slug"]
                             service_source.extend_info["slug_path"] = app.get("share_slug_path", "")
+                            service.is_upgrate = False
+                            service.save()
                             service_source.save()
                         # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
                         else:
                             service.image = app.get("share_image", app["image"])
                             service_source.extend_info = app["service_image"]
+                            service.is_upgrate = False
                             service.save()
                             service_source.save()
         body["kind"] = kind

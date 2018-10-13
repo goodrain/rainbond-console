@@ -125,10 +125,9 @@ class AppBriefView(AppBaseView):
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
                         if app["service_key"] == self.service.service_key:
-                            logger.debug('---------------->'.format(app['deploy_version']))
-                            logger.debug('-------------++++=--->'.format(self.service.deploy_version))
                             if app["deploy_version"] > self.service.deploy_version:
                                 self.service.is_upgrate = True
+                                self.service.save()
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
@@ -554,15 +553,16 @@ class BuildSourceinfo(AppBaseView):
                 return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
             if service_source.service_source == 'market':
                 # 获取组对象
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(service_source.tenant_service_group_id)
+                group_obj = tenant_service_group_repo.get_group_by_service_group_id(
+                    service_source.tenant_service_group_id)
                 # 获取内部市场对象
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
                                                                                  group_obj.group_version)
-                bean["rain_app_name"] = rain_app.group_name
-                bean["app_share_user"] = rain_app.share_user
-                bean["app_share_team"] = rain_app.share_team
-                bean["app_describe"] = rain_app.describe
-                bean["app_version"] = rain_app.version
+                if rain_app:
+                    bean["rain_app_name"] = rain_app.group_name
+                    bean["details"] = rain_app.details
+                    bean["app_version"] = rain_app.version
+                    bean["group_key"] = rain_app.group_key
             bean["service_source"] = service_source.service_source
             bean["image"] = service_source.image
             bean["cmd"] = service_source.cmd
