@@ -243,40 +243,40 @@ class AppManageService(AppManageBase):
             body["repo_url"] = clone_url
             body["branch"] = service.code_version
             body["server_type"] = service.server_type
-        # try:
-        #     if service.service_source == "market":
-        #         # 获取组对象
-        #         group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
-        #         # 获取内部市场对象
-        #         rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-        #                                                                          group_obj.group_version)
-        #         if rain_app:
-        #             # 解析app_template的json数据
-        #             apps_template = json.loads(rain_app.app_template)
-        #
-        #             apps_list = apps_template.get("apps")
-        #             for app in apps_list:
-        #                 if app['service_key'] == service.service_key:
-        #                     # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-        #                     if kind == "build_from_market_slug":
-        #                         service.image = app["image"]
-        #                         if app.get("service_slug", None):
-        #                             service.namespace = app["service_slug"]["namespace"]
-        #                         service_source.extend_info = app["service_slug"]
-        #                         service_source.extend_info["slug_path"] = app.get("share_slug_path", "")
-        #                     # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-        #                     else:
-        #                         service.image = app.get("share_image", app["image"])
-        #                         if app.get("service_image", None):
-        #                             service.namespace = app["service_image"]["namespace"]
-        #                         service_source.extend_info = app["service_image"]
-        #                     service.cmd = app.get("cmd", "")
-        #                     service.version = app["version"]
-        #                     service.is_upgrate = False
-        #                     service.save()
-        #                     service_source.save()
-        # except Exception as e:
-        #     logger.debug('=======================>'.format(e))
+        try:
+            if service.service_source == "market":
+                # 获取组对象
+                group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
+                # 获取内部市场对象
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                 group_obj.group_version)
+                if rain_app:
+                    # 解析app_template的json数据
+                    apps_template = json.loads(rain_app.app_template)
+
+                    apps_list = apps_template.get("apps")
+                    for app in apps_list:
+                        if app['service_key'] == service.service_key:
+                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
+                            if kind == "build_from_market_slug":
+                                service.image = app["image"]
+                                if app.get("service_slug", None):
+                                    service.namespace = app["service_slug"]["namespace"]
+                                service_source.extend_info = app["service_slug"]
+                                service_source.extend_info["slug_path"] = app.get("share_slug_path", "")
+                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
+                            else:
+                                service.image = app.get("share_image", app["image"])
+                                if app.get("service_image", None):
+                                    service.namespace = app["service_image"]["namespace"]
+                                service_source.extend_info = app["service_image"]
+                            service.cmd = app.get("cmd", "")
+                            service.version = app["version"]
+                            service.is_upgrate = False
+                            service.save()
+                            service_source.save()
+        except Exception as e:
+            logger.exception('===========000============>'.format(e))
         body["kind"] = kind
         body["service_alias"] = service.service_alias
         body["tenant_name"] = tenant.tenant_name
