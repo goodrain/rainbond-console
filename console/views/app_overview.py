@@ -65,42 +65,43 @@ class AppDetailView(AppBaseView):
             # bean.update(status_map)
             # bean.update(used_resource)
             # bean.update({"plugin_list": plugin_list})
-            if self.service.service_source == "market":
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
-                if not rain_app:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-                else:
-                    apps_template = json.loads(rain_app.app_template)
-
-                    apps_list = apps_template.get("apps")
-                    for app in apps_list:
-                        if app["service_key"] == self.service.service_key:
-                            if app["deploy_version"] > self.service.deploy_version:
-                                self.service.is_upgrate = True
-                                self.service.save()
             service_model = self.service.to_dict()
             group_map = group_service.get_services_group_name([self.service.service_id])
             group_name = group_map.get(self.service.service_id)["group_name"]
             group_id = group_map.get(self.service.service_id)["group_id"]
             service_model["group_name"] = group_name
             service_model["group_id"] = group_id
-            if self.service.service_source == AppConstants.DOCKER_COMPOSE:
-                if self.service.create_status != "complete":
-                    compose_service_relation = compose_service.get_service_compose_id(self.service)
-                    if compose_service_relation:
-                        service_model["compose_id"] = compose_service_relation.compose_id
             bean.update({"service": service_model})
             tenant_actions = self.user.actions.tenant_actions
             bean.update({"tenant_actions": tenant_actions})
             service_actions = self.user.actions.service_actions
             bean.update({"service_actions": service_actions})
-
             event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
-            # monitor_websocket_uri = ws_service.get_monitor_log_ws(self.request, self.response_region, self.tenant,
-            #                                                       self.service)
             bean.update({"event_websocket_url": event_websocket_url})
+            if self.service.service_source == "market":
+                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+                if not group_obj:
+                    result = general_message(200, "success", "查询成功", bean=bean)
+                    return Response(result, status=result["code"])
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                if not rain_app:
+                    result = general_message(200, "success", "当前云市应用已删除", bean=bean)
+                    return Response(result, status=result["code"])
+                else:
+                    apps_template = json.loads(rain_app.app_template)
+                    apps_list = apps_template.get("apps")
+                    for app in apps_list:
+                        if app["service_key"] == self.service.service_key:
+                            if app["deploy_version"] > self.service.deploy_version:
+                                self.service.is_upgrate = True
+                                self.service.save()
+                                bean.update({"service": service_model})
+            if self.service.service_source == AppConstants.DOCKER_COMPOSE:
+                if self.service.create_status != "complete":
+                    compose_service_relation = compose_service.get_service_compose_id(self.service)
+                    if compose_service_relation:
+                        service_model["compose_id"] = compose_service_relation.compose_id
+                        bean.update({"service": service_model})
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
