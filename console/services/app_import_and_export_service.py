@@ -264,12 +264,9 @@ class AppImportService(object):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         # 去数据中心请求导入状态
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
-        print res["status"]
         status = body["bean"]["status"]
         if import_record.status != "success":
-            if res["status"] == 404:
-                import_record.status = "uploading"
-            elif status == "success":
+            if status == "success":
                 logger.debug("app import success !")
                 self.__save_import_info(tenant.tenant_name, import_record.scope, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
@@ -285,6 +282,26 @@ class AppImportService(object):
                 import_record.status = status
                 import_record.save()
         apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
+
+        failed_num = 0
+        success_num = 0
+        for i in apps_status:
+            if i.get("status") == "success":
+                success_num += 1
+                import_record.status = "partial_success"
+                import_record.save()
+            elif i.get("status") == "failed":
+                failed_num += 1
+        if success_num == len(apps_status):
+            import_record.status = "success"
+            import_record.save()
+        elif failed_num == len(apps_status):
+            import_record.status = "failed"
+            import_record.save()
+        if status == "uploading":
+            import_record.status = status
+            import_record.save()
+
         return import_record, apps_status
 
     def __wrapp_app_import_status(self, app_status):

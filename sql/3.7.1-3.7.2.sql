@@ -17,3 +17,15 @@ ALTER TABLE tenant_service_delete ADD COLUMN `is_upgrate` bool DEFAULT false NOT
 -- 添加判断应用是否更新字段
 
 ALTER TABLE tenant_service ADD COLUMN `is_upgrate` bool DEFAULT false NOT NULL;
+
+ALTER TABLE tenant_service_delete ADD COLUMN `is_upgrate` bool DEFAULT false NOT NULL;
+
+
+-- 添加console_service与内部市场service对接的唯一字段
+
+ALTER TABLE tenant_service ADD COLUMN `console_center_uuid` varchar(128) DEFAULT "";
+
+ALTER TABLE tenant_service_delete ADD COLUMN `console_center_uuid` varchar(128) DEFAULT "";
+
+
+ALTER TABLE rainbond_center_app ADD COLUMN `console_center_uuid` varchar(128) DEFAULT "";

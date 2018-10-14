@@ -61,6 +61,7 @@ class RainbondCenterApp(BaseModel):
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
     upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
 
+
     def __unicode__(self):
         return self.to_dict()
 

@@ -3,6 +3,7 @@ import logging
 
 from rest_framework.response import Response
 
+from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.timeutil import current_time_to_str
 from console.views.base import JWTAuthApiView

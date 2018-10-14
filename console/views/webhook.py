@@ -314,7 +314,7 @@ class GetWebHooksUrl(AppBaseView):
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
             support_type = 0
-            if service_obj.service_source == AppConstants.SOURCE_CODE :
+            if service_obj.service_source == AppConstants.SOURCE_CODE:
                 support_type = 1
             else:
                 support_type = 2

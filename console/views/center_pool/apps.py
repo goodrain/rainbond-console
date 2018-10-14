@@ -60,7 +60,7 @@ class CenterAppListView(RegionTenantHeaderView):
         page_size = request.GET.get("page_size", 10)
         try:
             apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).order_by(
-                "-is_official", "-install_number")
+                "-install_number", "-is_official")
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
@@ -141,7 +141,7 @@ class CenterAppView(RegionTenantHeaderView):
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
-            RainbondCenterApp.objects.filter(ID=app_id).update(install_number=F("install_number")+1)
+            RainbondCenterApp.objects.filter(ID=app_id).update(install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:

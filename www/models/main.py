@@ -696,6 +696,7 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
 
+
 class TenantServiceLog(BaseModel):
     class Meta:
         db_table = 'tenant_service_log'
