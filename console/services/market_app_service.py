@@ -540,10 +540,12 @@ class MarketAppService(object):
 
     def get_remote_market_apps(self, tenant, page, page_size, app_name):
         body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
+        logger.debug('==================>'.format(body))
         remote_apps = body["data"]['list']
         total = body["data"]['total']
         result_list = []
         for app in remote_apps:
+            logger.debug('------------>'.format(app["upgrade_time"]))
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
                                                                       app["group_version"])
             is_upgrade = 0
@@ -848,6 +850,7 @@ class AppMarketSynchronizeService(object):
                                                                                v2_template["group_version"])
 
         if not rainbond_app:
+            logger.debug('---------------->'.format(app_templates["upgrade_time"]))
             if common_services.is_public() and user.is_sys_admin:
                 enterprise_id = "public"
             else:
@@ -882,6 +885,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.details = v2_template["desc"]
             rainbond_app.save()
         else:
+            logger.debug('---------------->'.format(v2_template["upgrade_time"]))
             user_name = v2_template.get("publish_user", None)
             user_id = 0
             if user_name:
@@ -899,7 +903,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
-            rainbond_app.upgrade_time = v2_template.get("upgrade_time")
+            rainbond_app.upgrade_time = v2_template["upgrade_time"]
             rainbond_app.save()
 
 
