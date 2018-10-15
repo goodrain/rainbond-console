@@ -899,6 +899,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
+            rainbond_app.upgrade_time = v2_template("upgrade_time")
             rainbond_app.save()
 
 
