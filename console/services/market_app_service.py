@@ -552,7 +552,7 @@ class MarketAppService(object):
                 if rbc.is_complete:
                     is_complete = True
                 # 判断云市应用是否有小版本更新
-                if rbc.upgrade_time < app["update_time"]:
+                if rbc.upgrade_time < app["upgrade_time"]:
                     is_upgrade = 1
             rbapp = {
                 "group_key": app["group_key"],
@@ -868,7 +868,7 @@ class AppMarketSynchronizeService(object):
                 template_version=app_templates.get("template_version", ""),
                 is_official=app_templates["is_official"],
                 details=app_templates["desc"],
-                upgrade_time=app_templates["update_time"]
+                upgrade_time=app_templates["upgrade_time"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
