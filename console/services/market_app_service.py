@@ -868,7 +868,7 @@ class AppMarketSynchronizeService(object):
                 template_version=app_templates.get("template_version", ""),
                 is_official=app_templates["is_official"],
                 details=app_templates["desc"],
-                upgrate_time=app_templates["update_time"]
+                upgrade_time=app_templates["update_time"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
