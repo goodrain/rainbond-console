@@ -540,7 +540,7 @@ class MarketAppService(object):
 
     def get_remote_market_apps(self, tenant, page, page_size, app_name):
         body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
-        logger.debug('==================>'.format(body))
+        logger.debug('==================>{0}'.format(body))
         remote_apps = body["data"]['list']
         total = body["data"]['total']
         result_list = []
@@ -567,7 +567,7 @@ class MarketAppService(object):
                 "is_complete": is_complete,
                 "is_official": app["is_official"],
                 "details": app["desc"],
-                "upgrade_time": app["upgrade_time"],
+                "upgrade_time": app["update_version"],
                 "is_upgrade": is_upgrade
             }
             result_list.append(rbapp)
@@ -885,7 +885,6 @@ class AppMarketSynchronizeService(object):
             rainbond_app.upgrade_time = v2_template["update_version"]
             rainbond_app.save()
         else:
-            logger.debug('---------------->'.format(v2_template["upgrade_time"]))
             user_name = v2_template.get("publish_user", None)
             user_id = 0
             if user_name:
