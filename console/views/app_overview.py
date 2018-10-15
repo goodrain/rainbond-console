@@ -131,6 +131,9 @@ class AppBriefView(AppBaseView):
         try:
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+                if not group_obj:
+                    result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+                    return Response(result, status=result["code"])
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
@@ -562,14 +565,15 @@ class BuildSourceinfo(AppBaseView):
                 # 获取组对象
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(
                     service_source.tenant_service_group_id)
-                # 获取内部市场对象
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                 group_obj.group_version)
-                if rain_app:
-                    bean["rain_app_name"] = rain_app.group_name
-                    bean["details"] = rain_app.details
-                    bean["app_version"] = rain_app.version
-                    bean["group_key"] = rain_app.group_key
+                if not group_obj:
+                    # 获取内部市场对象
+                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                     group_obj.group_version)
+                    if rain_app:
+                        bean["rain_app_name"] = rain_app.group_name
+                        bean["details"] = rain_app.details
+                        bean["app_version"] = rain_app.version
+                        bean["group_key"] = rain_app.group_key
             bean["service_source"] = service_source.service_source
             bean["image"] = service_source.image
             bean["cmd"] = service_source.cmd
