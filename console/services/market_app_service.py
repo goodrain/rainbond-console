@@ -545,7 +545,6 @@ class MarketAppService(object):
         total = body["data"]['total']
         result_list = []
         for app in remote_apps:
-            logger.debug('------------>'.format(app["upgrade_time"]))
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
                                                                       app["group_version"])
             is_upgrade = 0
@@ -554,7 +553,7 @@ class MarketAppService(object):
                 if rbc.is_complete:
                     is_complete = True
                 # 判断云市应用是否有小版本更新
-                if rbc.upgrade_time < app["upgrade_time"]:
+                if rbc.upgrade_time < app["update_version"]:
                     is_upgrade = 1
             rbapp = {
                 "group_key": app["group_key"],
@@ -883,6 +882,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template["is_official"]
             rainbond_app.details = v2_template["desc"]
+            rainbond_app.upgrade_time = v2_template["update_version"]
             rainbond_app.save()
         else:
             logger.debug('---------------->'.format(v2_template["upgrade_time"]))
@@ -903,7 +903,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
-            rainbond_app.upgrade_time = v2_template.get("upgrade_time")
+            rainbond_app.upgrade_time = v2_template.get("update_version", "")
             rainbond_app.save()
 
 
