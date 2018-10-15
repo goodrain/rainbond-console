@@ -566,7 +566,7 @@ class MarketAppService(object):
                 "is_complete": is_complete,
                 "is_official": app["is_official"],
                 "details": app["desc"],
-                "upgrade_time": app["update_time"],
+                "upgrade_time": app["upgrade_time"],
                 "is_upgrade": is_upgrade
             }
             result_list.append(rbapp)
