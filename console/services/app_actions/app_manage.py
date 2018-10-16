@@ -272,9 +272,11 @@ class AppManageService(AppManageBase):
                                 service_source.extend_info = json.dumps(app["service_image"])
                             service.cmd = app.get("cmd", "")
                             service.version = app["version"]
+                            service.deploy_version = app["deploy_version"]
                             service.is_upgrate = False
                             service.save()
                             service_source.save()
+                            body["deploy_version"] = app["deploy_version"]
         except Exception as e:
             logger.exception('===========000============>'.format(e))
         body["kind"] = kind

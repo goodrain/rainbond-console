@@ -551,8 +551,10 @@ class MarketAppService(object):
             if rbc:
                 if rbc.is_complete:
                     is_complete = True
+            if rbc and rbc.source != "local":
                 # 判断云市应用是否有小版本更新
-                if rbc.upgrade_time < app["upgrade_time"]:
+                update_version = int(rbc.upgrade_time)
+                if update_version < app["upgrade_time"]:
                     is_upgrade = 1
             rbapp = {
                 "group_key": app["group_key"],
@@ -566,7 +568,7 @@ class MarketAppService(object):
                 "is_complete": is_complete,
                 "is_official": app["is_official"],
                 "details": app["desc"],
-                "upgrade_time": app["upgrade_time"],
+                "upgrade_time": app["update_version"],
                 "is_upgrade": is_upgrade
             }
             result_list.append(rbapp)
@@ -868,6 +870,7 @@ class AppMarketSynchronizeService(object):
                 template_version=app_templates.get("template_version", ""),
                 is_official=app_templates["is_official"],
                 details=app_templates["desc"],
+                upgrade_time=app_templates["update_version"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
@@ -879,6 +882,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template["is_official"]
             rainbond_app.details = v2_template["desc"]
+            rainbond_app.upgrade_time = v2_template["update_version"]
             rainbond_app.save()
         else:
             user_name = v2_template.get("publish_user", None)
@@ -898,6 +902,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
+            rainbond_app.upgrade_time = v2_template.get("update_version", "")
             rainbond_app.save()
 
 
