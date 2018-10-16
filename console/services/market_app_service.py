@@ -559,10 +559,12 @@ class MarketAppService(object):
             if rbc:
                 if rbc.is_complete:
                     is_complete = True
-            if rbc and rbc.source != "local":
+            if rbc and rbc.source != "local" and rbc.upgrade_time:
                 # 判断云市应用是否有小版本更新
                 update_version = int(rbc.upgrade_time)
-                if update_version < app["upgrade_time"]:
+                logger.debug('------------------>{0}'.format(update_version))
+                logger.debug('------------------>{0}'.format(app["upgrade_time"]))
+                if update_version < app["update_version"]:
                     is_upgrade = 1
             rbapp = {
                 "group_key": app["group_key"],
