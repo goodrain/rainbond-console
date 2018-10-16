@@ -293,6 +293,8 @@ class AppManageService(AppManageBase):
                     extend_info = json.loads(service_source.extend_info)
                     if service.is_slug():
                         body["slug_info"] = extend_info
+        else:
+            body["image_url"] = service.image
         body["kind"] = kind
         body["service_alias"] = service.service_alias
         body["tenant_name"] = tenant.tenant_name
