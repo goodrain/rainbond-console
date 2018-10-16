@@ -84,11 +84,16 @@ class MarketAppService(object):
                     service_probe_map[ts.service_id] = probe_infos
 
                 self.__save_extend_info(ts, app["extend_method_map"])
-
-                dep_apps_key = app.get("dep_service_map_list", None)
-                if dep_apps_key:
-                    service_key_dep_key_map[ts.service_key] = dep_apps_key
-                key_service_map[ts.service_key] = ts
+                if app.get("service_share_uuid", None):
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[app.get("service_share_uuid")] = dep_apps_key
+                    key_service_map[app.get("service_share_uuid")] = ts
+                else:
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[ts.service_key] = dep_apps_key
+                    key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
             # 保存依赖关系
@@ -456,6 +461,9 @@ class MarketAppService(object):
             extend_info["slug_path"] = app.get("share_slug_path", "")
         else:
             extend_info = app["service_image"]
+        extend_info["source_deploy_version"] = app.get("deploy_version")
+        extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get("service_share_uuid", None)\
+            else app.get("service_key", "")
 
         service_source_params = {
             "team_id": ts.tenant_id,
