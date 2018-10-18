@@ -72,7 +72,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AllUserView
+    TeamUserCanJoin
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -81,7 +81,6 @@ from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
-from console.views.team import TenantsView
 
 
 urlpatterns = patterns(
@@ -518,10 +517,10 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
-    # 获取企业下所有用户信息(企业中心中：删除用户)
-    url(r'^enterprise/users$', AllUserView.as_view()),
-    # 企业中心模糊查询团队
-    url(r'^enterprise/tenants/query', TenantsView.as_view()),
+    # # 获取企业下所有用户信息(企业中心中：删除用户)
+    # url(r'^enterprise/users$', AllUserView.as_view()),
+    # # 企业中心模糊查询团队
+    # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
