@@ -580,7 +580,8 @@ class AppManageService(AppManageBase):
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
-            if count <= 1:
+            group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
+            if count <= 1 and group_obj.group_alias != "默认组":
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()

@@ -30,6 +30,9 @@ from www.perms import PermActions, get_highest_identity
 from www.utils.return_message import general_message, error_message
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
+from console.utils.timeutil import time_to_str
+
+
 
 logger = logging.getLogger("default")
 
@@ -1037,3 +1040,91 @@ class TeamUserCanJoin(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class AllUserView(JWTAuthApiView):
+
+    def get(self, request, *args, **kwargs):
+        """
+        获取企业下用户信息列表
+        """
+        try:
+            enterprise_id = request.GET.get("enterprise_id", None)
+            page_num = int(request.GET.get("page_num", 1))
+            page_size = int(request.GET.get("page_size", 5))
+            user_name = request.GET.get("user_name", None)
+            if not enterprise_id:
+                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
+                enterprise_id = enter.enterprise_id
+            enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
+            if user_name:
+                euser = user_services.get_user_by_user_name(user_name)
+                list = []
+                if not euser:
+                    result = generate_result("0000", "success", "查询成功", list=list, total=0)
+                    return Response(result)
+                result_map = {}
+                result_map["user_id"] = euser.user_id
+                result_map["email"] = euser.email
+                result_map["nick_name"] = euser.nick_name
+                result_map["phone"] = euser.phone if euser.phone else "暂无"
+                result_map["create_time"] = time_to_str(euser.create_time, "%Y-%m-%d %H:%M:%S")
+                tenant_list = user_services.get_user_tenants(euser.user_id)
+                result_map["tenants"] = tenant_list
+                result_map["enterprise_alias"] = enter.enterprise_alias
+                list.append(result_map)
+                result = generate_result("0000", "success", "查询成功", list=list, total=1)
+                return Response(result)
+            user_list = user_repo.get_user_by_enterprise_id(enterprise_id=enterprise_id)
+            for user1 in user_list:
+                if user1.nick_name == self.user.nick_name:
+                    user_list.delete(user1)
+            user_paginator = JuncheePaginator(user_list, int(page_size))
+            users = user_paginator.page(int(page_num))
+            list = []
+            for user in users:
+                result_map = {}
+                result_map["user_id"] = user.user_id
+                result_map["email"] = user.email
+                result_map["nick_name"] = user.nick_name
+                result_map["phone"] = user.phone if user.phone else "暂无"
+                result_map["create_time"] = time_to_str(user.create_time, "%Y-%m-%d %H:%M:%S")
+                tenant_list = user_services.get_user_tenants(user.user_id)
+                result_map["tenants"] = tenant_list
+                result_map["enterprise_alias"] = enter.enterprise_alias
+                list.append(result_map)
+
+            result = generate_result("0000", "success", "查询成功", list=list, total=user_paginator.count)
+
+        except Exception as e:
+            logger.debug(e)
+            result = generate_error_result()
+        return Response(result)
+
+    def delete(self, request, tenant_name, user_id, *args, **kwargs):
+        """
+        删除用户
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: path
+            - name: user_id
+              description: 用户名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            user_services.delete_user(user_id)
+            result = generate_result(
+                "0000", "success", "删除成功"
+            )
+        except Exception as e:
+            logger.exception(e)
+            result = generate_result("9999", "system error", "系统异常")
+        return Response(result)
+
