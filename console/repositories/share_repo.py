@@ -53,6 +53,13 @@ class ShareRepo(object):
         else:
             return []
 
+    def get_service_extend_method_by_key(self, service_key):
+        extend_method_list = TenantServiceExtendMethod.objects.filter(service_key=service_key)
+        if extend_method_list:
+            return extend_method_list
+        else:
+            return []
+
     def get_plugins_attr_by_service_ids(self, service_ids):
         plugins_attr_list = TenantServicePluginAttr.objects.filter(service_id__in=service_ids).all()
         return plugins_attr_list or []

@@ -30,7 +30,7 @@ from console.models.main import RainbondCenterApp
 from console.services.common_services import common_services
 from console.repositories.plugin import plugin_repo
 from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
-
+from console.repositories.share_repo import share_repo
 
 
 logger = logging.getLogger("default")
@@ -453,6 +453,14 @@ class MarketAppService(object):
         # 存储并返回
         tenant_service.save()
         return tenant_service
+
+    def save_max_node_in_extend_method(self, service_key, app):
+        extend_method_obj = share_repo.get_service_extend_method_by_key(service_key)
+        if extend_method_obj:
+            for ex_me in extend_method_obj:
+                if app["extend_method_map"]["max_node"]:
+                    ex_me.max_node = app["extend_method_map"]["max_node"]
+                    ex_me.save()
 
     def __init_service_source(self, ts, app):
         is_slug = bool(ts.image.startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
