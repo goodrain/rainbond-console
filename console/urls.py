@@ -81,6 +81,7 @@ from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
+from console.views.service_share import ShareRecordView
 
 
 urlpatterns = patterns(
@@ -172,6 +173,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
