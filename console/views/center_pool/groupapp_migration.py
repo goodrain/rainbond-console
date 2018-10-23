@@ -175,8 +175,6 @@ class GroupAppsView(RegionTenantHeaderView):
                 return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),
                                 status=400)
             services = group_service.get_group_services(group_id)
-            if services:
-                return Response(general_message(400, "success", "当前组内有应用，无法删除"), status=400)
             for service in services:
                 try:
                     app_manage_service.truncate_service(self.tenant, service)

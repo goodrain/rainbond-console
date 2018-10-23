@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import re
 
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
@@ -25,6 +26,7 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
+
     def get_user_by_user_name(self, user_name):
         user = user_repo.get_user_by_username(user_name=user_name)
         if not user:

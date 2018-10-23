@@ -96,6 +96,26 @@ class AppDetailView(AppBaseView):
                                 self.service.is_upgrate = True
                                 self.service.save()
                                 bean.update({"service": service_model})
+                    try:
+                        apps_template = json.loads(rain_app.app_template)
+                        apps_list = apps_template.get("apps")
+                        service_source = service_source_repo.get_service_source(self.service.tenant_id,
+                                                                                self.service.service_id)
+                        if service_source and service_source.extend_info:
+                            extend_info = json.loads(service_source.extend_info)
+                            if extend_info:
+                                for app in apps_list:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+
+                    except Exception as e:
+                        logger.exception(e)
             if self.service.service_source == AppConstants.DOCKER_COMPOSE:
                 if self.service.create_status != "complete":
                     compose_service_relation = compose_service.get_service_compose_id(self.service)
@@ -132,7 +152,7 @@ class AppBriefView(AppBaseView):
             if self.service.service_source == "market":
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
                 if not group_obj:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
+                    result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
                 if not rain_app:

@@ -86,6 +86,7 @@ from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
+from console.views.service_share import ShareRecordView
 
 
 urlpatterns = patterns(
@@ -177,6 +178,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
@@ -206,6 +208,7 @@ urlpatterns = patterns(
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
+    # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
         TenantGroupOperationView.as_view()),
     # git仓库对接
@@ -494,7 +497,7 @@ urlpatterns = patterns(
     # 迁移与恢复未完成记录查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate/record$', MigrateRecordView.as_view()),
 
-    # 应用组删除
+    # 应用组数据删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
     # webhooks回调地址
@@ -526,6 +529,10 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # # 获取企业下所有用户信息(企业中心中：删除用户)
+    # url(r'^enterprise/users$', AllUserView.as_view()),
+    # # 企业中心模糊查询团队
+    # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
