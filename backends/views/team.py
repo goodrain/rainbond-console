@@ -288,7 +288,7 @@ class AddTeamUserView(BaseAPIView):
             user_name = request.data.get("user_name", None)
             if not user_name:
                 return Response(generate_result("1003", "username is null", "用户名不能为空"))
-            identity = request.data.get("identity", None)
+            identity = request.data.get("identity", "developer")
             if not identity:
                 return Response(generate_result("1003", "identity is null", "用户权限不能为空"))
 

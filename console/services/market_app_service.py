@@ -568,11 +568,6 @@ class MarketAppService(object):
             if rbc:
                 if rbc.is_complete:
                     is_complete = True
-            if rbc and rbc.source!="local":
-                # 判断云市应用是否有小版本更新
-                update_version = int(rbc.upgrade_time)
-                if update_version < app["update_version"]:
-                    is_upgrade = 1
             if rbc and rbc.source != "local" and rbc.upgrade_time:
                 # 判断云市应用是否有小版本更新
                 try:
@@ -876,7 +871,6 @@ class AppMarketSynchronizeService(object):
                                                                                v2_template["group_version"])
 
         if not rainbond_app:
-            logger.debug('---------------->'.format(app_templates["upgrade_time"]))
             if common_services.is_public() and user.is_sys_admin:
                 enterprise_id = "public"
             else:
