@@ -349,9 +349,9 @@ class TeamUsableRegionView(BaseAPIView):
 class TeamLimitMemoryView(BaseAPIView):
     """设置租户内存限制"""
     def post(self, request, tenant_name, *args, **kwargs):
-        region_name = request.data.get('region_name')
-        limit_memory = request.data.get('limit_memory')
-        if not region_name and not limit_memory:
+        region_name = request.data.get('region_name', None)
+        limit_memory = request.data.get('limit_memory', 0)
+        if not region_name:
             result = generate_result('0404', 'parameter is not complete', '参数不全')
             return Response(result)
         try:
