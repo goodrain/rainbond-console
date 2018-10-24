@@ -1361,3 +1361,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
+    def set_limit_memory(self, region, tenant_name, body):
+        """设置租户内存限制"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/limit_memory"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(body), region=region)
+        return res, body

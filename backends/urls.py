@@ -76,6 +76,8 @@ urlpatterns = patterns(
     # 团队路径
     url(r'^v1/teams$', AllTeamView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)$', TeamView.as_view()),
+    # 设置租户内存限制
+    url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/limit_memory$', TeamLimitMemoryView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/users/(?P<user_name>[\w\-]+)$', TeamUserView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/add-user$', AddTeamUserView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/regions$', TeamUsableRegionView.as_view()),

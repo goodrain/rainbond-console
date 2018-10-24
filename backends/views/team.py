@@ -16,6 +16,9 @@ from console.services.user_services import user_services as console_user_service
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
+from console.services.service_services import base_service
+from console.repositories.region_repo import region_repo
+
 
 logger = logging.getLogger("default")
 
@@ -288,7 +291,7 @@ class AddTeamUserView(BaseAPIView):
             user_name = request.data.get("user_name", None)
             if not user_name:
                 return Response(generate_result("1003", "username is null", "用户名不能为空"))
-            identity = request.data.get("identity", None)
+            identity = request.data.get("identity", "developer")
             if not identity:
                 return Response(generate_result("1003", "identity is null", "用户权限不能为空"))
 
@@ -340,4 +343,21 @@ class TeamUsableRegionView(BaseAPIView):
         except Exception as e:
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")
+        return Response(result)
+
+
+class TeamLimitMemoryView(BaseAPIView):
+    """设置租户内存限制"""
+    def post(self, request, tenant_name, *args, **kwargs):
+        region_name = request.data.get('region_name')
+        limit_memory = request.data.get('limit_memory')
+        if not region_name and not limit_memory:
+            result = generate_result('0404', 'parameter is not complete', '参数不全')
+            return Response(result)
+        try:
+            res, body = base_service.set_tenant_limit_memory(region_name, tenant_name, limit_memory)
+            result = generate_result('0000', 'success', '设置成功', bean={'body': body})
+        except Exception as e:
+            logger.exception(e)
+            result = generate_result('9999', 'system error', '系统异常')
         return Response(result)
