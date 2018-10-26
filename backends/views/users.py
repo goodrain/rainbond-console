@@ -57,7 +57,7 @@ class TenantUserView(BaseAPIView):
 
 class UserView(BaseAPIView):
 
-    def delete(self, request, user_id, *args, **kwargs):
+    def delete(self, request, tenant_name, user_id, *args, **kwargs):
         """
         删除用户
         ---

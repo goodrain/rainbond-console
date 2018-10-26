@@ -367,12 +367,12 @@ class TenantSortView(BaseAPIView):
     """企业下团队排行（根据人数+应用数）"""
     def get(self, request, region_id, *args, **kwargs):
 
-        enterprise_alias = request.GET.get("enterprise_alias", None)
-        if enterprise_alias:
-            enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
+        enterprise_name = request.GET.get("enterprise_name", None)
+        if enterprise_name:
+            enter = enterprise_services.get_enterprise_by_enterprise_name(enterprise_name)
             if not enter:
                 return Response(
-                    generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
+                    generate_result("0404", "enterprise is not found", "企业不存在"))
             enterprise_id = enter.enterprise_id
             try:
                 tenant_list = tenant_service.get_team_by_name_or_alias_or_enter(tenant_name=None, tenant_alias=None,

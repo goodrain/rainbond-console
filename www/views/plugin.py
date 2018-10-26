@@ -93,7 +93,7 @@ class CreatePluginView(LeftSideBarMixin, AuthedView):
                     code_version = plugin_form.cleaned_data.get("code_version", None)
                 if build_source == "image":
                     image = plugin_form.cleaned_data["image"]
-                    image_and_tag = image.split(":")
+                    image_and_tag = image.split(":")[-1]
                     if len(image_and_tag) > 1:
                         image = image_and_tag[0]
                         image_tag = image_and_tag[1]
