@@ -54,77 +54,10 @@ class TenantUserView(BaseAPIView):
             result = generate_result("9999", "system error", "系统异常")
         return Response(result)
 
-    def post(self, request, tenant_name, *args, **kwargs):
-        """
-        添加用户
-        ---
-        parameters:
-            - name: tenant_name
-              description: 租户名称
-              required: true
-              type: string
-              paramType: path
-            - name: user_name
-              description: 用户名
-              required: true
-              type: string
-              paramType: form
-            - name: phone
-              description: 手机号
-              required: true
-              type: string
-              paramType: form
-            - name: email
-              description: 邮件地址
-              required: true
-              type: string
-              paramType: form
-            - name: password
-              description: 密码
-              required: true
-              type: string
-              paramType: form
-            - name: re_password
-              description: 重复密码
-              required: true
-              type: string
-              paramType: form
-            - name: identity
-              description: 用户在租户的身份
-              required: true
-              type: string
-              paramType: form
-
-        """
-        try:
-            user_name = request.data.get("user_name", None)
-            phone = request.data.get("phone", None)
-            email = request.data.get("email", None)
-            password = request.data.get("password", None)
-            re_password = request.data.get("re_password", None)
-            identity = request.data.get("identity", "viewer")
-            is_pass, msg = user_service.check_params(user_name,phone,email,password,re_password)
-            if not is_pass:
-                return Response(generate_result("0403", "params error", msg))
-            client_ip = user_service.get_client_ip(request)
-            team = console_team_service.get_tenant_by_tenant_name(tenant_name)
-            if not team:
-                return Response(generate_result("0404", "team not exist", "团队{0}不存在".format(tenant_name)))
-            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(team.enterprise_id)
-
-            user = user_service.create_user(user_name, phone, email, password, "backend", enterprise, client_ip)
-            tenant_service.add_user_to_tenant(team, user, identity, enterprise)
-            user.is_active = True
-            user.save()
-            result = generate_result("0000", "success", "添加用户成功")
-        except Exception as e:
-            logger.exception(e)
-            result = generate_result("9999", "system error", "系统异常")
-        return Response(result)
-
 
 class UserView(BaseAPIView):
-    def delete(self, request, tenant_name, user_id, *args, **kwargs):
+
+    def delete(self, request, user_id, *args, **kwargs):
         """
         删除用户
         ---
@@ -151,7 +84,7 @@ class UserView(BaseAPIView):
             result = generate_result("9999", "system error", "系统异常")
         return Response(result)
 
-    def put(self, request, tenant_name, user_id, *args, **kwargs):
+    def put(self, request, user_id, *args, **kwargs):
         """
         修改用户
         ---
@@ -249,6 +182,75 @@ class AllUserView(BaseAPIView):
         except Exception as e:
             logger.debug(e)
             result = generate_error_result()
+        return Response(result)
+
+    def post(self, request, *args, **kwargs):
+        """
+        添加用户
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: path
+            - name: user_name
+              description: 用户名
+              required: true
+              type: string
+              paramType: form
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              paramType: form
+            - name: email
+              description: 邮件地址
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 密码
+              required: true
+              type: string
+              paramType: form
+            - name: re_password
+              description: 重复密码
+              required: true
+              type: string
+              paramType: form
+            - name: identity
+              description: 用户在租户的身份
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            user_name = request.data.get("user_name", None)
+            phone = request.data.get("phone", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            tenant_name = request.data.get("tenant_name", None)
+            identity = request.data.get("identity", "viewer")
+            is_pass, msg = user_service.check_params(user_name,phone,email,password,re_password)
+            if not is_pass:
+                return Response(generate_result("0403", "params error", msg))
+            client_ip = user_service.get_client_ip(request)
+            team = console_team_service.get_tenant_by_tenant_name(tenant_name)
+            if not team:
+                return Response(generate_result("0404", "team not exist", "团队{0}不存在".format(tenant_name)))
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(team.enterprise_id)
+
+            user = user_service.create_user(user_name, phone, email, password, "backend", enterprise, client_ip)
+            tenant_service.add_user_to_tenant(team, user, identity, enterprise)
+            user.is_active = True
+            user.save()
+            result = generate_result("0000", "success", "添加用户成功")
+        except Exception as e:
+            logger.exception(e)
+            result = generate_result("9999", "system error", "系统异常")
         return Response(result)
 
 
