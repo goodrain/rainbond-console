@@ -13,6 +13,7 @@ from backends.views.tenants import *
 from backends.views.users import *
 from backends.views.team import *
 from backends.views.labels import *
+
 urlpatterns = patterns(
     '',
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
@@ -75,6 +76,8 @@ urlpatterns = patterns(
 
     # 团队路径
     url(r'^v1/teams$', AllTeamView.as_view()),
+    # 获取团队排行
+    url(r'^v1/teams/sort$', TenantSortView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)$', TeamView.as_view()),
     # 设置租户内存限制
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/limit_memory$', TeamLimitMemoryView.as_view()),

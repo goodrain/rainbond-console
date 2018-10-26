@@ -60,6 +60,10 @@ class TenantServiceInfoRepository(object):
             return services[0]
         return None
 
+    def get_tenant_services(self, tenant_id):
+        service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
+        return service_list
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):

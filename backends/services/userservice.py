@@ -98,7 +98,7 @@ class UserService(object):
 
     def get_user_tenants(self, user_id):
         tenant_id_list = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
-        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_name", flat=True)
+        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_alias", flat=True)
         return tenant_list
 
     def get_all_users(self):

@@ -17,7 +17,7 @@ from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
 from console.services.service_services import base_service
-from console.repositories.region_repo import region_repo
+from console.repositories.app import service_repo
 
 
 logger = logging.getLogger("default")
@@ -291,7 +291,7 @@ class AddTeamUserView(BaseAPIView):
             user_name = request.data.get("user_name", None)
             if not user_name:
                 return Response(generate_result("1003", "username is null", "用户名不能为空"))
-            identity = request.data.get("identity", "developer")
+            identity = request.data.get("identity", "viewer")
             if not identity:
                 return Response(generate_result("1003", "identity is null", "用户权限不能为空"))
 
@@ -361,3 +361,35 @@ class TeamLimitMemoryView(BaseAPIView):
             logger.exception(e)
             result = generate_result('9999', 'system error', '系统异常')
         return Response(result)
+
+
+class TenantSortView(BaseAPIView):
+    """企业下团队排行（根据人数+应用数）"""
+    def get(self, request, region_id, *args, **kwargs):
+
+        enterprise_alias = request.GET.get("enterprise_alias", None)
+        if enterprise_alias:
+            enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
+            if not enter:
+                return Response(
+                    generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
+            enterprise_id = enter.enterprise_id
+            try:
+                tenant_list = tenant_service.get_team_by_name_or_alias_or_enter(tenant_name=None, tenant_alias=None,
+                                                                                enterprise_id=enterprise_id)
+                tenant_dict = {}
+                for tenant in tenant_list:
+
+                    user_list = tenant_service.get_tenant_users(tenant.tenant_name)
+                    service_list = service_repo.get_tenant_services(tenant.tenant_id)
+                    total = len(user_list) + len(service_list)
+                    tenant_dict[tenant.tenant_alias] = total
+                sort_list = sorted(tenant_dict.items(), key=lambda item:item[1], reverse=True)
+                result = generate_result('0000', 'success', '查询成功', list=sort_list)
+            except Exception as e:
+                logger.exception(e)
+                result = generate_result('9999', 'system error', '系统异常')
+            return Response(result)
+        else:
+            result = generate_result("1003", "the enterprise alias cannot be empty", "企业别名不能为空")
+            return Response(result)
