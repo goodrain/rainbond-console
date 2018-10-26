@@ -71,12 +71,5 @@ class BaseService(object):
             logger.exception(e)
             return None
 
-    def set_tenant_limit_memory(self, region, tenant_name, body):
-        try:
-            res, body = region_api.set_limit_memory(region, tenant_name, body)
-            return body["bean"]
-        except Exception as e:
-            logger.exception(e)
-            return None
 
 base_service = BaseService()

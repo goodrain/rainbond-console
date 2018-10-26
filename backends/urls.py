@@ -79,8 +79,7 @@ urlpatterns = patterns(
     # 获取团队排行
     url(r'^v1/teams/sort$', TenantSortView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)$', TeamView.as_view()),
-    # 设置租户内存限制
-    url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/limit_memory$', TeamLimitMemoryView.as_view()),
+    # 查询某团队下的某个用户
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/users/(?P<user_name>[\w\-]+)$', TeamUserView.as_view()),
     # 为团队添加用户
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/add-user$', AddTeamUserView.as_view()),

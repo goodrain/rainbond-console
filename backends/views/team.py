@@ -178,7 +178,7 @@ class AllTeamView(BaseAPIView):
             transaction.savepoint_commit(sid)
 
             bean = {"tenant_name": team.tenant_name, "tenant_id": team.tenant_id, "tenant_alias": team.tenant_alias,
-                    "user_num": 0}
+                    "user_num": 1}
             result = generate_result("0000", "success", "租户添加成功", bean=bean)
         except TenantOverFlowError as e:
             result = generate_result("7001", "tenant over flow", "{}".format(e.message))
@@ -343,23 +343,6 @@ class TeamUsableRegionView(BaseAPIView):
         except Exception as e:
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")
-        return Response(result)
-
-
-class TeamLimitMemoryView(BaseAPIView):
-    """设置租户内存限制"""
-    def post(self, request, tenant_name, *args, **kwargs):
-        region_name = request.data.get('region_name', None)
-        limit_memory = request.data.get('limit_memory', 0)
-        if not region_name:
-            result = generate_result('0404', 'parameter is not complete', '参数不全')
-            return Response(result)
-        try:
-            res, body = base_service.set_tenant_limit_memory(region_name, tenant_name, limit_memory)
-            result = generate_result('0000', 'success', '设置成功', bean={'body': body})
-        except Exception as e:
-            logger.exception(e)
-            result = generate_result('9999', 'system error', '系统异常')
         return Response(result)
 
 
