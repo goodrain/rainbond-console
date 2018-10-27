@@ -35,8 +35,6 @@ from console.services.enterprise_services import enterprise_services as console_
 from console.services.team_services import team_services as console_team_service
 
 
-
-
 logger = logging.getLogger("default")
 
 

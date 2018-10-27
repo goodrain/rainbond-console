@@ -17,6 +17,8 @@ from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
 from console.services.service_services import base_service
+from console.services.team_services import team_services
+from console.services.user_services import user_services
 from console.repositories.app import service_repo
 
 
@@ -192,6 +194,40 @@ class AllTeamView(BaseAPIView):
                 transaction.savepoint_rollback(sid)
             result = generate_error_result()
         return Response(result)
+
+    def delete(self, request, *args, **kwargs):
+        """
+        删除团队
+        ---
+        parameters:
+            - name: team_name
+              description: 要删除的团队
+              required: true
+              type: string
+              paramType: path
+        """
+        tenant_name = request.data.get("tenant_name", None)
+        if not tenant_name:
+            return Response(generate_result("1003", "team name is none", "参数缺失"))
+
+        try:
+            service_count = team_services.get_team_service_count_by_team_name(team_name=tenant_name)
+            if service_count >= 1:
+                result = generate_result("0404", "failed", "当前团队内有应用,不可以删除")
+                return Response(result)
+            status = team_services.delete_tenant(tenant_name=tenant_name)
+            if not status:
+                result = generate_result("0000", "success", "删除团队成功")
+            else:
+                result = generate_result("1002", "delete a tenant failed", "删除团队失败")
+        except Tenants.DoesNotExist as e:
+            logger.exception(e)
+            result = generate_result("1004", "tenant not exist", "{}团队不存在".format(tenant_name))
+        except Exception as e:
+            result = generate_result("9999", "sys exception", "系统异常")
+            logger.exception(e)
+        return Response(result)
+
 
 
 class TeamView(BaseAPIView):

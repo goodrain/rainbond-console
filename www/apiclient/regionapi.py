@@ -35,7 +35,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-
     def _set_headers(self, token):
         if settings.MODULES["RegionToken"]:
             if not token:
