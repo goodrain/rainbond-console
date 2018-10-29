@@ -32,6 +32,8 @@ urlpatterns = patterns(
     # 配置路径
     url(r'^v1/config/logo$', LogoView.as_view()),
     url(r'^v1/config/title$', TitleView.as_view()),
+    # 获取企业信息
+    url(r'^v1/config/(?P<enterprise_id>[\w\-]+)', EnterpriseInfoView.as_view()),
     url(r'^v1/config/safety$', SafetyView.as_view()),
     url(r'^v1/config/safety/regist$', SafetyRegistView.as_view()),
     url(r'^v1/config/safety/tenants$', SafetyTenantView.as_view()),

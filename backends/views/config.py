@@ -8,6 +8,7 @@ from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
 from console.services.enterprise_services import enterprise_services
+from console.repositories.enterprise_repo import enterprise_repo
 
 
 logger = logging.getLogger("default")
@@ -764,6 +765,23 @@ class FtpConfigView(BaseAPIView):
             msg = "success"
             msg_show = "ftp配置修改成功"
             result = generate_result(code, msg, msg_show)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
+class EnterpriseInfoView(BaseAPIView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        """
+        查询企业信息
+        """
+        try:
+            if not enterprise_id:
+                result = generate_result("0404", "enterprise not found", "参数缺失")
+                return Response(result)
+            enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
+            result = generate_result(200, "success", "查询成功", bean=enterprise_info.to_dict())
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)

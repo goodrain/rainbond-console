@@ -3,6 +3,8 @@ import logging
 import json
 
 from rest_framework.response import Response
+
+from backends.models import RegionConfig
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.services.tenantservice import tenant_service
@@ -11,7 +13,7 @@ from backends.services.regionservice import region_service
 from console.services.team_services import team_services as console_team_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
-from www.models import Tenants, PermRelTenant
+from www.models import Tenants, PermRelTenant, TenantRegionInfo
 from console.services.enterprise_services import enterprise_services
 from console.services.user_services import user_services as console_user_service
 from console.services.perm_services import perm_services as console_perm_service
@@ -98,10 +100,11 @@ class AllTeamView(BaseAPIView):
             for tenant in tenants:
                 tenant_dict = {}
                 tenant_limit_memory_list = []
-                region_list = console_region_service.get_region_list_by_team_name(request, tenant.tenant_name)
                 total_services = 0
                 run_app = 0
-                for region in region_list:
+                tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id).all()
+                for tenant_region in tenant_region_list:
+                    region = RegionConfig.objects.filter(region_name=tenant_region.region_name)
                     region_tenant_limit_memory = {}
                     res, body = http_client.get_tenant_limit_memory(region, tenant_name)
                     if int(res.status) >= 400:
@@ -127,8 +130,6 @@ class AllTeamView(BaseAPIView):
                 user_list = tenant_service.get_tenant_users(tenant.tenant_name)
                 tenant_dict["user_num"] = len(user_list)
                 tenant_dict["tenant_alias"] = tenant.tenant_alias
-                tenant_dict["tenant_alias"] = tenant.tenant_alias
-
                 list.append(tenant_dict)
             bean = {"total_tenant_num": allow_num, "cur_tenant_num": tenants_num}
 
