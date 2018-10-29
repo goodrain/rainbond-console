@@ -161,5 +161,11 @@ class UserService(object):
         users = Users.objects.filter(query).order_by("-user_id")
         return users
 
+    def get_user_by_user_id(self, user_id):
+        u = Users.objects.filter(user_id=user_id)
+        if not u:
+            raise UserNotExistError("用户{}不存在".format(user_id))
+        return u[0]
+
 
 user_service = UserService()

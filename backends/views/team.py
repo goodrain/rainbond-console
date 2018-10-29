@@ -96,6 +96,8 @@ class AllTeamView(BaseAPIView):
 
             for tenant in tenants:
                 tenant_dict = {}
+                user = user_service.get_user_by_user_id(tenant.creater)
+                tenant_dict["creater"] = user.nick_name
                 user_list = tenant_service.get_tenant_users(tenant.tenant_name)
                 tenant_dict["user_num"] = len(user_list)
                 tenant_dict.update(tenant.to_dict())
@@ -229,7 +231,6 @@ class AllTeamView(BaseAPIView):
         return Response(result)
 
 
-
 class TeamView(BaseAPIView):
     def get(self, request, tenant_name, *args, **kwargs):
         """
@@ -245,9 +246,12 @@ class TeamView(BaseAPIView):
         """
         try:
             tenant = tenant_service.get_tenant(tenant_name)
+            create_id = tenant.creater
+            user = user_service.get_user_by_user_id(create_id)
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
             user_num = len(user_list)
-            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num,"tenant_alias":tenant.tenant_alias}]
+            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num,
+                        "tenant_alias":tenant.tenant_alias, "creater": user.nick_name}]
             result = generate_result("0000", "success", "查询成功", list=rt_list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
