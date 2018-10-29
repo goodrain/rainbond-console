@@ -106,3 +106,21 @@ class HttpInvokeApi(BaseHttpClient):
         url = self.base_url + "/v2/nodes/resources"
         res, body = self._get(url, self.default_headers)
         return res,body
+
+    def get_region_resource(self, region):
+        self.update_client(region)
+        url = self.base_url + "/v2/nodes/fullres"
+        res, body = self._get(url, self.default_headers)
+        return res, body
+
+    def get_tenant_limit_memory(self, region, tenant_name):
+        self.update_client(region)
+        url = self.base_url + "/v2/tenants/{0}/limit_memory".format(tenant_name)
+        res, body = self._get(url, self.default_headers)
+        return res, body
+
+    def get_tenant_service_status(self, region, tenant_name, body):
+        self.update_client(region)
+        url = self.base_url + "/v2/tenants/{0}/services_status".format(tenant_name)
+        res, body = self._get(url, self.default_headers, body)
+        return res, body

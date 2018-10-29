@@ -391,4 +391,5 @@ class RegionService(object):
         RegionConfig.objects.filter(region_id=region_id).delete()
         RegionClusterInfo.objects.filter(region_id=region_id).delete()
 
+
 region_service = RegionService()

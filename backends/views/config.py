@@ -7,6 +7,8 @@ from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
+from console.services.enterprise_services import enterprise_services
+
 
 logger = logging.getLogger("default")
 
@@ -97,13 +99,16 @@ class TitleView(BaseAPIView):
         """
         try:
             title = request.data.get("title", None)
+            enterprise_alias = request.data.get("enterprise_alias")
             if title:
                 config_service.update_config("TITLE", title)
-
-            code = "0000"
-            msg = "success"
-            msg_show = "title修改成功"
-            result = generate_result(code, msg, msg_show)
+            enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
+            if not enter:
+                result = generate_result("0404", "not enter", "企业不存在")
+                return Response(result)
+            enter.enterprise_alias = enterprise_alias
+            enter.save()
+            result = generate_result("0000", "success", "信息更改成功")
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)

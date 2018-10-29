@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import json
 
 from rest_framework.response import Response
 from backends.services.exceptions import *
@@ -16,13 +17,15 @@ from console.services.user_services import user_services as console_user_service
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
-from console.services.service_services import base_service
 from console.services.team_services import team_services
-from console.services.user_services import user_services
 from console.repositories.app import service_repo
+from www.services import app_group_svc
+from backends.services.httpclient import HttpInvokeApi
+
 
 
 logger = logging.getLogger("default")
+http_client = HttpInvokeApi()
 
 
 class AllTeamView(BaseAPIView):
@@ -91,16 +94,41 @@ class AllTeamView(BaseAPIView):
             tenants_num = Tenants.objects.count()
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
-
             list = []
-
             for tenant in tenants:
                 tenant_dict = {}
-                # user = user_service.get_user_by_user_id(tenant.creater)
-                # tenant_dict["creater"] = user.nick_name
+                tenant_limit_memory_list = []
+                region_list = console_region_service.get_region_list_by_team_name(request, tenant.tenant_name)
+                total_services = 0
+                run_app = 0
+                for region in region_list:
+                    region_tenant_limit_memory = {}
+                    res, body = http_client.get_tenant_limit_memory(region, tenant_name)
+                    if int(res.status) >= 400:
+                        region_tenant_limit_memory["message"] = "{0}数据中心查询失败".format(region.region_name)
+                    region_tenant_limit_memory[region.region_name] = body["bean"]
+                    tenant_limit_memory_list.append(region_tenant_limit_memory)
+                    service_ids = service_repo.get_tenant_services(tenant.tenant_id)
+                    if service_ids:
+                        res, body = http_client.get_tenant_service_status(region, tenant_name, json.dumps(service_ids))
+                        total_region_services = len(body["list"])
+                        run_region_app = 0
+                        for app_status in body["list"]:
+                            status = app_status.get("status")
+                            if status == "running":
+                                run_region_app += 1
+                        total_services += total_region_services
+                        run_app += run_region_app
+                tenant_dict["total_services"] = total_services
+                tenant_dict["run_apps"] = run_app
+                tenant_dict["tenant_memory"] = tenant_limit_memory_list
+                user = user_service.get_user_by_user_id(tenant.creater)
+                tenant_dict["creater"] = user.nick_name
                 user_list = tenant_service.get_tenant_users(tenant.tenant_name)
                 tenant_dict["user_num"] = len(user_list)
-                tenant_dict.update(tenant.to_dict())
+                tenant_dict["tenant_alias"] = tenant.tenant_alias
+                tenant_dict["tenant_alias"] = tenant.tenant_alias
+
                 list.append(tenant_dict)
             bean = {"total_tenant_num": allow_num, "cur_tenant_num": tenants_num}
 
@@ -399,15 +427,18 @@ class TenantSortView(BaseAPIView):
             try:
                 tenant_list = tenant_service.get_team_by_name_or_alias_or_enter(tenant_name=None, tenant_alias=None,
                                                                                 enterprise_id=enterprise_id)
+                bean = {}
+                bean["tenant_num"] = len(tenant_list)
+                user_list = app_group_svc.get_user_by_eid(enterprise_id)
+                bean["user_num"] = len(user_list)
                 tenant_dict = {}
                 for tenant in tenant_list:
-
                     user_list = tenant_service.get_tenant_users(tenant.tenant_name)
                     service_list = service_repo.get_tenant_services(tenant.tenant_id)
                     total = len(user_list) + len(service_list)
                     tenant_dict[tenant.tenant_alias] = total
-                sort_list = sorted(tenant_dict.items(), key=lambda item:item[1], reverse=True)
-                result = generate_result('0000', 'success', '查询成功', list=sort_list)
+                sort_list = sorted(tenant_dict.items(), key=lambda item: item[1], reverse=True)
+                result = generate_result('0000', 'success', '查询成功', list=sort_list, bean=bean)
             except Exception as e:
                 logger.exception(e)
                 result = generate_result('9999', 'system error', '系统异常')

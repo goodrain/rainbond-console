@@ -115,7 +115,7 @@ class TenantEnterpriseView(BaseAPIView):
 class EnterpriseFuzzyQueryView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
-        更新企业信息
+        模糊查询企业信息
         ---
         parameters:
             - name: enterprise_alias
@@ -130,8 +130,8 @@ class EnterpriseFuzzyQueryView(BaseAPIView):
               paramType: form
         """
         try:
-            enterprise_alias = request.GET.get("enterprise_alias",None)
-            enterprise_name = request.GET.get("enterprise_name",None)
+            enterprise_alias = request.GET.get("enterprise_alias", None)
+            enterprise_name = request.GET.get("enterprise_name", None)
             enters = []
             if enterprise_alias:
                 enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_alias(enterprise_alias)
@@ -145,6 +145,7 @@ class EnterpriseFuzzyQueryView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
+
 
 class AuthAccessTokenView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):

@@ -6,6 +6,7 @@ from www.models import TenantRegionInfo
 
 
 class RegionRepo(object):
+
     def get_active_region_by_tenant_name(self, tenant_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=1, is_init=1)
@@ -55,5 +56,6 @@ class RegionRepo(object):
 
     def get_all_regions(self):
         return RegionConfig.objects.all()
+
 
 region_repo = RegionRepo()

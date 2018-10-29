@@ -7,7 +7,6 @@ from backends.views.announcement import AllAnnouncementView, AnnouncementView
 from backends.views.config import *
 from backends.views.event import ServiceOperateView, ServiceOperationDetailView
 from backends.views.resource.clusters import *
-from backends.views.resource.nodes import *
 from backends.views.resource.region import *
 from backends.views.tenants import *
 from backends.views.users import *
