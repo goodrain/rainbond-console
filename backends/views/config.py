@@ -772,15 +772,12 @@ class FtpConfigView(BaseAPIView):
 
 
 class EnterpriseInfoView(BaseAPIView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         """
         查询企业信息
         """
         try:
-            if not enterprise_id:
-                result = generate_result("0404", "enterprise not found", "参数缺失")
-                return Response(result)
-            enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
+            enterprise_info = enterprise_repo.get_enterprise_first()
             result = generate_result(200, "success", "查询成功", bean=enterprise_info.to_dict())
         except Exception as e:
             result = generate_error_result()
