@@ -54,6 +54,12 @@ class TenantServiceInfoRepository(object):
             return services[0]
         return None
 
+    def get_services_by_tenant_id(self, tenant_id):
+        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
+        if services:
+            return services
+        return 0
+
     def get_service_by_service_alias(self,service_alias):
         services = TenantServiceInfo.objects.filter(service_alias=service_alias)
         if services:

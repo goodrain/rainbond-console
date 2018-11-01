@@ -117,13 +117,13 @@ class HttpInvokeApi(BaseHttpClient):
     # 查看数据中心下团队的资源内存剩余
     def get_tenant_limit_memory(self, region):
         self.update_client(region)
-        url = self.base_url + "/v2/tenants/"
+        url = self.base_url + "/v2/tenants/resources_limit"
         res, body = self._get(url, self.default_headers)
         return res, body
 
     # 查看团队在某数据中心的应用状态
-    def get_tenant_service_status(self, region, tenant_name):
+    def get_tenant_service_status(self, region):
         self.update_client(region)
-        url = self.base_url + "/v2/tenants/{0}/services_status".format(tenant_name)
+        url = self.base_url + "/v2/tenants/services_status"
         res, body = self._get(url, self.default_headers)
         return res, body

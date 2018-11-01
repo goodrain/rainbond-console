@@ -23,6 +23,7 @@ from www.services import app_group_svc
 from console.repositories.user_repo import user_repo
 from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
+from console.repositories.region_repo import region_repo
 
 
 logger = logging.getLogger("default")
@@ -69,13 +70,11 @@ class AllTeamView(BaseAPIView):
             enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
             tenant_name = request.GET.get("tenant_name", None)
-            enterprise_id = None
             if enterprise_alias:
                 enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
                 if not enter:
                     return Response(
                         generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
-                enterprise_id = enter.enterprise_id
 
             if tenant_alias:
                 team = console_team_service.get_team_by_team_alias(tenant_alias)
@@ -91,30 +90,61 @@ class AllTeamView(BaseAPIView):
 
             cursor = connection.cursor()
             cursor.execute("select t.*, count(s.ID) as service_num from tenant_info as t,tenant_service as s where t.tenant_id=s.tenant_id group by tenant_id order by service_num desc;")
-            tenant_list = cursor.fetchall()
+            tenant_tuples = cursor.fetchall()
+            tenant_list = []
+            if tenant_alias:
+                for tenant_tuple in tenant_tuples:
+                    if tenant_tuple[13] == tenant_alias:
+                        tenant_list.append(tenant_tuple)
+            else:
+                for tenant_tuple in tenant_tuples:
+                    tenant_list.append(tenant_tuple)
             tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             tenants = tenant_paginator.page(int(page))
-
             tenants_num = Tenants.objects.count()
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
             list = []
-            # region_list = []
-            # for tenant in tenants:
-            #     tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[1])
-            #     if len(tenant_region_list) != 0:
-            #         for tenant_region in tenant_region_list:
-            #             region_list.append(tenant_region)
-            # region_lists = set(region_list)
-            # for region in region_lists:
-            #     region_obj = region_repo.get_region_by_region_name(region.region_name)
+            region_list = []
+            for tenant in tenants:
+                tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[1])
+                if len(tenant_region_list) != 0:
+                    for tenant_region in tenant_region_list:
+                        region_list.append(tenant_region.region_name)
+            region_lists = set(region_list)
+            tenant_info = {}
+            run_apps = []
+            run_app_num = 0
+            # for region_name in region_lists:
+            #     tenant_region = {}
+            #     region_obj = region_repo.get_region_by_region_name(region_name)
             #     if not region_obj:
             #         continue
             #     res, body = http_client.get_tenant_limit_memory(region_obj)
-            #     pass
+            #     if int(res.status) >= 400:
+            #         continue
+            #     ret, data = http_client.get_tenant_service_status(region_obj)
+            #     if int(ret.status) >= 400:
+            #         continue
+            #     for tenant in tenants:
+            #         if tenant[1] in body["bean"]:
+            #             tenant_region[region_obj.region_name] = body["bean"][tenant[1]]
+            #             if tenant[1] not in tenant_info:
+            #                 tenant_info[tenant[1]]["resources"] = tenant_region
+            #             else:
+            #                 tenant_info[tenant[1]]["resources"].update(tenant_region)
+            #         if tenant[1] in data["bean"]:
+            #             for run_app in run_apps:
+            #                 for key in run_app:
+            #                     if key == tenant[1]:
+            #                         run_app_num += run_app[tenant[1]]["service_running_num"]
+
+                # run_apps.append(body["bean"])
             for tenant in tenants:
                 tenant_dict = {}
-
+                tenant_dict["run_app_num"] = run_app_num
+                total_app = service_repo.get_services_by_tenant_id(tenant[1])
+                tenant_dict["total_app"] = total_app
                 user_list = tenant_service.get_tenant_users(tenant[2])
                 tenant_dict["user_num"] = len(user_list)
                 creater = user_service.get_creater_by_user_id(tenant[8])
@@ -135,15 +165,17 @@ class AllTeamView(BaseAPIView):
                 tenant_dict["enterprise_id"] = tenant[14]
                 tenant_dict["balance"] = tenant[6]
                 tenant_dict["ID"] = tenant[0]
-                list.append(tenant_dict)
-            bean = {"total_tenant_num": allow_num, "cur_tenant_num": tenants_num}
-
+                tenant_info[tenant[1]] = tenant_dict
+            num = {"tenants_num": tenants_num, "allow_num": allow_num}
+            list.append(num)
+            list.append(region_lists)
             result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=list, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=tenant_info, list=list, total=tenant_paginator.count
             )
         except Exception as e:
-            logger.exception(e)
-            result = generate_error_result()
+            logger.exception(e.message)
+            result = generate_result("9999", "faild", "{0}".format(e.message))
+            # result = generate_error_result()
         return Response(result)
 
     @transaction.atomic
