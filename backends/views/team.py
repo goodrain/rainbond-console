@@ -104,73 +104,82 @@ class AllTeamView(BaseAPIView):
             tenants_num = Tenants.objects.count()
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
-            list = []
+            list1 = []
             region_list = []
+
             for tenant in tenants:
-                tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[1])
+                tenant_id = tenant[1]
+                tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
                 if len(tenant_region_list) != 0:
                     for tenant_region in tenant_region_list:
                         region_list.append(tenant_region.region_name)
-            region_lists = set(region_list)
+            region_lists = list(set(region_list))
             tenant_info = {}
-            run_apps = []
-            run_app_num = 0
-            # for region_name in region_lists:
-            #     tenant_region = {}
-            #     region_obj = region_repo.get_region_by_region_name(region_name)
-            #     if not region_obj:
-            #         continue
-            #     res, body = http_client.get_tenant_limit_memory(region_obj)
-            #     if int(res.status) >= 400:
-            #         continue
-            #     ret, data = http_client.get_tenant_service_status(region_obj)
-            #     if int(ret.status) >= 400:
-            #         continue
-            #     for tenant in tenants:
-            #         if tenant[1] in body["bean"]:
-            #             tenant_region[region_obj.region_name] = body["bean"][tenant[1]]
-            #             if tenant[1] not in tenant_info:
-            #                 tenant_info[tenant[1]]["resources"] = tenant_region
-            #             else:
-            #                 tenant_info[tenant[1]]["resources"].update(tenant_region)
-            #         if tenant[1] in data["bean"]:
-            #             for run_app in run_apps:
-            #                 for key in run_app:
-            #                     if key == tenant[1]:
-            #                         run_app_num += run_app[tenant[1]]["service_running_num"]
 
-                # run_apps.append(body["bean"])
+            for region_name in region_lists:
+
+                region_obj = region_repo.get_region_by_region_name(region_name)
+                if not region_obj:
+                    continue
+                res, body = http_client.get_tenant_limit_memory(region_obj)
+                if int(res.status) >= 400:
+                    continue
+
+                for tenant in tenants:
+                    tenant_region = {}
+                    tenant_id = tenant[1]
+                    if tenant_id in body["bean"]:
+                        tenant_region[region_obj.region_name] = body["bean"][tenant_id]
+                        if tenant_id not in tenant_info:
+                            tenant_info[tenant_id]["resources"] = tenant_region
+                        else:
+                            tenant_info[tenant_id]["resources"].update(tenant_region)
+
+                ret, data = http_client.get_tenant_service_status(region_obj)
+                if int(ret.status) >= 400:
+                    continue
+
+                for tenant in tenants:
+                    tenant_id = tenant[1]
+                    if tenant_id in data.get("bean"):
+                        run_app_num = data["bean"][tenant_id]["service_running_num"]
+                        if tenant_id not in tenant_info:
+                            tenant_info[tenant_id]["run_app_num"] = run_app_num
+                        else:
+                            tenant_info[tenant_id]["run_app_num"] = tenant_info[tenant_id]["run_app_num"] + run_app_num
+
             for tenant in tenants:
-                tenant_dict = {}
-                tenant_dict["run_app_num"] = run_app_num
-                total_app = service_repo.get_services_by_tenant_id(tenant[1])
-                tenant_dict["total_app"] = total_app
+                tenant_id = tenant[1]
+                total_app = service_repo.get_services_by_tenant_id(tenant_id)
+                tenant_info[tenant_id]["total_app"] = total_app
+
                 user_list = tenant_service.get_tenant_users(tenant[2])
-                tenant_dict["user_num"] = len(user_list)
+                tenant_info[tenant_id]["user_num"] = len(user_list)
+
                 creater = user_service.get_creater_by_user_id(tenant[8])
                 if not creater:
-                    tenant_dict["tenant_creater"] = ''
+                    tenant_info[tenant_id]["tenant_creater"] = ''
                 else:
-                    tenant_dict["tenant_creater"] = creater.nick_name
-                tenant_dict["pay_type"] = tenant[5]
-                tenant_dict["update_time"] = tenant[10]
-                tenant_dict["tenant_alias"] = tenant[13]
-                tenant_dict["pay_level"] = tenant[11]
-                tenant_dict["tenant_name"] = tenant[2]
-                tenant_dict["region"] = tenant[3]
-                tenant_dict["is_active"] = tenant[4]
-                tenant_dict["create_time"] = tenant[7]
-                tenant_dict["expired_time"] = tenant[12]
-                tenant_dict["limit_memory"] = tenant[9]
-                tenant_dict["enterprise_id"] = tenant[14]
-                tenant_dict["balance"] = tenant[6]
-                tenant_dict["ID"] = tenant[0]
-                tenant_info[tenant[1]] = tenant_dict
+                    tenant_info[tenant_id]["tenant_creater"] = creater.nick_name
+                tenant_info[tenant_id]["pay_type"] = tenant[5]
+                tenant_info[tenant_id]["update_time"] = tenant[10]
+                tenant_info[tenant_id]["tenant_alias"] = tenant[13]
+                tenant_info[tenant_id]["pay_level"] = tenant[11]
+                tenant_info[tenant_id]["tenant_name"] = tenant[2]
+                tenant_info[tenant_id]["region"] = tenant[3]
+                tenant_info[tenant_id]["is_active"] = tenant[4]
+                tenant_info[tenant_id]["create_time"] = tenant[7]
+                tenant_info[tenant_id]["expired_time"] = tenant[12]
+                tenant_info[tenant_id]["limit_memory"] = tenant[9]
+                tenant_info[tenant_id]["enterprise_id"] = tenant[14]
+                tenant_info[tenant_id]["balance"] = tenant[6]
+                tenant_info[tenant_id]["ID"] = tenant[0]
+
             num = {"tenants_num": tenants_num, "allow_num": allow_num}
-            list.append(num)
-            list.append(region_lists)
+            list1.append(num)
+            list1.append(region_lists)
             result = generate_result(
-                "0000", "success", "查询成功", bean=tenant_info, list=list, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=tenant_info, list=list1, total=tenant_paginator.count
             )
         except Exception as e:
             logger.exception(e.message)
