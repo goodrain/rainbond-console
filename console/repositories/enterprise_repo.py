@@ -43,6 +43,7 @@ class TenantEnterpriseRepo(object):
     def get_by_enterprise_alias(self, enterprise_alias):
         return TenantEnterprise.objects.filter(enterprise_alias=enterprise_alias).first()
 
+
 class TenantEnterpriseUserPermRepo(object):
 
     def create_enterprise_user_perm(self, user_id, enterprise_id, identity):
@@ -50,6 +51,7 @@ class TenantEnterpriseUserPermRepo(object):
 
     def get_user_enterprise_perm(self, user_id,enterprise_id):
         return EnterpriseUserPerm.objects.filter(user_id=user_id,enterprise_id=enterprise_id)
+
 
 enterprise_repo = TenantEnterpriseRepo()
 enterprise_user_perm_repo = TenantEnterpriseUserPermRepo()

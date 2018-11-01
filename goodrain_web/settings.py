@@ -22,6 +22,8 @@ DEFAULT_HANDLERS = ['file_handler', 'console', 'zmq_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
+REGION_TOKEN = os.environ.get('REGION_TOKEN', 'Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a')
+
 IS_OPEN_API = False
 
 DEBUG = False

@@ -698,3 +698,24 @@ class RegionServiceApi(BaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body, region=region)
         return body
+
+    # 查看数据中心下团队的资源内存剩余
+    def get_tenant_limit_memory(self, region):
+        region_map = self.get_region_map(region)
+        token = region_map[region]['token']
+        url = region_map[region][
+                  'url'] + "/v2/tenants/"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers)
+        return res, body
+
+    # 查看团队在某数据中心的应用状态
+    def get_tenant_service_status(self, region, tenant_name):
+        region_map = self.get_region_map(region)
+        token = region_map[region]['token']
+        url = region_map[region][
+                  'url'] + "/v2/tenants/{0}/services_status".format(tenant_name)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers)
+        return res, body
+

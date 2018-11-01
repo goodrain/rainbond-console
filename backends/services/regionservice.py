@@ -9,7 +9,6 @@ from backends.services.httpclient import HttpInvokeApi
 from backends.services.tenantservice import tenant_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo, Tenants, TenantRegionInfo
-from www.utils.crypt import make_uuid
 from backends.services.exceptions import *
 from django.db.models import Sum, F
 from backends.services.configservice import config_service

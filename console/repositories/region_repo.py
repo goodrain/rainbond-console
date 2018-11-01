@@ -57,5 +57,8 @@ class RegionRepo(object):
     def get_all_regions(self):
         return RegionConfig.objects.all()
 
+    def get_region_info_by_region_name(self, region_name):
+        return RegionConfig.objects.filter(region_name=region_name)
+
 
 region_repo = RegionRepo()

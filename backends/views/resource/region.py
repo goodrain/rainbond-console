@@ -26,16 +26,7 @@ class RegionView(BaseAPIView):
             regions_info = []
             if regions:
                 for r in regions:
-                    clusters = cluster_service.get_cluster_by_region(r.region_id)
-                    if not clusters:
-                        cluster_id = make_uuid()
-                        cluster_alias = r.region_alias + u"-集群A"
-                        cluster_name = r.region_name + "-" + "c1"
-                        cluster_info = cluster_service.add_cluster(r.region_id, cluster_id, cluster_name, cluster_alias,
-                                                                   True)
-                        clusters = [cluster_info]
                     bean = r.to_dict()
-                    bean.update({"clusters": [c.to_dict() for c in clusters]})
                     regions_info.append(bean)
             result = generate_result("0000", "success", "查询成功", list=regions_info)
 

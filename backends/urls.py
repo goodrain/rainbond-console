@@ -25,7 +25,7 @@ urlpatterns = patterns(
 
     url(r'^v1/tenants/query', TenantsView.as_view()),
     url(r'^v1/users$', AllUserView.as_view()),
-    url(r'^v1/users/query$', UserQueryView.as_view()),
+    url(r'^v1/users/query$', UserFuzSerView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users/batch/delete', UserBatchDeleteView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users$', TenantUserView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', UserView.as_view()),

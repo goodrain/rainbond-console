@@ -100,7 +100,7 @@ class TitleView(BaseAPIView):
         """
         try:
             title = request.data.get("title", None)
-            enterprise_alias = request.data.get("enterprise_alias")
+            enterprise_alias = request.data.get("enterprise_alias", None)
             if title:
                 config_service.update_config("TITLE", title)
             enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
@@ -778,7 +778,7 @@ class EnterpriseInfoView(BaseAPIView):
         """
         try:
             enterprise_info = enterprise_repo.get_enterprise_first()
-            result = generate_result(200, "success", "查询成功", bean=enterprise_info.to_dict())
+            result = generate_result("0000", "success", "查询成功", bean=enterprise_info.to_dict())
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)
