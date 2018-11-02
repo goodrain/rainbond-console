@@ -25,7 +25,6 @@ from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
 from console.repositories.region_repo import region_repo
 
-
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
 regionClient = RegionServiceApi()
@@ -75,19 +74,16 @@ class AllTeamView(BaseAPIView):
                 if not enter:
                     return Response(
                         generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
-
             if tenant_alias:
                 team = console_team_service.get_team_by_team_alias(tenant_alias)
                 if not team:
                     return Response(
                         generate_result("0404", "team is not found", "团队别名{0}不存在".format(tenant_alias)))
-
             if tenant_name:
                 team = console_team_service.get_tenant_by_tenant_name(tenant_name)
                 if not team:
                     return Response(
                         generate_result("0404", "team is not found", "团队名称{0}不存在".format(tenant_name)))
-
             cursor = connection.cursor()
             cursor.execute("select t.*, count(s.ID) as service_num from tenant_info as t,tenant_service as s where t.tenant_id=s.tenant_id group by tenant_id order by service_num desc;")
             tenant_tuples = cursor.fetchall()
@@ -106,14 +102,18 @@ class AllTeamView(BaseAPIView):
             allow_num = 1000000
             list1 = []
             region_list = []
-
-            for tenant in tenants:
-                tenant_id = tenant[1]
-                tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
-                if len(tenant_region_list) != 0:
-                    for tenant_region in tenant_region_list:
-                        region_list.append(tenant_region.region_name)
-            region_lists = list(set(region_list))
+            try:
+                for tenant in tenants:
+                    tenant_id = tenant[1]
+                    tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
+                    if len(tenant_region_list) != 0:
+                        for tenant_region in tenant_region_list:
+                            region_list.append(tenant_region.region_name)
+                region_lists = list(set(region_list))
+            except Exception as e:
+                logger.exception(e)
+                result = generate_result("1111", "faild", "{0}".format(e.message))
+                return Response(result)
             tenant_info = {}
 
             for region_name in region_lists:
@@ -177,7 +177,7 @@ class AllTeamView(BaseAPIView):
 
             num = {"tenants_num": tenants_num, "allow_num": allow_num}
             list1.append(num)
-            list1.append(region_lists)
+            # list1.append(region_lists)
             result = generate_result(
                 "0000", "success", "查询成功", bean=tenant_info, list=list1, total=tenant_paginator.count
             )
@@ -328,7 +328,7 @@ class TeamView(BaseAPIView):
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
             user_num = len(user_list)
             rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num,
-                        "tenant_alias":tenant.tenant_alias, "creater": user.nick_name}]
+                        "tenant_alias": tenant.tenant_alias, "creater": user.nick_name}]
             result = generate_result("0000", "success", "查询成功", list=rt_list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
@@ -456,7 +456,7 @@ class TeamUsableRegionView(BaseAPIView):
                 regions = region_service.get_all_regions()
                 if regions:
                     region_name = regions[0].region_name
-            result = generate_result("0000", "success", "查询成功", bean={"region_name":region_name})
+            result = generate_result("0000", "success", "查询成功", bean={"region_name": region_name})
         except Exception as e:
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")
@@ -465,6 +465,7 @@ class TeamUsableRegionView(BaseAPIView):
 
 class TenantSortView(BaseAPIView):
     """企业下团队排行（根据人数+应用数）"""
+
     def get(self, request, *args, **kwargs):
 
         enterprise_id = request.GET.get("enterprise_id", None)
@@ -478,7 +479,7 @@ class TenantSortView(BaseAPIView):
                                                                                 enterprise_id=enterprise_id)
                 bean = {}
                 bean["tenant_num"] = len(tenant_list)
-                user_list = app_group_svc.get_user_by_eid(enterprise_id)
+                user_list = app_group_svc.get_users_by_eid(enterprise_id)
                 bean["user_num"] = len(user_list)
                 tenant_dict = {}
                 for tenant in tenant_list:
