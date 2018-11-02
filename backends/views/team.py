@@ -85,7 +85,8 @@ class AllTeamView(BaseAPIView):
                     return Response(
                         generate_result("0404", "team is not found", "团队名称{0}不存在".format(tenant_name)))
             cursor = connection.cursor()
-            cursor.execute("select t.*, count(s.ID) as service_num from tenant_info as t,tenant_service as s where t.tenant_id=s.tenant_id group by tenant_id order by service_num desc;")
+            cursor.execute(
+                "select t.*, count(s.ID) as service_num from tenant_info as t,tenant_service as s where t.tenant_id=s.tenant_id group by tenant_id order by service_num desc;")
             tenant_tuples = cursor.fetchall()
             tenant_list = []
             if tenant_alias:
@@ -98,11 +99,10 @@ class AllTeamView(BaseAPIView):
             tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             tenants = tenant_paginator.page(int(page))
             tenants_num = Tenants.objects.count()
-            # 需要license控制，现在没有，默认为一百万
-            allow_num = 1000000
-            list1 = []
-            region_list = []
+
             try:
+
+                region_list = []
                 for tenant in tenants:
                     tenant_id = tenant[1]
                     tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
@@ -112,46 +112,81 @@ class AllTeamView(BaseAPIView):
                 region_lists = list(set(region_list))
             except Exception as e:
                 logger.exception(e)
-                result = generate_result("1111", "faild", "{0}".format(e.message))
+                result = generate_result("1111", "2.faild", "{0}".format(e.message))
                 return Response(result)
+
             tenant_info = {}
+            logger.debug("region_lists", region_lists)
+            try:
+                resources_dicts = {}
+                for region_name in region_lists:
 
-            for region_name in region_lists:
+                    region_obj = region_repo.get_region_by_region_name(region_name)
+                    if not region_obj:
+                        continue
+                    res, body = http_client.get_tenant_limit_memory(region_obj)
+                    logger.debug("==========", res, body)
+                    if int(res.status) >= 400:
+                        continue
+                    logger.debug("===========", tenants)
+                    try:
+                        for tenant in tenants:
 
-                region_obj = region_repo.get_region_by_region_name(region_name)
-                if not region_obj:
-                    continue
-                res, body = http_client.get_tenant_limit_memory(region_obj)
-                if int(res.status) >= 400:
-                    continue
+                            tenant_region = {}
+                            tenant_id = tenant[1]
+                            if tenant_id in body["bean"]:
+                                # tenant_region["name1"] = {"cpu_total":0, "cpu_use":0}
+                                tenant_region[region_obj.region_name] = body["bean"][tenant_id]
+                                if tenant_id not in resources_dicts:
+                                    resources_dicts[tenant_id] = {"resources": tenant_region}
+                                else:
+                                    resources_dicts[tenant_id]["resources"].update(tenant_region)
+                    except Exception as e:
+                        logger.exception(e)
+                        result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
+                        return Response(result)
+            except Exception as e:
+                logger.exception(e)
+                result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
+                return Response(result)
+            try:
+                run_app_num_dicts = {}
+                for region_name in region_lists:
 
-                for tenant in tenants:
-                    tenant_region = {}
-                    tenant_id = tenant[1]
-                    if tenant_id in body["bean"]:
-                        tenant_region[region_obj.region_name] = body["bean"][tenant_id]
-                        if tenant_id not in tenant_info:
-                            tenant_info[tenant_id]["resources"] = tenant_region
-                        else:
-                            tenant_info[tenant_id]["resources"].update(tenant_region)
+                    region_obj = region_repo.get_region_by_region_name(region_name)
+                    if not region_obj:
+                        continue
+                    ret, data = http_client.get_tenant_service_status(region_obj)
+                    logger.debug("=========", ret, data)
+                    if int(ret.status) >= 400:
+                        continue
 
-                ret, data = http_client.get_tenant_service_status(region_obj)
-                if int(ret.status) >= 400:
-                    continue
-
-                for tenant in tenants:
-                    tenant_id = tenant[1]
-                    if tenant_id in data.get("bean"):
-                        run_app_num = data["bean"][tenant_id]["service_running_num"]
-                        if tenant_id not in tenant_info:
-                            tenant_info[tenant_id]["run_app_num"] = run_app_num
-                        else:
-                            tenant_info[tenant_id]["run_app_num"] = tenant_info[tenant_id]["run_app_num"] + run_app_num
+                    for tenant in tenants:
+                        tenant_id = tenant[1]
+                        if tenant_id in data.get("bean"):
+                            run_app_num = data["bean"][tenant_id]["service_running_num"]
+                            logger.debug(run_app_num)
+                            if tenant_id not in run_app_num_dicts:
+                                run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
+                            else:
+                                run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
+            except Exception as e:
+                logger.exception(e)
+                result = generate_result("1111", "2.7-faild", "{0}".format(e.message))
+                return Response(result)
 
             for tenant in tenants:
                 tenant_id = tenant[1]
+                tenant_info[tenant_id] = {}
+                for key in run_app_num_dicts:
+                    if key == tenant_id:
+                        tenant_info[tenant_id]["run_app_num"] = run_app_num_dicts[key]["run_app_num"]
+                for key in resources_dicts:
+                    if key == tenant_id:
+                        tenant_info[tenant_id]["resources"] = resources_dicts[key]["resources"]
+
                 total_app = service_repo.get_services_by_tenant_id(tenant_id)
-                tenant_info[tenant_id]["total_app"] = total_app
+                tenant_info[tenant_id]["total_app"] =  total_app
 
                 user_list = tenant_service.get_tenant_users(tenant[2])
                 tenant_info[tenant_id]["user_num"] = len(user_list)
@@ -174,18 +209,19 @@ class AllTeamView(BaseAPIView):
                 tenant_info[tenant_id]["enterprise_id"] = tenant[14]
                 tenant_info[tenant_id]["balance"] = tenant[6]
                 tenant_info[tenant_id]["ID"] = tenant[0]
-
+            # 需要license控制，现在没有，默认为一百万
+            allow_num = 1000000
+            list1 = []
             num = {"tenants_num": tenants_num, "allow_num": allow_num}
             list1.append(num)
-            # list1.append(region_lists)
+            list1.append(region_lists)
             result = generate_result(
                 "0000", "success", "查询成功", bean=tenant_info, list=list1, total=tenant_paginator.count
             )
+            return Response(result)
         except Exception as e:
-            logger.exception(e.message)
-            result = generate_result("9999", "faild", "{0}".format(e.message))
-            # result = generate_error_result()
-        return Response(result)
+            result = generate_result("1111", "4.faild", "{0}".format(e.message))
+            return Response(result)
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
