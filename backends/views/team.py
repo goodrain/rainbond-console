@@ -212,11 +212,11 @@ class AllTeamView(BaseAPIView):
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
             list1 = []
-            num = {"tenants_num": tenants_num, "allow_num": allow_num}
-            list1.append(num)
-            list1.append(region_lists)
+            bean = {"tenants_num": tenants_num, "allow_num": allow_num}
+            for val in tenant_info.values():
+                list1.append(val)
             result = generate_result(
-                "0000", "success", "查询成功", bean=tenant_info, list=list1, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
             )
             return Response(result)
         except Exception as e:
