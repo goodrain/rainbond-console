@@ -522,7 +522,8 @@ class TenantSortView(BaseAPIView):
                     user_list = tenant_service.get_tenant_users(tenant.tenant_name)
                     service_list = service_repo.get_tenant_services(tenant.tenant_id)
                     total = len(user_list) + len(service_list)
-                    tenant_dict[tenant.tenant_alias] = total
+                    tenant_dict[tenant.tenant_alias] = [total]
+                    tenant_dict[tenant.tenant_alias].append(len(user_list))
                 sort_list = sorted(tenant_dict.items(), key=lambda item: item[1], reverse=True)
                 result = generate_result('0000', 'success', '查询成功', list=sort_list, bean=bean)
             except Exception as e:
