@@ -136,7 +136,7 @@ class AllTeamView(BaseAPIView):
                             tenant_id = tenant[1]
                             if tenant_id in body["bean"]:
                                 # tenant_region["name1"] = {"cpu_total":0, "cpu_use":0}
-                                tenant_region[region_obj.region_name] = body["bean"][tenant_id]
+                                tenant_region[region_obj.region_alias] = body["bean"][tenant_id]
                                 if tenant_id not in resources_dicts:
                                     resources_dicts[tenant_id] = {"resources": tenant_region}
                                 else:
