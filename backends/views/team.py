@@ -86,9 +86,10 @@ class AllTeamView(BaseAPIView):
                         generate_result("0404", "team is not found", "团队名称{0}不存在".format(tenant_name)))
             cursor = connection.cursor()
             cursor.execute(
-                "select t.*, count(s.ID) as service_num from tenant_info as t,tenant_service as s where t.tenant_id=s.tenant_id group by tenant_id order by service_num desc;")
+                "select * from tenant_info order by create_time desc;")
             tenant_tuples = cursor.fetchall()
             tenant_list = []
+            # 通过别名来搜索团队
             if tenant_alias:
                 for tenant_tuple in tenant_tuples:
                     if tenant_tuple[13] == tenant_alias:
@@ -96,12 +97,13 @@ class AllTeamView(BaseAPIView):
             else:
                 for tenant_tuple in tenant_tuples:
                     tenant_list.append(tenant_tuple)
+            # 分页
             tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             tenants = tenant_paginator.page(int(page))
             tenants_num = Tenants.objects.count()
 
             try:
-
+                # 查询所有团队有哪些数据中心
                 region_list = []
                 for tenant in tenants:
                     tenant_id = tenant[1]
@@ -124,6 +126,7 @@ class AllTeamView(BaseAPIView):
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
+                    # 获取数据中心下每个团队的使用资源
                     res, body = http_client.get_tenant_limit_memory(region_obj)
                     logger.debug("==========", res, body)
                     if int(res.status) >= 400:
@@ -156,6 +159,7 @@ class AllTeamView(BaseAPIView):
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
+                    # 获取数据中心下每个团队的运行的应用数量
                     ret, data = http_client.get_tenant_service_status(region_obj)
                     logger.debug("=========", ret, data)
                     if int(ret.status) >= 400:
@@ -176,6 +180,7 @@ class AllTeamView(BaseAPIView):
                 return Response(result)
 
             for tenant in tenants:
+                # 为每个团队拼接信息
                 tenant_id = tenant[1]
                 tenant_info[tenant_id] = {}
                 for key in run_app_num_dicts:
