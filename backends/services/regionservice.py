@@ -140,7 +140,7 @@ class RegionService(object):
         cluster_config.save()
 
     def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain,
-                                      tcpdomain, desc, scope):
+                                      tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file):
 
         if not wsurl:
             return False, "数据中心websocket地址不能为空", None
@@ -176,7 +176,10 @@ class RegionService(object):
                                      url=url,
                                      create_time=create_time,
                                      status='2',
-                                     token=token)
+                                     token=token,
+                                     ssl_ca_cert=ssl_ca_cert,
+                                     cert_file=cert_file,
+                                     key_file=key_file)
         region_config.save()
         return True, "数据中心添加成功",region_config
 

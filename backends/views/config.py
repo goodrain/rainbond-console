@@ -783,3 +783,24 @@ class EnterpriseInfoView(BaseAPIView):
             result = generate_error_result()
             logger.exception(e)
         return Response(result)
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改企业名称
+        """
+        try:
+            enterprise_alias = request.data.get('enterprise_alias')
+            if not enterprise_alias:
+                result = generate_result("1003", "not parameter", "参数缺失")
+                return Response(result)
+            enterprise_info = enterprise_repo.get_enterprise_first()
+            if not enterprise_info:
+                result = generate_result("0404", "not enter", "企业不存在")
+                return Response(result)
+            enterprise_info = enterprise_alias
+            enterprise_info.save()
+            result = generate_result("0000", "success", "修改成功")
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)

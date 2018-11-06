@@ -27,3 +27,12 @@ ALTER TABLE tenant_service_delete ADD COLUMN `console_center_uuid` varchar(128) 
 
 
 ALTER TABLE rainbond_center_app ADD COLUMN `console_center_uuid` varchar(128) DEFAULT "";
+
+-- 修改region_info证书相关字段格式
+
+ALTER TABLE region_info MODIFY `ssl_ca_cert` TEXT;
+
+ALTER TABLE region_info MODIFY `cert_file` TEXT;
+
+ALTER TABLE region_info MODIFY `key_file` TEXT;
+

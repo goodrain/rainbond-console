@@ -64,9 +64,9 @@ class RegionConfig(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")
     scope = models.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
-    ssl_ca_cert = models.CharField(max_length=128, blank=True, help_text=u"数据中心访问ca证书地址")
-    cert_file = models.CharField(max_length=128, blank=True, help_text=u"验证文件")
-    key_file = models.CharField(max_length=128, blank=True, help_text=u"验证的key")
+    ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
+    cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
+    key_file = models.TextField(blank=True, null=True, help_text=u"验证的key")
 
 
 class RegionClusterInfo(BaseModel):

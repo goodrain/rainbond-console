@@ -103,10 +103,13 @@ class RegionView(BaseAPIView):
             tcpdomain = request.data.get("tcpdomain", None)
             desc = request.data.get("desc", "")
             scope = request.data.get("scope", None)
+            ssl_ca_cert = request.data.get("ssl_ca_cert", None)
+            cert_file = request.data.get("cert_file", None)
+            key_file = request.data.get("key_file", None)
 
             is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
                                                                      wsurl, httpdomain,
-                                                                     tcpdomain, desc, scope)
+                                                                     tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file)
             if not is_success:
                 result = generate_result("2001", "add console region error", msg)
             else:
