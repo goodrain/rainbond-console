@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import json
 from rest_framework.response import Response
 from django.forms.models import model_to_dict
 from backends.models.main import Announcement
@@ -96,9 +97,7 @@ class AnnouncementView(BaseAPIView):
             paramType: body
         """
         try:
-            data = request.data["body"]
-            import json
-            data = json.loads(data)
+            data = request.data
             params = {}
 
             for k, v in data.iteritems():
