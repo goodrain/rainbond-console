@@ -100,16 +100,11 @@ class TitleView(BaseAPIView):
         """
         try:
             title = request.data.get("title", None)
-            enterprise_alias = request.data.get("enterprise_alias", None)
             if title:
                 config_service.update_config("TITLE", title)
-            enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
-            if not enter:
-                result = generate_result("0404", "not enter", "企业不存在")
-                return Response(result)
-            enter.enterprise_alias = enterprise_alias
-            enter.save()
-            result = generate_result("0000", "success", "信息更改成功")
+                result = generate_result("0000", "success", "信息更改成功")
+            else:
+                result = generate_result("0404", "not title", "没有标题")
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)
@@ -797,7 +792,7 @@ class EnterpriseInfoView(BaseAPIView):
             if not enterprise_info:
                 result = generate_result("0404", "not enter", "企业不存在")
                 return Response(result)
-            enterprise_info = enterprise_alias
+            enterprise_info.enterprise_alias = enterprise_alias
             enterprise_info.save()
             result = generate_result("0000", "success", "修改成功")
         except Exception as e:
