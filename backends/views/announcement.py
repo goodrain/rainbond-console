@@ -11,7 +11,7 @@ from backends.serializers import AnnouncementSerilizer
 logger = logging.getLogger("default")
 
 
-class AllAnnouncementView(BaseAPIView):
+class   AllAnnouncementView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
         获取所有公告信息
@@ -76,10 +76,10 @@ class AnnouncementView(BaseAPIView):
         """
         try:
             Announcement.objects.get(announcement_id=announcement_id).delete()
-            result = generate_result("0000", "success", "公告删除成功")
+            result = generate_result("0000", "success", "successfully deleted")
 
         except Announcement.DoesNotExist as e:
-            result = generate_result("8001", "label not exist", "该公告不存在")
+            result = generate_result("8001", "label not exist", "Announcement does not exist")
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
