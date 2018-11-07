@@ -222,10 +222,8 @@ class AllTeamView(BaseAPIView):
             for val in tenant_info.values():
                 list1.append(val)
             list1.sort(key=operator.itemgetter('total_app'), reverse=True)
-            tenant_paginator = JuncheePaginator(list1, int(page_size))
-            tenants = tenant_paginator.page(int(page))
             result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=tenants, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
             )
             return Response(result)
         except Exception as e:
