@@ -99,14 +99,14 @@ class AllTeamView(BaseAPIView):
                 for tenant_tuple in tenant_tuples:
                     tenant_list.append(tenant_tuple)
             # 分页
-            tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
-            tenants = tenant_paginator.page(int(page))
+            # tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
+            # tenants = tenant_paginator.page(int(page))
             tenants_num = Tenants.objects.count()
 
             try:
                 # 查询所有团队有哪些数据中心
                 region_list = []
-                for tenant in tenants:
+                for tenant in tenant_list:
                     tenant_id = tenant[1]
                     tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
                     if len(tenant_region_list) != 0:
@@ -132,9 +132,9 @@ class AllTeamView(BaseAPIView):
                     logger.debug("==========", res, body)
                     if int(res.status) >= 400:
                         continue
-                    logger.debug("===========", tenants)
+                    logger.debug("===========", tenant_list)
                     try:
-                        for tenant in tenants:
+                        for tenant in tenant_list:
 
                             tenant_region = {}
                             tenant_id = tenant[1]
@@ -166,7 +166,7 @@ class AllTeamView(BaseAPIView):
                     if int(ret.status) >= 400:
                         continue
 
-                    for tenant in tenants:
+                    for tenant in tenant_list:
                         tenant_id = tenant[1]
                         if tenant_id in data.get("bean"):
                             run_app_num = data["bean"][tenant_id]["service_running_num"]
@@ -180,7 +180,7 @@ class AllTeamView(BaseAPIView):
                 result = generate_result("1111", "2.7-faild", "{0}".format(e.message))
                 return Response(result)
 
-            for tenant in tenants:
+            for tenant in tenant_list:
                 # 为每个团队拼接信息
                 tenant_id = tenant[1]
                 tenant_info[tenant_id] = {}
@@ -223,7 +223,7 @@ class AllTeamView(BaseAPIView):
                 list1.append(val)
             list1.sort(key=operator.itemgetter('total_app'), reverse=True)
             result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=bean, list=list1
             )
             return Response(result)
         except Exception as e:
