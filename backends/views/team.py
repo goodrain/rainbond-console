@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import operator
 
 from rest_framework.response import Response
 from django.db import connection
@@ -220,6 +221,7 @@ class AllTeamView(BaseAPIView):
             bean = {"tenants_num": tenants_num, "allow_num": allow_num}
             for val in tenant_info.values():
                 list1.append(val)
+            list1.sort(key=operator.itemgetter('total_app'), reverse=True)
             result = generate_result(
                 "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
             )

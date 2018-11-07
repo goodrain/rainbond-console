@@ -51,7 +51,7 @@ urlpatterns = patterns(
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     # # url(r'^v1/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)', TenantRegionResourceView.as_view()),
     # 获取数据中心应用异常信息
-    url(r'^regions/(?P<region_id>[\w\-]+)/app_abnormal$', RegionAppAbnormal.as_view()),
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/app_abnormal$', RegionAppAbnormal.as_view()),
     # # url(r'^v1/regions/resources/manage$', RegionResourceView.as_view()),
     # url(r'^v1/regions/tenants/resources$', TenantRegionResourceView.as_view()),
     # url(r'^v1/regions/tenants/resources/real$', TenantRegionRealResourceView.as_view()),
