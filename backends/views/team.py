@@ -87,7 +87,7 @@ class AllTeamView(BaseAPIView):
                         generate_result("0404", "team is not found", "团队名称{0}不存在".format(tenant_name)))
             cursor = connection.cursor()
             cursor.execute(
-                "select * from tenant_info order by create_time desc;")
+                "select * from tenant_info")
             tenant_tuples = cursor.fetchall()
             tenant_list = []
             # 通过别名来搜索团队
@@ -222,8 +222,10 @@ class AllTeamView(BaseAPIView):
             for val in tenant_info.values():
                 list1.append(val)
             list1.sort(key=operator.itemgetter('total_app'), reverse=True)
+            tenant_paginator = JuncheePaginator(list1, int(page_size))
+            tenants = tenant_paginator.page(int(page))
             result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
+                "0000", "success", "查询成功", bean=bean, list=tenants, total=tenant_paginator.count
             )
             return Response(result)
         except Exception as e:
