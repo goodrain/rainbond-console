@@ -1360,3 +1360,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
+    # 获取数据中心应用异常信息
+
+    def get_app_abnormal(self, url, token, region, start_stamp, end_stamp):
+        url += "/v2/notificationEvent?start={0}&end={1}".format(start_stamp, end_stamp)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body

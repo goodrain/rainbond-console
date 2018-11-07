@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 
 import logging
+import time
+import datetime
 
 from rest_framework.response import Response
 
@@ -219,3 +221,29 @@ class RegionStatusView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
+
+
+class RegionAppAbnormal(BaseAPIView):
+    def get(self, request, region_id, *args, **kwargs):
+        """获取数据中心应用异常信息(默认最近三天)"""
+        try:
+            start_stamp = request.GET.get('start', 0)
+            end_stamp = request.GET.get('end', 0)
+            if not end_stamp:
+                # 获取当前时间戳
+                end_stamp = int(time.time())
+            if not start_stamp:
+                # 获取三天前时间戳
+                three_day_ago = (datetime.datetime.now() - datetime.timedelta(days=3))
+                start_stamp = int(time.mktime(three_day_ago.timetuple()))
+            app_list = region_service.get_app_abnormal(region_id, start_stamp, end_stamp)
+            result = generate_result("0000", "success", "查询成功", list=app_list)
+        except RegionNotExistError as e:
+            result = generate_result("2002", "region not exist", e.message)
+        except RegionAccessError as e:
+            result = generate_result("2003", "region access", e.message)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+

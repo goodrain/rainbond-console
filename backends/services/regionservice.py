@@ -12,6 +12,7 @@ from www.models.main import TenantServiceInfo, Tenants, TenantRegionInfo
 from backends.services.exceptions import *
 from django.db.models import Sum, F
 from backends.services.configservice import config_service
+from console.repositories.app import service_repo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger('default')
@@ -392,6 +393,24 @@ class RegionService(object):
     def delete_region_by_region_id(self, region_id):
         RegionConfig.objects.filter(region_id=region_id).delete()
         RegionClusterInfo.objects.filter(region_id=region_id).delete()
+
+    def get_app_abnormal(self, region_id, start_stamp, end_stamp):
+        if not RegionConfig.objects.filter(region_id=region_id).exists():
+            raise RegionNotExistError("数据中心不存在")
+        region_config = RegionConfig.objects.get(region_id=region_id)
+        res, body = region_api.get_app_abnormal(region_config.url, region_config.token, region_config.region_name,
+                                                start_stamp, end_stamp)
+        if res["status"] >= 400:
+            raise RegionAccessError("数据中心查询出错")
+        app_list = body["list"]
+        for app_dict in reversed(app_list):
+            if not app_dict.get("ServiceName"):
+                app_list.remove(app_dict)
+        for app_dicts in app_list:
+            service_alias = app_dicts.get("ServiceName")
+            service = service_repo.get_service_by_service_alias(service_alias)
+            app_dicts["ServiceAlias"] = service.service_cname
+        return app_list
 
 
 region_service = RegionService()
