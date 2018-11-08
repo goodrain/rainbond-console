@@ -222,7 +222,10 @@ class AllUserView(BaseAPIView):
             page = request.GET.get("page_num", 1)
             page_size = request.GET.get("page_size", 20)
             user_name = request.GET.get("user_name", None)
-            user_list = user_service.get_by_username_or_phone_or_email(user_name)
+            if user_name:
+                user_list = user_service.get_by_username_or_phone_or_email(user_name)
+            else:
+                user_list = user_service.get_all_users()
             user_paginator = JuncheePaginator(user_list, int(page_size))
             users = user_paginator.page(int(page))
             list = []

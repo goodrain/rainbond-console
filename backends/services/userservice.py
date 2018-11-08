@@ -154,11 +154,11 @@ class UserService(object):
             return False
 
     def get_by_username_or_phone_or_email(self, query_condition):
-        query = Q()
-        if query_condition:
-            query = query | Q(nick_name=query_condition) | Q(phone=query_condition) | Q(email=query_condition)
+        # query = Q()
+        # if query_condition:
+        #     query = query | Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)
 
-        users = Users.objects.filter(query).order_by("-user_id")
+        users = Users.objects.filter(Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition))
         return users
 
     def get_user_by_user_id(self, user_id):
