@@ -75,11 +75,11 @@ class AllTeamView(BaseAPIView):
                 if not enter:
                     return Response(
                         generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
-            if tenant_alias:
-                team = console_team_service.get_team_by_team_alias(tenant_alias)
-                if not team:
-                    return Response(
-                        generate_result("0404", "team is not found", "团队别名{0}不存在".format(tenant_alias)))
+            # if tenant_alias:
+            #     team = console_team_service.get_team_by_team_alias(tenant_alias)
+            #     if not team:
+            #         return Response(
+            #             generate_result("0404", "team is not found", "团队别名{0}不存在".format(tenant_alias)))
             if tenant_name:
                 team = console_team_service.get_tenant_by_tenant_name(tenant_name)
                 if not team:
@@ -94,7 +94,7 @@ class AllTeamView(BaseAPIView):
             # 通过别名来搜索团队
             if tenant_alias:
                 for tenant_tuple in tenant_tuples:
-                    if tenant_tuple[13] == tenant_alias:
+                    if tenant_alias in tenant_tuple[13]:
                         tenant_list.append(tenant_tuple)
             else:
                 for tenant_tuple in tenant_tuples:
