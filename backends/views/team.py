@@ -65,8 +65,8 @@ class AllTeamView(BaseAPIView):
 
         """
         try:
-            page = request.GET.get("page_num", 1)
-            page_size = request.GET.get("page_size", 20)
+            # page = request.GET.get("page_num", 1)
+            # page_size = request.GET.get("page_size", 20)
             enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
             tenant_name = request.GET.get("tenant_name", None)
@@ -90,6 +90,7 @@ class AllTeamView(BaseAPIView):
                 "select * from tenant_info")
             tenant_tuples = cursor.fetchall()
             tenant_list = []
+            # tenant_list = [(), (), ()]
             # 通过别名来搜索团队
             if tenant_alias:
                 for tenant_tuple in tenant_tuples:
@@ -531,6 +532,7 @@ class TenantSortView(BaseAPIView):
                     total = len(user_list) + len(service_list)
                     tenant_dict[tenant.tenant_alias] = [total]
                     tenant_dict[tenant.tenant_alias].append(len(user_list))
+                    # 根据应用数加用户数倒序
                 sort_list = sorted(tenant_dict.items(), key=lambda item: item[1], reverse=True)
                 result = generate_result('0000', 'success', '查询成功', list=sort_list, bean=bean)
             except Exception as e:
