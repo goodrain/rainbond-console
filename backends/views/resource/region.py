@@ -96,7 +96,6 @@ class RegionView(BaseAPIView):
         """
         try:
             region_name = request.data.get("region_name", None)
-            region_id = request.data.get("region_id", None)
             region_alias = request.data.get("region_alias", None)
             url = request.data.get("url", None)
             token = request.data.get("token", None)
@@ -108,7 +107,7 @@ class RegionView(BaseAPIView):
             ssl_ca_cert = request.data.get("ssl_ca_cert", None)
             cert_file = request.data.get("cert_file", None)
             key_file = request.data.get("key_file", None)
-
+            region_id = make_uuid()
             is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
                                                                      wsurl, httpdomain,
                                                                      tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file)

@@ -156,14 +156,14 @@ class RegionService(object):
             return False, "数据中心名{}在云帮已存在".format(region_name), None
         if RegionConfig.objects.filter(region_alias=region_alias).exists():
             return False, "数据中心别名{}在云帮已存在".format(region_alias), None
-        try:
-            res, body = region_api.get_api_version(url, token, region_name)
-            status = int(res.status)
-            if status != 200:
-                return False, "该数据中心云帮{0}无法访问".format(region_name), None
-        except Exception as e:
-            logger.exception(e)
-            return False, "该数据中心云帮{0}无法访问".format(region_name), None
+        # try:
+        #     res, body = region_api.get_api_version(url, token, region_name)
+        #     status = int(res.status)
+        #     if status != 200:
+        #         return False, "该数据中心云帮{0}无法访问".format(region_name), None
+        # except Exception as e:
+        #     logger.exception(e)
+        #     return False, "该数据中心云帮{0}无法访问".format(region_name), None
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         region_config = RegionConfig(region_id=region_id,
