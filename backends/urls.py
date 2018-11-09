@@ -8,6 +8,7 @@ from backends.views.config import *
 from backends.views.event import ServiceOperateView, ServiceOperationDetailView
 from backends.views.resource.clusters import *
 from backends.views.resource.region import *
+from backends.views.resource.nodes import *
 from backends.views.tenants import *
 from backends.views.users import *
 from backends.views.team import *
@@ -71,8 +72,9 @@ urlpatterns = patterns(
     #     NodeOperateView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>[\w\-]+)/brief$',
     #     NodeBriefInfoView.as_view()),
-    # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
-    #     NodeLabelsView.as_view()),
+    # 编辑节点标签
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
+        NodeLabelsView.as_view()),
 
     # 所有节点
     # url(r'^v1/nodes$', AllNodesView.as_view()),
