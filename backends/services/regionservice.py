@@ -178,10 +178,12 @@ class RegionService(object):
             res, body = region_api.get_api_version(url, token, region_name)
             status = int(res.status)
             if status != 200:
+                RegionConfig.objects.filter(region_name=region_name).delete()
                 return False, "该数据中心云帮{0}无法访问".format(region_name), None
         except Exception as e:
             logger.exception(e)
-            return False, "该数据中心云帮{0}无法访问".format(region_name), None
+            RegionConfig.objects.filter(region_name=region_name).delete()
+            return False, "该数据中心云帮{0}异常".format(region_name), None
 
         return True, "数据中心添加成功",region_config
 
