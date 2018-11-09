@@ -373,7 +373,7 @@ class NodeService(object):
         # <type 'unicode'>
         labels_map = json.loads(labels_map.replace("'", '"'))
         all_labels = Labels.objects.all()
-        label_id_map = {l.label_name: l.label_id for l in all_labels}
+        label_id_map = {l.label_alias: l.label_id for l in all_labels}
         node_labels = []
         for k, v in labels_map.iteritems():
             # 对于用户自定义的标签进行操作
@@ -384,7 +384,6 @@ class NodeService(object):
                                             node_uuid=node_uuid,
                                             label_id=label_id)
                     node_labels.append(node_label)
-
         res, body = self.http_client.update_node_labels(region, node_uuid, json.dumps(labels_map))
         NodeLabels.objects.filter(region_id=region_id, node_uuid=node_uuid).delete()
         NodeLabels.objects.bulk_create(node_labels)
