@@ -36,3 +36,7 @@ ALTER TABLE region_info MODIFY `cert_file` TEXT;
 
 ALTER TABLE region_info MODIFY `key_file` TEXT;
 
+-- 删除node_labels中字段cluster_id
+
+ALTER TABLE node_labels DROP cluster_id;
+

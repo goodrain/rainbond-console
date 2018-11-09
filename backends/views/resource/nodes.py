@@ -409,18 +409,13 @@ class RegionNodesView(BaseAPIView):
 class NodeLabelsView(BaseAPIView):
     """节点标签"""
 
-    def post(self, request, region_id, cluster_id, node_uuid, *args, **kwargs):
+    def post(self, request, region_id, node_uuid, *args, **kwargs):
         """
         节点标签添加
         ---
         parameters:
             - name: region_id
               description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: cluster_id
-              description: 集群ID
               required: true
               type: string
               paramType: path
@@ -439,7 +434,7 @@ class NodeLabelsView(BaseAPIView):
         try:
             labels = request.data.get("labels")
             logger.debug("===========> labels {0}".format(labels))
-            node_service.update_node_labels(region_id, cluster_id, node_uuid, labels)
+            node_service.update_node_labels(region_id, node_uuid, labels)
 
             result = generate_result(
                 "0000", "success", "节点标签更新成功")

@@ -377,7 +377,6 @@ class NodeService(object):
                 label_id = label_id_map.get(k, None)
                 if label_id:
                     node_label = NodeLabels(region_id=region_id,
-                                            cluster_id=cluster_id,
                                             node_uuid=node_uuid,
                                             label_id=label_id)
                     node_labels.append(node_label)

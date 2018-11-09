@@ -73,7 +73,7 @@ urlpatterns = patterns(
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>[\w\-]+)/brief$',
     #     NodeBriefInfoView.as_view()),
     # 编辑节点标签
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
         NodeLabelsView.as_view()),
 
     # 所有节点
