@@ -364,10 +364,14 @@ class NodeService(object):
         else:
             return int(res.status), body["msg"] if body["msg"] else "安装状态查询异常"
 
-    def update_node_labels(self, region_id, cluster_id, node_uuid, labels_map):
+    def update_node_labels(self, region_id, node_uuid, labels_map):
         """添加节点的标签"""
         region = RegionConfig.objects.get(region_id=region_id)
-        labels_map = json.loads(labels_map)
+        # labels_map = {'Windows':'selfdefine','bendecunchu':'selfdefine','rainbond_node_hostname':'compute01',
+        # 'rainbond_node_ip':'192.168.8.228','rainbond_node_rule_compute':'true'}
+
+        # <type 'unicode'>
+        labels_map = json.loads(labels_map.replace("'", '"'))
         all_labels = Labels.objects.all()
         label_id_map = {l.label_name: l.label_id for l in all_labels}
         node_labels = []
