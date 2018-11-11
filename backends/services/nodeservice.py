@@ -371,7 +371,7 @@ class NodeService(object):
         # 'rainbond_node_ip':'192.168.8.228','rainbond_node_rule_compute':'true'}
 
         # <type 'unicode'>
-        labels_map = json.loads(labels_map.replace("'", '"'))
+        # labels_map = json.loads(labels_map.replace("'", '"'))
         all_labels = Labels.objects.all()
         label_id_map = {l.label_alias: l.label_id for l in all_labels}
         node_labels = []
