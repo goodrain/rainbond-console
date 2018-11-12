@@ -7,6 +7,9 @@ from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
+from console.services.enterprise_services import enterprise_services
+from console.repositories.enterprise_repo import enterprise_repo
+
 
 logger = logging.getLogger("default")
 
@@ -99,11 +102,9 @@ class TitleView(BaseAPIView):
             title = request.data.get("title", None)
             if title:
                 config_service.update_config("TITLE", title)
-
-            code = "0000"
-            msg = "success"
-            msg_show = "title修改成功"
-            result = generate_result(code, msg, msg_show)
+                result = generate_result("0000", "success", "信息更改成功")
+            else:
+                result = generate_result("0404", "not title", "没有标题")
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)
@@ -759,6 +760,41 @@ class FtpConfigView(BaseAPIView):
             msg = "success"
             msg_show = "ftp配置修改成功"
             result = generate_result(code, msg, msg_show)
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
+class EnterpriseInfoView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        查询企业信息
+        """
+        try:
+            enterprise_info = enterprise_repo.get_enterprise_first()
+            result = generate_result("0000", "success", "查询成功", bean=enterprise_info.to_dict())
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改企业名称
+        """
+        try:
+            enterprise_alias = request.data.get('enterprise_alias')
+            if not enterprise_alias:
+                result = generate_result("1003", "not parameter", "参数缺失")
+                return Response(result)
+            enterprise_info = enterprise_repo.get_enterprise_first()
+            if not enterprise_info:
+                result = generate_result("0404", "not enter", "企业不存在")
+                return Response(result)
+            enterprise_info.enterprise_alias = enterprise_alias
+            enterprise_info.save()
+            result = generate_result("0000", "success", "修改成功")
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)

@@ -16,6 +16,7 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()
 
+
 class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)

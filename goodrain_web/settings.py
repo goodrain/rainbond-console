@@ -22,6 +22,7 @@ DEFAULT_HANDLERS = ['file_handler', 'console', 'zmq_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
+
 IS_OPEN_API = False
 
 DEBUG = False

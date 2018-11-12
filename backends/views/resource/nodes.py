@@ -10,6 +10,8 @@ from backends.serializers import NodeSerilizer, NodeUpdateSerilizer
 from backends.services.nodeservice import node_service
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
+from backends.services.labelservice import label_service
+
 
 logger = logging.getLogger("default")
 
@@ -407,20 +409,32 @@ class RegionNodesView(BaseAPIView):
 
 
 class NodeLabelsView(BaseAPIView):
-    """节点标签"""
 
-    def post(self, request, region_id, cluster_id, node_uuid, *args, **kwargs):
+    """节点标签"""
+    def get(self, request, region_id, node_uuid, *args, **kwargs):
+        """获取节点标签"""
+        try:
+            label_list = []
+            node_labels = label_service.get_label_by_node_id(node_uuid)
+            if len(node_labels) == 0:
+                result = generate_result("0000", "success", "节点标签查询成功", list=[])
+                return Response(result)
+            for node_label in node_labels:
+                label = label_service.get_label_by_label_id(node_label.label_id)
+                label_list.append(label.label_alias)
+            result = generate_result("0000", "success", "节点标签查询成功", list=label_list)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+
+    def post(self, request, region_id, node_uuid, *args, **kwargs):
         """
         节点标签添加
         ---
         parameters:
             - name: region_id
               description: 数据中心ID
-              required: true
-              type: string
-              paramType: path
-            - name: cluster_id
-              description: 集群ID
               required: true
               type: string
               paramType: path
@@ -439,7 +453,7 @@ class NodeLabelsView(BaseAPIView):
         try:
             labels = request.data.get("labels")
             logger.debug("===========> labels {0}".format(labels))
-            node_service.update_node_labels(region_id, cluster_id, node_uuid, labels)
+            node_service.update_node_labels(region_id, node_uuid, labels)
 
             result = generate_result(
                 "0000", "success", "节点标签更新成功")

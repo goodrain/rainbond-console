@@ -7,12 +7,13 @@ from backends.views.announcement import AllAnnouncementView, AnnouncementView
 from backends.views.config import *
 from backends.views.event import ServiceOperateView, ServiceOperationDetailView
 from backends.views.resource.clusters import *
-from backends.views.resource.nodes import *
 from backends.views.resource.region import *
+from backends.views.resource.nodes import *
 from backends.views.tenants import *
 from backends.views.users import *
 from backends.views.team import *
 from backends.views.labels import *
+
 urlpatterns = patterns(
     '',
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
@@ -25,13 +26,15 @@ urlpatterns = patterns(
 
     url(r'^v1/tenants/query', TenantsView.as_view()),
     url(r'^v1/users$', AllUserView.as_view()),
-    url(r'^v1/users/query$', UserQueryView.as_view()),
+    url(r'^v1/users/query$', UserFuzSerView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users/batch/delete', UserBatchDeleteView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users$', TenantUserView.as_view()),
     url(r'^v1/tenants/(?P<tenant_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', UserView.as_view()),
     # 配置路径
     url(r'^v1/config/logo$', LogoView.as_view()),
     url(r'^v1/config/title$', TitleView.as_view()),
+    # 获取企业信息
+    url(r'^v1/config/enterprise', EnterpriseInfoView.as_view()),
     url(r'^v1/config/safety$', SafetyView.as_view()),
     url(r'^v1/config/safety/regist$', SafetyRegistView.as_view()),
     url(r'^v1/config/safety/tenants$', SafetyTenantView.as_view()),
@@ -48,6 +51,8 @@ urlpatterns = patterns(
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionDetailView.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     # # url(r'^v1/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)', TenantRegionResourceView.as_view()),
+    # 获取数据中心应用异常信息
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/app_abnormal$', RegionAppAbnormal.as_view()),
     # # url(r'^v1/regions/resources/manage$', RegionResourceView.as_view()),
     # url(r'^v1/regions/tenants/resources$', TenantRegionResourceView.as_view()),
     # url(r'^v1/regions/tenants/resources/real$', TenantRegionRealResourceView.as_view()),
@@ -67,16 +72,21 @@ urlpatterns = patterns(
     #     NodeOperateView.as_view()),
     # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>[\w\-]+)/brief$',
     #     NodeBriefInfoView.as_view()),
-    # url(r'^v1/regions/(?P<region_id>[\w\-]+)/clusters/(?P<cluster_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
-    #     NodeLabelsView.as_view()),
+    # 编辑节点标签
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/nodes/(?P<node_uuid>(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)|[\w\-]+)/labels$',
+        NodeLabelsView.as_view()),
 
     # 所有节点
     # url(r'^v1/nodes$', AllNodesView.as_view()),
 
     # 团队路径
     url(r'^v1/teams$', AllTeamView.as_view()),
+    # 获取团队排行
+    url(r'^v1/teams/sort$', TenantSortView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)$', TeamView.as_view()),
+    # 查询某团队下的某个用户
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/users/(?P<user_name>[\w\-]+)$', TeamUserView.as_view()),
+    # 为团队添加用户
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/add-user$', AddTeamUserView.as_view()),
     url(r'^v1/teams/(?P<tenant_name>[\w\-]+)/regions$', TeamUsableRegionView.as_view()),
     # 标签路径

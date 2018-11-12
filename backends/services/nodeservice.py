@@ -364,12 +364,16 @@ class NodeService(object):
         else:
             return int(res.status), body["msg"] if body["msg"] else "安装状态查询异常"
 
-    def update_node_labels(self, region_id, cluster_id, node_uuid, labels_map):
+    def update_node_labels(self, region_id, node_uuid, labels_map):
         """添加节点的标签"""
         region = RegionConfig.objects.get(region_id=region_id)
-        labels_map = json.loads(labels_map)
+        # labels_map = {'Windows':'selfdefine','bendecunchu':'selfdefine','rainbond_node_hostname':'compute01',
+        # 'rainbond_node_ip':'192.168.8.228','rainbond_node_rule_compute':'true'}
+
+        # <type 'unicode'>
+        # labels_map = json.loads(labels_map.replace("'", '"'))
         all_labels = Labels.objects.all()
-        label_id_map = {l.label_name: l.label_id for l in all_labels}
+        label_id_map = {l.label_alias: l.label_id for l in all_labels}
         node_labels = []
         for k, v in labels_map.iteritems():
             # 对于用户自定义的标签进行操作
@@ -377,11 +381,9 @@ class NodeService(object):
                 label_id = label_id_map.get(k, None)
                 if label_id:
                     node_label = NodeLabels(region_id=region_id,
-                                            cluster_id=cluster_id,
                                             node_uuid=node_uuid,
                                             label_id=label_id)
                     node_labels.append(node_label)
-
         res, body = self.http_client.update_node_labels(region, node_uuid, json.dumps(labels_map))
         NodeLabels.objects.filter(region_id=region_id, node_uuid=node_uuid).delete()
         NodeLabels.objects.bulk_create(node_labels)
