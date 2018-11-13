@@ -240,7 +240,7 @@ class AllTeamView(BaseAPIView):
                 list1.append(val)
             list1.sort(key=operator.itemgetter('total_app'), reverse=True)
             result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=list1
+                "0000", "success", "查询成功", bean=bean, list=list1, total=tenant_paginator.count
             )
             return Response(result)
         except Exception as e:
