@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import operator
+import json
 
 from rest_framework.response import Response
 from django.db import connection
@@ -102,6 +103,7 @@ class AllTeamView(BaseAPIView):
             # 分页
             # tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
             # tenants = tenant_paginator.page(int(page))
+            # logger.debug('lllllllllllllllllll{0}'.format(tenants))
             tenants_num = Tenants.objects.count()
 
             try:
@@ -128,20 +130,32 @@ class AllTeamView(BaseAPIView):
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
+                    tenant_name_list = []
+                    for tenant in tenant_list:
+                        if tenant[3] == region_name:
+                            tenant_name_list.append(tenant[2])
                     # 获取数据中心下每个团队的使用资源
-                    res, body = http_client.get_tenant_limit_memory(region_obj)
-                    logger.debug("==========", res, body)
+                    res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
+                    logger.debug("======111===={0}".format(body))
                     if int(res.status) >= 400:
                         continue
-                    logger.debug("===========", tenant_list)
+                    tenant_resources_list = body.get("list")
+
+                    logger.debug('111111111111111{0}'.format(tenant_resources_list))
+
+                    tenant_resources_dict = {}
+                    for tenant_resources in tenant_resources_list:
+
+                        tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
+                    # tenant_resources_dict = {id:{}, id:{}}
                     try:
                         for tenant in tenant_list:
 
                             tenant_region = {}
                             tenant_id = tenant[1]
-                            if tenant_id in body["bean"]:
+                            if tenant_id in tenant_resources_dict:
                                 # tenant_region["name1"] = {"cpu_total":0, "cpu_use":0}
-                                tenant_region[region_obj.region_alias] = body["bean"][tenant_id]
+                                tenant_region[region_obj.region_alias] = tenant_resources_dict[tenant_id]
                                 if tenant_id not in resources_dicts:
                                     resources_dicts[tenant_id] = {"resources": tenant_region}
                                 else:
