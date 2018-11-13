@@ -102,7 +102,7 @@ class UserService(object):
         return tenant_list
 
     def get_all_users(self):
-        user_list = Users.objects.all()
+        user_list = Users.objects.all().order_by("-create_time")
         return user_list
 
     def get_client_ip(self, request):
@@ -158,7 +158,7 @@ class UserService(object):
         # if query_condition:
         #     query = query | Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)
 
-        users = Users.objects.filter(Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition))
+        users = Users.objects.filter(Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)).order_by("-create_time")
         return users
 
     def get_user_by_user_id(self, user_id):
