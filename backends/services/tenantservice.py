@@ -181,5 +181,8 @@ class TenantService(object):
             query &= Q(enterprise_id=enterprise_id)
         return Tenants.objects.filter(query)
 
+    def get_all_tenant(self):
+        return Tenants.objects.all()
+
 
 tenant_service = TenantService()

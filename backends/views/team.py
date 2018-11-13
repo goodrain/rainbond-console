@@ -66,8 +66,8 @@ class AllTeamView(BaseAPIView):
 
         """
         try:
-            # page = request.GET.get("page_num", 1)
-            # page_size = request.GET.get("page_size", 20)
+            page = request.GET.get("page_num", 1)
+            page_size = request.GET.get("page_size", 20)
             enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
             tenant_name = request.GET.get("tenant_name", None)
@@ -101,15 +101,15 @@ class AllTeamView(BaseAPIView):
                 for tenant_tuple in tenant_tuples:
                     tenant_list.append(tenant_tuple)
             # 分页
-            # tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
-            # tenants = tenant_paginator.page(int(page))
-            # logger.debug('lllllllllllllllllll{0}'.format(tenants))
+            tenant_paginator = JuncheePaginator(tenant_list, int(page_size))
+            tenants = tenant_paginator.page(int(page))
+            logger.debug('lllllllllllllllllll{0}'.format(tenants))
             tenants_num = Tenants.objects.count()
 
             try:
                 # 查询所有团队有哪些数据中心
                 region_list = []
-                for tenant in tenant_list:
+                for tenant in tenants:
                     tenant_id = tenant[1]
                     tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant_id)
                     if len(tenant_region_list) != 0:
@@ -131,13 +131,15 @@ class AllTeamView(BaseAPIView):
                     if not region_obj:
                         continue
                     tenant_name_list = []
-                    for tenant in tenant_list:
+                    for tenant in tenants:
                         if tenant[3] == region_name:
                             tenant_name_list.append(tenant[2])
                     # 获取数据中心下每个团队的使用资源
                     res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
                     logger.debug("======111===={0}".format(body))
                     if int(res.status) >= 400:
+                        continue
+                    if not body.get("list"):
                         continue
                     tenant_resources_list = body.get("list")
 
@@ -149,7 +151,7 @@ class AllTeamView(BaseAPIView):
                         tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
                     # tenant_resources_dict = {id:{}, id:{}}
                     try:
-                        for tenant in tenant_list:
+                        for tenant in tenants:
 
                             tenant_region = {}
                             tenant_id = tenant[1]
@@ -181,7 +183,7 @@ class AllTeamView(BaseAPIView):
                     if int(ret.status) >= 400:
                         continue
 
-                    for tenant in tenant_list:
+                    for tenant in tenants:
                         tenant_id = tenant[1]
                         if tenant_id in data.get("bean"):
                             run_app_num = data["bean"][tenant_id]["service_running_num"]
@@ -195,7 +197,7 @@ class AllTeamView(BaseAPIView):
                 result = generate_result("1111", "2.7-faild", "{0}".format(e.message))
                 return Response(result)
 
-            for tenant in tenant_list:
+            for tenant in tenants:
                 # 为每个团队拼接信息
                 tenant_id = tenant[1]
                 tenant_info[tenant_id] = {}
