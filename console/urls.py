@@ -40,7 +40,7 @@ from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, Serv
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
     BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView
+from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
@@ -201,6 +201,9 @@ urlpatterns = patterns(
     # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
         TenantGroupOperationView.as_view()),
+    # 应用(组)常见操作
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
+        TenantGroupCommonOperationView.as_view()),
     # git仓库对接
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/github$', GithubCodeRepoView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/gitlab$', GitlabCodeRepoView.as_view()),
