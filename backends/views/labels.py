@@ -75,6 +75,10 @@ class LabelView(BaseAPIView):
               paramType: path
         """
         try:
+            node_labels = label_service.get_node_num_by_label(label_id)
+            if node_labels:
+                result = generate_result("1003", "label is be bound", "标签被节点绑定，请先解除绑定")
+                return Response(result)
             label = label_service.delete_label(label_id)
             result = generate_result("0000", "success", "标签{0}删除成功".format(label.label_alias))
         except Labels.DoesNotExist as e:
