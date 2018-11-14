@@ -1181,17 +1181,17 @@ class AdminAddUserView(JWTAuthApiView):
             re_password = request.data.get("re_password", None)
             identity = request.data.get("identity", "viewer")
             if not tenant_alias:
-                result = general_message(400, "success", "团队不能为空")
+                result = general_message(400, "not tenant", "团队不能为空")
                 return Response(result)
             # 校验用户信息
             is_pass, msg = user_service.check_params(user_name, email, password, re_password)
             if not is_pass:
-                result = general_message(403, "success", msg)
+                result = general_message(403, "user information is not passed", msg)
                 return Response(result)
             client_ip = user_service.get_client_ip(request)
             team = team_repo.get_teams_by_enterprise_id(self.user.enterprise_id, tenant_alias)
             if not team:
-                result = general_message(400, "success", "团队{0}不在企业下".format(tenant_alias))
+                result = general_message(400, "the team is not under the enterprise", "团队{0}不在企业下".format(tenant_alias))
                 return Response(result)
             enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             # 创建用户
