@@ -112,17 +112,18 @@ class AllTeamView(BaseAPIView):
 
             try:
                 resources_dicts = {}
-                logger.debug('-------------------------------------{0}'.format(region_list))
+                logger.debug('------------------111-------------------{0}'.format(region_list))
+                logger.debug('--------------------222-----------------{0}'.format(tenant_tuples))
                 for region_name in region_list:
 
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
-                    logger.debug('-------------------{0}'.format(region_name))
+                    logger.debug('-----------333--------{0}'.format(region_name))
                     tenant_name_list = []
                     for tenant in tenant_tuples:
-                        logger.debug('---------------------{0}'.format(tenant[2]))
-                        logger.debug('---------------------{0}'.format(tenant[0]))
+                        logger.debug('----------444-----------{0}'.format(tenant[2]))
+                        logger.debug('-----------555----------{0}'.format(tenant[0]))
                         if tenant[2]:
                             if tenant[2] == region_name:
                                 tenant_name_list.append(tenant[0])
