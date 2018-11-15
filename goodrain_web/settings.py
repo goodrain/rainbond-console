@@ -201,15 +201,12 @@ LOGGING = {
 # LICENSE = ""
 
 # original is True
-CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_ALLOW_ALL = True
 # add this for solve cross domain
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ORIGIN_WHITELIST = (
-    "localhost:8000",
-    "127.0.0.1:8000",
-    "localhost:9001",
-    "127.0.0.1:9001",
+    '*'
 )
 
 CORS_ALLOW_METHODS = (
@@ -219,11 +216,17 @@ CORS_ALLOW_METHODS = (
     'PATCH',
     'POST',
     'PUT',
+    'VIEW',
+    'TRACE',
+    'CONNECT',
+    'HEAD'
 )
 
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_HEADERS = default_headers + (
+    'csrftoken',
+    'user_id',
     'csrftoken',
     'user_id',
     'X_SSO_USER_ID',
