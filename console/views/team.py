@@ -29,9 +29,9 @@ from www.utils.return_message import general_message, error_message
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.utils.timeutil import time_to_str
-from backends.views.base import BaseAPIView
-from backends.services.tenantservice import tenant_service
+from backends.services.userservice import user_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
+from backends.services.tenantservice import tenant_service
 from console.services.team_services import team_services as console_team_service
 
 
@@ -1132,3 +1132,78 @@ class AllUserView(JWTAuthApiView):
             result = generate_result("9999", "system error", "系统异常")
         return Response(result)
 
+
+# 企业管理员添加用户
+class AdminAddUserView(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        """
+        parameters:
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: path
+            - name: user_name
+              description: 用户名
+              required: true
+              type: string
+              paramType: form
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              paramType: form
+            - name: email
+              description: 邮件地址
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 密码
+              required: true
+              type: string
+              paramType: form
+            - name: re_password
+              description: 重复密码
+              required: true
+              type: string
+              paramType: form
+            - name: identity
+              description: 用户在租户的身份
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            tenant_alias = request.data.get("tenant_alias", None)
+            user_name = request.data.get("user_name", None)
+            phone = request.data.get("phone", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            identity = request.data.get("identity", "viewer")
+            if not tenant_alias:
+                result = general_message(400, "not tenant", "团队不能为空")
+                return Response(result)
+            # 校验用户信息
+            is_pass, msg = user_service.check_params(user_name, email, password, re_password)
+            if not is_pass:
+                result = general_message(403, "user information is not passed", msg)
+                return Response(result)
+            client_ip = user_service.get_client_ip(request)
+            team = team_repo.get_teams_by_enterprise_id(self.user.enterprise_id, tenant_alias)
+            if not team:
+                result = general_message(400, "the team is not under the enterprise", "团队{0}不在企业下".format(tenant_alias))
+                return Response(result)
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            # 创建用户
+            user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
+            tenant_service.add_user_to_tenant(team, user, identity, enterprise)
+            user.is_active = True
+            user.save()
+            result = general_message(200, "success", "添加用户成功")
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+        return Response(result)

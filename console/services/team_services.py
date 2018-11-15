@@ -8,18 +8,13 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from backends.models.main import RegionConfig
-from backends.services.exceptions import *
-from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
-from console.services.region_services import region_services
 from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
 from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.models.main import TenantUserRole
-from console.repositories.group import group_repo
 
 logger = logging.getLogger("default")
 
@@ -256,7 +251,6 @@ class TeamService(object):
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
-
 
     def get_service_source(self, service_alias):
         service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)

@@ -45,7 +45,7 @@ from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, Serv
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
     BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView
+from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
@@ -77,7 +77,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin
+    TeamUserCanJoin, AdminAddUserView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -211,6 +211,9 @@ urlpatterns = patterns(
     # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
         TenantGroupOperationView.as_view()),
+    # 应用(组)常见操作
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
+        TenantGroupCommonOperationView.as_view()),
     # git仓库对接
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/github$', GithubCodeRepoView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/gitlab$', GitlabCodeRepoView.as_view()),
@@ -529,6 +532,8 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 企业管理员添加用户
+    url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
     # # 获取企业下所有用户信息(企业中心中：删除用户)
     # url(r'^enterprise/users$', AllUserView.as_view()),
     # # 企业中心模糊查询团队
