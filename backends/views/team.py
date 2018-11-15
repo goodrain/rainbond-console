@@ -124,11 +124,13 @@ class AllTeamView(BaseAPIView):
                     for tenant in tenant_tuples:
                         logger.debug('----------444-----------{0}'.format(tenant[2]))
                         logger.debug('-----------555----------{0}'.format(tenant[0]))
-                        if tenant[2]:
-                            if tenant[2] == region_name:
+                        tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
+                        for tenant_regions in tenant_region_list:
+                            tenant_region_name = tenant_regions.region_name
+                            if tenant_region_name == region_name:
                                 tenant_name_list.append(tenant[0])
-                        else:
-                            continue
+                            else:
+                                continue
                     logger.debug('00000000000000000000{0}'.format(tenant_name_list))
                     # 获取数据中心下每个团队的使用资源
                     res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
