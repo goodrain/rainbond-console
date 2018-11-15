@@ -533,15 +533,15 @@ class TenantSortView(BaseAPIView):
                 bean["tenant_num"] = len(tenant_list)
                 user_list = user_repo.get_all_users()
                 bean["user_num"] = len(user_list)
-                tenant_dict = {}
-                for tenant in tenant_list:
-                    user_list = tenant_service.get_tenant_users(tenant.tenant_name)
-                    service_list = service_repo.get_tenant_services(tenant.tenant_id)
-                    total = len(user_list) + len(service_list)
-                    tenant_dict[tenant.tenant_alias] = [total]
-                    tenant_dict[tenant.tenant_alias].append(len(user_list))
-                    # 根据应用数加用户数倒序
-                sort_list = sorted(tenant_dict.items(), key=lambda item: item[1], reverse=True)
+                sort_list = []
+                cursor = connection.cursor()
+                cursor.execute(
+                    "select t.tenant_alias,t.tenant_id,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id group by tenant_id order by num desc LIMIT 0,5;")
+                tenant_tuples = cursor.fetchall()
+                for tenant_tuple in tenant_tuples:
+                    tenant_alias_list = []
+                    tenant_alias_list.append(tenant_tuple[0])
+                    sort_list.append(tenant_alias_list)
                 result = generate_result('0000', 'success', '查询成功', list=sort_list, bean=bean)
             except Exception as e:
                 logger.exception(e)
