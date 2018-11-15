@@ -530,7 +530,7 @@ class TenantSortView(BaseAPIView):
             try:
                 tenant_list = tenant_service.get_all_tenant()
                 bean = {}
-                bean["tenant_num"] = int(tenant_list)
+                bean["tenant_num"] = len(tenant_list)
                 user_list = user_repo.get_all_users()
                 bean["user_num"] = len(user_list)
                 tenant_dict = {}
