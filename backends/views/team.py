@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import operator
+import datetime
 import json
 
 from rest_framework.response import Response
@@ -70,6 +71,8 @@ class AllTeamView(BaseAPIView):
             page_size = int(request.GET.get("page_size", 10))
             enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
+            time1 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time1))
             if enterprise_alias:
                 enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
                 if not enter:
@@ -82,6 +85,8 @@ class AllTeamView(BaseAPIView):
             end = 10
             if remaining_num < page_size:
                 end = remaining_num
+            time2 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time2))
             # 通过别名来搜索团队(排序分页)
             if tenant_alias:
                 cursor = connection.cursor()
@@ -95,6 +100,8 @@ class AllTeamView(BaseAPIView):
                     "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id group by tenant_id order by num desc LIMIT {0},{1};".format(
                         start, end))
                 tenant_tuples = cursor.fetchall()
+            time3 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time3))
             try:
                 # 查询所有团队有哪些数据中心
                 region_list = []
@@ -109,6 +116,8 @@ class AllTeamView(BaseAPIView):
                 logger.exception(e)
                 result = generate_result("1111", "2.faild", "{0}".format(e.message))
                 return Response(result)
+            time4 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time4))
 
             try:
                 resources_dicts = {}
@@ -127,6 +136,8 @@ class AllTeamView(BaseAPIView):
                                 tenant_name_list.append(tenant[0])
                             else:
                                 continue
+                    time5 = datetime.datetime.now()
+                    logger.debug('````````````````````````````````````````````{0}'.format(time5))
                     # 获取数据中心下每个团队的使用资源
                     res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
                     logger.debug("======111===={0}".format(body["list"]))
@@ -140,6 +151,8 @@ class AllTeamView(BaseAPIView):
                     for tenant_resources in tenant_resources_list:
 
                         tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
+                    time6 = datetime.datetime.now()
+                    logger.debug('````````````````````````````````````````````{0}'.format(time6))
                     # tenant_resources_dict = {id:{}, id:{}}
                     try:
                         for tenant in tenant_tuples:
@@ -157,10 +170,14 @@ class AllTeamView(BaseAPIView):
                         logger.exception(e)
                         result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
                         return Response(result)
+                    time7 = datetime.datetime.now()
+                    logger.debug('````````````````````````````````````````````{0}'.format(time7))
             except Exception as e:
                 logger.exception(e)
                 result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
                 return Response(result)
+            time8 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time8))
             try:
                 run_app_num_dicts = {}
                 for region_name in region_list:
@@ -186,6 +203,8 @@ class AllTeamView(BaseAPIView):
                 logger.exception(e)
                 result = generate_result("1111", "2.7-faild", "{0}".format(e.message))
                 return Response(result)
+            time9 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time9))
 
             for tenant in tenant_tuples:
                 tenant_info = {}
@@ -210,7 +229,8 @@ class AllTeamView(BaseAPIView):
                 list1.append(tenant_info)
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
-
+            time10 = datetime.datetime.now()
+            logger.debug('````````````````````````````````````````````{0}'.format(time10))
             bean = {"tenants_num": tenants_num, "allow_num": allow_num}
             result = generate_result(
                 "0000", "success", "查询成功", bean=bean, list=list1, total=tenants_num
@@ -508,11 +528,10 @@ class TenantSortView(BaseAPIView):
                 return Response(
                     generate_result("0404", "enterprise is not found", "企业不存在"))
             try:
-                tenant_list = tenant_service.get_team_by_name_or_alias_or_enter(tenant_name=None, tenant_alias=None,
-                                                                                enterprise_id=enterprise_id)
+                tenant_list = tenant_service.get_all_tenant()
                 bean = {}
-                bean["tenant_num"] = len(tenant_list)
-                user_list = app_group_svc.get_users_by_eid(enterprise_id)
+                bean["tenant_num"] = int(tenant_list)
+                user_list = user_repo.get_all_users()
                 bean["user_num"] = len(user_list)
                 tenant_dict = {}
                 for tenant in tenant_list:
