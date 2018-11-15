@@ -112,21 +112,21 @@ class AllTeamView(BaseAPIView):
 
             try:
                 resources_dicts = {}
-                logger.debug('-------------------------------------{0}'.format(region_list))
                 for region_name in region_list:
 
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
-                    logger.debug('-------------------{0}'.format(region_name))
                     tenant_name_list = []
+                    # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
                     for tenant in tenant_tuples:
-                        if tenant[2]:
-                            if tenant[2] == region_name:
+                        tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
+                        for tenant_regions in tenant_region_list:
+                            tenant_region_name = tenant_regions.region_name
+                            if tenant_region_name == region_name:
                                 tenant_name_list.append(tenant[0])
-                        else:
-                            continue
-                    logger.debug('00000000000000000000{0}'.format(tenant_name_list))
+                            else:
+                                continue
                     # 获取数据中心下每个团队的使用资源
                     res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
                     logger.debug("======111===={0}".format(body["list"]))
@@ -135,8 +135,6 @@ class AllTeamView(BaseAPIView):
                     if not body.get("list"):
                         continue
                     tenant_resources_list = body.get("list")
-
-                    logger.debug('111111111111111{0}'.format(tenant_resources_list))
 
                     tenant_resources_dict = {}
                     for tenant_resources in tenant_resources_list:
