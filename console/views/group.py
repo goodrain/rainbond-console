@@ -237,14 +237,14 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             if action == "restart":
                 if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
-            if action == "rebuild":
+            if action == "deploy":
                 if "deploy_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
             # 构建service_ids列表
             service_id_list = []
             for service in services:
                 service_id_list.append(service.service_id)
-                # 重新构建操作暂未实现（先提交代码）
+                # 批量操作
             code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id=None)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
