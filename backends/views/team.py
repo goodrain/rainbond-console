@@ -121,6 +121,8 @@ class AllTeamView(BaseAPIView):
                     logger.debug('-------------------{0}'.format(region_name))
                     tenant_name_list = []
                     for tenant in tenant_tuples:
+                        logger.debug('---------------------{0}'.format(tenant[2]))
+                        logger.debug('---------------------{0}'.format(tenant[0]))
                         if tenant[2]:
                             if tenant[2] == region_name:
                                 tenant_name_list.append(tenant[0])
