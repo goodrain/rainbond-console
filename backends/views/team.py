@@ -206,6 +206,7 @@ class AllTeamView(BaseAPIView):
                 tenant_info["tenant_alias"] = tenant[1]
                 tenant_info["tenant_name"] = tenant[0]
                 tenant_info["region"] = tenant[2]
+                tenant_info["tenant_id"] = tenant[5]
                 tenant_info["limit_memory"] = tenant[3]
                 tenant_info["enterprise_id"] = tenant[4]
                 list1.append(tenant_info)
