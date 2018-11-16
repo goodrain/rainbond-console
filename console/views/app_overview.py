@@ -33,6 +33,8 @@ from django.conf import settings
 from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
 from console.repositories.app import service_repo
+from console.views.base import JWTAuthApiView
+
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -369,8 +371,8 @@ class AppVisitView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class AppGroupVisitView(AppBaseView):
-    @never_cache
+class AppGroupVisitView(JWTAuthApiView):
+
     def get(self, request, *args, **kwargs):
         """
         获取应用访问信息
@@ -389,8 +391,8 @@ class AppGroupVisitView(AppBaseView):
         """
 
         try:
-            tenant_name = request.GET.get('tenantName')
-            serviceAlias = request.GET.get('serviceAlias')
+            tenant_name = request.GET.get('team_name')
+            serviceAlias = request.GET.get('service_alias')
             tenant = market_api.get_tenant_by_name(tenant_name)
             service_access_list = list()
             if not tenant:

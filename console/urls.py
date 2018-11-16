@@ -133,6 +133,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/modifyname$', TeamNameModView.as_view()),
     # 删除当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/delete$', TeamDelView.as_view()),
+    # 应用(组)访问
+    url(r'^teams/(?P<team_name>[\w\-]+)/group/service/visit', AppGroupVisitView.as_view()),
     # 退出当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
     # 邀请注册
@@ -233,8 +235,6 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get_check_uuid$', GetCheckUUID.as_view()),
     # 应用检测修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check_update$', AppCheckUpdate.as_view()),
-    # 应用(组)访问
-    url(r'^teams/(?P<tenantName>[\w\-]+)/group_visit$', AppGroupVisitView.as_view()),
     # compose文件检测更新
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/compose_update$', ComposeCheckUpdate.as_view()),
     # compose文件检测
