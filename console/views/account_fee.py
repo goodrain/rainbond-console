@@ -9,6 +9,8 @@ from console.utils.timeutil import current_time_to_str
 from console.views.base import JWTAuthApiView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import general_message, error_message
+from console.services.enterprise_services import enterprise_services
+from console.services.region_services import region_services
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -38,12 +40,14 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             try:
-                res, data = market_api.get_enterprise_account_info(tenant_id=team.tenant_id,
-                                                                   enterprise_id=team.enterprise_id)
+                res, data = market_api.get_enterprise_account_info(
+                    tenant_id=team.tenant_id, enterprise_id=team.enterprise_id
+                )
                 result = general_message(200, "success", "查询成功", bean=data)
             except Exception as e:
                 logger.exception(e)
-                result = general_message(400, "corporate account information failed", "企业账户信息获取失败")
+                result = general_message(
+                    400, "corporate account information failed", "企业账户信息获取失败")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -92,10 +96,59 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 elif 'list' in data_body and data_body['list']:
                     rt_list = data_body['list']
 
-                result = general_message(200, "success", "查询成功",bean=bean, list=rt_list)
+                result = general_message(200, "success", "查询成功", bean=bean, list=rt_list)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class EnterpriseRechargeRecordsView(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        查询企业的充值记录
+        ---
+        parameters:
+            - name: start
+              description: 开始时间
+              required: true
+              type: string
+              paramType: query
+            - name: end
+              description: 结束时间
+              required: true
+              type: string
+              paramType: query
+            - name: page
+              description: 页数(默认第一页)
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页展示个数(默认10个)
+              required: false
+              type: string
+              paramType: query
+        """
+        try:
+            start_time = request.GET.get("start")
+            end_time = request.GET.get("end")
+            page = request.GET.get("page", 1)
+            page_size = request.GET.get("page_size", 10)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status=404)
+
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(team.enterprise_id)
+            res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
+                                                                   end_time,
+                                                                   page, page_size)
+
+            result = general_message(200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
+
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -158,6 +211,56 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
                     continue
             result_list = sorted(total_list, key=lambda b: (b['time'], b['region']), reverse=True)
             result = general_message(200, "success", "查询成功", list=result_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class EnterprisePurchaseDetails(JWTAuthApiView):
+    def get(self, request, team_name):
+        """
+        企业购买明细
+        ---
+        parameters:
+            - name: start
+              required: true
+              type: string
+              location: 'query'
+              description: 开始时间
+            - name: end
+              required: true
+              type: string
+              location: 'query'
+              description: 结束时间
+            - name: page
+              required: true
+              type: string
+              location: 'query'
+              description: 第几页
+            - name: page_size
+              required: true
+              type: string
+              location: 'query'
+              description: 每页条数
+        """
+        try:
+            start = request.GET.get('start')
+            end = request.GET.get('end')
+            page = request.GET.get('page', 1)
+            page_size = request.GET.get('page_size', 10)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
+            total = 0
+            result_list = []
+            try:
+                res, dict_body = market_api.get_enterprise_purchase_detail(team.tenant_id,team.enterprise_id, start,end, page, page_size)
+                result_list = dict_body["data"]["list"]
+                total = dict_body["data"]["total"]
+            except Exception as ex:
+                logger.exception(ex)
+            result = general_message(200, "success", "查询成功", list=result_list,total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

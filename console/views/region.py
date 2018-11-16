@@ -275,18 +275,79 @@ class RegionResourceDetailView(JWTAuthApiView):
         try:
             team_name = request.GET.get("team_name", None)
             region = request.GET.get("region", None)
-            if not team_name:
-                return Response(general_message(400, "team name is null", "参数错误"), status=400)
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             if not team:
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
-            res, data = market_api.get_enterprise_regions_resource(tenant_id=team.tenant_id,
-                                                                   region=region,
-                                                                   enterprise_id=team.enterprise_id)
-            result = general_message(200, "success", "查询成功", bean=data)
 
+            res, data = market_api.get_enterprise_regions_resource(
+                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id, region=region
+            )
+            if isinstance(data, list):
+                result = general_message(200, "success", "查询成功", list=data)
+            elif isinstance(data, dict):
+                result = general_message(200, "success", "查询成功", bean=data)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class RegionResPrice(JWTAuthApiView):
+    def post(self, request, region_name):
+        """资源费用计算"""
+
+        team_name = request.data.get('team_name')
+
+        team = team_services.get_tenant_by_tenant_name(
+            tenant_name=team_name, exception=True
+        )
+        if not team:
+            return Response(
+                general_message(404, "team not found", "指定团队不存在"), status=404
+            )
+
+        try:
+            memory = int(request.data.get('memory', 0))
+            disk = int(request.data.get('disk', 0))
+            rent_time = request.data.get('rent_time')
+
+            ret, msg, status = market_api.get_region_res_price(
+                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time
+            )
+
+            return Response(status=status, data=general_message(status, msg, msg, ret))
+        except Exception as e:
+            data = general_message(500, "cal fee error", "无法计算费用")
+            return Response(status=500, data=data)
+
+
+class RegionResPurchage(JWTAuthApiView):
+    def post(self, request, region_name):
+        """资源购买"""
+
+        team_name = request.data.get('team_name')
+
+        team = team_services.get_tenant_by_tenant_name(
+            tenant_name=team_name, exception=True
+        )
+        if not team:
+            return Response(
+                general_message(404, "team not found", "指定团队不存在"), status=404
+            )
+
+        try:
+            memory = int(request.data.get('memory', 0))
+            disk = int(request.data.get('disk', 0))
+            rent_time = request.data.get('rent_time')
+
+            ret, msg, status = market_api.buy_region_res(
+                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time
+            )
+            if status == 10408:
+                return Response(status=412, data=general_message(status, msg, msg, ret))
+            return Response(status=status, data=general_message(status, msg, msg, ret))
+        except Exception as e:
+            logger.exception(e)
+            data = general_message(500, "buy res error", "资源购买失败")
+            return Response(status=500, data=data)

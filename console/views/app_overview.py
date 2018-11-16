@@ -30,10 +30,13 @@ from console.services.compose_service import compose_service
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
 from django.conf import settings
+from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
+from console.repositories.app import service_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+market_api = MarketServiceAPIManager()
 
 
 class AppDetailView(AppBaseView):
@@ -88,6 +91,14 @@ class AppDetailView(AppBaseView):
                     result = general_message(200, "success", "当前云市应用已删除", bean=bean)
                     return Response(result, status=result["code"])
                 else:
+                    apps_template = json.loads(rain_app.app_template)
+                    apps_list = apps_template.get("apps")
+                    for app in apps_list:
+                        if app["service_key"] == self.service.service_key:
+                            if app["deploy_version"] > self.service.deploy_version:
+                                self.service.is_upgrate = True
+                                self.service.save()
+                                bean.update({"service": service_model})
                     try:
                         apps_template = json.loads(rain_app.app_template)
                         apps_list = apps_template.get("apps")
@@ -352,6 +363,48 @@ class AppVisitView(AppBaseView):
             bean["access_type"] = access_type
             bean["access_info"] = data
             result = general_message(200, "success", "操作成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class AppGroupVisitView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        """
+        获取应用访问信息
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: service_list
+              description: 服务别名列表
+              required: true
+              type: string
+              paramType: path
+        """
+
+        try:
+            tenant_name = request.GET.get('tenantName')
+            serviceAlias = request.GET.get('serviceAlias')
+            tenant = market_api.get_tenant_by_name(tenant_name)
+            service_access_list = list()
+            if not tenant:
+                result = general_message(400, "not tenant", "团队不存在")
+                return Response(result)
+            service_list = serviceAlias.split('-')
+            for service_alias in service_list:
+                bean = dict()
+                service = service_repo.get_service_by_service_alias(service_alias)
+                access_type, data = port_service.get_access_info(tenant, service)
+                bean["access_type"] = access_type
+                bean["access_info"] = data
+                service_access_list.append(bean)
+            result = general_message(200, "success", "操作成功", list=service_access_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -666,3 +719,4 @@ class BuildSourceinfo(AppBaseView):
             result = error_message(e.message)
             transaction.savepoint_rollback(s_id)
         return Response(result, status=result["code"])
+
