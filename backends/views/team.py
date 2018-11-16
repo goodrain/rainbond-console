@@ -71,8 +71,6 @@ class AllTeamView(BaseAPIView):
             page_size = int(request.GET.get("page_size", 10))
             enterprise_alias = request.GET.get("enterprise_alias", None)
             tenant_alias = request.GET.get("tenant_alias", None)
-            time1 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time1))
             if enterprise_alias:
                 enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
                 if not enter:
@@ -85,8 +83,6 @@ class AllTeamView(BaseAPIView):
             end = 10
             if remaining_num < page_size:
                 end = remaining_num
-            time2 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time2))
             # 通过别名来搜索团队(排序分页)
             if tenant_alias:
                 cursor = connection.cursor()
@@ -100,8 +96,6 @@ class AllTeamView(BaseAPIView):
                     "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id group by tenant_id order by num desc LIMIT {0},{1};".format(
                         start, end))
                 tenant_tuples = cursor.fetchall()
-            time3 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time3))
             try:
                 # 查询所有团队有哪些数据中心
                 region_list = []
@@ -116,71 +110,12 @@ class AllTeamView(BaseAPIView):
                 logger.exception(e)
                 result = generate_result("1111", "2.faild", "{0}".format(e.message))
                 return Response(result)
-            time4 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time4))
-
+            time1 = datetime.datetime.now()
+            logger.debug('``````````````````111``````````````````````````{0}'.format(time1))
             try:
                 resources_dicts = {}
                 for region_name in region_list:
-
-                    region_obj = region_repo.get_region_by_region_name(region_name)
-                    if not region_obj:
-                        continue
-                    tenant_name_list = []
-                    # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
-                    for tenant in tenant_tuples:
-                        tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
-                        for tenant_regions in tenant_region_list:
-                            tenant_region_name = tenant_regions.region_name
-                            if tenant_region_name == region_name:
-                                tenant_name_list.append(tenant[0])
-                            else:
-                                continue
-                    time5 = datetime.datetime.now()
-                    logger.debug('````````````````````````````````````````````{0}'.format(time5))
-                    # 获取数据中心下每个团队的使用资源
-                    res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
-                    logger.debug("======111===={0}".format(body["list"]))
-                    if int(res.status) >= 400:
-                        continue
-                    if not body.get("list"):
-                        continue
-                    tenant_resources_list = body.get("list")
-
-                    tenant_resources_dict = {}
-                    for tenant_resources in tenant_resources_list:
-
-                        tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
-                    time6 = datetime.datetime.now()
-                    logger.debug('````````````````````````````````````````````{0}'.format(time6))
-                    # tenant_resources_dict = {id:{}, id:{}}
-                    try:
-                        for tenant in tenant_tuples:
-
-                            tenant_region = {}
-                            tenant_id = tenant[5]
-                            if tenant_id in tenant_resources_dict:
-                                # tenant_region["name1"] = {"cpu_total":0, "cpu_use":0}
-                                tenant_region[region_obj.region_alias] = tenant_resources_dict[tenant_id]
-                                if tenant_id not in resources_dicts:
-                                    resources_dicts[tenant_id] = {"resources": tenant_region}
-                                else:
-                                    resources_dicts[tenant_id]["resources"].update(tenant_region)
-                    except Exception as e:
-                        logger.exception(e)
-                        result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
-                        return Response(result)
-                    time7 = datetime.datetime.now()
-                    logger.debug('````````````````````````````````````````````{0}'.format(time7))
-            except Exception as e:
-                logger.exception(e)
-                result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
-                return Response(result)
-            time8 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time8))
-            try:
-                run_app_num_dicts = {}
-                for region_name in region_list:
+                    run_app_num_dicts = {}
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
@@ -199,12 +134,58 @@ class AllTeamView(BaseAPIView):
                                 run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
                             else:
                                 run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
+                    tenant_name_list = []
+                    # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
+                    for tenant in tenant_tuples:
+                        tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
+                        for tenant_regions in tenant_region_list:
+                            tenant_region_name = tenant_regions.region_name
+                            if tenant_region_name == region_name:
+                                tenant_name_list.append(tenant[0])
+                            else:
+                                continue
+                    time5 = datetime.datetime.now()
+                    logger.debug('````````````````````555````````````````````````{0}'.format(time5))
+                    # 获取数据中心下每个团队的使用资源
+                    res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
+                    logger.debug("======111===={0}".format(body["list"]))
+                    if int(res.status) >= 400:
+                        continue
+                    if not body.get("list"):
+                        continue
+                    tenant_resources_list = body.get("list")
+
+                    tenant_resources_dict = {}
+                    for tenant_resources in tenant_resources_list:
+
+                        tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
+                    time6 = datetime.datetime.now()
+                    logger.debug('```````````````````666`````````````````````````{0}'.format(time6))
+                    # tenant_resources_dict = {id:{}, id:{}}
+                    try:
+                        for tenant in tenant_tuples:
+
+                            tenant_region = {}
+                            tenant_id = tenant[5]
+                            if tenant_id in tenant_resources_dict:
+                                # tenant_region["name1"] = {"cpu_total":0, "cpu_use":0}
+                                tenant_region[region_obj.region_alias] = tenant_resources_dict[tenant_id]
+                                if tenant_id not in resources_dicts:
+                                    resources_dicts[tenant_id] = {"resources": tenant_region}
+                                else:
+                                    resources_dicts[tenant_id]["resources"].update(tenant_region)
+                    except Exception as e:
+                        logger.exception(e)
+                        result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
+                        return Response(result)
+                    time7 = datetime.datetime.now()
+                    logger.debug('````````````````````777````````````````````````{0}'.format(time7))
             except Exception as e:
                 logger.exception(e)
-                result = generate_result("1111", "2.7-faild", "{0}".format(e.message))
+                result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
                 return Response(result)
-            time9 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time9))
+            time8 = datetime.datetime.now()
+            logger.debug('``````````````````````888``````````````````````{0}'.format(time8))
 
             for tenant in tenant_tuples:
                 tenant_info = {}
@@ -229,8 +210,6 @@ class AllTeamView(BaseAPIView):
                 list1.append(tenant_info)
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
-            time10 = datetime.datetime.now()
-            logger.debug('````````````````````````````````````````````{0}'.format(time10))
             bean = {"tenants_num": tenants_num, "allow_num": allow_num}
             result = generate_result(
                 "0000", "success", "查询成功", bean=bean, list=list1, total=tenants_num
