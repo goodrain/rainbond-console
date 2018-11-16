@@ -373,7 +373,7 @@ class AppVisitView(AppBaseView):
 
 class AppGroupVisitView(JWTAuthApiView):
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, team_name, *args, **kwargs):
         """
         获取应用访问信息
         ---
@@ -391,18 +391,17 @@ class AppGroupVisitView(JWTAuthApiView):
         """
 
         try:
-            tenant_name = request.GET.get('team_name')
             serviceAlias = request.GET.get('service_alias')
-            tenant = market_api.get_tenant_by_name(tenant_name)
+            team = team_services.get_tenant_by_tenant_name(team_name)
             service_access_list = list()
-            if not tenant:
+            if not team:
                 result = general_message(400, "not tenant", "团队不存在")
                 return Response(result)
             service_list = serviceAlias.split('-')
             for service_alias in service_list:
                 bean = dict()
                 service = service_repo.get_service_by_service_alias(service_alias)
-                access_type, data = port_service.get_access_info(tenant, service)
+                access_type, data = port_service.get_access_info(team, service)
                 bean["access_type"] = access_type
                 bean["access_info"] = data
                 service_access_list.append(bean)
