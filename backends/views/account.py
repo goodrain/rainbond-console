@@ -204,7 +204,7 @@ class AuthAccessTokenView(AlowAnyApiView):
         return Response(result)
 
 
-class EnterpriseInitView(APIView):
+class EnterpriseInitView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):
 
         try:
