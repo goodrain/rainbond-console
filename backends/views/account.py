@@ -177,7 +177,7 @@ class AuthAccessTokenView(AlowAnyApiView):
               paramType: form
         """
         try:
-            auth = request.data.get('HTTP_AUTHORIZATION', '')
+            auth = request.data.get('Authorization', '')
             if auth != settings.MANAGE_SECRET_KEY:
                 return Response(generate_result("0401", "authorization error", "验证未通过"))
             username = request.data.get("username", None)
