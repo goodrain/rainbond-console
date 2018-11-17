@@ -801,16 +801,3 @@ class EnterpriseInfoView(BaseAPIView):
             logger.exception(e)
         return Response(result)
 
-
-class EnterpriseView(APIView):
-    def get(self, request, *args, **kwargs):
-        """
-        管理后台is_init查询企业信息
-        """
-        try:
-            enterprise_info = enterprise_repo.get_enterprise_first()
-            result = generate_result("0000", "success", "查询成功", bean=enterprise_info.to_dict())
-        except Exception as e:
-            result = generate_error_result()
-            logger.exception(e)
-        return Response(result)

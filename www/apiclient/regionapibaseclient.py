@@ -87,7 +87,7 @@ class RegionApiBaseHttpClient(object):
         if wsurl_split_list[0] == "wss":
             verify_ssl = True
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name)
+        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
         retry_count = 2
