@@ -1,7 +1,5 @@
 # -*- coding: utf8 -*-
 import logging
-import operator
-import datetime
 import json
 
 from rest_framework.response import Response
@@ -14,15 +12,12 @@ from backends.services.userservice import user_service
 from backends.services.regionservice import region_service
 from console.services.team_services import team_services as console_team_service
 from base import BaseAPIView
-from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants, PermRelTenant
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
 from console.services.team_services import team_services
-from console.repositories.app import service_repo
-from www.services import app_group_svc
 from console.repositories.user_repo import user_repo
 from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
@@ -110,30 +105,13 @@ class AllTeamView(BaseAPIView):
                 logger.exception(e)
                 result = generate_result("1111", "2.faild", "{0}".format(e.message))
                 return Response(result)
-            time1 = datetime.datetime.now()
-            logger.debug('``````````````````111``````````````````````````{0}'.format(time1))
             try:
                 resources_dicts = {}
+                run_app_num_dicts = {}
                 for region_name in region_list:
-                    run_app_num_dicts = {}
                     region_obj = region_repo.get_region_by_region_name(region_name)
                     if not region_obj:
                         continue
-                    # 获取数据中心下每个团队的运行的应用数量
-                    ret, data = http_client.get_tenant_service_status(region_obj)
-                    logger.debug("=========", ret, data)
-                    if int(ret.status) >= 400:
-                        continue
-
-                    for tenant in tenant_tuples:
-                        tenant_id = tenant[5]
-                        if tenant_id in data.get("bean"):
-                            run_app_num = data["bean"][tenant_id]["service_running_num"]
-                            logger.debug(run_app_num)
-                            if tenant_id not in run_app_num_dicts:
-                                run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
-                            else:
-                                run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
                     tenant_name_list = []
                     # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
                     for tenant in tenant_tuples:
@@ -144,9 +122,7 @@ class AllTeamView(BaseAPIView):
                                 tenant_name_list.append(tenant[0])
                             else:
                                 continue
-                    time5 = datetime.datetime.now()
-                    logger.debug('````````````````````555````````````````````````{0}'.format(time5))
-                    # 获取数据中心下每个团队的使用资源
+                    # 获取数据中心下每个团队的使用资源和运行的应用数量
                     res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
                     logger.debug("======111===={0}".format(body["list"]))
                     if int(res.status) >= 400:
@@ -157,14 +133,19 @@ class AllTeamView(BaseAPIView):
 
                     tenant_resources_dict = {}
                     for tenant_resources in tenant_resources_list:
-
+                        run_app_num = tenant_resources["service_running_num"]
+                        for tenant in tenant_tuples:
+                            tenant_id = tenant[5]
+                            if tenant_id == tenant_resources["tenant_id"]:
+                                if tenant_id not in run_app_num_dicts:
+                                    run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
+                                else:
+                                    run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
                         tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
-                    time6 = datetime.datetime.now()
-                    logger.debug('```````````````````666`````````````````````````{0}'.format(time6))
+
                     # tenant_resources_dict = {id:{}, id:{}}
                     try:
                         for tenant in tenant_tuples:
-
                             tenant_region = {}
                             tenant_id = tenant[5]
                             if tenant_id in tenant_resources_dict:
@@ -178,14 +159,10 @@ class AllTeamView(BaseAPIView):
                         logger.exception(e)
                         result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
                         return Response(result)
-                    time7 = datetime.datetime.now()
-                    logger.debug('````````````````````777````````````````````````{0}'.format(time7))
             except Exception as e:
                 logger.exception(e)
                 result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
                 return Response(result)
-            time8 = datetime.datetime.now()
-            logger.debug('``````````````````````888``````````````````````{0}'.format(time8))
 
             for tenant in tenant_tuples:
                 tenant_info = {}
