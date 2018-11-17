@@ -101,6 +101,7 @@ urlpatterns = patterns(
     url(r'^v1/account/create$', AccountCreateView.as_view()),
     url(r'^v1/account/auth-user-token$', AuthAccessTokenView.as_view()),
 
+    url(r'^v1/enterprise/is_init$', EnterpriseView.as_view()),
     url(r'^v1/enterprise/fuzzy_query$', EnterpriseFuzzyQueryView.as_view()),
     url(r'^v1/enterprise/(?P<enterprise_id>[\w\-]+)$', TenantEnterpriseView.as_view()),
 

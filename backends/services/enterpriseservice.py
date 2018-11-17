@@ -41,4 +41,5 @@ class EnterpriseService(object):
         tenant_list = TenantEnterprise.objects.filter(tenant_query)
         return tenant_list
 
+
 enterprise_service = EnterpriseService()

@@ -7,6 +7,7 @@ from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
+from rest_framework.views import APIView
 from console.services.enterprise_services import enterprise_services
 from console.repositories.enterprise_repo import enterprise_repo
 
@@ -795,6 +796,20 @@ class EnterpriseInfoView(BaseAPIView):
             enterprise_info.enterprise_alias = enterprise_alias
             enterprise_info.save()
             result = generate_result("0000", "success", "修改成功")
+        except Exception as e:
+            result = generate_error_result()
+            logger.exception(e)
+        return Response(result)
+
+
+class EnterpriseView(APIView):
+    def get(self, request, *args, **kwargs):
+        """
+        管理后台is_init查询企业信息
+        """
+        try:
+            enterprise_info = enterprise_repo.get_enterprise_first()
+            result = generate_result("0000", "success", "查询成功", bean=enterprise_info.to_dict())
         except Exception as e:
             result = generate_error_result()
             logger.exception(e)
