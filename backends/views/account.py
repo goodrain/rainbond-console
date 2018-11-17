@@ -208,7 +208,7 @@ class EnterpriseInitView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):
 
         try:
-            auth = request.data.get('HTTP_AUTHORIZATION', '')
+            auth = request.data.get('Authorization', '')
             if auth != settings.MANAGE_SECRET_KEY:
                 return Response(generate_result("0401", "authorization error", "验证未通过"))
             enterprise_info = enterprise_repo.get_enterprise_first()
