@@ -233,7 +233,7 @@ class Configuration():
         if ssl_ca_cert.startswith('/'):
             self.ssl_ca_cert = ssl_ca_cert
         else:
-            ssl_ca_cert_url = '/data/{0}/ssl/ca.pem'.format(region_name)
+            ssl_ca_cert_url = 'etc/data/{0}/ssl/ca.pem'.format(region_name)
             with open(ssl_ca_cert_url, 'w') as f:
                 f.writelines(ssl_ca_cert)
                 f.close()
@@ -242,7 +242,7 @@ class Configuration():
         if cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
-            cert_file_url = '/data/{0}/ssl/client.pem'.format(region_name)
+            cert_file_url = 'etc/data/{0}/ssl/client.pem'.format(region_name)
             with open(cert_file_url, 'w') as f:
                 f.writelines(cert_file)
                 f.close()
@@ -251,7 +251,7 @@ class Configuration():
         if key_file.startswith('/'):
             self.key_file = key_file
         else:
-            key_file_url = '/data/{0}/ssl/client.key.pem'.format(region_name)
+            key_file_url = 'etc/data/{0}/ssl/client.key.pem'.format(region_name)
             with open(key_file_url, 'w') as f:
                 f.writelines(key_file)
                 f.close()
