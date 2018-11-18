@@ -485,6 +485,9 @@ class TenantSortView(BaseAPIView):
                     generate_result("0404", "enterprise is not found", "企业不存在"))
             try:
                 tenant_list = tenant_service.get_all_tenant()
+                if not tenant_list:
+                    result = generate_result('0000', 'success', '查询成功', list=[])
+                    return Response(result)
                 bean = {}
                 bean["tenant_num"] = len(tenant_list)
                 user_list = user_repo.get_all_users()
