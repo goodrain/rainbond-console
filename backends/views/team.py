@@ -109,42 +109,43 @@ class AllTeamView(BaseAPIView):
                 resources_dicts = {}
                 run_app_num_dicts = {}
                 for region_name in region_list:
-                    region_obj = region_repo.get_region_by_region_name(region_name)
-                    if not region_obj:
-                        continue
-                    tenant_name_list = []
-                    # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
-                    for tenant in tenant_tuples:
-                        tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
-                        for tenant_regions in tenant_region_list:
-                            tenant_region_name = tenant_regions.region_name
-                            if tenant_region_name == region_name:
-                                tenant_name_list.append(tenant[0])
-                            else:
-                                continue
-                    # 获取数据中心下每个团队的使用资源和运行的应用数量
-                    res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
-                    logger.debug("======111===={0}".format(body["list"]))
-                    if int(res.status) >= 400:
-                        continue
-                    if not body.get("list"):
-                        continue
-                    tenant_resources_list = body.get("list")
-
-                    tenant_resources_dict = {}
-                    for tenant_resources in tenant_resources_list:
-                        run_app_num = tenant_resources["service_running_num"]
-                        for tenant in tenant_tuples:
-                            tenant_id = tenant[5]
-                            if tenant_id == tenant_resources["tenant_id"]:
-                                if tenant_id not in run_app_num_dicts:
-                                    run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
-                                else:
-                                    run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
-                        tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
-
-                    # tenant_resources_dict = {id:{}, id:{}}
                     try:
+                        region_obj = region_repo.get_region_by_region_name(region_name)
+                        if not region_obj:
+                            continue
+                        tenant_name_list = []
+                        # 循环查询哪些团队开通了该数据中心，将团队名放进列表中
+                        for tenant in tenant_tuples:
+                            tenant_region_list = tenant_service.get_all_tenant_region_by_tenant_id(tenant[5])
+                            for tenant_regions in tenant_region_list:
+                                tenant_region_name = tenant_regions.region_name
+                                if tenant_region_name == region_name:
+                                    tenant_name_list.append(tenant[0])
+                                else:
+                                    continue
+                        # 获取数据中心下每个团队的使用资源和运行的应用数量
+                        res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
+                        logger.debug("======111===={0}".format(body["list"]))
+                        if int(res.status) >= 400:
+                            continue
+                        if not body.get("list"):
+                            continue
+                        tenant_resources_list = body.get("list")
+
+                        tenant_resources_dict = {}
+                        for tenant_resources in tenant_resources_list:
+                            run_app_num = tenant_resources["service_running_num"]
+                            for tenant in tenant_tuples:
+                                tenant_id = tenant[5]
+                                if tenant_id == tenant_resources["tenant_id"]:
+                                    if tenant_id not in run_app_num_dicts:
+                                        run_app_num_dicts[tenant_id] = {"run_app_num": [run_app_num]}
+                                    else:
+                                        run_app_num_dicts[tenant_id]["run_app_num"].append(run_app_num)
+                            tenant_resources_dict[tenant_resources["tenant_id"]] = tenant_resources
+
+                        # tenant_resources_dict = {id:{}, id:{}}
+
                         for tenant in tenant_tuples:
                             tenant_region = {}
                             tenant_id = tenant[5]
@@ -157,8 +158,7 @@ class AllTeamView(BaseAPIView):
                                     resources_dicts[tenant_id]["resources"].update(tenant_region)
                     except Exception as e:
                         logger.exception(e)
-                        result = generate_result("1111", "2.5-faild", "{0}".format(e.message))
-                        return Response(result)
+                        continue
             except Exception as e:
                 logger.exception(e)
                 result = generate_result("1111", "2.6-faild", "{0}".format(e.message))
