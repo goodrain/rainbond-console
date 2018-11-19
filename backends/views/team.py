@@ -332,6 +332,9 @@ class TeamView(BaseAPIView):
         """
         try:
             tenant = tenant_service.get_tenant(tenant_name)
+            if not tenant:
+                result = generate_result("0000", "success", "查询成功", list=[])
+                return Response(result)
             create_id = tenant.creater
             user = user_service.get_user_by_user_id(create_id)
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
@@ -359,7 +362,7 @@ class TeamUserView(BaseAPIView):
               required: true
               type: string
               paramType: path
-            - name: user_name
+            - name: user_namebucen
               description: 用户名
               required: true
               type: string
@@ -423,6 +426,9 @@ class AddTeamUserView(BaseAPIView):
 
             user = user_service.get_user_by_username(user_name)
             tenant = tenant_service.get_tenant(tenant_name)
+            if not tenant:
+                result = generate_result("1001", "tenant not exist", "租户{}不存在".format(tenant_name))
+                return Response(result)
             enterprise = enterprise_services.get_enterprise_by_id(tenant.enterprise_id)
             tenant_service.add_user_to_tenant(tenant, user, identity, enterprise)
             result = generate_result("0000", "success", "用户添加成功")
