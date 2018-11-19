@@ -31,8 +31,6 @@ from console.repositories.region_repo import region_repo
 from console.utils.timeutil import time_to_str
 from backends.services.userservice import user_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
-from backends.services.tenantservice import tenant_service
-from console.services.team_services import team_services as console_team_service
 
 
 logger = logging.getLogger("default")
@@ -1181,6 +1179,9 @@ class AdminAddUserView(JWTAuthApiView):
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
             role_ids = request.data.get("role_ids", None)
+            if len(password) < 8:
+                result = general_message(400, "len error", "密码长度最少为8位")
+                return Response(result)
             if not tenant_name:
                 result = general_message(400, "not tenant", "团队不能为空")
                 return Response(result)

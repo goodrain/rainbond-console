@@ -41,7 +41,7 @@ from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, Serv
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
     BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView
+from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView, GroupStatusView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
@@ -530,6 +530,8 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 获取企业状态
+    url(r'^enterprise/status$', GroupStatusView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
     # # 获取企业下所有用户信息(企业中心中：删除用户)
