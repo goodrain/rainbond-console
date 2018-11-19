@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+import datetime
 
 from rest_framework.response import Response
 from django.db import connection
@@ -109,6 +110,8 @@ class AllTeamView(BaseAPIView):
                 resources_dicts = {}
                 run_app_num_dicts = {}
                 for region_name in region_list:
+                    time1 = datetime.datetime.now()
+                    logger.debug('````````````11111`````````````````{0}'.format(time1))
                     try:
                         region_obj = region_repo.get_region_by_region_name(region_name)
                         if not region_obj:
@@ -124,6 +127,8 @@ class AllTeamView(BaseAPIView):
                                 else:
                                     continue
                         # 获取数据中心下每个团队的使用资源和运行的应用数量
+                        time2 = datetime.datetime.now()
+                        logger.debug('```````````222222``````````````````{0}'.format(time2))
                         res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
                         logger.debug("======111===={0}".format(body["list"]))
                         if int(res.status) >= 400:
@@ -131,6 +136,8 @@ class AllTeamView(BaseAPIView):
                         if not body.get("list"):
                             continue
                         tenant_resources_list = body.get("list")
+                        time3 = datetime.datetime.now()
+                        logger.debug('`````````````33333````````````````{0}'.format(time3))
 
                         tenant_resources_dict = {}
                         for tenant_resources in tenant_resources_list:
@@ -156,6 +163,8 @@ class AllTeamView(BaseAPIView):
                                     resources_dicts[tenant_id] = {"resources": tenant_region}
                                 else:
                                     resources_dicts[tenant_id]["resources"].update(tenant_region)
+                        time4 = datetime.datetime.now()
+                        logger.debug('``````````````4444```````````````{0}'.format(time4))
                     except Exception as e:
                         logger.exception(e)
                         continue
