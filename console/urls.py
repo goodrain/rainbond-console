@@ -209,6 +209,9 @@ urlpatterns = patterns(
     # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
         TenantGroupOperationView.as_view()),
+    # 应用组状态（应用）
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
+        GroupStatusView.as_view()),
     # 应用(组)常见操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
         TenantGroupCommonOperationView.as_view()),
@@ -530,8 +533,6 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
-    # 获取企业状态
-    url(r'^enterprise/status$', GroupStatusView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
     # # 获取企业下所有用户信息(企业中心中：删除用户)
