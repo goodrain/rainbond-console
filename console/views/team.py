@@ -1174,14 +1174,14 @@ class AdminAddUserView(JWTAuthApiView):
 
         """
         try:
-            tenant_alias = request.data.get("tenant_alias", None)
+            tenant_name = request.data.get("tenant_name", None)
             user_name = request.data.get("user_name", None)
             phone = request.data.get("phone", None)
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
             identity = request.data.get("identity", "viewer")
-            if not tenant_alias:
+            if not tenant_name:
                 result = general_message(400, "not tenant", "团队不能为空")
                 return Response(result)
             # 校验用户信息
@@ -1190,7 +1190,7 @@ class AdminAddUserView(JWTAuthApiView):
                 result = general_message(403, "user information is not passed", msg)
                 return Response(result)
             client_ip = user_service.get_client_ip(request)
-            team = team_repo.get_team_by_team_alias(tenant_alias)
+            team = team_repo.get_team_by_team_name(tenant_name)
             enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             # 创建用户
             user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
