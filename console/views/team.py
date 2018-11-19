@@ -1180,24 +1180,40 @@ class AdminAddUserView(JWTAuthApiView):
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
-            identity = request.data.get("identity", "viewer")
+            role_ids = request.data.get("role_ids", None)
             if not tenant_name:
                 result = general_message(400, "not tenant", "团队不能为空")
                 return Response(result)
-            # 校验用户信息
-            is_pass, msg = user_service.check_params(user_name, email, password, re_password)
-            if not is_pass:
-                result = general_message(403, "user information is not passed", msg)
-                return Response(result)
-            client_ip = user_service.get_client_ip(request)
-            team = team_repo.get_team_by_team_name(tenant_name)
-            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
-            # 创建用户
-            user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
-            tenant_service.add_user_to_tenant(team, user, identity, enterprise)
-            user.is_active = True
-            user.save()
-            result = general_message(200, "success", "添加用户成功")
+            if role_ids:
+                try:
+                    role_id_list = [int(id) for id in role_ids.split(",")]
+                except Exception as e:
+                    logger.exception(e)
+                    code = 400
+                    result = general_message(code, "params is empty", "参数格式不正确")
+                    return Response(result, status=code)
+                for id in role_id_list:
+                    if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
+                        code = 400
+                        result = general_message(code, "The role does not exist", "该角色在团队中不存在")
+                        return Response(result, status=code)
+                # 校验用户信息
+                is_pass, msg = user_service.check_params(user_name, email, password, re_password)
+                if not is_pass:
+                    result = general_message(403, "user information is not passed", msg)
+                    return Response(result)
+                client_ip = user_service.get_client_ip(request)
+                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                # 创建用户
+                user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
+                # 创建用户团队关系表
+                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name,
+                                                 role_id_list=role_id_list)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
+            else:
+                result = general_message(400, "not role", "创建用户时角色不能为空")
         except Exception as e:
             logger.exception(e)
             result = general_message(500, e.message, "系统异常")

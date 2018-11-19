@@ -206,6 +206,17 @@ class TeamService(object):
                                                                                       role_id_list=role_id_list)
         return user_role
 
+    def create_tenant_role(self, user_id, tenant_name, role_id_list):
+        """修改用户在团队中的角色"""
+        tenant = self.get_tenant(tenant_name=tenant_name)
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
+        user_role = role_repo.add_user_role_in_tenant_by_user_id_tenant_id_role_id(user_id=user_id,
+                                                                                      tenant_id=tenant.pk,
+                                                                                      enterprise_id=enterprise.pk,
+                                                                                      role_id_list=role_id_list)
+        return user_role
+
+
     def add_user_role_to_team(self, request, tenant, user_ids, role_ids):
         """在团队中添加一个用户并给用户分配一个角色"""
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)

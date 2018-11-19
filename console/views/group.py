@@ -260,22 +260,22 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-# # 应用（组）状态
-# class GroupStatusView(RegionTenantHeaderView):
-#     def get(self, request, *args, **kwargs):
-#         group_id = int(kwargs.get("group_id", None))
-#         region_name = int(kwargs.get("region_name", None))
-#         services = group_service_relation_repo.get_services_obj_by_group(group_id)
-#         if not services:
-#             result = general_message(400, "not service", "当前组内无应用，无法操作")
-#             return Response(result)
-#         service_id_list = [x.service_id for x in services]
-#         if len(service_id_list) > 0:
-#             region_obj = region_repo.get_region_by_region_name(region_name)
-#             service_status_list = region_api.service_status(region_obj, self.tenant_name,
-#                                                         {"service_ids": service_id_list,
-#                                                          "enterprise_id": self.user.enterprise_id})
-#
+# 应用（组）状态
+class GroupStatusView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        group_id = int(kwargs.get("group_id", None))
+        region_name = int(kwargs.get("region_name", None))
+        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        if not services:
+            result = general_message(400, "not service", "当前组内无应用，无法操作")
+            return Response(result)
+        service_id_list = [x.service_id for x in services]
+        if len(service_id_list) > 0:
+            region_obj = region_repo.get_region_by_region_name(region_name)
+            service_status_list = region_api.service_status(region_obj, self.tenant_name,
+                                                        {"service_ids": service_id_list,
+                                                         "enterprise_id": self.user.enterprise_id})
+
 
 
 
