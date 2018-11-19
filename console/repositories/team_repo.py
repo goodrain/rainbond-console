@@ -102,6 +102,9 @@ class TeamRepo(object):
     def get_teams_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
+    def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, tenant_alias, enterprise_id):
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_alias__contains=tenant_alias)
+
     def create_tenant(self, **params):
         return Tenants.objects.create(**params)
 
