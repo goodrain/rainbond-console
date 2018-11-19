@@ -7,6 +7,7 @@ from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
+from rest_framework.views import APIView
 from console.services.enterprise_services import enterprise_services
 from console.repositories.enterprise_repo import enterprise_repo
 
@@ -799,3 +800,4 @@ class EnterpriseInfoView(BaseAPIView):
             result = generate_error_result()
             logger.exception(e)
         return Response(result)
+

@@ -1,8 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
-import operator
-import datetime
 import json
+import datetime
 
 from rest_framework.response import Response
 from django.db import connection
@@ -14,15 +13,12 @@ from backends.services.userservice import user_service
 from backends.services.regionservice import region_service
 from console.services.team_services import team_services as console_team_service
 from base import BaseAPIView
-from goodrain_web.tools import JuncheePaginator
 from www.models import Tenants, PermRelTenant
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
 from console.services.team_services import team_services
-from console.repositories.app import service_repo
-from www.services import app_group_svc
 from console.repositories.user_repo import user_repo
 from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi

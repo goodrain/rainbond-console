@@ -1192,10 +1192,7 @@ class AdminAddUserView(JWTAuthApiView):
                 result = general_message(403, "user information is not passed", msg)
                 return Response(result)
             client_ip = user_service.get_client_ip(request)
-            team = team_repo.get_teams_by_enterprise_id(self.user.enterprise_id, tenant_alias)
-            if not team:
-                result = general_message(400, "the team is not under the enterprise", "团队{0}不在企业下".format(tenant_alias))
-                return Response(result)
+            team = team_repo.get_team_by_team_alias(tenant_alias)
             enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             # 创建用户
             user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)

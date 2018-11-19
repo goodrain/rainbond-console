@@ -30,10 +30,15 @@ from console.services.compose_service import compose_service
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
 from django.conf import settings
+from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
+from console.repositories.app import service_repo
+from console.views.base import JWTAuthApiView
+
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+market_api = MarketServiceAPIManager()
 
 
 class AppDetailView(AppBaseView):
@@ -366,6 +371,47 @@ class AppVisitView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class AppGroupVisitView(JWTAuthApiView):
+
+    def get(self, request, team_name, *args, **kwargs):
+        """
+        获取应用访问信息
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: service_list
+              description: 服务别名列表
+              required: true
+              type: string
+              paramType: path
+        """
+
+        try:
+            serviceAlias = request.GET.get('service_alias')
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            service_access_list = list()
+            if not team:
+                result = general_message(400, "not tenant", "团队不存在")
+                return Response(result)
+            service_list = serviceAlias.split('-')
+            for service_alias in service_list:
+                bean = dict()
+                service = service_repo.get_service_by_service_alias(service_alias)
+                access_type, data = port_service.get_access_info(team, service)
+                bean["access_type"] = access_type
+                bean["access_info"] = data
+                service_access_list.append(bean)
+            result = general_message(200, "success", "操作成功", list=service_access_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 class AppPluginsBriefView(AppBaseView):
     @never_cache
     @perm_required('view_service')
@@ -674,3 +720,4 @@ class BuildSourceinfo(AppBaseView):
             result = error_message(e.message)
             transaction.savepoint_rollback(s_id)
         return Response(result, status=result["code"])
+

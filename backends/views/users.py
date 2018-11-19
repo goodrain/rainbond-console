@@ -35,6 +35,10 @@ class TenantUserView(BaseAPIView):
         """
         result = {}
         try:
+            tenant = tenant_service.get_tenant(tenant_name)
+            if not tenant:
+                result = generate_result("1001", "tenant not exist", "租户{}不存在".format(tenant_name))
+                return Response(result)
             user_list = tenant_service.get_tenant_users(tenant_name)
             list = []
             for user in user_list:

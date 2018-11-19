@@ -3,9 +3,8 @@ from django.conf.urls import patterns, url
 
 from console.captcha.captcha_code import CaptchaView
 
-from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseRechargeRecordsView, \
-    EnterpriseAllRegionFeeView, EnterprisePurchaseDetails
 
+from console.views.account_fee import EnterpriseRechargeRecordsView, EnterprisePurchaseDetails
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseAllRegionFeeView
 
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
@@ -30,7 +29,7 @@ from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, 
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
-    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo
+    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
@@ -137,6 +136,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/modifyname$', TeamNameModView.as_view()),
     # 删除当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/delete$', TeamDelView.as_view()),
+    # 应用(组)访问
+    url(r'^teams/(?P<team_name>[\w\-]+)/group/service/visit', AppGroupVisitView.as_view()),
     # 退出当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
     # 邀请注册
