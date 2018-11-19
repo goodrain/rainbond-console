@@ -859,7 +859,7 @@ class AllTeamsView(JWTAuthApiView):
                 enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
                 enterprise_id = enter.enterprise_id
             if tenant_alias:
-                team_list = team_services.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id=enterprise_id)
+                team_list = team_services.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id=enterprise_id, tenant_alias=tenant_alias)
             else:
                 team_list = team_services.get_enterprise_teams(enterprise_id)
             team_paginator = JuncheePaginator(team_list, int(page_size))

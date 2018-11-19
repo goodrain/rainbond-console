@@ -13,9 +13,12 @@ from console.services.group_service import group_service
 from console.services.compose_service import compose_service
 from console.services.team_services import team_services
 from console.services.app_actions import app_manage_service
+from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_repo import region_repo
 
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class TenantGroupView(RegionTenantHeaderView):
@@ -255,6 +258,26 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# # 应用（组）状态
+# class GroupStatusView(RegionTenantHeaderView):
+#     def get(self, request, *args, **kwargs):
+#         group_id = int(kwargs.get("group_id", None))
+#         region_name = int(kwargs.get("region_name", None))
+#         services = group_service_relation_repo.get_services_obj_by_group(group_id)
+#         if not services:
+#             result = general_message(400, "not service", "当前组内无应用，无法操作")
+#             return Response(result)
+#         service_id_list = [x.service_id for x in services]
+#         if len(service_id_list) > 0:
+#             region_obj = region_repo.get_region_by_region_name(region_name)
+#             service_status_list = region_api.service_status(region_obj, self.tenant_name,
+#                                                         {"service_ids": service_id_list,
+#                                                          "enterprise_id": self.user.enterprise_id})
+#
+
+
 
 
 
