@@ -185,7 +185,7 @@ class AuthAccessTokenView(AlowAnyApiView):
             password = request.data.get("password", None)
             enterprise_id = request.data.get("enterprise_id", None)
             enterprise_alias = request.data.get("enterprise_alias", None)
-            user_obj = user_repo.get_user_by_username(username)
+            user_obj = user_repo.get_user_by_user_name(username)
             if user_obj:
                 return Response(generate_result(
                     "1004", "user already exists", "用户名在控制台已存在"))

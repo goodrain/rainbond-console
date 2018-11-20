@@ -17,6 +17,10 @@ class UserRepo(object):
             raise UserNotExistError("用户{}不存在".format(user_name))
         return users[0]
 
+    def get_user_by_user_name(self, user_name):
+        users = Users.objects.filter(nick_name=user_name)
+        return users
+
     def get_user_by_filter(self, args=None, kwargs=None):
         args = tuple(args) if isinstance(args, (tuple, list, set)) else tuple()
         kwargs = kwargs if isinstance(kwargs, dict) else dict()
