@@ -193,10 +193,7 @@ class AuthAccessTokenView(AlowAnyApiView):
             if not enterprise:
                 enterprise = enterprise_services.create_tenant_enterprise(enterprise_id, enterprise_alias,
                                                                           enterprise_alias, False)
-            res, token = auth_service.create_token_auth_user(username, password)
-            if not res:
-                result = generate_result("0404", "user already exists", "用户在控制台已存在", bean={"code": "0404"})
-                return Response(result)
+            token = auth_service.create_token_auth_user(username, password)
             bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict()}
 
             result = generate_result("0000", "success", "信息获取成功",bean)

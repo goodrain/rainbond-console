@@ -37,9 +37,6 @@ class TenantEnterpriseRepo(object):
     def create_enterprise(self, **params):
         return TenantEnterprise.objects.create(**params)
 
-    def update_enterprise(self, **params):
-        return TenantEnterprise.objects.update(**params)
-
     def get_enterprises_by_enterprise_ids(self,eids):
         return TenantEnterprise.objects.filter(enterprise_id__in=eids)
 
