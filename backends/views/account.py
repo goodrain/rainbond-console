@@ -5,6 +5,7 @@ import os
 
 from django.conf import settings
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from backends.services.enterpriseservice import enterprise_service
 from backends.services.resultservice import *
@@ -15,6 +16,7 @@ from www.apiclient.baseclient import client_auth_service
 from www.services import enterprise_svc
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User as TokenAuthUser
+from console.repositories.enterprise_repo import enterprise_repo
 from console.services.enterprise_services import enterprise_services
 from backends.services.authservice import auth_service
 
@@ -115,7 +117,7 @@ class TenantEnterpriseView(BaseAPIView):
 class EnterpriseFuzzyQueryView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
-        更新企业信息
+        模糊查询企业信息
         ---
         parameters:
             - name: enterprise_alias
@@ -130,8 +132,8 @@ class EnterpriseFuzzyQueryView(BaseAPIView):
               paramType: form
         """
         try:
-            enterprise_alias = request.GET.get("enterprise_alias",None)
-            enterprise_name = request.GET.get("enterprise_name",None)
+            enterprise_alias = request.GET.get("enterprise_alias", None)
+            enterprise_name = request.GET.get("enterprise_name", None)
             enters = []
             if enterprise_alias:
                 enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_alias(enterprise_alias)
@@ -145,6 +147,7 @@ class EnterpriseFuzzyQueryView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
+
 
 class AuthAccessTokenView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):
@@ -174,7 +177,7 @@ class AuthAccessTokenView(AlowAnyApiView):
               paramType: form
         """
         try:
-            auth = request.META.get('HTTP_AUTHORIZATION', '')
+            auth = request.data.get('Authorization', '')
             if auth != settings.MANAGE_SECRET_KEY:
                 return Response(generate_result("0401", "authorization error", "验证未通过"))
             username = request.data.get("username", None)
@@ -195,6 +198,21 @@ class AuthAccessTokenView(AlowAnyApiView):
             bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict()}
 
             result = generate_result("0000", "success", "信息获取成功",bean)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+
+
+class EnterpriseInitView(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+
+        try:
+            auth = request.data.get('Authorization', '')
+            if auth != settings.MANAGE_SECRET_KEY:
+                return Response(generate_result("0401", "authorization error", "验证未通过"))
+            enterprise_info = enterprise_repo.get_enterprise_first()
+            result = generate_result("0000", "success", "信息获取成功", bean=enterprise_info.to_dict())
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

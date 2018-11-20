@@ -6,12 +6,10 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q
 from rest_framework.response import Response
 import re
-import datetime
 
 from backends.services.configservice import config_service
 from backends.services.exceptions import *
 from backends.services.resultservice import *
-from cadmin.models import ConsoleSysConfig
 from console.models import UserMessage
 from console.repositories.apply_repo import apply_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo, enterprise_repo
@@ -30,6 +28,10 @@ from www.perms import PermActions, get_highest_identity
 from www.utils.return_message import general_message, error_message
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
+from console.utils.timeutil import time_to_str
+from backends.services.userservice import user_service
+from console.services.enterprise_services import enterprise_services as console_enterprise_service
+
 
 logger = logging.getLogger("default")
 
@@ -851,15 +853,16 @@ class AllTeamsView(JWTAuthApiView):
         """
         try:
             enterprise_id = request.GET.get("enterprise_id", None)
+            tenant_alias = request.GET.get("tenant_alias", None)
             page_num = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 5))
             if not enterprise_id:
                 enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
                 enterprise_id = enter.enterprise_id
-            total = 0
-            t_list = []
-            owner_name = None
-            team_list = team_services.get_enterprise_teams(enterprise_id=enterprise_id)
+            if tenant_alias:
+                team_list = team_services.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id=enterprise_id, tenant_alias=tenant_alias)
+            else:
+                team_list = team_services.get_enterprise_teams(enterprise_id)
             team_paginator = JuncheePaginator(team_list, int(page_size))
             total = team_paginator.count
             page_team = team_paginator.page(page_num)
@@ -1040,3 +1043,182 @@ class TeamUserCanJoin(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class AllUserView(JWTAuthApiView):
+
+    def get(self, request, *args, **kwargs):
+        """
+        获取企业下用户信息列表
+        """
+        try:
+            enterprise_id = request.GET.get("enterprise_id", None)
+            page_num = int(request.GET.get("page_num", 1))
+            page_size = int(request.GET.get("page_size", 5))
+            user_name = request.GET.get("user_name", None)
+            if not enterprise_id:
+                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
+                enterprise_id = enter.enterprise_id
+            enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
+            if user_name:
+                euser = user_services.get_user_by_user_name(user_name)
+                list = []
+                if not euser:
+                    result = generate_result("0000", "success", "查询成功", list=list, total=0)
+                    return Response(result)
+                result_map = {}
+                result_map["user_id"] = euser.user_id
+                result_map["email"] = euser.email
+                result_map["nick_name"] = euser.nick_name
+                result_map["phone"] = euser.phone if euser.phone else "暂无"
+                result_map["create_time"] = time_to_str(euser.create_time, "%Y-%m-%d %H:%M:%S")
+                tenant_list = user_services.get_user_tenants(euser.user_id)
+                result_map["tenants"] = tenant_list
+                result_map["enterprise_alias"] = enter.enterprise_alias
+                list.append(result_map)
+                result = generate_result("0000", "success", "查询成功", list=list, total=1)
+                return Response(result)
+            user_list = user_repo.get_user_by_enterprise_id(enterprise_id=enterprise_id)
+            for user1 in user_list:
+                if user1.nick_name == self.user.nick_name:
+                    user_list.delete(user1)
+            user_paginator = JuncheePaginator(user_list, int(page_size))
+            users = user_paginator.page(int(page_num))
+            list = []
+            for user in users:
+                result_map = {}
+                result_map["user_id"] = user.user_id
+                result_map["email"] = user.email
+                result_map["nick_name"] = user.nick_name
+                result_map["phone"] = user.phone if user.phone else "暂无"
+                result_map["create_time"] = time_to_str(user.create_time, "%Y-%m-%d %H:%M:%S")
+                tenant_list = user_services.get_user_tenants(user.user_id)
+                result_map["tenants"] = tenant_list
+                result_map["enterprise_alias"] = enter.enterprise_alias
+                list.append(result_map)
+
+            result = generate_result("0000", "success", "查询成功", list=list, total=user_paginator.count)
+
+        except Exception as e:
+            logger.debug(e)
+            result = generate_error_result()
+        return Response(result)
+
+    def delete(self, request, tenant_name, user_id, *args, **kwargs):
+        """
+        删除用户
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: path
+            - name: user_id
+              description: 用户名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            user_services.delete_user(user_id)
+            result = generate_result(
+                "0000", "success", "删除成功"
+            )
+        except Exception as e:
+            logger.exception(e)
+            result = generate_result("9999", "system error", "系统异常")
+        return Response(result)
+
+
+# 企业管理员添加用户
+class AdminAddUserView(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        """
+        parameters:
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: path
+            - name: user_name
+              description: 用户名
+              required: true
+              type: string
+              paramType: form
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              paramType: form
+            - name: email
+              description: 邮件地址
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 密码
+              required: true
+              type: string
+              paramType: form
+            - name: re_password
+              description: 重复密码
+              required: true
+              type: string
+              paramType: form
+            - name: identity
+              description: 用户在租户的身份
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            tenant_name = request.data.get("tenant_name", None)
+            user_name = request.data.get("user_name", None)
+            phone = request.data.get("phone", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            role_ids = request.data.get("role_ids", None)
+            if len(password) < 8:
+                result = general_message(400, "len error", "密码长度最少为8位")
+                return Response(result)
+            if not tenant_name:
+                result = general_message(400, "not tenant", "团队不能为空")
+                return Response(result)
+            if role_ids:
+                try:
+                    role_id_list = [int(id) for id in role_ids.split(",")]
+                except Exception as e:
+                    logger.exception(e)
+                    code = 400
+                    result = general_message(code, "params is empty", "参数格式不正确")
+                    return Response(result, status=code)
+                for id in role_id_list:
+                    if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
+                        code = 400
+                        result = general_message(code, "The role does not exist", "该角色在团队中不存在")
+                        return Response(result, status=code)
+                # 校验用户信息
+                is_pass, msg = user_service.check_params(user_name, email, password, re_password)
+                if not is_pass:
+                    result = general_message(403, "user information is not passed", msg)
+                    return Response(result)
+                client_ip = user_service.get_client_ip(request)
+                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                # 创建用户
+                user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
+                # 创建用户团队关系表
+                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name,
+                                                 role_id_list=role_id_list)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
+            else:
+                result = general_message(400, "not role", "创建用户时角色不能为空")
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+        return Response(result)

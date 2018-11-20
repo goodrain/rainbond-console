@@ -3,8 +3,7 @@ from django.conf.urls import patterns, url
 
 from console.captcha.captcha_code import CaptchaView
 
-from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseRechargeRecordsView, \
-    EnterpriseAllRegionFeeView, EnterprisePurchaseDetails
+from console.views.account_fee import EnterpriseRechargeRecordsView, EnterprisePurchaseDetails
 
 from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseAllRegionFeeView
 
@@ -30,7 +29,7 @@ from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, 
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
-    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo
+    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
@@ -45,7 +44,7 @@ from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, Serv
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
     BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView
+from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView, GroupStatusView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
@@ -77,7 +76,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin
+    TeamUserCanJoin, AdminAddUserView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -86,6 +85,7 @@ from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
+from console.views.service_share import ShareRecordView
 
 
 urlpatterns = patterns(
@@ -136,6 +136,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/modifyname$', TeamNameModView.as_view()),
     # 删除当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/delete$', TeamDelView.as_view()),
+    # 应用(组)访问
+    url(r'^teams/(?P<team_name>[\w\-]+)/group/service/visit', AppGroupVisitView.as_view()),
     # 退出当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
     # 邀请注册
@@ -177,6 +179,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
@@ -206,8 +209,15 @@ urlpatterns = patterns(
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
+    # 应用组删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
         TenantGroupOperationView.as_view()),
+    # 应用组状态（应用）
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$',
+        GroupStatusView.as_view()),
+    # 应用(组)常见操作
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
+        TenantGroupCommonOperationView.as_view()),
     # git仓库对接
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/github$', GithubCodeRepoView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/code_repo/gitlab$', GitlabCodeRepoView.as_view()),
@@ -494,7 +504,7 @@ urlpatterns = patterns(
     # 迁移与恢复未完成记录查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate/record$', MigrateRecordView.as_view()),
 
-    # 应用组删除
+    # 应用组数据删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
     # webhooks回调地址
@@ -526,6 +536,12 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 企业管理员添加用户
+    url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
+    # # 获取企业下所有用户信息(企业中心中：删除用户)
+    # url(r'^enterprise/users$', AllUserView.as_view()),
+    # # 企业中心模糊查询团队
+    # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

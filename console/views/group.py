@@ -2,18 +2,24 @@
 """
   Created by leon on 18/1/5.
 """
+import logging
 from rest_framework.response import Response
 
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
-import logging
-
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
 from console.services.compose_service import compose_service
+from console.services.team_services import team_services
+from console.services.app_actions import app_manage_service
+from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_repo import region_repo
+from console.services.enterprise_services import enterprise_services
+
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class TenantGroupView(RegionTenantHeaderView):
@@ -180,3 +186,98 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# 应用（组）常见操作【停止，重启， 启动， 重新构建】
+class TenantGroupCommonOperationView(RegionTenantHeaderView):
+
+    @perm_required('stop_service')
+    @perm_required('start_service')
+    @perm_required('restart_service')
+    @perm_required('deploy_service')
+    def post(self, request, *args, **kwargs):
+        """
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: action
+              description: 操作名称 stop| start|restart|deploy
+              required: true
+              type: string
+              paramType: form
+            - name: group_id
+              description: 组id
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            action = request.data.get("action", None)
+
+            group_id = int(kwargs.get("group_id", None))
+            services = group_service_relation_repo.get_services_obj_by_group(group_id)
+            if not services:
+                result = general_message(400, "not service", "当前组内无应用，无法操作")
+                return Response(result)
+
+            if action not in ("stop", "start", "restart", "deploy"):
+                return Response(general_message(400, "param error", "操作类型错误"), status=400)
+            # 校验权限
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant_name)
+            perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
+
+            if action == "stop":
+                if "stop_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
+            if action == "start":
+                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
+            if action == "restart":
+                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
+            if action == "deploy":
+                if "deploy_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                    return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
+            # 构建service_ids列表
+            service_id_list = []
+            for service in services:
+                service_id_list.append(service.service_id)
+                # 批量操作
+            code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id=None)
+            if code != 200:
+                result = general_message(code, "batch manage error", msg)
+            else:
+                result = general_message(200, "success", "操作成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+# 应用（组）状态
+class GroupStatusView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        group_id = request.GET.get("group_id", None)
+        region_name = request.GET.get("region_name", None)
+        if not group_id or not region_name:
+            result = general_message(400, "not group_id", "参数缺失")
+            return Response(result)
+        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        if not services:
+            result = general_message(400, "not service", "当前组内无应用，无法操作")
+            return Response(result)
+        service_id_list = [x.service_id for x in services]
+        service_status_list = region_api.service_status(self.response_region, self.tenant_name,
+                                                        {"service_ids": service_id_list,
+                                                         "enterprise_id": self.user.enterprise_id})
+        result = general_message(200, "success", "查询成功", list=service_status_list)
+        return Response(result)
+
+

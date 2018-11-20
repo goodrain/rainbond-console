@@ -8,18 +8,13 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from backends.models.main import RegionConfig
-from backends.services.exceptions import *
-from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
-from console.services.region_services import region_services
 from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
 from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.models.main import TenantUserRole
-from console.repositories.group import group_repo
 
 logger = logging.getLogger("default")
 
@@ -211,6 +206,17 @@ class TeamService(object):
                                                                                       role_id_list=role_id_list)
         return user_role
 
+    def create_tenant_role(self, user_id, tenant_name, role_id_list):
+        """修改用户在团队中的角色"""
+        tenant = self.get_tenant(tenant_name=tenant_name)
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
+        user_role = role_repo.add_user_role_in_tenant_by_user_id_tenant_id_role_id(user_id=user_id,
+                                                                                      tenant_id=tenant.pk,
+                                                                                      enterprise_id=enterprise.pk,
+                                                                                      role_id_list=role_id_list)
+        return user_role
+
+
     def add_user_role_to_team(self, request, tenant, user_ids, role_ids):
         """在团队中添加一个用户并给用户分配一个角色"""
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
@@ -256,7 +262,6 @@ class TeamService(object):
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
-
 
     def get_service_source(self, service_alias):
         service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)
@@ -366,5 +371,9 @@ class TeamService(object):
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)
 
+    def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id, tenant_alias):
+        return team_repo.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id, tenant_alias)
+
 
 team_services = TeamService()
+

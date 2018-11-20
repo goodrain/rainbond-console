@@ -35,7 +35,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-
     def _set_headers(self, token):
         if settings.MODULES["RegionToken"]:
             if not token:
@@ -1358,6 +1357,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"+service_alias+"/deployversions"
 
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    # 获取数据中心应用异常信息
+
+    def get_app_abnormal(self, url, token, region, start_stamp, end_stamp):
+        url += "/v2/notificationEvent?start={0}&end={1}".format(start_stamp, end_stamp)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body

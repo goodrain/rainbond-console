@@ -172,10 +172,24 @@ class ShareService(object):
         else:
             return {}
 
+    def get_team_service_deploy_version(self, region, team, service_ids):
+        try:
+            res, body = region_api.get_team_services_deploy_version(region, team.tenant_name, {"service_ids":service_ids})
+            if res.status == 200:
+                service_versions = {}
+                for version in body["list"]:
+                    service_versions[version["service_id"]] = version["build_version"]
+                return service_versions
+        except Exception as e:
+            logger.exception(e)
+        logger.debug("======>get services deploy version failure")
+        return None
+
     def query_share_service_info(self, team, group_id):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
+            deploy_versions = self.get_team_service_deploy_version(service_list[0].service_region, team, array_ids)
             array_keys = []
             for x in service_list:
                 if x.service_key == "application" or x.service_key == "0000" or x.service_key == "":
@@ -194,6 +208,7 @@ class ShareService(object):
             # 获取应用的健康检测设置
             probe_map = self.get_service_probes(array_ids)
 
+
             all_data_map = {}
             for service in service_list:
                 data = dict()
@@ -201,13 +216,14 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                if service.service_source == 'application' or service.service_source == '0000' or service.service_source == 'mysql':
+                if service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql':
                     data['service_key'] = make_uuid()
                     service.service_key = data['service_key']
                     service.save()
                 #     data['need_share'] = True
                 # else:
                 #     data['need_share'] = False
+                data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
                 data['language'] = service.language
@@ -216,7 +232,7 @@ class ShareService(object):
                 data['memory'] = service.min_memory
                 data['service_type'] = service.service_type
                 data['service_source'] = service.service_source
-                data['deploy_version'] = service.deploy_version
+                data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
                 data['image'] = service.image
                 data['service_alias'] = service.service_alias
                 data['service_region'] = service.service_region
@@ -304,8 +320,10 @@ class ShareService(object):
                     for dep in dep_service_map.get(service['service_id']):
                         d = dict()
                         if all_data_map.get(dep.service_id):
-                            d['dep_service_key'] = all_data_map[dep.service_id]['service_key']
+                            # 通过service_key和service_id来判断依赖关系
+                            d['dep_service_key'] = all_data_map[dep.service_id]["service_share_uuid"]
                             service['dep_service_map_list'].append(d)
+
                 all_data.append(service)
             return all_data
         else:

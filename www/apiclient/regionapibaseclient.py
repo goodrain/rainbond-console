@@ -7,13 +7,14 @@ import logging
 import multiprocessing
 import socket
 import ssl
-
+import os
 import certifi
 import urllib3
 from addict import Dict
 
 from console.repositories.region_repo import region_repo
 from goodrain_web.decorator import method_perf_time
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
@@ -83,10 +84,11 @@ class RegionApiBaseHttpClient(object):
             raise Exception("region {0} not found".format(region_name))
         verify_ssl = False
         # 判断是否为https请求
-        if region.ssl_ca_cert:
+        wsurl_split_list = region.wsurl.split(':')
+        if wsurl_split_list[0] == "wss":
             verify_ssl = True
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file)
+        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
         retry_count = 2
@@ -216,7 +218,8 @@ class Configuration():
                  ssl_ca_cert=None,
                  cert_file=None,
                  key_file=None,
-                 assert_hostname=None):
+                 assert_hostname=None,
+                 region_name=None):
         """
         Constructor
         """
@@ -227,11 +230,60 @@ class Configuration():
         # Set this to false to skip verifying SSL certificate when calling API from https server.
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
-        self.ssl_ca_cert = ssl_ca_cert
+        # 兼容证书路径和内容
+        if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
+            self.ssl_ca_cert = ssl_ca_cert
+        else:
+            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            if os.path.isdir(file_path):
+                ssl_ca_cert_url = settings.BASE_DIR + "/data/{0}/ssl/ca.pem".format(region_name)
+                with open(ssl_ca_cert_url, 'w') as f:
+                    f.writelines(ssl_ca_cert)
+                    f.close()
+                self.ssl_ca_cert = ssl_ca_cert_url
+            else:
+                os.makedirs(settings.BASE_DIR + "/data/{0}/ssl".format(region_name))
+                ssl_ca_cert_url = settings.BASE_DIR + "/data/{0}/ssl/ca.pem".format(region_name)
+                with open(ssl_ca_cert_url, 'w') as f:
+                    f.writelines(ssl_ca_cert)
+                    f.close()
+                self.ssl_ca_cert = ssl_ca_cert_url
         # client certificate file
-        self.cert_file = cert_file
+        if not cert_file or cert_file.startswith('/'):
+            self.cert_file = cert_file
+        else:
+            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            if os.path.isdir(file_path):
+                cert_file_url = settings.BASE_DIR + '/data/{0}/ssl/client.pem'.format(region_name)
+                with open(cert_file_url, 'w') as f:
+                    f.writelines(cert_file)
+                    f.close()
+                self.cert_file = cert_file_url
+            else:
+                os.makedirs(settings.BASE_DIR + "/data/{0}/ssl".format(region_name))
+                cert_file_url = settings.BASE_DIR + "/data/{0}/ssl/ca.pem".format(region_name)
+                with open(cert_file_url, 'w') as f:
+                    f.writelines(cert_file)
+                    f.close()
+                self.ssl_ca_cert = cert_file_url
         # client key file
-        self.key_file = key_file
+        if not key_file or key_file.startswith('/'):
+            self.key_file = key_file
+        else:
+            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            if os.path.isdir(file_path):
+                key_file_url = '/data/{0}/ssl/client.key.pem'.format(region_name)
+                with open(key_file_url, 'w') as f:
+                    f.writelines(key_file)
+                    f.close()
+                self.key_file = key_file_url
+            else:
+                os.makedirs(settings.BASE_DIR + "/data/{0}/ssl".format(region_name))
+                key_file_url = settings.BASE_DIR + "/data/{0}/ssl/ca.pem".format(region_name)
+                with open(key_file_url, 'w') as f:
+                    f.writelines(key_file)
+                    f.close()
+                self.ssl_ca_cert = key_file_url
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname
 

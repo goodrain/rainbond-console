@@ -19,7 +19,7 @@ gitClient = GitlabApi()
 
 class UserService(object):
 
-    def check_params(self, user_name, phone, email, password, re_password):
+    def check_params(self, user_name, email, password, re_password):
         is_pass, msg = self.__check_user_name(user_name)
         if not is_pass:
             return is_pass, msg
@@ -27,9 +27,9 @@ class UserService(object):
         if not is_pass:
             return is_pass, msg
 
-        is_pass, msg = self.__check_phone(phone)
-        if not is_pass:
-            return is_pass, msg
+        # is_pass, msg = self.__check_phone(phone)
+        # if not is_pass:
+        #     return is_pass, msg
 
         if password != re_password:
             return False, "两次输入的密码不一致"
@@ -55,15 +55,15 @@ class UserService(object):
             return False, "邮箱地址不合法"
         return True, "success"
 
-    def __check_phone(self, phone):
-        if not phone:
-            return False, "手机号不能为空"
-        if console_user_service.get_user_by_phone(phone):
-            return False, "手机号{0}已存在".format(phone)
-        r = re.compile(r'^1[35678]\d{9}$|^147\d{8}$')
-        if not r.match(phone):
-            return False, "请填写正确的手机号"
-        return True, "success"
+    # def __check_phone(self, phone):
+    #     if not phone:
+    #         return False, "手机号不能为空"
+    #     if console_user_service.get_user_by_phone(phone):
+    #         return False, "手机号{0}已存在".format(phone)
+    #     r = re.compile(r'^1[35678]\d{9}$|^147\d{8}$')
+    #     if not r.match(phone):
+    #         return False, "请填写正确的手机号"
+    #     return True, "success"
 
     def create_user(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
         user = Users.objects.create(
@@ -98,11 +98,11 @@ class UserService(object):
 
     def get_user_tenants(self, user_id):
         tenant_id_list = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
-        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_name", flat=True)
+        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_alias", flat=True)
         return tenant_list
 
     def get_all_users(self):
-        user_list = Users.objects.all()
+        user_list = Users.objects.all().order_by("-create_time")
         return user_list
 
     def get_client_ip(self, request):
@@ -154,12 +154,24 @@ class UserService(object):
             return False
 
     def get_by_username_or_phone_or_email(self, query_condition):
-        query = Q()
-        if query_condition:
-            query = query | Q(nick_name=query_condition) | Q(phone=query_condition) | Q(email=query_condition)
+        # query = Q()
+        # if query_condition:
+        #     query = query | Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)
 
-        users = Users.objects.filter(query).order_by("-user_id")
+        users = Users.objects.filter(Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)).order_by("-create_time")
         return users
+
+    def get_user_by_user_id(self, user_id):
+        u = Users.objects.filter(user_id=user_id)
+        if not u:
+            raise UserNotExistError("用户{}不存在".format(user_id))
+        return u[0]
+
+    def get_creater_by_user_id(self, user_id):
+        u = Users.objects.filter(user_id=user_id)
+        if not u:
+            return 0
+        return u[0]
 
 
 user_service = UserService()

@@ -28,4 +28,5 @@ class AuthService(object):
         token = Token.objects.filter(user_id=user_id).first()
         return token
 
+
 auth_service = AuthService()

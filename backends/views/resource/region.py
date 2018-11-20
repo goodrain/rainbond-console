@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 
 import logging
+import time
+import datetime
 
 from rest_framework.response import Response
 
@@ -26,16 +28,7 @@ class RegionView(BaseAPIView):
             regions_info = []
             if regions:
                 for r in regions:
-                    clusters = cluster_service.get_cluster_by_region(r.region_id)
-                    if not clusters:
-                        cluster_id = make_uuid()
-                        cluster_alias = r.region_alias + u"-集群A"
-                        cluster_name = r.region_name + "-" + "c1"
-                        cluster_info = cluster_service.add_cluster(r.region_id, cluster_id, cluster_name, cluster_alias,
-                                                                   True)
-                        clusters = [cluster_info]
                     bean = r.to_dict()
-                    bean.update({"clusters": [c.to_dict() for c in clusters]})
                     regions_info.append(bean)
             result = generate_result("0000", "success", "查询成功", list=regions_info)
 
@@ -103,7 +96,6 @@ class RegionView(BaseAPIView):
         """
         try:
             region_name = request.data.get("region_name", None)
-            region_id = request.data.get("region_id", None)
             region_alias = request.data.get("region_alias", None)
             url = request.data.get("url", None)
             token = request.data.get("token", None)
@@ -112,10 +104,13 @@ class RegionView(BaseAPIView):
             tcpdomain = request.data.get("tcpdomain", None)
             desc = request.data.get("desc", "")
             scope = request.data.get("scope", None)
-
+            ssl_ca_cert = request.data.get("ssl_ca_cert", None)
+            cert_file = request.data.get("cert_file", None)
+            key_file = request.data.get("key_file", None)
+            region_id = make_uuid()
             is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
                                                                      wsurl, httpdomain,
-                                                                     tcpdomain, desc, scope)
+                                                                     tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file)
             if not is_success:
                 result = generate_result("2001", "add console region error", msg)
             else:
@@ -225,3 +220,29 @@ class RegionStatusView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
+
+
+class RegionAppAbnormal(BaseAPIView):
+    def get(self, request, region_id, *args, **kwargs):
+        """获取数据中心应用异常信息(默认最近三天)"""
+        try:
+            start_stamp = request.GET.get('start', 0)
+            end_stamp = request.GET.get('end', 0)
+            if not end_stamp:
+                # 获取当前时间戳
+                end_stamp = int(time.time())
+            if not start_stamp:
+                # 获取三天前时间戳
+                three_day_ago = (datetime.datetime.now() - datetime.timedelta(days=3))
+                start_stamp = int(time.mktime(three_day_ago.timetuple()))
+            app_list = region_service.get_app_abnormal(region_id, start_stamp, end_stamp)
+            result = generate_result("0000", "success", "查询成功", list=app_list)
+        except RegionNotExistError as e:
+            result = generate_result("2002", "region not exist", e.message)
+        except RegionAccessError as e:
+            result = generate_result("2003", "region access", e.message)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+

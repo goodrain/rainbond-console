@@ -9,10 +9,10 @@ from backends.services.httpclient import HttpInvokeApi
 from backends.services.tenantservice import tenant_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo, Tenants, TenantRegionInfo
-from www.utils.crypt import make_uuid
 from backends.services.exceptions import *
 from django.db.models import Sum, F
 from backends.services.configservice import config_service
+from console.repositories.app import service_repo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger('default')
@@ -141,7 +141,7 @@ class RegionService(object):
         cluster_config.save()
 
     def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain,
-                                      tcpdomain, desc, scope):
+                                      tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file):
 
         if not wsurl:
             return False, "数据中心websocket地址不能为空", None
@@ -156,14 +156,6 @@ class RegionService(object):
             return False, "数据中心名{}在云帮已存在".format(region_name), None
         if RegionConfig.objects.filter(region_alias=region_alias).exists():
             return False, "数据中心别名{}在云帮已存在".format(region_alias), None
-        try:
-            res, body = region_api.get_api_version(url, token, region_name)
-            status = int(res.status)
-            if status != 200:
-                return False, "该数据中心云帮{0}无法访问".format(region_name), None
-        except Exception as e:
-            logger.exception(e)
-            return False, "该数据中心云帮{0}无法访问".format(region_name), None
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         region_config = RegionConfig(region_id=region_id,
@@ -177,8 +169,22 @@ class RegionService(object):
                                      url=url,
                                      create_time=create_time,
                                      status='2',
-                                     token=token)
+                                     token=token,
+                                     ssl_ca_cert=ssl_ca_cert,
+                                     cert_file=cert_file,
+                                     key_file=key_file)
         region_config.save()
+        try:
+            res, body = region_api.get_api_version(url, token, region_name)
+            status = int(res.status)
+            if status != 200:
+                RegionConfig.objects.filter(region_name=region_name).delete()
+                return False, "该数据中心云帮{0}无法访问".format(region_name), None
+        except Exception as e:
+            logger.exception(e)
+            RegionConfig.objects.filter(region_name=region_name).delete()
+            return False, "该数据中心云帮{0}异常".format(region_name), None
+
         return True, "数据中心添加成功",region_config
 
     def update_region(self, region_id, **kwargs):
@@ -390,5 +396,24 @@ class RegionService(object):
     def delete_region_by_region_id(self, region_id):
         RegionConfig.objects.filter(region_id=region_id).delete()
         RegionClusterInfo.objects.filter(region_id=region_id).delete()
+
+    def get_app_abnormal(self, region_id, start_stamp, end_stamp):
+        if not RegionConfig.objects.filter(region_id=region_id).exists():
+            raise RegionNotExistError("数据中心不存在")
+        region_config = RegionConfig.objects.get(region_id=region_id)
+        res, body = region_api.get_app_abnormal(region_config.url, region_config.token, region_config.region_name,
+                                                start_stamp, end_stamp)
+        if res["status"] >= 400:
+            raise RegionAccessError("数据中心查询出错")
+        app_list = body["list"]
+        for app_dict in reversed(app_list):
+            if not app_dict.get("ServiceName"):
+                app_list.remove(app_dict)
+        for app_dicts in app_list:
+            service_alias = app_dicts.get("ServiceName")
+            service = service_repo.get_service_by_service_alias(service_alias)
+            app_dicts["ServiceAlias"] = service.service_cname
+        return app_list
+
 
 region_service = RegionService()

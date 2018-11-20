@@ -12,7 +12,8 @@ class HttpInvokeApi(BaseHttpClient):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {
             'Connection': 'keep-alive',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            # 'Authorization': 'Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a'
         }
         self.base_url = ""
 
@@ -106,3 +107,23 @@ class HttpInvokeApi(BaseHttpClient):
         url = self.base_url + "/v2/nodes/resources"
         res, body = self._get(url, self.default_headers)
         return res,body
+
+    def get_region_resource(self, region):
+        self.update_client(region)
+        url = self.base_url + "/v2/nodes/fullres"
+        res, body = self._get(url, self.default_headers)
+        return res, body
+
+    # 查看数据中心下团队的资源内存剩余
+    def get_tenant_limit_memory(self, region, body):
+        self.update_client(region)
+        url = self.base_url + "/v2/resources/tenants"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body
+
+    # 查看团队在某数据中心的应用状态
+    def get_tenant_service_status(self, region):
+        self.update_client(region)
+        url = self.base_url + "/v2/tenants/services_status"
+        res, body = self._get(url, self.default_headers)
+        return res, body

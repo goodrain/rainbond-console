@@ -76,6 +76,13 @@ class RegionNotExistError(BaseException):
     pass
 
 
+class RegionAccessError(BaseException):
+    """
+    数据中心查询出错
+    """
+    pass
+
+
 class RegionExistError(BaseException):
     """
     数据中心已存在

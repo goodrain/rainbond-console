@@ -452,3 +452,30 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class ShareRecordView(RegionTenantHeaderView):
+    def get(self, request, team_name, group_id, *args, **kwargs):
+        """
+        查询是否有未确认分享订单记录
+        ---
+        parameter:
+            - name: team_name
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 应用组id
+              required: true
+              type: string
+              paramType: path
+        """
+        share_record = share_repo.get_service_share_record_by_groupid(group_id=group_id)
+        if share_record:
+            if share_record.step == 2:
+                result = general_message(200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
+                return Response(result, status=200)
+        result = general_message(200, "the current application is not Shared or Shared", "当前应用未分享或已分享",
+                                 bean=share_record.to_dict())
+        return Response(result, status=200)

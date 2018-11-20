@@ -21,9 +21,9 @@ class GroupService(object):
     def check_group_name(self, group_name):
         if len(group_name) > 15:
             return False, u"组名称最多支持15个字符"
-        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+        r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
-            return False, u"组名称只支持中英文下划线和中划线"
+            return False, u"组名称只支持中英文, 数字, 下划线, 中划线和点"
         return True, u"success"
 
     def add_group(self, tenant, region_name, group_name):

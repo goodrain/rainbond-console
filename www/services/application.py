@@ -1013,6 +1013,12 @@ class ApplicationGroupService(object):
         except Users.DoesNotExist:
             return None
 
+    def get_users_by_eid(self, e_id):
+        try:
+            return Users.objects.filter(enterprise_id=e_id).all()
+        except Users.DoesNotExist:
+            return None
+
     def get_tenant_service_access_url(self, tenant, service):
         tenant_ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id,
                                                          is_outer_service=1, protocol='http')

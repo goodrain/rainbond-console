@@ -243,46 +243,63 @@ class AppManageService(AppManageBase):
             body["repo_url"] = clone_url
             body["branch"] = service.code_version
             body["server_type"] = service.server_type
-        try:
-            if service.service_source == "market":
+
+        if service.service_source == "market":
+            try:
                 # 获取组对象
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
-                # 获取内部市场对象
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                 group_obj.group_version)
-                if rain_app:
-                    # 解析app_template的json数据
-                    apps_template = json.loads(rain_app.app_template)
-
-                    apps_list = apps_template.get("apps")
-                    for app in apps_list:
-                        if app['service_key'] == service.service_key:
-                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                            if kind == "build_from_market_slug":
-                                service.image = app["image"]
-                                if app.get("service_slug", None):
-                                    service.namespace = app["service_slug"]["namespace"]
-                                service_source.extend_info["slug_path"] = json.dumps(app.get("share_slug_path", ""))
-                                service_source.extend_info = json.dumps(app["service_slug"])
-                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-                            else:
-                                service.image = app.get("share_image", app["image"])
-                                if app.get("service_image", None):
-                                    service.namespace = app["service_image"]["namespace"]
-                                service_source.extend_info = json.dumps(app["service_image"])
-                            service.cmd = app.get("cmd", "")
-                            service.version = app["version"]
-                            service.is_upgrate = False
-                            service.save()
-                            service_source.save()
-        except Exception as e:
-            logger.exception('===========000============>'.format(e))
+                if group_obj:
+                    # 获取内部市场对象
+                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                     group_obj.group_version)
+                    if rain_app:
+                        # 解析app_template的json数据
+                        apps_template = json.loads(rain_app.app_template)
+                        apps_list = apps_template.get("apps")
+                        if service_source and service_source.extend_info:
+                            extend_info = json.loads(service_source.extend_info)
+                            for app in apps_list:
+                                if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                    # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
+                                    share_image = app.get("share_image", None)
+                                    share_slug_path = app.get("share_slug_path", None)
+                                    new_extend_info = {}
+                                    if share_image:
+                                        if app.get("service_image",None):
+                                            body["image_url"] = share_image
+                                            body["user"] = app.get("service_image").get("hub_user")
+                                            body["password"] = app.get("service_image").get("hub_password")
+                                            new_extend_info = app["service_image"]
+                                    if share_slug_path:
+                                        slug_info = app.get("service_slug")
+                                        slug_info["slug_path"] = share_slug_path
+                                        new_extend_info = slug_info
+                                        body["slug_info"] = new_extend_info
+                                    # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
+                                    service.cmd = app.get("cmd", "")
+                                    service.version = app["version"]
+                                    service.is_upgrate = False
+                                    service.save()
+                                    new_extend_info["source_deploy_version"] = app.get("deploy_version")
+                                    new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid")  \
+                                        if app.get("service_share_uuid", None)\
+                                        else app.get("service_key", "")
+                                    service_source.extend_info = json.dumps(new_extend_info)
+                                    service_source.save()
+            except Exception as e:
+                logger.exception('===========000============>'.format(e))
+                body["image_url"] = service.image
+                if service_source:
+                    extend_info = json.loads(service_source.extend_info)
+                    if service.is_slug():
+                        body["slug_info"] = extend_info
+        else:
+            body["image_url"] = service.image
         body["kind"] = kind
         body["service_alias"] = service.service_alias
         body["tenant_name"] = tenant.tenant_name
         body["enterprise_id"] = tenant.enterprise_id
         body["lang"] = service.language
-        body["image_url"] = service.image
         body["cmd"] = service.cmd
         if service_source:
             if service_source.user_name or service_source.password:
@@ -290,15 +307,12 @@ class AppManageService(AppManageBase):
                 body["password"] = service_source.password
             if service_source.extend_info:
                 extend_info = json.loads(service_source.extend_info)
-                if service.is_slug():
-                    body["slug_info"] = extend_info
-                else:
+                if not service.is_slug():
                     hub_user = extend_info.get("hub_user", None)
                     hub_password = extend_info.get("hub_password", None)
                     if hub_user or hub_password:
                         body["user"] = hub_user
                         body["password"] = hub_password
-
         try:
             region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
@@ -391,6 +405,8 @@ class AppManageService(AppManageBase):
                     self.restart(tenant, service, user)
                 elif action == "move":
                     self.move(service, move_group_id)
+                elif action == "deploy":
+                    self.deploy(tenant, service, user)
                 code = 200
                 msg = "success"
             except Exception as e:

@@ -110,6 +110,9 @@ class GroupServiceRelationRepository(object):
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 
+    def get_services_obj_by_group(self, group_id):
+        return ServiceGroupRelation.objects.filter(group_id=group_id).all()
+
     def update_service_relation(self,group_id, default_group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).update(group_id=default_group_id)
 

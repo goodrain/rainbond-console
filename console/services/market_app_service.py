@@ -30,7 +30,7 @@ from console.models.main import RainbondCenterApp
 from console.services.common_services import common_services
 from console.repositories.plugin import plugin_repo
 from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
-
+from console.repositories.share_repo import share_repo
 
 
 logger = logging.getLogger("default")
@@ -84,11 +84,16 @@ class MarketAppService(object):
                     service_probe_map[ts.service_id] = probe_infos
 
                 self.__save_extend_info(ts, app["extend_method_map"])
-
-                dep_apps_key = app.get("dep_service_map_list", None)
-                if dep_apps_key:
-                    service_key_dep_key_map[ts.service_key] = dep_apps_key
-                key_service_map[ts.service_key] = ts
+                if app.get("service_share_uuid", None):
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[app.get("service_share_uuid")] = dep_apps_key
+                    key_service_map[app.get("service_share_uuid")] = ts
+                else:
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[ts.service_key] = dep_apps_key
+                    key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
             # 保存依赖关系
@@ -449,6 +454,14 @@ class MarketAppService(object):
         tenant_service.save()
         return tenant_service
 
+    def save_max_node_in_extend_method(self, service_key, app):
+        extend_method_obj = share_repo.get_service_extend_method_by_key(service_key)
+        if extend_method_obj:
+            for ex_me in extend_method_obj:
+                if app["extend_method_map"]["max_node"]:
+                    ex_me.max_node = app["extend_method_map"]["max_node"]
+                    ex_me.save()
+
     def __init_service_source(self, ts, app):
         is_slug = bool(ts.image.startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
         if is_slug:
@@ -456,6 +469,9 @@ class MarketAppService(object):
             extend_info["slug_path"] = app.get("share_slug_path", "")
         else:
             extend_info = app["service_image"]
+        extend_info["source_deploy_version"] = app.get("deploy_version")
+        extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get("service_share_uuid", None)\
+            else app.get("service_key", "")
 
         service_source_params = {
             "team_id": ts.tenant_id,
@@ -551,9 +567,15 @@ class MarketAppService(object):
             if rbc:
                 if rbc.is_complete:
                     is_complete = True
+            if rbc and rbc.source != "local" and rbc.upgrade_time:
                 # 判断云市应用是否有小版本更新
-                if rbc.upgrade_time < app["upgrade_time"]:
-                    is_upgrade = 1
+                try:
+                    old_version = int(rbc.upgrade_time)
+                    new_version = int(app["update_version"])
+                    if old_version < new_version:
+                        is_upgrade = 1
+                except Exception as e:
+                    logger.exception(e)
             rbapp = {
                 "group_key": app["group_key"],
                 "group_name": app["group_name"],
@@ -566,7 +588,7 @@ class MarketAppService(object):
                 "is_complete": is_complete,
                 "is_official": app["is_official"],
                 "details": app["desc"],
-                "upgrade_time": app["upgrade_time"],
+                "upgrade_time": app["update_version"],
                 "is_upgrade": is_upgrade
             }
             result_list.append(rbapp)
@@ -868,6 +890,7 @@ class AppMarketSynchronizeService(object):
                 template_version=app_templates.get("template_version", ""),
                 is_official=app_templates["is_official"],
                 details=app_templates["desc"],
+                upgrade_time=app_templates["update_version"]
             )
         if is_v1:
             rainbond_app.share_user = v2_template["share_user"]
@@ -879,6 +902,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template["is_official"]
             rainbond_app.details = v2_template["desc"]
+            rainbond_app.upgrade_time = v2_template.get("update_version", "0")
             rainbond_app.save()
         else:
             user_name = v2_template.get("publish_user", None)
@@ -898,6 +922,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
+            rainbond_app.upgrade_time = v2_template.get("update_version", "")
             rainbond_app.save()
 
 

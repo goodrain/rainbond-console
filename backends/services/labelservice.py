@@ -25,12 +25,20 @@ class LabelService(object):
             raise LabelNotExistError("标签{0}不存在".format(label_alias))
         return labels[0]
 
+    def get_label_by_label_id(self, label_id):
+        label = Labels.objects.filter(label_id=label_id).first()
+        return label
+
     def get_service_num_by_label(self, label_id):
         service_labels = ServiceLabels.objects.filter(label_id=label_id)
         return service_labels
 
     def get_node_num_by_label(self, label_id):
         node_labels = NodeLabels.objects.filter(label_id=label_id)
+        return node_labels
+
+    def get_label_by_node_id(self, node_id):
+        node_labels = NodeLabels.objects.filter(node_uuid=node_id).all()
         return node_labels
 
     def get_label_usage(self, label_alias):

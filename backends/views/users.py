@@ -13,6 +13,9 @@ from www.models import Tenants
 from console.services.team_services import team_services as console_team_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.utils.timeutil import time_to_str
+from django.db.models import Q
+from console.services.user_services import user_services
+
 
 logger = logging.getLogger("default")
 
@@ -32,6 +35,10 @@ class TenantUserView(BaseAPIView):
         """
         result = {}
         try:
+            tenant = tenant_service.get_tenant(tenant_name)
+            if not tenant:
+                result = generate_result("1001", "tenant not exist", "租户{}不存在".format(tenant_name))
+                return Response(result)
             user_list = tenant_service.get_tenant_users(tenant_name)
             list = []
             for user in user_list:
@@ -103,7 +110,7 @@ class TenantUserView(BaseAPIView):
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
             identity = request.data.get("identity", "viewer")
-            is_pass, msg = user_service.check_params(user_name,phone,email,password,re_password)
+            is_pass, msg = user_service.check_params(user_name, email, password, re_password)
             if not is_pass:
                 return Response(generate_result("0403", "params error", msg))
             client_ip = user_service.get_client_ip(request)
@@ -124,6 +131,7 @@ class TenantUserView(BaseAPIView):
 
 
 class UserView(BaseAPIView):
+
     def delete(self, request, tenant_name, user_id, *args, **kwargs):
         """
         删除用户
@@ -218,7 +226,10 @@ class AllUserView(BaseAPIView):
             page = request.GET.get("page_num", 1)
             page_size = request.GET.get("page_size", 20)
             user_name = request.GET.get("user_name", None)
-            user_list = user_service.get_by_username_or_phone_or_email(user_name)
+            if user_name:
+                user_list = user_service.get_by_username_or_phone_or_email(user_name)
+            else:
+                user_list = user_service.get_all_users()
             user_paginator = JuncheePaginator(user_list, int(page_size))
             users = user_paginator.page(int(page))
             list = []
@@ -252,44 +263,89 @@ class AllUserView(BaseAPIView):
         return Response(result)
 
 
-class UserQueryView(BaseAPIView):
+# class UserQueryView(BaseAPIView):
+#     def get(self, request, *args, **kwargs):
+#         """
+#         模糊查询指定团队下的用户
+#         ---
+#         parameters:
+#             - name: tenant_name
+#               description: 团队名称
+#               required: false
+#               type: string
+#               paramType: query
+#             - name: user_name
+#               description: 模糊用户名
+#               required: true
+#               type: string
+#               paramType: query
+#
+#         """
+#         try:
+#             tenant_name = request.GET.get("tenant_name", None)
+#             user_name = request.GET.get("user_name", None)
+#             user_list = []
+#             if user_name:
+#                 user_list = user_service.get_fuzzy_users(tenant_name, user_name)
+#
+#             users = []
+#             for user in user_list:
+#                 user_info = {}
+#                 user_info["nick_name"] = user.nick_name
+#                 user_info["user_id"] = user.user_id
+#                 if tenant_name:
+#                     user_info["tenant_name"] = tenant_name
+#                 users.append(user_info)
+#             result = generate_result("0000", "success", "查询成功", list=users)
+#         except Exception as e:
+#             logger.exception(e)
+#             result = generate_error_result()
+#         return Response(result)
+
+
+class UserFuzSerView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
-        模糊查询指定团队下的用户
+        模糊查询用户
         ---
         parameters:
-            - name: tenant_name
-              description: 团队名称
-              required: false
-              type: string
-              paramType: query
-            - name: user_name
+            - name: query_key
               description: 模糊用户名
               required: true
               type: string
               paramType: query
-
         """
         try:
-            tenant_name = request.GET.get("tenant_name", None)
-            user_name = request.GET.get("user_name", None)
-            user_list = []
-            if user_name:
-                user_list = user_service.get_fuzzy_users(tenant_name, user_name)
-
-            users = []
-            for user in user_list:
-                user_info = {}
-                user_info["nick_name"] = user.nick_name
-                user_info["user_id"] = user.user_id
-                if tenant_name:
-                    user_info["tenant_name"] = tenant_name
-                users.append(user_info)
-            result = generate_result("0000", "success", "查询成功", list=users)
+            query_key = request.GET.get("query_key", None)
+            if query_key:
+                q_obj = Q(nick_name__icontains=query_key) | Q(email__icontains=query_key)
+                users = user_services.get_user_by_filter(args=(q_obj,))
+                user_list = [
+                    {
+                        "nick_name": user_info.nick_name,
+                        "email": user_info.email,
+                        "user_id": user_info.user_id
+                    }
+                    for user_info in users
+                ]
+                result = generate_result("0000", "query user success", "查询用户成功", list=user_list)
+                return Response(result)
+            else:
+                users = user_service.get_all_users()
+                user_list = [
+                    {
+                        "nick_name": user_info.nick_name,
+                        "email": user_info.email,
+                        "user_id": user_info.user_id
+                    }
+                    for user_info in users
+                ]
+                result = generate_result("0000", "query user success", "查询用户成功", list=user_list)
+                return Response(result)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
-        return Response(result)
+            return Response(result)
 
 
 class UserBatchDeleteView(BaseAPIView):

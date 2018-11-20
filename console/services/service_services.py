@@ -71,4 +71,5 @@ class BaseService(object):
             logger.exception(e)
             return None
 
+
 base_service = BaseService()

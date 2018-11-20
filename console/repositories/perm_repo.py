@@ -228,6 +228,13 @@ class RoleRepo(object):
                 PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id,
                                              role_id=role_id)
 
+    def add_user_role_in_tenant_by_user_id_tenant_id_role_id(self, user_id, tenant_id, role_id_list, enterprise_id):
+        """修改一个用户在一个团队中的角色"""
+        for role_id in role_id_list:
+            PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id,
+                                             role_id=role_id)
+
+
 
 class RolePermRepo(object):
     def get_perm_by_role_id(self, role_id):
