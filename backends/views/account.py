@@ -193,8 +193,6 @@ class AuthAccessTokenView(AlowAnyApiView):
             if not enterprise:
                 enterprise = enterprise_services.create_tenant_enterprise(enterprise_id, enterprise_alias,
                                                                           enterprise_alias, False)
-            else:
-                enterprise_services.update_tenant_enterprise(enterprise_id, enterprise_alias, enterprise_alias, True)
             res, token = auth_service.create_token_auth_user(username, password)
             if not res:
                 result = generate_result("0404", "user already exists", "用户在控制台已存在", bean={"code": "0404"})
