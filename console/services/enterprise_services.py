@@ -129,11 +129,21 @@ class EnterpriseServices(object):
         }
         return enterprise_repo.create_enterprise(**params)
 
+    def update_tenant_enterprise(self, enterprise_id, enterprise_name, enterprise_alias, is_active=True):
+        params = {
+            "enterprise_id": enterprise_id,
+            "enterprise_name": enterprise_name,
+            "enterprise_alias": enterprise_alias,
+            "is_active": is_active,
+        }
+        return enterprise_repo.update_enterprise(**params)
+
     # def get_enterprise_tenants(self,enterprise):
     def get_enterprise_by_eids(self,eid_list):
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
+
 
 enterprise_services = EnterpriseServices()
