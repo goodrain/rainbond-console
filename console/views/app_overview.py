@@ -392,6 +392,9 @@ class AppGroupVisitView(JWTAuthApiView):
 
         try:
             serviceAlias = request.GET.get('service_alias')
+            if not serviceAlias:
+                result = general_message(200, "not service", "当前组内无应用", bean={"is_null": True})
+                return Response(result)
             team = team_services.get_tenant_by_tenant_name(team_name)
             service_access_list = list()
             if not team:
