@@ -73,7 +73,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView
+    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -125,6 +125,8 @@ urlpatterns = patterns(
     url(r'^teams/add-teams$', AddTeamView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view()),
+    # 获取当前用户在团队下是否为管理员或拥有者
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/is_admin$', TeamUserAdminView.as_view()),
     # 添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add-user$', TeamUserAddView.as_view()),
     # 删除团队成员

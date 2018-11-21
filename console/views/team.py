@@ -1219,3 +1219,24 @@ class AdminAddUserView(JWTAuthApiView):
             logger.exception(e)
             result = general_message(500, e.message, "系统异常")
         return Response(result)
+
+
+class TeamUserAdminView(JWTAuthApiView):
+    def get(self, request, team_name, *args, **kwargs):
+        try:
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id,
+                tenant_name=team_name
+            )
+            if not perm_list:
+                result = general_message(200, "success", "暂无权限")
+                return Response(result)
+            if "owner" in perm_list or "admin" in perm_list:
+                result = general_message(200, "success", "查询成功", bean={"is_access": True})
+            else:
+                result = general_message(200, "success", "查询成功", bean={"is_access": False})
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+        return Response(result)
+
