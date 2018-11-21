@@ -473,15 +473,25 @@ class RolePermRepo(object):
                                                       group=team_group)
             perms_dict["import_and_export_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="access control", per_info="访问控制",
+            obj = TenantUserPermission.objects.create(codename="access control", per_info="查看访问控制",
                                                       is_select=True,
                                                       group=gateway_group)
             perms_dict["access control"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="certificate management", per_info="证书管理",
+            obj = TenantUserPermission.objects.create(codename="certificate management", per_info="访问证书管理",
                                                       is_select=True,
                                                       group=gateway_group)
             perms_dict["certificate management"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="control operation", per_info="访问控制操作",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["control operation"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="certificate operation", per_info="证书管理操作",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["certificate operation"] = obj.pk
             # 初始化角色与权限对应关系
             owner_id = role_dict.get("owner")
             admin_id = role_dict.get("admin")

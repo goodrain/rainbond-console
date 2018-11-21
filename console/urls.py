@@ -59,7 +59,7 @@ from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView
+    ServiceEventsView, TeamServiceOverViewView, GatewayDomainView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
@@ -552,5 +552,7 @@ urlpatterns = patterns(
     # 修改镜像源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/image', ImageAppView.as_view()),
     # 查询构建源
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view())
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view()),
+    # 查询当前团队下的策略（含模糊查询）
+    url(r'^teams/(?P<team_name>[\w\-]+)/gateway/domain', GatewayDomainView.as_view())
 )

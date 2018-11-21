@@ -793,6 +793,12 @@ class ServiceDomain(BaseModel):
     protocol = models.CharField(max_length=15, default='http', help_text=u"域名类型 http https httptphttps httpandhttps")
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
     domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
+    service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
+    group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
+    is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
+    domain_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名path")
+    domain_cookie = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名cookie")
+    domain_heander = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名heander")
 
     def __unicode__(self):
         return self.domain_name

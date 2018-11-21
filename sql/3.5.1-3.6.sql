@@ -82,8 +82,11 @@ INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('modify_team_name', '修改团队名称', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('import_and_export_service', '导入导出云市应用', 1, NULL, 1);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('access control', '访问控制', 1, NULL, 3);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate management', '证书管理', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('access control', '查看访问控制', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate management', '访问证书管理', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('control operation', '访问控制操作', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate operation', '证书管理操作', 1, NULL, 3);
+
 
 
 -- 初始化角色和权限的对应关系
@@ -114,6 +117,9 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 24);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 25);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 30);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 31);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 32);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 33);
+
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 2);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 3);
@@ -138,6 +144,9 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 24);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 25);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 30);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 31);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 32);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 33);
+
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 4);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 5);
@@ -154,6 +163,13 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 17);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 19);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 20);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 25);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 30);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 31);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 32);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 33);
+
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 1);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 5);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 19);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 30);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (4, 31);
