@@ -1240,3 +1240,11 @@ class TeamUserAdminView(JWTAuthApiView):
             result = general_message(500, e.message, "系统异常")
         return Response(result)
 
+
+class CertificateView(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        bean = {
+            "is_certificate": 1
+        }
+        result = generate_result(200, "success", "获取成功", bean=bean)
+        return Response(result)

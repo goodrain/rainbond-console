@@ -73,7 +73,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView
+    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -535,6 +535,8 @@ urlpatterns = patterns(
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 上传证书无用接口（为前端提供）
+    url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
     # # 获取企业下所有用户信息(企业中心中：删除用户)
