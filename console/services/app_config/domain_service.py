@@ -119,7 +119,8 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
+                    group_name, domain_path, domain_cookie, domain_heander, extension_function):
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
         if code != 200:
             return code, msg
@@ -140,6 +141,12 @@ class DomainService(object):
         data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data["add_user"] = user.nick_name
         data["enterprise_id"] = tenant.enterprise_id
+        data["path"] = domain_path if domain_path else None
+        data["cookie"] = domain_cookie if domain_cookie else None
+        data["heander"] = domain_heander if domain_heander else None
+        if len(extension_function) > 0:
+            # 伪代码
+            data["kuozhangongneng"] = extension_function
         # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
@@ -151,10 +158,17 @@ class DomainService(object):
         region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
 
         domain_info = dict()
+        if domain_path:
+            domain_info["is_senior"] = True
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
+        domain_info["service_alias"] = service.service_cname
+        domain_info["group_name"] = group_name
+        domain_info["domain_path"] = domain_path if domain_path else None
+        domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
+        domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = protocol
