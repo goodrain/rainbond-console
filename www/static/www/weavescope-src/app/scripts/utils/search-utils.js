@@ -284,7 +284,6 @@ export function applyPinnedSearches(state) {
   // clear old filter state
   state = state.update('nodes',
     nodes => nodes.map(node => node.set('filtered', false)));
-
   const pinnedSearches = state.get('pinnedSearches');
   if (pinnedSearches.size > 0) {
     state.get('pinnedSearches').forEach((query) => {

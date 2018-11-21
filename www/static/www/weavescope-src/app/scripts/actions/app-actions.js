@@ -768,7 +768,7 @@ export function route(urlState) {
       state: urlState,
       type: ActionTypes.ROUTE_TOPOLOGY
     });
-    // update all request workers with new options
+    // 用新的选项更新所有请求工人
     const state = getState();
     //getTopologies(activeTopologyOptionsSelector(state), dispatch);
     getNodesDelta(
@@ -776,6 +776,7 @@ export function route(urlState) {
       activeTopologyOptionsSelector(state),
       dispatch
     );
+
     getNodeDetails(
       state.get('topologyUrlsById'),
       state.get('currentTopologyId'),

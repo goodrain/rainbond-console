@@ -10,8 +10,10 @@ export default function configureStore() {
     initialState,
     compose(
       // applyMiddleware(thunkMiddleware, createLogger()),
+      //因为你的applyMiddleware可以存在异步行为，为了确保所有的actions显示在store中，所以要放在后面
       applyMiddleware(thunkMiddleware),
-      DevTools.instrument()
+      //必须的！启用带有monitors（监视显示）的DevTools
+      DevTools.instrument()//通过redux的compose来扩展store
     )
   );
 

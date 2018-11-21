@@ -88,7 +88,6 @@ class NodesChartNodes extends React.Component {
       .map(this.nodeMetricDecorator)
       .map(this.nodeScaleDecorator)
       .sortBy(this.nodeDisplayLayer);
-
     return (
       <g className="nodes-chart-nodes">
         {nodesToRender.map(node => (

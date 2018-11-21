@@ -113,7 +113,7 @@ function runLayoutEngine(graph, imNodes, imEdges) {
     const t = graphNodeId(edge.get('target'));
     if (!graph.hasEdge(s, t)) {
       const virtualNodes = s === t ? 1 : 0;
-      graph.setEdge(s, t, {id: edge.get('id'), minlen: virtualNodes});
+      graph.setEdge(s, t, { id: edge.get('id'), minlen: virtualNodes });
     }
   });
 
@@ -170,8 +170,8 @@ function setSimpleEdgePoints(edge, nodeCache) {
   const source = nodeCache.get(edge.get('source'));
   const target = nodeCache.get(edge.get('target'));
   return edge.set('points', fromJS([
-    {x: source.get('x'), y: source.get('y')},
-    {x: target.get('x'), y: target.get('y')}
+    { x: source.get('x'), y: source.get('y') },
+    { x: target.get('x'), y: target.get('y') }
   ]));
 }
 
@@ -306,13 +306,27 @@ function layoutSingleNodes(layout, opts) {
  * @return {Boolean}       True if nodes had node ids that are not in cache
  */
 export function hasUnseenNodes(nodes, cache) {
-  const hasUnseen = nodes.size > cache.size
+  let hasUnseen = (nodes.size !== cache.size)
     || !ImmSet.fromKeys(nodes).isSubset(ImmSet.fromKeys(cache));
-  if (hasUnseen) {
-    log('unseen nodes:', ...ImmSet.fromKeys(nodes).subtract(ImmSet.fromKeys(cache)).toJS());
+  if (hasUnseen){
+    return hasUnseen
   }
+  if (nodes.size === cache.size) {
+    nodes.forEach((node, key) => {
+      if(cache.get(key).get("rank")!=undefined){
+        if (node.get("rank") != cache.get(key).get("rank")) {
+          hasUnseen = true
+        }
+      }
+    })
+  }
+  // if (hasUnseen) {
+  //   log('unseen nodes:', ...ImmSet.fromKeys(nodes).subtract(ImmSet.fromKeys(cache)).toJS());
+  // }
   return hasUnseen;
 }
+
+
 
 /**
  * Determine if all new nodes are 0-degree nodes
@@ -380,7 +394,7 @@ function hasSameEndpoints(cachedEdge, nodes) {
  * @return {Object}        layout clone
  */
 function cloneLayout(layout, nodes, edges) {
-  const clone = Object.assign({}, layout, {nodes, edges});
+  const clone = Object.assign({}, layout, { nodes, edges });
   return clone;
 }
 

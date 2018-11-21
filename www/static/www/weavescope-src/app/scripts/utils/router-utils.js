@@ -107,7 +107,6 @@ function detectOldOptions(topologyOptions) {
 export function getRouter(dispatch, initialState) {
   // strip any trailing '/'s.
   page.base(window.location.pathname.replace(/\/$/, ''));
-  
   page('/', () => {
     // recover from storage state on empty URL
     const storageState = null;

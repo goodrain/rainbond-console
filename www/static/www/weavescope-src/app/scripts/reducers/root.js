@@ -564,6 +564,7 @@ export function rootReducer(state = initialState, action) {
     case ActionTypes.SET_RECEIVED_NODES_DELTA: {
       // Turn on the table view if the graph is too complex, but skip
       // this block if the user has already loaded topologies once.
+//最初节点加载
       if (!state.get('initialNodesLoaded') && !state.get('nodesLoaded')) {
         if (state.get('topologyViewMode') === GRAPH_VIEW_MODE) {
           state = graphExceedsComplexityThreshSelector(state)
@@ -599,6 +600,7 @@ export function rootReducer(state = initialState, action) {
         if (state.get('mouseOverNodeId') === nodeId) {
           state = state.set('mouseOverNodeId', null);
         }
+
         if (state.hasIn(['nodes', nodeId]) && includes(state.get('mouseOverEdgeId'), nodeId)) {
           state = state.set('mouseOverEdgeId', null);
         }
@@ -634,7 +636,6 @@ export function rootReducer(state = initialState, action) {
         const nodesForCurrentTopologyKey = ['nodesByTopology', state.get('currentTopologyId')];
         state = state.setIn(nodesForCurrentTopologyKey, state.get('nodes'));
       }
-
       return state;
     }
 

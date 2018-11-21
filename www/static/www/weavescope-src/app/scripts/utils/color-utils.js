@@ -86,21 +86,26 @@ export function brightenColor(c) {
 
 
 const statusColorMap = {
-    'running' : 'rgb(0,215,119)',
-    'closed'  : 'rgb(234,88,62)',
-    'undeploy' : 'rgb(131, 131, 131)',
-    'starting' : 'rgb(246,157,53)',
-    'checking' : 'rgb(246,157,53)',
-    'stoping' : 'rgb(246,157,53)',
-    'upgrade' : 'rgb(0,215,119)',//升级中
-    'unusual' : 'rgb(234,88,62)',
-    'Owed' : ' rgb(234,88,62)',
-    'expired' : 'rgb(234,88,62)',
-    'Expired' : 'rgb(234,88,62)',
+    'running' : 'rgb(0,215,119)',//运行
+    'closed'  : 'rgb(0,0,0)',//关闭
+    'undeploy' : 'rgb(32, 18, 77)',//取消
+    'starting' : 'rgb(246,157,53)',//开始
+    'checking' : 'rgb(255,153,0)',//检查
+    'stoping' : 'rgb(246,154,16)',//回采
+    'upgrade' : 'rgb(0,255,0)',//升级中
+    'unusual' : 'rgb(234,88,62)',//异常
+    'Owed' : ' rgb(234,88,62)',//欠
+    'expired' : 'rgb(255,0,0)',//过期
+    'Expired' : 'rgb(255,0,0)',
     'internet' : 'rgb(91,178,250)',
     'The Internet' : 'rgb(91,178,250)',
-    'Unknow' : 'rgb(234,88,62)',
-    'unknow' : 'rgb(234,88,62)'
+    'Unknow' : 'rgb(217,16,16)',
+    'unknow' : 'rgb(217,16,16)',//不知何时
+    'stopping': 'rgb(67,67,67)',//停止,
+    'abnormal':'rgb(255,0,255)',//不正常,
+    'some_abnormal':'rgb(255,0,255)',//一些不正常
+    'building':'rgb(0,119,255)',//构建
+    'build_failure':'rgb(204,204,204)'//构建失败
 }
 
 export function getStatusColor(status) {
