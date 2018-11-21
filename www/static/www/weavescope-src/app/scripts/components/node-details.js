@@ -86,11 +86,7 @@ class NodeDetails extends React.Component {
     };
 
 
-    console.log("this.props.nodes",this.props.nodes)
-    console.log("this.props.label",this.props.label)
-    console.log("this.props.this.props.nodes.get(this.props.label)",this.props.nodes.get(this.props.label))
     const nodeInfo = this.props.nodes.get(this.props.id).toJS();
-   
     return (
       <div className={'node-details'}>
         {tools}
@@ -205,7 +201,9 @@ class NodeDetails extends React.Component {
       }
     };
 
-    const nodeInfo = this.props.nodes.get(this.props.label).toJS();
+    // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
+    const nodeInfo = this.props.nodes.get(this.props.id).toJS();
+console.log("nodeInfo",nodeInfo)
     const nodeDetails = details;
     //服务列表
     const portList = nodeDetails.port_list||{};

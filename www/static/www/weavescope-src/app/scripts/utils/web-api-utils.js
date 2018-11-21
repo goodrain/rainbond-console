@@ -45,7 +45,7 @@ let createWebsocketAt = 0;
 let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = "";
-
+let tiem=0;
 export function buildOptionsQuery(options) {
   if (options) {
     return options.map((value, param) => {
@@ -366,6 +366,7 @@ function goodrainData2scopeData(data = {}) {
 
   var scopeDataAdd = add
   scopeData.add = null
+  console.log("newDatanewDatanewDatanewData",newData);
   if (newData === "") { scopeData.add = scopeDataAdd }
 
   if (newData != "" && newData !== scopeDataAdd) {
@@ -394,7 +395,7 @@ function goodrainData2scopeData(data = {}) {
     }
   }
 
-
+console.log("scopeDatascopeDatascopeData",scopeData)
   newData = scopeData.add == null ? newData : scopeData.add
   return scopeData;
 }
@@ -405,63 +406,29 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
   if (location.href.indexOf('test-data') > -1) {
     //调试数据
     var data = {
-      "status": 200,
-      "json_svg": {
-        "8993009fdb4406c4c9888f3f0cb89110": [
-          '2ed5222913bb5bce882bc7395ec95fb9',
-          '7ffa12e713ac493fa77953326f72cbd8'
-        ],
-        "dcbf56bb7a906ba1260ee7e9241f11d8": [
-
-        ],
-        "2ed5222913bb5bce882bc7395ec95fb2": [
-        ]
-      },
-      "json_data": {
-        "8993009fdb4406c4c9888f3f0cb89110": {
-          "node_num": 1,
-          "service_id": "8993009fdb4406c4c9888f3f0cb89110",
-          "cur_status": "running",
-          "service_alias": "goodrain_labor",
-          "service_cname": "应用运行中",
-          "is_internet": true,
-
+      json_data: {
+        "9abc393dbbb1901aff3df5b704d7f3bf": {
+          cur_status: "undeploy",
+          is_internet: true,
+          node_num: 1,
+          service_alias: "grd7f3bf",
+          service_cname: "测试22221",
+          service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
+          status_cn: "未部署",
         },
-        "dcbf56bb7a906ba1260ee7e9241f11d8": {
-          "node_num": 1,
-          "service_id": "dcbf56bb7a906ba1260ee7e9241f11d8",
-          "cur_status": "closed",
-          "service_alias": "discourse-redis",
-          "service_cname": "应用异常、关闭等",
-          "is_internet": true
-        },
-        "2ed5222913bb5bce882bc7395ec95fb9": {
-          "node_num": 1,
-          "service_id": "2ed5222913bb5bce882bc7395ec95fb9",
-          "cur_status": "undeploy",
-          "service_alias": "grc95fb9",
-          "service_cname": "应用未部署",
-          "is_internet": true,
-          //"lineTip":"表示可以外网访问本应用"
-        },
-        "2ed5222913bb5bce882bc7395ec95fb2": {
-          "node_num": 1,
-          "service_id": "2ed5222913bb5bce882bc7395ec95fb2",
-          "cur_status": "starting",
-          "service_alias": "grc95fb9",
-          "service_cname": "应用启动中,关闭中...",
-          "is_internet": false,
-          //"lineTip":"表示可以外网访问本应用"
-        },
-        "7ffa12e713ac493fa77953326f72cbd8": {
-          "node_num": 1,
-          "service_id": "7ffa12e713ac493fa77953326f72cbd8",
-          "cur_status": "running",
-          "service_alias": "grc95fb9",
-          "service_cname": "监控数据",
-          "lineTip": "点表示应用的响应时间和吞吐率",
-          "is_internet": false
+        "630243aab337b9a879ec24f53a4f596c": {
+          cur_status: "running",
+          is_internet: true,
+          node_num: 1,
+          service_alias: "gr4f596c",
+          service_cname: "一飞",
+          service_id: "630243aab337b9a879ec24f53a4f596c",
+          status_cn: "运行中"
         }
+      },
+      json_svg:{
+        "9abc393dbbb1901aff3df5b704d7f3bf":[],
+        "630243aab337b9a879ec24f53a4f596c":[]
       }
     }
     //调试用数据
@@ -476,6 +443,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     config.getNodes && dispatch(receiveNodesDelta(config.getNodes()));
     return false;
   } else {
+    // tiem++
     var windowParent = window.parent;
     const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
     // const url =  'http://dev.goodrain.org' + '/console/teams/a3ow4qts/topological?group_id=' + 473+'&region=private-center2';
@@ -488,7 +456,62 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         }
       },
       error: () => {
-        dispatch(receiveError(url));  
+        // 调试数据
+        // var data = {
+        //   json_data: {
+        //     "9abc393dbbb1901aff3df5b704d7f3bf": {
+        //       cur_status: "undeploy",
+        //       is_internet: true,
+        //       node_num: 1,
+        //       service_alias: "grd7f3bf",
+        //       service_cname: "测试22221",
+        //       service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
+        //       status_cn: "未部署",
+        //     },
+        //     "630243aab337b9a879ec24f53a4f596c": {
+        //       cur_status: "running",
+        //       is_internet: true,
+        //       node_num: 1,
+        //       service_alias: "gr4f596c",
+        //       service_cname: "一飞",
+        //       service_id: "630243aab337b9a879ec24f53a4f596c",
+        //       status_cn: "运行中"
+        //     }
+        //   },
+        //   json_svg:{
+        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
+        //     "630243aab337b9a879ec24f53a4f596c":[]
+        //   }
+        // }
+        // var datas = {
+        //   json_data: {
+        //     "9abc393dbbb1901aff3df5b704d7f3bf": {
+        //       cur_status: "undeploy",
+        //       is_internet: true,
+        //       node_num: 1,
+        //       service_alias: "grd7f3bf",
+        //       service_cname: "测试22221",
+        //       service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
+        //       status_cn: "未部署",
+        //     },
+        //     "630243aab337b9a879ec24f53a4f596c": {
+        //       cur_status: "closed",
+        //       is_internet: true,
+        //       node_num: 1,
+        //       service_alias: "gr4f596c",
+        //       service_cname: "一飞",
+        //       service_id: "630243aab337b9a879ec24f53a4f596c",
+        //       status_cn: "已关闭"
+        //     }
+        //   },
+        //   json_svg:{
+        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
+        //     "630243aab337b9a879ec24f53a4f596c":[]
+        //   }
+        // }
+        //   const scopeData = goodrainData2scopeData(tiem%2==0?datas:data);
+        //   dispatch(receiveNodesDelta(scopeData));
+        dispatch(receiveError(url));
       }
     });
   }
