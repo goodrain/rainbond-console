@@ -15,6 +15,7 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
+from console.services.team_services import team_services
 
 
 logger = logging.getLogger("default")
@@ -282,9 +283,27 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
+            service_id = request.data.get("service_id", None)
+            group_name = request.data.get("group_name", None)
+            domain_path = request.data.get("domain_path", None)
+            domain_cookie = request.data.get("domain_cookie", None)
+            domain_heander = request.data.get("domain_heander", None)
+            rule_extensions = request.data.get("rule_extensions", None)
 
-            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id, DomainType.WWW)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+            # 判断参数
+            if not service_id or not group_name or not container_port:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+            service = service_repo.get_service_by_service_id(service_id)
+            # 绑定端口
+            code, msg = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port,
+                                                   protocol, certificate_id, DomainType.WWW, group_name, domain_path,
+                                                   domain_cookie, domain_heander, rule_extensions)
+
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
