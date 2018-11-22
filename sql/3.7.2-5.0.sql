@@ -34,6 +34,7 @@ ALTER TABLE service_domain ADD COLUMN `group_name` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `domain_path` varchar(256) DEFAULT '' NULL;
 ALTER TABLE service_domain ADD COLUMN `domain_cookie` varchar(256) DEFAULT '' NULL;
 ALTER TABLE service_domain ADD COLUMN `domain_heander` varchar(256) DEFAULT '' NULL;
+ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(256) DEFAULT '' NULL;
 
 
 -- 创建表service_tcp_domain

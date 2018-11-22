@@ -784,6 +784,7 @@ class ServiceDomain(BaseModel):
     class Meta:
         db_table = 'service_domain'
 
+    http_rule_id = models.CharField(max_length=256, default='', help_text=u"http_rule_id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
     domain_name = models.CharField(max_length=256, help_text=u"域名")

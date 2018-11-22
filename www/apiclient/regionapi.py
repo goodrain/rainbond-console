@@ -820,7 +820,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
 
         self._set_headers(token)
         res, body = self._post(
