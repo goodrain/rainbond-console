@@ -29,6 +29,7 @@ from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 from www.utils.status_translate import get_status_info_map
 from www.views import AuthedView
+from console.views.team import UserAllTeamView
 from django.db.models import Q
 logger = logging.getLogger('default')
 
