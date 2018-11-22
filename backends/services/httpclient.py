@@ -101,7 +101,7 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
     def update_node_labels(self,region, node_uuid, body):
         self.update_client(region)
         url = self.base_url + "/v2/nodes/" + node_uuid + "/labels"
-        res, body = self._put(url, self.default_headers, body)
+        res, body = self._put(url, self.default_headers, region=region.region_name, body=body)
         return res, body
 
     def get_region_resources(self):
@@ -112,19 +112,19 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
     def get_region_resource(self, region):
         self.update_client(region)
         url = self.base_url + "/v2/nodes/fullres"
-        res, body = self._get(url, self.default_headers)
+        res, body = self._get(url, self.default_headers, region=region.region_name)
         return res, body
 
     # 查看数据中心下团队的资源内存剩余
     def get_tenant_limit_memory(self, region, body):
         self.update_client(region)
         url = self.base_url + "/v2/resources/tenants"
-        res, body = self._post(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers, body, region=region.region_name)
         return res, body
 
     # 查看团队在某数据中心的应用状态
     def get_tenant_service_status(self, region):
         self.update_client(region)
         url = self.base_url + "/v2/tenants/services_status"
-        res, body = self._get(url, self.default_headers)
+        res, body = self._get(url, self.default_headers, region=region.region_name)
         return res, body
