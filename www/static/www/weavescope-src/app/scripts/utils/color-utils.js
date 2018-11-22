@@ -86,12 +86,14 @@ export function brightenColor(c) {
 
 
 const statusColorMap = {
-    'running' : 'rgb(0,215,119)',//运行
-    'closed'  : 'rgb(0,0,0)',//关闭
-    'undeploy' : 'rgb(32, 18, 77)',//取消
-    'starting' : 'rgb(246,157,53)',//开始
-    'checking' : 'rgb(255,153,0)',//检查
-    'stoping' : 'rgb(246,154,16)',//回采
+    'running' : 'rgb(0,215,119)',//运行中
+    'closed'  : 'rgb(0,0,0)',//已关闭
+    'undeploy' : 'rgb(32, 18, 77)',//未部署
+    'starting' : 'rgb(246,157,53)',//开启中
+    'startting' : 'rgb(246,157,53)',//开启中
+    'checking' : 'rgb(255,153,0)',//检测中
+    'stoping' : 'rgb(246,154,16)',//关闭中
+    'stopping': 'rgb(67,67,67)',//关闭中,
     'upgrade' : 'rgb(0,255,0)',//升级中
     'unusual' : 'rgb(234,88,62)',//异常
     'Owed' : ' rgb(234,88,62)',//欠
@@ -101,7 +103,6 @@ const statusColorMap = {
     'The Internet' : 'rgb(91,178,250)',
     'Unknow' : 'rgb(217,16,16)',
     'unknow' : 'rgb(217,16,16)',//不知何时
-    'stopping': 'rgb(67,67,67)',//停止,
     'abnormal':'rgb(255,0,255)',//不正常,
     'some_abnormal':'rgb(255,0,255)',//一些不正常
     'building':'rgb(0,119,255)',//构建
@@ -109,5 +110,7 @@ const statusColorMap = {
 }
 
 export function getStatusColor(status) {
-  return statusColorMap[status] || statusColorMap['unknow'];
+  console.log("status",status)
+  // return statusColorMap[status] || statusColorMap['unknow'];
+  return statusColorMap[status];
 }

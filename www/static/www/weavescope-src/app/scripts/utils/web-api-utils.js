@@ -45,7 +45,7 @@ let createWebsocketAt = 0;
 let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = "";
-let tiem=0;
+let tiem = 0;
 export function buildOptionsQuery(options) {
   if (options) {
     return options.map((value, param) => {
@@ -365,38 +365,47 @@ function goodrainData2scopeData(data = {}) {
   }
 
   var scopeDataAdd = add
-  scopeData.add = null
-  console.log("newDatanewDatanewDatanewData",newData);
+  scopeData.add = null;
+  scopeData.remove = null;
+  scopeData.update = null;
+
   if (newData === "") { scopeData.add = scopeDataAdd }
 
   if (newData != "" && newData !== scopeDataAdd) {
     const newAdjacency = newData[0].adjacency;
     const scopeAdjacency = scopeDataAdd[0].adjacency;
+    scopeData.remove = []
+    scopeData.update = []
+
     //remove
     for (let i = 0; i < newAdjacency.length; i++) {
       if (scopeAdjacency.indexOf(newAdjacency[i]) < 0) {
-        scopeData.remove = []
         scopeData.remove.push(newAdjacency[i])
       }
     }
 
+
     for (let i = 0; i < newData.length; i++) {
       for (let k = 0; k < scopeDataAdd.length; k++) {
-        //update
-        if (newData[i].adjacency !== scopeDataAdd[k].adjacency || newData[i].cur_status !== scopeDataAdd[k].cur_status) {
-          scopeData.update = []
-          scopeData.update.push(scopeDataAdd[k])
-        }
         //add
-        if ((newData[i].length !== scopeDataAdd[k].length) || scopeData.remove !== null) {
+        if ((newData.length !== scopeDataAdd.length) || scopeData.remove.length > 0) {
           scopeData.add = scopeDataAdd
         }
+        //update
+        if ( (newData[i].adjacency !== scopeDataAdd[k].adjacency) || (newData[i].cur_status !== scopeDataAdd[k].cur_status)) {
+          scopeData.update=scopeDataAdd
+        }
+
       }
     }
   }
 
-console.log("scopeDatascopeDatascopeData",scopeData)
   newData = scopeData.add == null ? newData : scopeData.add
+  scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : scopeData.remove = null;
+  scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : scopeData.update = null;
+
+  console.log("newData",newData);
+  console.log("scopeData",scopeData);
   return scopeData;
 }
 
@@ -426,9 +435,9 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
           status_cn: "运行中"
         }
       },
-      json_svg:{
-        "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        "630243aab337b9a879ec24f53a4f596c":[]
+      json_svg: {
+        "9abc393dbbb1901aff3df5b704d7f3bf": [],
+        "630243aab337b9a879ec24f53a4f596c": []
       }
     }
     //调试用数据
@@ -443,7 +452,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     config.getNodes && dispatch(receiveNodesDelta(config.getNodes()));
     return false;
   } else {
-    // tiem++
+    tiem++
     var windowParent = window.parent;
     const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
     // const url =  'http://dev.goodrain.org' + '/console/teams/a3ow4qts/topological?group_id=' + 473+'&region=private-center2';
@@ -478,15 +487,15 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         //       status_cn: "运行中"
         //     }
         //   },
-        //   json_svg:{
-        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        //     "630243aab337b9a879ec24f53a4f596c":[]
+        //   json_svg: {
+        //     "9abc393dbbb1901aff3df5b704d7f3bf": [],
+        //     "630243aab337b9a879ec24f53a4f596c": []
         //   }
         // }
         // var datas = {
         //   json_data: {
         //     "9abc393dbbb1901aff3df5b704d7f3bf": {
-        //       cur_status: "undeploy",
+        //       cur_status: "running",
         //       is_internet: true,
         //       node_num: 1,
         //       service_alias: "grd7f3bf",
@@ -502,15 +511,28 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         //       service_cname: "一飞",
         //       service_id: "630243aab337b9a879ec24f53a4f596c",
         //       status_cn: "已关闭"
+        //     },
+        //     "230243aab337b9a879ec24f53a4f596c": {
+        //       cur_status: "closed",
+        //       is_internet: true,
+        //       node_num: 1,
+        //       service_alias: "gr4f596c",
+        //       service_cname: "一飞sss",
+        //       service_id: "230243aab337b9a879ec24f53a4f596c",
+        //       status_cn: "已关闭"
         //     }
         //   },
-        //   json_svg:{
-        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        //     "630243aab337b9a879ec24f53a4f596c":[]
+        //   json_svg: {
+        //     "9abc393dbbb1901aff3df5b704d7f3bf": [],
+        //     "630243aab337b9a879ec24f53a4f596c": [],
+        //     "230243aab337b9a879ec24f53a4f596c": []
         //   }
         // }
-        //   const scopeData = goodrainData2scopeData(tiem%2==0?datas:data);
+        // if (tiem < 5) {
+        //   const scopeData = goodrainData2scopeData(tiem % 2 == 0 ? datas : data);
         //   dispatch(receiveNodesDelta(scopeData));
+        // }
+
         dispatch(receiveError(url));
       }
     });
