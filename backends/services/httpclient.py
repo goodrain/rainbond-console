@@ -3,13 +3,14 @@
 import logging
 
 from backends.baseclient import BaseHttpClient
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 
 logger = logging.getLogger('default')
 
 
-class HttpInvokeApi(BaseHttpClient):
+class HttpInvokeApi(RegionApiBaseHttpClient):
     def __init__(self, *args, **kwargs):
-        BaseHttpClient.__init__(self, *args, **kwargs)
+        RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {
             'Connection': 'keep-alive',
             'Content-Type': 'application/json',
