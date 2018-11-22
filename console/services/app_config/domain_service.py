@@ -159,8 +159,12 @@ class DomainService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
-        region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
-
+        try:
+            # 给数据中心传送数据绑定域名
+            region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
         domain_info = dict()
         if domain_path:
             domain_info["is_senior"] = True
