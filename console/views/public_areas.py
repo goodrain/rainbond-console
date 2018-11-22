@@ -375,30 +375,6 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
-# 查询当前团队下的所有策略（含模糊搜索）
-class GatewayDomainView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
-        try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
-            search_strategy = request.GET.get('search_strategy', None)
-
-            if search_strategy:
-                domain_odj_list = domain_repo.get_domain_by_domain_name_or_service_alias_or_group_name(search_strategy)
-
-            else:
-                domain_odj_list = domain_repo.get_all_domain()
-            if len(domain_odj_list) > 0:
-                domain_list = [domain_odj.to_dict() for domain_odj in domain_odj_list]
-            else:
-                domain_list = list()
-            result = general_message(200, "success", "查询成功", list=domain_list)
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
 
 
 
