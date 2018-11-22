@@ -112,5 +112,5 @@ const statusColorMap = {
 export function getStatusColor(status) {
   console.log("status",status)
   // return statusColorMap[status] || statusColorMap['unknow'];
-  return statusColorMap[status];
+  return statusColorMap[status?status:'unknow'];
 }
