@@ -401,8 +401,8 @@ function goodrainData2scopeData(data = {}) {
   }
 
   newData = scopeData.add == null ? newData : scopeData.add
-  scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : scopeData.remove = null;
-  scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : scopeData.update = null;
+  scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
+  scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
 
   console.log("newData",newData);
   console.log("scopeData",scopeData);
