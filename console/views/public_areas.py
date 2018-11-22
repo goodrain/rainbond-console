@@ -21,6 +21,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
+from console.repositories.app_config import domain_repo
 
 event_service = AppEventService()
 
@@ -372,3 +373,12 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+
+
+
+
+
+
+
+

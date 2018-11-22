@@ -27,6 +27,5 @@ export function initEdgesFromNodes(nodes) {
       }
     });
   });
-
   return edges;
 }

@@ -81,6 +81,7 @@ class ServicePermRepo(object):
     def get_service_perms_by_service_pk(self, sid):
         return ServiceRelPerms.objects.filter(service_id=sid)
 
+
 class RoleRepo(object):
     def get_default_role_by_role_name(self, role_name, is_default=True):
         return TenantUserRole.objects.get(role_name=role_name, is_default=is_default)
@@ -343,9 +344,16 @@ class RolePermRepo(object):
             else:
                 service_group_obj = PermGroup.objects.get(group_name="应用相关")
                 group_dict["应用相关"] = service_group_obj.pk
+            if not PermGroup.objects.filter(group_name="网关相关").exists():
+                gateway_group_obj = PermGroup.objects.create(group_name="网关相关")
+                group_dict["网关相关"] = gateway_group_obj.pk
+            else:
+                gateway_group_obj = PermGroup.objects.get(group_name="网关相关")
+                group_dict["网关相关"] = gateway_group_obj.pk
             # 初始化权限数据
             team_group = group_dict.get("团队相关")
             service_group = group_dict.get("应用相关")
+            gateway_group = group_dict.get("网关相关")
 
             obj = TenantUserPermission.objects.create(codename="tenant_access", per_info="登入团队", is_select=True,
                                                       group=team_group)
@@ -464,6 +472,26 @@ class RolePermRepo(object):
                                                       is_select=True,
                                                       group=team_group)
             perms_dict["import_and_export_service"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="access control", per_info="查看访问控制",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["access control"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="certificate management", per_info="访问证书管理",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["certificate management"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="control operation", per_info="访问控制操作",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["control operation"] = obj.pk
+
+            obj = TenantUserPermission.objects.create(codename="certificate operation", per_info="证书管理操作",
+                                                      is_select=True,
+                                                      group=gateway_group)
+            perms_dict["certificate operation"] = obj.pk
             # 初始化角色与权限对应关系
             owner_id = role_dict.get("owner")
             admin_id = role_dict.get("admin")
@@ -498,6 +526,9 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=owner_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("share_plugin"))
+            # 新添加
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("access control"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("certificate management"))
 
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
@@ -525,6 +556,9 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=admin_id,
                                                     per_id=perms_dict.get("import_and_export_service"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("share_plugin"))
+            # 新添加
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("access control"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("certificate management"))
 
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_group"))

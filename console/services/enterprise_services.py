@@ -136,4 +136,5 @@ class EnterpriseServices(object):
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
 
+
 enterprise_services = EnterpriseServices()

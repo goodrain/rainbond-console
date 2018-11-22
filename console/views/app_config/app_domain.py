@@ -14,6 +14,8 @@ from console.constants import DomainType
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.region_services import region_services
+from console.repositories.app import service_repo
+
 
 logger = logging.getLogger("default")
 

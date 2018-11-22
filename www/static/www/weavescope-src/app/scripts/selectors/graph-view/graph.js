@@ -8,6 +8,7 @@ import { activeTopologyOptionsSelector } from '../topology';
 import { shownNodesSelector } from '../node-filters';
 import { doLayout } from '../../charts/nodes-layout';
 import timer from '../../utils/timer-utils';
+import node from '../../charts/node';
 
 const log = debug('scope:nodes-chart');
 
@@ -19,7 +20,6 @@ const layoutOptionsSelector = createStructuredSelector({
   height: canvasHeightSelector,
   width: canvasWidthSelector,
 });
-
 const graphLayoutSelector = createSelector(
   [
     // TODO: Instead of sending the nodes with all the information (metrics, metadata, etc...)
@@ -40,6 +40,7 @@ const graphLayoutSelector = createSelector(
     layoutOptionsSelector,
   ],
   (nodes, options) => {
+   
     // If the graph is empty, skip computing the layout.
     if (nodes.size === 0) {
       return {
@@ -47,15 +48,15 @@ const graphLayoutSelector = createSelector(
         edges: makeMap(),
       };
     }
-
+    
     const edges = initEdgesFromNodes(nodes);
     const timedLayouter = timer(doLayout);
     const graph = timedLayouter(nodes, edges, options);
-
     // NOTE: We probably shouldn't log anything in a
     // computed property, but this is still useful.
     log(`graph layout calculation took ${timedLayouter.time}ms`);
-
+    // console.log("node", graph)
+    // console.log("graph", graph)
     return graph;
   }
 );

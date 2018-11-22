@@ -41,13 +41,13 @@ class TopologicalService(object):
 
         # 拼接服务状态
         for service_info in service_list:
-            json_data[service_info.service_cname] = {
+            json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "node_num": service_info.min_node,
             }
-            json_svg[service_info.service_cname] = []
+            json_svg[service_info.service_id] = []
 
             if service_status_map.get(service_info.service_id):
                 status = service_status_map.get(service_info.service_id).get("status", "Unknown")
@@ -63,15 +63,15 @@ class TopologicalService(object):
                         status_cn = "未知"
                     else:
                         status_cn = status_info_map["status_cn"]
-                json_data[service_info.service_cname]['cur_status'] = status
-                json_data[service_info.service_cname]['status_cn'] = status_cn
+                json_data[service_info.service_id]['cur_status'] = status
+                json_data[service_info.service_id]['status_cn'] = status_cn
             else:
                 if service_info.create_status != "complete":
-                    json_data[service_info.service_cname]['cur_status'] = 'creating'
-                    json_data[service_info.service_cname]['status_cn'] = '创建中'
+                    json_data[service_info.service_id]['cur_status'] = 'creating'
+                    json_data[service_info.service_id]['status_cn'] = '创建中'
                 else:
-                    json_data[service_info.service_cname]['cur_status'] = 'Unknown'
-                    json_data[service_info.service_cname]['status_cn'] = '未知'
+                    json_data[service_info.service_id]['cur_status'] = 'Unknown'
+                    json_data[service_info.service_id]['status_cn'] = '未知'
 
             # 查询是否打开对外服务端口
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
@@ -79,7 +79,7 @@ class TopologicalService(object):
             outer_port_exist = False
             if len(port_list) > 0:
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
-            json_data[service_info.service_cname]['is_internet'] = outer_port_exist
+            json_data[service_info.service_id]['is_internet'] = outer_port_exist
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
@@ -89,10 +89,10 @@ class TopologicalService(object):
                 tmp_dep_info = service_map.get(tmp_dep_id)
                 # 依赖服务的cname
                 tmp_info_relation = []
-                if tmp_info.service_cname in json_svg.keys():
-                    tmp_info_relation = json_svg.get(tmp_info.service_cname)
+                if tmp_info.service_id in json_svg.keys():
+                    tmp_info_relation = json_svg.get(tmp_info.service_id)
                 tmp_info_relation.append(tmp_dep_info.service_cname)
-                json_svg[tmp_info.service_cname] = tmp_info_relation
+                json_svg[tmp_info.service_id] = tmp_info_relation
 
         topological_info["json_data"] = json_data
         topological_info["json_svg"] = json_svg

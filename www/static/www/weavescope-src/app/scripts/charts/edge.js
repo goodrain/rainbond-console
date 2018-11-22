@@ -216,7 +216,6 @@ class Edge extends React.Component {
        }
        return item.source === source && item.target === target;
     })[0];
-    console.log(monitorData)
     return monitorData ? monitorData.data : null
   }
   saveRef(ref) {

@@ -68,10 +68,9 @@ class App extends React.Component {
   }
   componentDidMount() {
     this.setViewportDimensions();
-    window.addEventListener('resize', this.handleResize);
+    // window.addEventListener('resize', this.handleResize);
     // window.addEventListener('keypress', this.onKeyPress);
-    // window.addEventListener('keyup', this.onKeyUp);
-
+    window.addEventListener('keyup', this.onKeyUp);
     getRouter(this.props.dispatch, this.props.urlState).start({hashbang: true});
 
     if (!this.props.routeSet || process.env.WEAVE_CLOUD) {
@@ -151,6 +150,7 @@ class App extends React.Component {
       ...additionalProps,
     });
   }
+  //设置视图 的高
   setViewportDimensions() {
     if (this.appRef) {
       const { width, height } = this.appRef.getBoundingClientRect();
@@ -161,15 +161,16 @@ class App extends React.Component {
       
     }
   }
+
   saveAppRef(ref) {
     this.appRef = ref;
   }
+  
   render() {
     const { isTableViewMode, isGraphViewMode, isResourceViewMode, showingDetails, showingHelp,
     showingNetworkSelector, showingTroubleshootingMenu, monitorData } = this.props;
     const isIframe = window !== window.top;
     const mData = monitorData ? monitorData.data || {} : {};
-
     return (
       <div className="scope-app" ref={this.saveAppRef}>
         {showingDetails && <Details />}

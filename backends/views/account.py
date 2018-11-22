@@ -17,6 +17,7 @@ from www.services import enterprise_svc
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User as TokenAuthUser
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from backends.services.authservice import auth_service
 
@@ -184,7 +185,10 @@ class AuthAccessTokenView(AlowAnyApiView):
             password = request.data.get("password", None)
             enterprise_id = request.data.get("enterprise_id", None)
             enterprise_alias = request.data.get("enterprise_alias", None)
-
+            user_obj = user_repo.get_user_by_user_name(username)
+            if user_obj:
+                return Response(generate_result(
+                    "1004", "user already exists", "用户名在控制台已存在"))
             if not username or not password or not enterprise_id or not enterprise_alias:
                 return Response(generate_result(
                     "1003", "params error", "参数错误"))
@@ -194,7 +198,6 @@ class AuthAccessTokenView(AlowAnyApiView):
                 enterprise = enterprise_services.create_tenant_enterprise(enterprise_id, enterprise_alias,
                                                                           enterprise_alias, False)
             token = auth_service.create_token_auth_user(username, password)
-
             bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict()}
 
             result = generate_result("0000", "success", "信息获取成功",bean)

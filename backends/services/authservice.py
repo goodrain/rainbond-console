@@ -9,11 +9,9 @@ from rest_framework.authtoken.models import Token
 class AuthService(object):
     def create_token_auth_user(self, username, password):
         """生成token验证"""
-        token_auth_users = TokenAuthUser.objects.all()
-        if token_auth_users:
-            token_auth_user = token_auth_users[0]
-            # 私有云生成一个
-            token = self.get_token_by_user_id(token_auth_user.id)
+        app_user = TokenAuthUser.objects.filter(username=username)
+        if app_user:
+            token = Token.objects.filter(user=app_user)
             return token
         else:
             app_user = TokenAuthUser.objects.create(username=username)

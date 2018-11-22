@@ -793,6 +793,12 @@ class ServiceDomain(BaseModel):
     protocol = models.CharField(max_length=15, default='http', help_text=u"域名类型 http https httptphttps httpandhttps")
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
     domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
+    service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
+    group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
+    is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
+    domain_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名path")
+    domain_cookie = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名cookie")
+    domain_heander = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名heander")
 
     def __unicode__(self):
         return self.domain_name
@@ -1491,3 +1497,21 @@ class TenantServiceGroup(BaseModel):
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     service_group_id = models.IntegerField(default=0, help_text=u"ServiceGroup主键, 应用分类ID")
 
+
+class ServiceTcpDomain(BaseModel):
+    """Tcp/Udp策略"""
+
+    class Meta:
+        db_table = 'service_tcp_domain'
+
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_name = models.CharField(max_length=32, help_text=u"服务名")
+    end_point = models.CharField(max_length=256, help_text=u"ip+port")
+    create_time = models.DateTimeField(
+        auto_now_add=True, blank=True, help_text=u"创建时间")
+    protocol = models.CharField(
+        max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
+    container_port = models.IntegerField(default=0, help_text=u"容器端口")
+    domain_type = models.CharField(max_length=20, default='www', help_text=u"类型")
+    service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
+    group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
