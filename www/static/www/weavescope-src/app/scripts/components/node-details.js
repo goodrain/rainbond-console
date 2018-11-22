@@ -221,7 +221,7 @@ console.log("nodeDetails.cur_status",nodeDetails)
     return (
       <div className={'node-details'}>
         {tools}
-        <div className="node-details-header" style={{backgroundColor: getStatusColor(nodeDetails.cur_status)}}>
+        <div className="node-details-header" style={{backgroundColor: getStatusColor(nodeDetails.cur_status?nodeDetails.cur_status:nodeInfo.cur_status)}}>
           <div className="node-details-header-wrapper">
             
             <h2 className="node-details-header-label" title={nodeInfo.label}>

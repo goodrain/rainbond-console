@@ -89,6 +89,7 @@ const statusColorMap = {
     'running' : 'rgb(0,215,119)',//运行中 绿色
     'closed'  : 'rgb(0,0,0)',//已关闭 黑色
     'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
+    'creating' : 'rgb(119,136,153)',//部署中 浅石板灰	
     'starting' : 'rgb(30,144,255)',//开启中 道奇蓝	
     'startting' : 'rgb(30,144,255)',//开启中 道奇蓝	
     'checking' : 'rgb(255,153,0)',//检测中 橙色
