@@ -120,16 +120,13 @@ class DomainService(object):
         return True if domain else False
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
-                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions):
+                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, the_weight):
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
         http_rule_id = make_uuid(domain_name)
         if code != 200:
             return code, msg
         certificate_info = None
-        if protocol != self.HTTP:
-            if not certificate_id:
-                return 400, u"证书不能为空"
-
+        if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
         data = {}
         data["uuid"] = make_uuid(domain_name)
@@ -137,8 +134,8 @@ class DomainService(object):
         data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id
         data["tenant_name"] = tenant.tenant_name
-        data["container_port"] = int(container_port)
         data["protocol"] = protocol
+        data["container_port"] = int(container_port)
         data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data["add_user"] = user.nick_name
         data["enterprise_id"] = tenant.enterprise_id
@@ -168,6 +165,12 @@ class DomainService(object):
         domain_info = dict()
         if domain_path:
             domain_info["is_senior"] = True
+        if protocol:
+            domain_info["protocol"] = protocol
+        else:
+            domain_info["protocol"] = "http"
+            if certificate_id:
+                domain_info["protocol"] = "https"
         domain_info["http_rule_id"] = http_rule_id
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
@@ -176,7 +179,6 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info["protocol"] = protocol
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["group_name"] = group_name
         domain_info["domain_path"] = domain_path if domain_path else None
@@ -184,6 +186,69 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
 
         domain_repo.add_service_domain(**domain_info)
+        return 200, u"success"
+
+    def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
+                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, http_rule_id, protocol, the_weight):
+        certificate_info = None
+        if certificate_id:
+            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+        data = {}
+        data["domain"] = domain_name
+        data["service_id"] = service.service_id
+        data["tenant_id"] = tenant.tenant_id
+        data["tenant_name"] = tenant.tenant_name
+        data["container_port"] = int(container_port)
+        data["protocol"] = protocol
+        data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = http_rule_id
+        data["path"] = domain_path if domain_path else None
+        data["cookie"] = domain_cookie if domain_cookie else None
+        data["heander"] = domain_heander if domain_heander else None
+        data["weight"] = the_weight
+        if len(rule_extensions) > 0:
+            data["rule_extensions"] = rule_extensions
+
+        # 证书信息
+        data["certificate"] = ""
+        data["private_key"] = ""
+        data["certificate_name"] = ""
+        data["certificate_id"] = ""
+        if certificate_info:
+            data["certificate"] = certificate_info.certificate
+            data["private_key"] = certificate_info.private_key
+            data["certificate_name"] = certificate_info.alias
+            data["certificate_id"] = certificate_info.certificate_id
+        try:
+            # 给数据中心传送数据更新域名
+            region_api.updateDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
+        service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+        if not service_domain:
+            return 400, u"策略不存在"
+        service_domain.service_id = service.service_id
+        service_domain.service_name = service.service_alias
+        service_domain.service_alias = service.service_cname
+        service_domain.domain_name = domain_name
+        service_domain.domain_type = domain_type
+        service_domain.container_port = int(container_port)
+        service_domain.certificate_id = certificate_info.ID if certificate_info else 0
+        service_domain.group_name = group_name
+        service_domain.domain_path = domain_path if domain_path else None
+        service_domain.domain_cookie = domain_cookie if domain_cookie else None
+        service_domain.domain_heander = domain_heander if domain_heander else None
+        service_domain.the_weight = the_weight
+        if protocol:
+            service_domain.protocol = protocol
+        else:
+            service_domain.protocol = "http"
+            if certificate_id:
+                service_domain.protocol = "https"
+        if domain_path:
+            service_domain.is_senior = True
+        service_domain.save()
         return 200, u"success"
 
     def unbind_domain(self, tenant, service, container_port, domain_name):

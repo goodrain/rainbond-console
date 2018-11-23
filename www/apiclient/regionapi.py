@@ -827,6 +827,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
+    def updateDomain(self, region, tenant_name, service_alias, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+
+        self._set_headers(token)
+        res, body = self._put(
+            url, self.default_headers, json.dumps(body), region=region)
+        return body
+
     def unbindDomain(self, region, tenant_name, service_alias, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
