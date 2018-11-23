@@ -612,11 +612,11 @@ class SecondLevelDomainView(AppBaseView):
 
 
 # 获取团队下的策略
-class DomainQueryView(AppBaseView):
+class DomainQueryView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             total = domain_repo.get_all_domain_count()
             start = (page - 1) * 10
@@ -628,13 +628,13 @@ class DomainQueryView(AppBaseView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol from service_domain where domain_name like '%{0}%' or service_name like '%{1}%' or group_name like '%{2}%' order by type desc LIMIT {3},{4};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name from service_domain where domain_name like '%{0}%' or service_name like '%{1}%' or group_name like '%{2}%' order by type desc LIMIT {3},{4};".format(
                             search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol from service_domain order by type desc LIMIT {0},{1};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name from service_domain order by type desc LIMIT {0},{1};".format(
                             start, end))
                     tenant_tuples = cursor.fetchall()
             except Exception as e:
@@ -647,21 +647,21 @@ class DomainQueryView(AppBaseView):
             for tenant_tuple in tenant_tuples:
                 domain_dict = dict()
                 certificate_info = domain_repo.get_certificate_by_pk(int(tenant_tuple[3]))
-                domain_dict["certificate_alias"] = certificate_info.alias
+                if not certificate_info:
+                    domain_dict["certificate_alias"] = ''
+                else:
+                    domain_dict["certificate_alias"] = certificate_info.alias
                 domain_dict["domain_name"] = tenant_tuple[6] + "://" + tenant_tuple[0]
                 domain_dict["type"] = tenant_tuple[1]
                 domain_dict["is_senior"] = tenant_tuple[2]
                 domain_dict["group_name"] = tenant_tuple[4]
                 domain_dict["service_cname"] = tenant_tuple[5]
+                domain_dict["service_alias"] = tenant_tuple[7]
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
-            result = general_message(200, "success", "查询成功")
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result)
-
-
-
-

@@ -4,7 +4,7 @@
 """
 import datetime
 from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAuth, ServiceAttachInfo, \
-    ServicePaymentNotify
+    ServicePaymentNotify, ServiceTcpDomain
 from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
@@ -110,6 +110,7 @@ class TenantServicePortRepository(object):
 
     def get_service_port_by_lb_mapping_port(self, service_id, lb_mapping_port):
         return TenantServicesPort.objects.filter(service_id=service_id, lb_mapping_port=lb_mapping_port).first()
+
 
 class TenantServiceVolumnRepository(object):
     def get_service_volumes(self, service_id):
@@ -296,6 +297,13 @@ class ServiceDomainRepository(object):
     def get_service_domains(self, service_id):
         return ServiceDomain.objects.filter(service_id=service_id)
 
+    def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol,
+                               http_rule_id, group_name):
+        ServiceDomain.objects.create(service_id=service_id, service_name=service_name, domain_name=domain_name,
+                                     create_time=create_time,
+                                     container_port=container_port, protocol=protocol, http_rule_id=http_rule_id,
+                                     group_name=group_name)
+
 
 class ServiceExtendRepository(object):
     def get_extend_method_by_service(self, service):
@@ -354,6 +362,24 @@ class ServicePaymentRepository(object):
         ServicePaymentNotify.objects.filter(service_id=service_id).delete()
 
 
+class ServiceTcpDomainRepository(object):
+
+    def get_service_tcp_domain_by_service_id(self, service_id):
+
+        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id).first()
+        if tcp_domain:
+            return tcp_domain
+        else:
+            return None
+
+    def create_service_tcp_domains(self, service_id, service_name, end_point, create_time, container_port, protocol, service_alias, group_name, tcp_rule_id):
+        ServiceTcpDomain.objects.create(service_id=service_id, service_name=service_name, end_point=end_point,
+                                     create_time=create_time, service_alias=service_alias,
+                                     container_port=container_port, protocol=protocol, tcp_rule_id=tcp_rule_id,
+                                     group_name=group_name)
+
+
+tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()
 port_repo = TenantServicePortRepository()
 image_service_relation_repo = ImageServiceRelationRepository()

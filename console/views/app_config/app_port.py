@@ -259,7 +259,7 @@ class AppPortManageView(AppBaseView):
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
         try:
-            code, msg, data = port_service.manage_port(self.tenant, self.service, int(container_port), action,
+            code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
                                                        protocol, port_alias)
             if code != 200:
                 return Response(general_message(code, "change port fail", msg), status=code)

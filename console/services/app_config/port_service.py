@@ -3,9 +3,13 @@
   Created on 18/1/17.
 """
 from console.constants import ServicePortConstants
+from console.repositories.region_repo import region_repo
 from console.repositories.app_config import port_repo
 import re
+import datetime
 
+from console.repositories.group import group_service_relation_repo, group_repo
+from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
 from django.conf import settings
 from console.services.app_config.env_service import AppEnvVarService
@@ -14,6 +18,7 @@ from console.repositories.app_config import domain_repo
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
 from console.constants import AppConstants
+from console.repositories.app_config import tcp_domain
 
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
@@ -202,13 +207,14 @@ class AppPortService(object):
                 return code, msg
         return 200, u"检测成功"
 
-    def manage_port(self, tenant, service, container_port, action, protocol, port_alias):
+    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias):
+        region = region_repo.get_region_by_region_name(region_name)
         code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
         if code != 200:
             return code, msg, None
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
-            code, msg = self.__open_outer(tenant, service, deal_port)
+            code, msg = self.__open_outer(tenant, service, region, deal_port)
         elif action == "close_outer":
             code, msg = self.__close_outer(tenant, service, deal_port)
         elif action == "open_inner":
@@ -224,7 +230,7 @@ class AppPortService(object):
             return code, msg, None
         return 200, u"操作成功", new_port
     
-    def __open_outer(self, tenant, service, deal_port):
+    def __open_outer(self, tenant, service, region, deal_port):
         if deal_port.protocol != "http":
             if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
@@ -239,6 +245,43 @@ class AppPortService(object):
 
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
+        # 在domain表中保存数据
+        if deal_port.protocol == "http":
+            service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+            if service_domain:
+                pass
+            else:
+                gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                group_obj = group_repo.get_group_by_id(gsr.group_id)
+                service_id = service.service_id
+                service_name = service.service_alias
+                group_name = group_obj.group_name
+                container_port = deal_port.container_port
+                domain_name = "http://" + container_port + "." + service_name + "." + group_name
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                protocol = "http"
+                http_rule_id = make_uuid(domain_name)
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name)
+        else:
+            service_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id(service.service_id)
+            if service_tcp_domain:
+                pass
+            else:
+                # ip+port
+                end_point = region.domain + ":" + deal_port.lb_mapping_port
+                gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                group_obj = group_repo.get_group_by_id(gsr.group_id)
+                service_id = service.service_id
+                service_name = service.service_alias
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                container_port = deal_port.container_port
+                protocol = deal_port.protocol
+                group_name = group_obj.group_name
+                service_alias = service.service_cname
+                tcp_rule_id = make_uuid(end_point)
+                tcp_domain.create_service_tcp_domains(self, service_id, service_name, end_point, create_time,
+                                                      container_port,
+                                                      protocol, service_alias, group_name, tcp_rule_id)
 
         return 200, "success"
 
