@@ -784,10 +784,10 @@ class ServiceDomain(BaseModel):
     class Meta:
         db_table = 'service_domain'
 
-    http_rule_id = models.CharField(max_length=256, unique=True, help_text=u"http_rule_id")
+    http_rule_id = models.CharField(max_length=128, unique=True, help_text=u"http_rule_id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
-    domain_name = models.CharField(max_length=256, help_text=u"域名")
+    domain_name = models.CharField(max_length=128, help_text=u"域名")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
@@ -797,9 +797,9 @@ class ServiceDomain(BaseModel):
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
-    domain_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名path")
-    domain_cookie = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名cookie")
-    domain_heander = models.CharField(max_length=256, null=True, blank=True, help_text=u"域名heander")
+    domain_path = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名path")
+    domain_cookie = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名cookie")
+    domain_heander = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名heander")
     type = models.IntegerField(max_length=32, default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(max_length=32, default=100, help_text=u"权重")
 

@@ -31,12 +31,13 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (13, 31);
 ALTER TABLE service_domain ADD COLUMN `is_senior` bool DEFAULT false NOT NULL;
 ALTER TABLE service_domain ADD COLUMN `service_alias` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `group_name` varchar(32) DEFAULT '';
-ALTER TABLE service_domain ADD COLUMN `domain_path` varchar(256) DEFAULT '' NULL;
-ALTER TABLE service_domain ADD COLUMN `domain_cookie` varchar(256) DEFAULT '' NULL;
-ALTER TABLE service_domain ADD COLUMN `domain_heander` varchar(256) DEFAULT '' NULL;
-ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(256) DEFAULT '' NULL;
+ALTER TABLE service_domain ADD COLUMN `domain_path` varchar(128) DEFAULT '' NULL;
+ALTER TABLE service_domain ADD COLUMN `domain_cookie` varchar(128) DEFAULT '' NULL;
+ALTER TABLE service_domain ADD COLUMN `domain_heander` varchar(128) DEFAULT '' NULL;
+ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(128) DEFAULT '' NULL;
 ALTER TABLE service_domain ADD COLUMN `type` integer DEFAULT 0;
 ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
+
 
 
 -- 创建表service_tcp_domain

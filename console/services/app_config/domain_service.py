@@ -143,6 +143,7 @@ class DomainService(object):
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
+        data["weight"] = the_weight
         if len(rule_extensions) > 0:
             data["rule_extensions"] = rule_extensions
 
@@ -163,7 +164,7 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         domain_info = dict()
-        if domain_path:
+        if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
         if protocol:
             domain_info["protocol"] = protocol
@@ -184,6 +185,7 @@ class DomainService(object):
         domain_info["domain_path"] = domain_path if domain_path else None
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info["domain_heander"] = domain_heander if domain_heander else None
+        domain_info["the_weight"] = the_weight
 
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
@@ -246,7 +248,7 @@ class DomainService(object):
             service_domain.protocol = "http"
             if certificate_id:
                 service_domain.protocol = "https"
-        if domain_path:
+        if domain_path and domain_path != "/":
             service_domain.is_senior = True
         service_domain.save()
         return 200, u"success"
