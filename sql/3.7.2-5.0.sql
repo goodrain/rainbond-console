@@ -60,6 +60,7 @@ CREATE TABLE `service_tcp_domain` (
 
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_id` varchar(256) DEFAULT '' NOT NULL;
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_source` varchar(64) DEFAULT '' NOT NULL;
+ALTER TABLE service_domain_certificate ADD COLUMN `certificate_type` varchar(64) DEFAULT '' NOT NULL;
 
 
 

@@ -816,6 +816,7 @@ class ServiceDomainCertificate(BaseModel):
     certificate_source = models.CharField(max_length=64, help_text=u"证书的签发机构")
     private_key = models.TextField(default='', help_text=u"证书key")
     certificate = models.TextField(default='', help_text=u'证书')
+    certificate_type = models.TextField(default='', help_text=u'证书类型')
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
     alias = models.CharField(max_length=32, help_text=u"证书别名")

@@ -80,8 +80,9 @@ class TenantCertificateView(RegionTenantHeaderView):
             alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
+            certificate_type = request.data.get("certificate_type",None)
             certificate_id = make_uuid()
-            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key)
+            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key,certificate_type)
             if code != 200:
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}

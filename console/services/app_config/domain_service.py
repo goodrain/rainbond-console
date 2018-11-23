@@ -39,12 +39,12 @@ class DomainService(object):
             return 412, u"证书别名已存在"
         return 200, "success"
 
-    def add_certificate(self, tenant, alias,certificate_id, certificate, private_key):
+    def add_certificate(self, tenant, alias,certificate_id, certificate, private_key,certificate_type):
         code, msg = self.__check_certificate_alias(tenant, alias)
         if code != 200:
             return code, msg, None
         certificate = base64.b64encode(certificate)
-        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key)
+        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
         return 200, "success", certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
