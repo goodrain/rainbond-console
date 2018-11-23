@@ -37,6 +37,7 @@ ALTER TABLE service_domain ADD COLUMN `domain_heander` varchar(128) DEFAULT '' N
 ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(128) DEFAULT '' NULL;
 ALTER TABLE service_domain ADD COLUMN `type` integer DEFAULT 0;
 ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
+ALTER TABLE service_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
 
 
 
@@ -49,7 +50,6 @@ CREATE TABLE `service_tcp_domain` (
   `end_point` varchar(256),
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `container_port` int(11) DEFAULT 0,
-  `domain_type` varchar(20) DEFAULT 'www',
   `service_alias` varchar(32) DEFAULT '',
   `group_name` varchar(32) DEFAULT '',
   `protocol` varchar(15) DEFAULT '',
@@ -57,6 +57,8 @@ CREATE TABLE `service_tcp_domain` (
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
 
 ALTER TABLE service_tcp_domain ADD COLUMN `tcp_rule_id` varchar(128) DEFAULT '' NULL;
+ALTER TABLE service_tcp_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
+
 
 
 -- 修改service_domain_certificate

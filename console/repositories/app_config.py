@@ -243,8 +243,8 @@ class ServiceDomainRepository(object):
     def get_all_domain(self):
         return ServiceDomain.objects.all()
 
-    def get_all_domain_count(self):
-        return ServiceDomain.objects.all().count()
+    def get_all_domain_count_by_tenant(self, tenant_id):
+        return ServiceDomain.objects.filter(tenant_id=tenant_id).count()
 
     def get_domain_by_name_and_port(self, service_id, container_port, domain_name):
         try:
@@ -374,6 +374,9 @@ class ServiceTcpDomainRepository(object):
             return tcp_domain
         else:
             return None
+
+    def get_all_domain_count_by_tenant(self, tenant_id):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id).count()
 
     def create_service_tcp_domains(self, service_id, service_name, end_point, create_time, container_port, protocol, service_alias, group_name, tcp_rule_id):
         ServiceTcpDomain.objects.create(service_id=service_id, service_name=service_name, end_point=end_point,

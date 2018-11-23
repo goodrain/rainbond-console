@@ -19,8 +19,7 @@ from console.repositories.app import service_repo
 from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
 from console.services.app_actions import app_manage_service
-from console.repositories.app_config import domain_repo
-
+from console.repositories.app_config import domain_repo, tcp_domain
 
 logger = logging.getLogger("default")
 
@@ -615,12 +614,13 @@ class SecondLevelDomainView(AppBaseView):
 
 # 获取团队下的策略
 class DomainQueryView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, tenantName, *args, **kwargs):
         try:
             page = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
-            total = domain_repo.get_all_domain_count()
+            tenant = team_services.get_tenant_by_tenant_name(tenantName)
+            total = domain_repo.get_all_domain_count_by_tenant(tenant.tenant_id)
             start = (page - 1) * 10
             remaining_num = total - (page - 1) * 10
             end = 10
@@ -630,14 +630,14 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name from service_domain where domain_name like '%{0}%' or service_name like '%{1}%' or group_name like '%{2}%' order by type desc LIMIT {3},{4};".format(
-                            search_conditions, search_conditions, search_conditions, start, end))
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                            tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name from service_domain order by type desc LIMIT {0},{1};".format(
-                            start, end))
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
+                            tenant.tenant_id, start, end))
                     tenant_tuples = cursor.fetchall()
             except Exception as e:
                 logger.exception(e)
@@ -659,6 +659,60 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["group_name"] = tenant_tuple[4]
                 domain_dict["service_cname"] = tenant_tuple[5]
                 domain_dict["service_alias"] = tenant_tuple[7]
+                domain_dict["container_port"] = tenant_tuple[8]
+                domain_list.append(domain_dict)
+            bean = dict()
+            bean["total"] = total
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+
+class ServiceTcpDomainView(RegionTenantHeaderView):
+    # 查询团队下tcp/udp策略
+    def get(self, request, tenantName, *args, **kwargs):
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            search_conditions = request.GET.get("search_conditions", None)
+            tenant = team_services.get_tenant_by_tenant_name(tenantName)
+            total = tcp_domain.get_all_domain_count_by_tenant(tenant.tenant_id)
+            start = (page - 1) * 10
+            remaining_num = total - (page - 1) * 10
+            end = 10
+            if remaining_num < page_size:
+                end = remaining_num
+            try:
+                if search_conditions:
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select end_point, type, protocol, group_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                            tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
+                    tenant_tuples = cursor.fetchall()
+                else:
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select end_point, type, protocol, group_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
+                            tenant.tenant_id, start, end))
+                    tenant_tuples = cursor.fetchall()
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(405, "faild", "查询数据库失败")
+                return Response(result)
+
+            # 拼接展示数据
+            domain_list = list()
+            for tenant_tuple in tenant_tuples:
+                domain_dict = dict()
+                domain_dict["end_point"] = tenant_tuple[0]
+                domain_dict["type"] = tenant_tuple[1]
+                domain_dict["protocol"] = tenant_tuple[2]
+                domain_dict["group_name"] = tenant_tuple[3]
+                domain_dict["service_alias"] = tenant_tuple[4]
+                domain_dict["container_port"] = tenant_tuple[5]
+
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total

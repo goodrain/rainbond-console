@@ -785,6 +785,7 @@ class ServiceDomain(BaseModel):
         db_table = 'service_domain'
 
     http_rule_id = models.CharField(max_length=128, unique=True, help_text=u"http_rule_id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
     domain_name = models.CharField(max_length=128, help_text=u"域名")
@@ -1511,6 +1512,7 @@ class ServiceTcpDomain(BaseModel):
         db_table = 'service_tcp_domain'
 
     tcp_rule_id = models.CharField(max_length=128, unique=True, help_text=u"tcp_rule_id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
     end_point = models.CharField(max_length=256, help_text=u"ip+port")
@@ -1519,6 +1521,7 @@ class ServiceTcpDomain(BaseModel):
     protocol = models.CharField(
         max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
-    domain_type = models.CharField(max_length=20, default='www', help_text=u"类型")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
+    type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
+

@@ -196,6 +196,7 @@ class DomainService(object):
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
+        domain_info["tenant_id"] = service.tenant_id
 
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
@@ -250,6 +251,7 @@ class DomainService(object):
         service_domain.domain_cookie = domain_cookie if domain_cookie else None
         service_domain.domain_heander = domain_heander if domain_heander else None
         service_domain.the_weight = the_weight
+        service_domain.tenant_id = service.tenant_id
         if protocol:
             service_domain.protocol = protocol
         else:
