@@ -6,6 +6,7 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from django.http import JsonResponse
 
 from console.services.app_config import domain_service
 from console.views.app_config.base import AppBaseView
@@ -16,7 +17,8 @@ from www.utils.return_message import general_message, error_message
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
 from console.services.team_services import team_services
-
+from www.models import Tenants,TenantRegionInfo,ServiceDomainCertificate
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
@@ -76,7 +78,8 @@ class TenantCertificateView(RegionTenantHeaderView):
             alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
-            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate, private_key)
+            certificate_id = make_uuid()
+            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key)
             if code != 200:
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}

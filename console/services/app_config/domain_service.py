@@ -9,6 +9,8 @@ from console.repositories.region_repo import region_repo
 from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
+from console.utils.certutil import analyze_cert
+import base64
 
 
 region_api = RegionInvokeApi()
@@ -21,9 +23,11 @@ class DomainService(object):
         certificate = domain_repo.get_tenant_certificate(tenant.tenant_id)
         c_list = []
         for c in certificate:
+            c = base64.b64decode()
             data = dict()
             data["alias"] = c.alias
             data["id"] = c.ID
+            data["certificate_info"] = analyze_cert(c)
             c_list.append(data)
         return c_list
 
@@ -35,11 +39,12 @@ class DomainService(object):
             return 412, u"证书别名已存在"
         return 200, "success"
 
-    def add_certificate(self, tenant, alias, certificate, private_key):
+    def add_certificate(self, tenant, alias,certificate_id, certificate, private_key):
         code, msg = self.__check_certificate_alias(tenant, alias)
         if code != 200:
             return code, msg, None
-        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate, private_key)
+        certificate = base64.b64encode(certificate)
+        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key)
         return 200, "success", certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
@@ -54,6 +59,7 @@ class DomainService(object):
         certificate = domain_repo.get_certificate_by_pk(pk)
         if not certificate:
             return 404, u"证书不存在", None
+        certificate = base64.b64decode(certificate)
         return 200, u"success", certificate
 
     def delete_certificate_by_pk(self, pk):
@@ -72,7 +78,7 @@ class DomainService(object):
                 return code, msg
             certif.alias = new_alias
         if certif:
-            certif.certificate = certificate
+            certif.certificate = base64.b64encode(certificate)
         if private_key:
             certif.private_key = private_key
         certif.save()
