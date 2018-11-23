@@ -812,6 +812,8 @@ class ServiceDomainCertificate(BaseModel):
         db_table = 'service_domain_certificate'
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    certificate_id = models.CharField(max_length=50, help_text=u"证书的唯一uuid")
+    certificate_source = models.CharField(max_length=64, help_text=u"证书的签发机构")
     private_key = models.TextField(default='', help_text=u"证书key")
     certificate = models.TextField(default='', help_text=u'证书')
     create_time = models.DateTimeField(
