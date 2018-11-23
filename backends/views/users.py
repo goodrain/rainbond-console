@@ -150,6 +150,10 @@ class UserView(BaseAPIView):
 
         """
         try:
+            user_service.get_user_by_user_id(user_id)
+            if user_service.is_sys_admin:
+                result = generate_result("1003", "is_sys_admin", "该用户为企业管理员，无法删除")
+                return Response(result)
             user_service.delete_user(user_id)
             result = generate_result(
                 "0000", "success", "删除成功"
