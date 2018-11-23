@@ -231,13 +231,16 @@ class ServiceDomainRepository(object):
             return domains[0]
         return None
 
-    def get_domain_by_domain_name_or_service_alias_or_group_name(self, search_strategy):
-        domains = ServiceDomain.objects.filter(Q(domain_name__contains=search_strategy) | Q(service_alias__contains=search_strategy) | Q(
-            group_name__contains=search_strategy)).order_by("-create_time")
+    def get_domain_by_domain_name_or_service_alias_or_group_name(self, search_conditions):
+        domains = ServiceDomain.objects.filter(Q(domain_name__contains=search_conditions) | Q(service_alias__contains=search_conditions) | Q(
+            group_name__contains=search_conditions)).order_by("-type")
         return domains
 
     def get_all_domain(self):
         return ServiceDomain.objects.all()
+
+    def get_all_domain_count(self):
+        return ServiceDomain.objects.all().count()
 
     def get_domain_by_name_and_port(self, service_id, container_port, domain_name):
         try:
