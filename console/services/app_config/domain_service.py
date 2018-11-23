@@ -23,11 +23,11 @@ class DomainService(object):
         certificate = domain_repo.get_tenant_certificate(tenant.tenant_id)
         c_list = []
         for c in certificate:
-            c = base64.b64decode(c)
+            cert = base64.b64decode(c)
             data = dict()
             data["alias"] = c.alias
             data["id"] = c.ID
-            data["certificate_info"] = analyze_cert(c)
+            data["certificate_info"] = analyze_cert(cert)
             c_list.append(data)
         return c_list
 
