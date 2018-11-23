@@ -239,6 +239,7 @@ class AppPortService(object):
 
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
+
         return 200, "success"
 
     def __close_outer(self, tenant, service, deal_port):

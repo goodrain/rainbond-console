@@ -296,6 +296,13 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             whether_open = request.data.get("whether_open", False)
             the_weight = request.data.get("the_weight", 100)
+
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
             # 判断参数
             if not container_port or not domain_name or not service_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -303,6 +310,16 @@ class ServiceDomainView(AppBaseView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
+            # 判断策略是否存在
+            service_domain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+            if service_domain:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result)
+
+            # 判断域名是否已绑定应用，如果绑定，删除该条记录
+            domain_app = domain_repo.get_domain_by_domain_name(domain_name)
+            if domain_app:
+                domain_app.delete()
 
             if whether_open:
                 # 开启对外端口并重启（开启事物）
@@ -331,13 +348,7 @@ class ServiceDomainView(AppBaseView):
                 if not tenant_service_port:
                     return Response(general_message(200, "not outer port", "没有开启对外窗口", bean={"is_outer_service": False}), status=200)
 
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
-
-            # 绑定端口
+            # 绑定端口(添加策略)
             code, msg = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, rule_extensions, the_weight)
