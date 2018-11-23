@@ -471,7 +471,8 @@ class ServiceDomainView(AppBaseView):
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
             service_id = request.data.get("service_id", None)
-            if not container_port or not domain_name or not service_id:
+            http_rule_id = request.data.get("http_rule_id", None)
+            if not container_port or not domain_name or not service_id or not http_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
@@ -483,7 +484,7 @@ class ServiceDomainView(AppBaseView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
-            code, msg = domain_service.unbind_domain(self.tenant, service, container_port, domain_name)
+            code, msg = domain_service.unbind_domain(self.tenant, service, container_port, domain_name, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "域名解绑成功")
@@ -586,7 +587,8 @@ class SecondLevelDomainView(AppBaseView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
-            if not container_port or not domain_name:
+            http_rule_id = request.data.get("http_rule_id", None)
+            if not container_port or not domain_name or not http_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
             container_port = int(container_port)
             sld_domains = domain_service.get_sld_domains(self.service, container_port)
@@ -598,7 +600,7 @@ class SecondLevelDomainView(AppBaseView):
                     return Response(general_message(code, "bind domain error", msg), status=code)
             else:
                 # 先解绑 再绑定
-                code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, sld_domains[0].domain_name)
+                code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, sld_domains[0].domain_name, http_rule_id)
                 if code != 200:
                     return Response(general_message(code, "unbind domain error", msg), status=code)
                 domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
