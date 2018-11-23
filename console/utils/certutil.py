@@ -14,7 +14,7 @@ def analyze_cert(content):
     issued_to = subject.CN
 
     end_data = cert.get_notAfter()#过期时间
-    issuer = cert.get_issuer()#颁发者
+    issuer = cert.get_issuer()#颁发者analyze_cert
     commonname = issuer.commonName#域名
     # 得到证书颁发机构
     issued_by = issuer.CN     #颁发机构
