@@ -1510,6 +1510,7 @@ class ServiceTcpDomain(BaseModel):
     class Meta:
         db_table = 'service_tcp_domain'
 
+    tcp_rule_id = models.CharField(max_length=128, unique=True, help_text=u"tcp_rule_id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
     end_point = models.CharField(max_length=256, help_text=u"ip+port")

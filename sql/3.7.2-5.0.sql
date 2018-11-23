@@ -56,6 +56,9 @@ CREATE TABLE `service_tcp_domain` (
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
 
+ALTER TABLE service_tcp_domain ADD COLUMN `tcp_rule_id` varchar(128) DEFAULT '' NULL;
+
+
 -- 修改service_domain_certificate
 
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_id` varchar(256) DEFAULT '' NOT NULL;

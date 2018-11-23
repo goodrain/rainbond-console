@@ -237,4 +237,5 @@ class RegionService(object):
         region_names = region_repo.get_regions_by_tenant_ids(team_ids)
         return region_repo.get_region_by_region_names(region_names)
 
+
 region_services = RegionService()
