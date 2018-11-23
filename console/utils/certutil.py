@@ -19,7 +19,7 @@ def analyze_cert(content):
     # 得到证书颁发机构
     issued_by = issuer.CN     #颁发机构
     data["issued_to"] = issued_to
-    data["issuer"] = issuer
+    # data["issuer"] = issuer
     data["has_expired"] = has_expired
 
     if issued_by == "rainbond":
@@ -32,6 +32,18 @@ def analyze_cert(content):
 
     return data
 
+def cert_is_effective(content):
+    """分析证书是否有效"""
+    try:
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
+        has_expired = cert.has_expired()  # 是否过期
+        if not has_expired:
+            return True
+    except Exception as e:
+        return False
+
+
+    return True
 
 
 

@@ -9,7 +9,7 @@ from console.repositories.region_repo import region_repo
 from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-from console.utils.certutil import analyze_cert
+from console.utils.certutil import analyze_cert,cert_is_effective
 import base64
 
 
@@ -43,9 +43,11 @@ class DomainService(object):
         code, msg = self.__check_certificate_alias(tenant, alias)
         if code != 200:
             return code, msg, None
-        certificate = base64.b64encode(certificate)
-        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
-        return 200, "success", certificate
+        if cert_is_effective(certificate):
+            certificate = base64.b64encode(certificate)
+            certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
+            return 200, "success", certificate
+        return 400, u'证书无效'
 
     def delete_certificate_by_alias(self, tenant, alias):
         certificate = domain_repo.get_certificate_by_alias(tenant.tenant_id, alias)
@@ -71,6 +73,8 @@ class DomainService(object):
             return 404, u"证书不存在"
 
     def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key):
+        if not cert_is_effective(certificate):
+            return 400, u'证书无效'
         certif = domain_repo.get_certificate_by_pk(certificate_id)
         if certif.alias != new_alias:
             code, msg = self.__check_certificate_alias(tenant, new_alias)
