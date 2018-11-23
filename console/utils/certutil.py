@@ -4,7 +4,6 @@ from OpenSSL import crypto
 def analyze_cert(content):
     data = {}
     # path表示证书路径，file_name表示证书文件名
-    cert_file = '/Users/baidu/Desktop/ca.txt'
 
     cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
     subject = cert.get_subject()
@@ -26,7 +25,7 @@ def analyze_cert(content):
     if issued_by == "rainbond":
         cert_source = "Let's Encrypt签发"
     else:
-        cert_source = "第三发签发"
+        cert_source = "第三方签发"
     data["issued_by"] = cert_source
     data["end_data"] = end_data
 
