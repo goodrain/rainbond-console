@@ -316,11 +316,6 @@ class ServiceDomainView(AppBaseView):
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
 
-            # 判断域名是否已绑定应用，如果绑定，删除该条记录
-            domain_app = domain_repo.get_domain_by_domain_name(domain_name)
-            if domain_app:
-                domain_app.delete()
-
             if whether_open:
                 # 开启对外端口并重启（开启事物）
                 with transaction.atomic():

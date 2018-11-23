@@ -800,8 +800,8 @@ class ServiceDomain(BaseModel):
     domain_path = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名path")
     domain_cookie = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名cookie")
     domain_heander = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名heander")
-    type = models.IntegerField(max_length=32, default=0, help_text=u"类型（默认：0， 自定义：1）")
-    the_weight = models.IntegerField(max_length=32, default=100, help_text=u"权重")
+    type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
+    the_weight = models.IntegerField(default=100, help_text=u"权重")
 
     def __unicode__(self):
         return self.domain_name
