@@ -286,7 +286,7 @@ class ServiceDomainView(AppBaseView):
               paramType: form
 
         """
-        try:
+        try: # adadasdassda
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
@@ -325,13 +325,14 @@ class ServiceDomainView(AppBaseView):
                     # 开启保存点
                     save_id = transaction.savepoint()
                     try:
-                        tenant_service_ports = port_service.get_service_ports(service)
-                        for tenant_service_port in tenant_service_ports:
-                            code, msg, data = port_service.manage_port(self.tenant, service, int(tenant_service_port.container_port), "open_outer",
-                                                                       tenant_service_port.protocol, tenant_service_port.port_alias)
-                            if code != 200:
+                        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                        # 开启对外端口
+                        code, msg, data = port_service.manage_port(self.tenant, service, int(tenant_service_port.container_port), "open_outer",
+                                                                   tenant_service_port.protocol, tenant_service_port.port_alias)
+                        if code != 200:
 
-                                return Response(general_message(code, "change port fail", msg), status=code)
+                            return Response(general_message(code, "change port fail", msg), status=code)
+                        # 重启
                         code, msg, event = app_manage_service.restart(self.tenant, service, self.user)
                         if code != 200:
                             return Response(general_message(code, "restart app error", msg), status=code)
@@ -341,19 +342,18 @@ class ServiceDomainView(AppBaseView):
                         raise
                     # 提交事物
                     transaction.savepoint_commit(save_id)
-            tenant_service_ports = port_service.get_service_ports(service)
-            for tenant_service_port in tenant_service_ports:
-                if not tenant_service_port:
-                    return Response(general_message(200, "not outer port", "没有开启对外窗口", bean={"is_outer_service": False}), status=200)
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            if not tenant_service_port.is_outer_service:
+                return Response(general_message(200, "not outer port", "没有开启对外窗口", bean={"is_outer_service": False}), status=200)
 
             # 绑定端口(添加策略)
-            code, msg = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
+            code, msg, data = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, rule_extensions, the_weight)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
-            result = general_message(200, "success", "域名绑定成功")
+            result = general_message(200, "success", "域名绑定成功", bean=data)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -412,6 +412,12 @@ class ServiceDomainView(AppBaseView):
             http_rule_id = request.data.get("http_rule_id", None)
             the_weight = request.data.get("the_weight", 100)
 
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
             # 判断参数
             if not service_id or not group_name or not container_port or not domain_name or not http_rule_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -420,11 +426,6 @@ class ServiceDomainView(AppBaseView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             # 编辑域名
             code, msg = domain_service.update_domain(self.tenant, self.user, service, domain_name, container_port,
@@ -474,14 +475,15 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             service_id = request.data.get("service_id", None)
             http_rule_id = request.data.get("http_rule_id", None)
-            if not container_port or not domain_name or not service_id or not http_rule_id:
-                return Response(general_message(400, "params error", "参数错误"), status=400)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
             # 判断权限
             if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
+            if not container_port or not domain_name or not service_id or not http_rule_id:
+                return Response(general_message(400, "params error", "参数错误"), status=400)
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
@@ -673,7 +675,7 @@ class DomainQueryView(RegionTenantHeaderView):
         return Response(result)
 
 
-class ServiceTcpDomainView(RegionTenantHeaderView):
+class ServiceTcpDomainQueryView(RegionTenantHeaderView):
     # 查询团队下tcp/udp策略
     def get(self, request, tenantName, *args, **kwargs):
         try:
@@ -691,13 +693,13 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
                             tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port from service_tcp_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
                             tenant.tenant_id, start, end))
                     tenant_tuples = cursor.fetchall()
             except Exception as e:
@@ -714,7 +716,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 domain_dict["protocol"] = tenant_tuple[2]
                 domain_dict["group_name"] = tenant_tuple[3]
                 domain_dict["service_alias"] = tenant_tuple[4]
-                domain_dict["container_port"] = tenant_tuple[5]
+                domain_dict["container_port"] = tenant_tuple[6]
+                domain_dict["service_cname"] = tenant_tuple[5]
 
                 domain_list.append(domain_dict)
             bean = dict()
@@ -724,3 +727,153 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result)
+
+
+# tcp/ucp策略操作
+class ServiceTcpDomainView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_config')
+    # 添加
+    def post(self, request, *args, **kwargs):
+        try:
+            container_port = request.data.get("container_port", None)
+            group_name = request.data.get("group_name", None)
+            service_id = request.data.get("service_id", None)
+            end_point = request.data.get("end_point", None)
+            shut_down = request.data.get("shut_down", False)
+            protocol = request.data.get("protocol", None)
+            rule_extensions = request.data.get("rule_extensions", None)
+
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
+            if not container_port or not group_name or not service_id or not end_point:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            service = service_repo.get_service_by_service_id(service_id)
+            if not service:
+                return Response(general_message(400, "not service", "服务不存在"), status=400)
+
+            # 判断策略是否存在
+            service_tcpdomain = tcp_domain.get_tcpdomain_by_name_and_port(service.service_id, container_port, end_point)
+            if service_tcpdomain:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result)
+
+            if shut_down:
+                # 关闭对外端口并重启（开启事物）
+                with transaction.atomic():
+                    # 开启保存点
+                    save_id = transaction.savepoint()
+                    try:
+                        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                        # 开启对外端口
+                        code, msg, data = port_service.manage_port(self.tenant, service,
+                                                                   int(tenant_service_port.container_port), "close_outer",
+                                                                   tenant_service_port.protocol,
+                                                                   tenant_service_port.port_alias)
+                        if code != 200:
+                            return Response(general_message(code, "change port fail", msg), status=code)
+                        # 重启
+                        code, msg, event = app_manage_service.restart(self.tenant, service, self.user)
+                        if code != 200:
+                            return Response(general_message(code, "restart app error", msg), status=code)
+                    except Exception:
+                        # 回滚
+                        transaction.savepoint_rollback(save_id)
+                        raise
+                    # 提交事物
+                    transaction.savepoint_commit(save_id)
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            if tenant_service_port.is_outer_service:
+                return Response(general_message(200, "not outer port", "没有关闭对外窗口", bean={"is_close_outer": False}),
+                                status=200)
+
+            # 添加tcp策略
+            code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port, protocol, group_name, rule_extensions)
+
+            if code != 200:
+                return Response(general_message(code, "bind domain error", msg), status=code)
+
+            result = general_message(200, "success", "tcp策略添加成功", bean=data)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    # 修改
+    def put(self, request, *args, **kwargs):
+
+        try:
+            container_port = request.data.get("container_port", None)
+            group_name = request.data.get("group_name", None)
+            service_id = request.data.get("service_id", None)
+            end_point = request.data.get("end_point", None)
+            protocol = request.data.get("protocol", None)
+            tcp_rule_id = request.data.get("tcp_rule_id", None)
+            rule_extensions = request.data.get("rule_extensions", None)
+
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
+            # 判断参数
+            if not tcp_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            service = service_repo.get_service_by_service_id(service_id)
+            if not service:
+                return Response(general_message(400, "not service", "服务不存在"), status=400)
+
+            # 修改策略
+            code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
+                                                     group_name, rule_extensions, tcp_rule_id, protocol)
+
+            if code != 200:
+                return Response(general_message(code, "bind domain error", msg), status=code)
+
+            result = general_message(200, "success", "策略修改成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    # 删除
+    def delete(self, request, *args, **kwargs):
+
+        try:
+            tcp_rule_id = request.data.get("tcp_rule_id", None)
+            service_id = request.data.get("service_id", None)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
+                                                                            tenant_name=self.tenant.tenant_name)
+            # 判断权限
+            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
+
+            if not tcp_rule_id:
+                return Response(general_message(400, "params error", "参数错误"), status=400)
+
+            service = service_repo.get_service_by_service_id(service_id)
+            if not service:
+                return Response(general_message(400, "not service", "服务不存在"), status=400)
+
+            code, msg = domain_service.unbind_tcpdomain(self.tenant, service, tcp_rule_id)
+            if code != 200:
+                return Response(general_message(code, "delete domain error", msg), status=code)
+            result = general_message(200, "success", "策略删除成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+

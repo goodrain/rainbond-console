@@ -393,6 +393,19 @@ class ServiceTcpDomainRepository(object):
                                      container_port=container_port, protocol=protocol, tcp_rule_id=tcp_rule_id,
                                      group_name=group_name)
 
+    def get_tcpdomain_by_name_and_port(self, service_id, container_port, end_point):
+        try:
+            return ServiceTcpDomain.objects.get(service_id=service_id,
+                                             container_port=container_port, end_point=end_point)
+        except ServiceTcpDomain.DoesNotExist:
+            return None
+
+    def add_service_tcpdomain(self, **domain_info):
+        return ServiceTcpDomain.objects.create(**domain_info)
+
+    def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
+        return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id)
+
 
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()
