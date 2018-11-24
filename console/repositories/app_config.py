@@ -262,6 +262,15 @@ class ServiceDomainRepository(object):
     def get_tenant_certificate(self, tenant_id):
         return ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
 
+    def get_tenant_certificate_page(self, tenant_id,start,end):
+        """提供指定位置和数量的数据"""
+        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
+        nums = cert.count() #证书数量
+        if end > nums:
+            end =nums
+        part_cert = cert[start:end]
+        return part_cert,nums
+
     def get_certificate_by_alias(self, tenant_id, alias):
         sdc = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id, alias=alias)
         if sdc:

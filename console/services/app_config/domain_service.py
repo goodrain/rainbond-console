@@ -19,8 +19,11 @@ region_api = RegionInvokeApi()
 class DomainService(object):
     HTTP = "http"
 
-    def get_certificate(self, tenant):
-        certificate = domain_repo.get_tenant_certificate(tenant.tenant_id)
+    def get_certificate(self, tenant,page,page_size):
+        end = page_size * page - 1 #一页数据的开始索引
+        start = end - page_size + 1 #一页数据的结束索引
+        certificate , nums= domain_repo.get_tenant_certificate_page(tenant.tenant_id,start,end)
+        page_num = nums / page_size + 1 #页数
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)
@@ -29,7 +32,7 @@ class DomainService(object):
             data["id"] = c.ID
             data["certificate_info"] = analyze_cert(cert)
             c_list.append(data)
-        return c_list
+        return c_list,page_num
 
     def __check_certificate_alias(self, tenant, alias):
         r = re.compile("^[A-Za-z0-9]+$")
@@ -72,7 +75,7 @@ class DomainService(object):
         else:
             return 404, u"证书不存在"
 
-    def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key):
+    def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key,certificate_type):
         if not cert_is_effective(certificate):
             return 400, u'证书无效'
         certif = domain_repo.get_certificate_by_pk(certificate_id)
@@ -83,6 +86,8 @@ class DomainService(object):
             certif.alias = new_alias
         if certif:
             certif.certificate = base64.b64encode(certificate)
+        if certif.certificate_type != certificate_type:
+            certif.certificate_type = certificate_type
         if private_key:
             certif.private_key = private_key
         certif.save()

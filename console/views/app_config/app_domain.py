@@ -38,9 +38,12 @@ class TenantCertificateView(RegionTenantHeaderView):
               paramType: path
 
         """
+        page = int(request.data.get("page_num",1))
+        page_size = int(request.data.get("page_size",10))
         try:
-            certificates = domain_service.get_certificate(self.tenant)
-            result = general_message(200, "success", "查询成功", list=certificates)
+            certificates,nums = domain_service.get_certificate(self.tenant,page,page_size)
+            bean = {"nums":nums}
+            result = general_message(200, "success", "查询成功", list=certificates,bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
