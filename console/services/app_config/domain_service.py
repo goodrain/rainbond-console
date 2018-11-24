@@ -23,7 +23,6 @@ class DomainService(object):
         end = page_size * page - 1 #一页数据的开始索引
         start = end - page_size + 1 #一页数据的结束索引
         certificate , nums= domain_repo.get_tenant_certificate_page(tenant.tenant_id,start,end)
-        page_num = nums / page_size + 1 #页数
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)
