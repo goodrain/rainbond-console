@@ -196,6 +196,7 @@ class DomainService(object):
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
+        domain_info["tenant_id"] = service.tenant_id
 
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
@@ -237,9 +238,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if not service_domain:
-            return 400, u"策略不存在"
+        service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
         service_domain.service_id = service.service_id
         service_domain.service_name = service.service_alias
         service_domain.service_alias = service.service_cname
@@ -252,6 +251,7 @@ class DomainService(object):
         service_domain.domain_cookie = domain_cookie if domain_cookie else None
         service_domain.domain_heander = domain_heander if domain_heander else None
         service_domain.the_weight = the_weight
+        service_domain.tenant_id = service.tenant_id
         if protocol:
             service_domain.protocol = protocol
         else:
@@ -263,7 +263,7 @@ class DomainService(object):
         service_domain.save()
         return 200, u"success"
 
-    def unbind_domain(self, tenant, service, container_port, domain_name):
+    def unbind_domain(self, tenant, service, container_port, domain_name, http_rule_id):
         servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
         if not servicerDomain:
             return 404, u"域名不存在"
@@ -273,6 +273,7 @@ class DomainService(object):
         data["pool_name"] = tenant.tenant_name + "@" + service.service_alias + ".Pool"
         data["container_port"] = int(container_port)
         data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = http_rule_id
         try:
             region_api.unbindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
