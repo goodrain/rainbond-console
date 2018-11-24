@@ -31,7 +31,7 @@ class DomainService(object):
             data["id"] = c.ID
             data["certificate_info"] = analyze_cert(cert)
             c_list.append(data)
-        return c_list,page_num
+        return c_list,nums
 
     def __check_certificate_alias(self, tenant, alias):
         r = re.compile("^[A-Za-z0-9]+$")
