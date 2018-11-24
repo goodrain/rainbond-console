@@ -1,6 +1,7 @@
 #_*_ encoding:utf8 _*_
 from OpenSSL import crypto
-
+import time,datetime
+from dateutil import tz
 def analyze_cert(content):
     data = {}
     # path表示证书路径，file_name表示证书文件名
@@ -15,7 +16,7 @@ def analyze_cert(content):
 
     end_data = cert.get_notAfter()#过期时间
     issuer = cert.get_issuer()#颁发者analyze_cert
-    commonname = issuer.commonName#域名
+
     # 得到证书颁发机构
     issued_by = issuer.CN     #颁发机构
     data["issued_to"] = issued_to
@@ -44,6 +45,4 @@ def cert_is_effective(content):
 
 
     return True
-
-
 
