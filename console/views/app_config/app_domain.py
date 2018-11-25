@@ -168,8 +168,9 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             new_alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
+            certificate_type = request.data.get("certificate_type", None)
             code, msg = domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate,
-                                                          private_key)
+                                                          private_key,certificate_type)
             if code != 200:
                 return Response(general_message(code, "update certificate error", msg), status=code)
 
