@@ -15,7 +15,7 @@ def analyze_cert(content):
     issued_to = subject.CN
 
     end_data = cert.get_notAfter()#过期时间
-    issuer = cert.get_issuer()#颁发者analyze_cert
+    issuer = cert.get_issuer()#颁发者
 
     # 得到证书颁发机构
     issued_by = issuer.CN     #颁发机构
@@ -28,8 +28,7 @@ def analyze_cert(content):
     else:
         cert_source = "第三方签发"
     data["issued_by"] = cert_source
-    s=utc2local(end_data)
-    data["end_data"] = str(s)
+    data["end_data"] = utc2local(end_data)
 
 
     return data
@@ -58,4 +57,4 @@ def utc2local(utc_st):
     offset = local_time - utc_time
     local_st = utc_st + offset
     print local_st
-    return local_st
+    return str(local_st)
