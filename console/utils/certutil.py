@@ -28,7 +28,7 @@ def analyze_cert(content):
     else:
         cert_source = "第三方签发"
     data["issued_by"] = cert_source
-    data["end_data"] = end_data
+    data["end_data"] = utc2local(end_data)
 
 
     return data
@@ -46,3 +46,14 @@ def cert_is_effective(content):
 
     return True
 
+
+def utc2local(utc_st):
+    '''UTC时间转本地时间（+8:00）'''
+    utc_format = "%Y%m%d%H%M%SZ"
+    utc_st = datetime.datetime.strptime(utc_st, utc_format)
+    now_stamp = time.time()
+    local_time = datetime.datetime.fromtimestamp(now_stamp)
+    utc_time = datetime.datetime.utcfromtimestamp(now_stamp)
+    offset = local_time - utc_time
+    local_st = utc_st + offset
+    return local_st
