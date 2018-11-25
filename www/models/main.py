@@ -1519,7 +1519,7 @@ class ServiceTcpDomain(BaseModel):
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
     protocol = models.CharField(
-        max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
+        max_length=15, default='', blank=True, help_text=u"服务协议：tcp,udp")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")

@@ -58,6 +58,8 @@ CREATE TABLE `service_tcp_domain` (
 
 ALTER TABLE service_tcp_domain ADD COLUMN `tcp_rule_id` varchar(128) DEFAULT '' NULL;
 ALTER TABLE service_tcp_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
+ALTER TABLE service_tcp_domain ADD COLUMN `type` integer DEFAULT 0;
+
 
 
 
