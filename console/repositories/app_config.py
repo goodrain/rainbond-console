@@ -270,7 +270,7 @@ class ServiceDomainRepository(object):
         #     end =nums - 1
         # if start <= nums - 1:
 
-        part_cert = cert[start:end]
+        part_cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)[start:end+1]
         return part_cert,nums
 
     def get_certificate_by_alias(self, tenant_id, alias):

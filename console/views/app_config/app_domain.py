@@ -41,8 +41,8 @@ class TenantCertificateView(RegionTenantHeaderView):
               paramType: path
 
         """
-        page = int(request.data.get("page_num",1))
-        page_size = int(request.data.get("page_size",10))
+        page = int(request.GET.get("page_num",1))
+        page_size = int(request.GET.get("page_size",10))
         try:
             certificates,nums = domain_service.get_certificate(self.tenant,page,page_size)
             bean = {"nums":nums}

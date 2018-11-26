@@ -50,7 +50,7 @@ class DomainService(object):
         if cert_is_effective(certificate):
             certificate = base64.b64encode(certificate)
             certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
-            return 200, "success", base64.b64decode(certificate)
+            return 200, "success", certificate
         return 400, u'证书无效',certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
