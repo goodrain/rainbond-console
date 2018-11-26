@@ -161,7 +161,7 @@ class DomainService(object):
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
         data["weight"] = the_weight
-        if len(rule_extensions) > 0:
+        if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
         # 证书信息

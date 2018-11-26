@@ -330,7 +330,7 @@ class ServiceDomainView(AppBaseView):
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                         # 开启对外端口
-                        code, msg, data = port_service.manage_port(self.tenant, service, int(tenant_service_port.container_port), "open_outer",
+                        code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "open_outer",
                                                                    tenant_service_port.protocol, tenant_service_port.port_alias)
                         if code != 200:
 
@@ -347,7 +347,7 @@ class ServiceDomainView(AppBaseView):
                     transaction.savepoint_commit(save_id)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if not tenant_service_port.is_outer_service:
-                return Response(general_message(200, "not outer port", "没有开启对外窗口", bean={"is_outer_service": False}), status=200)
+                return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
             # 绑定端口(添加策略)
             code, msg, data = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
