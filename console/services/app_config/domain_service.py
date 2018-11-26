@@ -212,7 +212,7 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         region = region_repo.get_region_by_region_name(service.service_region)
-
+        # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_name) + "." + str(tenant.tenant_name) + "." + str(
             region.region_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
@@ -288,8 +288,8 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         region = region_repo.get_region_by_region_name(service.service_region)
-
-        if domain_name != str(container_port) + "." + str(service.service_name) + "." + str(
+        # 判断类型（默认or自定义）
+        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
                 tenant.tenant_name) + "." + str(
                 region.region_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
