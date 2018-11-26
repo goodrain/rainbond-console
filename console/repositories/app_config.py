@@ -264,11 +264,11 @@ class ServiceDomainRepository(object):
 
     def get_tenant_certificate_page(self, tenant_id,start,end):
         """提供指定位置和数量的数据"""
-        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)[start:end]
+        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
         nums = cert.count() #证书数量
         if end > nums - 1:
             end =nums - 1
-        if start < nums - 1:
+        if start > nums - 1:
 
             part_cert = cert[start:end]
         return part_cert,nums
