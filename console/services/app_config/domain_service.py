@@ -82,7 +82,7 @@ class DomainService(object):
         else:
             return 404, u"证书不存在"
 
-    def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key,certificate_type,certificate_source):
+    def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key,certificate_type):
         if not cert_is_effective(certificate):
             return 400, u'证书无效'
         certif = domain_repo.get_certificate_by_pk(certificate_id)
@@ -95,8 +95,6 @@ class DomainService(object):
             certif.certificate = base64.b64encode(certificate)
         if certif.certificate_type != certificate_type:
             certif.certificate_type = certificate_type
-        if certif.certificate_source != certificate_source:
-            certif.certificate_source = certificate_source
         if private_key:
             certif.private_key = private_key
         certif.save()
