@@ -29,6 +29,7 @@ class DomainService(object):
             data = dict()
             data["alias"] = c.alias
             data["id"] = c.ID
+            data["certificate_type"] = c.certificate_type
             data["certificate_info"] = analyze_cert(cert)
             c_list.append(data)
         return c_list,nums
