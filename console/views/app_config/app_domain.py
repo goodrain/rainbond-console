@@ -855,6 +855,7 @@ class ServiceTcpDomainView(AppBaseView):
             end_point = request.data.get("end_point", None)
             tcp_rule_id = request.data.get("tcp_rule_id", None)
             rule_extensions = request.data.get("rule_extensions", None)
+            type = request.data.get("type", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -879,7 +880,7 @@ class ServiceTcpDomainView(AppBaseView):
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                     group_name, rule_extensions, tcp_rule_id, protocol)
+                                                     group_name, rule_extensions, tcp_rule_id, protocol, type)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
