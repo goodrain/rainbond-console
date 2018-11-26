@@ -267,7 +267,7 @@ class ServiceDomainRepository(object):
         cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)[start:end]
         nums = cert.count() #证书数量
         if end > nums:
-            end =nums
+            end =nums - 1
         part_cert = cert[start:end]
         return part_cert,nums
 
