@@ -647,14 +647,14 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
                             tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
 
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
                             tenant.tenant_id, start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -680,6 +680,7 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["service_alias"] = tenant_tuple[7]
                 domain_dict["container_port"] = tenant_tuple[8]
                 domain_dict["http_rule_id"] = tenant_tuple[9]
+                domain_dict["service_id"] = tenant_tuple[10]
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
@@ -902,7 +903,7 @@ class ServiceTcpDomainView(AppBaseView):
 
         try:
             tcp_rule_id = request.data.get("tcp_rule_id", None)
-            service_alias = request.data.get("service_alias", None)
+            service_id = request.data.get("service_id", None)
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
             # 判断权限
@@ -912,7 +913,7 @@ class ServiceTcpDomainView(AppBaseView):
             if not tcp_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
-            service = service_repo.get_service_by_service_alias(service_alias)
+            service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
