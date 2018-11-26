@@ -352,7 +352,7 @@ class DomainService(object):
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success", domain_info
 
-    def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name, rule_extensions, tcp_rule_id, protocol):
+    def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name, rule_extensions, tcp_rule_id, protocol, type):
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
@@ -370,16 +370,22 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
+        # 先删除再添加
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
-        service_tcp_domain.service_id = service.service_id
-        service_tcp_domain.service_name = service.service_alias
-        service_tcp_domain.service_alias = service.service_cname
-        service_tcp_domain.end_point = end_point
-        service_tcp_domain.container_port = int(container_port)
-        service_tcp_domain.group_name = group_name
-        service_tcp_domain.tenant_id = tenant.tenant_id
-        service_tcp_domain.protocol = protocol
-        service_tcp_domain.save()
+        service_tcp_domain.delete()
+        domain_info = dict()
+        domain_info["tcp_rule_id"] = tcp_rule_id
+        domain_info["service_id"] = service.service_id
+        domain_info["service_name"] = service.service_alias
+        domain_info["service_alias"] = service.service_cname
+        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["container_port"] = int(container_port)
+        domain_info["group_name"] = group_name
+        domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["protocol"] = protocol
+        domain_info["end_point"] = end_point
+        domain_info["type"] = type
+        tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
 
     def unbind_tcpdomain(self, tenant, service, tcp_rule_id):
@@ -396,4 +402,3 @@ class DomainService(object):
                 raise e
         service_tcp_domain.delete()
         return 200, u"success"
-
