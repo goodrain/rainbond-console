@@ -261,7 +261,8 @@ class AppPortService(object):
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name)
+                tenant_id = tenant.tenant_id
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id)
         else:
             service_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id(service.service_id)
             if service_tcp_domain:
@@ -279,9 +280,10 @@ class AppPortService(object):
                 group_name = group_obj.group_name
                 service_alias = service.service_cname
                 tcp_rule_id = make_uuid(end_point)
+                tenant_id = tenant.tenant_id
                 tcp_domain.create_service_tcp_domains(self, service_id, service_name, end_point, create_time,
                                                       container_port,
-                                                      protocol, service_alias, group_name, tcp_rule_id)
+                                                      protocol, service_alias, group_name, tcp_rule_id, tenant_id)
 
         return 200, "success"
 
