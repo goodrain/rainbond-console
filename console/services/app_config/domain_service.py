@@ -205,9 +205,11 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
-        servicer_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if servicer_domain:
-            servicer_domain.delete()
+        # 先删除原有domain,再保存
+        servicer_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+        if servicer_domains:
+            for service_domain in servicer_domains:
+                service_domain.delete()
         domain_repo.add_service_domain(**domain_info)
         if certificate_info:
             domain_info.update({"certificate_name": certificate_info.alias})
@@ -231,7 +233,7 @@ class DomainService(object):
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
         data["weight"] = the_weight
-        if len(rule_extensions) > 0:
+        if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
         # 证书信息
@@ -307,7 +309,7 @@ class DomainService(object):
         data["ip"] = ip
         data["port"] = port
         data["tcp_rule_id"] = tcp_rule_id
-        if len(rule_extensions) > 0:
+        if rule_extensions:
             data["rule_extensions"] = rule_extensions
         try:
             # 给数据中心传送数据添加策略
@@ -340,7 +342,7 @@ class DomainService(object):
         data["ip"] = ip
         data["port"] = port
         data["tcp_rule_id"] = tcp_rule_id
-        if len(rule_extensions) > 0:
+        if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
         try:
