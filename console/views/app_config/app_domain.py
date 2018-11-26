@@ -21,6 +21,7 @@ from www.utils.crypt import make_uuid
 from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
 from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_repo import region_repo
 
 
 logger = logging.getLogger("default")
@@ -742,6 +743,25 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
 # tcp/ucp策略操作
 class ServiceTcpDomainView(AppBaseView):
+
+    @never_cache
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        # 获取单个tcp/udp策略信息
+        try:
+            tcp_rule_id = request.GET.get("tcp_rule_id", None)
+            # 判断参数
+            if not tcp_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
+            result = general_message(200, "success", "查询成功", bean=tcpdomain.to_dict())
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
     @never_cache
     @perm_required('manage_service_config')
     # 添加
@@ -784,7 +804,7 @@ class ServiceTcpDomainView(AppBaseView):
                     save_id = transaction.savepoint()
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 开启对外端口
+                        # 关闭对外端口
                         code, msg, data = port_service.manage_port(self.tenant, service,
                                                                    int(tenant_service_port.container_port), "close_outer",
                                                                    tenant_service_port.protocol,
@@ -907,8 +927,14 @@ class GetPortView(RegionTenantHeaderView):
         try:
             code, data = region_api.get_port(self.response_region, self.tenant.tenant_name)
             if code != 200:
-                pass
-            result = general_message(200, "success", "可用端口查询成功", bean=data)
+                result = general_message(400, "call region error", "请求数据中心异常")
+                return Response(result, status=400)
+            bean = dict()
+            bean["port"] = data["bean"]
+            region = region_repo.get_region_by_region_name(self.response_region)
+            ip = region.tcpdomain
+            bean["ip"] = ip
+            result = general_message(200, "success", "可用端口查询成功", bean=bean)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

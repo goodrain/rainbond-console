@@ -269,7 +269,7 @@ class AppPortService(object):
                 pass
             else:
                 # ip+port
-                end_point = region.domain + ":" + deal_port.lb_mapping_port
+                end_point = region.tcpdomain + ":" + deal_port.lb_mapping_port
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 group_obj = group_repo.get_group_by_id(gsr.group_id)
                 service_id = service.service_id
