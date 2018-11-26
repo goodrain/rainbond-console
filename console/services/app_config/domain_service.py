@@ -137,6 +137,7 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, rule_extensions, the_weight):
+        # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
@@ -161,7 +162,7 @@ class DomainService(object):
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
         data["weight"] = the_weight
-        if len(rule_extensions) > 0:
+        if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
         # 证书信息
@@ -204,8 +205,12 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
-
+        servicer_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+        if servicer_domain:
+            servicer_domain.delete()
         domain_repo.add_service_domain(**domain_info)
+        if certificate_info:
+            domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
     def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
@@ -274,6 +279,7 @@ class DomainService(object):
 
     def unbind_domain(self, tenant, service, container_port, domain_name, http_rule_id):
         servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+
         if not servicerDomain:
             return 404, u"域名不存在"
         data = {}
