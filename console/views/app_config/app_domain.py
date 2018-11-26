@@ -20,8 +20,11 @@ from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
 from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
+from www.apiclient.regionapi import RegionInvokeApi
+
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class TenantCertificateView(RegionTenantHeaderView):
@@ -168,9 +171,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             new_alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
-            certificate_type = request.data.get("certificate_type", None)
             code, msg = domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate,
-                                                          private_key,certificate_type)
+                                                          private_key)
             if code != 200:
                 return Response(general_message(code, "update certificate error", msg), status=code)
 
@@ -742,8 +744,8 @@ class ServiceTcpDomainView(AppBaseView):
             service_id = request.data.get("service_id", None)
             end_point = request.data.get("end_point", None)
             shut_down = request.data.get("shut_down", False)
-            protocol = request.data.get("protocol", None)
             rule_extensions = request.data.get("rule_extensions", None)
+            default_port = request.data.get("default_port", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -753,6 +755,9 @@ class ServiceTcpDomainView(AppBaseView):
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            if int(end_point.split(":")[1]) <= 20000:
+                return Response(general_message(400, "Incorrect port range", "端口范围不正确"), status=400)
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
@@ -792,9 +797,14 @@ class ServiceTcpDomainView(AppBaseView):
             if tenant_service_port.is_outer_service:
                 return Response(general_message(200, "not outer port", "没有关闭对外窗口", bean={"is_close_outer": False}),
                                 status=200)
-
+            # 查询端口协议
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            if tenant_service_port:
+                protocol = tenant_service_port.protocol
+            else:
+                protocol = ''
             # 添加tcp策略
-            code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port, protocol, group_name, rule_extensions)
+            code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port, protocol, group_name, rule_extensions, default_port)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -815,7 +825,6 @@ class ServiceTcpDomainView(AppBaseView):
             group_name = request.data.get("group_name", None)
             service_id = request.data.get("service_id", None)
             end_point = request.data.get("end_point", None)
-            protocol = request.data.get("protocol", None)
             tcp_rule_id = request.data.get("tcp_rule_id", None)
             rule_extensions = request.data.get("rule_extensions", None)
 
@@ -832,6 +841,13 @@ class ServiceTcpDomainView(AppBaseView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
+
+            # 查询端口协议
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            if tenant_service_port:
+                protocol = tenant_service_port.protocol
+            else:
+                protocol = ''
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
@@ -875,6 +891,43 @@ class ServiceTcpDomainView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# 给数据中心发请求获取可用端口
+class GetPortView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        try:
+            code, data = region_api.get_port(self.response_region, self.tenant.tenant_name)
+            if code != 200:
+                pass
+            result = general_message(200, "success", "可用端口查询成功", bean=data)
+            return Response(result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
+# 查看高级路由信息
+class GetSeniorUrlView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        try:
+            http_rule_id = request.GET.get("http_rule_id", None)
+            # 判断参数
+            if not http_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+            service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+            result = general_message(200, "success", "查询成功", bean=service_domain.to_dict())
+            return Response(result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
+
+
+
 
 
 

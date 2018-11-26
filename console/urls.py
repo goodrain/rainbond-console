@@ -9,7 +9,7 @@ from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamF
 
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
-    DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView
+    DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
@@ -320,8 +320,12 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view()),
     # 查询策略（含模糊搜索）
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/query$', DomainQueryView.as_view()),
+    # 查看高级路由信息
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_senior_url$', GetSeniorUrlView.as_view()),
     # 查询tcp/udp策略（含模糊搜索）
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain/query$', ServiceTcpDomainQueryView.as_view()),
+    # 获取可用的port
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_port$', GetPortView.as_view()),
     # tcp/udp策略操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
 
