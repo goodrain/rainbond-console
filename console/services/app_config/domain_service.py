@@ -204,8 +204,9 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
-
         domain_repo.add_service_domain(**domain_info)
+        if certificate_info:
+            domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
     def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
