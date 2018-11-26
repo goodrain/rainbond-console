@@ -902,7 +902,7 @@ class ServiceTcpDomainView(AppBaseView):
 
         try:
             tcp_rule_id = request.data.get("tcp_rule_id", None)
-            service_id = request.data.get("service_id", None)
+            service_alias = request.data.get("service_alias", None)
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
             # 判断权限
@@ -912,7 +912,7 @@ class ServiceTcpDomainView(AppBaseView):
             if not tcp_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
+            service = service_repo.get_service_by_service_alias(service_alias)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 

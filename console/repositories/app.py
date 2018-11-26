@@ -60,7 +60,7 @@ class TenantServiceInfoRepository(object):
             return services
         return 0
 
-    def get_service_by_service_alias(self,service_alias):
+    def get_service_by_service_alias(self, service_alias):
         services = TenantServiceInfo.objects.filter(service_alias=service_alias)
         if services:
             return services[0]

@@ -891,7 +891,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "v2/port/avail-port"
 
         self._set_headers(token)
-        res, body = self._delete(
+        res, body = self._get(
             url, self.default_headers, region=region)
         return body
 
