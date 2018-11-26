@@ -637,8 +637,9 @@ class DomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             total = domain_repo.get_all_domain_count_by_tenant(tenant.tenant_id)
-            start = (page - 1) * 10
-            remaining_num = total - (page - 1) * 10
+
+            start = (page - 1) * page_size
+            remaining_num = total - (page - 1) * page_size
             end = page_size
             if remaining_num < page_size:
                 end = remaining_num
@@ -651,10 +652,12 @@ class DomainQueryView(RegionTenantHeaderView):
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
+
                     cursor.execute(
                         "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
                             tenant.tenant_id, start, end))
                     tenant_tuples = cursor.fetchall()
+
             except Exception as e:
                 logger.exception(e)
                 result = general_message(405, "faild", "查询数据库失败")
@@ -696,8 +699,8 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             total = tcp_domain.get_all_domain_count_by_tenant(tenant.tenant_id)
-            start = (page - 1) * 10
-            remaining_num = total - (page - 1) * 10
+            start = (page - 1) * page_size
+            remaining_num = total - (page - 1) * page_size
             end = page_size
             if remaining_num < page_size:
                 end = remaining_num
