@@ -1,7 +1,7 @@
 #_*_ encoding:utf8 _*_
 from OpenSSL import crypto
 import time,datetime
-from dateutil import tz
+import os
 def analyze_cert(content):
     data = {}
     # path表示证书路径，file_name表示证书文件名
@@ -58,3 +58,10 @@ def utc2local(utc_st):
     local_st = utc_st + offset
     print local_st
     return str(local_st)
+
+
+def creat_letsencrypt_ssl():
+    return os.system("$HOME/.acme.sh/acme.sh")
+if __name__=="__main__":
+    c=creat_letsencrypt_ssl()
+    print c

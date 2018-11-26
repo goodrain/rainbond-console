@@ -70,7 +70,7 @@ class DomainService(object):
         data["certificate_type"] = certificate.certificate_type
         data["id"] = certificate.ID
         data["tenant_id"] = certificate.tenant_id
-        data["certificate"] = certificate.certificate
+        data["certificate"] = base64.b64decode(certificate.certificate)
         data["private_key"] = certificate.private_key
         return 200, u"success", data
 
