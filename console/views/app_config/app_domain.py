@@ -639,7 +639,7 @@ class DomainQueryView(RegionTenantHeaderView):
             total = domain_repo.get_all_domain_count_by_tenant(tenant.tenant_id)
             start = (page - 1) * 10
             remaining_num = total - (page - 1) * 10
-            end = 10
+            end = page_size
             if remaining_num < page_size:
                 end = remaining_num
             try:
@@ -698,7 +698,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             total = tcp_domain.get_all_domain_count_by_tenant(tenant.tenant_id)
             start = (page - 1) * 10
             remaining_num = total - (page - 1) * 10
-            end = 10
+            end = page_size
             if remaining_num < page_size:
                 end = remaining_num
             try:
