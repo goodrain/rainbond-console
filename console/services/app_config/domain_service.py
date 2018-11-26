@@ -20,8 +20,8 @@ class DomainService(object):
     HTTP = "http"
 
     def get_certificate(self, tenant,page,page_size):
-        end = page_size * page - 1 #一页数据的结束索引
-        start = end - page_size + 1 #一页数据的开始索引
+        end = page_size * page - 1 #一页数据的开始索引
+        start = end - page_size + 1 #一页数据的结束索引
         certificate , nums= domain_repo.get_tenant_certificate_page(tenant.tenant_id,start,end)
         c_list = []
         for c in certificate:
@@ -29,8 +29,7 @@ class DomainService(object):
             data = dict()
             data["alias"] = c.alias
             data["id"] = c.ID
-            data["certificate_type"] = c.certificate_type
-            data.update(analyze_cert(cert))
+            data["certificate_info"] = analyze_cert(cert)
             c_list.append(data)
         return c_list,nums
 
@@ -49,7 +48,7 @@ class DomainService(object):
         if cert_is_effective(certificate):
             certificate = base64.b64encode(certificate)
             certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
-            return 200, "success", certificate
+            return 200, "success", base64.b64decode(certificate)
         return 400, u'证书无效',certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
@@ -175,7 +174,7 @@ class DomainService(object):
             data["certificate_id"] = certificate_info.certificate_id
         try:
             # 给数据中心传送数据绑定域名
-            region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+            region_api.bindDomain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
@@ -258,6 +257,8 @@ class DomainService(object):
         service_domain.domain_heander = domain_heander if domain_heander else None
         service_domain.the_weight = the_weight
         service_domain.tenant_id = tenant.tenant_id
+        if domain_name:
+            service_domain.type = 1
         if protocol:
             service_domain.protocol = protocol
         else:
@@ -288,10 +289,10 @@ class DomainService(object):
         servicerDomain.delete()
         return 200, u"success"
 
-    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name, rule_extensions):
+    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name, rule_extensions, default_port):
         tcp_rule_id = make_uuid(group_name)
         ip = end_point.split(":")[0]
-        port = end_point.split(":")[0]
+        port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = str(container_port)
@@ -317,7 +318,8 @@ class DomainService(object):
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
-        # 差一个类型，默认还是自定义
+        if end_point.split(":")[1] != default_port:
+            domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success", domain_info
 
@@ -365,3 +367,4 @@ class DomainService(object):
                 raise e
         service_tcp_domain.delete()
         return 200, u"success"
+

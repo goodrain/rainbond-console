@@ -885,6 +885,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
+    def get_port(self, region, tenant_name):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "v2/port/avail-port"
+
+        self._set_headers(token)
+        res, body = self._delete(
+            url, self.default_headers, region=region)
+        return body
+
     def pluginServiceRelation(self, region, tenant_name, service_alias, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -1078,7 +1088,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         else:
             token = "Token {}".format(token)
         return url, token
-
 
     def get_protocols(self, region, tenant_name):
         """
@@ -1394,7 +1403,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/deployversions"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region,body=json.dumps(data))
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     def get_service_deploy_version(self, region, tenant_name, service_alias):
