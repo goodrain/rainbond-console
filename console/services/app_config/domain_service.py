@@ -211,6 +211,12 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
+        region = region_repo.get_region_by_region_name(service.service_region)
+        # 判断类型（默认or自定义）
+        if domain_name != str(container_port) + "." + str(service.service_name) + "." + str(tenant.tenant_name) + "." + str(
+            region.region_name) + "." + str(region.httpdomain):
+            domain_info["type"] = 1
+
         # 先删除原有domain,再保存
         servicer_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
         if servicer_domains:
@@ -222,7 +228,7 @@ class DomainService(object):
         return 200, u"success", domain_info
 
     def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
-                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, http_rule_id, protocol, the_weight):
+                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight):
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -232,7 +238,6 @@ class DomainService(object):
         data["tenant_id"] = tenant.tenant_id
         data["tenant_name"] = tenant.tenant_name
         data["container_port"] = int(container_port)
-        data["protocol"] = protocol
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
@@ -259,30 +264,36 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-        service_domain.service_id = service.service_id
-        service_domain.service_name = service.service_alias
-        service_domain.service_alias = service.service_cname
-        service_domain.domain_name = domain_name
-        service_domain.domain_type = domain_type
-        service_domain.container_port = int(container_port)
-        service_domain.certificate_id = certificate_info.ID if certificate_info else 0
-        service_domain.group_name = group_name
-        service_domain.domain_path = domain_path if domain_path else None
-        service_domain.domain_cookie = domain_cookie if domain_cookie else None
-        service_domain.domain_heander = domain_heander if domain_heander else None
-        service_domain.the_weight = the_weight
-        service_domain.tenant_id = tenant.tenant_id
-        if domain_name:
-            service_domain.type = 1
-        if protocol:
-            service_domain.protocol = protocol
-        else:
-            service_domain.protocol = "http"
-            if certificate_id:
-                service_domain.protocol = "https"
+        service_domain.delete()
+        domain_info = dict()
         if domain_path and domain_path != "/":
-            service_domain.is_senior = True
-        service_domain.save()
+            domain_info["is_senior"] = True
+        domain_info["protocol"] = "http"
+        domain_info["type"] = "http"
+        if certificate_id:
+            domain_info["protocol"] = "https"
+        domain_info["http_rule_id"] = http_rule_id
+        domain_info["service_id"] = service.service_id
+        domain_info["service_name"] = service.service_alias
+        domain_info["domain_name"] = domain_name
+        domain_info["domain_type"] = domain_type
+        domain_info["service_alias"] = service.service_cname
+        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["container_port"] = int(container_port)
+        domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
+        domain_info["group_name"] = group_name
+        domain_info["domain_path"] = domain_path if domain_path else None
+        domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
+        domain_info["domain_heander"] = domain_heander if domain_heander else None
+        domain_info["the_weight"] = the_weight
+        domain_info["tenant_id"] = tenant.tenant_id
+        region = region_repo.get_region_by_region_name(service.service_region)
+        # 判断类型（默认or自定义）
+        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
+                tenant.tenant_name) + "." + str(
+                region.region_name) + "." + str(region.httpdomain):
+            domain_info["type"] = 1
+        domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
     def unbind_domain(self, tenant, service, container_port, domain_name, http_rule_id):

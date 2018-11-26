@@ -21,6 +21,7 @@ from www.utils.crypt import make_uuid
 from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
 from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_repo import region_repo
 
 
 logger = logging.getLogger("default")
@@ -247,7 +248,12 @@ class ServiceDomainView(AppBaseView):
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
             domain = domain_service.get_service_domain_by_http_rule_id(http_rule_id)
-            result = general_message(200, "success", "查询成功", bean=domain.to_dict())
+            bean = domain.to_dict()
+            if domain.certificate_id:
+                certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+
+                bean.update({"certificate_name": certificate_info.alias})
+            result = general_message(200, "success", "查询成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)
@@ -415,7 +421,6 @@ class ServiceDomainView(AppBaseView):
             domain_cookie = request.data.get("domain_cookie", None)
             domain_heander = request.data.get("domain_heander", None)
             rule_extensions = request.data.get("rule_extensions", None)
-            protocol = request.data.get("protocol", None)
             http_rule_id = request.data.get("http_rule_id", None)
             the_weight = request.data.get("the_weight", 100)
 
@@ -433,11 +438,10 @@ class ServiceDomainView(AppBaseView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
-
             # 编辑域名
             code, msg = domain_service.update_domain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
-                                                   domain_cookie, domain_heander, rule_extensions, http_rule_id, protocol, the_weight)
+                                                   domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -740,6 +744,25 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
 # tcp/ucp策略操作
 class ServiceTcpDomainView(AppBaseView):
+
+    @never_cache
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        # 获取单个tcp/udp策略信息
+        try:
+            tcp_rule_id = request.GET.get("tcp_rule_id", None)
+            # 判断参数
+            if not tcp_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
+            result = general_message(200, "success", "查询成功", bean=tcpdomain.to_dict())
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
     @never_cache
     @perm_required('manage_service_config')
     # 添加
@@ -782,7 +805,7 @@ class ServiceTcpDomainView(AppBaseView):
                     save_id = transaction.savepoint()
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 开启对外端口
+                        # 关闭对外端口
                         code, msg, data = port_service.manage_port(self.tenant, service,
                                                                    int(tenant_service_port.container_port), "close_outer",
                                                                    tenant_service_port.protocol,
@@ -905,8 +928,14 @@ class GetPortView(RegionTenantHeaderView):
         try:
             code, data = region_api.get_port(self.response_region, self.tenant.tenant_name)
             if code != 200:
-                pass
-            result = general_message(200, "success", "可用端口查询成功", bean=data)
+                result = general_message(400, "call region error", "请求数据中心异常")
+                return Response(result, status=400)
+            bean = dict()
+            bean["port"] = data["bean"]
+            region = region_repo.get_region_by_region_name(self.response_region)
+            ip = region.tcpdomain
+            bean["ip"] = ip
+            result = general_message(200, "success", "可用端口查询成功", bean=bean)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
