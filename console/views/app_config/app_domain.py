@@ -246,7 +246,12 @@ class ServiceDomainView(AppBaseView):
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
             domain = domain_service.get_service_domain_by_http_rule_id(http_rule_id)
-            result = general_message(200, "success", "查询成功", bean=domain.to_dict())
+            bean = domain.to_dict()
+            if domain.certificate_id:
+                certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+
+                bean.update({"certificate_name": certificate_info.alias})
+            result = general_message(200, "success", "查询成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)
@@ -414,7 +419,6 @@ class ServiceDomainView(AppBaseView):
             domain_cookie = request.data.get("domain_cookie", None)
             domain_heander = request.data.get("domain_heander", None)
             rule_extensions = request.data.get("rule_extensions", None)
-            protocol = request.data.get("protocol", None)
             http_rule_id = request.data.get("http_rule_id", None)
             the_weight = request.data.get("the_weight", 100)
 
@@ -432,11 +436,10 @@ class ServiceDomainView(AppBaseView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
-
             # 编辑域名
             code, msg = domain_service.update_domain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
-                                                   domain_cookie, domain_heander, rule_extensions, http_rule_id, protocol, the_weight)
+                                                   domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
