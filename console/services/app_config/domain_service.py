@@ -327,7 +327,7 @@ class DomainService(object):
 
     def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name, rule_extensions, tcp_rule_id, protocol):
         ip = end_point.split(":")[0]
-        port = end_point.split(":")[0]
+        port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = str(container_port)
