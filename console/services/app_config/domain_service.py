@@ -65,8 +65,14 @@ class DomainService(object):
         certificate = domain_repo.get_certificate_by_pk(pk)
         if not certificate:
             return 404, u"证书不存在", None
-        certificate = base64.b64decode(certificate)
-        return 200, u"success", certificate
+        data = dict()
+        data["alias"] = certificate.alias
+        data["certificate_type"] = certificate.certificate_type
+        data["id"] = certificate.ID
+        data["tenant_id"] = certificate.tenant_id
+        data["certificate"] = certificate.certificate
+        data["private_key"] = certificate.private_key
+        return 200, u"success", data
 
     def delete_certificate_by_pk(self, pk):
         certificate = domain_repo.get_certificate_by_pk(pk)

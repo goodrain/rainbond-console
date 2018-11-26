@@ -207,7 +207,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "delete error", msg), status=code)
 
-            result = general_message(200, "success", "查询成功", bean=certificate.to_dict())
+            result = general_message(200, "success", "查询成功", bean=certificate)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
