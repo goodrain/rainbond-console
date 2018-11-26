@@ -240,11 +240,14 @@ class ServiceDomainView(AppBaseView):
 
         """
         try:
-            container_port = request.GET.get("container_port", None)
+            http_rule_id = request.GET.get("http_rule_id", None)
+            # 判断参数
+            if not http_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            domains = domain_service.get_port_bind_domains(self.service, int(container_port))
-            domain_list = [domain.to_dict() for domain in domains]
-            result = general_message(200, "success", "查询成功", list=domain_list)
+            domain = domain_service.get_service_domain_by_http_rule_id(http_rule_id)
+            result = general_message(200, "success", "查询成功", bean=domain.to_dict())
+
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
