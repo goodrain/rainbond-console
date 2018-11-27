@@ -303,7 +303,7 @@ class ServiceDomainView(AppBaseView):
               paramType: form
 
         """
-        try: # adadasdassda
+        try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
@@ -505,6 +505,7 @@ class ServiceDomainView(AppBaseView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
+            # 解绑域名
             code, msg = domain_service.unbind_domain(self.tenant, service, container_port, domain_name, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
@@ -650,6 +651,7 @@ class DomainQueryView(RegionTenantHeaderView):
             if remaining_num < page_size:
                 end = remaining_num
             try:
+                # 查询分页排序
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
@@ -712,6 +714,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             if remaining_num < page_size:
                 end = remaining_num
             try:
+                # 查询分页排序
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
@@ -925,7 +928,7 @@ class ServiceTcpDomainView(AppBaseView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
-
+            # 删除策略
             code, msg = domain_service.unbind_tcpdomain(self.tenant, service, tcp_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
