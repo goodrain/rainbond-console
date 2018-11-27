@@ -658,14 +658,14 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
                             tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
 
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
                             tenant.tenant_id, start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -692,6 +692,9 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["container_port"] = tenant_tuple[8]
                 domain_dict["http_rule_id"] = tenant_tuple[9]
                 domain_dict["service_id"] = tenant_tuple[10]
+                domain_dict["domain_path"] = tenant_tuple[11]
+                domain_dict["domain_cookie"] = tenant_tuple[12]
+                domain_dict["domain_heander"] = tenant_tuple[13]
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
