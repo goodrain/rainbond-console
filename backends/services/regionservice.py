@@ -406,13 +406,17 @@ class RegionService(object):
         if res["status"] >= 400:
             raise RegionAccessError("数据中心查询出错")
         app_list = body["list"]
-        for app_dict in reversed(app_list):
-            if not app_dict.get("ServiceName"):
-                app_list.remove(app_dict)
-        for app_dicts in app_list:
-            service_alias = app_dicts.get("ServiceName")
-            service = service_repo.get_service_by_service_alias(service_alias)
-            app_dicts["ServiceAlias"] = service.service_cname
+        if app_list:
+            for app_dict in reversed(app_list):
+                if not app_dict.get("ServiceName"):
+                    app_list.remove(app_dict)
+            for app_dicts in app_list:
+                service_alias = app_dicts.get("ServiceName")
+                service = service_repo.get_service_by_service_alias(service_alias)
+                if service:
+                    app_dicts["ServiceAlias"] = service.service_cname
+                else:
+                    app_dicts["ServiceAlias"] = service_alias
         return app_list
 
 
