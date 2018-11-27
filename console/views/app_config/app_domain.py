@@ -251,6 +251,9 @@ class ServiceDomainView(AppBaseView):
             domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
             if domain:
                 bean = domain.to_dict()
+                # 配合前端，更改key,value对应值
+                bean.update({"service_alias": domain.service_name})
+                bean.update({"service_cname": domain.service_alias})
 
                 if domain.certificate_id:
                     certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
