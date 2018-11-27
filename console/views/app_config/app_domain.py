@@ -22,7 +22,6 @@ from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
-from django.forms.models import model_to_dict
 
 
 logger = logging.getLogger("default")

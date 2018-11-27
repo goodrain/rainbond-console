@@ -19,7 +19,6 @@ class DeployRepo(object):
         else:
             return secret_obj[0].secret_key
 
-
     def create_deploy_relation_by_service_id(self, service_id):
         deploy_relation = DeployRelation.objects.filter(service_id=service_id)
         if not deploy_relation:

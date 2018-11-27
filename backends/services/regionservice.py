@@ -258,7 +258,7 @@ class RegionService(object):
         for region in region_list:
 
             region_tenant_num = TenantRegionInfo.objects.filter(region_name=region.region_name).count()
-            region_resource = {}
+            region_resource = dict()
             region_resource["region_id"] = region.region_id
             region_resource["region_alias"] = region.region_alias
             region_resource["region_name"] = region.region_name
@@ -298,7 +298,7 @@ class RegionService(object):
 
     def get_region_resource(self, region):
         http_client.update_client(region)
-        region_resource = {}
+        region_resource = dict()
         region_resource["disk"] = 0
         region_resource["net"] = 0
         region_resource["node_num"] = 0
@@ -375,7 +375,7 @@ class RegionService(object):
         region_config_list = []
         regions = RegionConfig.objects.filter(status='1')
         for region in regions:
-            config_map = {}
+            config_map = dict()
             config_map["region_name"] = region.region_name
             config_map["region_alias"] = region.region_alias
             config_map["url"] = region.url

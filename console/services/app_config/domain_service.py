@@ -212,6 +212,7 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
+        domain_info["rule_extensions"] = rule_extensions
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
@@ -289,6 +290,8 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
+        domain_info["rule_extensions"] = rule_extensions
+
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
@@ -349,6 +352,8 @@ class DomainService(object):
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
+        domain_info["rule_extensions"] = rule_extensions
+
         if end_point.split(":")[1] != default_port:
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
@@ -389,6 +394,8 @@ class DomainService(object):
         domain_info["end_point"] = end_point
         domain_info["type"] = type
         domain_info["g_id"] = str(g_id)
+        domain_info["rule_extensions"] = rule_extensions
+
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
 
