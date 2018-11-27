@@ -14,7 +14,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
     AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
-    PublishedGroupServiceRelation, ServiceExec, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
+    PublishedGroupServiceRelation, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
 
 from www.models.main import TenantRegionPayModel, TenantServiceEnv, ServiceProbe
 from django.conf import settings
@@ -1195,6 +1195,7 @@ class TenantUsedResource(object):
                                                                           pkg_tag, expire, memory))
         return memory
 
+
 class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
@@ -1233,52 +1234,6 @@ class TenantAccountService(object):
                 flag = 2
 
         return flag
-
-
-class TenantServiceExec(object):
-    def __init__(self, region, tenant_id, service_id, run_exec):
-        self.region = region
-        self.tenant_id = tenant_id
-        self.service_id = service_id
-        self.run_exec = run_exec
-
-        # def sendExec(self, method):
-        #     api = RegionServiceApi()
-        #     try:
-        #         res, body = api.send_service_exec(self.region, self.tenant_id, self.service_id, self.run_exec, method)
-        #     except api.CallApiError, e:
-        #         logger.error("service {0} send exec error. {1}".format(self.service_id, str(e)))
-        #         return False, None, None
-        #     return True, res, body
-
-        # def insertExec(self):
-        #     res = {"status":500}
-        #     if self.run_exec:
-        #         try:
-        #             execList = ServiceExec.objects.filter(service_id=self.service_id)
-        #         except Exception, e:
-        #             logger.error("filter sql error. {}".format(str(e)))
-        #             return False, res, None
-        #         if len(execList) == 0 :
-        #             try:
-        #                 ServiceExec.objects.create(tenant_id=self.tenant_id, service_id=self.service_id, run_exec=self.run_exec)
-        #                 jud, res, body = self.sendExec("create")
-        #             except Exception as e:
-        #                 logger.error("create table service_exec error. {}".format(str(e)))
-        #                 return False, res, None
-        #         elif len(execList) == 1:
-        #             try:
-        #                 ServiceExec.objects.filter(tenant_id=self.tenant_id, service_id=self.service_id).update(run_exec=self.run_exec)
-        #                 jud, res, body = self.sendExec("update")
-        #             except Exception as e:
-        #                 logger.error("update table service_exec error. {}".format(str(e)))
-        #                 return False, res, None
-        #         else:
-        #             return False, res, None
-        #         return True, res, body
-        #     else:
-        #         # 无需请求
-        #         return True, {"status":200}, None
 
 
 class CodeRepositoriesService(object):

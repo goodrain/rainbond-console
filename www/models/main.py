@@ -387,17 +387,6 @@ service_category = ((u"应用", 'application'), (u"缓存", 'cache'), (u"存储"
 extend_method = ((u"不伸缩", 'stateless'), (u"垂直伸缩", 'vertical'))
 
 
-class ServiceExec(BaseModel):
-    """ 容器运行命令 """
-
-    class Meta:
-        db_table = 'service_exec'
-
-    tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
-    run_exec = models.CharField(max_length=2048, null=True, help_text=u"容器运行命令")
-
-
 class ServiceInfo(BaseModel):
     """ 服务发布表格 """
 

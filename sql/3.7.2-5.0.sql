@@ -72,6 +72,7 @@ ALTER TABLE service_tcp_domain ADD COLUMN `g_id` varchar(32) DEFAULT '';
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_id` varchar(256) DEFAULT '' NOT NULL;
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_type` varchar(64) DEFAULT '' NOT NULL;
 
-
+-- 删除数据库表
+drop table service_exec
 
 
