@@ -316,7 +316,7 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             whether_open = request.data.get("whether_open", False)
             the_weight = request.data.get("the_weight", 100)
-            group_id = request.data.get("group_id", None)
+            g_id = request.data.get("group_id", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -367,7 +367,7 @@ class ServiceDomainView(AppBaseView):
             # 绑定端口(添加策略)
             code, msg, data = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
-                                                   domain_cookie, domain_heander, rule_extensions, the_weight, group_id)
+                                                   domain_cookie, domain_heander, the_weight, g_id, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -428,7 +428,7 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             http_rule_id = request.data.get("http_rule_id", None)
             the_weight = request.data.get("the_weight", 100)
-            group_id = request.data.get("group_id", None)
+            g_id = request.data.get("group_id", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -447,7 +447,7 @@ class ServiceDomainView(AppBaseView):
             # 编辑域名
             code, msg = domain_service.update_domain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
-                                                   domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight, group_id)
+                                                   domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -785,7 +785,7 @@ class ServiceTcpDomainView(AppBaseView):
             shut_down = request.data.get("shut_down", False)
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
-            group_id = request.data.get("group_id", None)
+            g_id = request.data.get("group_id", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -845,7 +845,7 @@ class ServiceTcpDomainView(AppBaseView):
                 protocol = ''
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                            protocol, group_name, rule_extensions, default_port, group_id)
+                                                            protocol, group_name, default_port, g_id, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -869,7 +869,7 @@ class ServiceTcpDomainView(AppBaseView):
             tcp_rule_id = request.data.get("tcp_rule_id", None)
             rule_extensions = request.data.get("rule_extensions", None)
             type = request.data.get("type", None)
-            group_id = request.data.get("group_id", None)
+            g_id = request.data.get("group_id", None)
 
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant.tenant_name)
@@ -894,7 +894,7 @@ class ServiceTcpDomainView(AppBaseView):
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                     group_name, rule_extensions, tcp_rule_id, protocol, type, group_id)
+                                                     group_name, tcp_rule_id, protocol, type, g_id, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)

@@ -803,7 +803,7 @@ class ServiceDomain(BaseModel):
     domain_heander = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(default=100, help_text=u"权重")
-    group_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
+    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
 
     def __unicode__(self):
         return self.domain_name
@@ -1524,6 +1524,6 @@ class ServiceTcpDomain(BaseModel):
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
-    group_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
+    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
 
 
