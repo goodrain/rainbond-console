@@ -499,8 +499,11 @@ class ServiceDomainView(AppBaseView):
             if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
-            if not container_port or not domain_name or not service_id or not http_rule_id:
+            if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
+            # 兼容老版本(老版本未传入service_id)
+            if not service_id:
+                service_id = self.service.service_id
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
