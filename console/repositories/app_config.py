@@ -365,6 +365,7 @@ class ServiceAuthRepository(object):
     def get_service_auth(self, service_id):
         return TenantServiceAuth.objects.filter(service_id=service_id)
 
+
 class ServiceAttachInfoRepository(object):
     def delete_service_attach(self, service_id):
         ServiceAttachInfo.objects.filter(service_id=service_id).delete()

@@ -246,7 +246,6 @@ class AppPortService(object):
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
         # 在domain表中保存数据
-        gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
         if deal_port.protocol == "http":
             service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             if service_domain:
