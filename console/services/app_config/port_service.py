@@ -262,7 +262,8 @@ class AppPortService(object):
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)
                 tenant_id = tenant.tenant_id
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id)
+                service_alias = service.service_cname
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias)
         else:
             service_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id(service.service_id)
             if service_tcp_domain:
