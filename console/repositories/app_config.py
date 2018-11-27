@@ -316,7 +316,7 @@ class ServiceDomainRepository(object):
         return ServiceDomain.objects.filter(service_id=service_id)
 
     def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol,
-                               http_rule_id, group_name, tenant_id, service_alias, group_id):
+                               http_rule_id, group_name, tenant_id, service_alias, g_id):
         ServiceDomain.objects.create(service_id=service_id, service_name=service_name, domain_name=domain_name,
                                      create_time=create_time,
                                      container_port=container_port, protocol=protocol, http_rule_id=http_rule_id,

@@ -888,7 +888,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_port(self, region, tenant_name):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "v2/port/avail-port"
+        url = url + "/v2/port/avail-port"
 
         self._set_headers(token)
         res, body = self._get(
