@@ -227,7 +227,11 @@ class ServiceDomainRepository(object):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
 
     def get_service_domain_by_http_rule_id(self, http_rule_id):
-        return ServiceDomain.objects.filter(http_rule_id=http_rule_id)
+        domain = ServiceDomain.objects.filter(http_rule_id=http_rule_id).first()
+        if domain:
+            return domain
+        else:
+            return None
 
     def get_domain_by_domain_name(self, domain_name):
         domains = ServiceDomain.objects.filter(domain_name=domain_name)

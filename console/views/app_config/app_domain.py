@@ -22,6 +22,7 @@ from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
+from django.forms.models import model_to_dict
 
 
 logger = logging.getLogger("default")
@@ -45,8 +46,8 @@ class TenantCertificateView(RegionTenantHeaderView):
         page = int(request.GET.get("page_num",1))
         page_size = int(request.GET.get("page_size",10))
         try:
-            certificates,nums = domain_service.get_certificate(self.tenant,page,page_size)
-            bean = {"nums":nums}
+            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
+            bean = {"nums": nums}
             result = general_message(200, "success", "查询成功", list=certificates,bean=bean)
         except Exception as e:
             logger.exception(e)
@@ -247,14 +248,17 @@ class ServiceDomainView(AppBaseView):
             if not http_rule_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            domain = domain_service.get_service_domain_by_http_rule_id(http_rule_id)
-            bean = domain.to_dict()
-            if domain.certificate_id:
-                certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+            domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+            if domain:
+                bean = domain.to_dict()
 
-                bean.update({"certificate_name": certificate_info.alias})
+                if domain.certificate_id:
+                    certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+
+                    bean.update({"certificate_name": certificate_info.alias})
+            else:
+                bean = dict()
             result = general_message(200, "success", "查询成功", bean=bean)
-
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
