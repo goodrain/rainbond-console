@@ -59,6 +59,7 @@ class GroupRepository(object):
                                                 is_default=True)
         return group
 
+
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).delete()
@@ -115,6 +116,7 @@ class GroupServiceRelationRepository(object):
 
     def update_service_relation(self,group_id, default_group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).update(group_id=default_group_id)
+
 
 class TenantServiceGroupRepository(object):
     def delete_tenant_service_group_by_pk(self, pk):

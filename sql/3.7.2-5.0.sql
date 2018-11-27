@@ -38,6 +38,7 @@ ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(128) DEFAULT '' NUL
 ALTER TABLE service_domain ADD COLUMN `type` integer DEFAULT 0;
 ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
 ALTER TABLE service_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
+ALTER TABLE service_domain ADD COLUMN `group_id` varchar(32) DEFAULT '';
 
 
 
@@ -59,6 +60,7 @@ CREATE TABLE `service_tcp_domain` (
 ALTER TABLE service_tcp_domain ADD COLUMN `tcp_rule_id` varchar(128) DEFAULT '' NULL;
 ALTER TABLE service_tcp_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
 ALTER TABLE service_tcp_domain ADD COLUMN `type` integer DEFAULT 0;
+ALTER TABLE service_tcp_domain ADD COLUMN `group_id` varchar(32) DEFAULT '';
 
 
 

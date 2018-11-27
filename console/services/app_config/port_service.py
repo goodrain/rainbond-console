@@ -246,6 +246,7 @@ class AppPortService(object):
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
         # 在domain表中保存数据
+        gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
         if deal_port.protocol == "http":
             service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             if service_domain:
@@ -263,7 +264,8 @@ class AppPortService(object):
                 http_rule_id = make_uuid(domain_name)
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias)
+                group_id = gsr.group_id
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias, group_id)
         else:
             service_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id(service.service_id)
             if service_tcp_domain:
@@ -282,9 +284,10 @@ class AppPortService(object):
                 service_alias = service.service_cname
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
+                group_id = gsr.group_id
                 tcp_domain.create_service_tcp_domains(self, service_id, service_name, end_point, create_time,
-                                                      container_port,
-                                                      protocol, service_alias, group_name, tcp_rule_id, tenant_id)
+                                                      container_port, protocol, service_alias, group_name, tcp_rule_id,
+                                                      tenant_id, group_id)
 
         return 200, "success"
 

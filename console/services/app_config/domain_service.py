@@ -142,7 +142,7 @@ class DomainService(object):
         return True if domain else False
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
-                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, the_weight):
+                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, the_weight, group_id):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
         http_rule_id = make_uuid(domain_name)
@@ -211,6 +211,7 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["group_id"] = group_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_name) + "." + str(tenant.tenant_name) + "." + str(
@@ -228,7 +229,7 @@ class DomainService(object):
         return 200, u"success", domain_info
 
     def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
-                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight):
+                    group_name, domain_path, domain_cookie, domain_heander, rule_extensions, http_rule_id, the_weight, group_id):
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -287,6 +288,7 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["group_id"] = group_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
@@ -316,7 +318,8 @@ class DomainService(object):
         servicerDomain.delete()
         return 200, u"success"
 
-    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name, rule_extensions, default_port):
+    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name, rule_extensions,
+                       default_port, group_id):
         tcp_rule_id = make_uuid(group_name)
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
@@ -345,12 +348,14 @@ class DomainService(object):
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
+        domain_info["group_id"] = group_id
         if end_point.split(":")[1] != default_port:
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success", domain_info
 
-    def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name, rule_extensions, tcp_rule_id, protocol, type):
+    def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name, rule_extensions,
+                         tcp_rule_id, protocol, type, group_id):
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
@@ -383,6 +388,7 @@ class DomainService(object):
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
         domain_info["type"] = type
+        domain_info["group_id"] = group_id
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
 
