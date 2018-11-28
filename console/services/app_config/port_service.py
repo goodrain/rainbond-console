@@ -264,7 +264,8 @@ class AppPortService(object):
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
                 g_id = str(gsr.group_id)
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias, g_id)
+                region_id = region.region_id
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias, g_id, region_id)
                 # # 给数据中心发请求添加默认域名
                 # data = {}
                 # data["domain"] = domain_name
@@ -302,9 +303,10 @@ class AppPortService(object):
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
                 g_id = str(gsr.group_id)
+                region_id = region.region_id
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
                                                       container_port, protocol, service_alias, group_name, tcp_rule_id,
-                                                      tenant_id, g_id)
+                                                      tenant_id, g_id, region_id)
 
                 # ip = end_point.split(":")[0]
                 # port = end_point.split(":")[1]

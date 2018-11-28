@@ -254,7 +254,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-
+        region = region_repo.get_region_by_region_name(service.service_region)
         if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
         if protocol:
@@ -280,6 +280,7 @@ class DomainService(object):
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
+        domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
@@ -334,6 +335,7 @@ class DomainService(object):
                 raise e
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
         service_domain.delete()
+        region = region_repo.get_region_by_region_name(service.service_region)
         domain_info = dict()
         if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
@@ -358,6 +360,7 @@ class DomainService(object):
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
+        domain_info["region_id"] = region.region_id
 
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
@@ -404,6 +407,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
+        region = region_repo.get_region_by_region_name(service.service_region)
         domain_info = dict()
         domain_info["tcp_rule_id"] = tcp_rule_id
         domain_info["service_id"] = service.service_id
@@ -417,6 +421,7 @@ class DomainService(object):
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
+        domain_info["region_id"] = region.region_id
 
         if int(end_point.split(":")[1]) != default_port:
             domain_info["type"] = 1
@@ -442,6 +447,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
+        region = region_repo.get_region_by_region_name(service.service_region)
         # 先删除再添加
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         service_tcp_domain.delete()
@@ -459,6 +465,7 @@ class DomainService(object):
         domain_info["type"] = type
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
+        domain_info["region_id"] = region.region_id
 
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
