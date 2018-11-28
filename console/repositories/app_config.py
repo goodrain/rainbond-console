@@ -322,6 +322,9 @@ class ServiceDomainRepository(object):
                                      container_port=container_port, protocol=protocol, http_rule_id=http_rule_id,
                                      group_name=group_name, tenant_id=tenant_id, service_alias=service_alias, g_id=g_id)
 
+    def delete_http_domains(self, http_rule_id):
+        ServiceDomain.objects.filter(http_rule_id=http_rule_id).delete()
+
 
 class ServiceExtendRepository(object):
     def get_extend_method_by_service(self, service):
@@ -393,6 +396,9 @@ class ServiceTcpDomainRepository(object):
 
     def get_all_domain_count_by_tenant(self, tenant_id):
         return ServiceTcpDomain.objects.filter(tenant_id=tenant_id).count()
+
+    def delete_tcp_domain(self, tcp_rule_id):
+        ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).delete()
 
     def create_service_tcp_domains(self, service_id, service_name, end_point, create_time, container_port, protocol,
                                    service_alias, group_name, tcp_rule_id, tenant_id, g_id):

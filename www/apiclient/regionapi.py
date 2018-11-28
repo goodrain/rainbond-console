@@ -815,7 +815,31 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def bindDomain(self, region, tenant_name, body):
+    def bindDomain(self, region, tenant_name, service_alias, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def unbindDomain(self, region, tenant_name, service_alias, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains/" + \
+              body["domain"]
+
+        self._set_headers(token)
+        res, body = self._delete(
+            url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def bind_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -827,7 +851,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def updateDomain(self, region, tenant_name, body):
+    def update_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -839,7 +863,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def unbindDomain(self, region, tenant_name, body):
+    def delete_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)

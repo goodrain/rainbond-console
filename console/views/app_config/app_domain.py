@@ -242,21 +242,11 @@ class ServiceDomainView(AppBaseView):
 
         """
         try:
-            http_rule_id = request.GET.get("http_rule_id", None)
-            # 判断参数
-            if not http_rule_id:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+            container_port = request.GET.get("container_port", None)
 
-            domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-            if domain:
-                bean = domain.to_dict()
-                if domain.certificate_id:
-                    certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
-
-                    bean.update({"certificate_name": certificate_info.alias})
-            else:
-                bean = dict()
-            result = general_message(200, "success", "查询成功", bean=bean)
+            domains = domain_service.get_port_bind_domains(self.service, int(container_port))
+            domain_list = [domain.to_dict() for domain in domains]
+            result = general_message(200, "success", "查询成功", list=domain_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -306,6 +296,103 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
+
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                                                   protocol, certificate_id, DomainType.WWW)
+            if code != 200:
+                return Response(general_message(code, "bind domain error", msg), status=code)
+
+            result = general_message(200, "success", "域名绑定成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def delete(self, request, *args, **kwargs):
+        """
+        服务端口解绑域名
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: container_port
+              description: 服务端口
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            container_port = request.data.get("container_port", None)
+            domain_name = request.data.get("domain_name", None)
+            if not container_port or not domain_name:
+                return Response(general_message(400, "params error", "参数错误"), status=400)
+            code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name)
+            if code != 200:
+                return Response(general_message(code, "delete domain error", msg), status=code)
+            result = general_message(200, "success", "域名解绑成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class HttpStrategyView(AppBaseView):
+    @never_cache
+    @perm_required('access control')
+    def get(self, request, *args, **kwargs):
+        """
+        获取单个http策略
+
+        """
+        try:
+            http_rule_id = request.GET.get("http_rule_id", None)
+            # 判断参数
+            if not http_rule_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+
+            domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+            if domain:
+                bean = domain.to_dict()
+                if domain.certificate_id:
+                    certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+
+                    bean.update({"certificate_name": certificate_info.alias})
+            else:
+                bean = dict()
+            result = general_message(200, "success", "查询成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('control operation')
+    def post(self, request, *args, **kwargs):
+        """
+        添加http策略
+
+        """
+        try:
+            container_port = request.data.get("container_port", None)
+            domain_name = request.data.get("domain_name", None)
+            protocol = request.data.get("protocol", None)
+            certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
             group_name = request.data.get("group_name", None)
             domain_path = request.data.get("domain_path", None)
@@ -315,12 +402,6 @@ class ServiceDomainView(AppBaseView):
             whether_open = request.data.get("whether_open", False)
             the_weight = request.data.get("the_weight", 100)
             g_id = request.data.get("group_id", None)
-
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             # 判断参数
             if not container_port or not domain_name or not service_id:
@@ -363,7 +444,7 @@ class ServiceDomainView(AppBaseView):
                 return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
             # 绑定端口(添加策略)
-            code, msg, data = domain_service.bind_domain(self.tenant, self.user, service, domain_name, container_port, protocol,
+            code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port, protocol,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, the_weight, g_id, rule_extensions)
             if code != 200:
@@ -376,43 +457,10 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('control operation')
     def put(self, request, *args, **kwargs):
         """
-        服务端口编辑域名
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: serviceAlias
-              description: 服务别名
-              required: true
-              type: string
-              paramType: path
-            - name: domain_name
-              description: 域名
-              required: true
-              type: string
-              paramType: form
-            - name: container_port
-              description: 服务端口
-              required: true
-              type: string
-              paramType: form
-            - name: protocol
-              description: 端口协议（http,https,httptohttps,httpandhttps）
-              required: true
-              type: string
-              paramType: form
-            - name: certificate_id
-              description: 证书ID
-              required: false
-              type: string
-              paramType: form
-
+        编辑http策略
         """
         try:
             container_port = request.data.get("container_port", None)
@@ -428,12 +476,6 @@ class ServiceDomainView(AppBaseView):
             the_weight = request.data.get("the_weight", 100)
             g_id = request.data.get("group_id", None)
 
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
-
             # 判断参数
             if not service_id or not group_name or not container_port or not domain_name or not http_rule_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -443,7 +485,7 @@ class ServiceDomainView(AppBaseView):
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
             # 编辑域名
-            code, msg = domain_service.update_domain(self.tenant, self.user, service, domain_name, container_port,
+            code, msg = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions)
 
@@ -457,32 +499,10 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('control operation')
     def delete(self, request, *args, **kwargs):
         """
-        服务端口解绑域名
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: serviceAlias
-              description: 服务别名
-              required: true
-              type: string
-              paramType: path
-            - name: domain_name
-              description: 域名
-              required: true
-              type: string
-              paramType: form
-            - name: container_port
-              description: 服务端口
-              required: true
-              type: string
-              paramType: form
+       删除策略
 
         """
         try:
@@ -490,12 +510,6 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             service_id = request.data.get("service_id", None)
             http_rule_id = request.data.get("http_rule_id", None)
-
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
@@ -507,7 +521,7 @@ class ServiceDomainView(AppBaseView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
             # 解绑域名
-            code, msg = domain_service.unbind_domain(self.tenant, service, container_port, domain_name, http_rule_id)
+            code, msg = domain_service.unbind_httpdomain(self.tenant, service, container_port, domain_name, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "域名解绑成功")
@@ -763,7 +777,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 class ServiceTcpDomainView(AppBaseView):
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('control operation')
     def get(self, request, *args, **kwargs):
         # 获取单个tcp/udp策略信息
         try:
@@ -786,7 +800,7 @@ class ServiceTcpDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('control operation')
     # 添加
     def post(self, request, *args, **kwargs):
         try:
@@ -798,12 +812,6 @@ class ServiceTcpDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
-
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -869,7 +877,7 @@ class ServiceTcpDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('control operation')
     # 修改
     def put(self, request, *args, **kwargs):
 
@@ -882,12 +890,6 @@ class ServiceTcpDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             type = request.data.get("type", None)
             g_id = request.data.get("group_id", None)
-
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             # 判断参数
             if not tcp_rule_id:
@@ -918,18 +920,13 @@ class ServiceTcpDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('control operation')
     # 删除
     def delete(self, request, *args, **kwargs):
 
         try:
             tcp_rule_id = request.data.get("tcp_rule_id", None)
             service_id = request.data.get("service_id", None)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant.tenant_name)
-            # 判断权限
-            if "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "您无权此操作"), status=400)
 
             if not tcp_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)

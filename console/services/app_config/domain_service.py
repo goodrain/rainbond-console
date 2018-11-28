@@ -141,7 +141,69 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
+        if code != 200:
+            return code, msg
+        certificate_info = None
+        if protocol != self.HTTP:
+            if not certificate_id:
+                return 400, u"证书不能为空"
+
+            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+        data = {}
+        data["uuid"] = make_uuid(domain_name)
+        data["domain_name"] = domain_name
+        data["service_alias"] = service.service_alias
+        data["tenant_id"] = tenant.tenant_id
+        data["tenant_name"] = tenant.tenant_name
+        data["service_port"] = int(container_port)
+        data["protocol"] = protocol
+        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        data["add_user"] = user.nick_name
+        data["enterprise_id"] = tenant.enterprise_id
+        # 证书信息
+        data["certificate"] = ""
+        data["private_key"] = ""
+        data["certificate_name"] = ""
+        if certificate_info:
+            data["certificate"] = certificate_info.certificate
+            data["private_key"] = certificate_info.private_key
+            data["certificate_name"] = certificate_info.alias
+        region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+
+        domain_info = dict()
+        domain_info["service_id"] = service.service_id
+        domain_info["service_name"] = service.service_alias
+        domain_info["domain_name"] = domain_name
+        domain_info["domain_type"] = domain_type
+        domain_info["service_alias"] = service.service_cname
+        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["container_port"] = int(container_port)
+        domain_info["protocol"] = protocol
+        domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
+        domain_repo.add_service_domain(**domain_info)
+        return 200, u"success"
+
+    def unbind_domain(self, tenant, service, container_port, domain_name):
+        servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+        if not servicerDomain:
+            return 404, u"域名不存在"
+        data = {}
+        data["service_id"] = servicerDomain.service_id
+        data["domain"] = servicerDomain.domain_name
+        data["pool_name"] = tenant.tenant_name + "@" + service.service_alias + ".Pool"
+        data["container_port"] = int(container_port)
+        data["enterprise_id"] = tenant.enterprise_id
+        try:
+            region_api.unbindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
+        servicerDomain.delete()
+        return 200, u"success"
+
+    def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, the_weight, g_id, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
@@ -183,7 +245,7 @@ class DomainService(object):
             data["certificate_id"] = certificate_info.certificate_id
         try:
             # 给数据中心传送数据绑定域名
-            region_api.bindDomain(service.service_region, tenant.tenant_name, data)
+            region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
@@ -229,7 +291,7 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
-    def update_domain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
+    def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions):
         certificate_info = None
         if certificate_id:
@@ -261,7 +323,7 @@ class DomainService(object):
             data["certificate_id"] = certificate_info.certificate_id
         try:
             # 给数据中心传送数据更新域名
-            region_api.updateDomain(service.service_region, tenant.tenant_name, data)
+            region_api.update_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
@@ -301,7 +363,7 @@ class DomainService(object):
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_domain(self, tenant, service, container_port, domain_name, http_rule_id):
+    def unbind_httpdomain(self, tenant, service, container_port, domain_name, http_rule_id):
         servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
 
         if not servicerDomain:
@@ -314,7 +376,7 @@ class DomainService(object):
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
         try:
-            region_api.unbindDomain(service.service_region, tenant.tenant_name, data)
+            region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e

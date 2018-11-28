@@ -19,6 +19,8 @@ class PermActions(object):
         ('tenant_access', u"登入团队"),
 
         ('view_service', u"查看应用信息"),
+        ('access control', u"查看访问控制"),
+        ('certificate management', u"访问证书管理")
     )
 
     tenant_viewer_actions = (
@@ -40,6 +42,9 @@ class PermActions(object):
                                    ('manage_service_plugin', u"应用扩展管理"),
                                    ('manage_plugin', u"插件管理"),
                                    ('import_and_export_service', u'应用导入导出'),
+                                   ('certificate operation', u'证书管理操作'),
+                                   ('control operation', u'访问控制操作')
+
                                ) + tenant_viewer_actions
 
     tenant_admin_actions = (
