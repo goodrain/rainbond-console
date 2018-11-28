@@ -234,7 +234,7 @@ class DomainService(object):
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
-        data["weight"] = the_weight
+        data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
@@ -313,7 +313,7 @@ class DomainService(object):
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
         data["heander"] = domain_heander if domain_heander else None
-        data["weight"] = the_weight
+        data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
@@ -434,9 +434,9 @@ class DomainService(object):
         port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
-        data["container_port"] = str(container_port)
+        data["container_port"] = int(container_port)
         data["ip"] = ip
-        data["port"] = port
+        data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
