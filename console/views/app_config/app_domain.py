@@ -849,7 +849,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                     # 提交事物
                     transaction.savepoint_commit(save_id)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-            if tenant_service_port.is_outer_service:
+
+            if not tenant_service_port.is_outer_service:
                 return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
                                 status=200)
             # 查询端口协议

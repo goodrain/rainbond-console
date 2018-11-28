@@ -880,6 +880,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         body["tenant_id"] = tenant_region.region_tenant_id
         url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
         logger.debug('-------------------------------->{0}'.format(url))
+        logger.debug('-------------------------------->{0}'.format(body))
 
         self._set_headers(token)
         res, body = self._post(
