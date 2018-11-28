@@ -229,22 +229,12 @@ class AppPortService(object):
         if code != 200:
             return code, msg, None
         return 200, u"操作成功", new_port
-    
+
     def __open_outer(self, tenant, service, region, deal_port):
         if deal_port.protocol != "http":
             if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
-        deal_port.is_outer_service = True
-        if service.create_status == "complete":
-            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
-                                                service.service_alias,
-                                                deal_port.container_port,
-                                                {"operation": "open", "enterprise_id": tenant.enterprise_id})
-            logger.debug("open outer port body {}".format(body))
-            lb_mapping_port = body["bean"]["port"]
 
-            deal_port.lb_mapping_port = lb_mapping_port
-        deal_port.save()
         # 在domain表中保存数据
         if deal_port.protocol == "http":
             service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
@@ -290,7 +280,10 @@ class AppPortService(object):
             else:
                 # ip+port
                 # 在service_tcp_domain表中保存数据
-                end_point = region.tcpdomain + ":" + deal_port.lb_mapping_port
+                res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+                if int(res.status) != 200:
+                    return 400, u"请求数据中心异常"
+                end_point = str(region.tcpdomain) + ":" + str(data["bean"])
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 group_obj = group_repo.get_group_by_id(gsr.group_id)
                 service_id = service.service_id
@@ -316,6 +309,7 @@ class AppPortService(object):
                 data["ip"] = ip
                 data["port"] = int(port)
                 data["tcp_rule_id"] = tcp_rule_id
+                logger.debug('--------------------------------->{0}'.format(data["port"]))
                 try:
                     # 给数据中心传送数据添加策略
                     region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
@@ -323,6 +317,18 @@ class AppPortService(object):
                     logger.exception(e)
                     tcp_domain.delete_tcp_domain(tcp_rule_id)
                     return 412, u"数据中心添加策略失败"
+
+        deal_port.is_outer_service = True
+        if service.create_status == "complete":
+            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
+                                                service.service_alias,
+                                                deal_port.container_port,
+                                                {"operation": "open", "enterprise_id": tenant.enterprise_id})
+            logger.debug("open outer port body {}".format(body))
+            lb_mapping_port = body["bean"]["port"]
+
+            deal_port.lb_mapping_port = lb_mapping_port
+        deal_port.save()
 
         return 200, "success"
 

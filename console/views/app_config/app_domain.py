@@ -814,9 +814,6 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            if int(end_point.split(":")[1]) <= 20000:
-                return Response(general_message(400, "Incorrect port range", "端口范围不正确"), status=400)
-
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
