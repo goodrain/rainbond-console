@@ -13,13 +13,12 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServicePort, AppServiceEnv, AppServiceRelation, AppServiceVolume, ServiceGroupRelation,
+                        AppServiceEnv, AppServiceRelation, AppServiceVolume, ServiceGroupRelation,
                         AppServiceGroup,
                         PublishedGroupServiceRelation, TenantServiceInfoDelete)
 from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceEnvVar, \
     TenantServicesPort, TenantServiceVolume, ServiceDomain, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
-from www.region import RegionInfo
 from www.services import tenant_svc
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     AppCreateService
@@ -453,93 +452,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                             result.append(apps[0])
         return result
 
-    def set_direct_copy_options(self, envs, service_id, service_key, version):
-        outer_ports = AppServicePort.objects.filter(service_key=service_key,
-                                                    app_version=version,
-                                                    is_outer_service=True,
-                                                    protocol='http')
-        service_alias = "gr" + service_id[-6:]
-        for env in envs:
-            if env.attr_name == 'SITE_URL' or env.attr_name == 'TRUSTED_DOMAIN':
-                if self.cookie_region in RegionInfo.valid_regions():
-                    env.options = 'direct_copy'
-                    if len(outer_ports) > 0:
-                        port = RegionInfo.region_port(self.response_region)
-                        domain = RegionInfo.region_domain(self.response_region)
-                        if env.attr_name == 'SITE_URL':
-                            env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias,
-                                                                           self.tenantName, domain, port)
-                        else:
-                            env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias,
-                                                                    self.tenantName, domain, port)
-
-    @never_cache
-    @perm_required('code_deploy')
-    def get(self, request, groupId, *args, **kwargs):
-        tenant_id = self.tenant.tenant_id
-        context = self.get_context()
-        try:
-            group_id = request.GET.get("group_id")
-            if not ServiceGroup.objects.filter(ID=group_id).exists():
-                raise Http404
-
-            context["createApp"] = "active"
-            context["tenantName"] = self.tenantName
-            temp_list = GroupCreateTemp.objects.filter(share_group_id=groupId, tenant_id=tenant_id,
-                                                       service_group_id=group_id)
-            if len(temp_list) == 0:
-                return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, groupId))
-            service_cname_map = {tmp.service_key: tmp.service_cname for tmp in temp_list}
-            logger.debug("service_cname_map:{}".format(service_cname_map))
-            context["service_cname_map"] = service_cname_map
-
-            shared_group = AppServiceGroup.objects.get(ID=groupId)
-            # 查询分享组中的服务ID
-            app_service_list = self.get_published_service_info(groupId)
-            app_port_map = {}
-            app_relation_map = {}
-            app_env_map = {}
-            app_volumn_map = {}
-            app_min_memory_map = {}
-            for app in app_service_list:
-                # 端口
-                port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.version)
-                app_port_map[app.service_key] = list(port_list)
-                # 环境变量
-                env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.version,
-                                                        container_port=0, is_change=True)
-                gct_list = GroupCreateTemp.objects.filter(service_key=app.service_key, tenant_id=self.tenant.tenant_id,
-                                                          service_group_id=group_id)
-                if gct_list:
-                    service_id = gct_list[0].service_id
-                else:
-                    service_id = None
-                self.set_direct_copy_options(env_list, service_id, app.service_key, app.version)
-                app_env_map[app.service_key] = list(env_list)
-                # 持久化路径
-                volumn_list = AppServiceVolume.objects.filter(service_key=app.service_key, app_version=app.version)
-                app_volumn_map[app.service_key] = list(volumn_list)
-                # 依赖关系
-                dep_list = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.version)
-                app_relation_map[app.service_key] = list(dep_list)
-                app_min_memory_map[app.service_key] = app.min_memory
-            context["app_port_map"] = app_port_map
-            context["app_relation_map"] = app_relation_map
-            context["app_env_map"] = app_env_map
-            context["app_volumn_map"] = app_volumn_map
-            context["service_list"] = app_service_list
-            context["group_id"] = group_id
-            context["shared_group_id"] = groupId
-            context["tenantName"] = self.tenantName
-            context["app_min_memory_map"] = app_min_memory_map
-
-        except Http404 as e_404:
-            logger.exception(e_404)
-            return HttpResponse("<html><body>Group Not Found !</body></html>")
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/group/group_app_create_step_3.html", context)
-
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, groupId, *args, **kwargs):
@@ -703,16 +615,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                              user_name=self.user.nick_name, start_time=datetime.datetime.now())
         event.save()
         return event
-
-    def copy_ports(self, source_service, current_service):
-        AppPorts = AppServicePort.objects.filter(service_key=current_service.service_key,
-                                                 app_version=current_service.version)
-        baseService = BaseTenantService()
-        for port in AppPorts:
-            baseService.addServicePort(current_service, source_service.is_init_accout,
-                                       container_port=port.container_port, protocol=port.protocol,
-                                       port_alias=port.port_alias,
-                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
     def copy_envs(self, service_info, current_service, env_list):
         s = current_service

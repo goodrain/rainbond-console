@@ -1,13 +1,13 @@
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import AppServiceGroup, ServiceGroup, AppService, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
-    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
+from www.models import AppServiceGroup, ServiceGroup, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
+    AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
     ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
     TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
-    PublishedGroupServiceRelation, Tenants
+    Tenants
 from www.monitorservice.monitorhook import MonitorHook
-from www.region import RegionInfo
-import random
+
+
 import logging
 import json
 from django.conf import settings
@@ -19,6 +19,7 @@ logger = logging.getLogger('default')
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 region_api = RegionInvokeApi()
+
 
 class BackServiceInstall(object):
     def __init__(self):
@@ -52,19 +53,6 @@ class BackServiceInstall(object):
                 group = ServiceGroup.objects.create(tenant_id=self.tenant_id, region_name=self.region_name,
                                                     group_name=group_name)
                 return group.ID
-
-    def get_published_service_info(self, groupId):
-        result = []
-        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
-        for pgsr in pgsr_list:
-            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
-            if apps:
-                result.append(apps[0])
-            else:
-                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
-                if apps:
-                    result.append(apps[0])
-        return result
 
     def getServiceModel(self, app_service_list):
         published_service_list = []
@@ -149,45 +137,6 @@ class BackServiceInstall(object):
         for dep_id in dep_service_ids:
             baseService.create_service_dependency(self.tenant, service, dep_id, self.region_name)
         logger.info("create service info for service_id{0} ".format(service.service_id))
-
-    def copy_ports(self, source_service, current_service):
-        AppPorts = AppServicePort.objects.filter(service_key=current_service.service_key,
-                                                 app_version=current_service.version)
-        baseService = BaseTenantService()
-        for port in AppPorts:
-            baseService.addServicePort(current_service, source_service.is_init_accout,
-                                       container_port=port.container_port, protocol=port.protocol,
-                                       port_alias=port.port_alias,
-                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
-
-    def copy_envs(self, service_info, current_service):
-        s = current_service
-        baseService = BaseTenantService()
-        envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
-        outer_ports = AppServicePort.objects.filter(service_key=service_info.service_key,
-                                                    app_version=service_info.version,
-                                                    is_outer_service=True,
-                                                    protocol='http')
-        for env in envs:
-            if env.attr_name == 'SITE_URL':
-                if self.region_name in RegionInfo.valid_regions():
-                    port = RegionInfo.region_port(self.region_name)
-                    domain = RegionInfo.region_domain(self.region_name)
-                    env.options="direct_copy"
-                    if len(outer_ports)>0:
-                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias,self.tenant_name, domain, port)
-                    logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
-            elif env.attr_name == "TRUSTED_DOMAIN":
-                if self.region_name in RegionInfo.valid_regions():
-                    port = RegionInfo.region_port(self.region_name)
-                    domain = RegionInfo.region_domain(self.region_name)
-                    env.options = 'direct_copy'
-                    if len(outer_ports) > 0:
-                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias, self.tenant_name, domain, port)
-                    logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
-
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
-                                          env.attr_name, env.attr_value, env.is_change, env.scope)
 
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
