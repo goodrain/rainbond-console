@@ -944,11 +944,9 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 class GetPortView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         try:
-            code, data = region_api.get_port(self.response_region, self.tenant.tenant_name)
-            logger.debug('------------code--------->{0}'.format(code))
-            logger.debug('----------data----------->{0}'.format(data))
+            res, data = region_api.get_port(self.response_region, self.tenant.tenant_name)
 
-            if code != 200:
+            if int(res.status) != 200:
                 result = general_message(400, "call region error", "请求数据中心异常")
                 return Response(result, status=400)
             bean = dict()

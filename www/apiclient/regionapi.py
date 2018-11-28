@@ -917,7 +917,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(
             url, self.default_headers, region=region)
-        return body
+        return res, body
 
     def pluginServiceRelation(self, region, tenant_name, service_alias, body):
 
