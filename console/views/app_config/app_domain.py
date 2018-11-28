@@ -722,7 +722,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' and end_point like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
                             tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
