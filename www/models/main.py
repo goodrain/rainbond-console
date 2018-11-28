@@ -774,6 +774,7 @@ class ServiceDomain(BaseModel):
         db_table = 'service_domain'
 
     http_rule_id = models.CharField(max_length=128, unique=True, help_text=u"http_rule_id")
+    region_id = models.CharField(max_length=32, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
@@ -1502,6 +1503,7 @@ class ServiceTcpDomain(BaseModel):
         db_table = 'service_tcp_domain'
 
     tcp_rule_id = models.CharField(max_length=128, unique=True, help_text=u"tcp_rule_id")
+    region_id = models.CharField(max_length=32, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")

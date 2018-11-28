@@ -653,6 +653,7 @@ class DomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
+            region = region_repo.get_region_by_region_name(self.response_region)
             total = domain_repo.get_all_domain_count_by_tenant(tenant.tenant_id)
 
             start = (page - 1) * page_size
@@ -665,15 +666,15 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and domain_name like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
-                            tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
 
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
-                            tenant.tenant_id, start, end))
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
+                            tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
 
             except Exception as e:
@@ -720,6 +721,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
+            region = region_repo.get_region_by_region_name(self.response_region)
             total = tcp_domain.get_all_domain_count_by_tenant(tenant.tenant_id)
             start = (page - 1) * page_size
             remaining_num = total - (page - 1) * page_size
@@ -731,14 +733,14 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' and end_point like '%{1}%' or service_alias like '%{2}%' or group_name like '%{3}%' order by type desc LIMIT {4},{5};".format(
-                            tenant.tenant_id, search_conditions, search_conditions, search_conditions, start, end))
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and end_point like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' order by type desc LIMIT {1},{2};".format(
-                            tenant.tenant_id, start, end))
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id from service_tcp_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
+                            tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
             except Exception as e:
                 logger.exception(e)
