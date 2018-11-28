@@ -417,10 +417,8 @@ class DomainService(object):
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
-        logger.debug('--------------000------------->{0}'.format(end_point.split(":")[1]))
-        logger.debug('-------------111-------------->{0}'.format(default_port))
 
-        if end_point.split(":")[1] != default_port:
+        if int(end_point.split(":")[1]) != default_port:
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success", domain_info
