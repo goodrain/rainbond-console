@@ -773,7 +773,12 @@ class ServiceTcpDomainView(AppBaseView):
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
             tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
-            result = general_message(200, "success", "查询成功", bean=tcpdomain.to_dict())
+            if tcpdomain:
+                bean = tcpdomain.to_dict()
+                result = general_message(200, "success", "查询成功", bean=bean)
+            else:
+                bean = dict()
+                result = general_message(200, "success", "查询成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)

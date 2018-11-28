@@ -412,7 +412,7 @@ class ServiceTcpDomainRepository(object):
         return ServiceTcpDomain.objects.create(**domain_info)
 
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
-        return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id)
+        return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
 
 
 tcp_domain = ServiceTcpDomainRepository()
