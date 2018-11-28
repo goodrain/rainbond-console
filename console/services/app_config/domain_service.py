@@ -170,7 +170,7 @@ class DomainService(object):
             data["certificate"] = certificate_info.certificate
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
-        region_api.bindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+        region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
 
         domain_info = dict()
         domain_info["service_id"] = service.service_id
@@ -182,6 +182,7 @@ class DomainService(object):
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = protocol
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
+        domain_info["http_rule_id"] = make_uuid(domain_name)
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
@@ -195,8 +196,9 @@ class DomainService(object):
         data["pool_name"] = tenant.tenant_name + "@" + service.service_alias + ".Pool"
         data["container_port"] = int(container_port)
         data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = servicerDomain.http_rule_id
         try:
-            region_api.unbindDomain(service.service_region, tenant.tenant_name, service.service_alias, data)
+            region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
