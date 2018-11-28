@@ -352,7 +352,7 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class HttpStrategyView(AppBaseView):
+class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
     @perm_required('access control')
     def get(self, request, *args, **kwargs):
@@ -774,7 +774,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
 
 # tcp/ucp策略操作
-class ServiceTcpDomainView(AppBaseView):
+class ServiceTcpDomainView(RegionTenantHeaderView):
 
     @never_cache
     @perm_required('control operation')

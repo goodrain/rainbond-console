@@ -322,7 +322,6 @@ class AppPortService(object):
                     tcp_domain.delete_tcp_domain(tcp_rule_id)
                     return 412, u"数据中心添加策略失败"
 
-
         return 200, "success"
 
     def __close_outer(self, tenant, service, deal_port):
