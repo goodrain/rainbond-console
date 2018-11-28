@@ -806,7 +806,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             group_name = request.data.get("group_name", None)
             service_id = request.data.get("service_id", None)
             end_point = request.data.get("end_point", None)
-            shut_down = request.data.get("shut_down", False)
+            whether_open = request.data.get("whether_open", False)
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
@@ -827,16 +827,16 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
 
-            if shut_down:
-                # 关闭对外端口并重启（开启事物）
+            if whether_open:
+                # 打开对外端口并重启（开启事物）
                 with transaction.atomic():
                     # 开启保存点
                     save_id = transaction.savepoint()
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 关闭对外端口
+                        # 打开对外端口
                         code, msg, data = port_service.manage_port(self.tenant, service,
-                                                                   int(tenant_service_port.container_port), "close_outer",
+                                                                   int(tenant_service_port.container_port), "open_outer",
                                                                    tenant_service_port.protocol,
                                                                    tenant_service_port.port_alias)
                         if code != 200:
@@ -853,7 +853,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                     transaction.savepoint_commit(save_id)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if tenant_service_port.is_outer_service:
-                return Response(general_message(200, "not outer port", "没有关闭对外窗口", bean={"is_close_outer": False}),
+                return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
                                 status=200)
             # 查询端口协议
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
