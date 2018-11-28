@@ -5,6 +5,8 @@
 from console.repositories.app_config import domain_repo, tcp_domain
 import re
 import datetime
+import logging
+
 from console.repositories.region_repo import region_repo
 from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
@@ -14,6 +16,7 @@ import base64
 
 
 region_api = RegionInvokeApi()
+logger = logging.getLogger("default")
 
 
 class DomainService(object):
@@ -414,6 +417,8 @@ class DomainService(object):
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
         domain_info["rule_extensions"] = rule_extensions
+        logger.debug('--------------000------------->{0}'.format(end_point.split(":")[1]))
+        logger.debug('-------------111-------------->{0}'.format(default_port))
 
         if end_point.split(":")[1] != default_port:
             domain_info["type"] = 1

@@ -450,7 +450,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
-            result = general_message(200, "success", "域名绑定成功", bean=data)
+            result = general_message(200, "success", "策略添加成功", bean=data)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -492,7 +492,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
-            result = general_message(200, "success", "域名编辑成功")
+            result = general_message(200, "success", "策略编辑成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
