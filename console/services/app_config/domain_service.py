@@ -363,24 +363,21 @@ class DomainService(object):
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_httpdomain(self, tenant, service, container_port, domain_name, http_rule_id):
-        servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+    def unbind_httpdomain(self, tenant, service, http_rule_id):
+        servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
 
-        if not servicerDomain:
+        if not servicer_http_omain:
             return 404, u"域名不存在"
         data = {}
-        data["service_id"] = servicerDomain.service_id
-        data["domain"] = servicerDomain.domain_name
-        data["pool_name"] = tenant.tenant_name + "@" + service.service_alias + ".Pool"
-        data["container_port"] = int(container_port)
-        data["enterprise_id"] = tenant.enterprise_id
+        data["service_id"] = servicer_http_omain.service_id
+        data["domain"] = servicer_http_omain.domain_name
         data["http_rule_id"] = http_rule_id
         try:
             region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        servicerDomain.delete()
+        servicer_http_omain.delete()
         return 200, u"success"
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name,

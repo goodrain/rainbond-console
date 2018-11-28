@@ -506,22 +506,17 @@ class HttpStrategyView(RegionTenantHeaderView):
 
         """
         try:
-            container_port = request.data.get("container_port", None)
-            domain_name = request.data.get("domain_name", None)
             service_id = request.data.get("service_id", None)
             http_rule_id = request.data.get("http_rule_id", None)
 
-            if not container_port or not domain_name:
+            if not http_rule_id or not service_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            # 兼容老版本(老版本未传入service_id)
-            if not service_id:
-                service_id = self.service.service_id
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
             # 解绑域名
-            code, msg = domain_service.unbind_httpdomain(self.tenant, service, container_port, domain_name, http_rule_id)
+            code, msg = domain_service.unbind_httpdomain(self.tenant, service, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "域名解绑成功")
