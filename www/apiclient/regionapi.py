@@ -844,7 +844,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._post(
@@ -856,7 +856,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._put(
@@ -866,8 +866,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def delete_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._delete(
@@ -879,11 +878,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+        logger.debug('-------------------------------->{0}'.format(url))
 
         self._set_headers(token)
         res, body = self._post(
             url, self.default_headers, json.dumps(body), region=region)
+        logger.debug('-------------------------------->{0}'.format(res))
+        logger.debug('-------------------------------->{0}'.format(body))
+
         return body
 
     def updateTcpDomain(self, region, tenant_name, body):
@@ -891,7 +894,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._put(
@@ -901,8 +904,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def unbindTcpDomain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._delete(
