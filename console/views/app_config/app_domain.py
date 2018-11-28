@@ -354,7 +354,7 @@ class ServiceDomainView(AppBaseView):
 
 class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('access control')
+    @perm_required('access_control')
     def get(self, request, *args, **kwargs):
         """
         获取单个http策略
@@ -382,7 +382,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     def post(self, request, *args, **kwargs):
         """
         添加http策略
@@ -457,7 +457,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     def put(self, request, *args, **kwargs):
         """
         编辑http策略
@@ -499,7 +499,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     def delete(self, request, *args, **kwargs):
         """
        删除策略
@@ -772,7 +772,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 class ServiceTcpDomainView(RegionTenantHeaderView):
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('access_control')
     def get(self, request, *args, **kwargs):
         # 获取单个tcp/udp策略信息
         try:
@@ -795,7 +795,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     # 添加
     def post(self, request, *args, **kwargs):
         try:
@@ -872,7 +872,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     # 修改
     def put(self, request, *args, **kwargs):
 
@@ -915,7 +915,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control operation')
+    @perm_required('control_operation')
     # 删除
     def delete(self, request, *args, **kwargs):
 
