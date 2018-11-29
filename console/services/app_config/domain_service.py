@@ -115,9 +115,6 @@ class DomainService(object):
             return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
         if len(domain_name) > 256:
             return 400, u"域名过长"
-        domain = domain_repo.get_domain_by_domain_name(domain_name)
-        if domain:
-            return 412, u"域名已存在"
         if domain_type == DomainType.WWW:
             is_domain_conflict, conflict_domain = self.__is_domain_conflict(domain_name, team_name)
             if is_domain_conflict:

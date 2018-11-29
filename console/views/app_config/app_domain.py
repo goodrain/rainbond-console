@@ -815,6 +815,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
+            protocol = request.data.get("protocol", None)
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -858,12 +859,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if not tenant_service_port.is_outer_service:
                 return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
                                 status=200)
-            # 查询端口协议
-            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-            if tenant_service_port:
-                protocol = tenant_service_port.protocol
-            else:
-                protocol = ''
+
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
                                                             protocol, group_name, default_port, g_id, rule_extensions)
