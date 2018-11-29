@@ -54,7 +54,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required('certificate_operation')
     def post(self, request, *args, **kwargs):
         """
         为团队添加证书
@@ -101,7 +101,7 @@ class TenantCertificateView(RegionTenantHeaderView):
 
 class TenantCertificateManageView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('certificate_management')
     def delete(self, request, *args, **kwargs):
         """
         删除证书
@@ -132,7 +132,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    @perm_required('certificate_managementg')
     def put(self, request, *args, **kwargs):
         """
         修改证书
@@ -185,7 +185,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('tenant.tenant_access')
+    @perm_required("certificate_management")
     def get(self, request, *args, **kwargs):
         """
         查询某个证书详情

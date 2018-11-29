@@ -59,9 +59,3 @@ def utc2local(utc_st):
     print local_st
     return str(local_st)
 
-
-def creat_letsencrypt_ssl():
-    return os.system("$HOME/.acme.sh/acme.sh")
-if __name__=="__main__":
-    c=creat_letsencrypt_ssl()
-    print c
