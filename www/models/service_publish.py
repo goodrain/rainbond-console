@@ -21,34 +21,6 @@ app_status = (
 def logo_path(instance, filename):
     suffix = filename.split('.')[-1]
     return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
-    
-
-class AppServiceEnv(BaseModel):
-    """ 服务环境配置 """
-    class Meta:
-        db_table = 'app_service_env_var'
-        unique_together = ('service_key', 'app_version', 'attr_name')
-
-    service_key = models.CharField(max_length=32, help_text=u"服务key")
-    app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
-    container_port = models.IntegerField(default=0, help_text=u"端口")
-    name = models.CharField(max_length=100, blank=True, help_text=u"名称")
-    attr_name = models.CharField(max_length=100, help_text=u"属性")
-    attr_value = models.CharField(max_length=200, help_text=u"值")
-    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
-    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
-    options = GrOptionsCharField(max_length=100, null=True, blank=True, help_text=u"参数选项", default="readonly")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
 
 
 class AppServiceRelation(BaseModel):
@@ -77,17 +49,6 @@ class AppServiceRelation(BaseModel):
 level_choice = (
     ('end', 'end'), ('secondary', 'secondary'), ('root', 'root')
 )
-
-
-class AppServiceCategory(BaseModel):
-
-    class Meta:
-        db_table = 'app_service_category'
-
-    name = models.CharField(max_length=20, unique=True, help_text=u"名称")
-    level = models.CharField(max_length=20, choices=level_choice, help_text=u"分类级别")
-    parent = models.IntegerField(db_index=True, default=0, help_text=u"父分类")
-    root = models.IntegerField(db_index=True, default=0, help_text=u"根分类")
     
     
 class ServiceExtendMethod(BaseModel):

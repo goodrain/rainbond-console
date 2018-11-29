@@ -6,7 +6,7 @@ from django.forms.models import model_to_dict
 
 from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
-    TenantServiceEnvVar, TenantServiceVolume, AppServiceEnv, AppServiceShareInfo, \
+    TenantServiceEnvVar, TenantServiceVolume, AppServiceShareInfo, \
     ServiceExtendMethod, AppServiceVolume, AppServiceRelation, PublishedGroupServiceRelation, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
 
@@ -92,55 +92,6 @@ class PublishAppService(object):
             service_volume_map[service_id] = tmp_list
         return service_volume_map
 
-    def add_app_env(self, service, service_key, app_version, port_list):
-
-        logger.debug("group.publish",
-                     u'group.share.service. now add group shared service env for service {0} ok'.format(
-                         service.service_id))
-        # 排除端口参数
-        exclude_port = [x.container_port for x in port_list]
-        env_list = TenantServiceEnvVar.objects.filter(service_id=service.service_id) \
-            .exclude(container_port__in=exclude_port) \
-            .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        attr_name_list = [x["attr_name"] for x in env_list]
-        # 删除未保留参数
-        AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).exclude(
-            attr_name__in=attr_name_list).delete()
-        # 获取参数类型
-        share_info_list = AppServiceShareInfo.objects.filter(service_id=service.service_id) \
-            .values("tenant_env_id", "is_change")
-        share_info_map = {x["tenant_env_id"]: x["is_change"] for x in list(share_info_list)}
-
-        env_data = []
-        for env in list(env_list):
-            is_change = env["is_change"]
-            if env["ID"] in share_info_map.keys():
-                is_change = share_info_map.get(env["ID"])
-            try:
-                app_env = AppServiceEnv.objects.get(service_key=service_key,
-                                                    app_version=app_version,
-                                                    attr_name=env["attr_name"])
-
-                app_env.app_env = env["name"]
-                app_env.attr_value = env["attr_value"]
-                app_env.scope = env["scope"]
-                app_env.is_change = is_change
-                app_env.container_port = env["container_port"]
-                app_env.save()
-            except AppServiceEnv.DoesNotExist:
-                app_env = AppServiceEnv(service_key=service_key,
-                                        app_version=app_version,
-                                        name=env["name"],
-                                        attr_name=env["attr_name"],
-                                        attr_value=env["attr_value"],
-                                        scope=env["scope"],
-                                        is_change=is_change,
-                                        container_port=env["container_port"])
-                env_data.append(app_env)
-
-        if len(env_data) > 0:
-            AppServiceEnv.objects.bulk_create(env_data)
-
     def add_app_extend_info(self, service, service_key, app_version):
 
         logger.debug("group.publish",
@@ -191,10 +142,6 @@ class PublishAppService(object):
             AppServiceVolume.objects.bulk_create(volume_data)
 
 
-    def get_app_service_env(self, service_key, app_version):
-        return AppServiceEnv.objects.filter(service_key=service_key,
-                                            app_version=app_version)
-
     def get_app_service_volume(self, service_key, app_version):
         return AppServiceVolume.objects.filter(service_key=service_key,
                                                app_version=app_version)
@@ -224,56 +171,6 @@ class PublishAppService(object):
 
     def delete_group_service_relation_by_group_pk(self, group_pk):
         PublishedGroupServiceRelation.objects.filter(group_pk=group_pk).delete()
-
-    def send_group_service_data_to_market(self, app_service_group, tenant, region, groupId, param_data={}, url_map={}):
-        # 发送数据到云市
-        service_list = self.__get_tenant_group_service_by_group_id(tenant, region, groupId)
-
-        service_category_map = {x.service_id: "self" if (
-                x.category == "application" or (x.category == "app_publish" and x.language is not None)) else "other"
-                                for x
-                                in service_list}
-
-        pgsrs = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID)
-        apps = []
-        service_extra_data = []
-        for item in pgsrs:
-            app_service = self.get_app_service_by_unique(item.service_key, item.version)
-            owner = service_category_map.get(app_service.service_id, "other")
-            service_map = {"service_key": app_service.service_key,
-                           "version": app_service.app_version,
-                           "owner": owner}
-            service_extra_data.append(service_map)
-            preview_url = url_map.get(item.service_key, "")
-            app_service_env = self.get_app_service_env(item.service_key, item.version)
-            app_service_port = self.get_app_service_port(item.service_key, item.version)
-            app_service_volume = self.get_app_service_volume(item.service_key, item.version)
-            app_service_extend_method = self.get_app_service_extend_method(item.service_key, item.version)
-            app_service_pre_dep = self.get_app_service_pre_dep(item.service_key, item.version)
-            app_service_suf_dep = self.get_app_service_suf_dep(item.service_key, item.version)
-
-            app_data = {
-                'pre_list': map(lambda x: model_to_dict(x), app_service_pre_dep),
-                'suf_list': map(lambda x: model_to_dict(x), app_service_suf_dep),
-                'env_list': map(lambda x: model_to_dict(x), app_service_env),
-                'port_list': map(lambda x: model_to_dict(x), app_service_port),
-                'extend_list': map(lambda x: model_to_dict(x), app_service_extend_method),
-                'volume_list': map(lambda x: model_to_dict(x), app_service_volume),
-                'service': app_service.to_dict(),
-                "preview_url": preview_url
-            }
-            apps.append(app_data)
-
-        group_dict = app_service_group.to_dict()
-        group_dict["tenant_id"] = tenant.tenant_id
-        group_dict["data"] = service_extra_data
-        group_dict["group_apps"] = apps
-
-        group_dict.update(param_data)
-        self.__send_all_group_data(tenant, group_dict)
-        app_service_group.is_publish_to_market = True
-        app_service_group.source = 'remote'
-        app_service_group.save()
 
     def __send_all_group_data(self, tenant, data):
         logger.debug("GROUP DATA START".center(90, "-"))

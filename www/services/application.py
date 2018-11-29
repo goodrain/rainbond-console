@@ -362,34 +362,6 @@ class ApplicationGroupService(object):
         except Exception as e:
             logger.exception(e)
 
-    def __create_tenant_services(self, user, tenant, region_name, tenant_group, sorted_service,
-                                 installed_services, service_origin):
-        for service_info in sorted_service:
-            service_id = make_uuid(service_info.service_key)
-            service_alias = "gr" + service_id[-6:]
-
-            new_tenant_service = baseService.create_service(service_id, tenant.tenant_id, service_alias,
-                                                            service_info.service_name, service_info, user.user_id,
-                                                            region=region_name, tenant_service_group_id=tenant_group.ID,
-                                                            service_origin=service_origin)
-            # new_tenant_service.expired_time = tenant.expired_time
-            new_tenant_service.save()
-            logger.debug(
-                'create tenant_service: [{}:{}] ==> {}'.format(service_info.service_name, service_alias, service_id))
-            monitorhook.serviceMonitor(tenant.tenant_name, new_tenant_service, 'create_service', True)
-
-            # 环境变量
-            logger.debug("===> create service env!")
-            self.__copy_envs(service_info, new_tenant_service, tenant)
-            # 端口信息
-            logger.debug("===> create service port!")
-            self.__copy_ports(service_info, new_tenant_service)
-            # 持久化目录
-            logger.debug("===> create service volumn!")
-            self.__copy_volumes(service_info, new_tenant_service)
-
-            installed_services.append(new_tenant_service)
-
     def __clear_install_context(self, tenant_group, installed_services, tenant):
         tenant_id = tenant.tenant_id
         installed_service_ids = [s.service_id for s in installed_services]

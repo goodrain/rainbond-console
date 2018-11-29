@@ -13,7 +13,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
+                        AppServiceRelation, ServiceExtendMethod,
                         AppServiceVolume, ServiceGroupRelation, ServiceCreateStep,
                         TenantServiceVolume)
 from www.models.main import ServiceAttachInfo, ServiceFeeBill, TenantServiceEnvVar, ServiceEvent
@@ -250,21 +250,6 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
-    def copy_envs(self, source_service, envs):
-        s = self.service
-        baseService = BaseTenantService()
-        has_env = []
-        for env in envs:
-            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
-                                          env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
-            has_env.append(env.attr_name)
-
-        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version):
-            if sys_env.attr_name not in has_env:
-                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
-                                              sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
-
     def copy_volumes(self, tenant_service, source_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
         for volume in volumes:
@@ -333,114 +318,3 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
                              user_name=self.user.nick_name, start_time=datetime.datetime.now())
         event.save()
         return event
-
-
-    @never_cache
-    @perm_required('code_deploy')
-    def post(self, request, *args, **kwargs):
-
-        dependency_services = json.loads(request.POST.get("dep_list", "[]"))
-        envs = json.loads(request.POST.get("envs", ""))
-        service_env = []
-        for env in envs:
-            s_env = AppServiceEnv()
-            s_env.attr_name = env["attr_name"]
-            s_env.attr_value = env["attr_value"]
-            service_env.append(s_env)
-        envs = service_env
-
-        # 内存大小
-        min_memory = int(request.POST.get("service_min_memory", 512))
-        if min_memory < 128:
-            min_memory *= 1024
-        self.service.min_memory = min_memory
-        cpu = baseService.calculate_service_cpu(self.response_region, min_memory)
-        self.service.min_cpu = cpu
-
-        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, min_memory*self.service.min_node, False)
-        if not flag:
-            result = {}
-            if rt_type == "memory":
-                result["status"] = "over_memory"
-                result["tenant_type"] = self.tenant.pay_type
-            else:
-                result["status"] = "over_money"
-            return JsonResponse(result, status=200)
-
-        self.service.save()
-
-        result = {}
-        try:
-
-            exist_t_services = []
-            for str in dependency_services:
-                if str != "":
-                    service_alias, service_key, app_version = str.split(":", 2)
-                    if service_alias == "__no_dep_service__":
-                        return JsonResponse({"status": "not_have_dep_service"}, status=200)
-                    if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() == 0:
-                        return JsonResponse({"status": "depend_service_notexsit"})
-                    exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
-                    exist_t_services.append(exist_t_s)
-
-            source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
-            self.copy_envs(source_service, envs)
-            self.copy_ports(source_service)
-            # add volume
-            self.copy_volumes(self.service, source_service)
-
-            dep_sids = []
-            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
-            for tsr in tsrs:
-                dep_sids.append(tsr.dep_service_id)
-            
-            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
-            
-            # 根据已有服务创建依赖关系
-            if exist_t_services:
-                # self.saveAdapterEnv(self.service)
-                for t_service in exist_t_services:
-                    try:
-                        baseService.create_service_dependency(self.tenant, self.service, t_service.service_id, self.response_region)
-                    except Exception as e:
-                        logger.exception(e)
-
-            service_status = "stateless" if self.service.extend_method == "stateless" else "state"
-
-            data = {}
-            data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-            data["enterprise_id"] = self.tenant.enterprise_id
-            region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, data)
-            self.service.save()
-            body = {}
-            event = self.create_service_event(self.service, self.tenant, "deploy")
-            kind = baseService.get_service_kind(self.service)
-            body["event_id"] = event.event_id
-            body["deploy_version"] = self.service.deploy_version
-            body["operator"] = self.user.nick_name
-            body["action"] = "upgrade"
-
-            envs = {}
-            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name__in=(
-                "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
-            for benv in buildEnvs:
-                envs[benv.attr_name] = benv.attr_value
-            body["envs"] = envs
-
-            body["kind"] = kind
-            body["enterprise_id"] = self.tenant.enterprise_id
-            region_api.build_service(self.service.service_region, self.tenantName, self.serviceAlias, body)
-            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
-
-            result["status"] = "success"
-            result["next_url"] = next_url = '/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias)
-
-            attach_info_mamage.update_attach_info_by_tenant(self.tenant, self.service)
-            # 清理暂存步骤
-            ServiceCreateStep.objects.filter(tenant_id=self.tenant.tenant_id,
-                                             service_id=self.service.service_id,
-                                             app_step=11).delete()
-        except Exception as e:
-            logger.exception(e)
-            result["status"] = "failure"
-        return JsonResponse(result, status=200)

@@ -555,32 +555,3 @@ class ServiceGroupShareFourView(LeftSideBarMixin, AuthedView):
         result = {"app_list": app_list, "all_success": all_success}
 
         return JsonResponse({"success": True, "msg": "成功", "data": result})
-
-
-class ServiceGroupShareToMarketView(LeftSideBarMixin, AuthedView):
-
-    @perm_required('share_service')
-    def post(self, request, groupId, share_pk, *args, **kwargs):
-        try:
-            app_service_group = app_group_svc.get_app_group_by_pk(share_pk)
-            if not app_service_group:
-                return JsonResponse({"success": False, "msg": "应用组不存在"})
-
-            # 所有需要发布的应用发布成功，更新发布的组应用信息
-            app_service_group.is_success = True
-            app_service_group.save()
-            logger.debug("----------------> {0} ------ {1}".format(app_service_group.share_scope,
-                                                                   app_service_group.is_publish_to_market))
-            # 判断是否发布到云市，如果发布到云市，就调用接口将数据发布出去
-            if app_service_group.share_scope == "market" and (not app_service_group.is_publish_to_market):
-                logger.debug("send message to app market !")
-                param_data = {}
-                url_map = {}
-                logger.debug("+=========+ {0}".format("start to push data to market !"))
-                publish_app_svc.send_group_service_data_to_market(app_service_group, self.tenant, self.response_region,
-                                                                  groupId, param_data, url_map)
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse({"success": False, "msg": "推送信息至云市失败"})
-
-        return JsonResponse({"success": True, "msg": "成功"})

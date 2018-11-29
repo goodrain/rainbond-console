@@ -12,12 +12,8 @@ from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServiceEnv, AppServiceRelation, AppServiceVolume, ServiceGroupRelation,
-                        AppServiceGroup,
-                        PublishedGroupServiceRelation, TenantServiceInfoDelete)
-from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceEnvVar, \
-    TenantServicesPort, TenantServiceVolume, ServiceDomain, ServiceEvent
+from www.models import (ServiceInfo, TenantServiceInfo, AppServiceRelation, AppServiceVolume, AppServiceGroup, PublishedGroupServiceRelation)
+from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceVolume, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.services import tenant_svc
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
@@ -452,161 +448,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                             result.append(apps[0])
         return result
 
-    @never_cache
-    @perm_required('code_deploy')
-    def post(self, request, groupId, *args, **kwargs):
-        tenant_id = self.tenant.tenant_id
-        context = self.get_context()
-        data = {}
-        current_service_ids = []
-        sorted_service = None
-        try:
-
-            service_group_id = request.POST.get("group_id", None)
-            envs = request.POST.get("envs", "")
-            env_map = json.loads(envs)
-
-            status_label = request.POST.get("methodval","")
-            label_map = json.loads(status_label)
-
-            services_min_memory = request.POST.get("service_min_memory","")
-            memory_map = json.loads(services_min_memory)
-
-            if not service_group_id:
-                data.update({"success": False, "status": "failure", "info": u"服务异常"})
-                return JsonResponse(data, status=500)
-
-            shared_group = AppServiceGroup.objects.get(ID=groupId)
-            # 查询分享组中的服务ID
-            app_service_list = self.get_published_service_info(groupId)
-            published_services = []
-            for app in app_service_list:
-                # 第二步已经做过相应的判断,此处可以不用重复判断版本是否正确
-                service_list = ServiceInfo.objects.filter(service_key=app.service_key, version=app.version)
-                if service_list:
-                    published_services.append(service_list[0])
-
-            # 根据依赖关系将服务进行排序
-            sorted_service = self.sort_service(published_services)
-            expired_time = datetime.datetime.now() + datetime.timedelta(days=7) + datetime.timedelta(hours=1)
-            for service_info in sorted_service:
-                logger.debug("service_info.service_key: {}".format(service_info.service_key))
-                gct = GroupCreateTemp.objects.get(service_key=service_info.service_key, tenant_id=self.tenant.tenant_id,
-                                                  service_group_id=service_group_id)
-                service_id = gct.service_id
-                logger.debug("gct.service_id: {}".format(gct.service_id))
-                current_service_ids.append(service_id)
-                service_alias = "gr" + service_id[-6:]
-                # console层创建服务和组关系
-                newTenantService = baseService.create_service(service_id, self.tenant.tenant_id, service_alias,
-                                                              gct.service_cname,
-                                                              service_info,
-                                                              self.user.pk, region=self.response_region)
-
-                memory = int(memory_map.get(service_info.service_key, service_info.min_memory))
-                if memory < 128:
-                    memory *= 1024
-                cpu = baseService.calculate_service_cpu(self.response_region,memory)
-                newTenantService.min_memory = memory
-                newTenantService.min_cpu = cpu
-                newTenantService.save()
-
-                if self.tenant.pay_type == 'free':
-                    newTenantService.expired_time = expired_time
-                    # newTenantService.expired_time = self.tenant.expired_time
-                    newTenantService.save()
-                if service_group_id:
-                    group_id = int(service_group_id)
-                    if group_id > 0:
-                        ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
-                                                            tenant_id=self.tenant.tenant_id,
-                                                            region_name=self.response_region)
-                monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-
-                # 环境变量
-                logger.debug("create service env!")
-                env_list = env_map.get(service_info.service_key)
-                self.copy_envs(service_info, newTenantService, env_list)
-                # 端口信息
-                logger.debug("create service port!")
-                self.copy_ports(service_info, newTenantService)
-                # 持久化目录
-                logger.debug("create service volumn!")
-                self.copy_volumes(service_info, newTenantService)
-
-                dep_sids = []
-                tsrs = TenantServiceRelation.objects.filter(service_id=newTenantService.service_id)
-                for tsr in tsrs:
-                    dep_sids.append(tsr.dep_service_id)
-
-                baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
-                                                  self.user.nick_name, dep_sids=json.dumps(dep_sids))
-                
-                service_status = "stateless" if newTenantService.extend_method == "stateless" else "state"
-                label_data = {}
-                label_data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-                label_data["enterprise_id"] = self.tenant.enterprise_id
-                region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, label_data)
-                newTenantService.save()
-
-                # 创建服务依赖
-                logger.debug("create service dependency!")
-                self.create_dep_service(service_info, newTenantService, service_group_id)
-                # 构建服务
-                body = {}
-                event = self.create_service_event(newTenantService, self.tenant, "deploy")
-                kind = baseService.get_service_kind(newTenantService)
-                body["event_id"] = event.event_id
-                body["deploy_version"] = newTenantService.deploy_version
-                body["operator"] = self.user.nick_name
-                body["action"] = "upgrade"
-                body["kind"] = kind
-                body["enterprise_id"] = self.tenant.enterprise_id
-
-                envs = {}
-                buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
-                    "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
-                for benv in buildEnvs:
-                    envs[benv.attr_name] = benv.attr_value
-                body["envs"] = envs
-
-                region_api.build_service(newTenantService.service_region, self.tenantName,
-                                         newTenantService.service_alias, body)
-
-                monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
-            # 创建成功,删除临时数据
-            GroupCreateTemp.objects.filter(share_group_id=groupId).delete()
-            next_url = "/apps/{0}/myservice/?gid={1}".format(self.tenantName, service_group_id)
-            data.update({"success": True, "code": 200, "next_url": next_url})
-
-        except Exception as e:
-            logger.exception(e)
-            try:
-                if sorted_service:
-                    for service in sorted_service:
-                        region_api.delete_service(self.response_region, self.tenantName, service.service_alias,self.tenant.enterprise_id)
-                        data = service.toJSON()
-                        newTenantServiceDelete = TenantServiceInfoDelete(**data)
-                        newTenantServiceDelete.save()
-
-                TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                 service_id__in=current_service_ids).delete()
-                TenantServiceAuth.objects.filter(service_id__in=current_service_ids).delete()
-                ServiceDomain.objects.filter(service_id__in=current_service_ids).delete()
-                TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                     service_id__in=current_service_ids).delete()
-                TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                   service_id__in=current_service_ids).delete()
-                TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                  service_id__in=current_service_ids).delete()
-                TenantServiceVolume.objects.filter(service_id__in=current_service_ids).delete()
-
-                data.update({"success": False, "code": 500})
-            except Exception as e:
-                logger.exception(e)
-
-        return JsonResponse(data, status=200)
-
     def create_service_event(self, service, tenant, action):
         event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
                              tenant_id=tenant.tenant_id, type="{0}".format(action),
@@ -615,22 +456,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                              user_name=self.user.nick_name, start_time=datetime.datetime.now())
         event.save()
         return event
-
-    def copy_envs(self, service_info, current_service, env_list):
-        s = current_service
-        baseService = BaseTenantService()
-        has_env = []
-        for e in env_list:
-            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version,
-                                                   attr_name=e["attr_name"])
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
-                                          e["attr_name"], e["attr_value"], source_env.is_change, source_env.scope)
-            has_env.append(source_env.attr_name)
-        envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
-        for env in envs:
-            if env.attr_name not in has_env:
-                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
-                                              env.attr_name, env.attr_value, env.is_change, env.scope)
 
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,

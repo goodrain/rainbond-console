@@ -8,17 +8,14 @@ from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
 from www.charging_view import *
-from www.views.ajax import UpdateGroupView
-from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.batchrenew import BatchRenewView
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 from www import alipay_view
 from django.views.decorators.csrf import csrf_exempt
-from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
+from www.views.servicepublish import PublishServiceView, PublishServiceDetailView
 from www.views.serviceshare import *
 from www.views.consume import *
-from  www.views.servicemonitor import *
 from www.views.third_app import *
 from www.views.servicegroup import *
 from www.group_services_view import *
@@ -37,8 +34,7 @@ urlpatterns = patterns(
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
 
-    # url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
-    
+
     url(r'^/(?P<serviceAlias>[\w\-]+)/deploy/setting/?$', ServiceDeploySettingView.as_view()),
     
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
@@ -70,7 +66,6 @@ urlpatterns = patterns(
     
     # new publish service
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/$', PublishServiceDetailView.as_view()),
-    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/relation/?$', PublishServiceRelationView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', PublishServiceView.as_view()),
     
     # new share service
@@ -88,7 +83,6 @@ urlpatterns = patterns(
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
     url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/fourth/$', ServiceGroupShareFourView.as_view()),
-    url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/five/$', ServiceGroupShareToMarketView.as_view()),
 
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
@@ -102,9 +96,6 @@ urlpatterns = patterns(
     url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
     url(r'^/compose-step2/$', login_required(ComposeCreateStep2.as_view())),
     url(r'^/compose-step3/$', login_required(ComposeCreateStep3.as_view())),
-    # new monitor service source
-    # url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
-    # url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
     
     url(r'/third_app/(?P<app_type>[\w\-]+)/create/', login_required(CreateThirdAppView.as_view())),
     url(r'/(?P<app_bucket>[\w\-]+)/third_show$', login_required(ThirdAppView.as_view())),

@@ -12,7 +12,7 @@ from www.db import BaseConnection
 from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
+    TenantServiceVolume, ServiceInfo, AppServiceRelation, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
     PublishedGroupServiceRelation, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
 
 from www.models.main import TenantRegionPayModel, ServiceProbe
