@@ -2,6 +2,7 @@
 """
   Created on 18/1/15.
 """
+import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -10,7 +11,9 @@ from console.services.app_config import port_service, domain_service
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from django.forms.models import model_to_dict
-import logging
+from django.db import transaction
+from console.services.app_actions import app_manage_service
+
 
 logger = logging.getLogger("default")
 
@@ -357,3 +360,50 @@ class AppTcpOuterManageView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class AppPortManageAndDeployView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        策略中开启对外端口并自动重启
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            container_port = request.data.get("container_port", None)
+            if not container_port:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+            # 开启对外端口并重启（开启事物）
+            with transaction.atomic():
+                # 开启保存点
+                save_id = transaction.savepoint()
+                try:
+                    tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
+                    # 开启对外端口
+                    code, msg, data = port_service.manage_port(self.tenant, self.service, self.service.service_region,
+                                                               int(tenant_service_port.container_port), "open_outer",
+                                                               tenant_service_port.protocol,
+                                                               tenant_service_port.port_alias)
+                    if code != 200:
+                        return Response(general_message(code, "change port fail", msg), status=code)
+                    # 重启
+                    code, msg, event = app_manage_service.restart(self.tenant, self.service, self.user)
+                    if code != 200:
+                        return Response(general_message(code, "restart app error", msg), status=code)
+                except Exception:
+                    # 回滚
+                    transaction.savepoint_rollback(save_id)
+                    raise
+                # 提交事物
+                transaction.savepoint_commit(save_id)
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+

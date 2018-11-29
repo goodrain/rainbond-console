@@ -6,13 +6,13 @@ from console.repositories.app_config import domain_repo, tcp_domain
 import re
 import datetime
 import logging
+import base64
 
 from console.repositories.region_repo import region_repo
 from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-from console.utils.certutil import analyze_cert,cert_is_effective
-import base64
+from console.utils.certutil import analyze_cert, cert_is_effective
 
 
 region_api = RegionInvokeApi()
@@ -103,7 +103,7 @@ class DomainService(object):
         certif.save()
         return 200, "success"
 
-    def __check_domain_name(self, team_name, domain_name, domain_type):
+    def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
         if not domain_name:
             return 400, u"域名不能为空"
         zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
@@ -122,6 +122,18 @@ class DomainService(object):
             is_domain_conflict, conflict_domain = self.__is_domain_conflict(domain_name, team_name)
             if is_domain_conflict:
                 return 409, u"域名中不能该域名{0}".format(conflict_domain)
+        if certificate_id:
+            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+            cert = base64.b64decode(certificate_info.certificate)
+            data = analyze_cert(cert)
+            certificat_domain_name = data["issued_to"]
+            if not certificat_domain_name.startswith("*"):
+                if certificat_domain_name != domain_name:
+                    return 400, u"域名和证书不匹配"
+            else:
+                domain_suffix = certificat_domain_name[2:]
+                if not domain_name.endwith(domain_suffix):
+                    return 400, u"域名和证书不匹配"
 
         return 200, u"success"
 
@@ -211,7 +223,7 @@ class DomainService(object):
     def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, the_weight, g_id, rule_extensions):
         # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
         if code != 200:
@@ -312,6 +324,11 @@ class DomainService(object):
 
     def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions):
+        # 校验域名格式
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+        domain_info = dict()
+        if code != 200:
+            return code, msg, domain_info
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -349,7 +366,6 @@ class DomainService(object):
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
         service_domain.delete()
         region = region_repo.get_region_by_region_name(service.service_region)
-        domain_info = dict()
         if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
         domain_info["protocol"] = "http"

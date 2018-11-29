@@ -3,6 +3,7 @@ from OpenSSL import crypto
 import time,datetime
 import os
 
+
 def analyze_cert(content):
     data = {}
     # path表示证书路径，file_name表示证书文件名
@@ -31,8 +32,8 @@ def analyze_cert(content):
     data["issued_by"] = cert_source
     data["end_data"] = utc2local(end_data)
 
-
     return data
+
 
 def cert_is_effective(content):
     """分析证书是否有效"""

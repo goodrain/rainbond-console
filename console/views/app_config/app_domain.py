@@ -955,14 +955,14 @@ class GetPortView(RegionTenantHeaderView):
             if int(res.status) != 200:
                 result = general_message(400, "call region error", "请求数据中心异常")
                 return Response(result, status=400)
-            bean = dict()
-            bean["port"] = data["bean"]
             region = region_repo.get_region_by_region_name(self.response_region)
             ip = region.tcpdomain
-            ip_list = list()
-            ip_list.append(ip)
-            bean["ip"] = ip_list
-            result = general_message(200, "success", "可用端口查询成功", bean=bean)
+            ip_port_list = list()
+            ip_dict = dict()
+            ip_dict["ip"] = ip
+            ip_dict["port"] = data["bean"]
+            ip_port_list.append(ip_dict)
+            result = general_message(200, "success", "可用端口查询成功", list=ip_port_list)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
