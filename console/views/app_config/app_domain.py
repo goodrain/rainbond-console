@@ -654,7 +654,7 @@ class DomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             region = region_repo.get_region_by_region_name(self.response_region)
-            total = domain_repo.get_all_domain_count_by_tenant(tenant.tenant_id)
+            total = domain_repo.get_all_domain_count_by_tenant_and_region_id(tenant.tenant_id, region.region_id)
 
             start = (page - 1) * page_size
             remaining_num = total - (page - 1) * page_size
@@ -666,14 +666,14 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
                             tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
 
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander from service_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight from service_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
                             tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -703,6 +703,7 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["domain_path"] = tenant_tuple[11]
                 domain_dict["domain_cookie"] = tenant_tuple[12]
                 domain_dict["domain_heander"] = tenant_tuple[13]
+                domain_dict["the_weight"] = tenant_tuple[14]
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
@@ -722,7 +723,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             region = region_repo.get_region_by_region_name(self.response_region)
-            total = tcp_domain.get_all_domain_count_by_tenant(tenant.tenant_id)
+            total = tcp_domain.get_all_domain_count_by_tenant_and_region(tenant.tenant_id, region.region_id)
             start = (page - 1) * page_size
             remaining_num = total - (page - 1) * page_size
             end = page_size
