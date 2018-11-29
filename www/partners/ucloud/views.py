@@ -17,6 +17,7 @@ import datetime
 import time
 
 import logging
+
 logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
@@ -89,7 +90,8 @@ class EntranceView(BaseView, LoginRedirectMixin):
             default_nick_name = u'ucloud_{0}'.format(remote_user.UserId * 3 + 1152)
 
             try:
-                new_user = Users.objects.create(nick_name=default_nick_name, email=remote_user.UserEmail, phone=remote_user.UserPhone, origion='ucloud',
+                new_user = Users.objects.create(nick_name=default_nick_name, email=remote_user.UserEmail,
+                                                phone=remote_user.UserPhone, origion='ucloud',
                                                 is_active=False, password='nopass')
                 user = authenticate(username=new_user.email, source='ucloud')
                 login(request, user)
@@ -162,7 +164,7 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             # create gitlab user
             if user.email is not None and user.email != "":
                 codeRepositoriesService.createUser(user.email, git_pass, nick_name, nick_name)
-            
+
             return self.redirect_view()
         except Exception, e:
             logger.exception(e)
