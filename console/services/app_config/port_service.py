@@ -214,7 +214,7 @@ class AppPortService(object):
             return code, msg, None
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
-            code, msg = self.__open_outer(tenant, service, region, deal_port)
+            code, msg = self.__open_outer(tenant, service, region, deal_port, container_port)
         elif action == "close_outer":
             code, msg = self.__close_outer(tenant, service, deal_port)
         elif action == "open_inner":
@@ -230,16 +230,19 @@ class AppPortService(object):
             return code, msg, None
         return 200, u"操作成功", new_port
 
-    def __open_outer(self, tenant, service, region, deal_port):
+    def __open_outer(self, tenant, service, region, deal_port, container_port):
         if deal_port.protocol != "http":
             if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
 
         # 在domain表中保存数据
         if deal_port.protocol == "http":
-            service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
-            if service_domain:
-                pass
+            # 改变httpdomain表中端口状态
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+            if service_domains:
+                for service_domain in service_domains:
+                    service_domain.is_outer_service = True
+                    service_domain.save()
             else:
                 # 在service_domain表中保存数据
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
@@ -274,9 +277,12 @@ class AppPortService(object):
                     return 412, u"数据中心添加策略失败"
 
         else:
-            service_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, deal_port.container_port)
-            if service_tcp_domain:
-                pass
+            service_tcp_domains = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, deal_port.container_port)
+            # 改变tcpdomain表中状态
+            if service_tcp_domains:
+                for service_tcp_domain in service_tcp_domains:
+                    service_tcp_domain.is_outer_service = True
+                    service_tcp_domain.save()
             else:
                 # ip+port
                 # 在service_tcp_domain表中保存数据
@@ -340,6 +346,22 @@ class AppPortService(object):
                                          {"operation": "close", "enterprise_id": tenant.enterprise_id})
 
         deal_port.save()
+        if deal_port.protocol == "http":
+            # 改变httpdomain表中端口状态
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                               deal_port.container_port)
+            if service_domains:
+                for service_domain in service_domains:
+                    service_domain.is_outer_service = False
+                    service_domain.save()
+        else:
+            service_tcp_domains = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id,
+                                                                                           deal_port.container_port)
+            # 改变tcpdomain表中状态
+            if service_tcp_domains:
+                for service_tcp_domain in service_tcp_domains:
+                    service_tcp_domain.is_outer_service = False
+                    service_tcp_domain.save()
         return 200, "success"
 
     def __open_inner(self, tenant, service, deal_port):

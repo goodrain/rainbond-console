@@ -41,6 +41,7 @@ ALTER TABLE service_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `g_id` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `rule_extensions` TEXT NULL;
 ALTER TABLE service_domain ADD COLUMN `region_id` varchar(32) DEFAULT '';
+ALTER TABLE service_domain ADD COLUMN `is_outer_service` bool DEFAULT true NOT NULL;
 
 
 
@@ -66,6 +67,8 @@ ALTER TABLE service_tcp_domain ADD COLUMN `type` integer DEFAULT 0;
 ALTER TABLE service_tcp_domain ADD COLUMN `g_id` varchar(32) DEFAULT '';
 ALTER TABLE service_tcp_domain ADD COLUMN `rule_extensions` TEXT NULL;
 ALTER TABLE service_tcp_domain ADD COLUMN `region_id` varchar(32) DEFAULT '';
+ALTER TABLE service_tcp_domain ADD COLUMN `is_outer_service` bool DEFAULT true NOT NULL;
+
 
 
 
