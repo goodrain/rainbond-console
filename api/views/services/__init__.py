@@ -1,7 +1,5 @@
-from basic import SelectedServiceView, PublishServiceView, ReceiveServiceView, QueryServiceView, QueryTenantView
+from basic import SelectedServiceView, PublishServiceView, QueryTenantView
 
 __all__ = ('SelectedServiceView',
            'PublishServiceView',
-           'ReceiveServiceView',
-           'QueryServiceView',
            'QueryTenantView')
