@@ -4,31 +4,12 @@ import logging
 import os
 from django.http import Http404
 
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume, ServiceGroup, \
-    TenantServiceVolume
+from www.models import PermRelTenant, Tenants, ServiceGroup
 from www.region import RegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils import sn
-from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
-
-
-class RegionOperateMixin(object):
-    def init_for_region(self, region, tenant_name, tenant_id):
-        pass
-        # api = RegionInvokeApi()
-        #
-        # logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
-        # try:
-        #     tenant = Tenants.objects.get(tenant_id=tenant_id)
-        #     body = api.create_tenant(region, tenant_name, tenant_id, tenant.enterprise_id)
-        #     return True
-        # except api.CallApiError, e:
-        #     logger.error("account.register", "create tenant {0} failed".format(tenant_name))
-        #     logger.exception("account.register", e)
-        #     return False
 
 
 class LoginRedirectMixin(object):
@@ -45,26 +26,6 @@ class LoginRedirectMixin(object):
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
                 self.user.nick_name, self.user.pk))
             return Http404
-
-
-class CopyPortAndEnvMixin(object):
-    def copy_port_and_env(self, service, new_service):
-        ports = AppServicePort.objects.filter(service_key=service.service_key, app_version=service.version)
-        envs = AppServiceEnv.objects.filter(service_key=service.service_key, app_version=service.version)
-        volumes = AppServiceVolume.objects.filter(service_key=service.service_key, app_version=service.version)
-        baseService = BaseTenantService()
-        for port in ports:
-            baseService.addServicePort(new_service, service.is_init_accout, container_port=port.container_port,
-                                       protocol=port.protocol, port_alias=port.port_alias,
-                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
-        for env in envs:
-            baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.container_port, env.name,
-                                          env.attr_name, env.attr_value, env.is_change, env.scope)
-
-        for volume in volumes:
-            baseService.add_volume_with_type(
-                new_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7]
-            )
 
 
 class LeftSideBarMixin(object):

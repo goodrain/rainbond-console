@@ -227,7 +227,11 @@ class ServiceDomainRepository(object):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
 
     def get_service_domain_by_http_rule_id(self, http_rule_id):
-        return ServiceDomain.objects.filter(http_rule_id=http_rule_id)
+        domain = ServiceDomain.objects.filter(http_rule_id=http_rule_id).first()
+        if domain:
+            return domain
+        else:
+            return None
 
     def get_domain_by_domain_name(self, domain_name):
         domains = ServiceDomain.objects.filter(domain_name=domain_name)
@@ -243,8 +247,8 @@ class ServiceDomainRepository(object):
     def get_all_domain(self):
         return ServiceDomain.objects.all()
 
-    def get_all_domain_count_by_tenant(self, tenant_id):
-        return ServiceDomain.objects.filter(tenant_id=tenant_id).count()
+    def get_all_domain_count_by_tenant_and_region_id(self, tenant_id, region_id):
+        return ServiceDomain.objects.filter(tenant_id=tenant_id, region_id=region_id).count()
 
     def get_domain_by_name_and_port(self, service_id, container_port, domain_name):
         try:
@@ -312,11 +316,15 @@ class ServiceDomainRepository(object):
         return ServiceDomain.objects.filter(service_id=service_id)
 
     def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol,
-                               http_rule_id, group_name, tenant_id):
+                               http_rule_id, group_name, tenant_id, service_alias, g_id, region_id):
         ServiceDomain.objects.create(service_id=service_id, service_name=service_name, domain_name=domain_name,
                                      create_time=create_time,
                                      container_port=container_port, protocol=protocol, http_rule_id=http_rule_id,
-                                     group_name=group_name, tenant_id=tenant_id)
+                                     group_name=group_name, tenant_id=tenant_id, service_alias=service_alias, g_id=g_id,
+                                     region_id=region_id)
+
+    def delete_http_domains(self, http_rule_id):
+        ServiceDomain.objects.filter(http_rule_id=http_rule_id).delete()
 
 
 class ServiceExtendRepository(object):
@@ -361,6 +369,7 @@ class ServiceAuthRepository(object):
     def get_service_auth(self, service_id):
         return TenantServiceAuth.objects.filter(service_id=service_id)
 
+
 class ServiceAttachInfoRepository(object):
     def delete_service_attach(self, service_id):
         ServiceAttachInfo.objects.filter(service_id=service_id).delete()
@@ -386,14 +395,26 @@ class ServiceTcpDomainRepository(object):
         else:
             return None
 
-    def get_all_domain_count_by_tenant(self, tenant_id):
-        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id).count()
+    def get_service_tcp_domain_by_service_id_and_port(self, service_id, container_port):
 
-    def create_service_tcp_domains(self, service_id, service_name, end_point, create_time, container_port, protocol, service_alias, group_name, tcp_rule_id, tenant_id):
+        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port).first()
+        if tcp_domain:
+            return tcp_domain
+        else:
+            return None
+
+    def get_all_domain_count_by_tenant_and_region(self, tenant_id, region_id):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id).count()
+
+    def delete_tcp_domain(self, tcp_rule_id):
+        ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).delete()
+
+    def create_service_tcp_domains(self, service_id, service_name, end_point, create_time, container_port, protocol,
+                                   service_alias, group_name, tcp_rule_id, tenant_id, g_id, region_id):
         ServiceTcpDomain.objects.create(service_id=service_id, service_name=service_name, end_point=end_point,
                                      create_time=create_time, service_alias=service_alias,
                                      container_port=container_port, protocol=protocol, tcp_rule_id=tcp_rule_id,
-                                     group_name=group_name, tenant_id=tenant_id)
+                                     group_name=group_name, tenant_id=tenant_id, g_id=g_id, region_id=region_id)
 
     def get_tcpdomain_by_name_and_port(self, service_id, container_port, end_point):
         try:
@@ -406,7 +427,7 @@ class ServiceTcpDomainRepository(object):
         return ServiceTcpDomain.objects.create(**domain_info)
 
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
-        return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id)
+        return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
 
 
 tcp_domain = ServiceTcpDomainRepository()

@@ -1,15 +1,14 @@
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import AppServiceGroup, ServiceGroup, AppService, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
-    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
+from www.models import ServiceGroup, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
+    AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
     ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
     TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
-    PublishedGroupServiceRelation, Tenants
+    Tenants
 from www.monitorservice.monitorhook import MonitorHook
-from www.region import RegionInfo
-import random
+
+
 import logging
-import json
 from django.conf import settings
 
 from www.tenantservice.baseservice import BaseTenantService
@@ -19,6 +18,7 @@ logger = logging.getLogger('default')
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 region_api = RegionInvokeApi()
+
 
 class BackServiceInstall(object):
     def __init__(self):
@@ -52,19 +52,6 @@ class BackServiceInstall(object):
                 group = ServiceGroup.objects.create(tenant_id=self.tenant_id, region_name=self.region_name,
                                                     group_name=group_name)
                 return group.ID
-
-    def get_published_service_info(self, groupId):
-        result = []
-        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
-        for pgsr in pgsr_list:
-            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
-            if apps:
-                result.append(apps[0])
-            else:
-                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
-                if apps:
-                    result.append(apps[0])
-        return result
 
     def getServiceModel(self, app_service_list):
         published_service_list = []
@@ -150,145 +137,11 @@ class BackServiceInstall(object):
             baseService.create_service_dependency(self.tenant, service, dep_id, self.region_name)
         logger.info("create service info for service_id{0} ".format(service.service_id))
 
-    def copy_ports(self, source_service, current_service):
-        AppPorts = AppServicePort.objects.filter(service_key=current_service.service_key,
-                                                 app_version=current_service.version)
-        baseService = BaseTenantService()
-        for port in AppPorts:
-            baseService.addServicePort(current_service, source_service.is_init_accout,
-                                       container_port=port.container_port, protocol=port.protocol,
-                                       port_alias=port.port_alias,
-                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
-
-    def copy_envs(self, service_info, current_service):
-        s = current_service
-        baseService = BaseTenantService()
-        envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
-        outer_ports = AppServicePort.objects.filter(service_key=service_info.service_key,
-                                                    app_version=service_info.version,
-                                                    is_outer_service=True,
-                                                    protocol='http')
-        for env in envs:
-            if env.attr_name == 'SITE_URL':
-                if self.region_name in RegionInfo.valid_regions():
-                    port = RegionInfo.region_port(self.region_name)
-                    domain = RegionInfo.region_domain(self.region_name)
-                    env.options="direct_copy"
-                    if len(outer_ports)>0:
-                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias,self.tenant_name, domain, port)
-                    logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
-            elif env.attr_name == "TRUSTED_DOMAIN":
-                if self.region_name in RegionInfo.valid_regions():
-                    port = RegionInfo.region_port(self.region_name)
-                    domain = RegionInfo.region_domain(self.region_name)
-                    env.options = 'direct_copy'
-                    if len(outer_ports) > 0:
-                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias, self.tenant_name, domain, port)
-                    logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
-
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
-                                          env.attr_name, env.attr_value, env.is_change, env.scope)
-
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
                                                   app_version=source_service.version)
         for volume in volumes:
             baseService.add_volume_list(tenant_service, volume.volume_path)
-
-    def install_services(self, share_pk):
-        current_service_ids = []
-        group_id = None
-        current_services = []
-        url_map = {}
-        try:
-            app_service_groups = AppServiceGroup.objects.filter(ID=share_pk)
-            app_service_group = None
-            if app_service_groups:
-                app_service_group = app_service_groups[0]
-
-            if not app_service_group:
-                logger.debug("cannot find app_service_group for group_share_id {0}".format(share_pk))
-                return {"ok": False, "msg": "cannot find app_service_group"}
-            group_id = self.__get_group_id(app_service_group.group_share_alias)
-            # 查询分享组中的服务ID
-            app_service_list = self.get_published_service_info(app_service_group.ID)
-            published_service_list = self.getServiceModel(app_service_list)
-            sorted_service = self.sort_service(published_service_list)
-            # 先生成服务的service_id
-            key_id_map = {}
-            for service_info in sorted_service:
-                service_key = service_info.service_key
-                service_id = make_uuid(service_key)
-                current_service_ids.append(service_id)
-                key_id_map[service_key] = service_id
-            service_alias_list = []
-            for service_info in sorted_service:
-                logger.debug("service_info.service_key: {}".format(service_info.service_key))
-                service_id = key_id_map.get(service_info.service_key)
-                service_alias = "gr" + service_id[-6:]
-                # user_id为grdemo用户的id
-                newTenantService = baseService.create_service(service_id, self.tenant_id, service_alias,
-                                                              service_info.service_name,
-                                                              service_info,
-                                                              self.user_id, region=self.region_name)
-                # newTenantService.expired_time = self.tenant.expired_time
-                newTenantService.save()
-
-                if group_id > 0:
-                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
-                                                        tenant_id=self.tenant_id,
-                                                        region_name=self.region_name)
-                monitorhook.serviceMonitor(self.tenant_name, newTenantService, 'create_service', True)
-
-                # 创建服务依赖
-                logger.debug("===> create service dependency!")
-                self.create_dep_service(service_info, newTenantService, key_id_map)
-                # 环境变量
-                logger.debug("===> create service env!")
-                self.copy_envs(service_info, newTenantService)
-                # 端口信息
-                logger.debug("===> create service port!")
-                self.copy_ports(service_info, newTenantService)
-                # 持久化目录
-                logger.debug("===> create service volumn!")
-                self.copy_volumes(service_info, newTenantService)
-
-                dep_sids = []
-                tsrs = TenantServiceRelation.objects.filter(service_id=newTenantService.service_id)
-                for tsr in tsrs:
-                    dep_sids.append(tsr.dep_service_id)
-
-                baseService.create_region_service(newTenantService, self.tenant_name, self.region_name, self.nick_name,
-                                                  dep_sids=json.dumps(dep_sids))
-                monitorhook.serviceMonitor(self.nick_name, newTenantService, 'init_region_service', True)
-                service_alias_list.append(service_alias)
-                current_services.append(newTenantService)
-                url_map = self.get_service_access_url(newTenantService)
-
-
-            # url_map = self.getServicePreviewUrls(current_services)
-            logger.debug("===> url_map:{} ".format(url_map))
-            # 处理原来安装的服务
-            self.handleInstalledService(share_pk, group_id)
-
-        except Exception as e:
-            logger.exception(e)
-            try:
-                for service_alias in service_alias_list:
-
-                    region_api.delete_service(self.region_name, self.tenant_name, service_alias,self.tenant.enterprise_id)
-            except Exception as e:
-                logger.exception(e)
-                pass
-            TenantServiceInfo.objects.filter(tenant_id=self.tenant_id, service_id__in=current_service_ids).delete()
-            TenantServiceAuth.objects.filter(service_id__in=current_service_ids).delete()
-            ServiceDomain.objects.filter(service_id__in=current_service_ids).delete()
-            TenantServiceRelation.objects.filter(tenant_id=self.tenant_id, service_id__in=current_service_ids).delete()
-            TenantServiceEnvVar.objects.filter(tenant_id=self.tenant_id, service_id__in=current_service_ids).delete()
-            TenantServicesPort.objects.filter(tenant_id=self.tenant_id, service_id__in=current_service_ids).delete()
-            TenantServiceVolume.objects.filter(service_id__in=current_service_ids).delete()
-
-        return group_id, current_service_ids, url_map, self.region_name
 
     def get_service_access_url(self, service):
         wild_domain = settings.WILD_DOMAINS[self.region_name]

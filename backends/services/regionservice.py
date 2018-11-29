@@ -258,7 +258,7 @@ class RegionService(object):
         for region in region_list:
 
             region_tenant_num = TenantRegionInfo.objects.filter(region_name=region.region_name).count()
-            region_resource = {}
+            region_resource = dict()
             region_resource["region_id"] = region.region_id
             region_resource["region_alias"] = region.region_alias
             region_resource["region_name"] = region.region_name
@@ -298,7 +298,7 @@ class RegionService(object):
 
     def get_region_resource(self, region):
         http_client.update_client(region)
-        region_resource = {}
+        region_resource = dict()
         region_resource["disk"] = 0
         region_resource["net"] = 0
         region_resource["node_num"] = 0
@@ -375,7 +375,7 @@ class RegionService(object):
         region_config_list = []
         regions = RegionConfig.objects.filter(status='1')
         for region in regions:
-            config_map = {}
+            config_map = dict()
             config_map["region_name"] = region.region_name
             config_map["region_alias"] = region.region_alias
             config_map["url"] = region.url
@@ -406,13 +406,17 @@ class RegionService(object):
         if res["status"] >= 400:
             raise RegionAccessError("数据中心查询出错")
         app_list = body["list"]
-        for app_dict in reversed(app_list):
-            if not app_dict.get("ServiceName"):
-                app_list.remove(app_dict)
-        for app_dicts in app_list:
-            service_alias = app_dicts.get("ServiceName")
-            service = service_repo.get_service_by_service_alias(service_alias)
-            app_dicts["ServiceAlias"] = service.service_cname
+        if app_list:
+            for app_dict in reversed(app_list):
+                if not app_dict.get("ServiceName"):
+                    app_list.remove(app_dict)
+            for app_dicts in app_list:
+                service_alias = app_dicts.get("ServiceName")
+                service = service_repo.get_service_by_service_alias(service_alias)
+                if service:
+                    app_dicts["ServiceAlias"] = service.service_cname
+                else:
+                    app_dicts["ServiceAlias"] = service_alias
         return app_list
 
 

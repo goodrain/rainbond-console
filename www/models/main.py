@@ -387,17 +387,6 @@ service_category = ((u"应用", 'application'), (u"缓存", 'cache'), (u"存储"
 extend_method = ((u"不伸缩", 'stateless'), (u"垂直伸缩", 'vertical'))
 
 
-class ServiceExec(BaseModel):
-    """ 容器运行命令 """
-
-    class Meta:
-        db_table = 'service_exec'
-
-    tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
-    run_exec = models.CharField(max_length=2048, null=True, help_text=u"容器运行命令")
-
-
 class ServiceInfo(BaseModel):
     """ 服务发布表格 """
 
@@ -785,6 +774,7 @@ class ServiceDomain(BaseModel):
         db_table = 'service_domain'
 
     http_rule_id = models.CharField(max_length=128, unique=True, help_text=u"http_rule_id")
+    region_id = models.CharField(max_length=32, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
@@ -798,11 +788,13 @@ class ServiceDomain(BaseModel):
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
-    domain_path = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名path")
-    domain_cookie = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名cookie")
-    domain_heander = models.CharField(max_length=128, null=True, blank=True, help_text=u"域名heander")
+    domain_path = models.TextField(null=True, blank=True, help_text=u"域名path")
+    domain_cookie = models.TextField(null=True, blank=True, help_text=u"域名cookie")
+    domain_heander = models.TextField(null=True, blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(default=100, help_text=u"权重")
+    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
+    rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
 
     def __unicode__(self):
         return self.domain_name
@@ -1511,6 +1503,7 @@ class ServiceTcpDomain(BaseModel):
         db_table = 'service_tcp_domain'
 
     tcp_rule_id = models.CharField(max_length=128, unique=True, help_text=u"tcp_rule_id")
+    region_id = models.CharField(max_length=32, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
@@ -1523,4 +1516,8 @@ class ServiceTcpDomain(BaseModel):
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
+    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
+    rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
+
+
 

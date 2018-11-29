@@ -5,7 +5,6 @@ from api.views.services import SelectedServiceView, PublishServiceView, \
 from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, \
     GitCheckCodeView, \
     UpdateServiceExpireTime, ServiceEventUpdate,ServiceEventCodeVersionUpdate, ServiceStopView, SendMessageView,DeleteServiceView,GetDeletedServiceView
-from api.views.tenants import move
 from api.views.rules import *
 from api.views.base import LicenseView
 

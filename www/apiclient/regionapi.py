@@ -815,35 +815,58 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def bindDomain(self, region, tenant_name, body):
+    def bindDomain(self, region, tenant_name, service_alias, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains"
 
         self._set_headers(token)
         res, body = self._post(
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def updateDomain(self, region, tenant_name, body):
+    def unbindDomain(self, region, tenant_name, service_alias, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains/" + \
+              body["domain"]
+
+        self._set_headers(token)
+        res, body = self._delete(
+            url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def bind_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_http_domain(self, region, tenant_name, body):
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._put(
             url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def unbindDomain(self, region, tenant_name, body):
+    def delete_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._delete(
@@ -855,11 +878,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+        logger.debug('-------------------------------->{0}'.format(url))
+        logger.debug('-------------------------------->{0}'.format(body))
 
         self._set_headers(token)
         res, body = self._post(
             url, self.default_headers, json.dumps(body), region=region)
+        logger.debug('-------------------------------->{0}'.format(res))
+        logger.debug('-------------------------------->{0}'.format(body))
+
         return body
 
     def updateTcpDomain(self, region, tenant_name, body):
@@ -867,7 +895,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._put(
@@ -877,8 +905,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def unbindTcpDomain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_id + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._delete(
@@ -888,12 +915,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_port(self, region, tenant_name):
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "v2/port/avail-port"
+        url = url + "/v2/port/avail-port"
 
         self._set_headers(token)
-        res, body = self._delete(
+        res, body = self._get(
             url, self.default_headers, region=region)
-        return body
+        return res, body
 
     def pluginServiceRelation(self, region, tenant_name, service_alias, body):
 

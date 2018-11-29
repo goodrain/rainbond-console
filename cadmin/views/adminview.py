@@ -1,17 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
-import uuid
-import hashlib
-import datetime
-import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse, JsonResponse
+from django.http.response import JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
-from www.models import AppServiceImages
 from www.models.service_publish import AppServiceImages
 from www.views.base import CAdminView
 from goodrain_web.custom_config import custom_config as custom_settings
