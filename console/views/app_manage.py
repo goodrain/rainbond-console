@@ -18,10 +18,13 @@ from console.services.app_actions import event_service
 from console.services.app import app_service
 from console.services.team_services import team_services
 from console.repositories.app import service_repo
+from www.apiclient.regionapi import RegionInvokeApi
+
 
 logger = logging.getLogger("default")
 
 env_var_service = AppEnvVarService()
+region_api = RegionInvokeApi()
 
 
 class StartAppView(AppBaseView):
@@ -525,3 +528,38 @@ class AgainDelete(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class ChangeServiceTypeView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_extend')
+    def put(self ,request, *args, **kwargs):
+        """
+        修改服务的应用类型标签
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            extend_method = request.data.get("extend_method", None)
+            if not extend_method:
+                return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
+            if extend_method == self.service.extend_method:
+                return Response(general_message(400, "the application type remains unchanged", "应用类型未变化"), status=400)
+
+            body = dict()
+            body["label_values"] = "无状态的应用" if extend_method == "stateless" else "有状态的应用"
+            res, body = region_api.update_service_state_label(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                                  body)
+            if int(res.status) != 200:
+                result = general_message(500, "region faild", "数据中心请求失败")
+                return Response(result, status=500)
+            self.service.extend_method = extend_method
+            self.service.save()
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+

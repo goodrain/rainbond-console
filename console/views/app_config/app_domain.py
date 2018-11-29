@@ -666,14 +666,14 @@ class DomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service, g_id from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
                             tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
 
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
+                        "select domain_name, type, is_senior, certificate_id, group_name, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service, g_id from service_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
                             tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -705,6 +705,7 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["domain_heander"] = tenant_tuple[13]
                 domain_dict["the_weight"] = tenant_tuple[14]
                 domain_dict["is_outer_service"] = tenant_tuple[15]
+                domain_dict["group_id"] = int(tenant_tuple[16])
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
@@ -735,13 +736,13 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and end_point like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service, g_id from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and end_point like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
                             tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service from service_tcp_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
+                        "select end_point, type, protocol, group_name, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service, g_id from service_tcp_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(
                             tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
             except Exception as e:
@@ -763,6 +764,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 domain_dict["tcp_rule_id"] = tenant_tuple[7]
                 domain_dict["service_id"] = tenant_tuple[8]
                 domain_dict["is_outer_service"] = tenant_tuple[9]
+                domain_dict["group_id"] = int(tenant_tuple[10])
 
                 domain_list.append(domain_dict)
             bean = dict()

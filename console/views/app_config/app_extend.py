@@ -37,7 +37,7 @@ class AppExtendView(AppBaseView):
         try:
             node_list, memory_list = extend_service.get_app_extend_method(self.service)
             bean = {"node_list": node_list, "memory_list": memory_list, "current_node": self.service.min_node,
-                    "current_memory": self.service.min_memory}
+                    "current_memory": self.service.min_memory, "extend_method": self.service.extend_method}
             result = general_message(200, "success", "操作成功", bean=bean)
         except Exception as e:
             logger.exception(e)

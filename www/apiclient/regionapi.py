@@ -340,7 +340,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(
             url, self.default_headers, json.dumps(body), region=region)
-        return body
+        return res, body
 
     def get_service_pods(self, region, tenant_name, service_alias,
                          enterprise_id):
