@@ -250,6 +250,7 @@ class DomainService(object):
             data["certificate_id"] = certificate_info.certificate_id
         try:
             # 给数据中心传送数据绑定域名
+            logger.debug('---------------------------->{0}'.format(data))
             region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -279,7 +280,18 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
-        domain_info["rule_extensions"] = rule_extensions
+
+        rule_extensions_str = ""
+        if rule_extensions:
+            # 拼接字符串，存入数据库
+            for rule in rule_extensions:
+                last_index = len(rule_extensions) - 1
+                if last_index == rule_extensions.index(rule):
+                    rule_extensions_str += rule["key"] + ":" + rule["value"]
+                    continue
+                rule_extensions_str += rule["key"] + ":" +rule["value"] + ","
+
+        domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
@@ -293,6 +305,7 @@ class DomainService(object):
             for service_domain in servicer_domains:
                 service_domain.delete()
         domain_repo.add_service_domain(**domain_info)
+        domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
@@ -359,7 +372,16 @@ class DomainService(object):
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["g_id"] = str(g_id)
-        domain_info["rule_extensions"] = rule_extensions
+        rule_extensions_str = ""
+        if rule_extensions:
+            # 拼接字符串，存入数据库
+            for rule in rule_extensions:
+                last_index = len(rule_extensions) - 1
+                if last_index == rule_extensions.index(rule):
+                    rule_extensions_str += rule["key"] + ":" + rule["value"]
+                    continue
+                rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
+
         domain_info["region_id"] = region.region_id
 
         region = region_repo.get_region_by_region_name(service.service_region)
@@ -420,12 +442,24 @@ class DomainService(object):
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
-        domain_info["rule_extensions"] = rule_extensions
         domain_info["region_id"] = region.region_id
+
+        rule_extensions_str = ""
+        if rule_extensions:
+            # 拼接字符串，存入数据库
+            for rule in rule_extensions:
+                last_index = len(rule_extensions) - 1
+                if last_index == rule_extensions.index(rule):
+                    rule_extensions_str += rule["key"] + ":" + rule["value"]
+                    continue
+                rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
+
+        domain_info["rule_extensions"] = rule_extensions_str
 
         if int(end_point.split(":")[1]) != default_port:
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
+        domain_info.update({"rule_extensions": rule_extensions})
         return 200, u"success", domain_info
 
     def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
@@ -464,7 +498,16 @@ class DomainService(object):
         domain_info["end_point"] = end_point
         domain_info["type"] = type
         domain_info["g_id"] = str(g_id)
-        domain_info["rule_extensions"] = rule_extensions
+        rule_extensions_str = ""
+        if rule_extensions:
+            # 拼接字符串，存入数据库
+            for rule in rule_extensions:
+                last_index = len(rule_extensions) - 1
+                if last_index == rule_extensions.index(rule):
+                    rule_extensions_str += rule["key"] + ":" + rule["value"]
+                    continue
+                rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
+
         domain_info["region_id"] = region.region_id
 
         tcp_domain.add_service_tcpdomain(**domain_info)
