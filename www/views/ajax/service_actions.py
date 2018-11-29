@@ -13,7 +13,7 @@ from goodrain_web.decorator import method_perf_time
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.forms.services import EnvCheckForm
-from www.models import (ServiceInfo, AppService, TenantServiceInfo,
+from www.models import (ServiceInfo, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
@@ -29,8 +29,7 @@ from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 from www.utils.status_translate import get_status_info_map
 from www.views import AuthedView
-from console.views.team import UserAllTeamView
-from django.db.models import Q
+
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()

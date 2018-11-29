@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from api.views.base import APIView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv, \
-    ServiceEvent, AppService, TenantServiceInfoDelete, TenantServiceAuth, ServiceDomain, TenantServiceRelation, \
+    ServiceEvent, TenantServiceInfoDelete, TenantServiceAuth, ServiceDomain, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceMountRelation, TenantServicesPort, TenantServiceVolume, ServiceGroupRelation, \
     ServiceAttachInfo, ServiceCreateStep, ServiceProbe, ServicePaymentNotify
 from www.monitorservice.monitorhook import MonitorHook
@@ -25,6 +25,7 @@ logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
 region_api = RegionInvokeApi()
+
 
 class TenantServiceStaticsView(APIView):
     '''
@@ -835,11 +836,6 @@ class DeleteServiceView(APIView):
 
     def delete_service(self, tenant, service, user_name):
         try:
-            published = AppService.objects.filter(service_id=service.service_id).count()
-            if published:
-                logger.debug("api.services",
-                             "services has related published!".format(tenant.tenant_name, service.service_cname))
-                return 409, False, u"关联了已发布服务, 不可删除"
             # 删除服务
             # 备份删除数据
             data = service.toJSON()
