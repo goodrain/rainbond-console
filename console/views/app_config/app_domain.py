@@ -42,8 +42,8 @@ class TenantCertificateView(RegionTenantHeaderView):
               paramType: path
 
         """
-        page = int(request.GET.get("page_num",1))
-        page_size = int(request.GET.get("page_size",10))
+        page = int(request.GET.get("page_num", 1))
+        page_size = int(request.GET.get("page_size", 10))
         try:
             certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
             bean = {"nums": nums}
@@ -959,7 +959,9 @@ class GetPortView(RegionTenantHeaderView):
             bean["port"] = data["bean"]
             region = region_repo.get_region_by_region_name(self.response_region)
             ip = region.tcpdomain
-            bean["ip"] = ip
+            ip_list = list()
+            ip_list.append(ip)
+            bean["ip"] = ip_list
             result = general_message(200, "success", "可用端口查询成功", bean=bean)
             return Response(result, status=200)
         except Exception as e:

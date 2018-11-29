@@ -545,8 +545,6 @@ class ChangeServiceTypeView(AppBaseView):
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
-            if extend_method == self.service.extend_method:
-                return Response(general_message(400, "the application type remains unchanged", "应用类型未变化"), status=400)
 
             body = dict()
             body["label_values"] = "无状态的应用" if extend_method == "stateless" else "有状态的应用"

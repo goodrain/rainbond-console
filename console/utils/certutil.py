@@ -2,6 +2,7 @@
 from OpenSSL import crypto
 import time,datetime
 import os
+
 def analyze_cert(content):
     data = {}
     # path表示证书路径，file_name表示证书文件名

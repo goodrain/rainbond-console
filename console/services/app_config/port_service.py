@@ -214,7 +214,7 @@ class AppPortService(object):
             return code, msg, None
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
-            code, msg = self.__open_outer(tenant, service, region, deal_port, container_port)
+            code, msg = self.__open_outer(tenant, service, region, deal_port)
         elif action == "close_outer":
             code, msg = self.__close_outer(tenant, service, deal_port)
         elif action == "open_inner":
@@ -230,7 +230,7 @@ class AppPortService(object):
             return code, msg, None
         return 200, u"操作成功", new_port
 
-    def __open_outer(self, tenant, service, region, deal_port, container_port):
+    def __open_outer(self, tenant, service, region, deal_port):
         if deal_port.protocol != "http":
             if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
@@ -277,7 +277,7 @@ class AppPortService(object):
                     return 412, u"数据中心添加策略失败"
 
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, deal_port.container_port)
+            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
@@ -355,7 +355,7 @@ class AppPortService(object):
                     service_domain.is_outer_service = False
                     service_domain.save()
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id,
+            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
                                                                                            deal_port.container_port)
             # 改变tcpdomain表中状态
             if service_tcp_domains:
