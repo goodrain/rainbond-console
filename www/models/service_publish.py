@@ -110,21 +110,6 @@ class AppServiceShareInfo(BaseModel):
     is_change = models.BooleanField(default=False, help_text=u"是否可改变")
 
 
-class AppServiceExtend(BaseModel):
-    """发布服务的扩展信息"""
-    class Meta:
-        db_table = 'app_service_extend'
-
-    service_key = models.CharField(max_length=32, help_text=u"服务key")
-    app_version = models.CharField(max_length=20, help_text=u"当前最新版本")
-
-    url_site = models.CharField(max_length=200, help_text=u"官方url")
-    url_source = models.CharField(max_length=200, help_text=u"源码url")
-    url_demo = models.CharField(max_length=200, help_text=u"demo url")
-    url_feedback = models.CharField(max_length=200, help_text=u"反馈url")
-    release_note = models.CharField(max_length=200, help_text=u"更新说明")
-
-
 class AppServiceImages(BaseModel):
     class Meta:
         db_table = 'app_service_images'
