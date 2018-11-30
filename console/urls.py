@@ -10,12 +10,12 @@ from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamF
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
-    GetSeniorUrlView, HttpStrategyView
+    GetSeniorUrlView, HttpStrategyView, AppPortManageAndDeployView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView, AppPortManageAndDeployView
+from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
 from console.views.app_create.app_build import AppBuild, ComposeBuildView

@@ -983,6 +983,56 @@ class GetSeniorUrlView(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
+class AppPortManageAndDeployView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        策略中开启对外端口并自动重启
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            container_port = request.data.get("container_port", None)
+            service_id = request.data.get("service_id", None)
+            if not container_port or not service_id:
+                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+            service = service_repo.get_service_by_service_id(service_id)
+            if not service:
+                return Response(general_message(400, "not service", "服务不存在"), status=400)
+            # 开启对外端口并重启（开启事物）
+            with transaction.atomic():
+                # 开启保存点
+                save_id = transaction.savepoint()
+                try:
+                    tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                    # 开启对外端口
+                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
+                                                               int(tenant_service_port.container_port), "open_outer",
+                                                               tenant_service_port.protocol,
+                                                               tenant_service_port.port_alias)
+                    if code != 200:
+                        return Response(general_message(code, "change port fail", msg), status=code)
+                    # 重启
+                    code, msg, event = app_manage_service.restart(self.tenant, service, self.user)
+                    if code != 200:
+                        return Response(general_message(code, "restart app error", msg), status=code)
+                except Exception:
+                    # 回滚
+                    transaction.savepoint_rollback(save_id)
+                    raise
+                # 提交事物
+                transaction.savepoint_commit(save_id)
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+
 
 
 
