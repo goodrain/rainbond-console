@@ -40,6 +40,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 return Response(result, status=400)
             # github
             github_event = request.META.get("HTTP_X_GITHUB_EVENT", None)
+            logger.debug('------------------------------------------------------->{0}'.format(github_event))
             user_agent = request.META.get("HTTP_USER_AGENT", None)
             if user_agent:
                 user_agent = user_agent.split("/")[0]
