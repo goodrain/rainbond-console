@@ -12,14 +12,15 @@ image_name="rbd-app-ui"
 #else
 #    buildRelease=0.$git_commit
 #fi
-VERSION=$(git branch | grep '^*' | cut -d ' ' -f 2 | awk -F'V' '{print $2}')
+VERSION=master
 buildTime=$(date +%F-%H)
 
 function release(){
 
   echo "pull newest code..."
   git pull
-
+  echo "update static ui code..."
+  ./update.sh
   # get commit sha
   git_commit=$(git log -n 1 --pretty --format=%h)
 
