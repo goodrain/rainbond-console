@@ -43,19 +43,21 @@ class AppBuild(AppBaseView):
         """
         probe = None
         try:
+            is_deploy = request.data.get("is_deploy", True)
             # 数据中心创建应用
             new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
             self.service = new_service
             # 为服务添加默认探针
             if self.is_need_to_add_default_probe():
                 code, msg, probe = app_service.add_service_default_porbe(self.tenant, self.service)
-            # 添加服务有无状态标签
-            label_service.update_service_state_label(self.tenant, self.service)
-            # 部署应用
-            app_manage_service.deploy(self.tenant, self.service, self.user)
+            if is_deploy:
+                # 添加服务有无状态标签
+                label_service.update_service_state_label(self.tenant, self.service)
+                # 部署应用
+                app_manage_service.deploy(self.tenant, self.service, self.user)
 
-            # 添加应用部署关系
-            deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
+                # 添加应用部署关系
+                deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
             result = general_message(200, "success", "构建成功")
         except Exception as e:

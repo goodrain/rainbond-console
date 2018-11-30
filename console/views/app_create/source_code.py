@@ -220,7 +220,7 @@ class AppCompileEnvView(AppBaseView):
             update_params = {
                 "user_dependency": json.dumps(checkJson)
             }
-            compile_env = compile_env_service.update_service_compile_env(self.service,**update_params)
+            compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
             bean = dict()
             if compile_env:
                 check_dependency = json.loads(compile_env.check_dependency)
@@ -231,7 +231,7 @@ class AppCompileEnvView(AppBaseView):
                 bean["user_dependency"] = user_dependency
                 bean["service_id"] = compile_env.service_id
 
-            result = general_message(200,"success", "操作成功",bean=bean)
+            result = general_message(200, "success", "操作成功",bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

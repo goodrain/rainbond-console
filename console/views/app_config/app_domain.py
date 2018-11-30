@@ -815,7 +815,6 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
-            protocol = request.data.get("protocol", None)
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -862,7 +861,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                            protocol, group_name, default_port, g_id, rule_extensions)
+                                                            group_name, default_port, g_id, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)

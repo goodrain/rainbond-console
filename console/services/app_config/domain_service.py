@@ -13,6 +13,7 @@ from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
+from console.services.app_config import port_service
 
 
 region_api = RegionInvokeApi()
@@ -423,7 +424,7 @@ class DomainService(object):
         servicer_http_omain.delete()
         return 200, u"success"
 
-    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, protocol, group_name,
+    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
                        default_port, g_id, rule_extensions):
         tcp_rule_id = make_uuid(group_name)
         ip = end_point.split(":")[0]
@@ -452,7 +453,16 @@ class DomainService(object):
         domain_info["container_port"] = int(container_port)
         domain_info["group_name"] = group_name
         domain_info["tenant_id"] = tenant.tenant_id
-        domain_info["protocol"] = protocol
+        # 查询端口协议
+        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+        if tenant_service_port:
+            protocol = tenant_service_port.protocol
+        else:
+            protocol = ''
+        if protocol:
+            domain_info["protocol"] = protocol
+        else:
+            domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point
         domain_info["g_id"] = str(g_id)
         domain_info["region_id"] = region.region_id
@@ -475,7 +485,7 @@ class DomainService(object):
         domain_info.update({"rule_extensions": rule_extensions})
         return 200, u"success", domain_info
 
-    def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
+    def update_tcpdomain(self, tenant, service, end_point, container_port, group_name,
                          tcp_rule_id, protocol, type, g_id, rule_extensions):
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
