@@ -847,6 +847,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
+        logger.debug('------------------------------------>{0}'.format(body))
         res, body = self._post(
             url, self.default_headers, json.dumps(body), region=region)
         return body

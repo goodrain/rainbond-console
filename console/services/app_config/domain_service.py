@@ -159,22 +159,19 @@ class DomainService(object):
         if code != 200:
             return code, msg
         certificate_info = None
+        http_rule_id = make_uuid(domain_name)
         if protocol != self.HTTP:
             if not certificate_id:
                 return 400, u"证书不能为空"
 
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
         data = {}
-        data["uuid"] = make_uuid(domain_name)
-        data["domain_name"] = domain_name
-        data["service_alias"] = service.service_alias
+        data["domain"] = domain_name
+        data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id
-        data["tenant_name"] = tenant.tenant_name
-        data["service_port"] = int(container_port)
+        data["container_port"] = int(container_port)
         data["protocol"] = protocol
-        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        data["add_user"] = user.nick_name
-        data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = http_rule_id
         # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
@@ -195,7 +192,7 @@ class DomainService(object):
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = protocol
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["http_rule_id"] = make_uuid(domain_name)
+        domain_info["http_rule_id"] = http_rule_id
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
