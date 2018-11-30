@@ -155,7 +155,6 @@ class DomainService(object):
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
-        domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = protocol
