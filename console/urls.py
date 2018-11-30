@@ -10,7 +10,7 @@ from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamF
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
-    GetSeniorUrlView, HttpStrategyView, AppPortManageAndDeployView
+    GetSeniorUrlView, HttpStrategyView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
@@ -293,9 +293,6 @@ urlpatterns = patterns(
         AppPortView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$',
         AppPortManageView.as_view()),
-    # 一键开启对外端口和自动重启
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/deploy$',
-        AppPortManageAndDeployView.as_view()),
     # 对外访问tcp端口修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
         AppTcpOuterManageView.as_view()),
