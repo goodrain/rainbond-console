@@ -155,7 +155,7 @@ class DomainService(object):
         return True if domain else False
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         if code != 200:
             return code, msg
         certificate_info = None
