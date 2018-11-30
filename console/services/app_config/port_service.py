@@ -346,22 +346,21 @@ class AppPortService(object):
                                          {"operation": "close", "enterprise_id": tenant.enterprise_id})
 
         deal_port.save()
-        if deal_port.protocol == "http":
-            # 改变httpdomain表中端口状态
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
-            if service_domains:
-                for service_domain in service_domains:
-                    service_domain.is_outer_service = False
-                    service_domain.save()
-        else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                           deal_port.container_port)
-            # 改变tcpdomain表中状态
-            if service_tcp_domains:
-                for service_tcp_domain in service_tcp_domains:
-                    service_tcp_domain.is_outer_service = False
-                    service_tcp_domain.save()
+        # 改变httpdomain表中端口状态
+        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                           deal_port.container_port)
+        if service_domains:
+            for service_domain in service_domains:
+                service_domain.is_outer_service = False
+                service_domain.save()
+
+        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
+                                                                                       deal_port.container_port)
+        # 改变tcpdomain表中状态
+        if service_tcp_domains:
+            for service_tcp_domain in service_tcp_domains:
+                service_tcp_domain.is_outer_service = False
+                service_tcp_domain.save()
         return 200, "success"
 
     def __open_inner(self, tenant, service, deal_port):
