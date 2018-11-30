@@ -13,6 +13,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
 
 logger = logging.getLogger("default")
 
@@ -24,6 +26,7 @@ BUILD_KIND_MAP = {
     "build_from_market_image": "云市镜像构建",
     "build_from_market_slug": "云市slug包构建"
 }
+
 
 class AppVersionsView(AppBaseView):
     @never_cache
@@ -45,6 +48,8 @@ class AppVersionsView(AppBaseView):
               paramType: path
         """
         try:
+            page = request.GET.get("page", 1)
+            page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
 
@@ -69,12 +74,18 @@ class AppVersionsView(AppBaseView):
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
-
-            result = general_message(200, "success", "查询成功", list=res_versions)
+            paginator = Paginator(res_versions, page_size)
+            try:
+                result = paginator.page(page).object_list
+            except PageNotAnInteger:
+                result = paginator.page(1).object_list
+            except EmptyPage:
+                result = paginator.page(paginator.num_pages).object_list
+            result = general_message(200, "success", "查询成功", list=result, total=paginator.count)
+            return Response(result, status=result["code"])
         except Exception as e:
-            logger.exception(e)
             result = error_message(e.message)
-        return Response(result, status=result["code"])
+            return Response(result, status=500)
 
 
 class AppVersionManageView(AppBaseView):
