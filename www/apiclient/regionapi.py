@@ -67,7 +67,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise http.Http404
         return tenant_regions[0]
 
-
     def get_tenant_resources(self, region, tenant_name, enterprise_id):
         """获取指定租户的资源使用情况"""
 

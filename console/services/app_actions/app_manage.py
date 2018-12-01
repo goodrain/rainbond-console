@@ -406,7 +406,7 @@ class AppManageService(AppManageBase):
                 elif action == "move":
                     self.move(service, move_group_id)
                 elif action == "deploy":
-                    self.deploy(tenant, service, user)
+                    self.deploy(tenant, service, user, is_upgrade=True)
                 code = 200
                 msg = "success"
             except Exception as e:

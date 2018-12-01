@@ -155,7 +155,6 @@ class ServiceEventDynamic(object):
                     local_event.end_time = datetime.datetime.now()
                 local_event.save()
 
-
     def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()
         for event in events:

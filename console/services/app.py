@@ -393,13 +393,13 @@ class AppService(object):
         try:
             for port in ports:
                 if port.is_outer_service:
-                    code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_outer",
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_outer",
                                                                port.protocol,
                                                                port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
                 if port.is_inner_service:
-                    code, msg, data = port_service.manage_port(tenant, service, port.container_port, "open_inner",
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_inner",
                                                                port.protocol,
                                                                port.port_alias)
                     if code != 200:
