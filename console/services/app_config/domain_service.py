@@ -208,6 +208,7 @@ class DomainService(object):
 
     def unbind_domain(self, tenant, service, container_port, domain_name):
         servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+        logger.debug('-------------servicerDomain------------>{0}'.format(servicerDomain))
         if not servicerDomain:
             return 404, u"域名不存在"
         for servicer_domain in servicerDomain:
