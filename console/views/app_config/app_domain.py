@@ -296,9 +296,10 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
+            g_id = request.data.get("group_id", None)
 
             code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id, DomainType.WWW)
+                                                   protocol, certificate_id, DomainType.WWW, g_id)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 

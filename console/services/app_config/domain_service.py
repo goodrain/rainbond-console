@@ -13,6 +13,7 @@ from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
+from console.repositories.group import tenant_service_group_repo
 from console.services.app_config import port_service
 
 
@@ -154,7 +155,7 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type, g_id):
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         if code != 200:
             return code, msg
@@ -183,6 +184,7 @@ class DomainService(object):
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
 
         domain_info = dict()
+        region = region_repo.get_region_by_region_name(service.service_region)
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
@@ -193,6 +195,11 @@ class DomainService(object):
         domain_info["protocol"] = protocol
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["http_rule_id"] = http_rule_id
+        domain_info["type"] = 1
+        domain_info["service_alias"] = service.service_cname
+        domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["region_id"] = region.region_id
+        domain_info["g_id"] = str(g_id)
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
@@ -364,7 +371,6 @@ class DomainService(object):
         if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
         domain_info["protocol"] = "http"
-        domain_info["type"] = "http"
         if certificate_id:
             domain_info["protocol"] = "https"
         domain_info["http_rule_id"] = http_rule_id
