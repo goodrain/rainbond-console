@@ -555,7 +555,6 @@ class ChangeServiceTypeView(AppBaseView):
                 result = general_message(500, "region faild", "数据中心请求失败")
                 return Response(result, status=500)
             self.service.extend_method = extend_method
-            self.service.is_fix = True
             self.service.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:

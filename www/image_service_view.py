@@ -377,7 +377,6 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             region_api.update_service_state_label(self.response_region, self.tenantName, self.service.service_alias,
                                                   data)
             self.service.extend_method = service_status
-            self.service.is_fix = True
             self.service.save()
 
             # 发送build请求

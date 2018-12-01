@@ -453,7 +453,6 @@ class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             data["enterprise_id"] = self.tenant.enterprise_id
             region_api.update_service_state_label(self.response_region, self.tenantName, self.serviceAlias, body)
             newTenantService.extend_method = service_status
-            newTenantService.is_fix = True
             newTenantService.save()
 
             init_region = True

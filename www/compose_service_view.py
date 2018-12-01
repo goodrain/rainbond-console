@@ -496,7 +496,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     data["enterprise_id"] = self.tenant.enterprise_id
                     region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, data)
                     newTenantService.extend_method = service_status
-                    newTenantService.is_fix = True
                     newTenantService.save()
                     # 发送build请求
                     body = {}

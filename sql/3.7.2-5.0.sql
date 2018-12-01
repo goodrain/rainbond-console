@@ -70,15 +70,6 @@ ALTER TABLE service_tcp_domain ADD COLUMN `region_id` varchar(32) DEFAULT '';
 ALTER TABLE service_tcp_domain ADD COLUMN `is_outer_service` bool DEFAULT true NOT NULL;
 
 
--- tenant_service表中增加字段
-
-ALTER TABLE tenant_service ADD COLUMN `is_fix` bool DEFAULT false NOT NULL;
-
-
--- tenant_service_delete表中增加字段
-
-ALTER TABLE tenant_service_delete ADD COLUMN `is_fix` bool DEFAULT false NOT NULL;
-
 
 
 -- 修改service_domain_certificate
