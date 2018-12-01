@@ -9,4 +9,6 @@ git:
 script:
 - ./release.sh
 - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+- docker tag rainbond/rbd-app-ui:master rainbond/rbd-app-ui:5.0
 - docker push rainbond/rbd-app-ui:master
+- docker push rainbond/rbd-app-ui:5.0
