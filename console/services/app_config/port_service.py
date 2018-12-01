@@ -235,14 +235,24 @@ class AppPortService(object):
             if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
                 return 412, u"非http协议端口只能对外开放一个"
 
-        # 在domain表中保存数据
-        if deal_port.protocol == "http":
+        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+        if service_domains:
             # 改变httpdomain表中端口状态
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+            for service_domain in service_domains:
+                service_domain.is_outer_service = True
+                service_domain.save()
+        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
+                                                                                        deal_port.container_port)
+        # 改变tcpdomain表中状态
+        if service_tcp_domains:
+            for service_tcp_domain in service_tcp_domains:
+                service_tcp_domain.is_outer_service = True
+                service_tcp_domain.save()
+
+        if deal_port.protocol == "http":
+            # 在domain表中保存数据
             if service_domains:
-                for service_domain in service_domains:
-                    service_domain.is_outer_service = True
-                    service_domain.save()
+                pass
             else:
                 # 在service_domain表中保存数据
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
@@ -277,12 +287,8 @@ class AppPortService(object):
                     return 412, u"数据中心添加策略失败"
 
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, deal_port.container_port)
-            # 改变tcpdomain表中状态
             if service_tcp_domains:
-                for service_tcp_domain in service_tcp_domains:
-                    service_tcp_domain.is_outer_service = True
-                    service_tcp_domain.save()
+                pass
             else:
                 # ip+port
                 # 在service_tcp_domain表中保存数据
