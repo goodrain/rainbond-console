@@ -19,6 +19,7 @@ from console.services.app import app_service
 from console.services.team_services import team_services
 from console.repositories.app import service_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.app_config import volume_service
 
 
 logger = logging.getLogger("default")
@@ -546,7 +547,16 @@ class ChangeServiceTypeView(AppBaseView):
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
-
+            old_extend_method = self.service.extend_method
+            # 状态从有到无，并且有本地存储的不可修改
+            is_mnt_dir = 0
+            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
+            if tenant_service_volumes:
+                for tenant_service_volume in tenant_service_volumes:
+                    if tenant_service_volume.volume_type == "local":
+                        is_mnt_dir = 1
+            if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
+                return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
             body = dict()
             body["label_values"] = "无状态的应用" if extend_method == "stateless" else "有状态的应用"
             res, body = region_api.update_service_state_label(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
