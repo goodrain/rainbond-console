@@ -815,6 +815,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
+            default_ip = request.data.get("default_ip", None)
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -861,7 +862,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                            group_name, default_port, g_id, rule_extensions)
+                                                            group_name, default_port, g_id, rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -886,6 +887,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             type = request.data.get("type", None)
             g_id = request.data.get("group_id", None)
+            default_ip = request.data.get("default_ip", None)
 
             # 判断参数
             if not tcp_rule_id:
@@ -904,7 +906,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                     group_name, tcp_rule_id, protocol, type, g_id, rule_extensions)
+                                                     group_name, tcp_rule_id, protocol, type, g_id, rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)

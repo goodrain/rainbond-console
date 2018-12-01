@@ -422,14 +422,15 @@ class DomainService(object):
         return 200, u"success"
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
-                       default_port, g_id, rule_extensions):
+                       default_port, g_id, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(group_name)
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
@@ -483,13 +484,14 @@ class DomainService(object):
         return 200, u"success", domain_info
 
     def update_tcpdomain(self, tenant, service, end_point, container_port, group_name,
-                         tcp_rule_id, protocol, type, g_id, rule_extensions):
+                         tcp_rule_id, protocol, type, g_id, rule_extensions, default_ip):
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
