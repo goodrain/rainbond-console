@@ -71,7 +71,8 @@ class RegionService(object):
                         "team_region_name": region.region_name,
                         "region_scope": regionconfig.scope,
                         "region_create_time": regionconfig.create_time,
-                        "websocket_uri": regionconfig.wsurl
+                        "websocket_uri": regionconfig.wsurl,
+                        "tcpdomain": regionconfig.tcpdomain
                     }
                     region_name_list.append(region_info)
             return region_name_list
