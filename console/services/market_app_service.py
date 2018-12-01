@@ -309,7 +309,7 @@ class MarketAppService(object):
     def __deploy_services(self, tenant, user, service_list):
         for service in service_list:
             try:
-                app_manage_service.deploy(tenant, service, user)
+                app_manage_service.deploy(tenant, service, user, is_upgrade=True)
             except Exception as e:
                 logger.exception("batch deploy service error {0}".format(e))
                 continue

@@ -212,15 +212,15 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user, committer_name=None):
+    def deploy(self, tenant, service, user, is_upgrade, committer_name=None):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
         if code != 200:
             return code, msg, event
 
-        body = {}
-        if not service.deploy_version:
-            body["action"] = "deploy"
-        else:
+        body = dict()
+        # 默认更新升级
+        body["action"] = "deploy"
+        if is_upgrade:
             body["action"] = "upgrade"
 
         service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
