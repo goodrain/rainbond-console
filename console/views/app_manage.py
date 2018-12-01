@@ -534,7 +534,7 @@ class AgainDelete(RegionTenantHeaderView):
 class ChangeServiceTypeView(AppBaseView):
     @never_cache
     @perm_required('manage_service_extend')
-    def put(self ,request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         修改服务的应用类型标签
         :param request:
@@ -555,6 +555,7 @@ class ChangeServiceTypeView(AppBaseView):
                 result = general_message(500, "region faild", "数据中心请求失败")
                 return Response(result, status=500)
             self.service.extend_method = extend_method
+            self.service.is_fix = True
             self.service.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:
