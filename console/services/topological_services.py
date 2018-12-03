@@ -91,7 +91,7 @@ class TopologicalService(object):
                 tmp_info_relation = []
                 if tmp_info.service_id in json_svg.keys():
                     tmp_info_relation = json_svg.get(tmp_info.service_id)
-                tmp_info_relation.append(tmp_dep_info.service_cname)
+                tmp_info_relation.append(tmp_dep_info.service_id)
                 json_svg[tmp_info.service_id] = tmp_info_relation
 
         topological_info["json_data"] = json_data
