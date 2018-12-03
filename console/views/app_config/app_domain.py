@@ -132,7 +132,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('certificate_managementg')
+    @perm_required('certificate_management')
     def put(self, request, *args, **kwargs):
         """
         修改证书
