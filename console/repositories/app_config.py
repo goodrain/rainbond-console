@@ -276,7 +276,8 @@ class ServiceDomainRepository(object):
 
     def get_tenant_certificate_page(self, tenant_id,start,end,region_name):
         """提供指定位置和数量的数据"""
-        region_id = RegionConfig.objects.get(region_name=region_name).region_id
+        region_id = RegionConfig.objects.filter(region_name=region_name).first().region_id
+
         cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id,region_id=region_id)
         nums = cert.count() #证书数量
         # if end > nums - 1:
