@@ -177,7 +177,7 @@ class DomainService(object):
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
@@ -261,7 +261,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -358,7 +358,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -411,7 +411,7 @@ class DomainService(object):
                 region.region_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
         domain_repo.add_service_domain(**domain_info)
-        return 200, u"success"
+        return 200, u"success", domain_info
 
     def unbind_httpdomain(self, tenant, service, http_rule_id):
         servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)

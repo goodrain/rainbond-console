@@ -74,7 +74,6 @@ class ServiceEventDynamic(object):
 
         return event_list
 
-
     def get_services_events(self, page, page_size, create_time, status, team):
 
         query = Q()

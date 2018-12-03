@@ -510,7 +510,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
             # 编辑域名
-            code, msg = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
+            code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions)
 
