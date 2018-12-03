@@ -306,7 +306,7 @@ class DomainService(object):
                 if last_index == rule_extensions.index(rule):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
-                rule_extensions_str += rule["key"] + ":" +rule["value"] + ","
+                rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
 
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
