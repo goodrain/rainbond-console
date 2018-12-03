@@ -557,6 +557,7 @@ class TenantServiceInfo(BaseModel):
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
+    label_id = models.CharField(max_length=32, help_text=u"标签id")
 
     def __unicode__(self):
         return self.service_alias
@@ -684,6 +685,7 @@ class TenantServiceInfoDelete(BaseModel):
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
+    label_id = models.CharField(max_length=32, help_text=u"标签id")
 
 
 class TenantServiceLog(BaseModel):

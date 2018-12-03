@@ -2,6 +2,7 @@
 """
   Created on 18/1/15.
 """
+import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -10,7 +11,8 @@ from console.services.app_config.env_service import AppEnvVarService
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from django.forms.models import model_to_dict
-import logging
+from backends.services.labelservice import label_service
+
 
 logger = logging.getLogger("default")
 
@@ -246,3 +248,40 @@ class AppEnvManageView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# 应用特性设置（打标签）
+class AppFeaturesView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    # 获取当前服务组件的标签
+    def get(self, request, *args, **kwargs):
+        try:
+            service_labels = label_service.get_label_by_node_id(self.service.label_id)
+            all_labels = label_service.get_all_labels()
+            all_labels_list = list()
+            if all_labels:
+                for label in all_labels:
+                    label_dict = dict()
+                    label_dict["label_id"] = label.label_id
+                    label_dict["label_name"] = label.label_name
+                    label_dict["label_alias"] = label.label_alias
+                    all_labels_list.append(label_dict)
+            service_labels_list = list()
+            if service_labels:
+                for service_label in service_labels:
+                    label_dict = dict()
+                    label_dict["label_id"] = service_label.label_id
+                    label_dict["label_name"] = service_label.label_name
+                    label_dict["label_alias"] = service_label.label_alias
+                    service_labels_list.append(label_dict)
+            bean = {
+                "service_labels": service_labels_list,
+                "all_labels": all_labels_list
+            }
+            result = general_message(200, "success", u"查询成功", bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+

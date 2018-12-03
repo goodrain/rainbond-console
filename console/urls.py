@@ -11,7 +11,7 @@ from console.views.app_config.app_dependency import AppDependencyView, AppDepend
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
     GetSeniorUrlView, HttpStrategyView
-from console.views.app_config.app_env import AppEnvView, AppEnvManageView
+from console.views.app_config.app_env import AppEnvView, AppEnvManageView, AppFeaturesView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
@@ -288,6 +288,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<attr_name>[\w\-]+)$',
         AppEnvManageView.as_view()),
+    # 应用特性设置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/features$', AppFeaturesView.as_view()),
     # 端口配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$',
         AppPortView.as_view()),

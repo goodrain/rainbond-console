@@ -82,4 +82,12 @@ ALTER TABLE service_domain_certificate ADD COLUMN `region_id` varchar(64) DEFAUL
 drop table service_exec
 
 
+-- tenant_service表中增加字段
+
+ALTER TABLE tenant_service ADD COLUMN `label_id` varchar(32) DEFAULT '';
+
+-- tenant_service_delete表中增加字段
+
+ALTER TABLE tenant_service_delete ADD COLUMN `label_id` varchar(32) DEFAULT '';
+
 
