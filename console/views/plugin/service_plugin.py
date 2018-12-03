@@ -127,7 +127,7 @@ class ServicePluginInstallView(AppBaseView):
 
                 if e.message["body"].has_key("msg"):
                     if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
-                        result = general_message(409, "install plugin fail", "插件不能重复安装")
+                        result = general_message(409, "install plugin fail", "网络类插件不能重复安装")
             else:
                 result = general_message(500, e.message, "插件安装失败")
         return Response(result, status=result["code"])
