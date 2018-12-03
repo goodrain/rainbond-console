@@ -333,8 +333,6 @@ class AppManageService(AppManageBase):
 
         body = dict()
 
-        service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        service.save()
         event.deploy_version = service.deploy_version
         event.save()
 
