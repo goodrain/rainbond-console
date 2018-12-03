@@ -23,11 +23,11 @@ logger = logging.getLogger("default")
 class DomainService(object):
     HTTP = "http"
 
-    def get_certificate(self, tenant, page, page_size):
+    def get_certificate(self, tenant, page, page_size,region_name):
         end = page_size * page - 1 # 一页数据的开始索引
         start = end - page_size + 1 # 一页数据的结束索引
         print(start, end)
-        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end)
+        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end,region_name)
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)

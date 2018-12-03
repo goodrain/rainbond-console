@@ -79,6 +79,7 @@ ALTER TABLE service_tcp_domain ADD COLUMN `is_outer_service` bool DEFAULT true N
 
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_id` varchar(256) DEFAULT '' NOT NULL;
 ALTER TABLE service_domain_certificate ADD COLUMN `certificate_type` varchar(64) DEFAULT '' NOT NULL;
+ALTER TABLE service_domain_certificate ADD COLUMN `region_id` varchar(64) DEFAULT '' NOT NULL;
 
 -- 删除数据库表
 drop table service_exec

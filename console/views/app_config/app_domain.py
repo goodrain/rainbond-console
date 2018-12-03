@@ -45,7 +45,8 @@ class TenantCertificateView(RegionTenantHeaderView):
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         try:
-            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
+            region_name = self.response_region
+            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size,region_name)
             bean = {"nums": nums}
             result = general_message(200, "success", "查询成功", list=certificates,bean=bean)
         except Exception as e:

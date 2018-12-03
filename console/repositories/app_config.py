@@ -9,6 +9,7 @@ from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
     TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep
+from backends.models import RegionConfig
 from django.db.models import Q
 
 
@@ -266,9 +267,10 @@ class ServiceDomainRepository(object):
     def get_tenant_certificate(self, tenant_id):
         return ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
 
-    def get_tenant_certificate_page(self, tenant_id,start,end):
+    def get_tenant_certificate_page(self, tenant_id,start,end,region_name):
         """提供指定位置和数量的数据"""
-        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
+        region_id = RegionConfig.objects.get(region_name=region_name)
+        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id,region_id=region_id)
         nums = cert.count() #证书数量
         # if end > nums - 1:
         #     end =nums - 1
