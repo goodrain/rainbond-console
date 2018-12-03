@@ -518,7 +518,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/upgrade"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def check_service_status(self, region, tenant_name, service_alias,

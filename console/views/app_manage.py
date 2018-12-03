@@ -572,3 +572,32 @@ class ChangeServiceTypeView(AppBaseView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+
+# 更新服务组件
+class UpgradeAppView(AppBaseView):
+    @never_cache
+    @perm_required('deploy_service')
+    def post(self, request, *args, **kwargs):
+        """
+        更新
+        """
+        try:
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
+            if not allow_create:
+                return Response(general_message(412, "resource is not enough", "资源不足，无法更新"))
+            code, msg, event = app_manage_service.upgrade(self.tenant, self.service, self.user)
+            bean = {}
+            if event:
+                bean = event.to_dict()
+                bean["type_cn"] = event_service.translate_event_type(event.type)
+            if code != 200:
+                return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
+            result = general_message(code, "success", "操作成功", bean=bean)
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
