@@ -276,7 +276,7 @@ class AppPodsView(AppBaseView):
                             continue
                         if key != self.service.service_id:
                             continue
-                        container_dict = {}
+                        container_dict = dict()
                         container_dict["container_name"] = key
                         memory_limit = float(val["memory_limit"]) / 1024 / 1024
                         memory_usage = float(val["memory_usage"]) / 1024 / 1024
