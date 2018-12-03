@@ -404,8 +404,6 @@ function goodrainData2scopeData(data = {}) {
   scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
   scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
 
-  console.log("newData",newData);
-  console.log("scopeData",scopeData);
   return scopeData;
 }
 
@@ -461,6 +459,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
       success: (res) => {
         if (res.code === 200) {
           const scopeData = goodrainData2scopeData(res.data.bean);
+          console.log("scopeData回来数据",scopeData)
           dispatch(receiveNodesDelta(scopeData));
         }
       },
