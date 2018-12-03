@@ -267,6 +267,7 @@ class AppPodsView(AppBaseView):
                 for d in data["list"]:
                     bean = dict()
                     bean["pod_name"] = d["pod_name"]
+                    bean["pod_status"] = d["pod_status"]
                     bean["manage_name"] = "manager"
                     container = d["container"]
                     container_list = []
@@ -275,7 +276,7 @@ class AppPodsView(AppBaseView):
                             continue
                         if key != self.service.service_id:
                             continue
-                        container_dict = {}
+                        container_dict = dict()
                         container_dict["container_name"] = key
                         memory_limit = float(val["memory_limit"]) / 1024 / 1024
                         memory_usage = float(val["memory_usage"]) / 1024 / 1024

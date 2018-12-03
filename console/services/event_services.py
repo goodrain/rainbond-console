@@ -74,7 +74,6 @@ class ServiceEventDynamic(object):
 
         return event_list
 
-
     def get_services_events(self, page, page_size, create_time, status, team):
 
         query = Q()
@@ -154,7 +153,6 @@ class ServiceEventDynamic(object):
                 else:
                     local_event.end_time = datetime.datetime.now()
                 local_event.save()
-
 
     def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()

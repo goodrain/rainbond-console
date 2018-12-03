@@ -133,7 +133,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('certificate_managementg')
+    @perm_required('certificate_management')
     def put(self, request, *args, **kwargs):
         """
         修改证书
@@ -297,11 +297,22 @@ class ServiceDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
+            rule_extensions = request.data.get("rule_extensions", None)
+            g_id = request.data.get("group_id", None)
 
             code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id, DomainType.WWW)
+                                                   protocol, certificate_id, DomainType.WWW, g_id, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
+            # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
+            if protocol == "httpandhttps":
+                certificate_id = 0
+                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
+                                                       container_port,
+                                                       protocol, certificate_id, DomainType.WWW, g_id,
+                                                       rule_extensions)
+                if code != 200:
+                    return Response(general_message(code, "bind domain error", msg), status=code)
 
             result = general_message(200, "success", "域名绑定成功")
         except Exception as e:
@@ -392,7 +403,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
-            protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
             group_name = request.data.get("group_name", None)
@@ -411,8 +421,23 @@ class HttpStrategyView(RegionTenantHeaderView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
+            # 判断域名格式(如果用户添加的域名与默认域名后缀一致，那么他后缀必须是 "租户别名.默认后缀"
+            #
+            # 比如默认域名后缀是:37e53f.grapps.cn  这个值来自于region_info  http_domain
+            # 那么如果它绑定 xxx.37e53f.grapps.cn是不允许的，只能绑定：
+            # xxx.yaufe6r5.37e53f.grapps.cn
+            #
+            # 此限制是防止租户之间盗用域名。)
+            region = region_repo.get_region_by_region_name(service.service_region)
+            if domain_name.endswith(region.httpdomain):
+                domain_name_spt = domain_name.split(region.httpdomain)
+                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
+                    return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
+            protocol = "http"
+            if certificate_id:
+                protocol = "https"
             # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
@@ -486,7 +511,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
             # 编辑域名
-            code, msg = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
+            code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
                                                    domain_cookie, domain_heander, http_rule_id, the_weight, g_id, rule_extensions)
 
@@ -816,6 +841,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             default_port = request.data.get("default_port", None)
             g_id = request.data.get("group_id", None)
+            default_ip = request.data.get("default_ip", None)
 
             if not container_port or not group_name or not service_id or not end_point:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -862,7 +888,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                            group_name, default_port, g_id, rule_extensions)
+                                                            group_name, default_port, g_id, rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -887,6 +913,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             rule_extensions = request.data.get("rule_extensions", None)
             type = request.data.get("type", None)
             g_id = request.data.get("group_id", None)
+            default_ip = request.data.get("default_ip", None)
 
             # 判断参数
             if not tcp_rule_id:
@@ -905,7 +932,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                     group_name, tcp_rule_id, protocol, type, g_id, rule_extensions)
+                                                     group_name, tcp_rule_id, protocol, type, g_id, rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)

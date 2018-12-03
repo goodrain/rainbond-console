@@ -266,7 +266,7 @@ class AppPortManageView(AppBaseView):
                                                        protocol, port_alias)
             if code != 200:
                 return Response(general_message(code, "change port fail", msg), status=code)
-            result = general_message(200, "success", "操作成功,重启生效", bean=model_to_dict(data))
+            result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

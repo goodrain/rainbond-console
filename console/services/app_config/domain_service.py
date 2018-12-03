@@ -13,6 +13,7 @@ from console.constants import DomainType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
+from console.repositories.group import tenant_service_group_repo
 from console.services.app_config import port_service
 
 
@@ -154,38 +155,35 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type):
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type)
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type, g_id, rule_extensions):
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         if code != 200:
             return code, msg
         certificate_info = None
-        if protocol != self.HTTP:
-            if not certificate_id:
-                return 400, u"证书不能为空"
-
+        http_rule_id = make_uuid(domain_name)
+        if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
         data = {}
-        data["uuid"] = make_uuid(domain_name)
-        data["domain_name"] = domain_name
-        data["service_alias"] = service.service_alias
+        data["domain"] = domain_name
+        data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id
-        data["tenant_name"] = tenant.tenant_name
-        data["service_port"] = int(container_port)
+        data["container_port"] = int(container_port)
         data["protocol"] = protocol
-        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        data["add_user"] = user.nick_name
-        data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = http_rule_id
         # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
         data["certificate_name"] = ""
+        if rule_extensions:
+            data["rule_extensions"] = rule_extensions
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
 
         domain_info = dict()
+        region = region_repo.get_region_by_region_name(service.service_region)
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
@@ -193,29 +191,38 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info["protocol"] = protocol
+        domain_info["protocol"] = "http"
+        if certificate_id:
+            domain_info["protocol"] = "https"
+        if rule_extensions:
+            domain_info["rule_extensions"] = rule_extensions
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["http_rule_id"] = make_uuid(domain_name)
+        domain_info["http_rule_id"] = http_rule_id
+        domain_info["type"] = 1
+        domain_info["service_alias"] = service.service_cname
+        domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["region_id"] = region.region_id
+        domain_info["g_id"] = str(g_id)
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
     def unbind_domain(self, tenant, service, container_port, domain_name):
         servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+        logger.debug('-------------servicerDomain------------>{0}'.format(servicerDomain))
         if not servicerDomain:
             return 404, u"域名不存在"
-        data = {}
-        data["service_id"] = servicerDomain.service_id
-        data["domain"] = servicerDomain.domain_name
-        data["pool_name"] = tenant.tenant_name + "@" + service.service_alias + ".Pool"
-        data["container_port"] = int(container_port)
-        data["enterprise_id"] = tenant.enterprise_id
-        data["http_rule_id"] = servicerDomain.http_rule_id
-        try:
-            region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
-        except region_api.CallApiError as e:
-            if e.status != 404:
-                raise e
-        servicerDomain.delete()
+        for servicer_domain in servicerDomain:
+            data = {}
+            data["service_id"] = servicer_domain.service_id
+            data["domain"] = servicer_domain.domain_name
+            data["container_port"] = int(container_port)
+            data["http_rule_id"] = servicer_domain.http_rule_id
+            try:
+                region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise e
+            servicer_domain.delete()
         return 200, u"success"
 
     def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
@@ -243,7 +250,7 @@ class DomainService(object):
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
-        data["heander"] = domain_heander if domain_heander else None
+        data["header"] = domain_heander if domain_heander else None
         data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
@@ -254,7 +261,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -299,7 +306,7 @@ class DomainService(object):
                 if last_index == rule_extensions.index(rule):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
-                rule_extensions_str += rule["key"] + ":" +rule["value"] + ","
+                rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
 
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
@@ -340,7 +347,7 @@ class DomainService(object):
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
-        data["heander"] = domain_heander if domain_heander else None
+        data["header"] = domain_heander if domain_heander else None
         data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
@@ -351,7 +358,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = certificate_info.certificate
+            data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -367,7 +374,6 @@ class DomainService(object):
         if domain_path and domain_path != "/":
             domain_info["is_senior"] = True
         domain_info["protocol"] = "http"
-        domain_info["type"] = "http"
         if certificate_id:
             domain_info["protocol"] = "https"
         domain_info["http_rule_id"] = http_rule_id
@@ -405,7 +411,7 @@ class DomainService(object):
                 region.region_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
         domain_repo.add_service_domain(**domain_info)
-        return 200, u"success"
+        return 200, u"success", domain_info
 
     def unbind_httpdomain(self, tenant, service, http_rule_id):
         servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
@@ -425,14 +431,15 @@ class DomainService(object):
         return 200, u"success"
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
-                       default_port, g_id, rule_extensions):
+                       default_port, g_id, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(group_name)
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
@@ -486,13 +493,14 @@ class DomainService(object):
         return 200, u"success", domain_info
 
     def update_tcpdomain(self, tenant, service, end_point, container_port, group_name,
-                         tcp_rule_id, protocol, type, g_id, rule_extensions):
+                         tcp_rule_id, protocol, type, g_id, rule_extensions, default_ip):
         ip = end_point.split(":")[0]
         port = end_point.split(":")[1]
         data = {}
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:

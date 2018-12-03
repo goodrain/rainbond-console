@@ -133,7 +133,7 @@ class AppManageService(AppManageBase):
             return code, msg, event
 
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["deploy_version"] = service.deploy_version
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
@@ -160,7 +160,7 @@ class AppManageService(AppManageBase):
             return code, msg, event
 
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
@@ -189,7 +189,7 @@ class AppManageService(AppManageBase):
             return code, msg, event
 
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
@@ -212,15 +212,15 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user, committer_name=None):
+    def deploy(self, tenant, service, user, is_upgrade, committer_name=None):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
         if code != 200:
             return code, msg, event
 
-        body = {}
-        if not service.deploy_version:
-            body["action"] = "deploy"
-        else:
+        body = dict()
+        # 默认更新升级
+        body["action"] = "deploy"
+        if is_upgrade:
             body["action"] = "upgrade"
 
         service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -265,7 +265,7 @@ class AppManageService(AppManageBase):
                                     share_slug_path = app.get("share_slug_path", None)
                                     new_extend_info = {}
                                     if share_image:
-                                        if app.get("service_image",None):
+                                        if app.get("service_image", None):
                                             body["image_url"] = share_image
                                             body["user"] = app.get("service_image").get("hub_user")
                                             body["password"] = app.get("service_image").get("hub_password")
@@ -318,11 +318,36 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             if event:
-                event.message = u"应用部署失败".format(e.message)
+                event.message = u"应用构建失败".format(e.message)
                 event.final_status = "complete"
                 event.status = "failure"
                 event.save()
-            return 507, "部署异常", event
+            return 507, "构建异常", event
+
+        return 200, "操作成功", event
+
+    def upgrade(self, tenant, service, user, committer_name=None):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
+        if code != 200:
+            return code, msg, event
+
+        body = dict()
+
+        event.deploy_version = service.deploy_version
+        event.save()
+
+        body["deploy_version"] = service.deploy_version
+        body["event_id"] = event.event_id
+        try:
+            region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            if event:
+                event.message = u"应用更新失败".format(e.message)
+                event.final_status = "complete"
+                event.status = "failure"
+                event.save()
+            return 507, "更新异常", event
 
         return 200, "操作成功", event
 
@@ -406,7 +431,7 @@ class AppManageService(AppManageBase):
                 elif action == "move":
                     self.move(service, move_group_id)
                 elif action == "deploy":
-                    self.deploy(tenant, service, user)
+                    self.deploy(tenant, service, user, is_upgrade=True)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -639,7 +664,7 @@ class AppManageService(AppManageBase):
         recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
             for recycle_relation in recycle_relations:
-                task = {}
+                task = dict()
                 task["dep_service_id"] = recycle_relation.dep_service_id
                 task["tenant_id"] = tenant.tenant_id
                 task["dep_service_type"] = "v"

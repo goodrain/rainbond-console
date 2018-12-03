@@ -67,7 +67,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise http.Http404
         return tenant_regions[0]
 
-
     def get_tenant_resources(self, region, tenant_name, enterprise_id):
         """获取指定租户的资源使用情况"""
 
@@ -519,7 +518,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/upgrade"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body, region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def check_service_status(self, region, tenant_name, service_alias,
@@ -847,6 +846,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
+        logger.debug('------------------------------------>{0}'.format(body))
         res, body = self._post(
             url, self.default_headers, json.dumps(body), region=region)
         return body

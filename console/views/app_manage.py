@@ -19,6 +19,7 @@ from console.services.app import app_service
 from console.services.team_services import team_services
 from console.repositories.app import service_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.app_config import volume_service
 
 
 logger = logging.getLogger("default")
@@ -161,10 +162,11 @@ class DeployAppView(AppBaseView):
 
         """
         try:
+            is_upgrade = request.data.get("is_upgrade", True)
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-            code, msg, event = app_manage_service.deploy(self.tenant, self.service, self.user)
+            code, msg, event = app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -533,7 +535,7 @@ class AgainDelete(RegionTenantHeaderView):
 class ChangeServiceTypeView(AppBaseView):
     @never_cache
     @perm_required('manage_service_extend')
-    def put(self ,request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         修改服务的应用类型标签
         :param request:
@@ -545,7 +547,16 @@ class ChangeServiceTypeView(AppBaseView):
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
-
+            old_extend_method = self.service.extend_method
+            # 状态从有到无，并且有本地存储的不可修改
+            is_mnt_dir = 0
+            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
+            if tenant_service_volumes:
+                for tenant_service_volume in tenant_service_volumes:
+                    if tenant_service_volume.volume_type == "local":
+                        is_mnt_dir = 1
+            if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
+                return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
             body = dict()
             body["label_values"] = "无状态的应用" if extend_method == "stateless" else "有状态的应用"
             res, body = region_api.update_service_state_label(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
@@ -556,6 +567,35 @@ class ChangeServiceTypeView(AppBaseView):
             self.service.extend_method = extend_method
             self.service.save()
             result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+# 更新服务组件
+class UpgradeAppView(AppBaseView):
+    @never_cache
+    @perm_required('deploy_service')
+    def post(self, request, *args, **kwargs):
+        """
+        更新
+        """
+        try:
+            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
+            if not allow_create:
+                return Response(general_message(412, "resource is not enough", "资源不足，无法更新"))
+            code, msg, event = app_manage_service.upgrade(self.tenant, self.service, self.user)
+            bean = {}
+            if event:
+                bean = event.to_dict()
+                bean["type_cn"] = event_service.translate_event_type(event.type)
+            if code != 200:
+                return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
+            result = general_message(code, "success", "操作成功", bean=bean)
+        except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

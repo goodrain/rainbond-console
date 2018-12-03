@@ -211,7 +211,7 @@ class UserService(object):
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新部署"""
-        code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, committer_name)
+        code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, committer_name, is_upgrade=True)
         bean = {}
         if event:
             bean = event.to_dict()

@@ -365,38 +365,45 @@ function goodrainData2scopeData(data = {}) {
   }
 
   var scopeDataAdd = add
-  scopeData.add = null
-  console.log("newDatanewDatanewDatanewData",newData);
+  scopeData.add = null;
+  scopeData.remove = null;
+  scopeData.update = null;
+
   if (newData === "") { scopeData.add = scopeDataAdd }
 
   if (newData != "" && newData !== scopeDataAdd) {
     const newAdjacency = newData[0].adjacency;
     const scopeAdjacency = scopeDataAdd[0].adjacency;
+    scopeData.remove = []
+    scopeData.update = []
+
     //remove
     for (let i = 0; i < newAdjacency.length; i++) {
       if (scopeAdjacency.indexOf(newAdjacency[i]) < 0) {
-        scopeData.remove = []
         scopeData.remove.push(newAdjacency[i])
       }
     }
 
+
     for (let i = 0; i < newData.length; i++) {
       for (let k = 0; k < scopeDataAdd.length; k++) {
-        //update
-        if (newData[i].adjacency !== scopeDataAdd[k].adjacency || newData[i].cur_status !== scopeDataAdd[k].cur_status) {
-          scopeData.update = []
-          scopeData.update.push(scopeDataAdd[k])
-        }
         //add
-        if ((newData[i].length !== scopeDataAdd[k].length) || scopeData.remove !== null) {
+        if ((newData.length !== scopeDataAdd.length) || scopeData.remove.length > 0) {
           scopeData.add = scopeDataAdd
         }
+        //update
+        if ( (newData[i].adjacency !== scopeDataAdd[k].adjacency) || (newData[i].cur_status !== scopeDataAdd[k].cur_status)) {
+          scopeData.update=scopeDataAdd
+        }
+
       }
     }
   }
 
-console.log("scopeDatascopeDatascopeData",scopeData)
   newData = scopeData.add == null ? newData : scopeData.add
+  scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
+  scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
+
   return scopeData;
 }
 
@@ -452,7 +459,8 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
       success: (res) => {
         if (res.code === 200) {
           const scopeData = goodrainData2scopeData(res.data.bean);
-          dispatch(receiveNodesDelta(scopeData));
+          console.log("scopeData回来数据",scopeData)
+      dispatch(receiveNodesDelta(scopeData));
         }
       },
       error: () => {
@@ -575,8 +583,8 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
 
 
     //调试用数据
-    // var res = {"service_cname": "dev-goodrain-app", "total_memory": 128, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "deploy_version": "20170704174434", "replicas": 1, "service_alias": "dev-goodrain-app", "cur_status": "running", 
-    // "port_list": {"5000": {"is_outer_service": true, "is_inner_service": false, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "port_alias": "APPLICATION", "container_port": 5000, "mapping_port": 0, "protocol": "http", "tenant_id": "b7584c080ad24fafaa812a7739174b50", "outer_url": "dev-goodrain-app.goodrain.ali-sh.goodrain.net:10080", "ID": 9436}}, 
+    // var res = {"service_cname": "dev-goodrain-app", "total_memory": 128, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "deploy_version": "20170704174434", "replicas": 1, "service_alias": "dev-goodrain-app", "cur_status": "running",
+    // "port_list": {"5000": {"is_outer_service": true, "is_inner_service": false, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "port_alias": "APPLICATION", "container_port": 5000, "mapping_port": 0, "protocol": "http", "tenant_id": "b7584c080ad24fafaa812a7739174b50", "outer_url": "dev-goodrain-app.goodrain.ali-sh.goodrain.net:10080", "ID": 9436}},
     // "relation_list": {
     //   "36fbdf6b3b6dfaef716d04f4bfe06363": [{"mapping_port": 9204, "service_cname": "\u65e5\u5fd7\u5206\u67902", "service_alias": "bbb"}, {"mapping_port": 9304, "service_cname": "\u65e5\u5fd7\u5206\u67902", "service_alias": "gre06363"}], "e1a0c13176acf2b1374370bfc6c5d2e8": [{"mapping_port": 3307, "service_cname": "user_mysql", "service_alias": "bbb"}], "689a72457cecfa981e89f08aa4b3b277": [{"mapping_port": 5004, "service_cname": "zyq-debug", "service_alias": "zyq-debug"}], "90dfd8b86e2c7c94b4432abcf4dc0e3c": [{"mapping_port": 11212, "service_cname": "user_cache", "service_alias": "bbb"}], "dcbf56bb7a906ba1260ee7e9241f11d8": [{"mapping_port": 6383, "service_cname": "discourse-redis", "service_alias": "bbb"}]}, "container_cpu": 40, "tenant_id": "b7584c080ad24fafaa812a7739174b50", "pod_list": [{"pod_ip": "192.168.0.103", "phase": "Running", "pod_name": "345528949c9a806a5b41b02929186814-a0000", "node_name": "10.0.4.17"}], "container_memory": 256, "service_region": "ali-sh", "status": 200}
     // res.id = obj.id;

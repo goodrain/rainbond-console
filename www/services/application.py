@@ -797,7 +797,7 @@ class ApplicationGroupService(object):
 
         try:
             for s in sorted_services:
-                app_manage_service.deploy(tenant, s, user)
+                app_manage_service.deploy(tenant, s, user, is_upgrade=True)
         except Exception as deploy_error:
             logger.exception(deploy_error)
 
