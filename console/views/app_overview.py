@@ -267,6 +267,7 @@ class AppPodsView(AppBaseView):
                 for d in data["list"]:
                     bean = dict()
                     bean["pod_name"] = d["pod_name"]
+                    bean["pod_status"] = d["pod_status"]
                     bean["manage_name"] = "manager"
                     container = d["container"]
                     container_list = []
