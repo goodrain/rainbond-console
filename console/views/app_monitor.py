@@ -171,14 +171,15 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
             pod_info_list = pods_info["list"]
             ip_service_map = {}
             all_ips = []
-            for pod_info in pod_info_list:
-                pod_ip = pod_info["PodIP"]
-                service_id = pod_info["ServiceID"]
-                service = id_service_map.get(service_id, None)
-                no_dot_ip = pod_ip.replace(".", "")
-                if service:
-                    ip_service_map[no_dot_ip] = service
-                all_ips.append(no_dot_ip)
+            if pod_info_list:
+                for pod_info in pod_info_list:
+                    pod_ip = pod_info["PodIP"]
+                    service_id = pod_info["ServiceID"]
+                    service = id_service_map.get(service_id, None)
+                    no_dot_ip = pod_ip.replace(".", "")
+                    if service:
+                        ip_service_map[no_dot_ip] = service
+                    all_ips.append(no_dot_ip)
             response_time, throughput_rate = self.get_query_statements(service_id_list, all_ips)
             try:
                 res, response_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
