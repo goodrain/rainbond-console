@@ -277,14 +277,14 @@ class ServiceDomainRepository(object):
     def get_tenant_certificate_page(self, tenant_id,start,end,region_name):
         """提供指定位置和数量的数据"""
         region_id = RegionConfig.objects.filter(region_name=region_name).first().region_id
-
+        import logging
         cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id,region_id=region_id)
         nums = cert.count() #证书数量
         # if end > nums - 1:
         #     end =nums - 1
         # if start <= nums - 1:
 
-        part_cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)[start:end+1]
+        part_cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id,region_id=region_id)[start:end+1]
         return part_cert,nums
 
     def get_certificate_by_alias(self, tenant_id, alias):
@@ -303,6 +303,7 @@ class ServiceDomainRepository(object):
             return None
 
     def add_certificate(self, tenant_id, alias, certificate_id,certificate, private_key,certificate_type,region_name):
+        region_id = RegionConfig.objects.filter(region_name=region_name).first().region_id
         service_domain_certificate = dict()
         service_domain_certificate["tenant_id"] = tenant_id
         service_domain_certificate["certificate_id"] = certificate_id
@@ -310,7 +311,7 @@ class ServiceDomainRepository(object):
         service_domain_certificate["private_key"] = private_key
         service_domain_certificate["alias"] = alias
         service_domain_certificate["certificate_type"] = certificate_type
-        service_domain_certificate["region_name"] = region_name
+        service_domain_certificate["region_id"] = region_id
         service_domain_certificate["create_time"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         certificate_info = ServiceDomainCertificate(**service_domain_certificate)
