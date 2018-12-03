@@ -250,7 +250,7 @@ class DomainService(object):
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
-        data["heander"] = domain_heander if domain_heander else None
+        data["header"] = domain_heander if domain_heander else None
         data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
@@ -347,7 +347,7 @@ class DomainService(object):
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
         data["cookie"] = domain_cookie if domain_cookie else None
-        data["heander"] = domain_heander if domain_heander else None
+        data["header"] = domain_heander if domain_heander else None
         data["weight"] = int(the_weight)
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
