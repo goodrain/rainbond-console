@@ -53,10 +53,11 @@ class LabelService(object):
             service_labels.append(service_label)
 
         if service.create_status == "complete":
-            label_dict = dict()
-            label_dict["label_key"] = "node-selector"
-            label_dict["label_value"] = label_map
-            labels_list.append(label_dict)
+            for label_name in label_map:
+                label_dict = dict()
+                label_dict["label_key"] = "node-selector"
+                label_dict["label_value"] = label_name
+                labels_list.append(label_dict)
         body["labels"] = labels_list
         try:
             region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)

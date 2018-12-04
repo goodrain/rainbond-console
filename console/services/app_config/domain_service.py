@@ -118,10 +118,6 @@ class DomainService(object):
             return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
         if len(domain_name) > 256:
             return 400, u"域名过长"
-        if domain_type == DomainType.WWW:
-            is_domain_conflict, conflict_domain = self.__is_domain_conflict(domain_name, team_name)
-            if is_domain_conflict:
-                return 409, u"域名中不能该域名{0}".format(conflict_domain)
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)

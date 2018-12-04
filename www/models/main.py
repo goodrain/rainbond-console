@@ -794,7 +794,7 @@ class ServiceDomain(BaseModel):
     domain_cookie = models.TextField(null=True, blank=True, help_text=u"域名cookie")
     domain_heander = models.TextField(null=True, blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
-    the_weight = models.IntegerField(default=100, help_text=u"权重")
+    the_weight = models.IntegerField(default=1, help_text=u"权重")
     g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
     rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")

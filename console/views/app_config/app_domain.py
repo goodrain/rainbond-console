@@ -510,6 +510,19 @@ class HttpStrategyView(RegionTenantHeaderView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
+            # 判断域名格式(如果用户添加的域名与默认域名后缀一致，那么他后缀必须是 "租户别名.默认后缀"
+            #
+            # 比如默认域名后缀是:37e53f.grapps.cn  这个值来自于region_info  http_domain
+            # 那么如果它绑定 xxx.37e53f.grapps.cn是不允许的，只能绑定：
+            # xxx.yaufe6r5.37e53f.grapps.cn
+            #
+            # 此限制是防止租户之间盗用域名。)
+            region = region_repo.get_region_by_region_name(service.service_region)
+            if domain_name.endswith(region.httpdomain):
+                domain_name_spt = domain_name.split(region.httpdomain)
+                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
+                    return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
+
             # 编辑域名
             code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
                                                    certificate_id, DomainType.WWW, group_name, domain_path,
