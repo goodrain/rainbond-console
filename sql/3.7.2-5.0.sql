@@ -81,5 +81,13 @@ ALTER TABLE service_domain_certificate ADD COLUMN `certificate_type` varchar(64)
 drop table service_exec
 
 
+-- tenant_service表中增加字段
+
+ALTER TABLE tenant_service ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
+
+-- tenant_service_delete表中增加字段
+
+ALTER TABLE tenant_service_delete ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
+
 
 

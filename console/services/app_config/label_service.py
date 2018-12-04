@@ -39,8 +39,10 @@ class LabelService(object):
 
     def add_service_labels(self, tenant, service, label_ids):
         labels = label_repo.get_labels_by_label_ids(label_ids)
-        label_map = {l.label_id: l.label_name for l in labels}
-        service_labels = []
+        labels_list = list()
+
+        label_map = [l.label_name for l in labels]
+        service_labels = list()
         for label_id in label_ids:
             service_label = ServiceLabels(
                 tenant_id=tenant.tenant_id,
@@ -50,18 +52,18 @@ class LabelService(object):
             )
             service_labels.append(service_label)
 
-        label_name_list = []
-        for label_id in label_ids:
-            label_name = label_map.get(label_id, None)
-            if label_name:
-                label_name_list.append(label_name)
-
         if service.create_status == "complete":
-            body = dict()
-            body["label_values"] = label_name_list
-            body["enterprise_id"] = tenant.enterprise_id
+            if "win" in label_map:
+                label_win = dict()
+                label_win["label_key"] = "node-affinity"
+                label_win["label_value"] = "win"
+                labels_list.append(label_win)
+            label_dict = dict()
+            label_dict["label_key"] = "service"
+            label_dict["label_value"] = label_map
+            labels_list.append(label_dict)
             try:
-                region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
+                region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, labels_list)
                 ServiceLabels.objects.bulk_create(service_labels)
             except region_api.CallApiError as e:
                 logger.exception(e)

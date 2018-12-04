@@ -3,6 +3,7 @@
   Created on 18/1/15.
 """
 import logging
+import datetime
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -12,6 +13,8 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.label_repo import label_repo
+from www.utils.crypt import make_uuid
+from www.models.label import Labels
 
 
 logger = logging.getLogger("default")
@@ -137,11 +140,24 @@ class AppLabelAvailableView(AppBaseView):
         """
         try:
             labels = label_repo.get_all_labels()
-            label_list = list()
             if labels:
-                for label in labels:
-                    label_dict = label.to_dict()
-                    label_list.append(label_dict)
+                labels_name_list = [label.label_name for label in labels]
+                if "win" not in labels_name_list:
+                    label_id = make_uuid("win")
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    label = Labels(label_id=label_id, label_name="win", label_alias="win", create_time=create_time)
+                    label.save()
+            else:
+                label_id = make_uuid("win")
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                label = Labels(label_id=label_id, label_name="win", label_alias="win", create_time=create_time)
+                label.save()
+            label_list = list()
+            new_labels = label_repo.get_all_labels()
+
+            for label in new_labels:
+                label_dict = label.to_dict()
+                label_list.append(label_dict)
             result = general_message(200, "success", "查询成功", list=label_list)
         except Exception as e:
             logger.exception(e)

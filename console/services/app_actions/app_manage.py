@@ -220,9 +220,10 @@ class AppManageService(AppManageBase):
         body = dict()
         # 默认更新升级
         body["action"] = "deploy"
+        service.build_upgrade = False
         if is_upgrade:
             body["action"] = "upgrade"
-
+            service.build_upgrade = True
         service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         service.save()
         event.deploy_version = service.deploy_version
