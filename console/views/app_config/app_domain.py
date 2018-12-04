@@ -351,9 +351,10 @@ class ServiceDomainView(AppBaseView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
+            is_tcp = request.data.get("is_tcp", False)
             if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name)
+            code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "域名解绑成功")

@@ -415,7 +415,6 @@ class ServiceTcpDomainRepository(object):
 
         return ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port)
 
-
     def get_all_domain_count_by_tenant_and_region(self, tenant_id, region_id):
         return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id).count()
 
