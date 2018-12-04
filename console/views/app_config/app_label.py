@@ -11,6 +11,8 @@ from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
+from console.repositories.label_repo import label_repo
+
 
 logger = logging.getLogger("default")
 
@@ -119,4 +121,31 @@ class AppLabelView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# 添加特性获取可用标签
+class AppLabelAvailableView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        添加特性获取可用标签
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            labels = label_repo.get_all_labels()
+            label_list = list()
+            if labels:
+                for label in labels:
+                    label_dict = label.to_dict()
+                    label_list.append(label_dict)
+            result = general_message(200, "success", "查询成功", list=label_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 

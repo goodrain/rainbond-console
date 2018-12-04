@@ -13,7 +13,7 @@ from console.views.app_config.app_domain import TenantCertificateView, TenantCer
     GetSeniorUrlView, HttpStrategyView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
-from console.views.app_config.app_label import AppLabelView
+from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
 from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView
 from console.views.app_config.app_probe import AppProbeView
@@ -379,6 +379,8 @@ urlpatterns = patterns(
         BatchAppMonitorQueryView.as_view()),
     # 服务标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
+    # 添加特性获取可用标签
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$', AppLabelAvailableView.as_view()),
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view()),
     # 获取当前可用全部数据中心
