@@ -15,6 +15,9 @@ class ServiceLabelsReporsitory(object):
     def delete_service_all_labels(self, service_id):
         ServiceLabels.objects.filter(service_id=service_id).delete()
 
+    def get_service_label(self, label_id):
+        return ServiceLabels.objects.filter(label_id=label_id).first()
+
 
 class NodeLabelsReporsitory(object):
     def get_node_label_by_region(self, region_id):
