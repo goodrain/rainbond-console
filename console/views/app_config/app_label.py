@@ -69,7 +69,9 @@ class AppLabelView(AppBaseView):
         """
         result = {}
         try:
-            label_ids = request.data
+            label_ids = request.data.get("label_ids", None)
+            if not label_ids:
+                return Response(general_message(400, "param error", "标签ID未指定"), status=400)
 
             code, msg, event = label_service.add_service_labels(self.tenant, self.service, label_ids)
             if code != 200:
