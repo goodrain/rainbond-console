@@ -401,16 +401,19 @@ class DomainService(object):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
-
+        domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
 
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
                 tenant.tenant_name) + "." + str(
-                region.region_name) + "." + str(region.httpdomain):
+            region.region_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
         domain_repo.add_service_domain(**domain_info)
+        domain_info.update({"rule_extensions": rule_extensions})
+        if certificate_info:
+            domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
     def unbind_httpdomain(self, tenant, service, http_rule_id):
