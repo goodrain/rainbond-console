@@ -40,7 +40,7 @@ class LabelService(object):
     def add_service_labels(self, tenant, service, label_ids):
         labels = label_repo.get_labels_by_label_ids(label_ids)
         labels_list = list()
-
+        body = dict()
         label_map = [l.label_name for l in labels]
         service_labels = list()
         for label_id in label_ids:
@@ -53,21 +53,17 @@ class LabelService(object):
             service_labels.append(service_label)
 
         if service.create_status == "complete":
-            if "windows" in label_map:
-                label_win = dict()
-                label_win["label_key"] = "node-selector"
-                label_win["label_value"] = "windows"
-                labels_list.append(label_win)
             label_dict = dict()
             label_dict["label_key"] = "node-selector"
             label_dict["label_value"] = label_map
             labels_list.append(label_dict)
-            try:
-                region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, labels_list)
-                ServiceLabels.objects.bulk_create(service_labels)
-            except region_api.CallApiError as e:
-                logger.exception(e)
-                return 507, u"服务异常", None
+        body["labels"] = labels_list
+        try:
+            region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
+            ServiceLabels.objects.bulk_create(service_labels)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            return 507, u"服务异常", None
 
         return 200, u"操作成功", None
 
@@ -78,8 +74,8 @@ class LabelService(object):
             return 404, u"指定标签不存在", None
         body = dict()
         # 服务标签删除
-        body["label_values"] = [label.label_name]
-        body["enterprise_id"] = tenant.enterprise_id
+        body["label_key"] = "node-selector"
+        body["label_value"] = label.label_name
         try:
             region_api.deleteServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias,
                                               body)

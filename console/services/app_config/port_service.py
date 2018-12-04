@@ -261,7 +261,7 @@ class AppPortService(object):
                 service_name = service.service_alias
                 group_name = group_obj.group_name
                 container_port = deal_port.container_port
-                domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(region.region_name) + "." + str(region.httpdomain)
+                domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain)
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)

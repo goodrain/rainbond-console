@@ -325,8 +325,7 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
-        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
-            region.region_name) + "." + str(region.httpdomain):
+        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
 
         # 先删除原有domain,再保存
@@ -420,8 +419,7 @@ class DomainService(object):
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
-                tenant.tenant_name) + "." + str(
-            region.region_name) + "." + str(region.httpdomain):
+                tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})

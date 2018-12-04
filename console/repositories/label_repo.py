@@ -39,6 +39,9 @@ class LabelsReporsitory(object):
         labels = Labels.objects.all()
         return labels
 
+    def get_labels_by_label_name(self, label_name):
+        return Labels.objects.filter(label_name=label_name).first()
+
 
 service_label_repo = ServiceLabelsReporsitory()
 label_repo = LabelsReporsitory()

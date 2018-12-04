@@ -154,7 +154,7 @@ class AppLabelAvailableView(AppBaseView):
                 label.save()
             # 节点添加的标签和windows标签才可被服务使用
             node_labels = node_label_repo.get_all_labels()
-            labels_name_list = list()
+            labels_list = list()
             if node_labels:
                 node_labels_id_list = [label.label_id for label in node_labels]
                 label_obj_list = label_repo.get_labels_by_label_ids(node_labels_id_list)
@@ -163,11 +163,19 @@ class AppLabelAvailableView(AppBaseView):
                     labels_name_list.append("windows")
                 service_labels = service_label_repo.get_service_labels(self.service.service_id)
                 if service_labels:
-                    service_labels_name_list = [label.label_name for label in service_labels]
+                    service_labels_id_list = [label.label_id for label in service_labels]
+                    label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
+                    service_labels_name_list = [label.label_name for label in label_obj_list]
                     for service_labels_name in service_labels_name_list:
                         if service_labels_name in labels_name_list:
                             labels_name_list.remove(service_labels_name)
-            result = general_message(200, "success", "查询成功", list=labels_name_list)
+                for labels_name in labels_name_list:
+                    label_dict = dict()
+                    label_oj = label_repo.get_labels_by_label_name(labels_name)
+                    label_dict["label_id"] = label_oj.label_id
+                    label_dict["label_alias"] = label_oj.label_alias
+                    labels_list.append(label_dict)
+            result = general_message(200, "success", "查询成功", list=labels_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
