@@ -53,13 +53,13 @@ class LabelService(object):
             service_labels.append(service_label)
 
         if service.create_status == "complete":
-            if "win" in label_map:
+            if "windows" in label_map:
                 label_win = dict()
-                label_win["label_key"] = "node-affinity"
-                label_win["label_value"] = "win"
+                label_win["label_key"] = "node-selector"
+                label_win["label_value"] = "windows"
                 labels_list.append(label_win)
             label_dict = dict()
-            label_dict["label_key"] = "service"
+            label_dict["label_key"] = "node-selector"
             label_dict["label_value"] = label_map
             labels_list.append(label_dict)
             try:
@@ -94,6 +94,7 @@ class LabelService(object):
         service_status = service.extend_method
         body = {}
         # made ...
-        body["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
+        body["label_key"] = "service-type"
+        body["label_value"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
         region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, body)
         return 200, u"success"

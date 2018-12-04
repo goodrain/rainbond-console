@@ -508,6 +508,7 @@ class AppPortService(object):
             for p in http_outer_port:
                 port_dict = p.to_dict()
                 port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
+                logger.debug('------------------port_dict["access_urls"]---------------0000{0}'.format(port_dict["access_urls"]))
                 port_dict["service_cname"] = service.service_cname
                 port_info_list.append(port_dict)
             return access_type, port_info_list
@@ -595,19 +596,19 @@ class AppPortService(object):
         return env_list
 
     def __get_port_access_url(self, tenant, service, port):
-        domain = region_services.get_region_httpdomain(service.service_region)
-        suf_port = 80
-        if domain:
-            if ":" in domain:
-                domain_split = domain.split(":")
-                if len(domain_split) == 2:
-                    suf_port = int(domain_split[1])
-                    domain = str(domain_split[0])
-
-            url = "http://{0}.{1}.{2}.{3}:{4}".format(port, service.service_alias, tenant.tenant_name,
-                                                     domain,
-                                                      suf_port)
-        urls = [url]
+        # domain = region_services.get_region_httpdomain(service.service_region)
+        # suf_port = 80
+        # if domain:
+        #     if ":" in domain:
+        #         domain_split = domain.split(":")
+        #         if len(domain_split) == 2:
+        #             suf_port = int(domain_split[1])
+        #             domain = str(domain_split[0])
+        #
+        #     url = "http://{0}.{1}.{2}.{3}:{4}".format(port, service.service_alias, tenant.tenant_name,
+        #                                              domain,
+        #                                               suf_port)
+        urls = []
         domains = domain_repo.get_service_domain_by_container_port(service.service_id, port)
         if domains:
             for d in domains:

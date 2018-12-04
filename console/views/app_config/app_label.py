@@ -12,7 +12,7 @@ from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
-from console.repositories.label_repo import label_repo
+from console.repositories.label_repo import label_repo, node_label_repo, service_label_repo
 from www.utils.crypt import make_uuid
 from www.models.label import Labels
 
@@ -142,23 +142,32 @@ class AppLabelAvailableView(AppBaseView):
             labels = label_repo.get_all_labels()
             if labels:
                 labels_name_list = [label.label_name for label in labels]
-                if "win" not in labels_name_list:
-                    label_id = make_uuid("win")
+                if "windows" not in labels_name_list:
+                    label_id = make_uuid("windows")
                     create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    label = Labels(label_id=label_id, label_name="win", label_alias="win", create_time=create_time)
+                    label = Labels(label_id=label_id, label_name="windows", label_alias="windows", create_time=create_time)
                     label.save()
             else:
-                label_id = make_uuid("win")
+                label_id = make_uuid("windows")
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                label = Labels(label_id=label_id, label_name="win", label_alias="win", create_time=create_time)
+                label = Labels(label_id=label_id, label_name="windows", label_alias="windows", create_time=create_time)
                 label.save()
-            label_list = list()
-            new_labels = label_repo.get_all_labels()
-
-            for label in new_labels:
-                label_dict = label.to_dict()
-                label_list.append(label_dict)
-            result = general_message(200, "success", "查询成功", list=label_list)
+            # 节点添加的标签和windows标签才可被服务使用
+            node_labels = node_label_repo.get_all_labels()
+            labels_name_list = list()
+            if node_labels:
+                node_labels_id_list = [label.label_id for label in node_labels]
+                label_obj_list = label_repo.get_labels_by_label_ids(node_labels_id_list)
+                labels_name_list = [label.label_name for label in label_obj_list]
+                if "windows" not in labels_name_list:
+                    labels_name_list.append("windows")
+                service_labels = service_label_repo.get_service_labels(self.service.service_id)
+                if service_labels:
+                    service_labels_name_list = [label.label_name for label in service_labels]
+                    for service_labels_name in service_labels_name_list:
+                        if service_labels_name in labels_name_list:
+                            labels_name_list.remove(service_labels_name)
+            result = general_message(200, "success", "查询成功", list=labels_name_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

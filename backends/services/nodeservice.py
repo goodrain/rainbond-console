@@ -384,6 +384,9 @@ class NodeService(object):
                                             node_uuid=node_uuid,
                                             label_id=label_id)
                     node_labels.append(node_label)
+                labels_map["rainbond_node_lable_{0}".format(k)] = labels_map.pop(k)
+                labels_map["rainbond_node_lable_{0}".format(k)] = "true"
+        logger.debug('-------------------labels_map----------------->{0}'.format(labels_map))
         res, body = self.http_client.update_node_labels(region, node_uuid, json.dumps(labels_map))
         NodeLabels.objects.filter(region_id=region_id, node_uuid=node_uuid).delete()
         NodeLabels.objects.bulk_create(node_labels)

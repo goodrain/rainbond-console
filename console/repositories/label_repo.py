@@ -20,6 +20,10 @@ class NodeLabelsReporsitory(object):
     def get_node_label_by_region(self, region_id):
         return NodeLabels.objects.filter(region_id=region_id)
 
+    def get_all_labels(self):
+        labels = NodeLabels.objects.all()
+        return labels
+
 
 class LabelsReporsitory(object):
     def get_labels_by_label_ids(self, label_ids):
