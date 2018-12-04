@@ -132,7 +132,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             service = group_service_relation_repo.get_service_by_group(group_id)
             group_object = group_repo.get_group_by_id(group_id)
             if group_object.is_default:
-                result = general_message(400, "默认组不允许删除", None)
+                result = general_message(400, "默认应用不允许删除", None)
                 return Response(result, status=result["code"])
             if not service:
                 code, msg, data = group_service.delete_group_no_service(group_id)

@@ -143,6 +143,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
         """
         group_id = kwargs.get("group_id", None)
+        logger.debug('---------group_id---------->{0}'.format(group_id))
         result_list = []
         try:
             """
@@ -158,10 +159,12 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                 return Response(general_message(400, "group id is none", "请指明要查询的组名称"), status=400)
             prefix = "?query="
             services = group_service.get_group_services(group_id)
+
             service_id_list = []
             id_service_map = {}
             id_name_map = {}
             for s in services:
+
                 service_id_list.append(s.service_id)
                 id_service_map[s.service_id] = s
                 id_name_map[s.service_id] = s.service_cname
@@ -173,13 +176,14 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
             all_ips = []
             if pod_info_list:
                 for pod_info in pod_info_list:
-                    pod_ip = pod_info["PodIP"]
-                    service_id = pod_info["ServiceID"]
+                    pod_ip = pod_info["pod_ip"]
+                    service_id = pod_info["service_id"]
                     service = id_service_map.get(service_id, None)
                     no_dot_ip = pod_ip.replace(".", "")
                     if service:
                         ip_service_map[no_dot_ip] = service
                     all_ips.append(no_dot_ip)
+
             response_time, throughput_rate = self.get_query_statements(service_id_list, all_ips)
             try:
                 res, response_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
@@ -187,7 +191,6 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
                 res, throughput_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
                                                                  prefix + throughput_rate)
-
                 response_data = response_body["data"]["result"]
                 throughput_data = throughput_body["data"]["result"]
 

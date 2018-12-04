@@ -36,7 +36,7 @@ ALTER TABLE service_domain ADD COLUMN `domain_cookie` TEXT NULL;
 ALTER TABLE service_domain ADD COLUMN `domain_heander` TEXT NULL;
 ALTER TABLE service_domain ADD COLUMN `http_rule_id` varchar(128) DEFAULT '' NULL;
 ALTER TABLE service_domain ADD COLUMN `type` integer DEFAULT 0;
-ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 1;
+ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
 ALTER TABLE service_domain ADD COLUMN `tenant_id` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `g_id` varchar(32) DEFAULT '';
 ALTER TABLE service_domain ADD COLUMN `rule_extensions` TEXT NULL;
@@ -88,3 +88,6 @@ ALTER TABLE tenant_service ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL
 -- tenant_service_delete表中增加字段
 
 ALTER TABLE tenant_service_delete ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
+
+
+ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;

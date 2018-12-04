@@ -18,6 +18,7 @@ region_api = RegionInvokeApi()
 class LabelService(object):
     def get_service_labels(self, service):
         service_label_ids = service_label_repo.get_service_labels(service.service_id).values_list("label_id", flat=True)
+        logger.debug('----------------->{0}'.format(service_label_ids))
         region_config = region_repo.get_region_by_region_name(service.service_region)
         node_label_ids = []
         # 判断标签是否被节点使用
@@ -26,6 +27,7 @@ class LabelService(object):
                 label_id__in=service_label_ids).values_list("label_id",
                                                             flat=True)
         used_labels = label_repo.get_labels_by_label_ids(service_label_ids)
+        logger.debug('-----------used_labels------->{0}'.format(used_labels))
         unused_labels = []
         if node_label_ids:
             unused_labels = label_repo.get_labels_by_label_ids(node_label_ids)
@@ -75,8 +77,13 @@ class LabelService(object):
             return 404, u"指定标签不存在", None
         body = dict()
         # 服务标签删除
-        body["label_key"] = "node-selector"
-        body["label_value"] = label.label_name
+        label_dict = dict()
+        label_list = list()
+        label_dict["label_key"] = "node-selector"
+        label_dict["label_value"] = label.label_name
+        label_list.append(label_dict)
+        body["labels"] = label_list
+        logger.debug('-------------------->{0}'.format(body))
         try:
             region_api.deleteServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias,
                                               body)
