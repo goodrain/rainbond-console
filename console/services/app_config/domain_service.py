@@ -24,11 +24,11 @@ logger = logging.getLogger("default")
 class DomainService(object):
     HTTP = "http"
 
-    def get_certificate(self, tenant, page, page_size,region_name):
+    def get_certificate(self, tenant, page, page_size):
         end = page_size * page - 1 # 一页数据的开始索引
         start = end - page_size + 1 # 一页数据的结束索引
         print(start, end)
-        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end,region_name)
+        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end)
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)
@@ -48,13 +48,13 @@ class DomainService(object):
             return 412, u"证书别名已存在"
         return 200, "success"
 
-    def add_certificate(self, tenant, alias,certificate_id, certificate, private_key,certificate_type,region_name):
+    def add_certificate(self, tenant, alias,certificate_id, certificate, private_key,certificate_type):
         code, msg = self.__check_certificate_alias(tenant, alias)
         if code != 200:
             return code, msg, None
         if cert_is_effective(certificate):
             certificate = base64.b64encode(certificate)
-            certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type,region_name)
+            certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id,certificate, private_key,certificate_type)
             return 200, "success", certificate
         return 400, u'证书无效',certificate
 

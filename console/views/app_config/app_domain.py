@@ -45,8 +45,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         try:
-            region_name = self.response_region
-            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size,region_name)
+            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
             bean = {"nums": nums}
             result = general_message(200, "success", "查询成功", list=certificates,bean=bean)
         except Exception as e:
@@ -84,13 +83,12 @@ class TenantCertificateView(RegionTenantHeaderView):
 
         """
         try:
-            region_name = self.response_region
             alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
             certificate_type = request.data.get("certificate_type",None)
             certificate_id = make_uuid()
-            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key,certificate_type,region_name)
+            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key,certificate_type)
             if code != 200:
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}
