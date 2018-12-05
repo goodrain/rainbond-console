@@ -312,13 +312,13 @@ class AppPortService(object):
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
                                                       container_port, protocol, service_alias, group_name, tcp_rule_id,
                                                       tenant_id, g_id, region_id)
-
-                ip = end_point.split(":")[0]
+                # 默认ip不需要传给数据中心
+                # ip = end_point.split(":")[0]
                 port = end_point.split(":")[1]
                 data = {}
                 data["service_id"] = service.service_id
                 data["container_port"] = int(container_port)
-                data["ip"] = ip
+                # data["ip"] = ip
                 data["port"] = int(port)
                 data["tcp_rule_id"] = tcp_rule_id
                 logger.debug('--------------------------------->{0}'.format(data["port"]))
