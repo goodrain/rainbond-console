@@ -441,6 +441,9 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
         return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
 
+    def delete_service_tcp_domain(self, service_id):
+        ServiceDomain.objects.filter(service_id=service_id).delete()
+
 
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()

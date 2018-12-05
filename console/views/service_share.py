@@ -428,6 +428,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
             result = error_message(e.message)
             return Response(result, status=500)
 
+
 class ServiceShareCompleteView(RegionTenantHeaderView):
     @perm_required('share_service')
     def post(self, request, team_name, share_id, *args, **kwargs):

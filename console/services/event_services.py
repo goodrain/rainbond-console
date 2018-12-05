@@ -190,4 +190,5 @@ class ServiceEventDynamic(object):
                     local_event.end_time = datetime.datetime.now()
                 local_event.save()
 
+
 service_event_dynamic = ServiceEventDynamic()

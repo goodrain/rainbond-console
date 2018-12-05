@@ -88,11 +88,12 @@ class TopologicalService(object):
                 tmp_dep_id = service_relation.dep_service_id
                 tmp_dep_info = service_map.get(tmp_dep_id)
                 # 依赖服务的cname
-                tmp_info_relation = []
-                if tmp_info.service_id in json_svg.keys():
-                    tmp_info_relation = json_svg.get(tmp_info.service_id)
-                tmp_info_relation.append(tmp_dep_info.service_id)
-                json_svg[tmp_info.service_id] = tmp_info_relation
+                if tmp_dep_info:
+                    tmp_info_relation = []
+                    if tmp_info.service_id in json_svg.keys():
+                        tmp_info_relation = json_svg.get(tmp_info.service_id)
+                    tmp_info_relation.append(tmp_dep_info.service_id)
+                    json_svg[tmp_info.service_id] = tmp_info_relation
 
         topological_info["json_data"] = json_data
         topological_info["json_svg"] = json_svg

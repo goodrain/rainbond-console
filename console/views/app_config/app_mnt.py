@@ -63,7 +63,12 @@ class AppMntView(AppBaseView):
             elif query_type == "unmnt":
                 services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id,
                                                     self.service.service_region)
-                services_ids = [s.service_id for s in services]
+                # 只展示无状态的服务组件
+                service_list = list()
+                for service in services:
+                    if service.extend_method == "stateless":
+                        service_list.append(service)
+                services_ids = [s.service_id for s in service_list]
                 mnt_list, total = mnt_service.get_service_unmnt_details(self.tenant, self.service, services_ids, page,
                                                                  page_size)
             else:
