@@ -30,6 +30,7 @@ region_api = RegionInvokeApi()
 
 class TenantCertificateView(RegionTenantHeaderView):
     @never_cache
+    @perm_required('certificate_operation')
     def get(self, request, *args, **kwargs):
         """
         获取团队下的证书
