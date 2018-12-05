@@ -26,6 +26,8 @@ from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.label_repo import service_label_repo
 from www.utils.crypt import make_uuid
 from console.repositories.event_repo import event_repo
+from console.repositories.app_config import tcp_domain
+
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -592,6 +594,7 @@ class AppManageService(AppManageBase):
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
+        tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
