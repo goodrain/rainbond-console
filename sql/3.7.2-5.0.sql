@@ -91,3 +91,8 @@ ALTER TABLE tenant_service_delete ADD COLUMN `build_upgrade` bool DEFAULT true N
 
 
 ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
+
+
+-- 批量修改组表中默认组——>>默认应用
+
+update service_group set group_name = replace(group_name , '默认组' , '默认应用')
