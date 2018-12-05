@@ -3,6 +3,7 @@
   Created on 2018/6/21.
 """
 import logging
+import operator
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -48,16 +49,20 @@ class AppVersionsView(AppBaseView):
               paramType: path
         """
         try:
-            page = request.GET.get("page", 1)
+            page = request.GET.get("page_num", 1)
             page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
+            build_version_sort = body["list"]
+            build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
+            paginator = Paginator(build_version_sort, page_size)
+            build_version_list = paginator.page(int(page)).object_list
 
             events = event_repo.get_events_before_specify_time(self.tenant.tenant_id, self.service.service_id,
                                                                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
             version_user_map = {event.deploy_version: event.user_name for event in events}
 
-            versions_info = body["list"]
+            versions_info = build_version_list
             version_list = []
             for info in versions_info:
                 version_list.append({
@@ -74,14 +79,13 @@ class AppVersionsView(AppBaseView):
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
-            paginator = Paginator(res_versions, page_size)
-            try:
-                result = paginator.page(page).object_list
-            except PageNotAnInteger:
-                result = paginator.page(1).object_list
-            except EmptyPage:
-                result = paginator.page(paginator.num_pages).object_list
-            result = general_message(200, "success", "查询成功", list=result, total=paginator.count)
+            # try:
+            #     result = paginator.page(page).object_list
+            # except PageNotAnInteger:
+            #     result = paginator.page(1).object_list
+            # except EmptyPage:
+            #     result = paginator.page(paginator.num_pages).object_list
+            result = general_message(200, "success", "查询成功", list=res_versions, total=paginator.count)
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)

@@ -28,7 +28,7 @@ class ServiceEventConstants(object):
     TYPE_MAP = {
         "stop": "停止",
         "restart": "启动",
-        "deploy": "部署",
+        "deploy": "构建",
         "delete": "删除",
         "HorizontalUpgrade": "水平升级",
         "VerticalUpgrade": "垂直升级",
