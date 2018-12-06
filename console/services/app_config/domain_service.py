@@ -443,9 +443,10 @@ class DomainService(object):
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
                        default_port, g_id, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(group_name)
-        ip = end_point.split(":")[0]
-        port = end_point.split(":")[1]
-        data = {}
+        ip = str(end_point.split(":")[0])
+        ip.replace(" ", "")
+        port = str(end_point.split(":")[1])
+        data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
         if default_ip != ip:
