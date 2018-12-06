@@ -45,6 +45,7 @@ class AppManageBase(object):
         self.RESTART = "reboot"
         self.DELETE = "delete"
         self.DEPLOY = "deploy"
+        self.UPGRADE = "upgrade"
         self.ROLLBACK = "callback"
         self.VERTICAL_UPGRADE = "VerticalUpgrade"
         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
@@ -331,7 +332,7 @@ class AppManageService(AppManageBase):
         return 200, "操作成功", event
 
     def upgrade(self, tenant, service, user, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
+        code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)
         if code != 200:
             return code, msg, event
 
