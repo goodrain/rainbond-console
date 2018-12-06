@@ -141,6 +141,7 @@ class AppLabelAvailableView(AppBaseView):
         :return:
         """
         try:
+            # 判断表中是否有windows标签
             labels = label_repo.get_all_labels()
             if labels:
                 labels_name_list = [label.label_name for label in labels]
@@ -161,8 +162,10 @@ class AppLabelAvailableView(AppBaseView):
                 node_labels_id_list = [label.label_id for label in node_labels]
                 label_obj_list = label_repo.get_labels_by_label_ids(node_labels_id_list)
                 labels_name_list = [label.label_name for label in label_obj_list]
+                # 如果节点添加的标签中没有windows标签，就添加进去
                 if "windows" not in labels_name_list:
                     labels_name_list.append("windows")
+                # 去除该服务已绑定的标签
                 service_labels = service_label_repo.get_service_labels(self.service.service_id)
                 if service_labels:
                     service_labels_id_list = [label.label_id for label in service_labels]
@@ -177,6 +180,14 @@ class AppLabelAvailableView(AppBaseView):
                     label_dict["label_id"] = label_oj.label_id
                     label_dict["label_alias"] = label_oj.label_alias
                     labels_list.append(label_dict)
+            # 暂时只支持除节点标签外的windows标签
+            else:
+                label_name = "windows"
+                label_dict = dict()
+                win_label = label_repo.get_labels_by_label_name(label_name)
+                label_dict["label_id"] = win_label.label_id
+                label_dict["label_alias"] = win_label.label_alias
+                labels_list.append(label_dict)
             result = general_message(200, "success", "查询成功", list=labels_list)
         except Exception as e:
             logger.exception(e)
