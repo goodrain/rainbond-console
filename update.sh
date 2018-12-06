@@ -4,7 +4,7 @@ UI_REPO="https://github.com/goodrain/rainbond-ui.git"
 
 [ -d "/tmp/ui" ] && rm -rf /tmp/ui
 
-git clone --depth 1 $UI_REPO /tmp/ui
+git clone -b V5.0 --depth 1 $UI_REPO /tmp/ui
 
 [ -d "./www/static/dists" ] && rm -rf ./www/static/dists/* || mkdir -p ./www/static/dists
 
