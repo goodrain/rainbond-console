@@ -17,7 +17,6 @@ from console.services.app_config import port_service
 from console.repositories.app_config import port_repo
 
 
-
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -160,7 +159,7 @@ class DomainService(object):
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-        data = {}
+        data = dict()
         data["domain"] = domain_name
         data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id
@@ -245,7 +244,7 @@ class DomainService(object):
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-        data = {}
+        data = dict()
         data["uuid"] = make_uuid(domain_name)
         data["domain"] = domain_name
         data["service_id"] = service.service_id
@@ -428,7 +427,7 @@ class DomainService(object):
 
         if not servicer_http_omain:
             return 404, u"域名不存在"
-        data = {}
+        data = dict()
         data["service_id"] = servicer_http_omain.service_id
         data["domain"] = servicer_http_omain.domain_name
         data["http_rule_id"] = http_rule_id
@@ -449,8 +448,8 @@ class DomainService(object):
         data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        # if default_ip != ip:
-        #     data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
@@ -511,8 +510,8 @@ class DomainService(object):
         data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        # if default_ip != ip:
-        #     data["ip"] = ip
+        if default_ip != ip:
+            data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
@@ -560,7 +559,7 @@ class DomainService(object):
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         if not service_tcp_domain:
             return 404, u"策略不存在"
-        data = {}
+        data = dict()
         data["tcp_rule_id"] = tcp_rule_id
         try:
             # 给数据中心传送数据删除策略
