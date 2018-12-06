@@ -444,8 +444,8 @@ class DomainService(object):
                        default_port, g_id, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(group_name)
         ip = str(end_point.split(":")[0])
-        ip.replace(" ", "")
-        port = str(end_point.split(":")[1])
+        ip.replace(' ', '')
+        port = end_point.split(":")[1]
         data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
@@ -506,8 +506,9 @@ class DomainService(object):
     def update_tcpdomain(self, tenant, user, service, end_point, container_port, group_name,
                          tcp_rule_id, protocol, type, g_id, rule_extensions, default_ip):
         ip = end_point.split(":")[0]
+        ip.replace(' ', '')
         port = end_point.split(":")[1]
-        data = {}
+        data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
         if default_ip != ip:
