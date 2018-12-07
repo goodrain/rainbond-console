@@ -301,6 +301,7 @@ class AppManageService(AppManageBase):
             body["image_url"] = service.image
         body["kind"] = kind
         body["service_alias"] = service.service_alias
+        body["service_name"] = service.service_name
         body["tenant_name"] = tenant.tenant_name
         body["enterprise_id"] = tenant.enterprise_id
         body["lang"] = service.language
@@ -342,6 +343,7 @@ class AppManageService(AppManageBase):
         event.save()
 
         body["deploy_version"] = service.deploy_version
+        body["service_name"] = service.service_name
         body["event_id"] = event.event_id
         try:
             region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)

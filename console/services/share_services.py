@@ -235,6 +235,7 @@ class ShareService(object):
                 data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
                 data['image'] = service.image
                 data['service_alias'] = service.service_alias
+                data['service_name'] = service.service_name
                 data['service_region'] = service.service_region
                 data['creater'] = service.creater
                 data["cmd"] = service.cmd
