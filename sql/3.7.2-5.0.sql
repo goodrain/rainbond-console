@@ -85,12 +85,14 @@ drop table service_exec
 
 ALTER TABLE tenant_service ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
 
+ALTER TABLE tenant_service ADD COLUMN `service_name` varchar(100) DEFAULT '';
+
 -- tenant_service_delete表中增加字段
 
 ALTER TABLE tenant_service_delete ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
 
+ALTER TABLE tenant_service_delete ADD COLUMN `service_name` varchar(100) DEFAULT '';
 
-ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
 
 
 -- 批量修改组表中默认组——>>默认应用

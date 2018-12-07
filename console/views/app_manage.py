@@ -557,10 +557,19 @@ class ChangeServiceTypeView(AppBaseView):
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
                 return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
+            label_dict = dict()
             body = dict()
-            body["label_values"] = "无状态的应用" if extend_method == "stateless" else "有状态的应用"
+            # made ...
+            body["label_key"] = "service-type"
+            body["label_value"] = "StatelessServiceType" if extend_method == "stateless" else "StatefulServiceType"
+            label_list = list()
+            label_list.append(body)
+            label_dict["labels"] = label_list
+            logger.debug('---------------label_dict------------->{0}'.format(label_dict))
+
             res, body = region_api.update_service_state_label(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                                  body)
+                                                              label_dict)
+
             if int(res.status) != 200:
                 result = general_message(500, "region faild", "数据中心请求失败")
                 return Response(result, status=500)
@@ -596,6 +605,36 @@ class UpgradeAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+# 修改服务名称
+class ChangeServiceNameView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_extend')
+    def put(self, request, *args, **kwargs):
+        """
+        修改服务的应用类型标签
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            service_name = request.data.get("service_name", None)
+            if not service_name:
+                return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
+            extend_method = self.service.extend_method
+            if extend_method == "stateless":
+                return Response(
+                    general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"),
+                    status=400)
+            self.service.service_name = service_name
+            self.service.save()
+            result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
