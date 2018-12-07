@@ -442,7 +442,7 @@ class ServiceTcpDomainRepository(object):
         return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
 
     def delete_service_tcp_domain(self, service_id):
-        ServiceDomain.objects.filter(service_id=service_id).delete()
+        ServiceTcpDomain.objects.filter(service_id=service_id).delete()
 
 
 tcp_domain = ServiceTcpDomainRepository()
