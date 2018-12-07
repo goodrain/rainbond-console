@@ -12,7 +12,7 @@ image_name="rbd-app-ui"
 #else
 #    buildRelease=0.$git_commit
 #fi
-VERSION=master
+VERSION=5.0
 buildTime=$(date +%F-%H)
 
 function release(){
@@ -25,8 +25,8 @@ function release(){
   git_commit=$(git log -n 1 --pretty --format=%h)
 
   # get git describe info
-  branch_info=$(git branch | grep '^*' | cut -d ' ' -f 2 | tr '-' " ")
-  release_desc=${branch_info}-${git_commit}-${buildTime}
+  # branch_info=$(git branch | grep '^*' | cut -d ' ' -f 2 | tr '-' " ")
+  release_desc=${VERSION}-${git_commit}-${buildTime}
 
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
   docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.build .
