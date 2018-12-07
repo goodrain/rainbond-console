@@ -315,11 +315,14 @@ class ApplicationGroupService(object):
             service_status = 'state' if tenant_service.extend_method == 'state' else 'stateless'
             logger.debug('region_extend_method: {}'.format(service_status))
             data = {
-                'label_values': '无状态的应用' if service_status == 'stateless' else '有状态的应用',
-                'enterprise_id': tenant.enterprise_id
+                'label_value': 'StatelessServiceType' if service_status == 'stateless' else 'StatefulServiceType',
+                'label_key': "service-type"
             }
+            service_label_list = list()
+            service_label_list.append(data)
+            body = {"labels": service_label_list}
             region_api.update_service_state_label(tenant_service.service_region, tenant.tenant_name,
-                                                  tenant_service.service_alias, data)
+                                                  tenant_service.service_alias, body)
         except Exception as e:
             logger.exception(e)
 

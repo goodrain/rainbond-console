@@ -491,10 +491,13 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
 
                     service_status = service_config.get("methodval", "stateless")
 
-                    data = {}
-                    data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-                    data["enterprise_id"] = self.tenant.enterprise_id
-                    region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, data)
+                    data = dict()
+                    data["label_value"] = "StatelessServiceType" if service_status == "stateless" else "StatefulServiceType"
+                    data["label_key"] = "service-type"
+                    service_label_list = list()
+                    service_label_list.append(data)
+                    body_dict = {"labels": service_label_list}
+                    region_api.update_service_state_label(self.response_region, self.tenantName, newTenantService.service_alias, body_dict)
                     newTenantService.extend_method = service_status
                     newTenantService.save()
                     # 发送build请求

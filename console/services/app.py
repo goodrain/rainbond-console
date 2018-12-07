@@ -384,6 +384,7 @@ class AppService(object):
         data["envs_info"] = []
         data["volumes_info"] = []
         data["enterprise_id"] = tenant.enterprise_id
+        data["service_name"] = service.service_name
         data[
             "service_label"] = "StatefulServiceType " if service.extend_method == "state" else "StatelessServiceType"
         return data

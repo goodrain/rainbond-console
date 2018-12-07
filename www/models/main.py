@@ -558,6 +558,8 @@ class TenantServiceInfo(BaseModel):
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text=u'应用构建后是否升级')
+    service_name = models.CharField(
+        max_length=100, default='', help_text=u"服务名称（新加属性，数据中心使用）")
 
     def __unicode__(self):
         return self.service_alias
@@ -686,6 +688,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text=u'应用构建后是否升级')
+    service_name = models.CharField(
+        max_length=100, default='', help_text=u"服务名称（新加属性，数据中心使用）")
 
 
 class TenantServiceLog(BaseModel):

@@ -371,11 +371,14 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
             baseService.batch_add_dep_volume_v2(self.tenant, self.service, service_alias_list)
 
-            data = {}
-            data["label_values"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-            data["enterprise_id"] = self.tenant.enterprise_id
+            data = dict()
+            data["label_value"] = "StatelessServiceType" if service_status == "stateless" else "StatefulServiceType"
+            data["label_key"] = "service-type"
+            service_label_list = list()
+            service_label_list.append(data)
+            body_dict = {"labels": service_label_list}
             region_api.update_service_state_label(self.response_region, self.tenantName, self.service.service_alias,
-                                                  data)
+                                                  body_dict)
             self.service.extend_method = service_status
             self.service.save()
 

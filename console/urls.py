@@ -26,7 +26,7 @@ from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
-    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView
+    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
@@ -366,6 +366,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view()),
     # 修改服务应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$', ChangeServiceTypeView.as_view()),
+
+    # 修改服务名称
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$', ChangeServiceNameView.as_view()),
 
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view()),

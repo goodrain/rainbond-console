@@ -194,7 +194,7 @@ class AddTeamView(JWTAuthApiView):
             else:
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
-                    return Response(general_message(500, "user's enterprise is not found"), status=500)
+                    return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
 
                 role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)

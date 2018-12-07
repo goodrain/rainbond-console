@@ -444,31 +444,20 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(result)
 
             if whether_open:
-                # 开启对外端口并重启（开启事物）
-                with transaction.atomic():
-                    # 开启保存点
-                    save_id = transaction.savepoint()
-                    try:
-                        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 开启对外端口
-                        code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "open_outer",
-                                                                   tenant_service_port.protocol, tenant_service_port.port_alias)
-                        if code != 200:
+                try:
+                    tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                    # 仅开启对外端口
+                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
+                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                    if code != 200:
+                        return Response(general_message(code, "change port fail", msg), status=code)
+                except Exception:
+                    raise
 
-                            return Response(general_message(code, "change port fail", msg), status=code)
-                        # 重启
-                        code, msg, event = app_manage_service.restart(self.tenant, service, self.user)
-                        if code != 200:
-                            return Response(general_message(code, "restart app error", msg), status=code)
-                    except Exception:
-                        # 回滚
-                        transaction.savepoint_rollback(save_id)
-                        raise
-                    # 提交事物
-                    transaction.savepoint_commit(save_id)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if not tenant_service_port.is_outer_service:
-                return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+                return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
+                                status=200)
 
             # 绑定端口(添加策略)
             code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port, protocol,
@@ -871,29 +860,17 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 return Response(result)
 
             if whether_open:
-                # 打开对外端口并重启（开启事物）
-                with transaction.atomic():
-                    # 开启保存点
-                    save_id = transaction.savepoint()
-                    try:
-                        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 打开对外端口
-                        code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
-                                                                   int(tenant_service_port.container_port), "open_outer",
-                                                                   tenant_service_port.protocol,
-                                                                   tenant_service_port.port_alias)
-                        if code != 200:
-                            return Response(general_message(code, "change port fail", msg), status=code)
-                        # 重启
-                        code, msg, event = app_manage_service.restart(self.tenant, service, self.user)
-                        if code != 200:
-                            return Response(general_message(code, "restart app error", msg), status=code)
-                    except Exception:
-                        # 回滚
-                        transaction.savepoint_rollback(save_id)
-                        raise
-                    # 提交事物
-                    transaction.savepoint_commit(save_id)
+                try:
+                    tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                    # 仅打开对外端口
+                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
+                                                               int(tenant_service_port.container_port), "only_open_outer",
+                                                               tenant_service_port.protocol,
+                                                               tenant_service_port.port_alias)
+                    if code != 200:
+                        return Response(general_message(code, "change port fail", msg), status=code)
+                except Exception:
+                    raise
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
 
             if not tenant_service_port.is_outer_service:
