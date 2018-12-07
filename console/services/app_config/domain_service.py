@@ -344,7 +344,7 @@ class DomainService(object):
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-        data = {}
+        data = dict()
         data["domain"] = domain_name
         data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id

@@ -110,6 +110,9 @@ class AppDetailView(AppBaseView):
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
                                 for app in apps_list:
+                                    logger.debug('---------====app===============>{0}'.format(app))
+                                    logger.debug('---------=====extend_info==============>{0}'.format(extend_info))
+
                                     if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
                                         new_version = int(app["deploy_version"])
                                         old_version = int(extend_info["source_deploy_version"])

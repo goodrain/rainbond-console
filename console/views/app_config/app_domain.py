@@ -450,8 +450,8 @@ class HttpStrategyView(RegionTenantHeaderView):
                     save_id = transaction.savepoint()
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 开启对外端口
-                        code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "open_outer",
+                        # 仅开启对外端口
+                        code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
                                                                    tenant_service_port.protocol, tenant_service_port.port_alias)
                         if code != 200:
 
@@ -877,9 +877,9 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                     save_id = transaction.savepoint()
                     try:
                         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
-                        # 打开对外端口
+                        # 仅打开对外端口
                         code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
-                                                                   int(tenant_service_port.container_port), "open_outer",
+                                                                   int(tenant_service_port.container_port), "only_open_outer",
                                                                    tenant_service_port.protocol,
                                                                    tenant_service_port.port_alias)
                         if code != 200:
