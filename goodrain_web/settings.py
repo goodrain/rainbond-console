@@ -152,7 +152,9 @@ LOGGING = {
         'file_handler': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'stream': sys.stdout,
+            'filename': '/tmp/goodrain.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
             'formatter': 'standard',
         },
         'request_api': {
