@@ -127,17 +127,13 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGGING = {
-    # 设置版本
     'version': 1,
-    # 是否允许其他日志功能，Flase表示不禁用，禁用导致其他记录日志的功能将被阻止
     'disable_existing_loggers': False,
-    # 过滤器
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
         }
     },
-    # 格式化，日志输出格式
     'formatters': {
         'standard': {
             'format':
@@ -152,13 +148,11 @@ LOGGING = {
                 "%Y-%m-%d %H:%M:%S"
         },
     },
-    # 日志的处理方式
     'handlers': {
         'file_handler': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'stream': sys.stdout,
-            # 格式化      标准
             'formatter': 'standard',
         },
         'request_api': {
@@ -176,7 +170,6 @@ LOGGING = {
             'root_topic': 'goodrain_web',
             'formatter': 'zmq_formatter',
         },
-        # 输出日志的控制台
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
