@@ -98,3 +98,7 @@ ALTER TABLE tenant_service_delete ADD COLUMN `service_name` varchar(100) DEFAULT
 -- 批量修改组表中默认组——>>默认应用
 
 update service_group set group_name = replace(group_name , '默认组' , '默认应用')
+
+-- 修改service_event操作说明字段格式
+
+ALTER TABLE service_event MODIFY `message` TEXT;
