@@ -303,4 +303,5 @@ class ClientAuthService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
+
 client_auth_service = ClientAuthService()

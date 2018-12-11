@@ -22,6 +22,7 @@ STATUS_MAP = {"running": "运行中",
               "unschedulable":"不可调度",
               }
 
+
 class NodeService(object):
     url = "http://test.goodrain.com:6200"
     default_headers = {
