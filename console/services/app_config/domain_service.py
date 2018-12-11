@@ -112,9 +112,9 @@ class DomainService(object):
         match = zhPattern.search(domain_name.decode('utf-8'))
         if match:
             return 400, u"域名不能包含中文"
-        re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
-        if not re.match(re_exp, domain_name):
-            return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
+        # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
+        # if not re.match(re_exp, domain_name):
+        #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
         if len(domain_name) > 256:
             return 400, u"域名过长"
         if certificate_id:
