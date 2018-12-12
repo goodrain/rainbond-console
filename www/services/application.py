@@ -1,16 +1,15 @@
 # -*- coding: utf8 -*-
+import logging
+import json
+import datetime
+
 from console.repositories.app import service_source_repo
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.services.market_app_service import template_transform_service
 from www.models import *
 from www.monitorservice.monitorhook import MonitorHook
-from www.region import RegionInfo
 from www.utils.status_translate import get_status_info_map
 from www.apiclient.marketclient import MarketOpenAPI
-import logging
-import json
-from django.conf import settings
-import datetime
 from django.forms.models import model_to_dict
 from console.services.app import app_service
 from console.repositories.app_config import extend_repo
@@ -442,69 +441,6 @@ class ApplicationGroupService(object):
                 dfs(graph, start_node)
         return li
 
-    def __sort_service(self, publish_service_list, reverse=False):
-        # publish_service_list 包含此次部署的所有应用
-        service_map = {s.service_key: s for s in publish_service_list}
-
-        # 根据此次部署中所有应用之间的关系记录, 构建应用部署顺序树
-        key_app_map = {}
-        for app in publish_service_list:
-            dep_services = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.version)
-            if dep_services:
-                key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
-            else:
-                key_app_map[app.service_key] = []
-
-        # service_keys 中包含此次已排序部署应用顺序
-        service_keys = self.__topological_sort(key_app_map)
-
-        # 从未排序的publish_service_list根据key的排序结果重新组织部署应用列表
-        result = []
-        for key in service_keys:
-            service = service_map.get(key)
-            result.append(service)
-
-        if reverse:
-            result.reverse()
-
-        return result
-
-    def __create_dep_service(self, installed_services):
-        logger.debug("===> create service dependency!")
-        service_map = {service.service_key: service for service in installed_services}
-        for tenant_service in installed_services:
-            # 根据当前安装应用依赖的模板key获得其依赖信息
-            dep_service_rel_list = AppServiceRelation.objects.filter(service_key=tenant_service.service_key,
-                                                                     app_version=tenant_service.version)
-
-            if not dep_service_rel_list:
-                logger.debug("rel: [{}] ===> []".format(tenant_service.service_cname))
-                continue
-
-            # 根据依赖关系查找当前安装服务依赖的服务
-            dep_services = list()
-            for dep_svc_rel in dep_service_rel_list:
-                dep_service = service_map.get(dep_svc_rel.dep_service_key)
-
-                has_rel = False
-                if dep_service:
-                    has_rel = True
-                    dep_services.append(dep_service)
-                logger.debug('rel: [{}] ==> [{}] {}'.format(dep_svc_rel.app_alias, dep_svc_rel.dep_app_alias, has_rel))
-
-            dep_order = 0
-            for dep_service in dep_services:
-                tsr = TenantServiceRelation()
-                tsr.tenant_id = tenant_service.tenant_id
-                tsr.service_id = tenant_service.service_id
-                tsr.dep_service_id = dep_service.service_id
-                tsr.dep_order = dep_order
-                tsr.dep_service_type = dep_service.service_type
-                tsr.save()
-                dep_order += 1
-
-                logger.debug(
-                    "create rel: {0} ==> {1}: {2} ".format(tsr.service_id, tsr.dep_service_id, dep_order))
 
     def __copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import ServiceGroup, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
+from www.models import ServiceGroup, ServiceInfo, ServiceGroupRelation, \
     AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
     ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
     TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
@@ -107,35 +107,6 @@ class BackServiceInstall(object):
                 is_visit[start_node] = True
                 dfs(graph, start_node)
         return li
-
-    def sort_service(self, publish_service_list):
-        service_map = {s.service_key: s for s in publish_service_list}
-        result = []
-        key_app_map = {}
-        for app in publish_service_list:
-            dep_services = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.version)
-            if dep_services:
-                key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
-            else:
-                key_app_map[app.service_key] = []
-        logger.debug(" service_map:{} ".format(service_map))
-        service_keys = self.topological_sort(key_app_map)
-
-        for key in service_keys:
-            result.append(service_map.get(key))
-        return result
-
-    def create_dep_service(self, service_info, service, key_id_map):
-        app_relations = AppServiceRelation.objects.filter(service_key=service_info.service_key,
-                                                          app_version=service_info.version)
-        dep_service_ids = []
-        if app_relations:
-            for dep_app in app_relations:
-                dep_service_id = key_id_map.get(dep_app.dep_service_key)
-                dep_service_ids.append(dep_service_id)
-        for dep_id in dep_service_ids:
-            baseService.create_service_dependency(self.tenant, service, dep_id, self.region_name)
-        logger.info("create service info for service_id{0} ".format(service.service_id))
 
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,

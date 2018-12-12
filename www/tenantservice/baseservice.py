@@ -12,7 +12,7 @@ from www.db import BaseConnection
 from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceInfo, AppServiceRelation, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
+    TenantServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
     PublishedGroupServiceRelation, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
 
 from www.models.main import TenantRegionPayModel, ServiceProbe
@@ -757,43 +757,6 @@ class BaseTenantService(object):
             return 200, group_info
         else:
             return 501, None
-
-    # 下载服务模版逻辑
-    def download_service_info(self, service_key, app_version, action=None):
-        num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
-        if num == 0 or action == "update":
-            dep_code = 500
-            for num in range(0, 3):
-                dep_code, base_info = self.download_remote_service(service_key, app_version)
-                if dep_code == 500 or dep_code == 501:
-                    logger.error("download service failed! try again!num:{0}".format(num))
-                    continue
-                else:
-                    break
-            if dep_code == 500 or dep_code == 501:
-                return 500, None, None, "download {0}:{1} failed!".format(service_key, app_version)
-        else:
-            info_list = ServiceInfo.objects.filter(service_key=service_key, version=app_version)
-            base_info = list(info_list)[0]
-
-        # 下载依赖服务
-        relation_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version)
-        result_list = list(relation_list)
-        dep_map = {}
-        for relation in result_list:
-            dep_key = relation.dep_service_key
-            dep_version = relation.dep_app_version
-            dep_map[dep_key] = dep_version
-            num = ServiceInfo.objects.filter(service_key=dep_key, version=dep_version).count()
-            if num == 0:
-                status, success, tmp_map, msg = self.download_service_info(dep_key, dep_version)
-                # 检查返回的数据
-                if tmp_map is not None:
-                    dep_map = dict(dep_map, **tmp_map)
-                if status == 500:
-                    return 500, None, None, "download {0}:{1} failed!".format(dep_key, dep_version)
-        return 200, base_info, dep_map, "success"
-
 
     # 获取服务类型
     def get_service_kind(self, service):

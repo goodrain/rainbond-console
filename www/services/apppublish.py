@@ -2,12 +2,9 @@
 import json
 import logging
 
-from django.forms.models import model_to_dict
-
 from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
-    TenantServiceEnvVar, TenantServiceVolume, AppServiceShareInfo, \
-    ServiceExtendMethod, AppServiceVolume, AppServiceRelation, PublishedGroupServiceRelation, ServiceGroupRelation
+    TenantServiceEnvVar, TenantServiceVolume, ServiceExtendMethod, AppServiceVolume, PublishedGroupServiceRelation, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
 
 
@@ -141,15 +138,9 @@ class PublishAppService(object):
         if len(volume_data) > 0:
             AppServiceVolume.objects.bulk_create(volume_data)
 
-
     def get_app_service_volume(self, service_key, app_version):
         return AppServiceVolume.objects.filter(service_key=service_key,
                                                app_version=app_version)
-
-
-    def get_app_service_suf_dep(self, service_key, app_version):
-        return AppServiceRelation.objects.filter(service_key=service_key,
-                                                 app_version=app_version)
 
     def get_app_service_extend_method(self, service_key, app_version):
         return ServiceExtendMethod.objects.filter(service_key=service_key,

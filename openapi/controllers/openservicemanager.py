@@ -8,7 +8,7 @@ from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceEnv, ServiceDomain, Tenants, Users, \
-    TenantServiceVolume, ServiceInfo, AppServiceRelation, ServiceEvent, ServiceGroupRelation, ServiceAttachInfo, \
+    TenantServiceVolume, ServiceInfo, ServiceEvent, ServiceGroupRelation, ServiceAttachInfo, \
     ServiceCreateStep, ServiceProbe
 from www.service_http import RegionServiceApi
 from www.app_http import AppServiceApi
@@ -633,33 +633,6 @@ class OpenTenantServiceManager(object):
             service.update_version = base_service.update_version
             service.save()
         return 200, True, "success"
-
-    def download_service(self, service_key, version):
-        # 从服务模版中查询依赖信息
-        num = ServiceInfo.objects.filter(service_key=service_key, version=version).count()
-        if num == 0:
-            # 下载模版
-            dep_code = self.download_remote_service(service_key, version)
-            if dep_code == 500 or dep_code == 501:
-                return 500, False, None, "下载{0}:{1}失败".format(service_key, version)
-        # 下载依赖服务
-        relation_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=version)
-        result_list = list(relation_list)
-        dep_map = {}
-        for relation in result_list:
-            dep_key = relation.dep_service_key
-            dep_version = relation.dep_app_version
-            dep_map[dep_key] = dep_version
-            num = ServiceInfo.objects.filter(service_key=dep_key, version=dep_version).count()
-            if num == 0:
-                status, success, tmp_map, msg = self.download_service(dep_key, dep_version)
-                # 检查返回的数据
-                if tmp_map is not None:
-                    dep_map = dict(dep_map, **tmp_map)
-                if status == 500:
-                    return 500, False, None, "下载{0}:{1}失败".format(dep_key, dep_version)
-
-        return 200, True, dep_map, "success"
 
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)

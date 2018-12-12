@@ -1,19 +1,15 @@
 # -*- coding: utf8 -*-
 import datetime
-import json
 import logging
-
 
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
-
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServiceRelation, ServiceExtendMethod,
+from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, ServiceExtendMethod,
                         AppServiceVolume, ServiceGroupRelation, ServiceCreateStep,
                         TenantServiceVolume)
 from www.models.main import ServiceAttachInfo, ServiceFeeBill, TenantServiceEnvVar, ServiceEvent
@@ -260,27 +256,6 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
                                                    volume_path=tenant_service.volume_mount_path):
                 baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
                                                  TenantServiceVolume.SHARE, make_uuid()[:7])
-
-    def find_dependecy_services(self, serviceObj):
-        asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
-        dependecy_keys = []
-        dependecy_info = {}
-        dependecy_version = {}
-        dependecy_services = {}
-        if len(asrlist) > 0:
-            for asr in asrlist:
-                dependecy_keys.append(asr.dep_service_key)
-                dependecy_info[asr.dep_service_key] = asr.dep_app_alias
-                dependecy_version[asr.dep_service_key] = asr.dep_app_version
-
-        if len(dependecy_keys) > 0:
-            dependecy_services = dict((el, []) for el in dependecy_keys)
-            tenant_id = self.tenant.tenant_id
-            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region, service_origin='assistant')
-            if len(deployTenantServices) > 0:
-                for s in deployTenantServices:
-                    dependecy_services[s.service_key].append(s)
-        return dependecy_services, dependecy_info, dependecy_version
 
     def set_tenant_default_env(self, envs, outer_ports):
         for env in envs:
