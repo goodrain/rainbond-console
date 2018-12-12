@@ -82,10 +82,10 @@ INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('modify_team_name', '修改团队名称', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('tenant_manage_role', '自定义角色', 0, NULL, 1);
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('import_and_export_service', '导入导出云市应用', 1, NULL, 1);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('access control', '查看访问控制', 1, NULL, 3);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate management', '访问证书管理', 1, NULL, 3);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('control operation', '访问控制操作', 1, NULL, 3);
-INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate operation', '证书管理操作', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('access_control', '查看访问控制', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate_management', '访问证书管理', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('control_operation', '访问控制操作', 1, NULL, 3);
+INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('certificate_operation', '证书管理操作', 1, NULL, 3);
 
 
 
