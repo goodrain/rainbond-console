@@ -327,6 +327,15 @@ class DomainService(object):
         servicer_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
         if servicer_domains:
             for service_domain in servicer_domains:
+                try:
+                    logger.debug('---------http_rule_id-------------->{0}'.format(service_domain.http_rule_id))
+                    body = {"http_rule_id": service_domain.http_rule_id}
+                    logger.debug('---------body-------------->{0}'.format(body))
+
+                    region_api.delete_http_domain(service.service_region, tenant.tenant_name, body)
+                except region_api.CallApiError as e:
+                    if e.status != 404:
+                        raise e
                 service_domain.delete()
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
