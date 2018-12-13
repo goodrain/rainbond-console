@@ -4,7 +4,7 @@ import logging
 
 from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
-    TenantServiceEnvVar, TenantServiceVolume, ServiceExtendMethod, AppServiceVolume, PublishedGroupServiceRelation, ServiceGroupRelation
+    TenantServiceEnvVar, TenantServiceVolume, ServiceExtendMethod, PublishedGroupServiceRelation, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
 
 
@@ -111,36 +111,6 @@ class PublishAppService(object):
             ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version) \
                 .update(min_node=service.min_node, min_memory=service.min_memory)
 
-    def add_app_volume(self, service, service_key, app_version):
-        logger.debug("group.publish",
-                     u'group.share.service. now add group share service volume for service {0} ok'.format(
-                         service.service_id))
-        # if service.category == "application":
-        volume_list = TenantServiceVolume.objects.filter(service_id=service.service_id)
-        volume_path_list = [x.volume_path for x in volume_list]
-        AppServiceVolume.objects.filter(service_key=service_key,
-                                        app_version=app_version) \
-            .exclude(volume_path__in=volume_path_list).delete()
-
-        volume_data = []
-        for volume in list(volume_list):
-            count = AppServiceVolume.objects.filter(service_key=service_key,
-                                                    app_version=app_version,
-                                                    volume_path=volume.volume_path).count()
-            if count == 0:
-                app_volume = AppServiceVolume(service_key=service_key,
-                                              app_version=app_version,
-                                              category=volume.category,
-                                              volume_path=volume.volume_path,
-                                              volume_name=volume.volume_name,
-                                              volume_type=volume.volume_type)
-                volume_data.append(app_volume)
-        if len(volume_data) > 0:
-            AppServiceVolume.objects.bulk_create(volume_data)
-
-    def get_app_service_volume(self, service_key, app_version):
-        return AppServiceVolume.objects.filter(service_key=service_key,
-                                               app_version=app_version)
 
     def get_app_service_extend_method(self, service_key, app_version):
         return ServiceExtendMethod.objects.filter(service_key=service_key,

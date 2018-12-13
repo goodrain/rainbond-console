@@ -49,28 +49,6 @@ class ServiceExtendMethod(BaseModel):
         return data
 
 
-class AppServiceVolume(BaseModel):
-    """发布数据持久化表格"""
-    class Meta:
-        db_table = 'app_service_volume'
-    service_key = models.CharField(max_length=32, help_text=u"服务key")
-    app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
-    category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
-    volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
-    volume_type = models.CharField(max_length=30, blank=True, null=True)
-    volume_name = models.CharField(max_length=100, blank=True, null=True)
-
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
-
-
 class AppServiceShareInfo(BaseModel):
     """普通发布存储环境是否可修改信息"""
     class Meta:

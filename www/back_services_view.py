@@ -10,7 +10,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, ServiceGroupRelation, ServiceCreateStep,
+                        ServiceGroupRelation, ServiceCreateStep,
                         TenantServiceVolume)
 from www.models.main import ServiceAttachInfo, ServiceFeeBill, TenantServiceEnvVar, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
@@ -245,17 +245,6 @@ class ServiceDeploySettingView(LeftSideBarMixin, AuthedView):
             'www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
-
-    def copy_volumes(self, tenant_service, source_service):
-        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
-        for volume in volumes:
-            baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7])
-        if tenant_service.volume_mount_path:
-            if not AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                   app_version=source_service.version,
-                                                   volume_path=tenant_service.volume_mount_path):
-                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
-                                                 TenantServiceVolume.SHARE, make_uuid()[:7])
 
     def set_tenant_default_env(self, envs, outer_ports):
         for env in envs:

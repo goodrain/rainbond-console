@@ -12,7 +12,7 @@ from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantServiceInfo, AppServiceVolume, AppServiceGroup, PublishedGroupServiceRelation)
+from www.models import (ServiceInfo, TenantServiceInfo, AppServiceGroup, PublishedGroupServiceRelation)
 from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceVolume, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.services import tenant_svc
@@ -425,15 +425,3 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                              user_name=self.user.nick_name, start_time=datetime.datetime.now())
         event.save()
         return event
-
-    def copy_volumes(self, source_service, tenant_service):
-        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                  app_version=source_service.version)
-        for volume in volumes:
-            baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE,
-                                             make_uuid()[:7])
-
-        if tenant_service.volume_mount_path:
-            if not volumes.filter(volume_path=tenant_service.volume_mount_path).exists():
-                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
-                                                 TenantServiceVolume.SHARE, make_uuid()[:7])

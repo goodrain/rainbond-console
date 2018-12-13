@@ -20,12 +20,11 @@ from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServi
 from www.monitorservice.monitorhook import MonitorHook
 from www.services import tenant_svc
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
-    CodeRepositoriesService, \
-    AppCreateService, ServiceAttachInfoManage
+    CodeRepositoriesService, AppCreateService, ServiceAttachInfoManage
 from www.utils import sn
 from www.utils.crypt import make_uuid
 from www.utils.language import is_redirect
-from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin
 
 logger = logging.getLogger('default')
 
@@ -277,7 +276,7 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
         return TemplateResponse(self.request, "www/app_create_step_2_waiting.html", context)
 
 
-class AppSettingsView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
+class AppSettingsView(LeftSideBarMixin, AuthedView):
     """服务设置"""
 
     def get_media(self):

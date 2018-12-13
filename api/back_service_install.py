@@ -1,7 +1,6 @@
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import ServiceGroup, ServiceInfo, ServiceGroupRelation, \
-    AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
+from www.models import ServiceGroup, ServiceInfo, ServiceGroupRelation, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
     ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
     TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
     Tenants
@@ -108,12 +107,6 @@ class BackServiceInstall(object):
                 dfs(graph, start_node)
         return li
 
-    def copy_volumes(self, source_service, tenant_service):
-        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                  app_version=source_service.version)
-        for volume in volumes:
-            baseService.add_volume_list(tenant_service, volume.volume_path)
-
     def get_service_access_url(self, service):
         wild_domain = settings.WILD_DOMAINS[self.region_name]
         http_port_str = settings.WILD_PORTS[self.region_name]
@@ -200,7 +193,7 @@ class BackServiceInstall(object):
         try:
             logger.debug("service_id - {0} - service_name {1} ".format(service.service_id,service.service_cname))
             try:
-                region_api.delete_service(self.region_name, self.tenant_name, service.service_alias,self.tenant.enterprise_id)
+                region_api.delete_service(self.region_name, self.tenant_name, service.service_alias, self.tenant.enterprise_id)
             except Exception as e:
                 success = False
                 logger.error("region delete service error! ")

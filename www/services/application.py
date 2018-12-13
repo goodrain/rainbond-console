@@ -442,18 +442,6 @@ class ApplicationGroupService(object):
         return li
 
 
-    def __copy_volumes(self, source_service, tenant_service):
-        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                  app_version=source_service.version)
-        for volume in volumes:
-            baseService.add_volume_with_type(tenant_service, volume.volume_path, volume.volume_type,
-                                             volume.volume_name)
-
-        if tenant_service.volume_mount_path:
-            if not volumes.filter(volume_path=tenant_service.volume_mount_path).exists():
-                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
-                                                 TenantServiceVolume.SHARE, make_uuid()[:7])
-
     def get_app_group_by_id(self, group_id):
         """
         获取发布的服务组最新的版本
