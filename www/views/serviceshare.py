@@ -57,31 +57,6 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         return TemplateResponse(request,
                                 'www/service/share_step_2.html',
                                 context)
-    
-    def post(self, request, *args, **kwargs):
-        # 服务的环境是否可修改存储
-        post_data = request.POST.dict()
-        env_ids = post_data.get('env_ids')
-        logger.info("env_ids={}".format(env_ids))
-        # clear old info
-        AppServiceShareInfo.objects.filter(tenant_id=self.service.tenant_id,
-                                           service_id=self.service.service_id).delete()
-        if env_ids != "" and env_ids is not None:
-            env_data = []
-            tmp_id_list = env_ids.split(",")
-            for tmp_id in tmp_id_list:
-                is_change = post_data.get(tmp_id, "0")
-                is_change = (is_change == "1")
-                app_env = AppServiceShareInfo(tenant_id=self.service.tenant_id,
-                                              service_id=self.service.service_id,
-                                              tenant_env_id=int(tmp_id),
-                                              is_change=is_change)
-                env_data.append(app_env)
-            # add new info
-            if len(env_data) > 0:
-                AppServiceShareInfo.objects.bulk_create(env_data)
-        logger.debug(u'publish.service. now add publish service env ok')
-        return self.redirect_to('/apps/{0}/{1}/share/step3'.format(self.tenantName, self.serviceAlias))
 
 
 class ShareServiceStep3View(LeftSideBarMixin, AuthedView):

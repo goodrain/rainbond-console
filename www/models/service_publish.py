@@ -49,17 +49,6 @@ class ServiceExtendMethod(BaseModel):
         return data
 
 
-class AppServiceShareInfo(BaseModel):
-    """普通发布存储环境是否可修改信息"""
-    class Meta:
-        db_table = 'app_service_share'
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-
-    tenant_env_id = models.IntegerField(help_text=u"服务的环境id")
-    is_change = models.BooleanField(default=False, help_text=u"是否可改变")
-
-
 class AppServiceGroup(BaseModel):
     """服务组分享记录"""
 
