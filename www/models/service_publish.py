@@ -74,7 +74,7 @@ class AppServiceGroup(BaseModel):
     service_ids = models.CharField(max_length=1024, null=False, help_text=u"对应的服务id")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
-    publish_type = models.CharField(max_length=16, default="services_group", choices=group_publish_type, help_text=u"发布的应用组类型")
+    publish_type = models.CharField(max_length=16, default="services_group", help_text=u"发布的应用组类型")
     group_version = models.CharField(max_length=20, null=False, default="0.0.1", help_text=u"服务组版本")
     is_market = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新说明")
