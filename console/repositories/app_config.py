@@ -227,6 +227,9 @@ class ServiceDomainRepository(object):
     def get_service_domain_by_container_port(self, service_id, container_port):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
 
+    def get_service_domain_by_container_port_and_protocol(self, service_id, container_port, protocol):
+        return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port, protocol=protocol)
+
     def get_service_domain_by_http_rule_id(self, http_rule_id):
         domain = ServiceDomain.objects.filter(http_rule_id=http_rule_id).first()
         if domain:

@@ -323,20 +323,24 @@ class DomainService(object):
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
 
-        # 先删除原有domain,再保存
-        servicer_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+        # 删除默认domain,再保存
+        servicer_domains = domain_repo.get_service_domain_by_container_port_and_protocol(service.service_id,
+                                                                                         container_port,
+                                                                                         domain_info["protocol"])
         if servicer_domains:
             for service_domain in servicer_domains:
-                try:
-                    logger.debug('---------http_rule_id-------------->{0}'.format(service_domain.http_rule_id))
-                    body = {"http_rule_id": service_domain.http_rule_id}
-                    logger.debug('---------body-------------->{0}'.format(body))
+                if not service_domain.type:
+                    try:
+                        logger.debug('---------http_rule_id-------------->{0}'.format(service_domain.http_rule_id))
+                        body = {"http_rule_id": service_domain.http_rule_id}
+                        logger.debug('---------body-------------->{0}'.format(body))
 
-                    region_api.delete_http_domain(service.service_region, tenant.tenant_name, body)
-                except region_api.CallApiError as e:
-                    if e.status != 404:
-                        raise e
-                service_domain.delete()
+                        region_api.delete_http_domain(service.service_region, tenant.tenant_name, body)
+                    except region_api.CallApiError as e:
+                        if e.status != 404:
+                            raise e
+                    service_domain.delete()
+
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
