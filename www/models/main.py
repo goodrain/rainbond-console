@@ -1242,21 +1242,6 @@ class ThirdAppInfo(BaseModel):
     create_user = models.IntegerField(help_text=u"创建的用户的user_id")
 
 
-class CDNTrafficRecord(BaseModel):
-    class Meta:
-        db_table = 'cdn_traffic_record'
-
-    order_id = models.CharField(max_length=32, help_text=u"订单id")
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
-    traffic_size = models.IntegerField(help_text=u"流量包大小")
-    traffic_price = models.IntegerField(help_text=u"流量包价格")
-    buy_time = models.DateTimeField(auto_now_add=True, help_text=u"购买时间")
-    payment_status = models.CharField(
-        default=0, max_length=1, help_text=u"支付状态")
-
-
 class CDNTrafficHourRecord(BaseModel):
     class Meta:
         db_table = 'cdn_traffic_hour_record'
