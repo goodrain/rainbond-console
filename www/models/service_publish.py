@@ -60,15 +60,6 @@ class AppServiceShareInfo(BaseModel):
     is_change = models.BooleanField(default=False, help_text=u"是否可改变")
 
 
-class AppServiceImages(BaseModel):
-    class Meta:
-        db_table = 'app_service_images'
-
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-    logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
-
 class AppServicePackages(BaseModel):
     """服务套餐信息"""
     class Meta:

@@ -123,28 +123,6 @@ class ShareServiceImageForm(forms.Form):
     service_id = forms.CharField(help_text=u"服务发布key")
 
 
-class ShareServiceImageView(BaseView):
-    def post(self, request, *args, **kwargs):
-        # 获取表单信息
-        service_id = request.POST['service_id']
-        logo = request.FILES['logo']
-        # 更新图片路径
-        count = AppServiceImages.objects.filter(service_id=service_id).count()
-        if count > 1:
-            AppServiceImages.objects.filter(service_id=service_id).delete()
-            count = 0
-        if count == 0:
-            image_info = AppServiceImages()
-            image_info.service_id = service_id
-            image_info.logo = logo
-        else:
-            image_info = AppServiceImages.objects.get(service_id=service_id)
-            image_info.logo = logo
-        image_info.save()
-        data = {"success": True, "code": 200, "pic": image_info.logo.name}
-        return JsonResponse(data, status=200)
-
-
 class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
     """分享设置套餐"""
     
