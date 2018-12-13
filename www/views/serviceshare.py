@@ -1,8 +1,6 @@
 # -*- coding: utf8 -*-
 from django.template.response import TemplateResponse
-from django.http.response import JsonResponse
 from django import forms
-
 from www.views import AuthedView, LeftSideBarMixin, BaseView
 from www.service_http import RegionServiceApi
 from www.models import *
@@ -225,82 +223,4 @@ class ShareServicePackageView(BaseView):
     def get_context(self):
         context = super(ShareServicePackageView, self).get_context()
         return context
-    
-    def get(self, request, *args, **kwargs):
-        # 跳转到服务关系发布页面
-        package_id = request.POST.get("id", None)
-        try:
-            service_package = AppServicePackages.objects.get(pk=package_id)
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse(status=500, data={"code": 500})
-        data = {
-            "code": 200,
-            "data-name": service_package.name,
-            "data-memory": service_package.memory,
-            "data-node": service_package.node,
-            "data-time": service_package.trial,
-            "data-price": round(service_package.price, 2),
-            "data-total": round(service_package.total_price, 2),
-        }
-        return JsonResponse(status=200, data=data)
-    
-    def post(self, request, *args, **kwargs):
-        # 获取类型
-        action = request.POST.get("action")
-        package_id = request.POST.get("id", None)
-        name = request.POST.get("name", "")
-        memory = request.POST.get("memory", 128)
-        node = request.POST.get("node", 1)
-        trial = request.POST.get("trial", 0)
-        price = request.POST.get("price", 0)
-        total_price = request.POST.get("total_price", 0)
-        service_key = request.POST.get("service_key", None)
-        app_version = request.POST.get("app_version", None)
-        dep_info = request.POST.get("dep_info", "[]")
-        logger.debug(request.POST)
-        
-        if action == "delete":
-            # delete
-            AppServicePackages.objects.filter(pk=package_id).delete()
-            return JsonResponse(status=200, data={"code": 200})
-        elif action == "add" or action == "update":
-            package = AppServicePackages()
-            if package_id is None:
-                count = AppServicePackages.objects.filter(service_key=service_key,
-                                                          app_version=app_version,
-                                                          name=name).count()
-                if count > 0:
-                    return JsonResponse(status=500, data={"code": 500, "msg": "套餐名称已存在!"})
-            else:
-                try:
-                    package = AppServicePackages.objects.get(pk=package_id)
-                except Exception:
-                    pass
-            package.service_key = service_key
-            package.app_version = app_version
-            package.name = name
-            package.memory = memory
-            package.node = node
-            package.trial = trial
-            package.price = round(float(price), 2)
-            package.total_price = round(float(total_price), 2)
-            package.dep_info = dep_info
-            package.save()
-            return JsonResponse(status=200, data={"code": 200, "info": json.dumps(package.to_dict())})
-        else:
-            try:
-                service_package = AppServicePackages.objects.get(pk=package_id)
-            except Exception as e:
-                logger.exception(e)
-                return JsonResponse(status=500, data={"code": 500})
-            data = {
-                "code": 200,
-                "data-name": service_package.name,
-                "data-memory": service_package.memory,
-                "data-node": service_package.node,
-                "data-time": service_package.trial,
-                "data-price": service_package.price,
-                "data-total": service_package.total_price,
-            }
-            return JsonResponse(status=200, data=data)
+
