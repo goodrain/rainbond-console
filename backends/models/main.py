@@ -27,18 +27,6 @@ class BaseModel(models.Model):
         return data
 
 
-class BackendAdminUser(models.Model):
-    """超级管理员"""
-
-    class Meta:
-        db_table = "backend_admin"
-
-    user_id = models.AutoField(primary_key=True, max_length=10)
-    username = models.CharField(max_length=15, unique=True, help_text=u"登录名")
-    password = models.CharField(max_length=60, help_text=u"密码")
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-
-
 class CloundBangImages(BaseModel):
     class Meta:
         db_table = 'clound_bang_images'
