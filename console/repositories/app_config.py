@@ -264,7 +264,7 @@ class ServiceDomainRepository(object):
     def get_domain_by_name_and_port_and_protocol(self, service_id, container_port, domain_name, protocol):
         try:
             return ServiceDomain.objects.get(service_id=service_id,
-                                             container_port=container_port, domain_name=domain_name)
+                                             container_port=container_port, domain_name=domain_name, protocol=protocol)
         except ServiceDomain.DoesNotExist:
             return None
 

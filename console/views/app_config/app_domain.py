@@ -300,6 +300,13 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             g_id = request.data.get("group_id", None)
 
+            # 判断策略是否存在
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
+                                                                                  domain_name, protocol)
+            if service_domain:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+
             code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
                                                    protocol, certificate_id, DomainType.WWW, g_id, rule_extensions)
             if code != 200:
@@ -441,7 +448,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
-                return Response(result)
+                return Response(result, status=400)
 
             if whether_open:
                 try:
