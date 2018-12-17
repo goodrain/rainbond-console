@@ -153,9 +153,9 @@ class GroupService(object):
     def delete_group_no_service(self, group_id):
         if not group_id or group_id < 0:
             return 400, u"需要删除的组不合法", None
-        backups = backup_record_repo.get_record_by_group_id(group_id)
-        if backups:
-            return 409, u"当前组有备份记录，暂无法删除", None
+        # backups = backup_record_repo.get_record_by_group_id(group_id)
+        # if backups:
+        #     return 409, u"当前组有备份记录，暂无法删除", None
         # 删除组
         group_repo.delete_group_by_pk(group_id)
         return 200, u"删除成功", group_id

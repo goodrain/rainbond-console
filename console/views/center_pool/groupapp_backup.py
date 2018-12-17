@@ -263,6 +263,53 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
+class AllTeamGroupAppsBackupView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required("import_and_export_service")
+    def get(self, request, *args, **kwargs):
+        """
+        查询当前团队 数据中心下所有备份信息
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: page
+              description: 页码
+              required: false
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页数量
+              required: false
+              type: string
+              paramType: query
+        """
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            backups = groupapp_backup_service.get_all_group_back_up_info(self.tenant, self.response_region)
+            paginator = JuncheePaginator(backups, int(page_size))
+            backup_records = paginator.page(int(page))
+            backup_list = list()
+            if backup_records:
+                for backup in backup_records:
+                    backup_dict = backup.to_dict()
+                    group_obj = group_repo.get_group_by_id(backup_dict["group_id"])
+                    if group_obj:
+                        backup_dict["group_name"] = group_obj.group_name
+                    else:
+                        backup_dict["group_name"] = "应用已删除"
+                    backup_list.append(backup_dict)
+            result = general_message(200, "success", "查询成功", list=backup_list, total=paginator.count)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 class GroupAppsBackupExportView(AlowAnyApiView):
     @never_cache
     def get(self, request, *args, **kwargs):
