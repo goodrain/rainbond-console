@@ -297,7 +297,7 @@ class AllTeamGroupAppsBackupView(RegionTenantHeaderView):
             if backup_records:
                 for backup in backup_records:
                     backup_dict = backup.to_dict()
-                    group_obj = group_repo.get_group_by_id(backup_dict.group_id)
+                    group_obj = group_repo.get_group_by_id(backup_dict["group_id"])
                     if group_obj:
                         backup_dict["group_name"] = group_obj.group_name
                     else:
