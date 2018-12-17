@@ -21,4 +21,5 @@ class GroupAppMigrationRespository(object):
     def get_user_unfinished_migrate_record(self, group_id):
         return GroupAppMigrateRecord.objects.filter(group_id=group_id).exclude(status__in=['success', 'failed'])
 
+
 migrate_repo = GroupAppMigrationRespository()
