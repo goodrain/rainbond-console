@@ -41,8 +41,8 @@ class GroupRepository(object):
         group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
-    def get_tenant_region_groups(self,team_id,region):
-        return ServiceGroup.objects.filter(tenant_id=team_id,region_name=region)
+    def get_tenant_region_groups(self, team_id, region):
+        return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region)
 
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()

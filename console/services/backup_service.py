@@ -36,6 +36,9 @@ class GroupAppBackupService(object):
     def get_group_back_up_info(self, tenant, region, group_id):
         return backup_record_repo.get_group_backup_records(tenant.tenant_id, region, group_id).order_by("-ID")
 
+    def get_all_group_back_up_info(self, tenant, region):
+        return backup_record_repo.get_group_backup_records_by_team_id(tenant.tenant_id, region).order_by("-ID")
+
     def check_backup_condition(self, tenant, region, group_id):
         """
         检测备份条件，有状态应用备份应该
