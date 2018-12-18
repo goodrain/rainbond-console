@@ -408,7 +408,7 @@ console.log("nodeDetails.cur_status",nodeDetails)
                         (nodeDetails.pod_list || []).map((value, index) => {
                           return (
                             <tr>
-                              <td style={{textAlign: 'left'}}>{value.PodName}</td>
+                              <td style={{textAlign: 'left'}}>{value.pod_name}</td>
                               <td style={{textAlign: 'right'}}>{container_memory}M</td>
                             </tr>
                           );
