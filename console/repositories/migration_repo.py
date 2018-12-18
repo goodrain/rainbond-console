@@ -18,8 +18,8 @@ class GroupAppMigrationRespository(object):
     def get_by_original_group_id(self, original_grup_id):
         return GroupAppMigrateRecord.objects.filter(original_group_id=original_grup_id)
 
-    def get_user_unfinished_migrate_record(self, group_id):
-        return GroupAppMigrateRecord.objects.filter(group_id=group_id).exclude(status__in=['success', 'failed'])
+    def get_user_unfinished_migrate_record(self, group_uuid):
+        return GroupAppMigrateRecord.objects.filter(group_uuid=group_uuid).exclude(status__in=['success', 'failed'])
 
 
 migrate_repo = GroupAppMigrationRespository()

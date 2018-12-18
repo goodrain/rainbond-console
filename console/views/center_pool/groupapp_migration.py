@@ -204,7 +204,10 @@ class MigrateRecordView(RegionTenantHeaderView):
             paramType: path
 
         """
-        unfinished_migrate_records = migrate_repo.get_user_unfinished_migrate_record(group_id)
+        group_uuid = request.GET.get("group_uuid", None)
+        if not group_uuid:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        unfinished_migrate_records = migrate_repo.get_user_unfinished_migrate_record(group_uuid)
         is_finished = True
         data = None
         if unfinished_migrate_records:
