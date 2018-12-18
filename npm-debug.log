@@ -1,13 +1,13 @@
 0 info it worked if it ends with ok
 1 verbose cli [ '/usr/local/bin/node', '/usr/local/bin/npm', 'run', 'build' ]
 2 info using npm@3.10.10
-3 info using node@v6.14.4
+3 info using node@v6.15.1
 4 verbose stack Error: ENOENT: no such file or directory, open '/Users/yangml/rainbond-console/package.json'
 4 verbose stack     at Error (native)
 5 verbose cwd /Users/yangml/rainbond-console
-6 error Darwin 17.4.0
+6 error Darwin 17.7.0
 7 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "run" "build"
-8 error node v6.14.4
+8 error node v6.15.1
 9 error npm  v3.10.10
 10 error path /Users/yangml/rainbond-console/package.json
 11 error code ENOENT
