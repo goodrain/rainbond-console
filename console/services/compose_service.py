@@ -215,7 +215,6 @@ class ComposeService(object):
         group_service_relation_repo.delete_relation_by_group_id(group_id)
         compose_repo.delete_group_compose_by_group_id(group_id)
 
-
     def __delete_created_compose_info(self, tenant, compose_id):
         services = self.get_compose_services(compose_id)
         for s in services:
@@ -225,7 +224,6 @@ class ComposeService(object):
                 logger.error("delete compose services error {0}".format(msg))
 
         compose_relation_repo.delete_compose_service_relation_by_compose_id(compose_id)
-
 
     def wrap_compose_check_info(self, data):
         rt_info = dict()
@@ -278,5 +276,6 @@ class ComposeService(object):
 
     def get_service_compose_id(self, service):
         return compose_relation_repo.get_compose_id_by_service_id(service.service_id)
+
 
 compose_service = ComposeService()

@@ -575,6 +575,11 @@ class ChangeServiceTypeView(AppBaseView):
                 return Response(result, status=500)
             self.service.extend_method = extend_method
             self.service.save()
+            # 修改后重启服务
+            code, msg, event = app_manage_service.restart(self.tenant, self.service, self.user)
+            if code != 200:
+                return Response(general_message(code, "restart app error", msg, bean=event.to_dict()), status=code)
+
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
@@ -617,7 +622,6 @@ class ChangeServiceNameView(AppBaseView):
     @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
-        修改服务的应用类型标签
         :param request:
         :param args:
         :param kwargs:
