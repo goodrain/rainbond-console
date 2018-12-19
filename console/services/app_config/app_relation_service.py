@@ -55,7 +55,7 @@ class AppServiceRelationService(object):
             return True
         return False
 
-    def add_service_dependency(self, tenant, service, dep_service_id, open_inner, container_port):
+    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id,
                                                                                               service.service_id,
                                                                                               dep_service_id)
