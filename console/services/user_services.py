@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import re
 
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
