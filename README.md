@@ -2,7 +2,7 @@
 
 
 [![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-ui.svg?style=flat-square)](https://github.com/goodrain/rainbond-ui/stargazers)
-[![Build Status](https://travis-ci.org/goodrain/rainbond-console.svg?branch=master)](https://travis-ci.org/goodrain/rainbond-console)
+[![Build Status](https://travis-ci.org/goodrain/rainbond-console.svg?branch=V5.0)](https://travis-ci.org/goodrain/rainbond-console)
 
 [Website](http://www.rainbond.com) • [Docs](https://www.rainbond.com/docs/stable/) • [Public Cloud](https://console.goodrain.com)
 
