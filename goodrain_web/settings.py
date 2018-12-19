@@ -181,7 +181,7 @@ LOGGING = {
     },
     'loggers': {
         'default': {
-            'handlers': ['console'],
+            'handlers': DEFAULT_HANDLERS,
             'level': 'DEBUG',
             'propagate': True,
         },
