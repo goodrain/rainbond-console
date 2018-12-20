@@ -447,6 +447,9 @@ class ServiceTcpDomainRepository(object):
     def delete_service_tcp_domain(self, service_id):
         ServiceTcpDomain.objects.filter(service_id=service_id).delete()
 
+    def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
 
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()

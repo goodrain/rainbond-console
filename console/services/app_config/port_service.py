@@ -593,24 +593,32 @@ class AppPortService(object):
             return access_type, {}
 
     def __get_stream_outer_url(self, tenant, service, port):
-        cur_region = service.service_region.replace("-1", "")
-        connect_url = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, tenant.tenant_name,
-                                                           cur_region)
-
-        tcp_domain_url = region_services.get_region_tcpdomain(service.service_region)
-        connect_url = "{0}.{1}.{2}.{3}".format(port.container_port, service.service_alias, tenant.tenant_name, tcp_domain_url)
-        if port.protocol != 'http' and port.protocol != "https":
-            connect_url = tcp_domain_url
-        if port.lb_mapping_port != 0:
-            port_value = port.lb_mapping_port
-        else:
-            port_value = port.mapping_port
-
-        url_map = {"name": "对外访问连接地址", "attr_name": "outer_url", "attr_value": connect_url}
-        port_map = {"name": "对外访问连接端口", "attr_name": "outer_port", "attr_value": port_value}
-
-        # return [url_map, port_map]
-        return "{0}:{1}".format(url_map["attr_value"], port_map["attr_value"])
+        region = region_repo.get_region_by_region_name(service.service_region)
+        if region:
+            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id,
+                                                                  service.service_id, port.container_port)
+            if service_tcp_domain:
+                return service_tcp_domain.end_point
+            else:
+                return None
+        # cur_region = service.service_region.replace("-1", "")
+        # connect_url = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, tenant.tenant_name,
+        #                                                    cur_region)
+        #
+        # tcp_domain_url = region_services.get_region_tcpdomain(service.service_region)
+        # connect_url = "{0}.{1}.{2}.{3}".format(port.container_port, service.service_alias, tenant.tenant_name, tcp_domain_url)
+        # if port.protocol != 'http' and port.protocol != "https":
+        #     connect_url = tcp_domain_url
+        # if port.lb_mapping_port != 0:
+        #     port_value = port.lb_mapping_port
+        # else:
+        #     port_value = port.mapping_port
+        #
+        # url_map = {"name": "对外访问连接地址", "attr_name": "outer_url", "attr_value": connect_url}
+        # port_map = {"name": "对外访问连接端口", "attr_name": "outer_port", "attr_value": port_value}
+        #
+        # # return [url_map, port_map]
+        # return "{0}:{1}".format(url_map["attr_value"], port_map["attr_value"])
 
     def get_port_associated_env(self, tenant, service, port):
 
