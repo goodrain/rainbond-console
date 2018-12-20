@@ -547,6 +547,7 @@ class ChangeServiceTypeView(AppBaseView):
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
+
             old_extend_method = self.service.extend_method
             # 状态从有到无，并且有本地存储的不可修改
             is_mnt_dir = 0
@@ -575,11 +576,6 @@ class ChangeServiceTypeView(AppBaseView):
                 return Response(result, status=500)
             self.service.extend_method = extend_method
             self.service.save()
-            # 修改后重启服务
-            code, msg, event = app_manage_service.restart(self.tenant, self.service, self.user)
-            if code != 200:
-                return Response(general_message(code, "restart app error", msg, bean=event.to_dict()), status=code)
-
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
