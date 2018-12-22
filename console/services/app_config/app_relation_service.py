@@ -77,7 +77,7 @@ class AppServiceRelationService(object):
         if not open_inner_services:
             service_ports = port_repo.get_service_ports(tenant.tenant_id, dep_service.service_id)
             port_list = [service_port.container_port for service_port in service_ports]
-            return 412, u"要关联的服务暂未开启对内端口，是否打开", port_list
+            return 201, u"要关联的服务暂未开启对内端口，是否打开", port_list
 
         is_duplicate = self.__is_env_duplicate(tenant, service, dep_service)
         if is_duplicate:
@@ -110,6 +110,8 @@ class AppServiceRelationService(object):
             return 412, u"应用{0}已被关联".format(service_cnames), None
         for dep_id in dep_service_ids:
             code, msg, relation = self.add_service_dependency(tenant, service, dep_id, open_inner, container_port)
+            if code == 201:
+                return code, msg, relation
             if code != 200:
                 return code, msg, relation
         return 200, u"success", None

@@ -97,6 +97,9 @@ class AppDependencyView(AppBaseView):
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
         try:
             code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner, container_port)
+            if code == 201:
+                result = general_message(code, "add dependency error", msg, list=data, bean={"is_inner": False})
+                return Response(result, status=code)
             if code != 200:
                 result = general_message(code, "add dependency error", msg, list=data)
                 return Response(result, status=code)
@@ -138,6 +141,9 @@ class AppDependencyView(AppBaseView):
         try:
             dep_service_list = dep_service_ids.split(",")
             code, msg, port_list = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list, open_inner, container_port)
+            if code == 201:
+                result = general_message(code, "add dependency error", msg, list=port_list, bean={"is_inner": False})
+                return Response(result, status=code)
             if code != 200:
                 result = general_message(code, "add dependency error", msg, list=port_list)
                 return Response(result, status=code)
