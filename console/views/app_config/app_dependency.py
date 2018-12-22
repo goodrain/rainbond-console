@@ -142,7 +142,7 @@ class AppDependencyView(AppBaseView):
             dep_service_list = dep_service_ids.split(",")
             code, msg, port_list = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list, open_inner, container_port)
             if code == 201:
-                result = general_message(code, "add dependency error", msg, list=data, bean={"is_inner": False})
+                result = general_message(code, "add dependency error", msg, list=port_list, bean={"is_inner": False})
                 return Response(result, status=code)
             if code != 200:
                 result = general_message(code, "add dependency error", msg, list=port_list)

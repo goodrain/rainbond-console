@@ -110,6 +110,8 @@ class AppServiceRelationService(object):
             return 412, u"应用{0}已被关联".format(service_cnames), None
         for dep_id in dep_service_ids:
             code, msg, relation = self.add_service_dependency(tenant, service, dep_id, open_inner, container_port)
+            if code == 201:
+                return code, msg, relation
             if code != 200:
                 return code, msg, relation
         return 200, u"success", None
