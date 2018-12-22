@@ -16,7 +16,7 @@ Rainbond深度整合基于Kubernetes的容器管理、Service Mesh微服务架�
 ## 功能特性
 
 * 集成Kubernetes的应用编排与调度系统
-* 以应用为中心的的产品设计
+* 以应用为核心的的产品设计
 * 作为建设云原生数据中心的基础系统
 * 支持各类(SpringCloud、Dubbo、API-Gateway)微服务架构应用部署
 * 基于扩展式ServiceMesh的服务网格系统提供原生微服务治理支持（服务发现、动态路由、限流与熔断）
@@ -31,6 +31,8 @@ Rainbond深度整合基于Kubernetes的容器管理、Service Mesh微服务架�
 * 多数据中心、跨数据中心应用调度部署
 * 管理节点（平台服务）高可用支持
 * 计算集群自动化管理与运维，按需伸缩，全面的节点与集群监控
+* 支持自定义服务网关处理，个性化定制流量入口
+* 支持windows镜像，通过设置windows标签，把windows镜像跑在windows节点上
 
 ## 快速开始
 
