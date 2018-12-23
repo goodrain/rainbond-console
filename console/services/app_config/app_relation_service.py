@@ -4,12 +4,12 @@
 """
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo
 from console.repositories.app import service_repo
-
+from console.services.app_config.port_service import AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
-from console.services.app_config import port_service
 import logging
 
 region_api = RegionInvokeApi()
+port_service = AppPortService()
 logger = logging.getLogger("default")
 
 
