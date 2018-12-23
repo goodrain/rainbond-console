@@ -92,7 +92,7 @@ class AppDependencyView(AppBaseView):
         """
         dep_service_id = request.data.get("dep_service_id", None)
         open_inner = request.data.get("open_inner", False)
-        container_port = request.data.get("container_port", None)
+        container_port = int(request.data.get("container_port", None))
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
         try:
@@ -135,7 +135,7 @@ class AppDependencyView(AppBaseView):
         """
         dep_service_ids = request.data.get("dep_service_ids", None)
         open_inner = request.data.get("open_inner", False)
-        container_port = request.data.get("container_port", None)
+        container_port = int(request.data.get("container_port", None))
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
         try:
