@@ -43,6 +43,7 @@ ENV PORT 7070
 ENV RELEASE_DESC=__RELEASE_DESC__
 
 VOLUME /initdata
+VOLUME /logs
 
 ENTRYPOINT ["./entrypoint.sh"]
 
