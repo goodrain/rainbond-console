@@ -395,11 +395,11 @@ class TopologicalPortView(AppBaseView):
             if not open_outer_services:
                 service_ports = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
                 port_list = [service_port.container_port for service_port in service_ports]
-                return Response(general_message(200, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=200)
+                return Response(general_message(201, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=201)
             else:
                 return Response(
-                    general_message(201, "the service has an external port open", u"该服务已开启对外端口"),
-                    status=201)
+                    general_message(200, "the service has an external port open", u"该服务已开启对外端口"),
+                    status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

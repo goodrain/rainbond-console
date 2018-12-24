@@ -60,7 +60,7 @@ class AppServiceRelationService(object):
                                                                                               service.service_id,
                                                                                               dep_service_id)
         if dep_service_relation:
-            return 412, u"当前应用已被关联", None
+            return 212, u"当前应用已被关联", None
 
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
         # 开启对内端口
