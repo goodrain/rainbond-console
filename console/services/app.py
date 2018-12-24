@@ -38,6 +38,7 @@ gitHubClient = GitHubApi()
 port_service = AppPortService()
 probe_service = ProbeService()
 
+
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:

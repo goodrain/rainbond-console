@@ -325,7 +325,9 @@ class DomainService(object):
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
-
+        if domain_path or domain_cookie or domain_heander:
+            domain_info["is_senior"] = True
+        # 高级路由
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
@@ -414,6 +416,9 @@ class DomainService(object):
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
                 tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
+        # 高级路由
+        if domain_path or domain_cookie or domain_heander:
+            domain_info["is_senior"] = True
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:

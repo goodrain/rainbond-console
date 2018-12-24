@@ -15,7 +15,7 @@ from console.views.app_config.app_env import AppEnvView, AppEnvManageView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView
+from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView, TopologicalPortView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
@@ -293,6 +293,9 @@ urlpatterns = patterns(
         AppPortView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$',
         AppPortManageView.as_view()),
+    # 拓扑图打开对外端口
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/topological/ports$',
+        TopologicalPortView.as_view()),
     # 对外访问tcp端口修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
         AppTcpOuterManageView.as_view()),

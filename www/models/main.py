@@ -2,9 +2,7 @@
 from datetime import datetime
 
 import re
-from django.conf import settings
 from django.db import models
-from django.db.models.fields import DateTimeField
 from django.utils.crypto import salted_hmac
 
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid

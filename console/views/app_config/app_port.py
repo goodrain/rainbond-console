@@ -11,9 +11,7 @@ from console.services.app_config import port_service, domain_service
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from django.forms.models import model_to_dict
-from django.db import transaction
-from console.services.app_actions import app_manage_service
-
+from console.repositories.app_config import port_repo
 
 logger = logging.getLogger("default")
 
@@ -368,3 +366,41 @@ class AppTcpOuterManageView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class TopologicalPortView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def put(self, request, *args, **kwargs):
+        """
+        应用拓扑图打开对外端口
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            open_outer = request.data.get("open_outer", False)
+            container_port = int(request.data.get("container_port", None))
+
+            # 开启对外端口
+            if open_outer:
+                tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, container_port, "open_outer",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                if code != 200:
+                    return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
+
+            # 校验要依赖的服务是否开启了对外端口
+            open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id).filter(
+                is_outer_service=True)
+            if not open_outer_services:
+                service_ports = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
+                port_list = [service_port.container_port for service_port in service_ports]
+                return Response(general_message(200, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=200)
+            else:
+                return Response(
+                    general_message(200, "the service has an external port open", u"该服务已开启对外端口"),
+                    status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])
