@@ -65,7 +65,7 @@ class AppServiceRelationService(object):
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
         # 开启对内端口
         if open_inner:
-            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            tenant_service_port = port_service.get_service_port_by_port(service, int(container_port))
             code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
                                                        int(tenant_service_port.container_port), "open_inner",
                                                        tenant_service_port.protocol, tenant_service_port.port_alias)
@@ -109,7 +109,7 @@ class AppServiceRelationService(object):
             service_cnames = [s.service_cname for s in services]
             return 412, u"应用{0}已被关联".format(service_cnames), None
         for dep_id in dep_service_ids:
-            code, msg, relation = self.add_service_dependency(tenant, service, dep_id, open_inner, container_port)
+            code, msg, relation = self.add_service_dependency(tenant, service, dep_id, open_inner, int(container_port))
             if code == 201:
                 return code, msg, relation
             if code != 200:
@@ -123,7 +123,7 @@ class AppServiceRelationService(object):
         if not dependency:
             return 404, u"需要删除的依赖不存在", None
         if service.create_status == "complete":
-            task = {}
+            task = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = "v"
