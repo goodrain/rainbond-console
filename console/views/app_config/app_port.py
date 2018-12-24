@@ -398,8 +398,8 @@ class TopologicalPortView(AppBaseView):
                 return Response(general_message(200, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=200)
             else:
                 return Response(
-                    general_message(200, "the service has an external port open", u"该服务已开启对外端口"),
-                    status=200)
+                    general_message(201, "the service has an external port open", u"该服务已开启对外端口"),
+                    status=201)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
