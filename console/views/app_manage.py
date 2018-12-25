@@ -640,3 +640,32 @@ class ChangeServiceNameView(AppBaseView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+
+# 修改服务名称
+class ChangeServiceUpgradeView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_extend')
+    def put(self, request, *args, **kwargs):
+        """
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            service_name = request.data.get("service_name", None)
+            if not service_name:
+                return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
+            extend_method = self.service.extend_method
+            if extend_method == "stateless":
+                return Response(
+                    general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"),
+                    status=400)
+            self.service.service_name = service_name
+            self.service.save()
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
