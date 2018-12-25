@@ -42,6 +42,9 @@ class GroupappsMigrateService(object):
         services = group_service.get_group_services(origin_backup_record.group_id)
         if not services and migrate_type == "recover":
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
+            if not new_group:
+                new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region,
+                                                    origin_backup_record.group_id)
         else:
             new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
@@ -72,8 +75,7 @@ class GroupappsMigrateService(object):
 
     def __create_new_group(self, tenant_id, region, old_group_id):
 
-        old_group = group_repo.get_group_by_id(old_group_id)
-        new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+        new_group_name = '_'.join(["好雨备份", make_uuid()[-4:]])
 
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
