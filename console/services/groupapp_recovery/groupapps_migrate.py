@@ -88,7 +88,7 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type):
+    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id, restore_id):
 
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
@@ -122,26 +122,33 @@ class GroupappsMigrateService(object):
             "image_info": service_image
         }
         body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
+        if event_id:
+            migrate_record = migrate_repo.get_by_event_id(event_id)
+            data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,
+                                                      migrate_record.backup_id, restore_id)
 
-        # 创建迁移记录
-        params = {
-            "group_id": new_group.ID,
-            "group_uuid": new_backup_record.group_uuid,
-            "event_id": make_uuid(),
-            "version": backup_record.version,
-            "backup_id": new_backup_record.backup_id,
-            "migrate_team": migrate_team.tenant_name,
-            "migrate_region": migrate_region,
-            "status": "starting",
-            "user": user.nick_name,
-            "restore_id": body["bean"]["restore_id"],
-            "original_group_id": backup_record.group_id,
-            "original_group_uuid": backup_record.group_uuid,
-            "migrate_type": migrate_type
+            bean = data["bean"]
+            migrate_record.status = bean["status"]
+            migrate_record.save()
+        else:
+            # 创建迁移记录
+            params = {
+                "group_id": new_group.ID,
+                "group_uuid": new_backup_record.group_uuid,
+                "event_id": make_uuid(),
+                "version": backup_record.version,
+                "backup_id": new_backup_record.backup_id,
+                "migrate_team": migrate_team.tenant_name,
+                "migrate_region": migrate_region,
+                "status": "starting",
+                "user": user.nick_name,
+                "restore_id": body["bean"]["restore_id"],
+                "original_group_id": backup_record.group_id,
+                "original_group_uuid": backup_record.group_uuid,
+                "migrate_type": migrate_type
 
-        }
-        migrate_record = migrate_repo.create_migrate_record(**params)
-
+            }
+            migrate_record = migrate_repo.create_migrate_record(**params)
         return 200, "操作成功，开始迁移", migrate_record
 
     def __check_group_service_status(self, region, tenant, group_id):

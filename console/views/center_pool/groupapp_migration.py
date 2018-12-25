@@ -67,6 +67,8 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             team = request.data.get("team", None)
             backup_id = request.data.get("backup_id", None)
             migrate_type = request.data.get("migrate_type", "migrate")
+            event_id = request.data.get("event_id", None)
+            restore_id = request.data.get("restore_id", None)
 
             if not team:
                 return Response(general_message(400, "team is null", "请指明要迁移的团队"), status=400)
@@ -83,7 +85,7 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             code, msg, migrate_record = migrate_service.start_migrate(self.user, self.tenant,
                                                                       self.response_region, migrate_team,
                                                                       migrate_region,
-                                                                      backup_id, migrate_type)
+                                                                      backup_id, migrate_type, event_id, restore_id)
             if code != 200:
                 return Response(general_message(code, "migrate failed", msg),
                                 status=code)

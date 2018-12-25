@@ -450,6 +450,9 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
         return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
 
+    def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
 
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()
