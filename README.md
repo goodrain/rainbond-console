@@ -31,6 +31,15 @@ Choose Rainbond for the same reasons disruptive companies do: it serve as a easy
 * The management node (platform service) HA available.
 * Cluster automatic operation and maintenance, monitoring multidimensional indicators.
 * Provide complete business solution cloud delivery process.
+* Support custom service gateway processing, customized traffic entry.
+* Support Windows image, by setting the Windows TAB, Windows image running on Windows nodes.
+* Topology diagrams support visual editing of services, service registration, and service discovery.
+* Support access routing control based on domain name, access path, request header, Cookie.
+* Support HTTP and HTTPs coexistence, HTTP Rewrite HTTPs strategy, and generic domain name strategy.
+* Custom load balancing algorithm, support polling algorithm.
+* TCP\UDP access policy management based on IP+ port is supported by default.
+* Support import of TLS certificates issued by third parties, status monitoring and management of certificates.
+
 
 ---
 
