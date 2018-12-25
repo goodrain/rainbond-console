@@ -97,7 +97,6 @@ class CenterAppListView(RegionTenantHeaderView):
             return 0
 
 
-
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
     @perm_required("create_service")
