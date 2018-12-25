@@ -41,7 +41,7 @@ region_api = RegionInvokeApi()
 
 
 class MarketAppService(object):
-    def install_service(self, tenant, region, user, group_id, market_app):
+    def install_service(self, tenant, region, user, group_id, market_app, is_deploy):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -103,8 +103,9 @@ class MarketAppService(object):
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建应用插件
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
-            # 部署所有应用
-            self.__deploy_services(tenant, user, new_service_list)
+            if is_deploy:
+                # 部署所有应用
+                self.__deploy_services(tenant, user, new_service_list)
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:

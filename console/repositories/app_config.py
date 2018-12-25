@@ -406,9 +406,9 @@ class ServiceTcpDomainRepository(object):
         else:
             return None
 
-    def get_service_tcp_domain_by_service_id_and_port(self, service_id, container_port):
+    def get_service_tcp_domain_by_service_id_and_port(self, service_id, container_port, domain_name):
 
-        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port).first()
+        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port, end_point=domain_name).first()
         if tcp_domain:
             return tcp_domain
         else:

@@ -205,7 +205,7 @@ class DomainService(object):
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
             servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
             if not servicerDomain:
@@ -218,23 +218,25 @@ class DomainService(object):
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
                     region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+                    servicer_domain.delete()
+                    return 200, u"success"
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         raise e
-                servicer_domain.delete()
+
         else:
-            servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, container_port)
+            servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, container_port, domain_name)
             if not servicer_tcp_domain:
                 return 404, u"域名不存在"
             data = dict()
             data["tcp_rule_id"] = servicer_tcp_domain.tcp_rule_id
             try:
                 region_api.unbindTcpDomain(service.service_region, tenant.tenant_name, data)
+                servicer_tcp_domain.delete()
+                return 200, u"success"
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
-            servicer_tcp_domain.delete()
-        return 200, u"success"
 
     def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, the_weight, g_id, rule_extensions):
