@@ -113,7 +113,7 @@ class AppDependencyView(AppBaseView):
     @perm_required('manage_service_config')
     def patch(self, request, *args, **kwargs):
         """
-        为应用添加依赖应用（批量添加）
+        为应用添加依赖应用
         ---
         parameters:
             - name: tenantName
@@ -134,18 +134,13 @@ class AppDependencyView(AppBaseView):
 
         """
         dep_service_ids = request.data.get("dep_service_ids", None)
-        open_inner = request.data.get("open_inner", False)
-        container_port = request.data.get("container_port", None)
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
         try:
             dep_service_list = dep_service_ids.split(",")
-            code, msg, port_list = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list, open_inner, container_port)
-            if code == 201:
-                result = general_message(code, "add dependency error", msg, list=port_list, bean={"is_inner": False})
-                return Response(result, status=code)
+            code, msg = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list)
             if code != 200:
-                result = general_message(code, "add dependency error", msg, list=port_list)
+                result = general_message(code, "add dependency error", msg)
                 return Response(result, status=code)
             result = general_message(code, msg, u"依赖添加成功")
         except Exception as e:

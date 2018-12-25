@@ -100,21 +100,20 @@ class AppServiceRelationService(object):
         dep_relation = dep_relation_repo.add_service_dependency(**tenant_service_relation)
         return 200, u"success", dep_relation
 
-    def patch_add_dependency(self, tenant, service, dep_service_ids, open_inner, container_port):
+    def patch_add_dependency(self, tenant, service, dep_service_ids):
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(tenant.tenant_id,
                                                                                     service.service_id, dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
         services = service_repo.get_services_by_service_ids(*dep_ids)
         if dep_service_relations:
             service_cnames = [s.service_cname for s in services]
-            return 412, u"应用{0}已被关联".format(service_cnames), None
+            return 412, u"应用{0}已被关联".format(service_cnames)
         for dep_id in dep_service_ids:
-            code, msg, relation = self.add_service_dependency(tenant, service, dep_id, open_inner, int(container_port))
-            if code == 201:
-                return code, msg, relation
+            code, msg, relation = self.add_service_dependency(tenant, service, dep_id)
             if code != 200:
-                return code, msg, relation
-        return 200, u"success", None
+                return code, msg
+        return 200, u"success"
+
 
     def delete_service_dependency(self, tenant, service, dep_service_id):
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id,
