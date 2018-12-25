@@ -852,17 +852,13 @@ class AllTeamsView(JWTAuthApiView):
         获取企业可加入的团队列表
         """
         try:
+            enterprise_id = request.GET.get("enterprise_id", None)
             tenant_alias = request.GET.get("tenant_alias", None)
             page_num = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 5))
-            team_name = request.GET.get("team_name", None)
-            if not team_name:
-                return Response(general_message(400, "team name is null", "参数错误"), status=400)
-
-            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
-
-            enter = enterprise_services.get_enterprise_by_id(enterprise_id=team.enterprise_id)
-            enterprise_id = enter.enterprise_id
+            if not enterprise_id:
+                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
+                enterprise_id = enter.enterprise_id
             if tenant_alias:
                 team_list = team_services.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id=enterprise_id, tenant_alias=tenant_alias)
             else:
