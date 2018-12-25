@@ -45,7 +45,12 @@ class WebHooksDeploy(AlowAnyApiView):
                 user_agent = user_agent.split("/")[0]
             if github_event and user_agent == "GitHub-Hookshot":
 
-                if not github_event == "push":
+                if github_event == "ping":
+                    logger.debug("支持此事件类型")
+                    result = general_message(200, "success", "支持测试连接")
+                    return Response(result, status=200)
+
+                if github_event != "push" and github_event != "ping":
                     logger.debug("不支持此事件类型")
                     result = general_message(400, "failed", "不支持此事件类型")
                     return Response(result, status=400)
@@ -121,7 +126,13 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 event_name = request.data.get("object_kind", None)
                 logger.debug("kind", event_name)
-                if not event_name == "push":
+
+                if event_name == "ping":
+                    logger.debug("支持此事件类型")
+                    result = general_message(200, "success", "支持测试连接")
+                    return Response(result, status=200)
+
+                if event_name != "push" and event_name != "ping":
                     logger.debug("不支持此事件类型")
                     result = general_message(400, "failed", "不支持此事件类型")
                     return Response(result, status=400)
