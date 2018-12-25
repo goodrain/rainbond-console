@@ -1098,7 +1098,7 @@ class ServiceGroup(BaseModel):
         db_table = 'service_group'
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    group_name = models.CharField(max_length=32, help_text=u"组名")
+    group_name = models.CharField(max_length=128, help_text=u"组名")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认应用")
 

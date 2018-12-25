@@ -102,3 +102,8 @@ update service_group set group_name = replace(group_name , '默认组' , '默认
 -- 修改service_event操作说明字段格式
 
 ALTER TABLE service_event MODIFY `message` TEXT;
+
+
+-- 修改service_group字段group_name长度最大值
+
+alter table service_group modify column group_name varchar(128);

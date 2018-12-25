@@ -91,6 +91,7 @@ class GroupappsMigrateService(object):
                 return 409, "恢复备份请确保当前组下的应用全部关闭", None
 
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
+        logger.debug('-----------232------------>{0}'.format(backup_record.group_id))
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
         new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
