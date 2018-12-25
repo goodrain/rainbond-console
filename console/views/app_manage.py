@@ -653,15 +653,9 @@ class ChangeServiceUpgradeView(AppBaseView):
         :return:
         """
         try:
-            service_name = request.data.get("service_name", None)
-            if not service_name:
-                return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
-            extend_method = self.service.extend_method
-            if extend_method == "stateless":
-                return Response(
-                    general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"),
-                    status=400)
-            self.service.service_name = service_name
+            build_upgrade = request.date.get("build_upgrade", True)
+
+            self.service.build_upgrade = build_upgrade
             self.service.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:
