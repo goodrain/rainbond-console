@@ -16,7 +16,7 @@ from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Create log directory
-LOG_PATH = '/logs'
+LOG_PATH = '/app/logs'
 folder = os.path.exists(LOG_PATH)
 if not folder:
     os.makedirs(LOG_PATH)
@@ -157,7 +157,7 @@ LOGGING = {
         'file_handler': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/logs/goodrain.log',
+            'filename': '/app/logs/goodrain.log',
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'standard',
@@ -165,7 +165,7 @@ LOGGING = {
         'request_api': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/logs/request.log',
+            'filename': '/app/logs/request.log',
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'standard',
