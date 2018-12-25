@@ -114,7 +114,6 @@ class AppServiceRelationService(object):
                 return code, msg
         return 200, u"success"
 
-
     def delete_service_dependency(self, tenant, service, dep_service_id):
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id,
                                                                                     service.service_id,

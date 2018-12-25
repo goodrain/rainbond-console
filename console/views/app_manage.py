@@ -653,7 +653,7 @@ class ChangeServiceUpgradeView(AppBaseView):
         :return:
         """
         try:
-            build_upgrade = request.date.get("build_upgrade", True)
+            build_upgrade = request.data.get("build_upgrade", True)
 
             self.service.build_upgrade = build_upgrade
             self.service.save()
