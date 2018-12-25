@@ -657,7 +657,7 @@ class ChangeServiceUpgradeView(AppBaseView):
 
             self.service.build_upgrade = build_upgrade
             self.service.save()
-            result = general_message(200, "success", "操作成功")
+            result = general_message(200, "success", "操作成功", bean={"build_upgrade": self.service.build_upgrade})
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
