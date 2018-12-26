@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
     TenantServiceAuth, TenantServiceEnvVar, TenantServiceRelation, \
-    TenantServiceVolume, AppServiceRelation, TenantServicesPort
+    TenantServiceVolume, TenantServicesPort
 from www.utils import crypt
 from django.conf import settings
 from django.db.models import Q

@@ -547,6 +547,7 @@ class ChangeServiceTypeView(AppBaseView):
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
+
             old_extend_method = self.service.extend_method
             # 状态从有到无，并且有本地存储的不可修改
             is_mnt_dir = 0
@@ -617,7 +618,6 @@ class ChangeServiceNameView(AppBaseView):
     @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
-        修改服务的应用类型标签
         :param request:
         :param args:
         :param kwargs:
@@ -635,6 +635,29 @@ class ChangeServiceNameView(AppBaseView):
             self.service.service_name = service_name
             self.service.save()
             result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+# 修改服务名称
+class ChangeServiceUpgradeView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_extend')
+    def put(self, request, *args, **kwargs):
+        """
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            build_upgrade = request.data.get("build_upgrade", True)
+
+            self.service.build_upgrade = build_upgrade
+            self.service.save()
+            result = general_message(200, "success", "操作成功", bean={"build_upgrade": self.service.build_upgrade})
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

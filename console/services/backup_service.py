@@ -18,8 +18,7 @@ from console.repositories.event_repo import event_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.app import service_source_repo
-from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
-    app_plugin_attr_repo, plugin_version_repo, service_plugin_config_repo
+from console.repositories.plugin import app_plugin_relation_repo, service_plugin_config_repo
 
 import json
 import logging
@@ -35,6 +34,9 @@ KEY = "GOODRAINLOVE"
 class GroupAppBackupService(object):
     def get_group_back_up_info(self, tenant, region, group_id):
         return backup_record_repo.get_group_backup_records(tenant.tenant_id, region, group_id).order_by("-ID")
+
+    def get_all_group_back_up_info(self, tenant, region):
+        return backup_record_repo.get_group_backup_records_by_team_id(tenant.tenant_id, region).order_by("-ID")
 
     def check_backup_condition(self, tenant, region, group_id):
         """

@@ -30,6 +30,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       libpng-dev \
       libjpeg-turbo-dev \
       py-mysqldb \
+      && mkdir /app/logs \
       && pip install -r requirements.txt \
       && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
       && cp -a /usr/lib/libmemcached* /tmp/ \
@@ -47,6 +48,7 @@ ENV PORT 7070
 ENV RELEASE_DESC=__RELEASE_DESC__
 
 VOLUME /initdata
+VOLUME /app/logs
 
 ENTRYPOINT ["./entrypoint.sh"]
 

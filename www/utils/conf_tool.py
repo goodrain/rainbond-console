@@ -24,10 +24,10 @@ class RegionConfig(object):
         else:
             region_list = []
             for conf in api_conf:
-                region_map = {}
+                region_map = dict()
                 region_map["name"] = conf["region_name"]
                 region_map["label"] = conf["region_alias"]
-                region_map["enable"] = conf.get("enable",True)
+                region_map["enable"] = conf.get("enable", True)
                 region_list.append(region_map)
             return region_list
 
@@ -48,5 +48,6 @@ class RegionConfig(object):
                 region_map["token"] = region.get("token",settings.REGION_TOKEN)
                 region_service_api_list.append(region_map)
             return region_service_api_list
+
 
 regionConfig = RegionConfig()

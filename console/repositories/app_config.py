@@ -227,6 +227,9 @@ class ServiceDomainRepository(object):
     def get_service_domain_by_container_port(self, service_id, container_port):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
 
+    def get_service_domain_by_container_port_and_protocol(self, service_id, container_port, protocol):
+        return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port, protocol=protocol)
+
     def get_service_domain_by_http_rule_id(self, http_rule_id):
         domain = ServiceDomain.objects.filter(http_rule_id=http_rule_id).first()
         if domain:
@@ -261,7 +264,7 @@ class ServiceDomainRepository(object):
     def get_domain_by_name_and_port_and_protocol(self, service_id, container_port, domain_name, protocol):
         try:
             return ServiceDomain.objects.get(service_id=service_id,
-                                             container_port=container_port, domain_name=domain_name)
+                                             container_port=container_port, domain_name=domain_name, protocol=protocol)
         except ServiceDomain.DoesNotExist:
             return None
 
@@ -403,9 +406,9 @@ class ServiceTcpDomainRepository(object):
         else:
             return None
 
-    def get_service_tcp_domain_by_service_id_and_port(self, service_id, container_port):
+    def get_service_tcp_domain_by_service_id_and_port(self, service_id, container_port, domain_name):
 
-        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port).first()
+        tcp_domain = ServiceTcpDomain.objects.filter(service_id=service_id, container_port=container_port, end_point=domain_name).first()
         if tcp_domain:
             return tcp_domain
         else:
@@ -443,6 +446,12 @@ class ServiceTcpDomainRepository(object):
 
     def delete_service_tcp_domain(self, service_id):
         ServiceTcpDomain.objects.filter(service_id=service_id).delete()
+
+    def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
+    def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
 
 
 tcp_domain = ServiceTcpDomainRepository()

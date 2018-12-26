@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 import json
 from www.views import AuthedView
-from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator, ThirdAppOrder
+from www.models import ThirdAppInfo, ThirdAppOperator, ThirdAppOrder
 from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
@@ -329,62 +329,6 @@ class CDNTrafficRecordView(AuthedView):
         }
         AuthedView.__init__(self, request, *args, **kwargs)
     
-    @transaction.atomic
-    def post(self, request, *args, **kwargs):
-        result = {}
-        try:
-            with transaction.atomic():
-                traffic_size = request.POST.get("traffic_size", "500G")
-                new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
-                if new_tenant.balance < self.price_map[traffic_size] and new_tenant.pay_type != "unpay":
-                    result["status"] = "failure"
-                    result["message"] = "余额不足，请先充值！"
-                    return JsonResponse(result)
-                
-                # 创建订单
-                record = CDNTrafficRecord()
-                record.traffic_price = self.price_map[traffic_size]
-                record.traffic_size = self.size_map[traffic_size]
-                record.bucket_name = self.app_id
-                record.service_id = self.app_info.service_id
-                record.order_id = make_uuid()
-                record.tenant_id = self.tenantName
-                record.save()
-                # 支付
-                if new_tenant.pay_type != "unpay":
-                    new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
-                    new_tenant.save()
-                record.payment_status = 1
-                record.save()
-                
-                # 创建流量包消费增值纪录
-                hour = CDNTrafficHourRecord.objects. \
-                    order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
-                n_hour = CDNTrafficHourRecord()
-                if hour is None:
-                    n_hour.balance = record.traffic_size
-                else:
-                    n_hour.balance = record.traffic_size + hour.balance
-                n_hour.bucket_name = self.app_id
-                n_hour.service_id = self.app_info.service_id
-                n_hour.tenant_id = self.tenantName
-                n_hour.traffic_number = 0
-                n_hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                n_hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                n_hour.save()
-                
-                # 更新应用付费方式为包流量
-                self.app_info.bill_type = "packet"
-                self.app_info.save()
-                result["status"] = "success"
-                result["message"] = "购买成功"
-                result["balance"] = n_hour.balance
-        except Exception, e:
-            logger.exception(e)
-            result["status"] = "failure"
-            result["message"] = "购买失败"
-        return JsonResponse(result)
-
 
 class OpenThirdAppView(AuthedView):
     def __init__(self, request, *args, **kwargs):
@@ -557,7 +501,7 @@ class CDNSourceView(AuthedView):
                 result["status"] = "failure"
                 result["message"] = "CDN回源地址未定义"
                 return JsonResponse(result)
-            rbody = {}
+            rbody = dict()
             rbody["domain"] = domain
             rbody["source_type"] = source_type
             rbody["domain_follow"] = domain_follow

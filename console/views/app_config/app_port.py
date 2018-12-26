@@ -11,9 +11,7 @@ from console.services.app_config import port_service, domain_service
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from django.forms.models import model_to_dict
-from django.db import transaction
-from console.services.app_actions import app_manage_service
-
+from console.repositories.app_config import port_repo
 
 logger = logging.getLogger("default")
 
@@ -60,9 +58,15 @@ class AppPortView(AppBaseView):
                     outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
                 port_info["outer_url"] = outer_url
                 port_info["bind_domains"] = []
-                if port.protocol == "http":
-                    bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
-                    port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
+                bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
+                logger.debug('----------111111111------000{0}'.format(bind_domains))
+                port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
+                bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
+
+                if bind_tcp_domains:
+                    port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
+                else:
+                    port_info["bind_tcp_domains"] = []
                 port_list.append(port_info)
             result = general_message(200, "success", "查询成功", list=port_list)
         except Exception as e:
@@ -362,3 +366,41 @@ class AppTcpOuterManageView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class TopologicalPortView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def put(self, request, *args, **kwargs):
+        """
+        应用拓扑图打开对外端口
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            open_outer = request.data.get("open_outer", False)
+            container_port = request.data.get("container_port", None)
+
+            # 开启对外端口
+            if open_outer:
+                tenant_service_port = port_service.get_service_port_by_port(self.service, int(container_port))
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), "open_outer",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                if code != 200:
+                    return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
+
+            # 校验要依赖的服务是否开启了对外端口
+            open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id).filter(
+                is_outer_service=True)
+            if not open_outer_services:
+                service_ports = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
+                port_list = [service_port.container_port for service_port in service_ports]
+                return Response(general_message(201, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=201)
+            else:
+                return Response(
+                    general_message(200, "the service has an external port open", u"该服务已开启对外端口"),
+                    status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=result["code"])

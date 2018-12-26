@@ -7,7 +7,6 @@ from django.http.response import JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
-from www.models.service_publish import AppServiceImages
 from www.views.base import CAdminView
 from goodrain_web.custom_config import custom_config as custom_settings
 
@@ -140,17 +139,6 @@ class ConfigLogoViews(CAdminView):
         context["config"] = "active"
         context["upload_page"]="active"
 
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        context = self.get_context()
-        self.init_context(context)
-        try:
-            data =  AppServiceImages.objects.get(service_id="logo")
-            context["data"] = data
-        except Exception as e:
-            logger.error(e)
-
-        return TemplateResponse(self.request, "cadmin/upload.html", context)
 
 class SpecificationSViews(CAdminView):
     def get_media(self):

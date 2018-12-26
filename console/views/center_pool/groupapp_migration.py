@@ -67,6 +67,8 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             team = request.data.get("team", None)
             backup_id = request.data.get("backup_id", None)
             migrate_type = request.data.get("migrate_type", "migrate")
+            event_id = request.data.get("event_id", None)
+            restore_id = request.data.get("restore_id", None)
 
             if not team:
                 return Response(general_message(400, "team is null", "请指明要迁移的团队"), status=400)
@@ -83,7 +85,7 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             code, msg, migrate_record = migrate_service.start_migrate(self.user, self.tenant,
                                                                       self.response_region, migrate_team,
                                                                       migrate_region,
-                                                                      backup_id, migrate_type)
+                                                                      backup_id, migrate_type, event_id, restore_id)
             if code != 200:
                 return Response(general_message(code, "migrate failed", msg),
                                 status=code)
@@ -169,7 +171,7 @@ class GroupAppsView(RegionTenantHeaderView):
                 return Response(general_message(200, "success", "恢复到当前组无需删除"), status=200)
             group = group_repo.get_group_by_id(group_id)
             if not group:
-                return Response(general_message(400, "group not exist", "组ID {0} 不存在".format(group_id)), status=400)
+                return Response(general_message(400, "group is delete", "该备份组已删除"), status=400)
             new_group = group_repo.get_group_by_id(new_group_id)
             if not new_group:
                 return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),
@@ -204,7 +206,10 @@ class MigrateRecordView(RegionTenantHeaderView):
             paramType: path
 
         """
-        unfinished_migrate_records = migrate_repo.get_user_unfinished_migrate_record(group_id)
+        group_uuid = request.GET.get("group_uuid", None)
+        if not group_uuid:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        unfinished_migrate_records = migrate_repo.get_user_unfinished_migrate_record(group_uuid)
         is_finished = True
         data = None
         if unfinished_migrate_records:

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="270px" height="407px" viewBox="0 0 270 407" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.5 (67469) - http://www.bohemiancoding.com/sketch -->
+    <title>Group</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <filter x="-811.8%" y="-634.0%" width="1723.7%" height="1372.2%" filterUnits="objectBoundingBox" id="filter-1">
+            <feOffset dx="0" dy="215" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="59.5" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0.466666667   0 0 0 0 1  0 0 0 1 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+        <path d="M40.7093748,0.987530275 L73.7093748,22.2638461 C75.1372811,23.1844699 76,24.7671818 76,26.4661417 L76,59.8320312 L76,70.0152514 C76,71.7142113 75.1372811,73.2969232 73.7093748,74.217547 L40.7093748,95.4938628 C39.0597004,96.5574687 36.9402996,96.5574687 35.2906252,95.4938628 L2.29062521,74.217547 C0.86271887,73.2969232 9.89197874e-15,71.7142113 1.42108547e-14,70.0152514 L-1.77635684e-15,26.4661417 C-3.49339894e-15,24.7671818 0.86271887,23.1844699 2.29062521,22.2638461 L35.2906252,0.987530275 C36.9402996,-0.0760756014 39.0597004,-0.0760756014 40.7093748,0.987530275 Z" id="path-2"></path>
+        <filter x="-7.9%" y="-4.2%" width="115.8%" height="112.5%" filterUnits="objectBoundingBox" id="filter-3">
+            <feMorphology radius="2" operator="dilate" in="SourceAlpha" result="shadowSpreadOuter1"></feMorphology>
+            <feOffset dx="0" dy="2" in="shadowSpreadOuter1" result="shadowOffsetOuter1"></feOffset>
+            <feMorphology radius="2" operator="erode" in="SourceAlpha" result="shadowInner"></feMorphology>
+            <feOffset dx="0" dy="2" in="shadowInner" result="shadowInner"></feOffset>
+            <feComposite in="shadowOffsetOuter1" in2="shadowInner" operator="out" result="shadowOffsetOuter1"></feComposite>
+            <feGaussianBlur stdDeviation="1" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0.903667821   0 0 0 0 0.900540792   0 0 0 0 0.904735332  0 0 0 1 0" type="matrix" in="shadowBlurOuter1"></feColorMatrix>
+        </filter>
+        <filter x="-9.2%" y="-5.2%" width="118.4%" height="114.6%" filterUnits="objectBoundingBox" id="filter-4">
+            <feGaussianBlur stdDeviation="3" in="SourceAlpha" result="shadowBlurInner1"></feGaussianBlur>
+            <feOffset dx="0" dy="0" in="shadowBlurInner1" result="shadowOffsetInner1"></feOffset>
+            <feComposite in="shadowOffsetInner1" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowInnerInner1"></feComposite>
+            <feColorMatrix values="0 0 0 0 0.903667821   0 0 0 0 0.900540792   0 0 0 0 0.904735332  0 0 0 1 0" type="matrix" in="shadowInnerInner1"></feColorMatrix>
+        </filter>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Group" filter="url(#filter-1)" transform="translate(97.000000, 2.000000)">
+            <g id="Polygon">
+                <use fill="black" fill-opacity="1" filter="url(#filter-3)" xlink:href="#path-2"></use>
+                <use fill="black" fill-opacity="1" filter="url(#filter-4)" xlink:href="#path-2"></use>
+                <use stroke="#007710" stroke-width="4" xlink:href="#path-2"></use>
+            </g>
+            <circle id="Oval" fill="#000000" cx="38" cy="48" r="8"></circle>
+        </g>
+    </g>
+</svg>

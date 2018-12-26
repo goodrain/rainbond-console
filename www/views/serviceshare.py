@@ -1,8 +1,6 @@
 # -*- coding: utf8 -*-
 from django.template.response import TemplateResponse
-from django.http.response import JsonResponse
 from django import forms
-
 from www.views import AuthedView, LeftSideBarMixin, BaseView
 from www.service_http import RegionServiceApi
 from www.models import *
@@ -59,31 +57,6 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         return TemplateResponse(request,
                                 'www/service/share_step_2.html',
                                 context)
-    
-    def post(self, request, *args, **kwargs):
-        # 服务的环境是否可修改存储
-        post_data = request.POST.dict()
-        env_ids = post_data.get('env_ids')
-        logger.info("env_ids={}".format(env_ids))
-        # clear old info
-        AppServiceShareInfo.objects.filter(tenant_id=self.service.tenant_id,
-                                           service_id=self.service.service_id).delete()
-        if env_ids != "" and env_ids is not None:
-            env_data = []
-            tmp_id_list = env_ids.split(",")
-            for tmp_id in tmp_id_list:
-                is_change = post_data.get(tmp_id, "0")
-                is_change = (is_change == "1")
-                app_env = AppServiceShareInfo(tenant_id=self.service.tenant_id,
-                                              service_id=self.service.service_id,
-                                              tenant_env_id=int(tmp_id),
-                                              is_change=is_change)
-                env_data.append(app_env)
-            # add new info
-            if len(env_data) > 0:
-                AppServiceShareInfo.objects.bulk_create(env_data)
-        logger.debug(u'publish.service. now add publish service env ok')
-        return self.redirect_to('/apps/{0}/{1}/share/step3'.format(self.tenantName, self.serviceAlias))
 
 
 class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
@@ -121,28 +94,6 @@ class ShareServiceImageForm(forms.Form):
     """服务截图上传form表单"""
     logo = forms.FileField(help_text=u"应用logo")
     service_id = forms.CharField(help_text=u"服务发布key")
-
-
-class ShareServiceImageView(BaseView):
-    def post(self, request, *args, **kwargs):
-        # 获取表单信息
-        service_id = request.POST['service_id']
-        logo = request.FILES['logo']
-        # 更新图片路径
-        count = AppServiceImages.objects.filter(service_id=service_id).count()
-        if count > 1:
-            AppServiceImages.objects.filter(service_id=service_id).delete()
-            count = 0
-        if count == 0:
-            image_info = AppServiceImages()
-            image_info.service_id = service_id
-            image_info.logo = logo
-        else:
-            image_info = AppServiceImages.objects.get(service_id=service_id)
-            image_info.logo = logo
-        image_info.save()
-        data = {"success": True, "code": 200, "pic": image_info.logo.name}
-        return JsonResponse(data, status=200)
 
 
 class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
@@ -247,82 +198,4 @@ class ShareServicePackageView(BaseView):
     def get_context(self):
         context = super(ShareServicePackageView, self).get_context()
         return context
-    
-    def get(self, request, *args, **kwargs):
-        # 跳转到服务关系发布页面
-        package_id = request.POST.get("id", None)
-        try:
-            service_package = AppServicePackages.objects.get(pk=package_id)
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse(status=500, data={"code": 500})
-        data = {
-            "code": 200,
-            "data-name": service_package.name,
-            "data-memory": service_package.memory,
-            "data-node": service_package.node,
-            "data-time": service_package.trial,
-            "data-price": round(service_package.price, 2),
-            "data-total": round(service_package.total_price, 2),
-        }
-        return JsonResponse(status=200, data=data)
-    
-    def post(self, request, *args, **kwargs):
-        # 获取类型
-        action = request.POST.get("action")
-        package_id = request.POST.get("id", None)
-        name = request.POST.get("name", "")
-        memory = request.POST.get("memory", 128)
-        node = request.POST.get("node", 1)
-        trial = request.POST.get("trial", 0)
-        price = request.POST.get("price", 0)
-        total_price = request.POST.get("total_price", 0)
-        service_key = request.POST.get("service_key", None)
-        app_version = request.POST.get("app_version", None)
-        dep_info = request.POST.get("dep_info", "[]")
-        logger.debug(request.POST)
-        
-        if action == "delete":
-            # delete
-            AppServicePackages.objects.filter(pk=package_id).delete()
-            return JsonResponse(status=200, data={"code": 200})
-        elif action == "add" or action == "update":
-            package = AppServicePackages()
-            if package_id is None:
-                count = AppServicePackages.objects.filter(service_key=service_key,
-                                                          app_version=app_version,
-                                                          name=name).count()
-                if count > 0:
-                    return JsonResponse(status=500, data={"code": 500, "msg": "套餐名称已存在!"})
-            else:
-                try:
-                    package = AppServicePackages.objects.get(pk=package_id)
-                except Exception:
-                    pass
-            package.service_key = service_key
-            package.app_version = app_version
-            package.name = name
-            package.memory = memory
-            package.node = node
-            package.trial = trial
-            package.price = round(float(price), 2)
-            package.total_price = round(float(total_price), 2)
-            package.dep_info = dep_info
-            package.save()
-            return JsonResponse(status=200, data={"code": 200, "info": json.dumps(package.to_dict())})
-        else:
-            try:
-                service_package = AppServicePackages.objects.get(pk=package_id)
-            except Exception as e:
-                logger.exception(e)
-                return JsonResponse(status=500, data={"code": 500})
-            data = {
-                "code": 200,
-                "data-name": service_package.name,
-                "data-memory": service_package.memory,
-                "data-node": service_package.node,
-                "data-time": service_package.trial,
-                "data-price": service_package.price,
-                "data-total": service_package.total_price,
-            }
-            return JsonResponse(status=200, data=data)
+

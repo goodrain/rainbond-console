@@ -12,7 +12,7 @@ from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
 from www.app_http import AppServiceApi
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantServiceInfo, AppServiceRelation, AppServiceVolume, AppServiceGroup, PublishedGroupServiceRelation)
+from www.models import (ServiceInfo, TenantServiceInfo, AppServiceGroup, PublishedGroupServiceRelation)
 from www.models.main import ServiceGroup, GroupCreateTemp, TenantServiceVolume, ServiceEvent
 from www.monitorservice.monitorhook import MonitorHook
 from www.services import tenant_svc
@@ -376,23 +376,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
-    def sort_service(self, publish_service_list):
-        service_map = {s.service_key: s for s in publish_service_list}
-        result = []
-        key_app_map = {}
-        for app in publish_service_list:
-            dep_services = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.version)
-            if dep_services:
-                key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
-            else:
-                key_app_map[app.service_key] = []
-        logger.debug(" service_map:{} ".format(service_map))
-        service_keys = self.topological_sort(key_app_map)
-
-        for key in service_keys:
-            result.append(service_map.get(key))
-        return result
-
     def topological_sort(self, graph):
         is_visit = dict((node, False) for node in graph)
         li = []
@@ -410,20 +393,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 is_visit[start_node] = True
                 dfs(graph, start_node)
         return li
-
-    def create_dep_service(self, service_info, service, service_group_id):
-        app_relations = AppServiceRelation.objects.filter(service_key=service_info.service_key,
-                                                          app_version=service_info.version)
-        dep_service_ids = []
-        if app_relations:
-            for dep_app in app_relations:
-                temp = GroupCreateTemp.objects.get(service_key=dep_app.dep_service_key, tenant_id=self.tenant.tenant_id,
-                                                   service_group_id=service_group_id)
-                dep_service_ids.append(temp.service_id)
-
-        for dep_id in dep_service_ids:
-            baseService.create_service_dependency(self.tenant, service, dep_id, self.response_region)
-        logger.info("create service info for service_id{0} ".format(service.service_id))
 
     def get_published_service_info(self, groupId):
         result = []
@@ -456,15 +425,3 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                              user_name=self.user.nick_name, start_time=datetime.datetime.now())
         event.save()
         return event
-
-    def copy_volumes(self, source_service, tenant_service):
-        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key,
-                                                  app_version=source_service.version)
-        for volume in volumes:
-            baseService.add_volume_with_type(tenant_service, volume.volume_path, TenantServiceVolume.SHARE,
-                                             make_uuid()[:7])
-
-        if tenant_service.volume_mount_path:
-            if not volumes.filter(volume_path=tenant_service.volume_mount_path).exists():
-                baseService.add_volume_with_type(tenant_service, tenant_service.volume_mount_path,
-                                                 TenantServiceVolume.SHARE, make_uuid()[:7])

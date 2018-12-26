@@ -84,28 +84,36 @@ export function brightenColor(c) {
 }
 
 
-
 const statusColorMap = {
-    'running' : 'rgb(0,215,119)',//运行
-    'closed'  : 'rgb(0,0,0)',//关闭
-    'undeploy' : 'rgb(32, 18, 77)',//取消
-    'starting' : 'rgb(246,157,53)',//开始
-    'checking' : 'rgb(255,153,0)',//检查
-    'stoping' : 'rgb(246,154,16)',//回采
-    'upgrade' : 'rgb(0,255,0)',//升级中
-    'unusual' : 'rgb(234,88,62)',//异常
-    'Owed' : ' rgb(234,88,62)',//欠
-    'expired' : 'rgb(255,0,0)',//过期
-    'Expired' : 'rgb(255,0,0)',
-    'internet' : 'rgb(91,178,250)',
-    'The Internet' : 'rgb(91,178,250)',
-    'Unknow' : 'rgb(217,16,16)',
-    'unknow' : 'rgb(217,16,16)',//不知何时
-    'stopping': 'rgb(67,67,67)',//停止,
-    'abnormal':'rgb(255,0,255)',//不正常,
-    'some_abnormal':'rgb(255,0,255)',//一些不正常
-    'building':'rgb(0,119,255)',//构建
-    'build_failure':'rgb(204,204,204)'//构建失败
+  'running' : 'rgb(0,215,119)',//运行中 绿色
+  'closed'  : 'rgb(0,0,33)',//已关闭 黑色
+
+  'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
+  'creating' : 'rgb(119,136,153)',//部署中 浅石板灰 
+
+  'starting' : 'rgb(246,157,74)',//开启中 道奇蓝 
+  'startting' : 'rgb(246,157,74)',//开启中 道奇蓝 
+  'checking' : 'rgb(246,157,74)',//检测中 橙色
+
+  'stoping' : 'rgb(32,18,74)',//关闭中 紫色
+  'stopping': 'rgb(32,18,74)',//关闭中 紫色
+
+  'upgrade' : 'rgb(0,255,74)',//升级中 洋红 
+
+  'unusual' : 'rgb(205,2,0)',//异常 纯红 
+  'expired' : 'rgb(205,2,0)',//过期 猩红
+  'Expired' : 'rgb(205,2,0)', //猩红
+
+  'internet' : 'rgb(91,178,250)',//蓝色
+  'The Internet' : 'rgb(91,178,250)',//蓝色
+
+  'Unknow' : 'rgb(205,2,0)', //深粉色 
+  'unknow' : 'rgb(205,2,0)',//深粉色 
+  'abnormal':'rgb(205,2,0)',//不正常,纯红 
+  'some_abnormal':'rgb(255,0,0)',//一些不正常 纯红 
+
+  'building':'rgb(0,119,16)',//构建  纯蓝 
+  'build_failure':'rgb(205,2,0)'//构建失败 纯红 
 }
 
 export function getStatusColor(status) {

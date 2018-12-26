@@ -4,11 +4,12 @@
 """
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo
 from console.repositories.app import service_repo
-
+from console.services.app_config.port_service import AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
 import logging
 
 region_api = RegionInvokeApi()
+port_service = AppPortService()
 logger = logging.getLogger("default")
 
 
@@ -54,20 +55,35 @@ class AppServiceRelationService(object):
             return True
         return False
 
-    def add_service_dependency(self, tenant, service, dep_service_id):
+    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id,
                                                                                               service.service_id,
                                                                                               dep_service_id)
         if dep_service_relation:
-            return 412, u"当前应用已被关联", None
+            return 212, u"当前应用已被关联", None
 
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
+        # 开启对内端口
+        if open_inner:
+            tenant_service_port = port_service.get_service_port_by_port(service, int(container_port))
+            code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
+                                                       int(tenant_service_port.container_port), "open_inner",
+                                                       tenant_service_port.protocol, tenant_service_port.port_alias)
+            if code != 200:
+                return 412, u"开启对内端口失败", None
+        # 校验要依赖的服务是否开启了对内端口
+        open_inner_services = port_repo.get_service_ports(tenant.tenant_id, dep_service.service_id).filter(
+            is_inner_service=True)
+        if not open_inner_services:
+            service_ports = port_repo.get_service_ports(tenant.tenant_id, dep_service.service_id)
+            port_list = [service_port.container_port for service_port in service_ports]
+            return 201, u"要关联的服务暂未开启对内端口，是否打开", port_list
 
         is_duplicate = self.__is_env_duplicate(tenant, service, dep_service)
         if is_duplicate:
             return 412, u"要关联的应用的变量与已关联的应用变量重复，请修改后再试", None
         if service.create_status == "complete":
-            task = {}
+            task = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = dep_service.service_type
@@ -105,7 +121,7 @@ class AppServiceRelationService(object):
         if not dependency:
             return 404, u"需要删除的依赖不存在", None
         if service.create_status == "complete":
-            task = {}
+            task = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = "v"

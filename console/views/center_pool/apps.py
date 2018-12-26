@@ -97,7 +97,6 @@ class CenterAppListView(RegionTenantHeaderView):
             return 0
 
 
-
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
     @perm_required("create_service")
@@ -125,6 +124,7 @@ class CenterAppView(RegionTenantHeaderView):
         try:
             group_id = request.data.get("group_id", -1)
             app_id = request.data.get("app_id", None)
+            is_deploy = request.data.get("is_deploy", True)
             if not app_id:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
@@ -140,7 +140,7 @@ class CenterAppView(RegionTenantHeaderView):
             if not allow_create:
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
             RainbondCenterApp.objects.filter(ID=app_id).update(install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")

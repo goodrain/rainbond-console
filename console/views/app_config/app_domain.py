@@ -6,7 +6,7 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from django.db import transaction
+from console.repositories.group import group_repo
 from django.db import connection
 from console.services.app_config import domain_service, port_service
 from console.views.app_config.base import AppBaseView
@@ -18,10 +18,10 @@ from console.services.region_services import region_services
 from console.repositories.app import service_repo
 from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
-from console.services.app_actions import app_manage_service
 from console.repositories.app_config import domain_repo, tcp_domain
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
+from console.repositories.group import group_service_relation_repo
 
 
 logger = logging.getLogger("default")
@@ -300,6 +300,13 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
             g_id = request.data.get("group_id", None)
 
+            # 判断策略是否存在
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
+                                                                                  domain_name, protocol)
+            if service_domain:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+
             code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
                                                    protocol, certificate_id, DomainType.WWW, g_id, rule_extensions)
             if code != 200:
@@ -384,8 +391,16 @@ class HttpStrategyView(RegionTenantHeaderView):
                 bean = domain.to_dict()
                 if domain.certificate_id:
                     certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
-
+                    service = service_repo.get_service_by_service_id(domain.service_id)
+                    service_alias = service.service_cname if service else ''
+                    group_name = ''
+                    if service:
+                        gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                        group = group_repo.get_group_by_id(int(gsr.group_id))
+                        group_name = group.group_name if group else ''
                     bean.update({"certificate_name": certificate_info.alias})
+                    bean.update({"service_alias": service_alias})
+                    bean.update({"group_name": group_name})
             else:
                 bean = dict()
             result = general_message(200, "success", "查询成功", bean=bean)
@@ -441,7 +456,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
-                return Response(result)
+                return Response(result, status=400)
 
             if whether_open:
                 try:
@@ -648,8 +663,7 @@ class SecondLevelDomainView(AppBaseView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
-            http_rule_id = request.data.get("http_rule_id", None)
-            if not container_port or not domain_name or not http_rule_id:
+            if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
             container_port = int(container_port)
             sld_domains = domain_service.get_sld_domains(self.service, container_port)
@@ -661,7 +675,7 @@ class SecondLevelDomainView(AppBaseView):
                     return Response(general_message(code, "bind domain error", msg), status=code)
             else:
                 # 先解绑 再绑定
-                code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, sld_domains[0].domain_name, http_rule_id)
+                code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
                 if code != 200:
                     return Response(general_message(code, "unbind domain error", msg), status=code)
                 domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
@@ -714,6 +728,13 @@ class DomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
+                service = service_repo.get_service_by_service_id(tenant_tuple[10])
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group_name = group.group_name if group else ''
                 domain_dict = dict()
                 certificate_info = domain_repo.get_certificate_by_pk(int(tenant_tuple[3]))
                 if not certificate_info:
@@ -723,8 +744,8 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_dict["domain_name"] = tenant_tuple[6] + "://" + tenant_tuple[0]
                 domain_dict["type"] = tenant_tuple[1]
                 domain_dict["is_senior"] = tenant_tuple[2]
-                domain_dict["group_name"] = tenant_tuple[4]
-                domain_dict["service_cname"] = tenant_tuple[5]
+                domain_dict["group_name"] = group_name
+                domain_dict["service_cname"] = service_alias
                 domain_dict["service_alias"] = tenant_tuple[7]
                 domain_dict["container_port"] = tenant_tuple[8]
                 domain_dict["http_rule_id"] = tenant_tuple[9]
@@ -782,14 +803,21 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
+                service = service_repo.get_service_by_service_id(tenant_tuple[8])
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group_name = group.group_name if group else ''
                 domain_dict = dict()
                 domain_dict["end_point"] = tenant_tuple[0]
                 domain_dict["type"] = tenant_tuple[1]
                 domain_dict["protocol"] = tenant_tuple[2]
-                domain_dict["group_name"] = tenant_tuple[3]
+                domain_dict["group_name"] = group_name
                 domain_dict["service_alias"] = tenant_tuple[4]
                 domain_dict["container_port"] = tenant_tuple[6]
-                domain_dict["service_cname"] = tenant_tuple[5]
+                domain_dict["service_cname"] = service_alias
                 domain_dict["tcp_rule_id"] = tenant_tuple[7]
                 domain_dict["service_id"] = tenant_tuple[8]
                 domain_dict["is_outer_service"] = tenant_tuple[9]
@@ -821,6 +849,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
             if tcpdomain:
                 bean = tcpdomain.to_dict()
+                service = service_repo.get_service_by_service_id(tcpdomain.service_id)
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group_name = group.group_name if group else ''
+                bean.update({"service_alias": service_alias})
+                bean.update({"group_name": group_name})
                 result = general_message(200, "success", "查询成功", bean=bean)
             else:
                 bean = dict()

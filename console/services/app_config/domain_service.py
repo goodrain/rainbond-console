@@ -112,9 +112,9 @@ class DomainService(object):
         match = zhPattern.search(domain_name.decode('utf-8'))
         if match:
             return 400, u"域名不能包含中文"
-        re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
-        if not re.match(re_exp, domain_name):
-            return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
+        # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
+        # if not re.match(re_exp, domain_name):
+        #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
         if len(domain_name) > 256:
             return 400, u"域名过长"
         if certificate_id:
@@ -142,6 +142,9 @@ class DomainService(object):
 
     def get_port_bind_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+
+    def get_tcp_port_bind_domains(self, service, container_port):
+        return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
     def get_sld_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id, container_port).filter(
@@ -202,7 +205,7 @@ class DomainService(object):
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
             servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
             if not servicerDomain:
@@ -215,23 +218,25 @@ class DomainService(object):
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
                     region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+                    servicer_domain.delete()
+                    return 200, u"success"
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         raise e
-                servicer_domain.delete()
+
         else:
-            servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, container_port)
+            servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(service.service_id, container_port, domain_name)
             if not servicer_tcp_domain:
                 return 404, u"域名不存在"
             data = dict()
             data["tcp_rule_id"] = servicer_tcp_domain.tcp_rule_id
             try:
                 region_api.unbindTcpDomain(service.service_region, tenant.tenant_name, data)
+                servicer_tcp_domain.delete()
+                return 200, u"success"
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
-            servicer_tcp_domain.delete()
-        return 200, u"success"
 
     def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, the_weight, g_id, rule_extensions):
@@ -322,12 +327,9 @@ class DomainService(object):
         # 判断类型（默认or自定义）
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
-
-        # 先删除原有domain,再保存
-        servicer_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if servicer_domains:
-            for service_domain in servicer_domains:
-                service_domain.delete()
+        if domain_path or domain_cookie or domain_heander:
+            domain_info["is_senior"] = True
+        # 高级路由
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
@@ -416,6 +418,9 @@ class DomainService(object):
         if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(
                 tenant.tenant_name) + "." + str(region.httpdomain):
             domain_info["type"] = 1
+        # 高级路由
+        if domain_path or domain_cookie or domain_heander:
+            domain_info["is_senior"] = True
         domain_repo.add_service_domain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:

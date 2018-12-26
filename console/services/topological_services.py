@@ -100,7 +100,7 @@ class TopologicalService(object):
         return topological_info
 
     def get_group_topological_graph_details(self, team, team_id, team_name, service, region_name):
-        result = {}
+        result = dict()
         # 服务信息
         result['tenant_id'] = team_id
         result['service_alias'] = service.service_alias
@@ -145,10 +145,13 @@ class TopologicalService(object):
                     port_info['outer_url'] = 'query error!'
                 else:
                     if port.protocol == "http":
-                        port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
-                                                                      outer_service['port'])
+                        # 5.0版本策略展示即可，暂时注掉
+                        # port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
+                        #                                               outer_service['port'])
+                        port_info['outer_url'] = ''
                     else:
-                        port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                        # port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                        port_info['outer_url'] = ''
             # 自定义域名
             if exist_service_domain:
                 if len(service_domain_list) > 0:
