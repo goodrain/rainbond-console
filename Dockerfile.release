@@ -11,8 +11,9 @@ WORKDIR /app/ui
 RUN chmod +x /app/ui/entrypoint.sh &&  \
     cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
-    mv /dist/ /app/ui/www/static/dists/
-
+    rm -rf /app/ui/www/static/dists/* && \
+    cp -a /dist/* /app/ui/www/static/dists/ && \
+    rm -rf /dist
 
 RUN apk update && apk --no-cache add --virtual .build-deps \
       build-base \
