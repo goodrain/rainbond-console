@@ -697,7 +697,6 @@ class AppManageService(AppManageBase):
                     return True
         return True
 
-
     def __is_service_mnt_related(self, tenant, service):
         sms = mnt_repo.get_mount_current_service(tenant.tenant_id, service.service_id)
         if sms:
@@ -725,7 +724,7 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name,
                                                           service.service_alias, tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal"):
+            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
