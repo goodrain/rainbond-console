@@ -371,7 +371,7 @@ class TopologicalPortView(AppBaseView):
     @perm_required('view_service')
     def put(self, request, *args, **kwargs):
         """
-        应用拓扑图打开对外端口
+        应用拓扑图打开(关闭)对外端口
         :param request:
         :param args:
         :param kwargs:
@@ -379,8 +379,8 @@ class TopologicalPortView(AppBaseView):
         """
         try:
             open_outer = request.data.get("open_outer", False)
+            close_outer = request.data.get("close_outer", False)
             container_port = request.data.get("container_port", None)
-
             # 开启对外端口
             if open_outer:
                 tenant_service_port = port_service.get_service_port_by_port(self.service, int(container_port))
@@ -388,6 +388,16 @@ class TopologicalPortView(AppBaseView):
                                                            tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
+            # 关闭改服务所有对外端口
+            if close_outer:
+                tenant_service_ports = port_service.get_service_ports(self.service)
+                for tenant_service_port in tenant_service_ports:
+                    code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
+                                                               tenant_service_port.container_port, "close_outer",
+                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                    if code != 200:
+                        return Response(general_message(412, "open outer fail", u"关闭对外端口失败"), status=412)
+                return Response(general_message(200, "close outer success", u"关闭对外端口成功"), status=200)
 
             # 校验要依赖的服务是否开启了对外端口
             open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id).filter(
