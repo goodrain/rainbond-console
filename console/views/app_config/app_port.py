@@ -388,6 +388,7 @@ class TopologicalPortView(AppBaseView):
                                                            tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
+                return Response(general_message(200, "open outer success", u"开启成功"), status=200)
             # 关闭改服务所有对外端口
             if close_outer:
                 tenant_service_ports = port_service.get_service_ports(self.service)
@@ -408,7 +409,7 @@ class TopologicalPortView(AppBaseView):
                 return Response(general_message(201, "the service does not open an external port", u"该服务未开启对外端口", list=port_list), status=201)
             else:
                 return Response(
-                    general_message(200, "the service has an external port open", u"该服务已开启对外端口"),
+                    general_message(202, "the service has an external port open", u"该服务已开启对外端口"),
                     status=200)
         except Exception as e:
             logger.exception(e)
