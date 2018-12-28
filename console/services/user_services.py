@@ -209,15 +209,16 @@ class UserService(object):
         return user_repo.get_user_by_user_id(user_id=user_id)
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
-        """重新部署"""
-        code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, committer_name, is_upgrade=True)
+        """重新构建"""
+        is_upgrade = True
+        code, msg, event = app_manage_service.deploy(tenant_obj, service_obj, user, is_upgrade, committer_name)
         bean = {}
         if event:
             bean = event.to_dict()
             bean["type_cn"] = event_service.translate_event_type(event.type)
         if code != 200:
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
-        result = general_message(code, "success", "重新部署成功", bean=bean)
+        result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
 
 
