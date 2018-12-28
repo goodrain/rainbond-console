@@ -502,7 +502,7 @@ class AppManageService(AppManageBase):
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["node_num"] = new_node
             body["deploy_version"] = service.deploy_version
             body["operator"] = str(user.nick_name)
@@ -687,9 +687,16 @@ class AppManageService(AppManageBase):
 
     def __is_service_bind_domain(self, service):
         domains = domain_repo.get_service_domains(service.service_id)
-        if domains:
-            return True
-        return False
+        if not domains:
+            return False
+        elif len(domains) == 1:
+            for domain in domains:
+                if domain.type == 0:
+                    return False
+                else:
+                    return True
+        return True
+
 
     def __is_service_mnt_related(self, tenant, service):
         sms = mnt_repo.get_mount_current_service(tenant.tenant_id, service.service_id)
@@ -857,6 +864,7 @@ class AppManageService(AppManageBase):
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
+        tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)

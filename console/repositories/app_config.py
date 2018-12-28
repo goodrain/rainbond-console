@@ -324,7 +324,7 @@ class ServiceDomainRepository(object):
         ServiceDomainCertificate.objects.filter(pk=pk).delete()
 
     def get_service_domains(self, service_id):
-        return ServiceDomain.objects.filter(service_id=service_id)
+        return ServiceDomain.objects.filter(service_id=service_id).all()
 
     def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol,
                                http_rule_id, group_name, tenant_id, service_alias, g_id, region_id):
