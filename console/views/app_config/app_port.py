@@ -371,7 +371,7 @@ class TopologicalPortView(AppBaseView):
     @perm_required('view_service')
     def put(self, request, *args, **kwargs):
         """
-        应用拓扑图打开对外端口
+        应用拓扑图打开(关闭)对外端口
         :param request:
         :param args:
         :param kwargs:
