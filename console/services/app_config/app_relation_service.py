@@ -65,7 +65,7 @@ class AppServiceRelationService(object):
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
         # 开启对内端口
         if open_inner:
-            tenant_service_port = port_service.get_service_port_by_port(service, int(container_port))
+            tenant_service_port = port_service.get_service_port_by_port(dep_service, int(container_port))
             code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
                                                        int(tenant_service_port.container_port), "open_inner",
                                                        tenant_service_port.protocol, tenant_service_port.port_alias)
