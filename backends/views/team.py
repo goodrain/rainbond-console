@@ -23,6 +23,8 @@ from console.repositories.user_repo import user_repo
 from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
 from console.repositories.region_repo import region_repo
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
@@ -503,7 +505,7 @@ class TenantSortView(BaseAPIView):
                 if not tenant_list:
                     result = generate_result('0000', 'success', '查询成功', list=[])
                     return Response(result)
-                bean = {}
+                bean = dict()
                 bean["tenant_num"] = len(tenant_list)
                 user_list = user_repo.get_all_users()
                 bean["user_num"] = len(user_list)
@@ -513,7 +515,7 @@ class TenantSortView(BaseAPIView):
                     "select t.tenant_alias,t.tenant_id, count(s.ID) as num from tenant_info as t left join tenant_service as s on t.tenant_id=s.tenant_id group by tenant_id order by num desc limit 0,5;")
                 tenant_tuples = cursor.fetchall()
                 for tenant_tuple in tenant_tuples:
-                    tenant_alias_list = []
+                    tenant_alias_list = list()
                     tenant_alias_list.append(tenant_tuple[0])
                     sort_list.append(tenant_alias_list)
                 result = generate_result('0000', 'success', '查询成功', list=sort_list, bean=bean)
@@ -524,3 +526,41 @@ class TenantSortView(BaseAPIView):
         else:
             result = generate_result("1003", "the enterprise alias cannot be empty", "企业别名不能为空")
             return Response(result)
+
+
+# 管理后台添加企业管理员
+class AddEnterAdminView(BaseAPIView):
+    def post(self, request, *args, **kwargs):
+        """
+
+        """
+        try:
+            username = request.data.get("username", None)
+            password = request.data.get("password", None)
+            enterprise_id = request.data.get("enterprise_id", None)
+            enterprise_alias = request.data.get("enterprise_alias", None)
+            # 校验参数
+            if not username or not enterprise_id or not enterprise_alias:
+                return Response(generate_result(
+                    "1003", "params error", "参数错误"))
+            user_obj = user_repo.get_user_by_user_name(username)
+            if not user_obj:
+                return Response(generate_result(
+                    "1004", "user already exists", "用户在控制台不存在"))
+            # 查询企业信息
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+
+            # 判断用户是否为企业管理员
+            if user_services.is_user_admin_in_current_enterprise(user_obj, enterprise.enterprise_id):
+                bean_dict = {"user_info": user_obj.to_dict()}
+                return Response(generate_result("0000", "success", "当前用户已经是企业管理员，已同步至管理后台", bean_dict))
+            # 添加企业管理员
+            enterprise_user_perm_repo.create_enterprise_user_perm(user_obj.user_id, enterprise.enterprise_id, "admin")
+            bean = {"user_info": user_obj.to_dict()}
+
+            result = generate_result("0000", "success", "添加成功", bean)
+
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
