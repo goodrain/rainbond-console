@@ -100,8 +100,10 @@ urlpatterns = patterns(
 
     url(r'^v1/account/create$', AccountCreateView.as_view()),
     url(r'^v1/account/auth-user-token$', AuthAccessTokenView.as_view()),
-    # 管理后台添加企业管理员
+    # 管理后台添加(删除)企业管理员
     url(r'^v1/account/add-enter-admin$', AddEnterAdminView.as_view()),
+    # 管理后台查询控制台企业管理员
+    url(r'^v1/account/enterprise-admins$', EnterpriseAdminView.as_view()),
     # is_init查询企业信息
     url(r'^v1/enterprise/is_init$', EnterpriseInitView.as_view()),
     url(r'^v1/enterprise/fuzzy_query$', EnterpriseFuzzyQueryView.as_view()),

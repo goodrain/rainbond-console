@@ -57,7 +57,6 @@ class UserRepo(object):
     def get_all_users(self):
         return Users.objects.all()
 
-
     def get_user_nickname_by_id(self, user_id):
         u = Users.objects.filter(user_id=user_id)
         if u:

@@ -28,6 +28,4 @@ class ApplyService(object):
             return None
 
 
-
-
 apply_service = ApplyService()

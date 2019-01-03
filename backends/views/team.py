@@ -25,6 +25,7 @@ from backends.services.httpclient import HttpInvokeApi
 from console.repositories.region_repo import region_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.user_services import user_services
+from console.models.main import EnterpriseUserPerm
 
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
@@ -564,3 +565,72 @@ class AddEnterAdminView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
+
+    def delete(self, request, *args, **kwargs):
+        """
+        管理后台删除企业管理员
+        """
+        try:
+            user_id = request.data.get("user_id", None)
+            # 校验参数
+            if not user_id:
+                return Response(generate_result("1003", "params error", "参数错误"))
+            user_perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
+            if not user_perm:
+                return Response(generate_result("1006", "The current user is not an enterprise administrator",
+                                                "当前用户不是企业管理员"))
+            # 最后一个企业管理员无法删除
+            admin_count = EnterpriseUserPerm.objects.count()
+            if admin_count == 1:
+                return Response(generate_result("1004", "The last admin", "当前用户为最后一个企业管理员，无法删除"))
+            enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
+
+            result = generate_result("0000", "success", "删除成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+
+
+class EnterpriseAdminView(BaseAPIView):
+    def get(self, request, *args, **kwargs):
+        """
+        管理后台查询控制台企业下的企业管理员
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            page = int(request.GET.get("page_num", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            admins_num = EnterpriseUserPerm.objects.count()
+            admin_list = []
+            start = (page - 1) * 10
+            remaining_num = admins_num - (page - 1) * 10
+            end = 10
+            if remaining_num < page_size:
+                end = remaining_num
+
+            cursor = connection.cursor()
+            cursor.execute(
+                "select * from enterprise_user_perm order by user_id desc LIMIT {0},{1};".format(start, end))
+            admin_tuples = cursor.fetchall()
+            logger.debug('---------admin-------------->{0}'.format(admin_tuples))
+            for admin in admin_tuples:
+                user = user_repo.get_by_user_id(user_id=admin[2])
+                bean = dict()
+                if user:
+                    bean["nick_name"] = user.nick_name
+                    bean["phone"] = user.phone
+                    bean["email"] = user.email
+                    bean["create_time"] = user.create_time
+                    bean["user_id"] = user.user_id
+                admin_list.append(bean)
+            result = generate_result("0000", "success", "查询成功", list=admin_list, total=admins_num)
+        except Exception as e:
+            logger.exception(e)
+            result = generate_error_result()
+        return Response(result)
+
