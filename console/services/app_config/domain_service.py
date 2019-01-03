@@ -41,9 +41,9 @@ class DomainService(object):
         return c_list, nums
 
     def __check_certificate_alias(self, tenant, alias):
-        r = re.compile("^[A-Za-z0-9]+$")
-        if not r.match(alias):
-            return 400, u"证书别名只能是数字和字母的组合"
+        # r = re.compile("^[A-Za-z0-9]+$")
+        # if not r.match(alias):
+        #     return 400, u"证书别名只能是数字和字母的组合"
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
             return 412, u"证书别名已存在"
         return 200, "success"
@@ -122,13 +122,14 @@ class DomainService(object):
             cert = base64.b64decode(certificate_info.certificate)
             data = analyze_cert(cert)
             certificat_domain_name = data["issued_to"]
-            if not certificat_domain_name.startswith("*"):
-                if certificat_domain_name != domain_name:
-                    return 400, u"域名和证书不匹配"
-            else:
+            if certificat_domain_name.startswith('*'):
                 domain_suffix = certificat_domain_name[2:]
-                if not domain_name.endwith(domain_suffix):
-                    return 400, u"域名和证书不匹配"
+            else:
+                domain_suffix = certificat_domain_name
+            logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
+            domain_str = domain_name.encode('utf-8')
+            if not domain_str.endswith(domain_suffix):
+                return 400, u"域名和证书不匹配"
 
         return 200, u"success"
 

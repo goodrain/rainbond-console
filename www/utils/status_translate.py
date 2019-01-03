@@ -98,6 +98,12 @@ def status_map():
         "disabledAction": ['deploy', 'restart', 'stop', 'visit', 'manage_container','reboot'],
         "activeAction": [],
     }
+    # region
+    status_map["some_abnormal"] = {
+        "status_cn": "部分实例异常",
+        "disabledAction": ['restart'],
+        "activeAction": ['stop', 'visit', 'deploy', 'reboot', 'manage_container'],
+    }
     # console
     status_map["uncreate"] = {
         "status_cn": "未部署",
