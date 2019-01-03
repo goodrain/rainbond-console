@@ -42,7 +42,7 @@ class TenantUserView(BaseAPIView):
             user_list = tenant_service.get_tenant_users(tenant_name)
             list = []
             for user in user_list:
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name
@@ -150,10 +150,14 @@ class UserView(BaseAPIView):
 
         """
         try:
+            tenants = Tenants.objects.filter(creater=user_id).all()
+            if tenants:
+                tenant_alias_list = []
+                for tenant in tenants:
+                    tenant_alias_list.append(tenant.tenant_alias)
+                return Response(generate_result("1006", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
             user_service.delete_user(user_id)
-            result = generate_result(
-                "0000", "success", "删除成功"
-            )
+            result = generate_result("0000", "success", "删除成功")
         except Exception as e:
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")
@@ -238,7 +242,7 @@ class AllUserView(BaseAPIView):
             enterprises = console_enterprise_service.get_enterprise_by_eids(eids)
             eid_enterprise_map = {e.enterprise_id: e.enterprise_alias for e in enterprises}
             for user in users:
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name
