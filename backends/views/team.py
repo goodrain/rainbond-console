@@ -26,6 +26,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.user_services import user_services
 from console.models.main import EnterpriseUserPerm
+from console.utils.timeutil import time_to_str
 
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
@@ -625,7 +626,7 @@ class EnterpriseAdminView(BaseAPIView):
                     bean["nick_name"] = user.nick_name
                     bean["phone"] = user.phone
                     bean["email"] = user.email
-                    bean["create_time"] = user.create_time
+                    bean["create_time"] = time_to_str(user.create_time, "%Y-%m-%d %H:%M:%S")
                     bean["user_id"] = user.user_id
                 admin_list.append(bean)
             result = generate_result("0000", "success", "查询成功", list=admin_list, total=admins_num)
