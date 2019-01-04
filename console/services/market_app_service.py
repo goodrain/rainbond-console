@@ -373,7 +373,7 @@ class MarketAppService(object):
             return 200, "success"
         for volume in volumes:
             code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                       volume["volume_type"], volume["volume_name"], volume["volume_content"])
+                                                                       volume["volume_type"], volume["volume_name"])
             if code != 200:
                 logger.error("save market app volume error".format(msg))
                 return code, msg

@@ -425,7 +425,7 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
-    def unbind_httpdomain(self, tenant, service, http_rule_id):
+    def unbind_httpdomain(self, tenant, region, http_rule_id):
         servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
 
         if not servicer_http_omain:
@@ -435,7 +435,7 @@ class DomainService(object):
         data["domain"] = servicer_http_omain.domain_name
         data["http_rule_id"] = http_rule_id
         try:
-            region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+            region_api.delete_http_domain(region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
@@ -558,7 +558,7 @@ class DomainService(object):
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
 
-    def unbind_tcpdomain(self, tenant, service, tcp_rule_id):
+    def unbind_tcpdomain(self, tenant, region, tcp_rule_id):
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         if not service_tcp_domain:
             return 404, u"策略不存在"
@@ -566,7 +566,7 @@ class DomainService(object):
         data["tcp_rule_id"] = tcp_rule_id
         try:
             # 给数据中心传送数据删除策略
-            region_api.unbindTcpDomain(service.service_region, tenant.tenant_name, data)
+            region_api.unbindTcpDomain(region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e

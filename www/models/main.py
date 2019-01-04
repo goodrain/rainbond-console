@@ -1089,7 +1089,6 @@ class TenantServiceVolume(BaseModel):
     volume_type = models.CharField(max_length=30, blank=True, null=True)
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
     volume_name = models.CharField(max_length=100, blank=True, null=True)
-    file_content = models.TextField(help_text=u'配置文件内容')
 
 
 class ServiceGroup(BaseModel):

@@ -81,11 +81,10 @@ class AppVolumeView(AppBaseView):
         volume_name = request.data.get("volume_name", None)
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
-        volume_content = request.data.get("volume_content", None)
         try:
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, volume_content)
+                                                                volume_name)
             if code != 200:
                 result = general_message(code, "add volume error", msg)
                 return Response(result, status=code)

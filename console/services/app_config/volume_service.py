@@ -72,7 +72,7 @@ class AppVolumeService(object):
 
         return 200, u"success"
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, volume_content):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
@@ -87,8 +87,7 @@ class AppVolumeService(object):
             return code, msg, None
         host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
         volume_data = {"service_id": service.service_id, "category": service.category, "host_path": host_path,
-                       "volume_type": volume_type, "volume_path": volume_path, "volume_name": volume_name,
-                       "volume_content": volume_content}
+                       "volume_type": volume_type, "volume_path": volume_path, "volume_name": volume_name}
         # region端添加数据
         if service.create_status == "complete":
             data = {
@@ -96,7 +95,6 @@ class AppVolumeService(object):
                 "volume_name": volume_name,
                 "volume_path": volume_path,
                 "volume_type": volume_type,
-                "volume_content": volume_content,
                 "enterprise_id": tenant.enterprise_id
             }
             res, body = region_api.add_service_volumes(

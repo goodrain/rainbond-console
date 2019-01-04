@@ -240,7 +240,7 @@ class AppCheckService(object):
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume_name, volume["volume_content"])
+                                                                           volume["volume_type"], volume_name)
                 if code != 200:
                     logger.error("service.check", "save service check info port error {0}".format(msg))
                     # return code, msg
