@@ -107,3 +107,10 @@ ALTER TABLE service_event MODIFY `message` TEXT;
 -- 修改service_group字段group_name长度最大值
 
 alter table service_group modify column group_name varchar(128);
+
+
+-- 添加tenant_service_volume字段volume_content
+
+ALTER TABLE tenant_service_volume ADD COLUMN `file_content` TEXT;
+
+
