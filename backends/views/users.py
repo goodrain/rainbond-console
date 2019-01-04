@@ -157,7 +157,7 @@ class UserView(BaseAPIView):
                 for tenant in tenants:
                     tenant_alias_list.append(tenant.tenant_alias)
                 return Response(
-                    generate_result("1006", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
+                    generate_result("1112", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
             # 企业管理员不可删
             user = user_service.get_user_by_user_id(user_id)
             if user_services.is_user_admin_in_current_enterprise(user, user.enterprise_id):
