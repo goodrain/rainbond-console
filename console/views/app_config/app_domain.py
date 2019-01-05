@@ -556,11 +556,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             if not http_rule_id or not service_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
             # 解绑域名
-            code, msg = domain_service.unbind_httpdomain(self.tenant, service, http_rule_id)
+            code, msg = domain_service.unbind_httpdomain(self.tenant, self.response_region, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "策略删除成功")
@@ -983,11 +980,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if not tcp_rule_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
             # 删除策略
-            code, msg = domain_service.unbind_tcpdomain(self.tenant, service, tcp_rule_id)
+            code, msg = domain_service.unbind_tcpdomain(self.tenant, self.response_region, tcp_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "策略删除成功")
