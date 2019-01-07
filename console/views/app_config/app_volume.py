@@ -10,6 +10,8 @@ from console.services.app_config import volume_service
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from django.forms.models import model_to_dict
+from console.repositories.app_config import volume_repo
+
 import logging
 
 logger = logging.getLogger("default")
@@ -37,8 +39,22 @@ class AppVolumeView(AppBaseView):
         try:
             tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
 
-            volumes = [model_to_dict(volume) for volume in tenant_service_volumes]
-            result = general_message(200, "success", "查询成功", list=volumes)
+            volumes_list = []
+            if tenant_service_volumes:
+                for tenant_service_volume in tenant_service_volumes:
+                    volume_dict = dict()
+                    volume_dict["service_id"] = tenant_service_volume.service_id
+                    volume_dict["category"] = tenant_service_volume.category
+                    volume_dict["host_path"] = tenant_service_volume.host_path
+                    volume_dict["volume_type"] = tenant_service_volume.volume_type
+                    volume_dict["volume_path"] = tenant_service_volume.volume_path
+                    volume_dict["volume_name"] = tenant_service_volume.volume_name
+                    volume_dict["ID"] = tenant_service_volume.ID
+                    if tenant_service_volume.volume_type == "config-file":
+                        cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
+                        volume_dict["file_content"] = cf_file.file_content
+                    volumes_list.append(volume_dict)
+            result = general_message(200, "success", "查询成功", list=volumes_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -81,10 +97,11 @@ class AppVolumeView(AppBaseView):
         volume_name = request.data.get("volume_name", None)
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
+        file_content = request.data.get("file_content", None)
         try:
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name)
+                                                                volume_name, file_content)
             if code != 200:
                 result = general_message(code, "add volume error", msg)
                 return Response(result, status=code)

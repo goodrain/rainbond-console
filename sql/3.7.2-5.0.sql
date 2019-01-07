@@ -96,3 +96,14 @@ ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
 -- 批量修改组表中默认组——>>默认应用
 
 update service_group set group_name = replace(group_name , '默认组' , '默认应用')
+
+
+-- 创建表tenant_service_config
+
+CREATE TABLE `tenant_service_config` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `service_id` varchar(32),
+  `volume_id` int(11) null,
+  `file_content` TEXT,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
