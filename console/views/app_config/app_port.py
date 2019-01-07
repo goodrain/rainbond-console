@@ -408,9 +408,9 @@ class TopologicalPortView(AppBaseView):
                 port_list = [service_port.container_port for service_port in service_ports]
                 if len(port_list) == 1:
                     # 一个端口直接开启
-                    tenant_service_port = port_service.get_service_port_by_port(self.service, int(container_port))
+                    tenant_service_port = port_service.get_service_port_by_port(self.service, int(port_list[0]))
                     code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
-                                                               int(container_port), "open_outer",
+                                                               int(port_list[0]), "open_outer",
                                                                tenant_service_port.protocol,
                                                                tenant_service_port.port_alias)
                     if code != 200:

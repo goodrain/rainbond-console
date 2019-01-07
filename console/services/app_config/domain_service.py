@@ -180,6 +180,7 @@ class DomainService(object):
             data["certificate"] = base64.b64decode(certificate_info.certificate)
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
+            data["certificate_id"] = certificate_info.certificate_id
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
 
         domain_info = dict()
