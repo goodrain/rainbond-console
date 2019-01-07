@@ -91,7 +91,8 @@ class TopologicalService(object):
                 tmp_info_relation = []
                 if tmp_info.service_id in json_svg.keys():
                     tmp_info_relation = json_svg.get(tmp_info.service_id)
-                tmp_info_relation.append(tmp_dep_info.service_id)
+                if tmp_dep_info:
+                    tmp_info_relation.append(tmp_dep_info.service_id)
                 json_svg[tmp_info.service_id] = tmp_info_relation
 
         topological_info["json_data"] = json_data
@@ -99,7 +100,7 @@ class TopologicalService(object):
         return topological_info
 
     def get_group_topological_graph_details(self, team, team_id, team_name, service, region_name):
-        result = {}
+        result = dict()
         # 服务信息
         result['tenant_id'] = team_id
         result['service_alias'] = service.service_alias
