@@ -153,7 +153,7 @@ class ServicePermService(object):
                 perm_obj = role_perm_repo.get_perm_obj_by_perm_id(perm_id=perm_id)
                 if not perm_obj:
                     continue
-                perm_info = {}
+                perm_info = dict()
                 perm_info["id"] = perm_obj.ID
                 perm_info["codename"] = perm_obj.codename
                 perm_info["perm_info"] = perm_obj.per_info
