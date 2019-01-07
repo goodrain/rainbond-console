@@ -171,7 +171,7 @@ class GroupAppsView(RegionTenantHeaderView):
                 return Response(general_message(200, "success", "恢复到当前组无需删除"), status=200)
             group = group_repo.get_group_by_id(group_id)
             if not group:
-                return Response(general_message(400, "group not exist", "组ID {0} 不存在".format(group_id)), status=400)
+                return Response(general_message(400, "group is delete", "该备份组已删除"), status=400)
             new_group = group_repo.get_group_by_id(new_group_id)
             if not new_group:
                 return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),

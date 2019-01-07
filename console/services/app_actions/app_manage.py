@@ -45,6 +45,7 @@ class AppManageBase(object):
         self.RESTART = "reboot"
         self.DELETE = "delete"
         self.DEPLOY = "deploy"
+        self.UPGRADE = "upgrade"
         self.ROLLBACK = "callback"
         self.VERTICAL_UPGRADE = "VerticalUpgrade"
         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
@@ -300,6 +301,7 @@ class AppManageService(AppManageBase):
             body["image_url"] = service.image
         body["kind"] = kind
         body["service_alias"] = service.service_alias
+        body["service_name"] = service.service_name
         body["tenant_name"] = tenant.tenant_name
         body["enterprise_id"] = tenant.enterprise_id
         body["lang"] = service.language
@@ -331,7 +333,7 @@ class AppManageService(AppManageBase):
         return 200, "操作成功", event
 
     def upgrade(self, tenant, service, user, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
+        code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)
         if code != 200:
             return code, msg, event
 
@@ -341,6 +343,7 @@ class AppManageService(AppManageBase):
         event.save()
 
         body["deploy_version"] = service.deploy_version
+        body["service_name"] = service.service_name
         body["event_id"] = event.event_id
         try:
             region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
@@ -499,7 +502,7 @@ class AppManageService(AppManageBase):
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["node_num"] = new_node
             body["deploy_version"] = service.deploy_version
             body["operator"] = str(user.nick_name)
@@ -684,9 +687,15 @@ class AppManageService(AppManageBase):
 
     def __is_service_bind_domain(self, service):
         domains = domain_repo.get_service_domains(service.service_id)
-        if domains:
-            return True
-        return False
+        if not domains:
+            return False
+        elif len(domains) == 1:
+            for domain in domains:
+                if domain.type == 0:
+                    return False
+                else:
+                    return True
+        return True
 
     def __is_service_mnt_related(self, tenant, service):
         sms = mnt_repo.get_mount_current_service(tenant.tenant_id, service.service_id)
@@ -715,7 +724,7 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name,
                                                           service.service_alias, tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal"):
+            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -854,6 +863,7 @@ class AppManageService(AppManageBase):
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
+        tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)

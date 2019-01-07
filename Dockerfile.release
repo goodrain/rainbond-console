@@ -1,4 +1,4 @@
-FROM goodrainapps/python:2.7.9
+FROM rainbond/rainbond-ui:VERSION
 
 MAINTAINER zhengys@goodrain.com
 
@@ -8,7 +8,12 @@ ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN chmod +x /app/ui/entrypoint.sh && cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai
+RUN chmod +x /app/ui/entrypoint.sh &&  \
+    cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai && \
+    mv /dist/index.html /app/ui/www/templates/index.html && \
+    rm -rf /app/ui/www/static/dists/* && \
+    cp -a /dist/* /app/ui/www/static/dists/ && \
+    rm -rf /dist
 
 RUN apk update && apk --no-cache add --virtual .build-deps \
       build-base \
@@ -26,6 +31,7 @@ RUN apk update && apk --no-cache add --virtual .build-deps \
       libpng-dev \
       libjpeg-turbo-dev \
       py-mysqldb \
+      && mkdir /app/logs \
       && pip install -r requirements.txt \
       && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
       && cp -a /usr/lib/libmemcached* /tmp/ \
@@ -43,6 +49,7 @@ ENV PORT 7070
 ENV RELEASE_DESC=__RELEASE_DESC__
 
 VOLUME /initdata
+VOLUME /app/logs
 
 ENTRYPOINT ["./entrypoint.sh"]
 

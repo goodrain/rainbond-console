@@ -194,7 +194,7 @@ class AddTeamView(JWTAuthApiView):
             else:
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
-                    return Response(general_message(500, "user's enterprise is not found"), status=500)
+                    return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
 
                 role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
@@ -928,10 +928,14 @@ class EnterpriseInfoView(JWTAuthApiView):
         查询企业信息
         """
         try:
-            enterprise_id = request.GET.get("enterprise_id", None)
-            if not enterprise_id:
-                enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.user.enterprise_id)
-                enterprise_id = enter.enterprise_id
+            team_name = request.GET.get("team_name", None)
+            if not team_name:
+                return Response(general_message(400, "team name is null", "参数错误"), status=400)
+
+            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+
+            enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=team.enterprise_id)
+            enterprise_id = enter.enterprise_id
             enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
             result = general_message(200, "success", "查询成功", bean=enterprise_info.to_dict())
         except Exception as e:
@@ -991,6 +995,7 @@ class JoinTeamView(JWTAuthApiView):
                 return Response(result, status=result["code"])
             else:
                 result = general_message(200, "apply success", "申请加入")
+                logger.debug('--------tenant.ID-------->{0}'.format(tenant.ID))
                 admins = team_repo.get_tenant_admin_by_tenant_id(tenant_id=tenant.ID)
                 self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.nick_name)
         except Exception as e:
@@ -1001,6 +1006,7 @@ class JoinTeamView(JWTAuthApiView):
     # 用户加入团队，给管理员发送站内信
     def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
+        logger.debug('---------admin---------->{0}'.format(admins))
         for admin in admins:
             # nick_name = user_repo.get_user_by_user_id(user.user_id)
             message_id = make_uuid()

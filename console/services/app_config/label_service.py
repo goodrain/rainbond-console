@@ -96,9 +96,13 @@ class LabelService(object):
 
     def update_service_state_label(self, tenant, service):
         service_status = service.extend_method
-        body = {}
+        label_dict = dict()
+        body = dict()
         # made ...
         body["label_key"] = "service-type"
-        body["label_value"] = "无状态的应用" if service_status == "stateless" else "有状态的应用"
-        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, body)
+        body["label_value"] = "StatelessServiceType" if service_status == "stateless" else "StatefulServiceType"
+        label_list = list()
+        label_list.append(body)
+        label_dict["labels"] = label_list
+        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, u"success"

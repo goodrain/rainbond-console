@@ -38,6 +38,7 @@ gitHubClient = GitHubApi()
 port_service = AppPortService()
 probe_service = ProbeService()
 
+
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
@@ -281,8 +282,9 @@ class AppService(object):
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
+        logger.debug('---------status111111111111111111---------->{0}'.format(status))
         status_info_map = get_status_info_map(status)
-
+        logger.debug('---------status_info_map222222222---------->{0}'.format(status_info_map))
         return status_info_map
 
     def get_service_resource_with_plugin(self, tenant, service, status):
@@ -384,6 +386,7 @@ class AppService(object):
         data["envs_info"] = []
         data["volumes_info"] = []
         data["enterprise_id"] = tenant.enterprise_id
+        data["service_name"] = service.service_name
         data[
             "service_label"] = "StatefulServiceType " if service.extend_method == "state" else "StatelessServiceType"
         return data

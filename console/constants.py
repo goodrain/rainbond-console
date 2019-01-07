@@ -29,6 +29,7 @@ class ServiceEventConstants(object):
         "stop": "停止",
         "restart": "启动",
         "deploy": "构建",
+        "upgrade": "更新",
         "delete": "删除",
         "HorizontalUpgrade": "水平升级",
         "VerticalUpgrade": "垂直升级",

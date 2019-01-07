@@ -3,21 +3,13 @@ import datetime
 import json
 import logging
 
-import os
-
-from django.conf import settings
 from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
-
-from api.back_service_install import BackServiceInstall
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
-from www.models import AppServiceShareInfo, ServiceGroup, TenantServiceInfo, AppServiceGroup
+from www.models import ServiceGroup, TenantServiceInfo, AppServiceGroup
 from www.models import ServiceEvent
 from www.services import tenant_svc, enterprise_svc, app_group_svc, publish_app_svc
-from www.utils.crypt import make_uuid
-from www.views import AuthedView, LeftSideBarMixin
-from www.utils import sn
 from www.utils.crypt import make_uuid
 from www.views import AuthedView, LeftSideBarMixin
 
@@ -212,47 +204,6 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
         return TemplateResponse(request,
                                 'www/service/groupShare_step_two.html',
                                 context)
-
-    # form提交
-    @perm_required('share_service')
-    def post(self, request, groupId, share_pk, *args, **kwargs):
-        logger.debug("group.publish", "service group publish: {0}-{1}".format(groupId, share_pk))
-        env_data = request.POST.get("env_data", None)
-        data = {}
-        try:
-            if env_data is not None:
-                env_json = json.loads(env_data)
-                app_share_list = []
-                for env_service_id in env_json:
-                    env_map = env_json.get(env_service_id)
-                    for env_id in env_map:
-                        is_change = env_map.get(env_id)
-                        # 判断是否存在
-                        num = AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                 service_id=env_service_id,
-                                                                 tenant_env_id=env_id).count()
-                        if num == 1:
-                            AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                               service_id=env_service_id,
-                                                               tenant_env_id=env_id).update(is_change=bool(is_change))
-                        elif num > 1:
-                            AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                               service_id=env_service_id,
-                                                               tenant_env_id=env_id).delete()
-                        if num != 1:
-                            tmp_info = AppServiceShareInfo(tenant_id=self.tenant.tenant_id,
-                                                           service_id=env_service_id,
-                                                           tenant_env_id=env_id,
-                                                           is_change=bool(is_change))
-                            app_share_list.append(tmp_info)
-                # 批量增加
-                if len(app_share_list) > 0:
-                    AppServiceShareInfo.objects.bulk_create(app_share_list)
-                data = {"success": True, "code": 200, 'msg': '更新成功!'}
-        except Exception as e:
-            logger.exception("group.publish", e)
-            data = {"success": False, "code": 500, 'msg': '更新失败'}
-        return JsonResponse(data, status=200)
 
 
 class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):

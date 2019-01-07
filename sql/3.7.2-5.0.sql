@@ -85,12 +85,14 @@ drop table service_exec
 
 ALTER TABLE tenant_service ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
 
+ALTER TABLE tenant_service ADD COLUMN `service_name` varchar(100) DEFAULT '';
+
 -- tenant_service_delete表中增加字段
 
 ALTER TABLE tenant_service_delete ADD COLUMN `build_upgrade` bool DEFAULT true NOT NULL;
 
+ALTER TABLE tenant_service_delete ADD COLUMN `service_name` varchar(100) DEFAULT '';
 
-ALTER TABLE service_domain ADD COLUMN `the_weight` integer DEFAULT 100;
 
 
 -- 批量修改组表中默认组——>>默认应用
@@ -107,3 +109,13 @@ CREATE TABLE `tenant_service_config` (
   `file_content` TEXT,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
+
+
+-- 修改service_event操作说明字段格式
+
+ALTER TABLE service_event MODIFY `message` TEXT;
+
+
+-- 修改service_group字段group_name长度最大值
+
+alter table service_group modify column group_name varchar(128);

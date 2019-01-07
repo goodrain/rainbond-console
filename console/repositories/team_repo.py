@@ -47,7 +47,7 @@ class TeamRepo(object):
 
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant_id):
-        admins = PermRelTenant.objects.filter(tenant_id=tenant_id, identity__in=['admin', 'owner'])
+        admins = PermRelTenant.objects.filter(Q(tenant_id=tenant_id, role_id__in=[1, 2]) | Q(tenant_id=tenant_id, identity__in=['admin', 'owner'])).all()
         if not admins:
             return None
         return admins

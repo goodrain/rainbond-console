@@ -84,7 +84,6 @@ export function brightenColor(c) {
 }
 
 
-
 const statusColorMap = {
   'running' : 'rgb(0,215,119)',//运行中 绿色
   'closed'  : 'rgb(0,0,33)',//已关闭 黑色

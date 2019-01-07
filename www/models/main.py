@@ -2,9 +2,7 @@
 from datetime import datetime
 
 import re
-from django.conf import settings
 from django.db import models
-from django.db.models.fields import DateTimeField
 from django.utils.crypto import salted_hmac
 
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
@@ -558,6 +556,8 @@ class TenantServiceInfo(BaseModel):
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text=u'应用构建后是否升级')
+    service_name = models.CharField(
+        max_length=100, default='', help_text=u"服务名称（新加属性，数据中心使用）")
 
     def __unicode__(self):
         return self.service_alias
@@ -686,6 +686,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=5, default='git', help_text=u"源码仓库类型")
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text=u'应用构建后是否升级')
+    service_name = models.CharField(
+        max_length=100, default='', help_text=u"服务名称（新加属性，数据中心使用）")
 
 
 class TenantServiceLog(BaseModel):
@@ -1105,7 +1107,7 @@ class ServiceGroup(BaseModel):
         db_table = 'service_group'
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    group_name = models.CharField(max_length=32, help_text=u"组名")
+    group_name = models.CharField(max_length=128, help_text=u"组名")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认应用")
 
@@ -1247,21 +1249,6 @@ class ThirdAppInfo(BaseModel):
     create_user = models.IntegerField(help_text=u"创建的用户的user_id")
 
 
-class CDNTrafficRecord(BaseModel):
-    class Meta:
-        db_table = 'cdn_traffic_record'
-
-    order_id = models.CharField(max_length=32, help_text=u"订单id")
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
-    traffic_size = models.IntegerField(help_text=u"流量包大小")
-    traffic_price = models.IntegerField(help_text=u"流量包价格")
-    buy_time = models.DateTimeField(auto_now_add=True, help_text=u"购买时间")
-    payment_status = models.CharField(
-        default=0, max_length=1, help_text=u"支付状态")
-
-
 class CDNTrafficHourRecord(BaseModel):
     class Meta:
         db_table = 'cdn_traffic_hour_record'
@@ -1376,7 +1363,7 @@ class ServiceEvent(BaseModel):
         max_length=20,
         default="",
         help_text=u"操作状态，complete or timeout or null")
-    message = models.CharField(max_length=200, help_text=u"操作说明")
+    message = models.TextField(help_text=u"操作说明")
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     old_deploy_version = models.CharField(max_length=20, help_text=u"历史部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")

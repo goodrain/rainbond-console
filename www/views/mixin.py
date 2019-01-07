@@ -4,9 +4,7 @@ import logging
 import os
 from django.http import Http404
 
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models import PermRelTenant, Tenants, AppServiceVolume, ServiceGroup, \
-    TenantServiceVolume
+from www.models import PermRelTenant, Tenants, ServiceGroup, TenantServiceVolume
 from www.region import RegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils import sn
@@ -45,17 +43,6 @@ class LoginRedirectMixin(object):
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
                 self.user.nick_name, self.user.pk))
             return Http404
-
-
-class CopyPortAndEnvMixin(object):
-    def copy_port_and_env(self, service, new_service):
-        volumes = AppServiceVolume.objects.filter(service_key=service.service_key, app_version=service.version)
-        baseService = BaseTenantService()
-
-        for volume in volumes:
-            baseService.add_volume_with_type(
-                new_service, volume.volume_path, TenantServiceVolume.SHARE, make_uuid()[:7]
-            )
 
 
 class LeftSideBarMixin(object):

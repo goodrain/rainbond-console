@@ -18,8 +18,7 @@ from console.repositories.event_repo import event_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.app import service_source_repo
-from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
-    app_plugin_attr_repo, plugin_version_repo, service_plugin_config_repo
+from console.repositories.plugin import app_plugin_relation_repo, service_plugin_config_repo
 
 import json
 import logging

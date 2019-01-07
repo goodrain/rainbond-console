@@ -42,6 +42,9 @@ class GroupappsMigrateService(object):
         services = group_service.get_group_services(origin_backup_record.group_id)
         if not services and migrate_type == "recover":
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
+            if not new_group:
+                new_group = self.__create_new_group_by_group_name(migrate_team.tenant_id, migrate_region,
+                                                    origin_backup_record.group_id)
         else:
             new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
@@ -70,6 +73,13 @@ class GroupappsMigrateService(object):
             return new_group, new_backup_record
         return new_group, None
 
+    def __create_new_group_by_group_name(self, tenant_id, region, old_group_id):
+
+        new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
+
+        new_group = group_repo.add_group(tenant_id, region, new_group_name)
+        return new_group
+
     def __create_new_group(self, tenant_id, region, old_group_id):
 
         old_group = group_repo.get_group_by_id(old_group_id)
@@ -91,6 +101,7 @@ class GroupappsMigrateService(object):
                 return 409, "恢复备份请确保当前组下的应用全部关闭", None
 
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
+        logger.debug('-----------232------------>{0}'.format(backup_record.group_id))
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
         new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
