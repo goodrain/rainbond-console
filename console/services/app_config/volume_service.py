@@ -54,10 +54,15 @@ class AppVolumeService(object):
             if volume_path == "/app":
                 return 409, u"源码应用不能挂载/app目录"
         if service.image != "goodrain.me/runner":
-            if not volume_path.startswith("/"):
-                return 400, u"路径需要以/(斜杠)开头"
+            volume_path_win = False
+            if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
+                volume_path_win = True
+            if not volume_path.startswith("/") and not volume_path_win:
+                return 400, u"路径仅支持linux和windows"
             if volume_path in self.SYSDIRS:
                 return 412, u"路径{0}为系统路径".format(volume_path)
+            if volume_path_win and len(volume_path) == 3:
+                return 412, u"路径不能为系统路径"
         else:
             if not is_path_legal(volume_path):
                 return 412, u"请输入符合规范的路径（如：/app/volumes ）"
