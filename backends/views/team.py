@@ -620,7 +620,7 @@ class EnterpriseAdminView(BaseAPIView):
             admin_tuples = cursor.fetchall()
             logger.debug('---------admin-------------->{0}'.format(admin_tuples))
             for admin in admin_tuples:
-                user = user_repo.get_by_user_id(user_id=admin[2])
+                user = user_repo.get_by_user_id(user_id=admin[1])
                 bean = dict()
                 if user:
                     bean["nick_name"] = user.nick_name
@@ -649,7 +649,8 @@ class SetUserPasswordView(BaseAPIView):
             new_password = request.data.get('new_password')
             re_password = request.data.get("re_password")
             username = request.data.get('username')
-            if not username or re_password or new_password:
+            if not username or not re_password or not new_password:
+                logger.debug('===================')
                 return Response(generate_result("1003", "params error", "参数错误"))
             if new_password != re_password:
                 return Response(generate_result("1010", "two password disagree", "两个密码不一致"))
