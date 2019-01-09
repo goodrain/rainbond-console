@@ -32,23 +32,24 @@ class AppMntService(object):
         if mnt_relations:
             for mount in mnt_relations:
                 dep_service = service_repo.get_service_by_service_id(mount.dep_service_id)
-                gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)
-                group = None
-                if gs_rel:
-                    group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
-                dep_volume = volume_repo.get_service_volume_by_name(dep_service.service_id, mount.mnt_name)
-                if dep_volume:
-                    mounted_dependencies.append({
-                        "local_vol_path": mount.mnt_dir,
-                        "dep_vol_name": dep_volume.volume_name,
-                        "dep_vol_path": dep_volume.volume_path,
-                        "dep_vol_type": dep_volume.volume_type,
-                        "dep_app_name": dep_service.service_cname,
-                        "dep_app_group": group.group_name if group else '未分组',
-                        "dep_vol_id": dep_volume.ID,
-                        "dep_group_id": group.ID if group else -1,
-                        "dep_app_alias": dep_service.service_alias
-                    })
+                if dep_service:
+                    gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)
+                    group = None
+                    if gs_rel:
+                        group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+                    dep_volume = volume_repo.get_service_volume_by_name(dep_service.service_id, mount.mnt_name)
+                    if dep_volume:
+                        mounted_dependencies.append({
+                            "local_vol_path": mount.mnt_dir,
+                            "dep_vol_name": dep_volume.volume_name,
+                            "dep_vol_path": dep_volume.volume_path,
+                            "dep_vol_type": dep_volume.volume_type,
+                            "dep_app_name": dep_service.service_cname,
+                            "dep_app_group": group.group_name if group else '未分组',
+                            "dep_vol_id": dep_volume.ID,
+                            "dep_group_id": group.ID if group else -1,
+                            "dep_app_alias": dep_service.service_alias
+                        })
         return mounted_dependencies, total
 
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
