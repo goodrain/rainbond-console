@@ -108,6 +108,7 @@ class ServiceRelationRecycleBinRepository(object):
     def get_by_service_id(self, service_id):
         return ServiceRelationRecycleBin.objects.filter(service_id=service_id)
 
+
 class TenantServiceDeleteRepository(object):
     def create_delete_service(self, **params):
         return TenantServiceInfoDelete.objects.create(**params)
