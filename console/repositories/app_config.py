@@ -8,7 +8,7 @@ from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAut
 from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
-    TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep
+    TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep, TenantServiceConfigurationFile
 from backends.models import RegionConfig
 from django.db.models import Q
 
@@ -140,6 +140,15 @@ class TenantServiceVolumnRepository(object):
 
     def delete_volume_by_id(self, volume_id):
         TenantServiceVolume.objects.filter(ID=volume_id).delete()
+
+    def delete_file_by_volume_id(self, volume_id):
+        TenantServiceConfigurationFile.objects.filter(volume_id=volume_id).delete()
+
+    def add_service_config_file(self, **service_config_file):
+        return TenantServiceConfigurationFile.objects.create(**service_config_file)
+
+    def get_service_config_file(self, volume_id):
+        return TenantServiceConfigurationFile.objects.filter(volume_id=volume_id).first()
 
     def get_services_volumes(self, service_ids):
         return TenantServiceVolume.objects.filter(service_id__in=service_ids)

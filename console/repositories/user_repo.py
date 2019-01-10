@@ -18,8 +18,8 @@ class UserRepo(object):
         return users[0]
 
     def get_user_by_user_name(self, user_name):
-        users = Users.objects.filter(nick_name=user_name)
-        return users
+        user = Users.objects.filter(nick_name=user_name).first()
+        return user
 
     def get_user_by_filter(self, args=None, kwargs=None):
         args = tuple(args) if isinstance(args, (tuple, list, set)) else tuple()
@@ -56,7 +56,6 @@ class UserRepo(object):
 
     def get_all_users(self):
         return Users.objects.all()
-
 
     def get_user_nickname_by_id(self, user_id):
         u = Users.objects.filter(user_id=user_id)

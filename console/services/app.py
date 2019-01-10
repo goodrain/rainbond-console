@@ -334,9 +334,17 @@ class AppService(object):
             data["envs_info"] = list(envs_info)
         # 持久化目录
         volume_info = volume_repo.get_service_volumes(service.service_id).values(
-            'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
+            'ID', 'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
         if volume_info:
+            logger.debug('--------volume_info----->{0}'.format(volume_info))
+            for volume in volume_info:
+                volume_id = volume['ID']
+                config_file = volume_repo.get_service_config_file(volume_id)
+                if config_file:
+                    volume.update({"file_content": config_file.file_content})
+            logger.debug('--------volume_info22222----->{0}'.format(volume_info))
             data["volumes_info"] = list(volume_info)
+
         logger.debug(
             tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         # 挂载信息

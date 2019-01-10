@@ -273,6 +273,7 @@ class AppPodsView(AppBaseView):
                     bean["pod_status"] = d["pod_status"]
                     bean["manage_name"] = "manager"
                     container = d["container"]
+                    logger.debug('--------------11container-------------->{0}'.format(container))
                     container_list = []
                     for key, val in container.items():
                         if key == "POD":

@@ -65,6 +65,20 @@ class RainbondCenterApp(BaseModel):
         return self.to_dict()
 
 
+class RainbondCenterAppInherit(BaseModel):
+    """云市应用组继承关系"""
+
+    class Meta:
+        db_table = "rainbond_center_app_inherit"
+
+    group_key = models.CharField(max_length=32, unique=True, help_text=u"当前应用")
+    version = models.CharField(max_length=20, unique=True, help_text=u"当前应用版本号")
+    derived_group_key = models.CharField(max_length=32, unique=True, help_text=u"继承哪个云市应用")
+
+    def __unicode__(self):
+        return self.to_dict()
+
+
 class RainbondCenterPlugin(BaseModel):
     """云市插件"""
 

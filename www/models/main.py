@@ -1091,6 +1091,15 @@ class TenantServiceVolume(BaseModel):
     volume_name = models.CharField(max_length=100, blank=True, null=True)
 
 
+class TenantServiceConfigurationFile(BaseModel):
+    """服务配置文件"""
+    class Meta:
+        db_table = 'tenant_service_config'
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    volume_id = models.IntegerField(null=True, help_text=u"存储id")
+    file_content = models.TextField(blank=True, null=True, help_text=u"配置文件内容")
+
+
 class ServiceGroup(BaseModel):
     """服务分组"""
 

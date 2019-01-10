@@ -19,6 +19,7 @@ region_api = RegionInvokeApi()
 
 class AppMntService(object):
     SHARE = 'share-file'
+    CONFIG = 'config-file'
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
@@ -60,8 +61,16 @@ class AppMntService(object):
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name',
                                                                                                     flat=True)
         # 当前未被挂载的共享路径
-        volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.SHARE).exclude(
+        service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type__in=[self.SHARE, self.CONFIG]).exclude(
             service_id=service.service_id).exclude(volume_name__in=dep_mnt_names)
+        # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
+        logger.debug('----------volumes----->{0}'.format(type(service_volumes)))
+        volumes = list(service_volumes)
+        for volume in volumes:
+            service_obj = service_repo.get_service_by_service_id(volume.service_id)
+            if service_obj:
+                if service_obj.extend_method != "stateless" and volume.volume_type != "config-file":
+                    volumes.remove(volume)
         total = len(volumes)
         volume_paginator = JuncheePaginator(volumes, int(page_size))
         page_volumes = volume_paginator.page(page)
@@ -106,12 +115,25 @@ class AppMntService(object):
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
         if service.create_status == "complete":
-            data = {
-                "depend_service_id": dep_volume.service_id,
-                "volume_name": dep_volume.volume_name,
-                "volume_path": source_path,
-                "enterprise_id": tenant.enterprise_id
-            }
+            if dep_volume.volume_type != "config-file":
+                data = {
+                    "depend_service_id": dep_volume.service_id,
+                    "volume_name": dep_volume.volume_name,
+                    "volume_path": source_path,
+                    "enterprise_id": tenant.enterprise_id,
+                    "volume_type": dep_volume.volume_type
+                }
+            else:
+                config_file = volume_repo.get_service_config_file(dep_volume.ID)
+                data = {
+                    "depend_service_id": dep_volume.service_id,
+                    "volume_name": dep_volume.volume_name,
+                    "volume_path": source_path,
+                    "volume_type": dep_volume.volume_type,
+                    "file_content": config_file.file_content,
+                    "enterprise_id": tenant.enterprise_id
+                }
+            logger.debug('---------------333----------->{0}'.format(data))
             res, body = region_api.add_service_dep_volumes(
                 service.service_region, tenant.tenant_name, service.service_alias, data
             )
