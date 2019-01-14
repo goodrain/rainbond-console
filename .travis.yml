@@ -7,5 +7,4 @@ git:
   depth: 1
 
 script:
-- ./release.sh
-- 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD && docker push rainbond/rbd-app-ui:5.0 ;fi'
+- ./travis_build.sh

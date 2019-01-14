@@ -52,6 +52,28 @@ class TenantEnterpriseUserPermRepo(object):
     def get_user_enterprise_perm(self, user_id,enterprise_id):
         return EnterpriseUserPerm.objects.filter(user_id=user_id,enterprise_id=enterprise_id)
 
+    def get_backend_enterprise_admin_by_user_id(self, user_id):
+        """
+        管理后台查询企业管理员，只有一个企业
+        :param user_id:
+        :param enterprise_id:
+        :return:
+        """
+        enter_admin = EnterpriseUserPerm.objects.filter(user_id=user_id).first()
+        if enter_admin:
+            return enter_admin
+        else:
+            return None
+
+    def delete_backend_enterprise_admin_by_user_id(self, user_id):
+        """
+        管理后台删除企业管理员，只有一个企业
+        :param user_id:
+        :param enterprise_id:
+        :return:
+        """
+        EnterpriseUserPerm.objects.filter(user_id=user_id).delete()
+
 
 enterprise_repo = TenantEnterpriseRepo()
 enterprise_user_perm_repo = TenantEnterpriseUserPermRepo()

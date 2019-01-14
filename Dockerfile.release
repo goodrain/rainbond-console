@@ -1,4 +1,4 @@
-FROM rainbond/rainbond-ui:5.0
+FROM rainbond/rainbond-ui:VERSION
 
 MAINTAINER zhengys@goodrain.com
 

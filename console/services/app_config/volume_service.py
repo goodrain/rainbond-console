@@ -54,10 +54,15 @@ class AppVolumeService(object):
             if volume_path == "/app":
                 return 409, u"源码应用不能挂载/app目录"
         if service.image != "goodrain.me/runner":
-            if not volume_path.startswith("/"):
-                return 400, u"路径需要以/(斜杠)开头"
+            volume_path_win = False
+            if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
+                volume_path_win = True
+            if not volume_path.startswith("/") and not volume_path_win:
+                return 400, u"路径仅支持linux和windows"
             if volume_path in self.SYSDIRS:
                 return 412, u"路径{0}为系统路径".format(volume_path)
+            if volume_path_win and len(volume_path) == 3:
+                return 412, u"路径不能为系统路径"
         else:
             if not is_path_legal(volume_path):
                 return 412, u"请输入符合规范的路径（如：/app/volumes ）"
@@ -72,7 +77,7 @@ class AppVolumeService(object):
 
         return 200, u"success"
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
@@ -90,19 +95,36 @@ class AppVolumeService(object):
                        "volume_type": volume_type, "volume_path": volume_path, "volume_name": volume_name}
         # region端添加数据
         if service.create_status == "complete":
-            data = {
-                "category": service.category,
-                "volume_name": volume_name,
-                "volume_path": volume_path,
-                "volume_type": volume_type,
-                "enterprise_id": tenant.enterprise_id
-            }
+            if volume_type == "config-file":
+                data = {
+                    "category": service.category,
+                    "volume_name": volume_name,
+                    "volume_path": volume_path,
+                    "volume_type": volume_type,
+                    "file_content": file_content,
+                    "enterprise_id": tenant.enterprise_id
+                }
+            else:
+                data = {
+                    "category": service.category,
+                    "volume_name": volume_name,
+                    "volume_path": volume_path,
+                    "volume_type": volume_type,
+                    "enterprise_id": tenant.enterprise_id
+                }
             res, body = region_api.add_service_volumes(
                 service.service_region, tenant.tenant_name, service.service_alias, data
             )
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)
+        if volume_type == "config-file":
+            file_data = {
+                "service_id": service.service_id,
+                "volume_id": volume.ID,
+                "file_content": file_content
+            }
+            cf_file = volume_repo.add_service_config_file(**file_data)
         return 200, "success", volume
 
     def delete_service_volume_by_id(self, tenant, service, volume_id):
@@ -123,6 +145,8 @@ class AppVolumeService(object):
                 "service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name, body))
 
         volume_repo.delete_volume_by_id(volume_id)
+        volume_repo.delete_file_by_volume_id(volume_id)
+
         return 200, u"success", volume
 
     def delete_service_volumes(self, service):
