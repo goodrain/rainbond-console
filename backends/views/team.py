@@ -538,7 +538,6 @@ class AddEnterAdminView(BaseAPIView):
         """
         try:
             username = request.data.get("username", None)
-            password = request.data.get("password", None)
             enterprise_id = request.data.get("enterprise_id", None)
             enterprise_alias = request.data.get("enterprise_alias", None)
             # 校验参数
@@ -560,7 +559,7 @@ class AddEnterAdminView(BaseAPIView):
             enterprise_user_perm_repo.create_enterprise_user_perm(user_obj.user_id, enterprise.enterprise_id, "admin")
             bean = {"user_info": user_obj.to_dict()}
 
-            result = generate_result("0000", "success", "添加成功", bean)
+            result = generate_result("0000", "success", "添加成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)
@@ -582,6 +581,7 @@ class AddEnterAdminView(BaseAPIView):
                                                 "当前用户不是企业管理员"))
             # 最后一个企业管理员无法删除
             admin_count = EnterpriseUserPerm.objects.count()
+            logger.debug('-----------count------->{0}'.format(admin_count))
             if admin_count == 1:
                 return Response(generate_result("1004", "The last admin", "当前用户为最后一个企业管理员，无法删除"))
             enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
