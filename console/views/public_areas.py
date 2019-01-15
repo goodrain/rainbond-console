@@ -6,7 +6,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from backends.services.exceptions import GroupNotExistError
-from console.repositories.event_repo import event_repo
+from console.services.user_services import user_services
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
@@ -89,6 +89,11 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["team_service_num"] = team_service_num
                 overview_detail["team_service_memory_count"] = total_memory
                 overview_detail["team_service_total_disk"] = total_disk
+                # 添加当前用户是否为当前团队的企业管理员
+                if not user_services.is_user_admin_in_current_enterprise(self.user, self.team.enterprise_id):
+                    overview_detail["is_team_enter_admin"] = False
+                else:
+                    overview_detail["is_team_enter_admin"] = True
 
                 return Response(general_message(200, "success", "查询成功", bean=overview_detail))
             else:
