@@ -6,7 +6,6 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from backends.services.exceptions import GroupNotExistError
-from console.repositories.event_repo import event_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
@@ -21,7 +20,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
-from console.repositories.app_config import domain_repo
 
 event_service = AppEventService()
 

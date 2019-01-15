@@ -220,7 +220,20 @@ def createFile(path, name, body):
     with open(file_path, 'w') as f:
         f.writelines(body)
         f.close()
-    return file_path
+    f = open(file_path, "r")
+    content = f.read()
+    if content == body:
+        return file_path
+    else:
+        return None
+
+
+def check_file_path(path, name, body):
+    file_path = createFile(path, name, body)
+    if not file_path:
+        check_file_path(path, name, body)
+    else:
+        return file_path
 
 
 class Configuration():
@@ -246,21 +259,35 @@ class Configuration():
             self.ssl_ca_cert = ssl_ca_cert
         else:
             file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            self.ssl_ca_cert = createFile(file_path, "ca.pem", ssl_ca_cert)
+            path = file_path + "/" + "ca.pem"
+            # 判断证书路径是否存在
+            if os.path.isfile(path):
+                self.ssl_ca_cert = path
+            else:
+                # 校验证书文件是否写入成功
+                self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
 
         # client certificate file
         if not cert_file or cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
             file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            self.cert_file = createFile(file_path, "client.pem", cert_file)
+            path = file_path + "/" + "client.pem"
+            if os.path.isfile(path):
+                self.cert_file = path
+            else:
+                self.cert_file = check_file_path(file_path, "client.pem", cert_file)
 
         # client key file
         if not key_file or key_file.startswith('/'):
             self.key_file = key_file
         else:
             file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            self.key_file = createFile(file_path, "client.key.pem", key_file)
+            path = file_path + "/" + "client.key.pem"
+            if os.path.isfile(path):
+                self.key_file = path
+            else:
+                self.key_file = check_file_path(file_path, "client.key.pem", key_file)
 
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname

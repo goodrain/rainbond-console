@@ -6,7 +6,7 @@ import logging
 from django.db import transaction
 
 from console.appstore.appstore import app_store
-from console.constants import AppConstants
+from console.repositories.app_config import volume_repo
 from console.models.main import RainbondCenterApp, ServiceShareRecordEvent, PluginShareRecordEvent
 from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
 from console.repositories.plugin import plugin_repo, app_plugin_relation_repo,service_plugin_config_repo
@@ -208,8 +208,7 @@ class ShareService(object):
             # 获取应用的健康检测设置
             probe_map = self.get_service_probes(array_ids)
 
-
-            all_data_map = {}
+            all_data_map = dict()
             for service in service_list:
                 data = dict()
                 data['service_id'] = service.service_id
@@ -278,6 +277,11 @@ class ShareService(object):
                 if service_volume_map.get(service.service_id):
                     for volume in service_volume_map.get(service.service_id):
                         s_v = dict()
+                        s_v['file_content'] = ''
+                        if volume.volume_type == "config-file":
+                            config_file = volume_repo.get_service_config_file(volume.ID)
+                            if config_file:
+                                s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
                         s_v['volume_type'] = volume.volume_type
                         s_v['volume_path'] = volume.volume_path
