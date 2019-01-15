@@ -556,8 +556,6 @@ urlpatterns = patterns(
 
     # 企业发票相关
     url(r'receipts$', EnterReceiptAPIView.as_view()),
-    # 企业中心充值限制
-    url(r'top-up/limits$', TopUpLimitView.as_view()),
     url(r'receipts/confirm$', EnterReceiptConfirmAPIView.as_view()),
     url(r'receipts/(?P<receipt_id>\d+)$', EnterReceiptDetailAPIView.as_view()),
     url(r'receipt-orders$', EnterReceiptOrdersAIPView.as_view()),
