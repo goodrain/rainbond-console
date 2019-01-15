@@ -205,7 +205,7 @@ class AuthAccessTokenView(AlowAnyApiView):
             token = auth_service.create_token_auth_user(admin_user.nick_name, admin_user.password)
             bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict(), "user_info": admin_user.to_dict()}
 
-            result = generate_result("0000", "success", "信息获取成功", bean)
+            result = generate_result("0000", "success", "信息获取成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)
