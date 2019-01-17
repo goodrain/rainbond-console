@@ -79,13 +79,26 @@ class AppVersionsView(AppBaseView):
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
+            for res_version in res_versions:
+                if int(res_version["build_version"]) > int(self.service.deploy_version):
+                    upgrade_or_rollback = 1
+                elif int(res_version["build_version"]) == int(self.service.deploy_version):
+                    upgrade_or_rollback = 0
+                else:
+                    upgrade_or_rollback = -1
+                res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
             # try:
             #     result = paginator.page(page).object_list
             # except PageNotAnInteger:
             #     result = paginator.page(1).object_list
             # except EmptyPage:
             #     result = paginator.page(paginator.num_pages).object_list
-            result = general_message(200, "success", "查询成功", list=res_versions, total=paginator.count)
+            latest_version = res_versions[0]["build_version"]
+            is_upgrade = False
+            if int(latest_version) > int(self.service.deploy_version):
+                is_upgrade = True
+            bean = {"is_upgrade": is_upgrade, "current_version": self.service.deploy_version}
+            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=paginator.count)
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)

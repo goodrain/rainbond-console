@@ -384,8 +384,11 @@ class AppManageService(AppManageBase):
                     kind = "build_from_image"
             return kind
 
-    def roll_back(self, tenant, service, user, deploy_version):
-        code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
+    def roll_back(self, tenant, service, user, deploy_version, upgrade_or_rollback):
+        if int(upgrade_or_rollback) == 1:
+            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
+        else:
+            code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
@@ -400,7 +403,7 @@ class AppManageService(AppManageBase):
                 event.delete()
                 return 404, u"当前版本可能已被系统清理或删除", event
 
-            body = {}
+            body = dict()
             body["event_id"] = event.event_id
             body["operator"] = str(user.nick_name)
             body["deploy_version"] = deploy_version
@@ -408,6 +411,8 @@ class AppManageService(AppManageBase):
             try:
                 region_api.rollback(service.service_region, tenant.tenant_name, service.service_alias,
                                     body)
+                service.deploy_version = deploy_version
+                service.save()
                 event.deploy_version = deploy_version
                 event.save()
             except region_api.CallApiError as e:

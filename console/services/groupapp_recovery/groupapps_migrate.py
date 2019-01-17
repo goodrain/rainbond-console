@@ -13,7 +13,7 @@ from console.repositories.migration_repo import migrate_repo
 from www.models.main import TenantServiceInfo, TenantServiceEnvVar, TenantServiceVolume, TenantServicesPort, \
     TenantServiceEnv, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth, ImageServiceRelation, \
     TenantServiceRelation, \
-    TenantServiceMountRelation
+    TenantServiceMountRelation, TenantServiceConfigurationFile
 from console.models.main import ServiceRelPerms, ServiceSourceInfo
 from console.repositories.team_repo import team_repo
 from www.models.label import ServiceLabels
