@@ -147,6 +147,9 @@ class TenantServiceVolumnRepository(object):
     def add_service_config_file(self, **service_config_file):
         return TenantServiceConfigurationFile.objects.create(**service_config_file)
 
+    def get_service_config_files(self, service_id):
+        return TenantServiceConfigurationFile.objects.filter(service_id=service_id)
+
     def get_service_config_file(self, volume_id):
         return TenantServiceConfigurationFile.objects.filter(volume_id=volume_id).first()
 
@@ -449,6 +452,9 @@ class ServiceTcpDomainRepository(object):
 
     def add_service_tcpdomain(self, **domain_info):
         return ServiceTcpDomain.objects.create(**domain_info)
+
+    def get_service_tcpdomains(self, service_id):
+        return ServiceTcpDomain.objects.filter(service_id=service_id).all()
 
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
         return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()

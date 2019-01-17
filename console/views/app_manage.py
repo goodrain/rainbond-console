@@ -210,13 +210,14 @@ class RollBackAppView(AppBaseView):
         """
         try:
             deploy_version = request.data.get("deploy_version", None)
-            if not deploy_version:
-                return Response(general_message(400, "deploy version is not found", "请指明回滚的版本"), status=400)
+            upgrade_or_rollback = request.data.get("upgrade_or_rollback", None)
+            if not deploy_version or not upgrade_or_rollback:
+                return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
 
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法回滚"))
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version)
+                return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
+            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
             bean = {}
             if event:
                 bean = event.to_dict()
