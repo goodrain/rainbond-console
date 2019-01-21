@@ -14,7 +14,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.paginator import Paginator
+from console.utils.timeutil import time_to_str
 
 
 logger = logging.getLogger("default")
@@ -64,7 +65,13 @@ class AppVersionsView(AppBaseView):
 
             versions_info = build_version_list
             version_list = []
+            success_num = 0
+            failure_num = 0
             for info in versions_info:
+                if info["FinalStatus"] == "success":
+                    success_num += 1
+                else:
+                    failure_num += 1
                 version_list.append({
                     "build_version": info["BuildVersion"],
                     "kind": BUILD_KIND_MAP.get(info["Kind"]),
@@ -97,7 +104,12 @@ class AppVersionsView(AppBaseView):
             is_upgrade = False
             if int(latest_version) > int(self.service.deploy_version):
                 is_upgrade = True
-            bean = {"is_upgrade": is_upgrade, "current_version": self.service.deploy_version}
+            bean = {
+                "is_upgrade": is_upgrade,
+                "current_version": self.service.deploy_version,
+                "success_num": success_num,
+                "failure_num": failure_num
+            }
             result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=paginator.count)
             return Response(result, status=result["code"])
         except Exception as e:

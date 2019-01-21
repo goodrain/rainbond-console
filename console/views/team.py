@@ -835,14 +835,27 @@ class ApplicantsView(JWTAuthApiView):
                     join.update(is_pass=1)
                     team = team_repo.get_team_by_team_name(team_name=team_name)
                     team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
+                    # 发送通知
+                    info = "同意"
+                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
                     return Response(general_message(200, "join success", "加入成功"), status=200)
                 else:
                     join.update(is_pass=2)
+                    info = "拒绝"
+                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
                     return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=result["code"])
+
+    # 用户加入团队，发送站内信给用户
+    def send_user_message_for_apply_info(self, user_id, team_name, info):
+        tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
+        message_id = make_uuid()
+        content = '{0}团队{1}您加入该团队'.format(tenant.tenant_alias, info)
+        UserMessage.objects.create(message_id=message_id, receiver_id=user_id, content=content,
+                                   msg_type="warn", title="用户加入团队信息")
 
 
 class AllTeamsView(JWTAuthApiView):
