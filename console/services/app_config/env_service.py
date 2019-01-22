@@ -22,7 +22,7 @@ class AppEnvVarService(object):
         if attr_name in self.SENSITIVE_ENV_NAMES:
             return False, u"不允许的变量名{0}".format(attr_name)
 
-        if not re.match(r'^[a-zA-Z0-9_\\.\\-]+$', attr_name):
+        if not re.match(r'^[a-zA-Z0-9_\\-]+$', attr_name):
             return False, u"变量名称{0}不符合规范".format(attr_name)
         return True, u"success"
 
