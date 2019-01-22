@@ -1035,6 +1035,7 @@ class TeamUserCanJoin(JWTAuthApiView):
         try:
             tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
             team_names = tenants.values("tenant_name")
+            # 已加入的团队
             team_name_list = [t_name.get("tenant_name") for t_name in team_names]
 
             user_id = request.GET.get("user_id", None)
@@ -1046,6 +1047,7 @@ class TeamUserCanJoin(JWTAuthApiView):
                 enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
                 team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
                 apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            # 已申请过的团队
             applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in
                             [team_name.team_name for team_name in apply_team]]
             join_list = []
@@ -1085,7 +1087,7 @@ class AllUserView(JWTAuthApiView):
                 if not euser:
                     result = generate_result("0000", "success", "查询成功", list=list, total=0)
                     return Response(result)
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = euser.user_id
                 result_map["email"] = euser.email
                 result_map["nick_name"] = euser.nick_name
@@ -1105,7 +1107,7 @@ class AllUserView(JWTAuthApiView):
             users = user_paginator.page(int(page_num))
             list = []
             for user in users:
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name

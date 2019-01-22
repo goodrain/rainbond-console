@@ -107,10 +107,10 @@ class AppVersionsView(AppBaseView):
             bean = {
                 "is_upgrade": is_upgrade,
                 "current_version": self.service.deploy_version,
-                "success_num": success_num,
-                "failure_num": failure_num
+                "success_num": str(success_num),
+                "failure_num": str(failure_num)
             }
-            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=paginator.count)
+            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(paginator.count))
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)
