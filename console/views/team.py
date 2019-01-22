@@ -1027,6 +1027,33 @@ class JoinTeamView(JWTAuthApiView):
             UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content,
                                        msg_type="warn", title="团队加入信息")
 
+    def delete(self, request, *args, **kwargs):
+        """
+        删除用户加入团队被拒绝记录
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            logger.debug('-------3333------->{0}'.format(request.data))
+            user_id = request.data.get("user_id", None)
+            team_name = request.data.get("team_name", None)
+            is_pass = request.data.get("is_pass", 0)
+            if not team_name:
+                return Response(general_message(400, "team name is null", "参数错误"), status=400)
+            if user_id:
+                apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                result = general_message(200, "success", "删除成功")
+            else:
+                user_id = self.user.user_id
+                apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                result = general_message(200, "success", "删除成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 
 class TeamUserCanJoin(JWTAuthApiView):
 
