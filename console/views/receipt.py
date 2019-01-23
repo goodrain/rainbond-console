@@ -115,21 +115,4 @@ class EnterReceiptConfirmAPIView(JWTAuthApiView):
         return JsonResponse(data=result, status=result["code"])
 
 
-class TopUpLimitView(JWTAuthApiView):
-    def get(self, request):
-        try:
-            team_name = request.GET.get('team_name', None)
-            if not team_name:
-                return JsonResponse(data=general_message(400, 'team name is null', '参数错误'),status=400)
-
-            team = team_services.get_tenant(tenant_name=team_name)
-            if team.enterprise_id == self.user.enterprise_id:
-                result = general_message(200, 'success', '查询成功', bean={"is_enter_admin": True})
-            else:
-                result = general_message(200, 'success', '查询成功', bean={"is_enter_admin": False})
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(500, 'system error', '系统异常')
-        return JsonResponse(data=result, status=result["code"])
-
 
