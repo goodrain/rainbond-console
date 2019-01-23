@@ -336,7 +336,6 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-
     def __save_import_info(self, tenant_name, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
@@ -345,6 +344,12 @@ class AppImportService(object):
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
                                                                         app_template["group_version"])
             if app:
+                # 覆盖原有应用数据
+                app.share_team = tenant_name
+                app.scope = scope
+                app.describe = app_template.pop("describe", "")
+                app.app_template = json.dumps(app_template)
+                app.template_version = app_template.get("template_version", "")
                 app.is_complete = True
                 app.save()
                 continue
