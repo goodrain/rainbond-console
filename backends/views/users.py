@@ -150,14 +150,20 @@ class UserView(BaseAPIView):
 
         """
         try:
-            user_service.get_user_by_user_id(user_id)
-            if user_service.is_sys_admin:
-                result = generate_result("1003", "is_sys_admin", "该用户为企业管理员，无法删除")
-                return Response(result)
+            tenants = Tenants.objects.filter(creater=user_id).all()
+            # 团队拥有者不可删
+            if tenants:
+                tenant_alias_list = []
+                for tenant in tenants:
+                    tenant_alias_list.append(tenant.tenant_alias)
+                return Response(
+                    generate_result("1112", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
+            # 企业管理员不可删
+            user = user_service.get_user_by_user_id(user_id)
+            if user_services.is_user_admin_in_current_enterprise(user, user.enterprise_id):
+                return Response(generate_result("1004", "user is enter admin", "当前用户为企业管理员，无法删除"))
             user_service.delete_user(user_id)
-            result = generate_result(
-                "0000", "success", "删除成功"
-            )
+            result = generate_result("0000", "success", "删除成功")
         except Exception as e:
             logger.exception(e)
             result = generate_result("9999", "system error", "系统异常")

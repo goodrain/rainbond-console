@@ -113,3 +113,6 @@ class EnterReceiptConfirmAPIView(JWTAuthApiView):
             logger.exception(e)
             result = general_message(500, 'proxy receipt api failed', '获取企业发票信息接口调用失败')
         return JsonResponse(data=result, status=result["code"])
+
+
+
