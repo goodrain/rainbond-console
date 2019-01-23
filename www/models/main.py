@@ -550,7 +550,9 @@ class TenantServiceInfo(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
+    open_code_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发源码自动部署功能')
+    open_image_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发镜像自动部署功能')
+    open_api_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发api自动部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
@@ -680,7 +682,9 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
+    open_code_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发源码自动部署功能')
+    open_image_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发镜像自动部署功能')
+    open_api_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发api自动部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")

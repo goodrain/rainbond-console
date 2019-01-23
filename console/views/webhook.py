@@ -34,7 +34,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-            if not service_obj.open_webhooks:
+            if not service_obj.open_code_webhooks and not service_obj.open_image_webhooks:
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -318,6 +318,10 @@ class GetWebHooksUrl(AppBaseView):
         判断该应用是否有webhooks自动部署功能，有则返回URL
         """
         try:
+            deployment_way = request.GET.get("deployment_way", None)
+            if not deployment_way:
+                result = general_message(400, "Parameter cannot be empty", "缺少参数")
+                return Response(result, status=400)
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
@@ -331,18 +335,31 @@ class GetWebHooksUrl(AppBaseView):
                 support_type = 2
 
             service_id = service_obj.service_id
-            # 生成秘钥
-            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
-            secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-            url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-            custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
-            # deploy_key = deploy.secret_key
-            print deploy
-            status = self.service.open_webhooks
-            result = general_message(200, "success", "获取URl及开启状态成功", bean={"url": url, "custom_url":custom_url, "secret_key":secret_key, "status": status, "display":True, "support_type":support_type})
-
+            # api处发自动部署
+            if deployment_way == "api_webhooks":
+                # 生成秘钥
+                deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
+                secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+                custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
+                status = self.service.open_api_webhooks
+                result = general_message(200, "success", "获取URl及开启状态成功",
+                                         bean={"custom_url": custom_url, "secret_key": secret_key,
+                                               "status": status, "display": True, "support_type": support_type})
+            # 镜像处发自动部署
+            elif deployment_way == "image_webhooks":
+                url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
+                status = self.service.open_image_webhooks
+                result = general_message(200, "success", "获取URl及开启状态成功",
+                                         bean={"url": url, "status": status, "display": True,
+                                               "support_type": support_type})
+            # 源码处发自动部署
+            else:
+                url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
+                status = self.service.open_code_webhooks
+                result = general_message(200, "success", "获取URl及开启状态成功",
+                                         bean={"url": url, "status": status, "display": True, "support_type": support_type})
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -376,19 +393,34 @@ class WebHooksStatus(AppBaseView):
         """
         try:
             action = request.data.get("action", None)
-            if not action:
-                result = general_message(400, "Parameter cannot be empty", "却少参数")
+            deployment_way = request.data.get("deployment_way", None)
+            if not action or not deployment_way:
+                result = general_message(400, "Parameter cannot be empty", "缺少参数")
                 return Response(result, status=400)
             if action != "open" and action != "close":
                 result = general_message(400, "action error", "操作类型不存在")
                 return Response(result, status=400)
             if action == "open":
-                self.service.open_webhooks = True
-                self.service.save()
+                if deployment_way == "code_webhooks":
+                    self.service.open_code_webhooks = True
+                    self.service.save()
+                elif deployment_way == "image_webhooks":
+                    self.service.open_image_webhooks = True
+                    self.service.save()
+                else:
+                    self.service.open_api_webhooks = True
+                    self.service.save()
                 result = general_message(200, "success", "开启成功")
             else:
-                self.service.open_webhooks = False
-                self.service.save()
+                if deployment_way == "code_webhooks":
+                    self.service.open_code_webhooks = False
+                    self.service.save()
+                elif deployment_way == "image_webhooks":
+                    self.service.open_image_webhooks = False
+                    self.service.save()
+                else:
+                    self.service.open_api_webhooks = False
+                    self.service.save()
                 result = general_message(200, "success", "关闭成功")
         except Exception as e:
             logger.exception(e)
