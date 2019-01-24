@@ -100,10 +100,11 @@ class AppVersionsView(AppBaseView):
             #     result = paginator.page(1).object_list
             # except EmptyPage:
             #     result = paginator.page(paginator.num_pages).object_list
-            latest_version = res_versions[0]["build_version"]
             is_upgrade = False
-            if int(latest_version) > int(self.service.deploy_version):
-                is_upgrade = True
+            if res_versions:
+                latest_version = res_versions[0]["build_version"]
+                if int(latest_version) > int(self.service.deploy_version):
+                    is_upgrade = True
             bean = {
                 "is_upgrade": is_upgrade,
                 "current_version": self.service.deploy_version,

@@ -341,6 +341,9 @@ class GetWebHooksUrl(AppBaseView):
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
 
             service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            if not service_webhook:
+                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id)
+
             # api处发自动部署
             if deployment_way == "api_webhooks":
                 # 生成秘钥
@@ -519,9 +522,10 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             push_data = request.data.get("push_data")
             pusher = push_data.get("pusher")
             tag = push_data.get("tag")
-            service_tag = service_obj.image.split(":")[-1]
-            if tag != service_tag:
-                result = general_message(400, "failed", "tag不相符")
+            repo_name = repository.get("repository")
+            image = repo_name + ":" + tag
+            if image != service_obj.image:
+                result = general_message(400, "failed", "镜像不相符")
                 return Response(result, status=400)
 
             # 获取应用状态
