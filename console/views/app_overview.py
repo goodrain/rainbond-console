@@ -32,7 +32,7 @@ from www.utils.md5Util import md5fun
 from django.conf import settings
 from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
-from console.repositories.app import service_repo
+from console.repositories.app import service_repo, service_webhooks_repo
 from console.views.base import JWTAuthApiView
 
 
@@ -741,5 +741,33 @@ class BuildSourceinfo(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
             transaction.savepoint_rollback(s_id)
+        return Response(result, status=result["code"])
+
+
+class AppKeywordView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_config')
+    def put(self, request, *args, **kwargs):
+        """
+        修改服务触发自动部署关键字
+        """
+
+        try:
+            keyword = request.data.get("keyword", None)
+            if not keyword:
+                return Response(general_message(400, "param error", "参数错误"), status=400)
+
+            is_pass, msg = app_service.check_service_cname(self.tenant, keyword, self.service.service_region)
+            if not is_pass:
+                return Response(general_message(400, "param error", msg), status=400)
+            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            if not service_webhook:
+                return Response(general_message(412, "keyword is null", "服务自动部署属性不存在"), status=412)
+            service_webhook.deploy_keyword = keyword
+            service_webhook.save()
+            result = general_message(200, "success", "修改成功", bean=service_webhook.to_dict())
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
         return Response(result, status=result["code"])
 

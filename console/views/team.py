@@ -1038,17 +1038,19 @@ class JoinTeamView(JWTAuthApiView):
         try:
             logger.debug('-------3333------->{0}'.format(request.data))
             user_id = request.data.get("user_id", None)
-            team_name = request.data.get("team_name", None)
+            team_names = request.data.get("team_name", None)
             is_pass = request.data.get("is_pass", 0)
-            if not team_name:
+            if not team_names:
                 return Response(general_message(400, "team name is null", "参数错误"), status=400)
-            if user_id:
-                apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
-                result = general_message(200, "success", "删除成功")
-            else:
-                user_id = self.user.user_id
-                apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
-                result = general_message(200, "success", "删除成功")
+            teams_name = team_names.split('-')
+            for team_name in teams_name:
+                if team_name:
+                    if user_id:
+                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                    else:
+                        user_id = self.user.user_id
+                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+            result = general_message(200, "success", "删除成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

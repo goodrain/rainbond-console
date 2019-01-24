@@ -2,15 +2,11 @@
 import base64
 import logging
 import pickle
-import random
-import socket
-import string
 import os
 
 from console.models import DeployRelation
 from console.repositories.deploy_repo import deploy_repo
-from console.services.team_services import team_services
-from console.views.base import AlowAnyApiView, JWTAuthApiView
+from console.views.base import AlowAnyApiView
 from rest_framework.response import Response
 from console.views.app_config.base import AppBaseView
 from www.models.main import Tenants, TenantServiceInfo, Users
@@ -19,6 +15,8 @@ from www.utils.return_message import general_message, error_message
 from console.services.user_services import user_services
 from www.decorator import perm_required
 from console.constants import AppConstants
+from console.repositories.app import service_webhooks_repo
+
 
 logger = logging.getLogger("default")
 
@@ -34,7 +32,8 @@ class WebHooksDeploy(AlowAnyApiView):
 
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-            if not service_obj.open_code_webhooks and not service_obj.open_image_webhooks:
+            service_webhook = service_webhooks_repo.get_keyword_by_service_id(service_obj.service_id)
+            if not service_webhook.open_code_webhooks:
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -61,7 +60,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "failed", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                if "@deploy" not in message:
+                keyword = "@" + service_webhook.deploy_keyword
+                if keyword not in message:
                     logger.debug("提交信息无效")
                     result = general_message(400, "failed", "提交信息无效")
                     return Response(result, status=400)
@@ -119,7 +119,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "failed", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[-1].get("message")
-                if "@deploy" not in message:
+                keyword = "@" + service_webhook.deploy_keyword
+                if keyword not in message:
                     logger.debug("提交信息无效")
                     result = general_message(400, "failed", "提交信息无效")
                     return Response(result, status=400)
@@ -190,7 +191,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "failed", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                if "@deploy" not in message:
+                keyword = "@" + service_webhook.deploy_keyword
+                if keyword not in message:
                     logger.debug("提交信息无效")
                     result = general_message(400, "failed", "提交信息无效")
                     return Response(result, status=400)
@@ -245,7 +247,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "failed", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[0].get("message")
-                if "@deploy" not in message:
+                keyword = "@" + service_webhook.deploy_keyword
+                if keyword not in message:
                     logger.debug("提交信息无效")
                     result = general_message(400, "failed", "提交信息无效")
                     return Response(result, status=400)
@@ -328,7 +331,6 @@ class GetWebHooksUrl(AppBaseView):
             if service_obj.service_source == AppConstants.MARKET:
                 result = general_message(200, "failed", "该应用不符合要求", bean={"display":False})
                 return Response(result, status=200)
-            support_type = 0
             if service_obj.service_source == AppConstants.SOURCE_CODE:
                 support_type = 1
             else:
@@ -337,27 +339,29 @@ class GetWebHooksUrl(AppBaseView):
             service_id = service_obj.service_id
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+
+            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
             # api处发自动部署
             if deployment_way == "api_webhooks":
                 # 生成秘钥
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
                 secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
                 custom_url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
-                status = self.service.open_api_webhooks
+                status = service_webhook.open_api_webhooks
                 result = general_message(200, "success", "获取URl及开启状态成功",
                                          bean={"custom_url": custom_url, "secret_key": secret_key,
                                                "status": status, "display": True, "support_type": support_type})
             # 镜像处发自动部署
             elif deployment_way == "image_webhooks":
-                url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-                status = self.service.open_image_webhooks
+                url = "http://" + host + "/console/" + "image/webhooks/" + service_obj.service_id
+                status = service_webhook.open_image_webhooks
                 result = general_message(200, "success", "获取URl及开启状态成功",
                                          bean={"url": url, "status": status, "display": True,
                                                "support_type": support_type})
             # 源码处发自动部署
             else:
                 url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-                status = self.service.open_code_webhooks
+                status = service_webhook.open_code_webhooks
                 result = general_message(200, "success", "获取URl及开启状态成功",
                                          bean={"url": url, "status": status, "display": True, "support_type": support_type})
             return Response(result, status=200)
@@ -400,27 +404,30 @@ class WebHooksStatus(AppBaseView):
             if action != "open" and action != "close":
                 result = general_message(400, "action error", "操作类型不存在")
                 return Response(result, status=400)
+            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            if not service_webhook:
+                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id)
             if action == "open":
                 if deployment_way == "code_webhooks":
-                    self.service.open_code_webhooks = True
-                    self.service.save()
+                    service_webhook.open_code_webhooks = True
+                    service_webhook.save()
                 elif deployment_way == "image_webhooks":
-                    self.service.open_image_webhooks = True
-                    self.service.save()
+                    service_webhook.open_image_webhooks = True
+                    service_webhook.save()
                 else:
-                    self.service.open_api_webhooks = True
-                    self.service.save()
+                    service_webhook.open_api_webhooks = True
+                    service_webhook.save()
                 result = general_message(200, "success", "开启成功")
             else:
                 if deployment_way == "code_webhooks":
-                    self.service.open_code_webhooks = False
-                    self.service.save()
+                    service_webhook.open_code_webhooks = False
+                    service_webhook.save()
                 elif deployment_way == "image_webhooks":
-                    self.service.open_image_webhooks = False
-                    self.service.save()
+                    service_webhook.open_image_webhooks = False
+                    service_webhook.save()
                 else:
-                    self.service.open_api_webhooks = False
-                    self.service.save()
+                    service_webhook.open_api_webhooks = False
+                    service_webhook.save()
                 result = general_message(200, "success", "关闭成功")
         except Exception as e:
             logger.exception(e)
@@ -484,4 +491,64 @@ class UpdateSecretKey(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=500)
+
+
+class ImageWebHooksDeploy(AlowAnyApiView):
+    """
+    镜像仓库webhooks回调地址
+    """
+    def post(self, request, service_id, *args, **kwargs):
+        try:
+            logger.debug("----------========imagewebhooks==============>{0}".format(request.data))
+
+            service_obj = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
+            service_webhook = service_webhooks_repo.get_keyword_by_service_id(service_obj.service_id)
+            if not service_webhook.open_image_webhooks:
+                logger.debug("没开启webhooks自动部署")
+                result = general_message(400, "failed", "没有开启此功能")
+                return Response(result, status=400)
+            # 校验
+            repository = request.data.get("repository")
+            if not repository:
+                logger.debug("缺少repository信息")
+                result = general_message(400, "failed", "缺少repository信息")
+                return Response(result, status=400)
+            description = repository.get("description")
+            keyword = "@" + service_webhook.deploy_keyword
+            if keyword not in description:
+                logger.debug("提交信息无效")
+                result = general_message(400, "failed", "提交信息无效")
+                return Response(result, status=400)
+
+            namespace = repository.get("namespace")
+            if namespace != service_obj.namespace:
+                logger.debug("镜像仓库不相符")
+                result = general_message(400, "failed", "仓库地址不相符")
+                return Response(result, status=400)
+            # 提交人
+            push_data = request.data.get("push_data")
+            pusher = push_data.get("push_data")
+
+            # 获取应用状态
+            status_map = app_service.get_service_status(tenant_obj, service_obj)
+            status = status_map.get("status", None)
+            logger.debug(status)
+
+            user_obj = Users.objects.get(user_id=service_obj.creater)
+            # committer_name = commits_info.get("author").get("username")
+            committer_name = pusher
+            if status == "running" or status == "abnormal":
+                return user_services.deploy_service(tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
+                                                    committer_name=committer_name)
+            else:
+                logger.debug("应用状态异常")
+                result = general_message(400, "failed", "应用状态不支持")
+                return Response(result, status=400)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
 

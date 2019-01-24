@@ -83,13 +83,18 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["user_nums"] = user_nums
                 team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
                                                                                 region_name=self.response_region)
-                total_memory, total_disk = common_services.get_current_region_used_resource(self.team,
-                                                                                            self.response_region)
-                team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
-                overview_detail["team_app_num"] = team_app_num
-                overview_detail["team_service_num"] = team_service_num
-                overview_detail["team_service_memory_count"] = total_memory
-                overview_detail["team_service_total_disk"] = total_disk
+                source = common_services.get_current_region_used_resource(self.team, self.response_region)
+                if source:
+                    team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
+                    overview_detail["team_app_num"] = team_app_num
+                    overview_detail["team_service_num"] = team_service_num
+                    overview_detail["team_service_memory_count"] = int(source["memory"])
+                    overview_detail["team_service_total_disk"] = int(source["disk"])
+                    overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
+                    overview_detail["team_service_total_memory"] = int(source["limit_memory"])
+                    overview_detail["team_service_use_cpu"] = int(source["cpu"])
+                    overview_detail["cpu_usage"] = int(source["cpu"]) / int(source["limit_cpu"]) * 100
+                    overview_detail["memory_usage"] = int(source["memory"]) / int(source["limit_memory"]) * 100
 
                 return Response(general_message(200, "success", "查询成功", bean=overview_detail))
             else:

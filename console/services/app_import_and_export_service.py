@@ -351,7 +351,7 @@ class AppImportService(object):
                                                                         app_template["group_version"])
             if app:
                 # 覆盖原有应用数据
-                app.share_team = tenant_name
+                app.share_team = tenant_name # 分享团队名暂时为那个团队将应用导入进来的
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
                 app.app_template = json.dumps(app_template)
