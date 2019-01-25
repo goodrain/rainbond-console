@@ -760,7 +760,8 @@ class AppKeywordView(AppBaseView):
             is_pass, msg = app_service.check_service_cname(self.tenant, keyword, self.service.service_region)
             if not is_pass:
                 return Response(general_message(400, "param error", msg), status=400)
-            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(self.service.service_id,
+                                                                                                "code_webhooks")
             if not service_webhook:
                 return Response(general_message(412, "keyword is null", "服务自动部署属性不存在"), status=412)
             service_webhook.deploy_keyword = keyword

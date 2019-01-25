@@ -116,11 +116,11 @@ class TenantServiceDeleteRepository(object):
 
 
 class TenantServiceWebhooks(object):
-    def get_keyword_by_service_id(self, service_id):
-        return ServiceWebhooks.objects.filter(service_id=service_id).first()
+    def get_service_webhooks_by_service_id_and_type(self, service_id, webhooks_type):
+        return ServiceWebhooks.objects.filter(service_id=service_id, webhooks_type=webhooks_type).first()
 
-    def create_service_webhooks(self, service_id):
-        return ServiceWebhooks.objects.create(service_id=service_id)
+    def create_service_webhooks(self, service_id, webhooks_type):
+        return ServiceWebhooks.objects.create(service_id=service_id, webhooks_type=webhooks_type)
 
 
 service_repo = TenantServiceInfoRepository()

@@ -1525,7 +1525,6 @@ class ServiceWebhooks(BaseModel):
         db_table = 'service_webhooks'
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    open_code_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发源码自动部署功能')
-    open_image_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发镜像自动部署功能')
-    open_api_webhooks = models.BooleanField(default=False, help_text=u'是否开启触发api自动部署功能')
+    state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
+    webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")

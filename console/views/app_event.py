@@ -144,6 +144,9 @@ class AppLogView(AppBaseView):
             code, msg, log_list = log_service.get_service_logs(self.tenant, self.service, action, int(lines))
             if code != 200:
                 return Response(general_message(code, "query service log error", msg), status=code)
+            for log in log_list:
+                if not log:
+                    log_list.remove(log)
             result = general_message(200, "success", "查询成功", list=log_list)
         except Exception as e:
             logger.exception(e)

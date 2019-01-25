@@ -32,8 +32,9 @@ class WebHooksDeploy(AlowAnyApiView):
 
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-            service_webhook = service_webhooks_repo.get_keyword_by_service_id(service_obj.service_id)
-            if not service_webhook.open_code_webhooks:
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(service_obj.service_id,
+                                                                                                "code_webhooks")
+            if not service_webhook.state:
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -340,9 +341,10 @@ class GetWebHooksUrl(AppBaseView):
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
 
-            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(self.service.service_id,
+                                                                                                deployment_way)
             if not service_webhook:
-                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id)
+                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id, deployment_way)
 
             # api处发自动部署
             if deployment_way == "api_webhooks":
@@ -350,23 +352,26 @@ class GetWebHooksUrl(AppBaseView):
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
                 secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
                 url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
-                status = service_webhook.open_api_webhooks
+                status = service_webhook.state
                 result = general_message(200, "success", "获取URl及开启状态成功",
                                          bean={"url": url, "secret_key": secret_key,
                                                "status": status, "display": True, "support_type": support_type})
             # 镜像处发自动部署
             elif deployment_way == "image_webhooks":
                 url = "http://" + host + "/console/" + "image/webhooks/" + service_obj.service_id
-                status = service_webhook.open_image_webhooks
+                status = service_webhook.state
+
                 result = general_message(200, "success", "获取URl及开启状态成功",
                                          bean={"url": url, "status": status, "display": True,
                                                "support_type": support_type})
             # 源码处发自动部署
             else:
                 url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-                status = service_webhook.open_code_webhooks
+                status = service_webhook.state
+                deploy_keyword = service_webhook.deploy_keyword
                 result = general_message(200, "success", "获取URl及开启状态成功",
-                                         bean={"url": url, "status": status, "display": True, "support_type": support_type})
+                                         bean={"url": url, "status": status, "display": True, "support_type":
+                                             support_type, "deploy_keyword": deploy_keyword})
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -407,30 +412,17 @@ class WebHooksStatus(AppBaseView):
             if action != "open" and action != "close":
                 result = general_message(400, "action error", "操作类型不存在")
                 return Response(result, status=400)
-            service_webhook = service_webhooks_repo.get_keyword_by_service_id(self.service.service_id)
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(self.service.service_id,
+                                                                                                deployment_way)
             if not service_webhook:
-                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id)
+                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id, deployment_way)
             if action == "open":
-                if deployment_way == "code_webhooks":
-                    service_webhook.open_code_webhooks = True
-                    service_webhook.save()
-                elif deployment_way == "image_webhooks":
-                    service_webhook.open_image_webhooks = True
-                    service_webhook.save()
-                else:
-                    service_webhook.open_api_webhooks = True
-                    service_webhook.save()
+                service_webhook.state = True
+                service_webhook.save()
                 result = general_message(200, "success", "开启成功")
             else:
-                if deployment_way == "code_webhooks":
-                    service_webhook.open_code_webhooks = False
-                    service_webhook.save()
-                elif deployment_way == "image_webhooks":
-                    service_webhook.open_image_webhooks = False
-                    service_webhook.save()
-                else:
-                    service_webhook.open_api_webhooks = False
-                    service_webhook.save()
+                service_webhook.state = False
+                service_webhook.save()
                 result = general_message(200, "success", "关闭成功")
         except Exception as e:
             logger.exception(e)
@@ -507,8 +499,9 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             logger.debug('--------------request.META-------->{0}'.format(request.META))
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-            service_webhook = service_webhooks_repo.get_keyword_by_service_id(service_obj.service_id)
-            if not service_webhook.open_image_webhooks:
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(service_obj.service_id,
+                                                                                                "image_webhooks")
+            if not service_webhook.state:
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -522,7 +515,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             push_data = request.data.get("push_data")
             pusher = push_data.get("pusher")
             tag = push_data.get("tag")
-            repo_name = repository.get("repository")
+            repo_name = repository.get("repo_name")
             image = repo_name + ":" + tag
             if image != service_obj.image:
                 result = general_message(400, "failed", "镜像不相符")
