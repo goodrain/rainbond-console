@@ -150,8 +150,10 @@ class AppPortService(object):
 
     def delete_port_by_container_port(self, tenant, service, container_port):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if service_domain:
-            return 412, u"请先解绑该端口绑定的域名", None
+
+        if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
+            return 412, u"该端口有自定义域名，请先解绑域名", None
+
         port_info = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
