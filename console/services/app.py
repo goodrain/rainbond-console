@@ -10,7 +10,7 @@ import string
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
 from console.repositories.base import BaseConnection
@@ -166,11 +166,13 @@ class AppService(object):
             elif msg == "missing_tenant":
                 raise ResourceNotEnoughException("团队不存在")
             elif msg == "owned_fee":
-                raise ResourceNotEnoughException("账户已欠费")
+                raise AccountOverdueException("账户已欠费")
             elif msg == "region_unauthorized":
                 raise ResourceNotEnoughException("数据中心未授权")
             elif msg == "lack_of_memory":
-                raise ResourceNotEnoughException("资源不足，无法操作")
+                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
+            elif msg == "tenant_lack_of_memory":
+                raise ResourceNotEnoughException("团队可用资源不足，请联系企业管理员")
         except region_api.CallApiError as e:
             logger.exception(e)
             raise e
