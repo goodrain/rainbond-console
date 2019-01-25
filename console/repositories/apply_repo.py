@@ -16,5 +16,8 @@ class ApplyRepo(object):
     def create_apply_info(self, **params):
         return Applicants.objects.create(**params)
 
+    def delete_applicants_record(self, user_id, team_name, is_pass):
+        Applicants.objects.filter(user_id=user_id, team_name=team_name, is_pass=is_pass).delete()
+
 
 apply_repo = ApplyRepo()

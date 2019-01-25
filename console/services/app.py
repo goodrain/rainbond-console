@@ -150,9 +150,9 @@ class AppService(object):
             "reason": reason,
             "eid": tenant.enterprise_id
         }
-        is_public = settings.MODULES.get('SSO_LOGIN')
-        if not is_public or new_add_memory <= 0:
-            return allow_create, tips
+        # is_public = settings.MODULES.get('SSO_LOGIN')
+        # if not is_public or new_add_memory <= 0:
+        #     return allow_create, tips
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
             logger.debug("verify body {0}".format(body))
@@ -161,7 +161,15 @@ class AppService(object):
             msg = body.get("msg", None)
             if not msg or msg == "success":
                 return True, "success"
-            else:
+            elif msg == "illegal_quantity":
+                raise ResourceNotEnoughException("请输入整数")
+            elif msg == "missing_tenant":
+                raise ResourceNotEnoughException("团队不存在")
+            elif msg == "owned_fee":
+                raise ResourceNotEnoughException("账户已欠费")
+            elif msg == "region_unauthorized":
+                raise ResourceNotEnoughException("数据中心未授权")
+            elif msg == "lack_of_memory":
                 raise ResourceNotEnoughException("资源不足，无法操作")
         except region_api.CallApiError as e:
             logger.exception(e)

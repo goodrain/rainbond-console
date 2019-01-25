@@ -211,6 +211,7 @@ class AddTeamView(JWTAuthApiView):
                 for r in regions:
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
+                        team_services.delete_tenant(team.tenant_name)
                         return Response(general_message(code, "add team error", msg), status=code)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
@@ -835,14 +836,27 @@ class ApplicantsView(JWTAuthApiView):
                     join.update(is_pass=1)
                     team = team_repo.get_team_by_team_name(team_name=team_name)
                     team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
+                    # 发送通知
+                    info = "同意"
+                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
                     return Response(general_message(200, "join success", "加入成功"), status=200)
                 else:
                     join.update(is_pass=2)
+                    info = "拒绝"
+                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
                     return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=result["code"])
+
+    # 用户加入团队，发送站内信给用户
+    def send_user_message_for_apply_info(self, user_id, team_name, info):
+        tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
+        message_id = make_uuid()
+        content = '{0}团队{1}您加入该团队'.format(tenant.tenant_alias, info)
+        UserMessage.objects.create(message_id=message_id, receiver_id=user_id, content=content,
+                                   msg_type="warn", title="用户加入团队信息")
 
 
 class AllTeamsView(JWTAuthApiView):
@@ -1014,6 +1028,35 @@ class JoinTeamView(JWTAuthApiView):
             UserMessage.objects.create(message_id=message_id, receiver_id=admin.user_id, content=content,
                                        msg_type="warn", title="团队加入信息")
 
+    def delete(self, request, *args, **kwargs):
+        """
+        删除用户加入团队被拒绝记录
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            logger.debug('-------3333------->{0}'.format(request.data))
+            user_id = request.data.get("user_id", None)
+            team_names = request.data.get("team_name", None)
+            is_pass = request.data.get("is_pass", 0)
+            if not team_names:
+                return Response(general_message(400, "team name is null", "参数错误"), status=400)
+            teams_name = team_names.split('-')
+            for team_name in teams_name:
+                if team_name:
+                    if user_id:
+                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                    else:
+                        user_id = self.user.user_id
+                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+            result = general_message(200, "success", "删除成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
 
 class TeamUserCanJoin(JWTAuthApiView):
 
@@ -1022,6 +1065,7 @@ class TeamUserCanJoin(JWTAuthApiView):
         try:
             tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
             team_names = tenants.values("tenant_name")
+            # 已加入的团队
             team_name_list = [t_name.get("tenant_name") for t_name in team_names]
 
             user_id = request.GET.get("user_id", None)
@@ -1033,6 +1077,7 @@ class TeamUserCanJoin(JWTAuthApiView):
                 enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
                 team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
                 apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            # 已申请过的团队
             applied_team = [team_repo.get_team_by_team_name(team_name=team_name) for team_name in
                             [team_name.team_name for team_name in apply_team]]
             join_list = []
@@ -1072,7 +1117,7 @@ class AllUserView(JWTAuthApiView):
                 if not euser:
                     result = generate_result("0000", "success", "查询成功", list=list, total=0)
                     return Response(result)
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = euser.user_id
                 result_map["email"] = euser.email
                 result_map["nick_name"] = euser.nick_name
@@ -1092,7 +1137,7 @@ class AllUserView(JWTAuthApiView):
             users = user_paginator.page(int(page_num))
             list = []
             for user in users:
-                result_map = {}
+                result_map = dict()
                 result_map["user_id"] = user.user_id
                 result_map["email"] = user.email
                 result_map["nick_name"] = user.nick_name

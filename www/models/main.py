@@ -550,7 +550,6 @@ class TenantServiceInfo(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
@@ -680,7 +679,6 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
@@ -1520,5 +1518,13 @@ class ServiceTcpDomain(BaseModel):
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
 
+class ServiceWebhooks(BaseModel):
+    """服务的自动部署属性"""
 
+    class Meta:
+        db_table = 'service_webhooks'
 
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
+    webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
+    deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")

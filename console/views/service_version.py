@@ -14,7 +14,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.paginator import Paginator
+from console.utils.timeutil import time_to_str
 
 
 logger = logging.getLogger("default")
@@ -54,6 +55,7 @@ class AppVersionsView(AppBaseView):
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
             build_version_sort = body["list"]
+            logger.debug('---------------build_version_sort---------->{0}'.format(build_version_sort))
             build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
@@ -64,7 +66,14 @@ class AppVersionsView(AppBaseView):
 
             versions_info = build_version_list
             version_list = []
+            success_num = 0
+            failure_num = 0
             for info in versions_info:
+                if info["FinalStatus"]:
+                    if info["FinalStatus"] == "success":
+                        success_num += 1
+                    else:
+                        failure_num += 1
                 version_list.append({
                     "build_version": info["BuildVersion"],
                     "kind": BUILD_KIND_MAP.get(info["Kind"]),
@@ -93,12 +102,18 @@ class AppVersionsView(AppBaseView):
             #     result = paginator.page(1).object_list
             # except EmptyPage:
             #     result = paginator.page(paginator.num_pages).object_list
-            latest_version = res_versions[0]["build_version"]
             is_upgrade = False
-            if int(latest_version) > int(self.service.deploy_version):
-                is_upgrade = True
-            bean = {"is_upgrade": is_upgrade, "current_version": self.service.deploy_version}
-            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=paginator.count)
+            if res_versions:
+                latest_version = res_versions[0]["build_version"]
+                if int(latest_version) > int(self.service.deploy_version):
+                    is_upgrade = True
+            bean = {
+                "is_upgrade": is_upgrade,
+                "current_version": self.service.deploy_version,
+                "success_num": str(success_num),
+                "failure_num": str(failure_num)
+            }
+            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(paginator.count))
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)

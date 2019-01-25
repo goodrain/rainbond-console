@@ -161,8 +161,10 @@ class RegionService(object):
             res, body = region_api.create_tenant(
                 region_name, tenant.tenant_name, tenant.tenant_id,
                 tenant.enterprise_id)
-            logger.debug("create region tenant : res, {0}, body {1}".
+            logger.debug("============create region tenant : res, {0}, body {1}".
                          format(res, body))
+            if res["status"] != 200:
+                return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
             tenant_region.is_init = True
             # TODO 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充

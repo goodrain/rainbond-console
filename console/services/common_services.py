@@ -38,10 +38,8 @@ class CommonServices(object):
         d_list = res["list"]
         if d_list:
             resource = d_list[0]
-            memory = int(resource["memory"])
-            disk = int(resource["disk"])
-            return memory, disk
-        return 0, 0
+            return resource
+        return None
 
     def calculate_cpu(self, region, memory):
         """根据内存和数据中心计算cpu"""
@@ -52,5 +50,6 @@ class CommonServices(object):
 
     def is_public(self):
         return settings.MODULES.get('SSO_LOGIN')
+
 
 common_services = CommonServices()
