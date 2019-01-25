@@ -211,6 +211,7 @@ class AddTeamView(JWTAuthApiView):
                 for r in regions:
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
+                        team_services.delete_tenant(team.tenant_name)
                         return Response(general_message(code, "add team error", msg), status=code)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
