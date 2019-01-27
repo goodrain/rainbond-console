@@ -170,9 +170,9 @@ class AppService(object):
             elif msg == "region_unauthorized":
                 raise ResourceNotEnoughException("数据中心未授权")
             elif msg == "lack_of_memory":
-                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
-            elif msg == "tenant_lack_of_memory":
                 raise ResourceNotEnoughException("团队可用资源不足，请联系企业管理员")
+            elif msg == "cluster_lack_of_memory":
+                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
         except region_api.CallApiError as e:
             logger.exception(e)
             raise e
