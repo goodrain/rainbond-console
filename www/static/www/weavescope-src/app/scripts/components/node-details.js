@@ -203,6 +203,7 @@ class NodeDetails extends React.Component {
 
     // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
     const nodeInfo = this.props.nodes.get(this.props.id).toJS();
+console.log("nodeInfo",nodeInfo)
     const nodeDetails = details;
     //服务列表
     const portList = nodeDetails.port_list||{};

@@ -459,6 +459,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
       success: (res) => {
         if (res.code === 200) {
           const scopeData = goodrainData2scopeData(res.data.bean);
+          console.log("scopeData回来数据",scopeData)
       dispatch(receiveNodesDelta(scopeData));
         }
       },
