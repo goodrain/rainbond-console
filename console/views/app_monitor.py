@@ -206,12 +206,12 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                             target_service = id_service_map.get(target, None)
 
                             if source_service and target_service:
-                                result_bean["target"] = target_service.service_cname
-                                result_bean["source"] = source_service.service_cname
+                                result_bean["target"] = target_service.service_id
+                                result_bean["source"] = source_service.service_id
                             elif target_service and not source_service:
                                 if source == "public":
                                     result_bean["is_web"] = True
-                                    result_bean["target"] = target_service.service_cname
+                                    result_bean["target"] = target_service.service_id
                                     result_bean["source"] = None
                             else:
                                 continue
