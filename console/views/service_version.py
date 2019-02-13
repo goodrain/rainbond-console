@@ -54,8 +54,9 @@ class AppVersionsView(AppBaseView):
             page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
-            build_version_sort = body["list"]
-            run_version = body["deploy_version"]
+            logger.debug('---------body------>{0}'.format(body))
+            build_version_sort = body["bean"]["list"]
+            run_version = body["bean"]["deploy_version"]
             success_num = 0
             failure_num = 0
             for build_info in build_version_sort:
