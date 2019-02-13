@@ -55,6 +55,7 @@ class AppVersionsView(AppBaseView):
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
             build_version_sort = body["list"]
+            run_version = body["deploy_version"]
             success_num = 0
             failure_num = 0
             for build_info in build_version_sort:
@@ -110,7 +111,7 @@ class AppVersionsView(AppBaseView):
                     is_upgrade = True
             bean = {
                 "is_upgrade": is_upgrade,
-                "current_version": self.service.deploy_version,
+                "current_version": run_version,
                 "success_num": str(success_num),
                 "failure_num": str(failure_num)
             }
