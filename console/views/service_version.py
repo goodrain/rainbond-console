@@ -55,6 +55,14 @@ class AppVersionsView(AppBaseView):
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
             build_version_sort = body["list"]
+            success_num = 0
+            failure_num = 0
+            for build_info in build_version_sort:
+                if build_info["FinalStatus"]:
+                    if build_info["FinalStatus"] == "success":
+                        success_num += 1
+                    else:
+                        failure_num += 1
             logger.debug('---------------build_version_sort---------->{0}'.format(build_version_sort))
             build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
@@ -66,14 +74,7 @@ class AppVersionsView(AppBaseView):
 
             versions_info = build_version_list
             version_list = []
-            success_num = 0
-            failure_num = 0
             for info in versions_info:
-                if info["FinalStatus"]:
-                    if info["FinalStatus"] == "success":
-                        success_num += 1
-                    else:
-                        failure_num += 1
                 version_list.append({
                     "build_version": info["BuildVersion"],
                     "kind": BUILD_KIND_MAP.get(info["Kind"]),
