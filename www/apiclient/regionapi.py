@@ -111,8 +111,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services"
 
         self._set_headers(token)
-        logger.debug(
-            'Create service headers :{0}'.format(self.default_headers))
+        logger.debug('------------region_body------------->{0}'.format(json.dumps(body)))
         res, body = self._post(
             url, self.default_headers, region=region, body=json.dumps(body))
         return body
@@ -653,6 +652,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         """获取多个应用的状态"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
+        logger.debug('-----------token------->{0}'.format(token))
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services_status"
 
@@ -1448,4 +1448,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += "/v2/notificationEvent?start={0}&end={1}".format(start_stamp, end_stamp)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    # 三方注册api注册方式添加endpoints
+    def add_third_party_service_endpoints(self, region, tenant_name, service_alias, data):
+        """查询指定应用的部署版本"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"+service_alias+"/endpoints"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body

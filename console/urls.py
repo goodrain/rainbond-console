@@ -24,6 +24,7 @@ from console.views.app_create.docker_compose import DockerComposeCreateView, Com
     ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
+from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, ThirdPartyUpdateSecretKey
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
     RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView
@@ -63,7 +64,7 @@ from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView
+    ServiceEventsView, TeamServiceOverViewView, TenantServiceEnvsView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
@@ -167,6 +168,10 @@ urlpatterns = patterns(
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view()),
 
+    # 团队下应用环境变量模糊查询
+    url(r'teams/(?P<team_name>[\w\-]+)/services/envs$', TenantServiceEnvsView.as_view()),
+
+
     # 应用组列表
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view()),
     # 应用组应用列表、状态展示
@@ -235,6 +240,12 @@ urlpatterns = patterns(
 
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view()),
+    # 三方服务创建
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view()),
+    # 三方服务api注册方式回调地址
+    url(r'^teams/(?P<tenantName>[\w\-]+)/third_party/(?P<serviceAlias>[\w\-]+)$', ThirdPartyServiceApiView.as_view()),
+    # 三方服务api注册方式重置秘钥
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKey.as_view()),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view()),
     # docker-compose文件创建

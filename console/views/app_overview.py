@@ -5,6 +5,9 @@
 import datetime
 import logging
 import json
+import os
+import base64
+import pickle
 
 from django.db import transaction
 from django.shortcuts import redirect
@@ -34,6 +37,8 @@ from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
 from console.repositories.app import service_repo
 from console.views.base import JWTAuthApiView
+from console.repositories.app_config import service_endpoints_repo
+from console.repositories.deploy_repo import deploy_repo
 
 
 logger = logging.getLogger("default")
@@ -131,6 +136,18 @@ class AppDetailView(AppBaseView):
                     if compose_service_relation:
                         service_model["compose_id"] = compose_service_relation.compose_id
                         bean.update({"service": service_model})
+            if self.service.service_source == "third_party":
+                service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+                if service_endpoints:
+                    bean["register_way"] = service_endpoints.endpoints_type
+                    if service_endpoints.endpoints_type == "api":
+                        # 从环境变量中获取域名，没有在从请求中获取
+                        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+                        bean["api_url"] = "http://" + host + "/console/" + "teams/{0}/third_party/".format(self.tenant.tenant_name) + self.service.service_alias
+                        key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
+                        if key_repo:
+                            bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
+
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
@@ -232,6 +249,7 @@ class AppStatusView(AppBaseView):
         """
         bean = dict()
         try:
+            bean["check_uuid"] = self.service.check_uuid
             status_map = app_service.get_service_status(self.tenant, self.service)
             bean.update(status_map)
             result = general_message(200, "success", "查询成功", bean=bean)

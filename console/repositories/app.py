@@ -84,6 +84,7 @@ class ServiceSourceRepository(object):
     def delete_service_source(self, team_id, service_id):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()
 
+
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
         return ServiceRecycleBin.objects.filter(tenant_id=tenant_id)
@@ -107,6 +108,7 @@ class ServiceRelationRecycleBinRepository(object):
 
     def get_by_service_id(self, service_id):
         return ServiceRelationRecycleBin.objects.filter(service_id=service_id)
+
 
 class TenantServiceDeleteRepository(object):
     def create_delete_service(self, **params):

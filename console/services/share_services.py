@@ -208,7 +208,6 @@ class ShareService(object):
             # 获取应用的健康检测设置
             probe_map = self.get_service_probes(array_ids)
 
-
             all_data_map = {}
             for service in service_list:
                 data = dict()

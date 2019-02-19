@@ -5,6 +5,7 @@
 import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from django.db import connection
 
 from console.views.app_config.base import AppBaseView
 from console.services.app_config.env_service import AppEnvVarService
@@ -44,16 +45,132 @@ class AppEnvView(AppBaseView):
         """
         try:
             env_type = request.GET.get("env_type", None)
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            env_name = request.GET.get("env_name", None)
+
             if not env_type:
                 return Response(general_message(400, "param error", "参数异常"), status=400)
             if env_type not in ("inner", "outer"):
                 return Response(general_message(400, "param error", "参数异常"), status=400)
+            env_list = []
             if env_type == "inner":
-                tenant_service_envs = env_var_service.get_service_inner_env(self.service)
+                if env_name:
+                    # 获取总数
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' and attr_name like '%{2}%';".format(
+                            self.service.tenant_id, self.service.service_id, env_name))
+                    env_count = cursor.fetchall()
+
+                    total = env_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                            self.service.tenant_id, self.service.service_id, env_name, start, end))
+                    env_tuples = cursor.fetchall()
+                else:
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner';".format(
+                            self.service.tenant_id, self.service.service_id))
+                    env_count = cursor.fetchall()
+
+                    total = env_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
+                            self.service.tenant_id, self.service.service_id, start, end))
+                    env_tuples = cursor.fetchall()
+                if len(env_tuples) > 0:
+                    for env_tuple in env_tuples:
+                        env_dict = dict()
+                        env_dict["ID"] = env_tuple[0]
+                        env_dict["tenant_id"] = env_tuple[1]
+                        env_dict["service_id"] = env_tuple[2]
+                        env_dict["container_port"] = env_tuple[3]
+                        env_dict["name"] = env_tuple[4]
+                        env_dict["attr_name"] = env_tuple[5]
+                        env_dict["attr_value"] = env_tuple[6]
+                        env_dict["is_change"] = env_tuple[7]
+                        env_dict["scope"] = env_tuple[8]
+                        env_dict["create_time"] = env_tuple[9]
+                        env_list.append(env_dict)
+                bean = {"total": total}
+
             else:
-                tenant_service_envs = env_var_service.get_service_outer_env(self.service)
-            env_list = [model_to_dict(env) for env in tenant_service_envs]
-            result = general_message(200, "success", "查询成功", list=env_list)
+                if env_name:
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' and attr_name like '%{2}%';".format(
+                            self.service.tenant_id, self.service.service_id, env_name))
+                    env_count = cursor.fetchall()
+
+                    total = env_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                            self.service.tenant_id, self.service.service_id, env_name, start, end
+                        ))
+                    env_tuples = cursor.fetchall()
+                else:
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer';".format(
+                            self.service.tenant_id, self.service.service_id))
+                    env_count = cursor.fetchall()
+
+                    total = env_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' order by attr_name LIMIT {2},{3};".format(
+                            self.service.tenant_id, self.service.service_id, start, end
+                        ))
+                    env_tuples = cursor.fetchall()
+                if len(env_tuples) > 0:
+                    for env_tuple in env_tuples:
+                        env_dict = dict()
+                        env_dict["ID"] = env_tuple[0]
+                        env_dict["tenant_id"] = env_tuple[1]
+                        env_dict["service_id"] = env_tuple[2]
+                        env_dict["container_port"] = env_tuple[3]
+                        env_dict["name"] = env_tuple[4]
+                        env_dict["attr_name"] = env_tuple[5]
+                        env_dict["attr_value"] = env_tuple[6]
+                        env_dict["is_change"] = env_tuple[7]
+                        env_dict["scope"] = env_tuple[8]
+                        env_dict["create_time"] = env_tuple[9]
+                        env_list.append(env_dict)
+                bean = {"total": total}
+
+            result = general_message(200, "success", "查询成功", bean=bean, list=env_list)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

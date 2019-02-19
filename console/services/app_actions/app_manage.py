@@ -429,11 +429,12 @@ class AppManageService(AppManageBase):
         fail_service_name = []
         for service in services:
             try:
-                if action == "start":
+                # 三方服务不具备启动，停止，重启操作
+                if action == "start" and service.service_source != "third_party":
                     self.start(tenant, service, user)
-                elif action == "stop":
+                elif action == "stop" and service.service_source != "third_party":
                     self.stop(tenant, service, user)
-                elif action == "restart":
+                elif action == "restart" and service.service_source != "third_party":
                     self.restart(tenant, service, user)
                 elif action == "move":
                     self.move(service, move_group_id)

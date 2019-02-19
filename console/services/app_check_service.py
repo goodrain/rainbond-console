@@ -295,6 +295,8 @@ class AppCheckService(object):
                 "key": "代码语言",
                 "value": service_info["language"]
             }
+            service.language = service_info["language"]
+            service.save()
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             service_code_from = {
                 "type": "source_from",

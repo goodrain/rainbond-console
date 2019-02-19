@@ -1520,5 +1520,14 @@ class ServiceTcpDomain(BaseModel):
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
 
+class ThirdPartyServiceEndpoints(BaseModel):
+    """三方服务endpoints"""
 
+    class Meta:
+        db_table = 'third_party_service_endpoints'
 
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_cname = models.CharField(max_length=128, help_text=u"服务名")
+    endpoints_info = models.TextField(help_text=u"endpoints信息")
+    endpoints_type = models.CharField(max_length=32, help_text=u"类型（static-静态， api， discovery-服务发现）")

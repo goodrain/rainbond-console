@@ -8,8 +8,8 @@ from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAut
 from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
-    TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep, TenantServiceConfigurationFile
-from backends.models import RegionConfig
+    TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep, TenantServiceConfigurationFile, \
+    ThirdPartyServiceEndpoints
 from django.db.models import Q
 
 
@@ -459,8 +459,16 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
         return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
 
-    def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
-        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
+class TenantServiceEndpoints(object):
+    def add_service_endpoints(self, service_endpoints):
+        return ThirdPartyServiceEndpoints.objects.create(**service_endpoints)
+
+    def get_service_endpoints_by_service_id(self, service_id):
+        data = ThirdPartyServiceEndpoints.objects.filter(service_id=service_id).first()
+        if data:
+            return data
+        return None
 
 
 tcp_domain = ServiceTcpDomainRepository()
@@ -478,3 +486,5 @@ auth_repo = ServiceAuthRepository()
 service_attach_repo = ServiceAttachInfoRepository()
 create_step_repo = ServiceStepRepository()
 service_payment_repo = ServicePaymentRepository()
+# endpoints
+service_endpoints_repo = TenantServiceEndpoints()

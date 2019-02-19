@@ -227,6 +227,12 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
 
             if action not in ("stop", "start", "restart", "deploy"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
+            # 去除掉三方服务
+            services = list(services)
+            for service in services:
+                if service.service_source == "third_party":
+                    services.remove(service)
+
             # 校验权限
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)

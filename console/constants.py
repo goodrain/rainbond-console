@@ -7,6 +7,7 @@
 class AppConstants(object):
     DOCKER_RUN = "docker_run"
     SOURCE_CODE = "source_code"
+    THIRD_PARTY = "third_party"
     MARKET = "market"
     DOCKER_COMPOSE = "docker_compose"
     DOCKER_IMAGE = "docker_image"

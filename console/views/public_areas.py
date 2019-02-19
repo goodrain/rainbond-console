@@ -4,9 +4,9 @@ import logging
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from django.db import connection
 
 from backends.services.exceptions import GroupNotExistError
-from console.repositories.event_repo import event_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
@@ -21,7 +21,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
-from console.repositories.app_config import domain_repo
 
 event_service = AppEventService()
 
@@ -377,6 +376,48 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
+# 团队下应用环境变量模糊查询
+class TenantServiceEnvsView(RegionTenantHeaderView):
+
+    def get(self, request, *args, **kwargs):
+        attr_name = request.GET.get("attr_name", None)
+        attr_value = request.GET.get("attr_value", None)
+        if not attr_name and not attr_value:
+            result = general_message(400, "parameter is null", "参数缺失")
+            return Response(result)
+        if attr_name and attr_value:
+            result = general_message(400, "faild", "变量名和值不能同时存在")
+            return Response(result)
+        try:
+            # 查询变量名
+            if attr_name:
+                attr_name_list = []
+                cursor = connection.cursor()
+                cursor.execute("select attr_name from tenant_service_env_var where tenant_id='{0}' and attr_name like '%{1}%' order by attr_name;".format(self.team.tenant_id, attr_name))
+                service_envs = cursor.fetchall()
+                if len(service_envs) > 0:
+                    for service_env in service_envs:
+                        if service_env[0] not in attr_name_list:
+                            attr_name_list.append(service_env[0])
+                result = general_message(200, "success", "查询成功", list=attr_name_list)
+                return Response(result)
+
+            # 查询变量值
+            if attr_value:
+                attr_value_list = []
+                cursor = connection.cursor()
+                cursor.execute("select attr_value from tenant_service_env_var where tenant_id='{0}' and attr_value like '%{1}%' order by attr_value;".format(self.team.tenant_id, attr_value))
+                service_envs = cursor.fetchall()
+                if len(service_envs) > 0:
+                    for service_env in service_envs:
+                        if service_env[0] not in attr_value_list:
+                            attr_value_list.append(service_env[0])
+                result = general_message(200, "success", "查询成功", list=attr_value_list)
+                return Response(result)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+            return Response(result)
 
 
 

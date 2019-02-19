@@ -43,6 +43,18 @@ class AppBuild(AppBaseView):
         """
         probe = None
         try:
+            if self.service.service_source == "third_party":
+                # 数据中心连接创建三方服务
+                try:
+                    new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
+                    self.service = new_service
+                    result = general_message(200, "success", "创建成功")
+                except Exception as e:
+                    logger.exception(e)
+                    result = error_message(e.message)
+                    self.service.create_status = "checked"
+                    self.service.save()
+                return Response(result, status=result["code"])
             is_deploy = request.data.get("is_deploy", True)
             # 数据中心创建应用
             new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)

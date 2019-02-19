@@ -34,5 +34,12 @@ class DeployRepo(object):
         else:
             return deploy_obj[0].secret_key
 
+    def get_service_key_by_service_id(self, service_id):
+        secret_obj = DeployRelation.objects.filter(service_id=service_id).first()
+        if not secret_obj:
+            return None
+        else:
+            return secret_obj
+
 
 deploy_repo = DeployRepo()
