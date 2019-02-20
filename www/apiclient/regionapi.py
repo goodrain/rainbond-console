@@ -1451,8 +1451,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     # 三方注册api注册方式添加endpoints
-    def add_third_party_service_endpoints(self, region, tenant_name, service_alias, data):
-        """查询指定应用的部署版本"""
+    def put_third_party_service_endpoints(self, region, tenant_name, service_alias, data):
+        """三方服务endpoint操作"""
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"+service_alias+"/endpoints"

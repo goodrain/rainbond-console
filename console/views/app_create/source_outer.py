@@ -92,13 +92,23 @@ class ThirdPartyServiceApiView(AppBaseView):
         if not endpoints_list:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
+            api_endpoints_list = []
+            for endpoints in endpoints_list:
+                endpoints_dict = dict()
+                endpoints_dict["status"] = 0
+                endpoints_dict["endpoint"] = endpoints
+                api_endpoints_list.append(endpoints_dict)
+
             endpoint = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
-            endpoint.endpoints_info = endpoints_list
+            endpoint.endpoints_info = api_endpoints_list
             endpoint.save()
+            logger.debug('-------------endpoint.endpoints_info------------->{0}'.format(endpoint.endpoints_info))
             body = dict()
-            body["static"] = endpoint.endpoints_info
+            body["static"] = api_endpoints_list
             data = {"endpoints": body}
-            region_api.add_third_party_service_endpoints(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+            import json
+            logger.debug('------------data------------>{0}'.format(json.dumps(data)))
+            region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                   data)
             result = general_message(200, "success", "操作成功")
         except Exception as e:
@@ -126,3 +136,61 @@ class ThirdPartyUpdateSecretKey(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result)
+
+
+# 三方服务pod信息
+class ThirdPartyAppPodsView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_container')
+    def get(self, request, *args, **kwargs):
+        """
+        获取三方服务实例信息
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                               self.service.service_alias,
+                                               self.tenant.enterprise_id)
+
+            result = general_message(200, "success", "查询成功", list=data)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+    @never_cache
+    @perm_required('manage_service_container')
+    def delete(self, request, *args, **kwargs):
+        """
+        删除endpoint实例
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        endpoint = request.data.get("endpoint", None)
+        if not endpoint:
+            return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
+        try:
+
+            region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                         self.service.service_alias, data)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+

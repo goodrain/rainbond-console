@@ -9,6 +9,8 @@ from console.services.app_config import env_var_service, port_service, volume_se
 from console.repositories.app import service_source_repo
 from console.constants import AppConstants
 from console.services.common_services import common_services
+from console.repositories.app_config import service_endpoints_repo
+
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -20,6 +22,8 @@ class AppCheckService(object):
             return "sourcecode"
         elif service_source == AppConstants.DOCKER_RUN or service_source == AppConstants.DOCKER_IMAGE:
             return "docker-run"
+        elif service_source == AppConstants.THIRD_PARTY:
+            return "third-party-service"
 
     def check_service(self, tenant, service):
         if service.create_status == "complete":
@@ -43,6 +47,12 @@ class AppCheckService(object):
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             source_body = service.docker_cmd
+        elif service.service_source == AppConstants.THIRD_PARTY:
+            # endpoints信息
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+            if service_endpoints:
+                source_body = json.dumps(service_endpoints.endpoints_info)
+                body["etype"] = service_endpoints.endpoints_type
 
         body["username"] = user_name
         body["password"] = password

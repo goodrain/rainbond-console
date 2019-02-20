@@ -24,7 +24,8 @@ from console.views.app_create.docker_compose import DockerComposeCreateView, Com
     ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
-from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, ThirdPartyUpdateSecretKey
+from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, \
+    ThirdPartyUpdateSecretKey, ThirdPartyAppPodsView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
     RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView
@@ -289,6 +290,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view()),
     # 应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods', AppPodsView.as_view()),
+    # 三方应用pod信息
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods', ThirdPartyAppPodsView.as_view()),
     # 应用进入容器页面
     # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker', AppDockerView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view()),

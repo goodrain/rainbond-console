@@ -314,8 +314,15 @@ class AppService(object):
                                         "is_outer_service": False}
                         port_repo.add_service_port(**service_port)
         # 保存endpoints数据
+        endpoints_list = []
+        if endpoints:
+            for endpoint in endpoints:
+                endpoints_dict = dict()
+                endpoints_dict["status"] = 0
+                endpoints_dict["endpoint"] = endpoint
+                endpoints_list.append(endpoints_dict)
         service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
-                             "service_cname": new_service.service_cname, "endpoints_info": endpoints,
+                             "service_cname": new_service.service_cname, "endpoints_info": endpoints_list,
                              "endpoints_type": endpoints_type}
 
         service_endpoints_repo.add_service_endpoints(service_endpoints)
