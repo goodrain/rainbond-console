@@ -51,8 +51,8 @@ class AppCheckService(object):
             # endpoints信息
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
             if service_endpoints:
-                source_body = json.dumps(service_endpoints.endpoints_info)
-                body["etype"] = service_endpoints.endpoints_type
+                if service_endpoints.endpoints_type == "discovery":
+                    source_body = json.dumps(service_endpoints.endpoints_info)
 
         body["username"] = user_name
         body["password"] = password

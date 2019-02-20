@@ -5,6 +5,8 @@
 import os
 import base64
 import pickle
+import json
+
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -159,11 +161,14 @@ class ThirdPartyAppPodsView(AppBaseView):
               paramType: path
         """
         try:
-            data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                               self.service.service_alias,
-                                               self.tenant.enterprise_id)
+            res, data = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                               self.service.service_alias)
+            if res.status != 200:
+                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+            endpoint_list = data["list"]
+            bean = {"endpoint_num": len(endpoint_list)}
 
-            result = general_message(200, "success", "查询成功", list=data)
+            result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
 
         except Exception as e:
             logger.exception(e)
@@ -184,13 +189,89 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not endpoint:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-
-            region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+            endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+            if not endpoints:
+                return Response(general_message(412, "end_point is null", "end_point不存在"), status=412)
+            if endpoints.endpoints_type == "discovery":
+                return Response(general_message(412, "discovery is not", "动态注册不允许修改和删除"), status=412)
+            data = dict()
+            endpoints_list = json.loads(endpoints.endpoints_info)
+            for e_point in endpoints_list:
+                if ":" in e_point["endpoint"]:
+                    endpoint_ip = e_point["endpoint"].split(':')[1]
+                    if endpoint_ip == endpoint:
+                        endpoints_list.remove(e_point)
+                else:
+                    if e_point["endpoint"] == endpoint:
+                        endpoints_list.remove(e_point)
+            body = dict()
+            body[endpoints.endpoints_type] = endpoints_list
+            data["endpoints"] = body
+            res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias, data)
+            if res.status != 200:
+                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+            # 删除成功，更改数据库信息
+            endpoints.endpoints_info = endpoints_list
+            endpoints.save()
+            result = general_message(200, "success", "删除成功")
 
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result)
+
+    @never_cache
+    @perm_required('manage_service_container')
+    def put(self, request, *args, **kwargs):
+        """
+        修改实例上下线
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        action = request.data.get("action", None)
+        end_ip = request.data.get("endpoint", None)
+        if not action:
+            return Response(general_message(400, "action is null", "操作类型未指明"), status=400)
+        if not end_ip:
+            return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
+        try:
+            endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+            if not endpoints:
+                return Response(general_message(412, "end_point is null", "end_point不存在"), status=412)
+            if endpoints.endpoints_type == "discovery":
+                return Response(general_message(412, "discovery is not", "动态注册不允许修改和删除"), status=412)
+            data = dict()
+            endpoints_list = endpoints.endpoints_info
+            for e_point in endpoints_list:
+                if ":" in e_point["endpoint"]:
+                    endpoint_ip = e_point["endpoint"].split(':')[1]
+                    if endpoint_ip == end_ip:
+                        if action == "online":
+                            e_point["status"] = 0
+                        else:
+                            e_point["status"] = 1
+            body = dict()
+            body[endpoints.endpoints_type] = endpoints_list
+            data["endpoints"] = body
+            res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                                     self.service.service_alias, data)
+            if res.status != 200:
+                return Response(general_message(412, "region delete error", "数据中心修改失败"), status=412)
+
+            # 修改成功，更改数据库信息
+            endpoints.endpoints_info = endpoints_list
+            endpoints.save()
+            result = general_message(200, "success", "修改成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+
+
 
 

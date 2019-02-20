@@ -7,6 +7,7 @@ import logging
 import random
 import re
 import string
+import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
@@ -314,17 +315,23 @@ class AppService(object):
                                         "is_outer_service": False}
                         port_repo.add_service_port(**service_port)
         # 保存endpoints数据
-        endpoints_list = []
-        if endpoints:
-            for endpoint in endpoints:
-                endpoints_dict = dict()
-                endpoints_dict["status"] = 0
-                endpoints_dict["endpoint"] = endpoint
-                endpoints_list.append(endpoints_dict)
-        service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
-                             "service_cname": new_service.service_cname, "endpoints_info": endpoints_list,
-                             "endpoints_type": endpoints_type}
-
+        if endpoints_type != "discovery":
+            endpoints_list = []
+            if endpoints:
+                for endpoint in endpoints:
+                    endpoints_dict = dict()
+                    endpoints_dict["status"] = 0
+                    endpoints_dict["endpoint"] = endpoint
+                    endpoints_list.append(endpoints_dict)
+            service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
+                                 "service_cname": new_service.service_cname, "endpoints_info": json.dumps(endpoints_list),
+                                 "endpoints_type": endpoints_type}
+            logger.debug('--------2222---------->{0}'.format(service_endpoints))
+        else:
+            service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
+                                 "service_cname": new_service.service_cname, "endpoints_info": json.dumps(endpoints),
+                                 "endpoints_type": endpoints_type}
+        logger.debug('------service_endpoints------------->{0}'.format(service_endpoints))
         service_endpoints_repo.add_service_endpoints(service_endpoints)
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)

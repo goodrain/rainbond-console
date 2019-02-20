@@ -149,9 +149,11 @@ class AppDetailView(AppBaseView):
                             bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
                     if service_endpoints.endpoints_type == "discovery":
                         # 返回类型和key
-                        endpoints_info = service_endpoints.endpoints_info
-                        bean["discovery_type"] = endpoints_info.type
-                        bean["discovery_key"] = endpoints_info.key
+                        endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
+                        logger.debug('--------endpoints_info---------->{0}'.format(endpoints_info_dict))
+
+                        bean["discovery_type"] = endpoints_info_dict["type"]
+                        bean["discovery_key"] = endpoints_info_dict["key"]
 
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
