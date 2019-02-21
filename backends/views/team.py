@@ -606,7 +606,10 @@ class EnterpriseAdminView(BaseAPIView):
         try:
             page = int(request.GET.get("page_num", 1))
             page_size = int(request.GET.get("page_size", 10))
-            admins_num = EnterpriseUserPerm.objects.count()
+            enterprise_id = request.GET.get("enterprise_id", None)
+            if not enterprise_id:
+                return Response(generate_result("1003", "params error", "参数错误"))
+            admins_num = EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id).count()
             admin_list = []
             start = (page - 1) * 10
             remaining_num = admins_num - (page - 1) * 10
@@ -616,11 +619,11 @@ class EnterpriseAdminView(BaseAPIView):
 
             cursor = connection.cursor()
             cursor.execute(
-                "select * from enterprise_user_perm order by user_id desc LIMIT {0},{1};".format(start, end))
+                "select user_id from enterprise_user_perm where enterprise_id='{0}' order by user_id desc LIMIT {1},{2};".format(enterprise_id, start, end))
             admin_tuples = cursor.fetchall()
             logger.debug('---------admin-------------->{0}'.format(admin_tuples))
             for admin in admin_tuples:
-                user = user_repo.get_by_user_id(user_id=admin[1])
+                user = user_repo.get_by_user_id(user_id=admin[0])
                 bean = dict()
                 if user:
                     bean["nick_name"] = user.nick_name
