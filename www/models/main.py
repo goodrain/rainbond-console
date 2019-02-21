@@ -539,6 +539,7 @@ class TenantServiceInfo(BaseModel):
         help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能（兼容老版本服务）')
 
     service_source = models.CharField(max_length=15, default="", null=True, blank=True,
                                       help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
@@ -673,6 +674,7 @@ class TenantServiceInfoDelete(BaseModel):
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能(兼容老版本服务)')
     check_uuid = models.CharField(
         max_length=36, blank=True, null=True, default="", help_text=u"服务id")
     check_event_id = models.CharField(

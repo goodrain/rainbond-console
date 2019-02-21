@@ -19,3 +19,12 @@ CREATE TABLE `service_webhooks` (
   `deploy_keyword` varchar(128) DEFAULT 'deploy',
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
+
+
+-- 2019-02-21 添加已删除字段open_webhooks（兼容老版本服务）
+
+ALTER TABLE tenant_service ADD COLUMN `open_webhooks` bool DEFAULT false;
+
+-- 2019-02-21 添加已删除字段open_webhooks（兼容老版本服务）
+
+ALTER TABLE tenant_service_delete ADD COLUMN `open_webhooks` bool DEFAULT false;
