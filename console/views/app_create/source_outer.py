@@ -310,21 +310,23 @@ class ThirdPartyHealthzView(AppBaseView):
         :return:
         """
         model = request.data.get("model", None)
-        address = request.data.get("address", None)
-        time_internal = request.data.get("time_internal", None)
-        max_error_num = request.data.get("max_error_num", None)
+        port = request.data.get("port", 0)
+        time_internal = request.data.get("time_internal", 0)
+        max_error_num = request.data.get("max_error_num", 0)
         action = request.data.get("action", None)
+        path = request.data.get("path", None)
         if not model:
             return Response(general_message(400, "model is null", "检测方式未指明"), status=400)
-        if not address:
-            return Response(general_message(400, "address is null", "检测地址未指明"), status=400)
+        if not port:
+            return Response(general_message(400, "address is null", "端口未指明"), status=400)
         try:
             detection_dict = {
                 "model": model,
-                "address": address,
-                "time_internal": time_internal if time_internal else 0,
-                "max_error_num": max_error_num if max_error_num else 0,
-                "action": action if action else ''
+                "port": port,
+                "time_internal": time_internal,
+                "max_error_num": max_error_num,
+                "action": action if action else '',
+                "path": path if path else ''
             }
 
             res, data = region_api.put_third_party_service_health(self.service.service_region, self.tenant.tenant_name,
