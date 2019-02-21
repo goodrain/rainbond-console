@@ -164,7 +164,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             res, data = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
                                                self.service.service_alias)
             if res.status != 200:
-                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
             endpoint_list = data["list"]
             bean = {"endpoint_num": len(endpoint_list)}
 
