@@ -123,7 +123,7 @@ class ThirdPartyServiceApiView(AppBaseView):
 
 
 # 三方服务中api注册方式重置秘钥
-class ThirdPartyUpdateSecretKey(AppBaseView):
+class ThirdPartyUpdateSecretKeyView(AppBaseView):
     def put(self, request, *args, **kwargs):
         try:
             key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
@@ -270,6 +270,77 @@ class ThirdPartyAppPodsView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result)
+
+
+# 三方服务健康检测
+class ThirdPartyHealthzView(AppBaseView):
+    @never_cache
+    @perm_required('manage_service_container')
+    def get(self, request, *args, **kwargs):
+        """
+        获取三方服务健康检测结果
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            res, data = region_api.get_third_party_service_health(self.service.service_region, self.tenant.tenant_name,
+                                                   self.service.service_alias)
+
+            if res.status != 200:
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+            bean = data["bean"]
+
+            result = general_message(200, "success", "查询成功", bean=bean)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+    @never_cache
+    @perm_required('manage_service_container')
+    def put(self, request, *args, **kwargs):
+        """
+        编辑三方服务的健康检测
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        model = request.data.get("model", None)
+        address = request.data.get("address", None)
+        time_internal = request.data.get("time_internal", None)
+        max_error_num = request.data.get("max_error_num", None)
+        action = request.data.get("action", None)
+        if not model:
+            return Response(general_message(400, "model is null", "检测方式未指明"), status=400)
+        if not address:
+            return Response(general_message(400, "address is null", "检测地址未指明"), status=400)
+        try:
+            detection_dict = {
+                "model": model,
+                "address": address,
+                "time_internal": time_internal if time_internal else 0,
+                "max_error_num": max_error_num if max_error_num else 0,
+                "action": action if action else ''
+            }
+
+            res, data = region_api.put_third_party_service_health(self.service.service_region, self.tenant.tenant_name,
+                                                   self.service.service_alias, detection_dict)
+
+            msg = data["bean"]
+            if msg != "success":
+                return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
+
+            result = general_message(200, "success", "修改成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
 
 
 

@@ -25,7 +25,7 @@ from console.views.app_create.docker_compose import DockerComposeCreateView, Com
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
 from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, \
-    ThirdPartyUpdateSecretKey, ThirdPartyAppPodsView
+    ThirdPartyUpdateSecretKeyView, ThirdPartyAppPodsView, ThirdPartyHealthzView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
     RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView
@@ -246,7 +246,9 @@ urlpatterns = patterns(
     # 三方服务api注册方式回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/third_party/(?P<serviceAlias>[\w\-]+)$', ThirdPartyServiceApiView.as_view()),
     # 三方服务api注册方式重置秘钥
-    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKey.as_view()),
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKeyView.as_view()),
+    # 三方服务健康检测
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view()),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view()),
     # docker-compose文件创建
