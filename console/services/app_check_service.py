@@ -52,12 +52,12 @@ class AppCheckService(object):
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
             if service_endpoints:
                 if service_endpoints.endpoints_type == "discovery":
-                    source_body = json.dumps(service_endpoints.endpoints_info)
+                    source_body = service_endpoints.endpoints_info
 
         body["username"] = user_name
         body["password"] = password
         body["source_body"] = source_body
-
+        logger.debug('======body========>{0}'.format(json.dumps(body)))
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
         bean = body["bean"]
         service.check_uuid = bean["check_uuid"]
