@@ -289,26 +289,25 @@ class DomainService(object):
             try:
                 region_api.delete_http_domain(service.service_region,
                                               tenant.tenant_name, data)
-                servicer_domain.delete()
-                return True, u"success"
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
-                else:
-                    return True, u"success"
             domain_repo.delete_service_domain_by_id(domain_id)
             return True, u"success"
         else:
-            return False, u"do not delete this domain id {0}  service_id {1}".format(
+            return False, u"do not delete this domain id {0} service_id {1}".format(
                 domain_id, service.service_id)
 
     # tenant,user: type is model struct
     # success return 200, u"success"
-    def bind_siample_http_domain(self, tenant, user, service, domainName,
+    def bind_siample_http_domain(self, tenant, user, service, domain_name,
                                  container_port):
-        return self.bind_domain(tenant, user, service, domainName,
-                                container_port, "http", None, DomainType.WWW,
-                                "", None)
+        res, msg = self.bind_domain(tenant, user, service, domain_name,
+                                    container_port, "http", None,
+                                    DomainType.WWW, "", None)
+        if res == 200:
+            return domain_repo.get_domain_by_domain_name(domain_name)
+        return None
 
     def bind_httpdomain(self, tenant, user, service, domain_name,
                         container_port, protocol, certificate_id, domain_type,
