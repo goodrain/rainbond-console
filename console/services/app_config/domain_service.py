@@ -15,6 +15,7 @@ from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
 from console.services.app_config import port_service
 from console.repositories.app_config import port_repo
+from console.services.team_services import team_services
 
 
 region_api = RegionInvokeApi()
@@ -112,6 +113,13 @@ class DomainService(object):
         match = zhPattern.search(domain_name.decode('utf-8'))
         if match:
             return 400, u"域名不能包含中文"
+        # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
+        s_domain = domain_repo.get_domain_by_domain_name(domain_name)
+        if s_domain:
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if team:
+                if s_domain.tenant_id != team.tenant_id:
+                    return 400, u"该域名已被其他租户使用"
         # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
         # if not re.match(re_exp, domain_name):
         #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
