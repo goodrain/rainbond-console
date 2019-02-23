@@ -7,7 +7,6 @@ from rest_framework import status
 from base_view import BaseMarketAPIView, EnterpriseMarketAPIView
 from marketapi.services import MarketServiceAPIManager
 from www.services.sso import GoodRainSSOApi
-from console.services.app_config import domain_service
 
 logger = logging.getLogger('default')
 LOGGER_TAG = 'marketapi'

@@ -11,15 +11,15 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.baseclient import client_auth_service
 from www.models import ServiceDomainCertificate, ServiceDomain, make_uuid
 from www.services import app_group_svc, tenant_svc, enterprise_svc, user_svc, app_svc
+from console.services.app_config import domain_service
 
 logger = logging.getLogger('default')
 LOGGER_TAG = 'marketapi'
 
 manager = OpenTenantServiceManager()
 region_api = RegionInvokeApi()
-domain_service = DomainService()
 
-DEFAULT_REGION = 'ali-sh'
+DEFAULT_REGION = 'rainbond'
 
 
 class MarketServiceAPIManager(object):
