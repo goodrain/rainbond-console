@@ -346,7 +346,6 @@ class MarketServiceAPIManager(object):
 
     def bind_domain(self, service_id, domain_name):
         try:
-
             service = app_svc.get_service_by_id(service_id)
             if not service:
                 return False, '应不存在'
@@ -357,12 +356,13 @@ class MarketServiceAPIManager(object):
             if not ports:
                 return False, '未开通对外端口'
             domain = domain_service.bind_siample_http_domain(
-                tenant, service, user, domain_name, ports[0].container_port)
+                tenant, user, service, domain_name, ports[0].container_port)
             if domain:
                 return True, domain
             return False, None
         except Exception as e:
-            return False, e.message.get('body').get('msgcn') or '绑定域名失败'
+            logger.exception(e)
+            return False, '绑定域名失败'
 
     def unbind_domain(self, domain_id, service_id):
         service = app_svc.get_service_by_id(service_id)
