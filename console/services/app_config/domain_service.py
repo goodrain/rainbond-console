@@ -15,6 +15,7 @@ from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
 from console.repositories.app_config import port_repo
 from console.services.team_services import team_services
+from console.services.group_service import group_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -302,9 +303,13 @@ class DomainService(object):
     # success return 200, u"success"
     def bind_siample_http_domain(self, tenant, user, service, domain_name,
                                  container_port):
+        groups = group_service.get_services_group_name([service.service_id])
+        gid = None
+        if groups and groups[service.service_id]:
+            gid = groups[service.service_id]["group_id"]
         res, msg = self.bind_domain(tenant, user, service, domain_name,
                                     container_port, "http", None,
-                                    DomainType.WWW, "", None)
+                                    DomainType.WWW, gid, None)
         if res == 200:
             return domain_repo.get_domain_by_domain_name(domain_name)
         return None
