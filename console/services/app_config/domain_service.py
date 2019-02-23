@@ -119,7 +119,7 @@ class DomainService(object):
             team = team_services.get_tenant_by_tenant_name(team_name)
             if team:
                 if s_domain.tenant_id != team.tenant_id:
-                    return 400, u"该域名已被其他租户使用"
+                    return 400, u"该域名已被其他团队使用"
         # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
         # if not re.match(re_exp, domain_name):
         #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
