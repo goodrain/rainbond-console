@@ -186,6 +186,9 @@ class ApplicationGroupService(object):
             return apps[0]
         return None
 
+    # do not sort app service, The startup sequence is implemented by the region
+    def __sort_service(self, publish_service_list, reverse=False):
+        return publish_service_list
 
     def __create_tenant_service_group(self, tenant, app_service_group, region_name):
         group_name = self.__generator_group_name('gr')
