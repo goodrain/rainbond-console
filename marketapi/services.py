@@ -17,6 +17,7 @@ LOGGER_TAG = 'marketapi'
 
 manager = OpenTenantServiceManager()
 region_api = RegionInvokeApi()
+domain_service = DomainService()
 
 DEFAULT_REGION = 'ali-sh'
 
@@ -242,9 +243,6 @@ class MarketServiceAPIManager(object):
             logger.error('tenant does not existed!')
             return False, '租户不存在', None
 
-        logger.debug('login_user_id: {}'.format(user.user_id))
-        logger.debug('login_user: {}'.format(user.nick_name))
-        logger.debug('tenant_name: {}'.format(tenant.tenant_name))
         # if app_group_svc.is_tenant_service_group_installed(tenant, region_name, group_key, group_version):
         #     logger.info('group service already installed!')
         #     return False, '应用组已安装, 请卸载后再重装!', None
@@ -343,51 +341,22 @@ class MarketServiceAPIManager(object):
                 for d in domains]
 
     def bind_domain(self, service_id, domain_name):
-        if ServiceDomain.objects.filter(domain_name=domain_name).count() > 0:
-            return False, '域名已存在'
-
-        service = app_svc.get_service_by_id(service_id)
-        if not service:
-            return False, '应不存在'
-
-        tenant = app_group_svc.get_tenant_by_pk(service.tenant_id)
-        user = app_group_svc.get_user_by_eid(tenant.enterprise_id)
-
-        ports = app_group_svc.get_service_http_port(service.service_id)
-        if not ports:
-            return False, '未开通对外端口'
-
-        data = {
-            "uuid": make_uuid(domain_name),
-            "domain_name": domain_name,
-            "service_alias": service.service_alias,
-            "tenant_id": service.tenant_id,
-            "tenant_name": tenant.tenant_name,
-            "service_port": ports[0].container_port,
-            "protocol": "http",
-            "add_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "add_user": user.nick_name if user else "",
-            "enterprise_id": tenant.enterprise_id,
-            "certificate": "",
-            "private_key": "",
-            "certificate_name": ""
-        }
-
         try:
-            region_api.bindDomain(
-                service.service_region, tenant.tenant_name, service.service_alias, data
-            )
-            domain = {
-                "service_id": service.service_id,
-                "service_name": service.service_alias,
-                "domain_name": domain_name,
-                "create_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                "container_port": ports[0].container_port,
-                "protocol": "http", "certificate_id": 0
-            }
-            domain_info = ServiceDomain(**domain)
-            domain_info.save()
-            return True, domain_info
+
+            service = app_svc.get_service_by_id(service_id)
+            if not service:
+                return False, '应不存在'
+
+            tenant = app_group_svc.get_tenant_by_pk(service.tenant_id)
+            user = app_group_svc.get_user_by_eid(tenant.enterprise_id)
+            ports = app_group_svc.get_service_http_port(service.service_id)
+            if not ports:
+                return False, '未开通对外端口'
+            code, res = domain_service.bind_siample_http_domain(tenant, service, user, domain_name, ports[0].container_port)
+            if code == 200:
+                domain_info = ServiceDomain.objects.get(ID=domain_id)
+                return True, domain_info
+            return False, res   
         except Exception as e:
             return False, e.message.get('body').get('msgcn') or '绑定域名失败'
 
@@ -397,22 +366,7 @@ class MarketServiceAPIManager(object):
             return False, '应用不存在'
 
         tenant = app_group_svc.get_tenant_by_pk(service.tenant_id)
-        domain = ServiceDomain.objects.get(ID=domain_id)
-
-        data = {
-            "service_id": domain.service_id,
-            "domain": domain.domain_name,
-            "pool_name": tenant.tenant_name + "@" + service.service_alias + ".Pool",
-            "container_port": domain.container_port,
-            "enterprise_id": tenant.enterprise_id}
-        try:
-            region_api.unbindDomain(
-                service.service_region, tenant.tenant_name, service.service_alias, data
-            )
-            domain.delete()
-            return True, None
-        except region_api.CallApiError as e:
-            return False, '解绑失败'
+        return domain_service.unbind_domian_by_domain(tenant, service, domain_id)
 
     def limit_region_resource(self, tenant, region, res):
         tenant_svc.limit_region_resource(tenant, region, res)

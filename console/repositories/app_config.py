@@ -255,6 +255,12 @@ class ServiceDomainRepository(object):
             return domains[0]
         return None
 
+    def get_domain_by_id(self, domain_id):
+        domains = ServiceDomain.objects.filter(ID=domain_id)
+        if domains:
+            return domains[0]
+        return None    
+
     def get_domain_by_domain_name_or_service_alias_or_group_name(self, search_conditions):
         domains = ServiceDomain.objects.filter(Q(domain_name__contains=search_conditions) | Q(service_alias__contains=search_conditions) | Q(
             group_name__contains=search_conditions)).order_by("-type")
@@ -285,6 +291,9 @@ class ServiceDomainRepository(object):
 
     def delete_service_domain(self, service_id):
         ServiceDomain.objects.filter(service_id=service_id).delete()
+
+    def delete_service_domain_by_id(self, domain_id):
+        ServiceDomain.objects.filter(ID=domain_id).delete()
 
     def get_tenant_certificate(self, tenant_id):
         return ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)

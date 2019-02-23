@@ -162,7 +162,7 @@ class DomainService(object):
     def is_domain_exist(self, domain_name):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
-
+ 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type, g_id, rule_extensions):
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         if code != 200:
@@ -247,8 +247,33 @@ class DomainService(object):
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
+    def unbind_domian_by_domain(self, tenant, service, domain_id):
+        domain = domain_repo.get_domain_by_id(domain_id)
+        if domain and domain.service_id == service.service_id and tenant.tenant_id == domain.tenant_id:
+            data = dict()
+            data["service_id"] = domain.service_id
+            data["domain"] = domain.domain_name
+            data["container_port"] = int(domain.container_port)
+            data["http_rule_id"] = domain.http_rule_id
+            try:
+                region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+                servicer_domain.delete()
+                return True, u"success"
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise e
+                else:
+                    return True, u"success"    
+            domain_repo.delete_service_domain_by_id(domain_id)
+            return True, u"success"
+        else:
+            return False, u"do not delete this domain id {0}  service_id {1}".format(domain_id,service.service_id)    
+    # tenant,user: type is model struct
+    # success return 200, u"success"
+    def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
+       return self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, "", None)
 
-    def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
+    def bind_httpdomain(self, tenant, user=None, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     group_name, domain_path, domain_cookie, domain_heander, the_weight, g_id, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
@@ -268,7 +293,7 @@ class DomainService(object):
         data["protocol"] = protocol
         data["container_port"] = int(container_port)
         data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        data["add_user"] = user.nick_name
+        data["add_user"] = user.nick_name if user else ""
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path if domain_path else None
