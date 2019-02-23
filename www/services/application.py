@@ -913,7 +913,7 @@ class ApplicationGroupService(object):
                 tenant_service.namespace = app["service_image"]["namespace"]
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
-        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
