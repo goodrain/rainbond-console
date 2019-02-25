@@ -244,7 +244,7 @@ urlpatterns = patterns(
     # 三方服务创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view()),
     # 三方服务api注册方式回调地址
-    url(r'^teams/(?P<tenantName>[\w\-]+)/third_party/(?P<serviceAlias>[\w\-]+)$', ThirdPartyServiceApiView.as_view()),
+    url(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
     # 三方服务api注册方式重置秘钥
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKeyView.as_view()),
     # 三方服务健康检测
