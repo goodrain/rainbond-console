@@ -291,8 +291,8 @@ class ThirdPartyAppPodsView(AppBaseView):
             logger.debug('=======body=======>{0}'.format(body))
 
             if res.status != 200:
-                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
-            result = general_message(200, "success", "删除成功")
+                return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
+            result = general_message(200, "success", "添加成功")
 
         except Exception as e:
             logger.exception(e)

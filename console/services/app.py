@@ -610,7 +610,7 @@ class AppService(object):
         endpoints_dict = dict()
         if endpoints:
             endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
-        data["endpoints"] = str(endpoints_dict)
+        data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
         # 数据中心创建
