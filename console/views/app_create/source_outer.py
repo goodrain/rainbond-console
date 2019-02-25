@@ -62,7 +62,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
             if endpoints_type == "discovery":
                 # 添加username,password信息
-                if endpoints.has_key["username"] and endpoints.has_key["password"]:
+                logger.debug('========dict=========>{0}'.format(type(endpoints)))
+                if endpoints.has_key("username") and endpoints.has_key("password"):
                     if endpoints["username"] or endpoints["password"]:
                         app_service.create_service_source_info(self.tenant, new_service, endpoints["username"], endpoints["password"])
 
@@ -223,10 +224,11 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=self.service.service_id)
             api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             result = general_message(200, "success", "重置成功", bean={"api_service_key": api_secret_key})
+            return Response(result)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
 
 # 三方服务pod信息
@@ -260,11 +262,11 @@ class ThirdPartyAppPodsView(AppBaseView):
             bean = {"endpoint_num": len(endpoint_list)}
 
             result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
-
+            return Response(result, status=500)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result)
 
     @never_cache
     @perm_required('tripartite_service_manage')
@@ -281,24 +283,23 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-            data = list()
             endpoint_dict = dict()
             endpoint_dict["ip"] = ip
             endpoint_dict["is_online"] = is_online
-            data.append(endpoint_dict)
             res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                     self.service.service_alias, data)
+                                                                     self.service.service_alias, endpoint_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
             result = general_message(200, "success", "添加成功")
+            return Response(result)
 
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
     @never_cache
     @perm_required('tripartite_service_manage')
@@ -314,25 +315,22 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-            data = list()
-            endpoints_list = ep_id.split("-")
-            for endpoint in endpoints_list:
-                endpoint_dict = dict()
-                endpoint_dict["ep_id"] = endpoint
-                data.append(endpoint_dict)
+            endpoint_dict = dict()
+            endpoint_dict["ep_id"] = ep_id
             res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                         self.service.service_alias, data)
+                                                         self.service.service_alias, endpoint_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
             result = general_message(200, "success", "删除成功")
+            return Response(result)
 
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
     @never_cache
     @perm_required('tripartite_service_manage')
@@ -349,13 +347,13 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-            data = list()
+
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id
             endpoint_dict["is_online"] = is_online
-            data.append(endpoint_dict)
+
             res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                     self.service.service_alias, data)
+                                                                     self.service.service_alias, endpoint_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
@@ -363,11 +361,12 @@ class ThirdPartyAppPodsView(AppBaseView):
                 return Response(general_message(412, "region delete error", "数据中心修改失败"), status=412)
 
             result = general_message(200, "success", "修改成功")
+            return Response(result)
 
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
 
 # 三方服务健康检测
@@ -393,11 +392,11 @@ class ThirdPartyHealthzView(AppBaseView):
             bean = body["bean"]
 
             result = general_message(200, "success", "查询成功", bean=bean)
-
+            return Response(result)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
     @never_cache
     @perm_required('tripartite_service_manage')
@@ -434,16 +433,15 @@ class ThirdPartyHealthzView(AppBaseView):
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
-            msg = body["bean"]
-            if msg != "success":
+            if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
 
             result = general_message(200, "success", "修改成功")
-
+            return Response(result)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result)
+            return Response(result, status=500)
 
 
 
