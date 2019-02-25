@@ -60,10 +60,11 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             if code != 200:
                 logger.debug("service.create", msg_show)
 
-            # 添加username,password信息
-            if endpoints.has_key["username"] and endpoints.has_key["password"]:
-                if endpoints["username"] or endpoints["password"]:
-                    app_service.create_service_source_info(self.tenant, new_service, endpoints["username"], endpoints["password"])
+            if endpoints_type == "discovery":
+                # 添加username,password信息
+                if endpoints.has_key["username"] and endpoints.has_key["password"]:
+                    if endpoints["username"] or endpoints["password"]:
+                        app_service.create_service_source_info(self.tenant, new_service, endpoints["username"], endpoints["password"])
 
             bean = new_service.to_dict()
             if endpoints_type == "api":
