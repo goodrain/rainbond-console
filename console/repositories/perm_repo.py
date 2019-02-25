@@ -121,7 +121,7 @@ class RoleRepo(object):
             team_role_perm_list = []
             per_id_list = TenantUserRolePermission.objects.filter(role_id=role_obj.pk).values_list("per_id", flat=True)
             for perm_obj in TenantUserPermission.objects.filter(ID__in=per_id_list):
-                perm_dict = {}
+                perm_dict = dict()
                 perm_dict["perm_id"] = perm_obj.pk
                 perm_dict["codename"] = perm_obj.codename
                 perm_dict["perm_info"] = perm_obj.per_info
@@ -473,6 +473,11 @@ class RolePermRepo(object):
                                                       group=team_group)
             perms_dict["import_and_export_service"] = obj.pk
 
+            obj = TenantUserPermission.objects.create(codename="tripartite_service_manage", per_info="应用导入导出",
+                                                      is_select=True,
+                                                      group=team_group)
+            perms_dict["tripartite_service_manage"] = obj.pk
+
             obj = TenantUserPermission.objects.create(codename="access_control", per_info="查看访问控制",
                                                       is_select=True,
                                                       group=gateway_group)
@@ -531,6 +536,8 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("certificate_management"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("control_operation"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("certificate_operation"))
+            TenantUserRolePermission.objects.create(role_id=owner_id,
+                                                    per_id=perms_dict.get("tripartite_service_manage"))
 
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=admin_id,
@@ -563,6 +570,8 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("certificate_management"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("control_operation"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("certificate_operation"))
+            TenantUserRolePermission.objects.create(role_id=owner_id,
+                                                    per_id=perms_dict.get("tripartite_service_manage"))
 
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_group"))
@@ -590,6 +599,8 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("certificate_management"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("control_operation"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("certificate_operation"))
+            TenantUserRolePermission.objects.create(role_id=owner_id,
+                                                    per_id=perms_dict.get("tripartite_service_manage"))
 
             TenantUserRolePermission.objects.create(role_id=viewer_id, per_id=perms_dict.get("tenant_access"))
             TenantUserRolePermission.objects.create(role_id=viewer_id, per_id=perms_dict.get("view_service"))

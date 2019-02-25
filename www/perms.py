@@ -43,7 +43,8 @@ class PermActions(object):
                                    ('manage_plugin', u"插件管理"),
                                    ('import_and_export_service', u'应用导入导出'),
                                    ('certificate_operation', u'证书管理操作'),
-                                   ('control_operation', u'访问控制操作')
+                                   ('control_operation', u'访问控制操作'),
+                                   ('tripartite_service_manage', u'三方服务管理')
 
                                ) + tenant_viewer_actions
 

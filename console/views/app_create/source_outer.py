@@ -21,6 +21,7 @@ from console.repositories.deploy_repo import deploy_repo
 from console.views.app_config.base import AppBaseView
 from console.repositories.app_config import service_endpoints_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from console.views.base import AlowAnyApiView
 
 
 logger = logging.getLogger("default")
@@ -81,7 +82,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
 
 # 三方服务中api注册方式回调接口
-class ThirdPartyServiceApiView(AppBaseView):
+class ThirdPartyServiceApiView(AlowAnyApiView):
     def post(self, request, *args, **kwargs):
         secret_key = request.data.get("secret_key")
         # 加密
@@ -176,44 +177,30 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    @perm_required('manage_service_container')
-    def delete(self, request, *args, **kwargs):
+    @perm_required('tripartite_service_manage')
+    def post(self, request, *args, **kwargs):
         """
-        删除endpoint实例
+        添加endpoint实例
         :param request:
         :param args:
         :param kwargs:
         :return:
         """
-        endpoint = request.data.get("endpoint", None)
-        if not endpoint:
+        ip = request.data.get("ip", None)
+        is_online = request.data.get("is_online", True)
+        if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-            endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
-            if not endpoints:
-                return Response(general_message(412, "end_point is null", "end_point不存在"), status=412)
-            if endpoints.endpoints_type == "discovery":
-                return Response(general_message(412, "discovery is not", "动态注册不允许修改和删除"), status=412)
-            data = dict()
-            endpoints_list = json.loads(endpoints.endpoints_info)
-            for e_point in endpoints_list:
-                if ":" in e_point["endpoint"]:
-                    endpoint_ip = e_point["endpoint"].split(':')[1]
-                    if endpoint_ip == endpoint:
-                        endpoints_list.remove(e_point)
-                else:
-                    if e_point["endpoint"] == endpoint:
-                        endpoints_list.remove(e_point)
-            body = dict()
-            body[endpoints.endpoints_type] = endpoints_list
-            data["endpoints"] = body
-            res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                         self.service.service_alias, data)
+            data = list()
+            endpoint_dict = dict()
+            endpoint_dict["ip"] = ip
+            endpoint_dict["is_online"] = is_online
+            data.append(endpoint_dict)
+            res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                                     self.service.service_alias, data)
+            # 返回暂定
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
-            # 删除成功，更改数据库信息
-            endpoints.endpoints_info = endpoints_list
-            endpoints.save()
             result = general_message(200, "success", "删除成功")
 
         except Exception as e:
@@ -222,7 +209,39 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    @perm_required('manage_service_container')
+    @perm_required('tripartite_service_manage')
+    def delete(self, request, *args, **kwargs):
+        """
+        删除endpoint实例
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        ep_id = request.data.get("ep_id", None)
+        if not ep_id:
+            return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
+        try:
+            data = list()
+            endpoints_list = ep_id.split("-")
+            for endpoint in endpoints_list:
+                endpoint_dict = dict()
+                endpoint_dict["ep_id"] = endpoint
+                data.append(endpoint_dict)
+            res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                         self.service.service_alias, data)
+            # 返回暂定
+            if res.status != 200:
+                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+            result = general_message(200, "success", "删除成功")
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+    @never_cache
+    @perm_required('tripartite_service_manage')
     def put(self, request, *args, **kwargs):
         """
         修改实例上下线
@@ -231,39 +250,25 @@ class ThirdPartyAppPodsView(AppBaseView):
         :param kwargs:
         :return:
         """
-        action = request.data.get("action", None)
-        end_ip = request.data.get("endpoint", None)
-        if not action:
-            return Response(general_message(400, "action is null", "操作类型未指明"), status=400)
-        if not end_ip:
+        is_online = request.data.get("is_online", True)
+        ep_id = request.data.get("ep_id", None)
+        if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
-            endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
-            if not endpoints:
-                return Response(general_message(412, "end_point is null", "end_point不存在"), status=412)
-            if endpoints.endpoints_type == "discovery":
-                return Response(general_message(412, "discovery is not", "动态注册不允许修改和删除"), status=412)
-            data = dict()
-            endpoints_list = endpoints.endpoints_info
-            for e_point in endpoints_list:
-                if ":" in e_point["endpoint"]:
-                    endpoint_ip = e_point["endpoint"].split(':')[1]
-                    if endpoint_ip == end_ip:
-                        if action == "online":
-                            e_point["status"] = 0
-                        else:
-                            e_point["status"] = 1
-            body = dict()
-            body[endpoints.endpoints_type] = endpoints_list
-            data["endpoints"] = body
+            data = list()
+            endpoint_dict = dict()
+            endpoint_dict["ep_id"] = ep_id
+            endpoint_dict["is_online"] = is_online
+            data.append(endpoint_dict)
             res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                      self.service.service_alias, data)
+            logger.debug('-------res------->{0}'.format(res))
+            logger.debug('=======body=======>{0}'.format(body))
+
+            # 返回暂定
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心修改失败"), status=412)
 
-            # 修改成功，更改数据库信息
-            endpoints.endpoints_info = endpoints_list
-            endpoints.save()
             result = general_message(200, "success", "修改成功")
 
         except Exception as e:
@@ -300,7 +305,7 @@ class ThirdPartyHealthzView(AppBaseView):
         return Response(result)
 
     @never_cache
-    @perm_required('manage_service_container')
+    @perm_required('tripartite_service_manage')
     def put(self, request, *args, **kwargs):
         """
         编辑三方服务的健康检测
