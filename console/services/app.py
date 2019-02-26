@@ -596,11 +596,13 @@ class AppService(object):
         endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
         endpoints_dict = dict()
         if endpoints:
-            endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
-        data["endpoints"] = endpoints_dict
+            if endpoints.endpoints_type != "api":
+                endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+                data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
         # 数据中心创建
+        logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将服务创建状态变更为创建完成
         service.create_status = "complete"
