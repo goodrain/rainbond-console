@@ -238,38 +238,6 @@ class MarketServiceAPIManager(object):
     def build_tenant_service_group(self, user, group_id):
         return app_group_svc.build_tenant_service_group(user, group_id)
 
-    def install_tenant_service_group(self, user, tenant_name, group_key,
-                                     group_version, region_name):
-        logger.debug('prepared install [{}-{}] to [{}] on [{}]'.format(
-            group_key, group_version, tenant_name, region_name))
-        if tenant_name:
-            tenant = self.get_tenant_by_name(tenant_name)
-        else:
-            tenant = self.get_default_tenant_by_user(user.user_id)
-
-        if not tenant:
-            logger.error('tenant does not existed!')
-            return False, '租户不存在', None
-
-        # if app_group_svc.is_tenant_service_group_installed(tenant, region_name, group_key, group_version):
-        #     logger.info('group service already installed!')
-        #     return False, '应用组已安装, 请卸载后再重装!', None
-
-        # 查看安装的目标数据中心是否已初始化, 如果未初始化则先初始化
-        if not tenant_svc.init_region_tenant(tenant, region_name):
-            return False, '初始化数据中心失败: {}'.format(region_name), None
-
-        app_service_group = app_group_svc.download_app_service_group_from_market(
-            tenant.tenant_id, group_key, group_version)
-        if not app_service_group:
-            return False, '初始化应用组模板信息失败', None
-
-        success, message, group, installed_services = app_group_svc.install_tenant_service_group(
-            user, tenant, region_name, app_service_group, 'cloud')
-        group = app_group_svc.get_tenant_service_group_by_pk(
-            group.pk, True, True, True)
-        return success, message, group
-
     def restart_tenant_service_group(self, user, group_id):
         return app_group_svc.restart_tenant_service_group(user, group_id)
 
@@ -384,14 +352,14 @@ class MarketServiceAPIManager(object):
     def get_tenant_region_resource_limit(self, tenant, region):
         return tenant_svc.get_tenant_region_resource_limit(tenant, region)
 
-    def __create_group(tenant_id, region_name, group_alias):
+    def __create_group(self, tenant_id, region_name, group_alias):
         group_name = '_'.join([group_alias, make_uuid()[-4:]])
         new_group = group_repo.add_group(tenant_id, region_name, group_name)
         return new_group
 
     def __generate_tenant_service_group(self, region_name, tenant_id, group_id,
                                         group_key, group_version, group_alias):
-        group_name = self.__generator_group_name("gr")
+        group_name = '_'.join([group_alias, make_uuid()[-4:]])
         params = {
             "tenant_id": tenant_id,
             "group_name": group_name,
@@ -403,6 +371,7 @@ class MarketServiceAPIManager(object):
         }
         return tenant_service_group_repo.create_tenant_service_group(**params)
 
+    # install_service_group install app for saas pipeline
     def install_service_group(self, user, tenant_name, group_key,
                               group_version, region_name, template_version):
         tenant_service_group = None
@@ -425,19 +394,15 @@ class MarketServiceAPIManager(object):
             # 查看安装的目标数据中心是否已初始化, 如果未初始化则先初始化
             if not tenant_svc.init_region_tenant(tenant, region_name):
                 return False, '初始化数据中心失败: {}'.format(region_name), None
-                app = market_sycn_service.download_app_service_group_from_market(
-                    user, tenant, group_key, group_version)
-                new_group = self.__create_group(tenant.tenant_id, region_name,
-                                                app.group_share_alias)
-                tenant_service_group = self.__generate_tenant_service_group(
-                    region_name, tenant.tenant_id, new_group.ID, group_key,
-                    group_version, app.group_share_alias)
-                market_app_service.install_service(tenant, region_name, user,
-                                                   new_group.ID, app, True)
-                if tenant_service_group:
-                    tenant_service_group = self.get_group_services_by_pk(
-                        tenant_service_group.pk)
-                return True, "success", tenant_service_group
+            app = market_sycn_service.download_app_service_group_from_market(
+                user, tenant, group_key, group_version)
+            new_group = self.__create_group(tenant.tenant_id, region_name,
+                                            app.group_name)
+            tenant_service_group = market_app_service.install_service(tenant, region_name, user, new_group.ID, app, True)
+            if tenant_service_group:
+                tenant_service_group = self.get_group_services_by_pk(
+                    tenant_service_group.pk)
+            return True, "success", tenant_service_group
         except Exception as e:
             logger.exception(e)
             # 回滚数据

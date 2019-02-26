@@ -116,6 +116,7 @@ class MarketAppService(object):
             if is_deploy:
                 # 部署所有应用
                 self.__deploy_services(tenant, user, new_service_list)
+            return tenant_service_group
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
@@ -889,7 +890,6 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-
     def download_app_service_group_from_market(self, user, tenant, group_key,
                                                group_version):
         rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(

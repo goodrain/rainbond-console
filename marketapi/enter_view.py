@@ -354,9 +354,6 @@ class EnterGroupServiceListAPIView(EnterpriseMarketAPIView):
                 code=status.HTTP_400_BAD_REQUEST,
                 msg='group_key or group_version or region can not be null',
                 msg_show='参数不合法')
-
-        # success, message, group = market_api.install_tenant_service_group(request.user, tenant_name, group_key,
-        #                                                                   group_version, region_name)
         group = None
         message = "安装失败"
         try:
