@@ -30,7 +30,7 @@ region_api = RegionInvokeApi()
 
 class ThirdPartyServiceCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
+    @perm_required('create_three_service')
     def post(self, request, *args, **kwargs):
         """
         创建三方服务
@@ -129,22 +129,19 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        ip_list = request.data.get("ip_list", None)
+        ip = request.data.get("ip", None)
         is_online = request.data.get("is_online", True)
-        if not ip_list:
+        if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-            data = list()
-            for ip in ip_list:
-                endpoint_dict = dict()
-                endpoint_dict["ip"] = ip
-                endpoint_dict["is_online"] = is_online
-                data.append(endpoint_dict)
+            endpoint_dict = dict()
+            endpoint_dict["ip"] = ip
+            endpoint_dict["is_online"] = is_online
 
             res, body = region_api.post_third_party_service_endpoints(service_obj.serviceregion, tenant_obj.tenant_name, service_obj.service_alias,
-                                                  data)
+                                                                      endpoint_dict)
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
 
@@ -163,16 +160,20 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        endpoint_list = request.data.get("endpoint_list", None)
-        if not endpoint_list:
+        ep_id = request.data.get("ep_id", None)
+        is_online = request.data.get("is_online", True)
+        if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
 
-            res, body = region_api.post_third_party_service_endpoints(service_obj.serviceregion, tenant_obj.tenant_name,
+            endpoint_dict = dict()
+            endpoint_dict["ep_id"] = ep_id
+            endpoint_dict["is_online"] = is_online
+            res, body = region_api.put_third_party_service_endpoints(service_obj.serviceregion, tenant_obj.tenant_name,
                                                                       service_obj.service_alias,
-                                                                      endpoint_list)
+                                                                     endpoint_dict)
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
 
@@ -191,17 +192,19 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        ep_id_list = request.data.get("ep_id_list", None)
-        if not ep_id_list:
+        ep_id = request.data.get("ep_id", None)
+        if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
 
-            res, body = region_api.post_third_party_service_endpoints(service_obj.serviceregion,
+            endpoint_dict = dict()
+            endpoint_dict["ep_id"] = ep_id
+            res, body = region_api.delete_third_party_service_endpoints(service_obj.serviceregion,
                                                                       tenant_obj.tenant_name,
                                                                       service_obj.service_alias,
-                                                                      ep_id_list)
+                                                                        endpoint_dict)
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心删除失败"), status=412)
 
@@ -214,6 +217,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
 
 # 三方服务中api注册方式重置秘钥
 class ThirdPartyUpdateSecretKeyView(AppBaseView):
+    @never_cache
+    @perm_required('reset_secret_key')
     def put(self, request, *args, **kwargs):
         try:
             key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
@@ -234,7 +239,7 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
 # 三方服务pod信息
 class ThirdPartyAppPodsView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_container')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取三方服务实例信息
@@ -269,7 +274,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             return Response(result)
 
     @never_cache
-    @perm_required('tripartite_service_manage')
+    @perm_required('add_endpoint')
     def post(self, request, *args, **kwargs):
         """
         添加endpoint实例
@@ -302,7 +307,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             return Response(result, status=500)
 
     @never_cache
-    @perm_required('tripartite_service_manage')
+    @perm_required('delete_endpoint')
     def delete(self, request, *args, **kwargs):
         """
         删除endpoint实例
@@ -333,7 +338,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             return Response(result, status=500)
 
     @never_cache
-    @perm_required('tripartite_service_manage')
+    @perm_required('put_endpoint')
     def put(self, request, *args, **kwargs):
         """
         修改实例上下线
@@ -372,7 +377,7 @@ class ThirdPartyAppPodsView(AppBaseView):
 # 三方服务健康检测
 class ThirdPartyHealthzView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_container')
+    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取三方服务健康检测结果
@@ -399,7 +404,7 @@ class ThirdPartyHealthzView(AppBaseView):
             return Response(result, status=500)
 
     @never_cache
-    @perm_required('tripartite_service_manage')
+    @perm_required('health_detection')
     def put(self, request, *args, **kwargs):
         """
         编辑三方服务的健康检测

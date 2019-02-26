@@ -44,7 +44,12 @@ class PermActions(object):
                                    ('import_and_export_service', u'应用导入导出'),
                                    ('certificate_operation', u'证书管理操作'),
                                    ('control_operation', u'访问控制操作'),
-                                   ('tripartite_service_manage', u'三方服务管理')
+                                   ('add_endpoint', u'添加实例'),
+                                   ('delete_endpoint', u'删除实例'),
+                                   ('put_endpoint', u'修改实例上下线'),
+                                   ('health_detection', u'编辑健康检测'),
+                                   ('reset_secret_key', u'重置秘钥'),
+                                   ('create_three_service', u'创建三方服务')
 
                                ) + tenant_viewer_actions
 
