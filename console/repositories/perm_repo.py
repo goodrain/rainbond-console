@@ -7,6 +7,9 @@ from console.models.main import TenantUserRole, TenantUserPermission, TenantUser
 from console.repositories.team_repo import team_repo
 from www.models import Tenants
 
+import logging
+logger = logging.getLogger('default')
+
 
 class PermsRepo(object):
     def add_user_tenant_perm(self, perm_info):
@@ -270,6 +273,31 @@ class RolePermRepo(object):
         outher_options_dict["group_name"] = "其他"
         outher_options_dict["perms_info"] = outher_perm_list
         options_list.append(outher_options_dict)
+
+        return options_list
+
+    def get_three_service_permission_options(self):
+        """获取三方服务自定义角色时可给角色绑定的权限选项"""
+        options_list = list()
+
+        perm_group_obj = PermGroup.objects.all()
+        for group in perm_group_obj:
+            if int(group.pk) != 2 and int(group.pk) != 4:
+                continue
+            perm_list = []
+            options_dict = dict()
+            perm_options_query = TenantUserPermission.objects.filter(is_select=True, group=group.pk)
+            for obj in perm_options_query:
+                logger.debug('------------------>{0}'.format(group.pk))
+                logger.debug('--------0000000---------->{0}'.format(obj.codename))
+                if group.pk == 2 and obj.codename not in ("manage_group", "view_service", "delete_service", "share_service", "manage_service_config", "manage_service_member_perms"):
+                    continue
+                perm_list.append(
+                    {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
+                )
+            options_dict["group_name"] = group.group_name
+            options_dict["perms_info"] = perm_list
+            options_list.append(options_dict)
 
         return options_list
 

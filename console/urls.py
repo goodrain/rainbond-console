@@ -69,7 +69,7 @@ from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServ
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
+    UserModifyPemView, TeamAddUserView, ServicePermissionView, ThreeServicePermOptionsView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
@@ -518,6 +518,8 @@ urlpatterns = patterns(
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
+    # 获取三方服务自定义角色时可给角色绑定的权限选项
+    url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
     # 在一个团队中创建一个角色
     url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
     # 在一个团队中删除一个角色

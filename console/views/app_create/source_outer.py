@@ -267,11 +267,11 @@ class ThirdPartyAppPodsView(AppBaseView):
             bean = {"endpoint_num": len(endpoint_list)}
 
             result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
-            return Response(result, status=500)
+            return Response(result)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            return Response(result)
+            return Response(result, status=500)
 
     @never_cache
     @perm_required('add_endpoint')
