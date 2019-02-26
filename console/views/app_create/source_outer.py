@@ -395,7 +395,8 @@ class ThirdPartyHealthzView(AppBaseView):
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
             bean = body["bean"]
-
+            if not bean:
+                return Response(general_message(200, "success", "查询成功"))
             result = general_message(200, "success", "查询成功", bean=bean)
             return Response(result)
         except Exception as e:
