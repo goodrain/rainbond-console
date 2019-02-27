@@ -1402,7 +1402,7 @@ class ServiceProbe(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     probe_id = models.CharField(max_length=32, help_text=u"探针id")
-    mode = models.CharField(max_length=10, help_text=u"探针模式")
+    mode = models.CharField(max_length=10, help_text=u"不健康处理方式readiness（下线）或liveness（重启）或ignore（忽略）")
     scheme = models.CharField(
         max_length=10, default="tcp", help_text=u"探针使用协议,tcp,http,cmd")
     path = models.CharField(max_length=50, default="", help_text=u"路径")

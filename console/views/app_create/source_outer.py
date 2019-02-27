@@ -106,7 +106,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
 
-            res, body = region_api.get_third_party_service_pods(service_obj.serviceregion, tenant_obj.tenant_name, service_obj.service_alias,)
+            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,)
 
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
@@ -140,7 +140,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             endpoint_dict["ip"] = ip
             endpoint_dict["is_online"] = is_online
 
-            res, body = region_api.post_third_party_service_endpoints(service_obj.serviceregion, tenant_obj.tenant_name, service_obj.service_alias,
+            res, body = region_api.post_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,
                                                                       endpoint_dict)
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
@@ -171,7 +171,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id
             endpoint_dict["is_online"] = is_online
-            res, body = region_api.put_third_party_service_endpoints(service_obj.serviceregion, tenant_obj.tenant_name,
+            res, body = region_api.put_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
                                                                       service_obj.service_alias,
                                                                      endpoint_dict)
             if res.status != 200:
@@ -201,7 +201,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
 
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id
-            res, body = region_api.delete_third_party_service_endpoints(service_obj.serviceregion,
+            res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
                                                                       tenant_obj.tenant_name,
                                                                       service_obj.service_alias,
                                                                         endpoint_dict)

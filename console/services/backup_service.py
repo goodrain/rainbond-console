@@ -207,8 +207,6 @@ class GroupAppBackupService(object):
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         service_volumes = volume_repo.get_service_volumes(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
-        # 三方服务的endpoints信息
-        service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
 
         app_info = {
             "service_base": service_base,
@@ -229,7 +227,6 @@ class GroupAppBackupService(object):
             "service_relation": [relation.to_dict() for relation in service_relation],
             "service_volumes": [volume.to_dict() for volume in service_volumes],
             "service_ports": [port.to_dict() for port in service_ports],
-            "service_endpoints": service_endpoints.to_dict() if service_endpoints else None
         }
         return app_info
 
