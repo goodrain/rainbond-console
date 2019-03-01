@@ -1,4 +1,4 @@
--- 创建三方服务endpoints表 third_party_service_endpoints
+-- 2019-02-17创建三方服务endpoints表 third_party_service_endpoints
 
 
 CREATE TABLE `third_party_service_endpoints` (
@@ -12,7 +12,7 @@ CREATE TABLE `third_party_service_endpoints` (
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
 
 
--- 新增三方服务管理权限（开发者以上级别拥有）
+-- 2019-02-25新增三方服务管理权限（开发者以上级别拥有）
 INSERT INTO `tenant_permission_group` (`group_name`) VALUES ('三方服务相关');
 
 INSERT INTO `tenant_user_permission` (`codename`, `per_info`, `is_select`, `per_explanation`, `group`) VALUES ('add_endpoint', '添加实例', 1, NULL, 4);
