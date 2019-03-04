@@ -150,6 +150,8 @@ class AppService(object):
             "reason": reason,
             "eid": tenant.enterprise_id
         }
+        if new_add_memory == 0:
+            return True, "success"
         # is_public = settings.MODULES.get('SSO_LOGIN')
         # if not is_public or new_add_memory <= 0:
         #     return allow_create, tips
