@@ -56,6 +56,7 @@ class AppMntView(AppBaseView):
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
+        logger.debug('-----------------------------------------------------1211111111111111111111111111111{0}'.format(query_type))
         try:
 
             if query_type == "mnt":

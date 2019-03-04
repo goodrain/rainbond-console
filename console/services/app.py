@@ -25,7 +25,7 @@ from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesSe
     ServicePluginResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-from django.conf import settings
+from console.repositories.perm_repo import role_repo
 
 
 tenantUsedResource = TenantUsedResource()
@@ -263,7 +263,8 @@ class AppService(object):
                         'service_alias')
 
             else:
-                if perm.identity in ('admin', 'developer', 'viewer', 'gray', 'owner'):
+                role_name = role_repo.get_role_name_by_role_id(perm.role_id)
+                if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
                     services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
                         'service_alias')
                 else:
