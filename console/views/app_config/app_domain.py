@@ -388,19 +388,23 @@ class HttpStrategyView(RegionTenantHeaderView):
             domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
             if domain:
                 bean = domain.to_dict()
+                service = service_repo.get_service_by_service_id(domain.service_id)
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                g_id = 0
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
+                    if gsr:
+                        group = group_repo.get_group_by_id(int(gsr.group_id))
+                        group_name = group.group_name if group else ''
+                        g_id = int(gsr.group_id)
                 if domain.certificate_id:
                     certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
-                    service = service_repo.get_service_by_service_id(domain.service_id)
-                    service_alias = service.service_cname if service else ''
-                    group_name = ''
-                    if service:
-                        gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
-                        if gsr:
-                            group = group_repo.get_group_by_id(int(gsr.group_id))
-                            group_name = group.group_name if group else ''
+
                     bean.update({"certificate_name": certificate_info.alias})
-                    bean.update({"service_alias": service_alias})
-                    bean.update({"group_name": group_name})
+                bean.update({"service_alias": service_alias})
+                bean.update({"group_name": group_name})
+                bean.update({"g_id": g_id})
             else:
                 bean = dict()
             result = general_message(200, "success", "查询成功", bean=bean)
@@ -851,13 +855,16 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 service = service_repo.get_service_by_service_id(tcpdomain.service_id)
                 service_alias = service.service_cname if service else ''
                 group_name = ''
+                g_id = 0
                 if service:
                     gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
+                        g_id = int(gsr.group_id)
                 bean.update({"service_alias": service_alias})
                 bean.update({"group_name": group_name})
+                bean.update({"g_id": g_id})
                 result = general_message(200, "success", "查询成功", bean=bean)
             else:
                 bean = dict()
