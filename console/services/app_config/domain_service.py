@@ -177,7 +177,6 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type, rule_extensions):
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
 
@@ -235,12 +234,7 @@ class DomainService(object):
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_domain(self,
-                      tenant,
-                      service,
-                      container_port,
-                      domain_name,
-                      is_tcp=False):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
             servicerDomain = domain_repo.get_domain_by_name_and_port(
                 service.service_id, container_port, domain_name)
@@ -276,6 +270,16 @@ class DomainService(object):
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
+
+    def bind_siample_http_domain(self, tenant, user, service, domain_name,
+                                 container_port):
+
+        res, msg = self.bind_domain(tenant, user, service, domain_name,
+                                    container_port, "http", None,
+                                    DomainType.WWW, None)
+        if res == 200:
+            return domain_repo.get_domain_by_domain_name(domain_name)
+        return None
 
     def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     domain_path, domain_cookie, domain_heander, the_weight, rule_extensions):
