@@ -271,6 +271,26 @@ class DomainService(object):
                 if e.status != 404:
                     raise e
 
+    def unbind_domian_by_domain(self, tenant, service, domain_id):
+        domain = domain_repo.get_domain_by_id(domain_id)
+        if domain and domain.service_id == service.service_id and tenant.tenant_id == domain.tenant_id:
+            data = dict()
+            data["service_id"] = domain.service_id
+            data["domain"] = domain.domain_name
+            data["container_port"] = int(domain.container_port)
+            data["http_rule_id"] = domain.http_rule_id
+            try:
+                region_api.delete_http_domain(service.service_region,
+                                              tenant.tenant_name, data)
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise e
+            domain_repo.delete_service_domain_by_id(domain_id)
+            return True, u"success"
+        else:
+            return False, u"do not delete this domain id {0} service_id {1}".format(
+                domain_id, service.service_id)
+
     def bind_siample_http_domain(self, tenant, user, service, domain_name,
                                  container_port):
 
