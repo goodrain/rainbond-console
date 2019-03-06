@@ -7,7 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app import app_service
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
@@ -85,6 +85,9 @@ class DockerRunCreateView(RegionTenantHeaderView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message()

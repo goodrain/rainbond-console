@@ -8,7 +8,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import BusinessException, ResourceNotEnoughException
+from console.exception.main import BusinessException, ResourceNotEnoughException, AccountOverdueException
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -244,6 +244,9 @@ class ComposeCheckView(ComposeGroupBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

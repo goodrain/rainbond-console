@@ -2,19 +2,16 @@
 
 set -xe
 
-image_name="rbd-app-ui"
-
-VERSION=5.0
+VERSION=master
 buildTime=$(date +%F-%H)
 
 function release(){
 
+  sed -i "s/VERSION/${VERSION}/g" Dockerfile.release
   git_commit=$(git log -n 1 --pretty --format=%h)
-
   release_desc=${VERSION}-${git_commit}-${buildTime}
-
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
-  docker build -t rainbond/${image_name}:${VERSION} -f Dockerfile.build .
+  docker build -t rainbond/rbd-app-ui:${VERSION} -f Dockerfile.build .
   rm -r ./Dockerfile.build
 }
 

@@ -54,7 +54,8 @@ class AppVolumeView(AppBaseView):
                     volume_dict["ID"] = tenant_service_volume.ID
                     if tenant_service_volume.volume_type == "config-file":
                         cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
-                        volume_dict["file_content"] = cf_file.file_content
+                        if cf_file:
+                            volume_dict["file_content"] = cf_file.file_content
                     volumes_list.append(volume_dict)
             result = general_message(200, "success", "查询成功", list=volumes_list)
         except Exception as e:

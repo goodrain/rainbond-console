@@ -113,7 +113,7 @@ class Login(BaseView):
                     if next_url:
                         redirect_url = '{0}?next={1}'.format(redirect_url, next_url)
                     return self.redirect_to(redirect_url)
-                return redirect('https://sso.goodrain.com/#/login/{0}'.format(urllib.quote_plus(redirect_url)))
+                return redirect('{0}/#/login/{1}'.format(os.getenv('SSO_BASE_URL', 'https://sso.goodrain.com'), urllib.quote_plus(redirect_url)))
 
             # 判断是否MicroMessenger
             if is_weixin(request):

@@ -2,7 +2,7 @@
 """
   Created on 18/1/16.
 """
-from www.models import TenantServiceInfo, TenantServiceInfoDelete
+from www.models import TenantServiceInfo, TenantServiceInfoDelete, ServiceWebhooks
 from console.models.main import ServiceSourceInfo, ServiceRecycleBin, ServiceRelationRecycleBin
 
 
@@ -115,8 +115,17 @@ class TenantServiceDeleteRepository(object):
         return TenantServiceInfoDelete.objects.create(**params)
 
 
+class TenantServiceWebhooks(object):
+    def get_service_webhooks_by_service_id_and_type(self, service_id, webhooks_type):
+        return ServiceWebhooks.objects.filter(service_id=service_id, webhooks_type=webhooks_type).first()
+
+    def create_service_webhooks(self, service_id, webhooks_type):
+        return ServiceWebhooks.objects.create(service_id=service_id, webhooks_type=webhooks_type)
+
+
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()
 recycle_bin_repo = ServiceRecycleBinRepository()
 delete_service_repo = TenantServiceDeleteRepository()
 relation_recycle_bin_repo = ServiceRelationRecycleBinRepository()
+service_webhooks_repo = TenantServiceWebhooks()

@@ -12,8 +12,7 @@ from www.utils.crypt import make_uuid
 from console.repositories.migration_repo import migrate_repo
 from www.models.main import TenantServiceInfo, TenantServiceEnvVar, TenantServiceVolume, TenantServicesPort, \
     TenantServiceEnv, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth, ImageServiceRelation, \
-    TenantServiceRelation, \
-    TenantServiceMountRelation, ThirdPartyServiceEndpoints
+    TenantServiceRelation, TenantServiceMountRelation, ThirdPartyServiceEndpoints, TenantServiceConfigurationFile
 from console.models.main import ServiceRelPerms, ServiceSourceInfo
 from console.repositories.team_repo import team_repo
 from www.models.label import ServiceLabels
@@ -21,6 +20,8 @@ from console.services.group_service import group_service
 from console.constants import AppMigrateType
 import json
 import logging
+from console.repositories.app_config import volume_repo
+
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -174,6 +175,7 @@ class GroupappsMigrateService(object):
                                                       migrate_record.backup_id, restore_id)
 
             bean = data["bean"]
+            logger.debug('===========>{0}'.format(bean))
             status = bean["status"]
             service_change = bean["service_change"]
             logger.debug("service change : {0}".format(service_change))
@@ -206,6 +208,7 @@ class GroupappsMigrateService(object):
         service_relations_list = []
         service_mnt_list = []
         for app in apps:
+            logger.debug('=======111========>{0}'.format(app.has_key('service_config_file')))
             service_base_info = app["service_base"]
 
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
@@ -215,7 +218,7 @@ class GroupappsMigrateService(object):
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
-            self.__save_volume(ts, app["service_volumes"])
+            self.__save_volume(ts, app["service_volumes"], app["service_config_file"] if app.has_key('service_config_file') else None)
             lb_mapping_port = changed_service_map[service_base_info["service_id"]].get("LBPorts", None)
             self.__save_port(migrate_tenant, ts, app["service_ports"], lb_mapping_port)
             self.__save_compile_env(ts, app["service_compile_env"])
@@ -266,15 +269,42 @@ class GroupappsMigrateService(object):
         if env_list:
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
-    def __save_volume(self, service, tenant_service_volumes):
-        volume_list = []
-        for volume in tenant_service_volumes:
-            volume.pop("ID")
-            new_volume = TenantServiceVolume(**volume)
-            new_volume.service_id = service.service_id
-            volume_list.append(new_volume)
-        if volume_list:
-            TenantServiceVolume.objects.bulk_create(volume_list)
+    def __save_volume(self, service, tenant_service_volumes, service_config_file):
+        if not service_config_file:
+            volume_list = []
+            for volume in tenant_service_volumes:
+                volume.pop("ID")
+                new_volume = TenantServiceVolume(**volume)
+                new_volume.service_id = service.service_id
+                volume_list.append(new_volume)
+            if volume_list:
+                TenantServiceVolume.objects.bulk_create(volume_list)
+        else:
+            for volume in tenant_service_volumes:
+                volume_list = []
+                config_list = []
+                for config_file in service_config_file:
+                    if config_file["volume_id"] == volume["ID"]:
+                        config_file.pop("ID")
+                        new_config_file = TenantServiceConfigurationFile(**config_file)
+                        new_config_file.service_id = service.service_id
+                        config_list.append(new_config_file)
+                volume.pop("ID")
+                new_volume = TenantServiceVolume(**volume)
+                new_volume.service_id = service.service_id
+                volume_list.append(new_volume)
+                logger.debug('----------------->{0}'.format(new_volume.to_dict()))
+                if volume_list:
+                    volume_js = TenantServiceVolume.objects.bulk_create(volume_list)
+                    volume_j = volume_js[0]
+                    logger.debug('--------------555-------------->{0}'.format(volume_j.to_dict()))
+                    for config in config_list:
+                        volume_obj = volume_repo.get_service_volume_by_name(service.service_id, volume_j.volume_name)
+                        logger.debug('--------------2222121212-------------->{0}'.format(volume_obj.to_dict()))
+                        config.volume_id = volume_obj.ID
+                        logger.debug('------------666---------------->{0}'.format(config.volume_id))
+
+                    TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
     def __save_port(self, tenant, service, tenant_service_ports, lb_port_info):
         port_list = []

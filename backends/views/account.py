@@ -182,18 +182,12 @@ class AuthAccessTokenView(AlowAnyApiView):
             auth = request.data.get('Authorization', '')
             if auth != settings.MANAGE_SECRET_KEY:
                 return Response(generate_result("0401", "authorization error", "验证未通过"))
-            username = request.data.get("username", None)
-            password = request.data.get("password", None)
-            enterprise_id = request.data.get("enterprise_id", None)
+
             enterprise_alias = request.data.get("enterprise_alias", None)
             # 校验参数
-            if not username or not password or not enterprise_id or not enterprise_alias:
+            if not enterprise_alias:
                 return Response(generate_result(
                     "1003", "params error", "参数错误"))
-            user_obj = user_repo.get_user_by_user_name(username)
-            if not user_obj:
-                return Response(generate_result(
-                    "1004", "user already exists", "用户名在控制台不存在"))
             # 查询企业信息
 
             enterprise = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
@@ -202,16 +196,16 @@ class AuthAccessTokenView(AlowAnyApiView):
             if not enterprise:
                 return Response(generate_result(
                     "1005", "enterprise already exists", "当前企业在控制台不存在"))
-
-            # 检验用户是否为该企业的企业管理员
-
-            if not user_services.is_user_admin_in_current_enterprise(user_obj, enterprise.enterprise_id):
+            # 获取企业第一个用户（即企业管理员）
+            users = user_repo.get_enterprise_users(enterprise.enterprise_id).order_by("user_id")
+            if not users:
                 return Response(generate_result(
-                    "1006", "user is not enterprise admin", "当前用户不是该企业的企业管理员"))
-            token = auth_service.create_token_auth_user(username, password)
-            bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict()}
+                    "1007", "is not enterprise admin", "无企业管理员"))
+            admin_user = users[0]
+            token = auth_service.create_token_auth_user(admin_user.nick_name, admin_user.password)
+            bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict(), "user_info": admin_user.to_dict()}
 
-            result = generate_result("0000", "success", "信息获取成功", bean)
+            result = generate_result("0000", "success", "信息获取成功", bean=bean)
 
         except Exception as e:
             logger.exception(e)

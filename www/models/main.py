@@ -539,6 +539,7 @@ class TenantServiceInfo(BaseModel):
         help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能（兼容老版本服务）')
 
     service_source = models.CharField(max_length=15, default="", null=True, blank=True,
                                       help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
@@ -550,7 +551,6 @@ class TenantServiceInfo(BaseModel):
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
@@ -674,13 +674,13 @@ class TenantServiceInfoDelete(BaseModel):
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能(兼容老版本服务)')
     check_uuid = models.CharField(
         max_length=36, blank=True, null=True, default="", help_text=u"服务id")
     check_event_id = models.CharField(
         max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
-    open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能')
     secret = models.CharField(max_length=64, null=True, blank=True, help_text=u"webhooks验证密码")
     server_type = models.CharField(
         max_length=5, default='git', help_text=u"源码仓库类型")
@@ -790,14 +790,12 @@ class ServiceDomain(BaseModel):
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
     domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
-    group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
     domain_path = models.TextField(null=True, blank=True, help_text=u"域名path")
     domain_cookie = models.TextField(null=True, blank=True, help_text=u"域名cookie")
     domain_heander = models.TextField(null=True, blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(default=100, help_text=u"权重")
-    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
     rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
@@ -1513,9 +1511,7 @@ class ServiceTcpDomain(BaseModel):
         max_length=15, default='', blank=True, help_text=u"服务协议：tcp,udp")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
-    group_name = models.CharField(max_length=32, default='', help_text=u"应用（组）名")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
-    g_id = models.CharField(max_length=32, default="", help_text=u"应用（组）id")
     rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
@@ -1531,3 +1527,15 @@ class ThirdPartyServiceEndpoints(BaseModel):
     service_cname = models.CharField(max_length=128, help_text=u"服务名")
     endpoints_info = models.TextField(help_text=u"endpoints信息")
     endpoints_type = models.CharField(max_length=32, help_text=u"类型（static-静态， api， discovery-服务发现）")
+
+class ServiceWebhooks(BaseModel):
+    """服务的自动部署属性"""
+
+    class Meta:
+        db_table = 'service_webhooks'
+
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
+    webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
+    deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
+

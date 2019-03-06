@@ -20,3 +20,8 @@ class BusinessException(Exception):
 class ResourceNotEnoughException(Exception):
     def __init__(self, message):
         super(ResourceNotEnoughException, self).__init__(message)
+
+
+class AccountOverdueException(Exception):
+    def __init__(self, message):
+        super(AccountOverdueException, self).__init__(message)

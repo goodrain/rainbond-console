@@ -15,6 +15,7 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
 from django.core.paginator import Paginator
+from console.utils.timeutil import time_to_str
 
 
 logger = logging.getLogger("default")
@@ -53,7 +54,23 @@ class AppVersionsView(AppBaseView):
             page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
-            build_version_sort = body["list"]
+            logger.debug('---------body------>{0}'.format(body))
+            build_version_sort = body["bean"]["list"]
+            run_version = body["bean"]["deploy_version"]
+            total_num_list = list()
+            for build_version_info in build_version_sort:
+                if build_version_info["FinalStatus"] in ("success", "failure"):
+                    total_num_list.append(build_version_info)
+            total_num = len(total_num_list)
+            success_num = 0
+            failure_num = 0
+            for build_info in build_version_sort:
+                if build_info["FinalStatus"]:
+                    if build_info["FinalStatus"] == "success":
+                        success_num += 1
+                    else:
+                        failure_num += 1
+            logger.debug('---------------build_version_sort---------->{0}'.format(build_version_sort))
             build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
@@ -79,13 +96,32 @@ class AppVersionsView(AppBaseView):
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
+            for res_version in res_versions:
+                if int(res_version["build_version"]) > int(self.service.deploy_version):
+                    upgrade_or_rollback = 1
+                elif int(res_version["build_version"]) == int(self.service.deploy_version):
+                    upgrade_or_rollback = 0
+                else:
+                    upgrade_or_rollback = -1
+                res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
             # try:
             #     result = paginator.page(page).object_list
             # except PageNotAnInteger:
             #     result = paginator.page(1).object_list
             # except EmptyPage:
             #     result = paginator.page(paginator.num_pages).object_list
-            result = general_message(200, "success", "查询成功", list=res_versions, total=paginator.count)
+            is_upgrade = False
+            if res_versions:
+                latest_version = res_versions[0]["build_version"]
+                if int(latest_version) > int(self.service.deploy_version):
+                    is_upgrade = True
+            bean = {
+                "is_upgrade": is_upgrade,
+                "current_version": run_version,
+                "success_num": str(success_num),
+                "failure_num": str(failure_num)
+            }
+            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(total_num))
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)

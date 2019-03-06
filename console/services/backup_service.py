@@ -13,7 +13,7 @@ from console.repositories.compose_repo import compose_repo, compose_relation_rep
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.app_config import domain_repo, auth_repo, env_var_repo, compile_env_repo, extend_repo, \
-    image_service_relation_repo, mnt_repo, dep_relation_repo, volume_repo, port_repo
+    image_service_relation_repo, mnt_repo, dep_relation_repo, volume_repo, port_repo, tcp_domain
 from console.repositories.event_repo import event_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.probe_repo import probe_repo
@@ -191,6 +191,7 @@ class GroupAppBackupService(object):
         service_base = service.to_dict()
         service_labels = service_label_repo.get_service_labels(service.service_id)
         service_domains = domain_repo.get_service_domains(service.service_id)
+        service_tcpdomains = tcp_domain.get_service_tcpdomains(service.service_id)
         service_events = event_repo.get_specified_num_events(tenant.tenant_id, service.service_id)
         service_perms = service_perm_repo.get_service_perms_by_service_pk(service.ID)
         service_probes = probe_repo.get_service_probe(service.service_id)
@@ -206,12 +207,14 @@ class GroupAppBackupService(object):
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         service_volumes = volume_repo.get_service_volumes(service.service_id)
+        service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
 
         app_info = {
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],
+            "service_tcpdomains": [tcpdomain.to_dict() for tcpdomain in service_tcpdomains],
             "service_events": [event.to_dict() for event in service_events],
             "service_perms": [perm.to_dict() for perm in service_perms],
             "service_probes": [probe.to_dict() for probe in service_probes],
@@ -226,7 +229,8 @@ class GroupAppBackupService(object):
             "service_plugin_config": [config.to_dict() for config in service_plugin_config],
             "service_relation": [relation.to_dict() for relation in service_relation],
             "service_volumes": [volume.to_dict() for volume in service_volumes],
-            "service_ports": [port.to_dict() for port in service_ports],
+            "service_config_file": [config_file.to_dict() for config_file in service_config_file],
+            "service_ports": [port.to_dict() for port in service_ports]
         }
         return app_info
 

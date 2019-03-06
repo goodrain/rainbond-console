@@ -11,7 +11,7 @@ import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo, \
     service_endpoints_repo
@@ -27,7 +27,7 @@ from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesSe
     ServicePluginResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-from django.conf import settings
+from console.repositories.perm_repo import role_repo
 
 
 tenantUsedResource = TenantUsedResource()
@@ -45,14 +45,11 @@ class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
             return False, u"应用名称不能为空"
-        if len(service_cname) > 20:
-            return False, u"应用名称最多支持20个字符"
+        if len(service_cname) > 100:
+            return False, u"应用名称最多支持100个字符"
         r = re.compile(u'^[a-zA-Z0-9_\\-\\.\u4e00-\u9fa5]+$')
         if not r.match(service_cname.decode("utf-8")):
             return False, u"应用名称只支持中英文下划线和中划线和点（.）"
-        service = service_repo.get_service_by_region_tenant_and_name(tenant.tenant_id, service_cname, region)
-        if service:
-            return False, u"当前团队下已存在相同名称应用"
         return True, u"success"
 
     def __init_source_code_app(self, region):
@@ -155,9 +152,11 @@ class AppService(object):
             "reason": reason,
             "eid": tenant.enterprise_id
         }
-        is_public = settings.MODULES.get('SSO_LOGIN')
-        if not is_public or new_add_memory <= 0:
-            return allow_create, tips
+        if new_add_memory == 0:
+            return True, "success"
+        # is_public = settings.MODULES.get('SSO_LOGIN')
+        # if not is_public or new_add_memory <= 0:
+        #     return allow_create, tips
         try:
             res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
             logger.debug("verify body {0}".format(body))
@@ -166,8 +165,18 @@ class AppService(object):
             msg = body.get("msg", None)
             if not msg or msg == "success":
                 return True, "success"
-            else:
-                raise ResourceNotEnoughException("资源不足，无法操作")
+            elif msg == "illegal_quantity":
+                raise ResourceNotEnoughException("请输入整数")
+            elif msg == "missing_tenant":
+                raise ResourceNotEnoughException("团队不存在")
+            elif msg == "owned_fee":
+                raise AccountOverdueException("账户已欠费")
+            elif msg == "region_unauthorized":
+                raise ResourceNotEnoughException("数据中心未授权")
+            elif msg == "lack_of_memory":
+                raise ResourceNotEnoughException("团队可用资源不足，请联系企业管理员")
+            elif msg == "cluster_lack_of_memory":
+                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
         except region_api.CallApiError as e:
             logger.exception(e)
             raise e
@@ -337,7 +346,8 @@ class AppService(object):
                         'service_alias')
 
             else:
-                if perm.identity in ('admin', 'developer', 'viewer', 'gray', 'owner'):
+                role_name = role_repo.get_role_name_by_role_id(perm.role_id)
+                if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
                     services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
                         'service_alias')
                 else:

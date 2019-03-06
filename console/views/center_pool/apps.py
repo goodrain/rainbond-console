@@ -6,7 +6,7 @@ from django.views.decorators.cache import never_cache
 
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
@@ -146,6 +146,9 @@ class CenterAppView(RegionTenantHeaderView):
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
+            logger.exception(re)
+            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except Exception as e:

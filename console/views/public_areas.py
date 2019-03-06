@@ -84,13 +84,24 @@ class TeamOverView(RegionTenantHeaderView):
                 overview_detail["user_nums"] = user_nums
                 team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
                                                                                 region_name=self.response_region)
-                total_memory, total_disk = common_services.get_current_region_used_resource(self.team,
-                                                                                            self.response_region)
-                team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
-                overview_detail["team_app_num"] = team_app_num
-                overview_detail["team_service_num"] = team_service_num
-                overview_detail["team_service_memory_count"] = total_memory
-                overview_detail["team_service_total_disk"] = total_disk
+                source = common_services.get_current_region_used_resource(self.team, self.response_region)
+                if source:
+                    team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
+                    overview_detail["team_app_num"] = team_app_num
+                    overview_detail["team_service_num"] = team_service_num
+                    overview_detail["team_service_memory_count"] = int(source["memory"])
+                    overview_detail["team_service_total_disk"] = int(source["disk"])
+                    overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
+                    overview_detail["team_service_total_memory"] = int(source["limit_memory"])
+                    overview_detail["team_service_use_cpu"] = int(source["cpu"])
+                    cpu_usage = 0
+                    memory_usage = 0
+                    if int(source["limit_cpu"]) != 0:
+                        cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+                    if int(source["limit_memory"]) != 0:
+                        memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
+                    overview_detail["cpu_usage"] = round(cpu_usage, 2)
+                    overview_detail["memory_usage"] = round(memory_usage, 2)
 
                 return Response(general_message(200, "success", "查询成功", bean=overview_detail))
             else:
@@ -170,9 +181,9 @@ class GroupServiceView(RegionTenantHeaderView):
                 team_id = self.team.tenant_id
                 group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
                 if group_count == 0:
-                    code = 400
-                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看！")
-                    return Response(result, status=502)
+                    code = 202
+                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
+                    return Response(result, status=200)
                 group_service_list = service_repo.get_group_service_by_group_id(group_id=group_id,
                                                                                 region_name=self.response_region,
                                                                                 team_id=self.team.tenant_id,

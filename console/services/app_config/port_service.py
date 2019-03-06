@@ -150,8 +150,10 @@ class AppPortService(object):
 
     def delete_port_by_container_port(self, tenant, service, container_port):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if service_domain:
-            return 412, u"请先解绑该端口绑定的域名", None
+
+        if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
+            return 412, u"该端口有自定义域名，请先解绑域名", None
+
         port_info = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
@@ -248,11 +250,8 @@ class AppPortService(object):
                     service_domain.save()
             else:
                 # 在service_domain表中保存数据
-                gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
-                group_obj = group_repo.get_group_by_id(gsr.group_id)
                 service_id = service.service_id
                 service_name = service.service_alias
-                group_name = group_obj.group_name
                 container_port = deal_port.container_port
                 domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain)
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -260,9 +259,8 @@ class AppPortService(object):
                 http_rule_id = make_uuid(domain_name)
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
-                g_id = str(gsr.group_id)
                 region_id = region.region_id
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, group_name, tenant_id, service_alias, g_id, region_id)
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, tenant_id, service_alias, region_id)
                 # 给数据中心发请求添加默认域名
                 data = dict()
                 data["domain"] = domain_name
@@ -294,22 +292,18 @@ class AppPortService(object):
                 if int(res.status) != 200:
                     return 400, u"请求数据中心异常"
                 end_point = str(region.tcpdomain) + ":" + str(data["bean"])
-                gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
-                group_obj = group_repo.get_group_by_id(gsr.group_id)
                 service_id = service.service_id
                 service_name = service.service_alias
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 container_port = deal_port.container_port
                 protocol = deal_port.protocol
-                group_name = group_obj.group_name
                 service_alias = service.service_cname
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
-                g_id = str(gsr.group_id)
                 region_id = region.region_id
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
-                                                      container_port, protocol, service_alias, group_name, tcp_rule_id,
-                                                      tenant_id, g_id, region_id)
+                                                      container_port, protocol, service_alias, tcp_rule_id,
+                                                      tenant_id, region_id)
                 # 默认ip不需要传给数据中心
                 # ip = end_point.split(":")[0]
                 port = end_point.split(":")[1]

@@ -32,7 +32,7 @@ from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, 
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
-    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView
+    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView, AppKeywordView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
@@ -83,7 +83,7 @@ from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUs
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey, ImageWebHooksDeploy
 from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
@@ -286,6 +286,8 @@ urlpatterns = patterns(
         AppAnalyzePluginView.as_view()),
     # 应用简要信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/brief', AppBriefView.as_view()),
+    # 触发应用自动部署关键字
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/keyword', AppKeywordView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins$', AppPluginsBriefView.as_view()),
     # 应用组信息修改
@@ -561,8 +563,10 @@ urlpatterns = patterns(
     # 应用组数据删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
-    # webhooks回调地址
+    # 源码仓库webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
+    # 镜像仓库webhooks回调地址
+    url(r'^image/webhooks/(?P<service_id>[\w\-]+)', ImageWebHooksDeploy.as_view()),
 
     # 自定义自动部署回调地址
     url(r'^custom/deploy/(?P<service_id>[\w\-]+)', CustomWebHooksDeploy.as_view()),

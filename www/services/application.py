@@ -53,13 +53,14 @@ class ApplicationService(object):
 
     def get_service_status(self, tenant, service):
         try:
-            body = region_api.check_service_status(service.service_region, tenant.tenant_name,
-                                                   service.service_alias,
-                                                   tenant.enterprise_id)
+            body = region_api.check_service_status(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, tenant.enterprise_id)
             status = body["bean"]['cur_status']
 
         except Exception, e:
-            logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
+            logger.debug(service.service_region + "-" + service.service_id +
+                         " check_service_status is error")
             logger.exception(e)
             status = 'failure'
 
@@ -67,42 +68,58 @@ class ApplicationService(object):
 
     def delete_service(self, tenant, service):
         try:
-            logger.debug("service_id - {0} - service_name {1} ".format(service.service_id, service.service_cname))
+            logger.debug("service_id - {0} - service_name {1} ".format(
+                service.service_id, service.service_cname))
             try:
-                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                          tenant.enterprise_id)
+                region_api.delete_service(
+                    service.service_region, tenant.tenant_name,
+                    service.service_alias, tenant.enterprise_id)
             except Exception as e:
                 success = False
                 logger.error("region delete service error! ")
                 logger.exception(e)
                 return success
 
-            TenantServiceInfo.objects.get(service_id=service.service_id).delete()
+            TenantServiceInfo.objects.get(
+                service_id=service.service_id).delete()
             # env/auth/domain/relationship/envVar/volume delete
-            TenantServiceEnv.objects.filter(service_id=service.service_id).delete()
-            TenantServiceAuth.objects.filter(service_id=service.service_id).delete()
-            ServiceDomain.objects.filter(service_id=service.service_id).delete()
-            TenantServiceRelation.objects.filter(service_id=service.service_id).delete()
-            TenantServiceEnvVar.objects.filter(service_id=service.service_id).delete()
-            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
-            TenantServicesPort.objects.filter(service_id=service.service_id).delete()
-            TenantServiceVolume.objects.filter(service_id=service.service_id).delete()
-            ServiceGroupRelation.objects.filter(service_id=service.service_id,
-                                                tenant_id=self.tenant_id).delete()
-            ServiceAttachInfo.objects.filter(service_id=service.service_id).delete()
-            ServiceCreateStep.objects.filter(service_id=service.service_id).delete()
+            TenantServiceEnv.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServiceAuth.objects.filter(
+                service_id=service.service_id).delete()
+            ServiceDomain.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServiceRelation.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServiceEnvVar.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServiceMountRelation.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServicesPort.objects.filter(
+                service_id=service.service_id).delete()
+            TenantServiceVolume.objects.filter(
+                service_id=service.service_id).delete()
+            ServiceGroupRelation.objects.filter(
+                service_id=service.service_id,
+                tenant_id=self.tenant_id).delete()
+            ServiceAttachInfo.objects.filter(
+                service_id=service.service_id).delete()
+            ServiceCreateStep.objects.filter(
+                service_id=service.service_id).delete()
             events = ServiceEvent.objects.filter(service_id=service.service_id)
             deleteEventID = []
             if events:
                 for event in events:
                     deleteEventID.append(event.event_id)
             if len(deleteEventID) > 0:
-                region_api.deleteEventLog(service.service_region,
-                                          json.dumps({"event_ids": deleteEventID}))
+                region_api.deleteEventLog(
+                    service.service_region,
+                    json.dumps({"event_ids": deleteEventID}))
 
             ServiceEvent.objects.filter(service_id=service.service_id).delete()
 
-            monitorhook.serviceMonitor(self.nick_name, service, 'app_delete', True)
+            monitorhook.serviceMonitor(self.nick_name, service, 'app_delete',
+                                       True)
         except Exception as e:
             logger.error("back service delete error!")
             logger.exception(e)
@@ -112,20 +129,24 @@ class ApplicationService(object):
 class ApplicationGroupService(object):
     def get_app_service_group_by_unique(self, group_key, group_version):
         try:
-            return AppServiceGroup.objects.get(group_share_id=group_key, group_version=group_version)
+            return AppServiceGroup.objects.get(
+                group_share_id=group_key, group_version=group_version)
         except AppServiceGroup.DoesNotExist:
             return None
 
     def is_app_service_group_existed(self, group_key, group_version):
-        query = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version)
+        query = AppServiceGroup.objects.filter(
+            group_share_id=group_key, group_version=group_version)
         if not query.exists():
             return False
 
         app_service_group = query.first()
 
-        rels = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID)
+        rels = PublishedGroupServiceRelation.objects.filter(
+            group_pk=app_service_group.ID)
         for rel in rels:
-            if not ServiceInfo.objects.filter(service_key=rel.service_key, version=rel.version).exists():
+            if not ServiceInfo.objects.filter(
+                    service_key=rel.service_key, version=rel.version).exists():
                 return False
 
         return True
@@ -133,14 +154,17 @@ class ApplicationGroupService(object):
     def list_app_service_group(self, source='remote'):
         return AppServiceGroup.objects.filter(source=source)
 
-    def download_app_service_group_from_market(self, tenant_id, group_key, group_version):
+    def download_app_service_group_from_market(self, tenant_id, group_key,
+                                               group_version):
         if self.is_app_service_group_existed(group_key, group_version):
             logger.debug('local group template existed, ignore.')
-            return self.get_app_service_group_by_unique(group_key=group_key, group_version=group_version)
+            return self.get_app_service_group_by_unique(
+                group_key=group_key, group_version=group_version)
 
         # 如果本地模板不存在, 从云市下载一份
         try:
-            data = market_api.get_service_group_detail(tenant_id, group_key, group_version)
+            data = market_api.get_service_group_detail(tenant_id, group_key,
+                                                       group_version)
             if not data:
                 return None
 
@@ -153,10 +177,13 @@ class ApplicationGroupService(object):
             return app_service_group
         except Exception as e:
             logger.exception(e)
-            logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
+            logger.error(
+                'download app_group[{0}-{1}] from market failed!'.format(
+                    group_key, group_version))
             return None
 
-    def get_app_templates(self, tenant_id, group_key, group_version,template_version):
+    def get_app_templates(self, tenant_id, group_key, group_version,
+                          template_version):
         app = self.get_local_app_templates(group_key, group_version)
         if app and app.is_complete:
             logger.debug('local group template existed, ignore.')
@@ -164,11 +191,13 @@ class ApplicationGroupService(object):
             # 字符串
             return app.app_template
         try:
-            app_templates = market_api.get_service_group_detail(tenant_id, group_key, group_version,template_version)
+            app_templates = market_api.get_service_group_detail(
+                tenant_id, group_key, group_version, template_version)
             if not app_templates:
                 return None
             if app_templates["template_version"] == "v1":
-                v2_template = template_transform_service.v1_to_v2(app_templates)
+                v2_template = template_transform_service.v1_to_v2(
+                    app_templates)
                 data = json.dumps(v2_template)
             else:
                 v2_template = app_templates
@@ -177,33 +206,43 @@ class ApplicationGroupService(object):
             return data
         except Exception as e:
             logger.exception(e)
-            logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
+            logger.error(
+                'download app_group[{0}-{1}] from market failed!'.format(
+                    group_key, group_version))
             return None
 
-    def get_local_app_templates(self,group_key, group_version):
-        apps = RainbondCenterApp.objects.filter(group_key=group_key,version=group_version)
+    def get_local_app_templates(self, group_key, group_version):
+        apps = RainbondCenterApp.objects.filter(
+            group_key=group_key, version=group_version)
         if apps:
             return apps[0]
         return None
 
+    # do not sort app service, The startup sequence is implemented by the region
+    def __sort_service(self, publish_service_list, reverse=False):
+        return publish_service_list
 
-    def __create_tenant_service_group(self, tenant, app_service_group, region_name):
+    def __create_tenant_service_group(self, tenant, app_service_group,
+                                      region_name):
         group_name = self.__generator_group_name('gr')
-        tenant_service_group = TenantServiceGroup(tenant_id=tenant.tenant_id,
-                                                  group_name=group_name,
-                                                  group_alias=app_service_group.group_share_alias,
-                                                  group_key=app_service_group.group_share_id,
-                                                  group_version=app_service_group.group_version,
-                                                  region_name=region_name)
+        tenant_service_group = TenantServiceGroup(
+            tenant_id=tenant.tenant_id,
+            group_name=group_name,
+            group_alias=app_service_group.group_share_alias,
+            group_key=app_service_group.group_share_id,
+            group_version=app_service_group.group_version,
+            region_name=region_name)
         tenant_service_group.save()
         return tenant_service_group
 
-    def install_tenant_service_group(self, user, tenant, region_name, app_service_group, service_origin):
-        logger.debug('install [{}] ==> [{},{}]'.format(app_service_group.group_share_alias,
-                                                       app_service_group.group_share_id,
-                                                       app_service_group.group_version))
+    def install_tenant_service_group(self, user, tenant, region_name,
+                                     app_service_group, service_origin):
+        logger.debug('install [{}] ==> [{},{}]'.format(
+            app_service_group.group_share_alias,
+            app_service_group.group_share_id, app_service_group.group_version))
         # 先创建一个本地的租户应用组
-        tenant_group = self.__create_tenant_service_group(tenant, app_service_group, region_name)
+        tenant_group = self.__create_tenant_service_group(
+            tenant, app_service_group, region_name)
         logger.debug('create tenant_service_group: {}'.format(tenant_group.ID))
 
         # 根据模板创建本地运行应用信息, 这个操作应该是事物性的, 如果没有成功, 整体清理
@@ -212,26 +251,29 @@ class ApplicationGroupService(object):
             # 查询分享组中的服务模板信息
             service_info_list = self.__get_service_info(app_service_group.ID)
             # 依据服务模板创建租户服务
-            self.__create_tenant_services(user, tenant, region_name, tenant_group, service_info_list,
+            self.__create_tenant_services(user, tenant, region_name,
+                                          tenant_group, service_info_list,
                                           installed_services, service_origin)
 
             # 创建服务依赖
             self.__create_dep_service(installed_services)
         except Exception as copy_exc:
             logger.exception(copy_exc)
-            self.__clear_install_context(tenant_group, installed_services, tenant)
+            self.__clear_install_context(tenant_group, installed_services,
+                                         tenant)
             return False, 'create tenant_services failed!', tenant_group, installed_services
 
         # 根据分享组模板生成此应用组对应的分类, 并将这些安装的应用放置到此分类下
-        category_group = self.__create_category_group(tenant.tenant_id, region_name,
-                                                      app_service_group.group_share_alias,
-                                                      installed_services)
+        category_group = self.__create_category_group(
+            tenant.tenant_id, region_name, app_service_group.group_share_alias,
+            installed_services)
         tenant_group.service_group_id = category_group.pk
         tenant_group.save()
 
         return True, 'success', tenant_group, installed_services
 
-    def install_market_apps_directly(self, user, tenant, region_name, app_service_json_str, service_origin ):
+    def install_market_apps_directly(self, user, tenant, region_name,
+                                     app_service_json_str, service_origin):
         app_templates = json.loads(app_service_json_str)
         apps = app_templates["apps"]
 
@@ -242,26 +284,33 @@ class ApplicationGroupService(object):
         new_group = None
         try:
             # 生成分类
-            group_name = self.__generator_group_name(app_templates["group_name"])
-            new_group = group_repo.add_group(tenant.tenant_id, region_name, group_name)
+            group_name = self.__generator_group_name(
+                app_templates["group_name"])
+            new_group = group_repo.add_group(tenant.tenant_id, region_name,
+                                             group_name)
             group_id = new_group.ID
-            tenant_service_group = self.__generate_tenant_service_group(region_name, tenant.tenant_id, new_group.ID,
-                                                                        app_templates["group_key"],
-                                                                        app_templates["group_version"],
-                                                                        app_templates["group_name"])
+            tenant_service_group = self.__generate_tenant_service_group(
+                region_name, tenant.tenant_id, new_group.ID,
+                app_templates["group_key"], app_templates["group_version"],
+                app_templates["group_name"])
             for app in apps:
-                ts = self.__init_market_app(tenant, region_name, user, app, tenant_service_group.ID,service_origin)
-                group_service.add_service_to_group(tenant, region_name, group_id, ts.service_id)
+                ts = self.__init_market_app(tenant, region_name, user, app,
+                                            tenant_service_group.ID,
+                                            service_origin)
+                group_service.add_service_to_group(tenant, region_name,
+                                                   group_id, ts.service_id)
 
                 # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"],
-                                            app["service_connect_info_map_list"])
+                code, msg = self.__save_env(
+                    tenant, ts, app["service_env_map_list"],
+                    app["service_connect_info_map_list"])
                 if code != 200:
                     raise Exception(msg)
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
                 if code != 200:
                     raise Exception(msg)
-                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
+                code, msg = self.__save_volume(tenant, ts,
+                                               app["service_volume_map_list"])
                 if code != 200:
                     raise Exception(msg)
 
@@ -269,7 +318,8 @@ class ApplicationGroupService(object):
                 probe_infos = app.get("probes", None)
                 if probe_infos:
                     for prob_data in probe_infos:
-                        code, msg, probe = probe_service.add_service_probe(tenant, ts, prob_data)
+                        code, msg, probe = probe_service.add_service_probe(
+                            tenant, ts, prob_data)
                         if code != 200:
                             logger.exception(msg)
 
@@ -281,11 +331,14 @@ class ApplicationGroupService(object):
                 key_service_map[ts.service_key] = ts
                 service_list.append(ts)
             # 保存依赖关系，需要等应用都创建完成才能使用
-            self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
+            self.__save_service_deps(tenant, service_key_dep_key_map,
+                                     key_service_map)
             # 数据中心创建应用
             for service in service_list:
-                new_service = app_service.create_region_service(tenant, service, user.nick_name)
-                logger.debug("build service ===> {0}  success".format(service.service_cname))
+                new_service = app_service.create_region_service(
+                    tenant, service, user.nick_name)
+                logger.debug("build service ===> {0}  success".format(
+                    service.service_cname))
                 # 为服务添加探针
                 self.__create_service_probe(tenant, new_service)
 
@@ -297,7 +350,8 @@ class ApplicationGroupService(object):
             logger.exception(e)
             # 回滚数据
             if tenant_service_group:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(tenant_service_group.ID)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(
+                    tenant_service_group.ID)
             if new_group:
                 group_repo.delete_group_by_pk(new_group.ID)
             for service in service_list:
@@ -309,29 +363,37 @@ class ApplicationGroupService(object):
 
     def __update_service_extend_method(self, tenant, tenant_service):
         try:
-            logger.debug('extend_method: {}'.format(tenant_service.extend_method))
+            logger.debug('extend_method: {}'.format(
+                tenant_service.extend_method))
 
             service_status = 'state' if tenant_service.extend_method == 'state' else 'stateless'
             logger.debug('region_extend_method: {}'.format(service_status))
             data = {
-                'label_value': 'StatelessServiceType' if service_status == 'stateless' else 'StatefulServiceType',
-                'label_key': "service-type"
+                'label_value':
+                'StatelessServiceType'
+                if service_status == 'stateless' else 'StatefulServiceType',
+                'label_key':
+                "service-type"
             }
             service_label_list = list()
             service_label_list.append(data)
             body = {"labels": service_label_list}
-            region_api.update_service_state_label(tenant_service.service_region, tenant.tenant_name,
-                                                  tenant_service.service_alias, body)
+            region_api.update_service_state_label(
+                tenant_service.service_region, tenant.tenant_name,
+                tenant_service.service_alias, body)
         except Exception as e:
             logger.exception(e)
 
     def __create_service_probe(self, tenant, service):
         try:
-            if ServiceProbe.objects.filter(service_id=service.service_id, mode='readiness').exists():
+            if ServiceProbe.objects.filter(
+                    service_id=service.service_id, mode='readiness').exists():
                 return
 
-            tenant_ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id,
-                                                             is_outer_service=1).exclude(protocol='udp')
+            tenant_ports = TenantServicesPort.objects.filter(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                is_outer_service=1).exclude(protocol='udp')
             if not tenant_ports:
                 return
 
@@ -340,21 +402,29 @@ class ApplicationGroupService(object):
             # 特殊处理小强数据库
             if service.service_key == "66ee1676270f74b76e2a431671e8f320":
                 is_used = 0
-            service_probe = ServiceProbe(service_id=service.service_id,
-                                         scheme='tcp', path='', http_header='', cmd='',
-                                         port=port,
-                                         initial_delay_second=2,
-                                         period_second=3, timeout_second=30, failure_threshold=3, success_threshold=1,
-                                         is_used=is_used,
-                                         probe_id=make_uuid(),
-                                         mode='readiness')
+            service_probe = ServiceProbe(
+                service_id=service.service_id,
+                scheme='tcp',
+                path='',
+                http_header='',
+                cmd='',
+                port=port,
+                initial_delay_second=2,
+                period_second=3,
+                timeout_second=30,
+                failure_threshold=3,
+                success_threshold=1,
+                is_used=is_used,
+                probe_id=make_uuid(),
+                mode='readiness')
 
             json_data = model_to_dict(service_probe)
             is_used = 1 if json_data["is_used"] else 0
             json_data.update({"is_used": is_used})
             json_data["enterprise_id"] = tenant.enterprise_id
-            res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
-                                                     service.service_alias, json_data)
+            res, body = region_api.add_service_probe(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, json_data)
 
             if 400 <= res.status <= 600:
                 logger.error('set service [{}] probe to region failed!')
@@ -364,25 +434,41 @@ class ApplicationGroupService(object):
         except Exception as e:
             logger.exception(e)
 
-    def __clear_install_context(self, tenant_group, installed_services, tenant):
+    def __clear_install_context(self, tenant_group, installed_services,
+                                tenant):
         tenant_id = tenant.tenant_id
         installed_service_ids = [s.service_id for s in installed_services]
         logger.debug("===> del count: {}".format(len(installed_service_ids)))
         logger.debug("===> del service_ids: {}".format(installed_service_ids))
 
-        TenantServiceAuth.objects.filter(service_id__in=installed_service_ids).delete()
-        ServiceDomain.objects.filter(service_id__in=installed_service_ids).delete()
-        TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=installed_service_ids).delete()
-        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=installed_service_ids).delete()
-        TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=installed_service_ids).delete()
-        TenantServiceVolume.objects.filter(service_id__in=installed_service_ids).delete()
-        ServiceProbe.objects.filter(service_id__in=installed_service_ids).delete()
-        ServiceGroupRelation.objects.filter(service_id__in=installed_service_ids).delete()
-        TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id__in=installed_service_ids).delete()
+        TenantServiceAuth.objects.filter(
+            service_id__in=installed_service_ids).delete()
+        ServiceDomain.objects.filter(
+            service_id__in=installed_service_ids).delete()
+        TenantServiceRelation.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=installed_service_ids).delete()
+        TenantServiceEnvVar.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=installed_service_ids).delete()
+        TenantServicesPort.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=installed_service_ids).delete()
+        TenantServiceVolume.objects.filter(
+            service_id__in=installed_service_ids).delete()
+        ServiceProbe.objects.filter(
+            service_id__in=installed_service_ids).delete()
+        ServiceGroupRelation.objects.filter(
+            service_id__in=installed_service_ids).delete()
+        TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=installed_service_ids).delete()
 
-        sgr = ServiceGroupRelation.objects.filter(group_id=tenant_group.service_group_id)
+        sgr = ServiceGroupRelation.objects.filter(
+            group_id=tenant_group.service_group_id)
         if sgr.count() == 0:
-            ServiceGroup.objects.filter(pk=tenant_group.service_group_id).delete()
+            ServiceGroup.objects.filter(
+                pk=tenant_group.service_group_id).delete()
 
         if tenant_group:
             tenant_group.delete()
@@ -392,10 +478,16 @@ class ApplicationGroupService(object):
         return '_'.join([group_name, make_uuid()[-4:]])
 
     def __is_group_name_exist(self, group_name, tenant_id, region_name):
-        return ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name,
-                                           group_name=group_name).exists()
+        return ServiceGroup.objects.filter(
+            tenant_id=tenant_id,
+            region_name=region_name,
+            group_name=group_name).exists()
 
-    def __create_category_group(self, tenant_id, region_name, group_name, installed_services=[]):
+    def __create_category_group(self,
+                                tenant_id,
+                                region_name,
+                                group_name,
+                                installed_services=[]):
         """
         在指定团队数据中心生成应用分类，如果分类名存在则自动生成分类名, 并将安装的应用放置于此分类之下
         :return: 分类
@@ -404,22 +496,28 @@ class ApplicationGroupService(object):
             if self.__is_group_name_exist(group_name, tenant_id, region_name):
                 group_name = self.__generator_group_name(group_name)
             else:
-                group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name,
-                                                    group_name=group_name)
+                group = ServiceGroup.objects.create(
+                    tenant_id=tenant_id,
+                    region_name=region_name,
+                    group_name=group_name)
                 break
 
         for service_info in installed_services:
-            ServiceGroupRelation.objects.create(service_id=service_info.service_id, group_id=group.pk,
-                                                tenant_id=tenant_id,
-                                                region_name=region_name)
+            ServiceGroupRelation.objects.create(
+                service_id=service_info.service_id,
+                group_id=group.pk,
+                tenant_id=tenant_id,
+                region_name=region_name)
         return group
 
     def __get_service_info(self, group_id):
         result = []
-        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=group_id)
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(
+            group_pk=group_id)
         for pgsr in pgsr_list:
-            service = ServiceInfo.objects.filter(service_key=pgsr.service_key, version=pgsr.version).order_by(
-                '-ID').first()
+            service = ServiceInfo.objects.filter(
+                service_key=pgsr.service_key,
+                version=pgsr.version).order_by('-ID').first()
             if service:
                 result.append(service)
         return result
@@ -441,12 +539,12 @@ class ApplicationGroupService(object):
                 dfs(graph, start_node)
         return li
 
-
     def get_app_group_by_id(self, group_id):
         """
         获取发布的服务组最新的版本
         """
-        app_service_groups = AppServiceGroup.objects.filter(group_id=group_id).order_by("-ID")
+        app_service_groups = AppServiceGroup.objects.filter(
+            group_id=group_id).order_by("-ID")
         if app_service_groups:
             return app_service_groups[0]
         else:
@@ -476,7 +574,11 @@ class ApplicationGroupService(object):
         except AppServiceGroup.DoesNotExist:
             return None
 
-    def get_tenant_service_group_by_pk(self, pk, is_cascade=False, is_query_status=False, is_query_consume=False):
+    def get_tenant_service_group_by_pk(self,
+                                       pk,
+                                       is_cascade=False,
+                                       is_query_status=False,
+                                       is_query_consume=False):
         """
         通过主键获取租户已安装应用组信息
         :param pk: 
@@ -492,19 +594,26 @@ class ApplicationGroupService(object):
 
         if is_cascade:
             group.tenant = Tenants.objects.get(tenant_id=group.tenant_id)
-            group.service_list = TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk) or list()
+            group.service_list = TenantServiceInfo.objects.filter(
+                tenant_service_group_id=group.pk) or list()
             for service in group.service_list:
-                service.access_url = self.get_tenant_service_access_url(group.tenant, service)
+                service.access_url = self.get_tenant_service_access_url(
+                    group.tenant, service)
 
         if is_query_consume:
-            group.memory, group.net, group.disk = self.get_tenant_group_consume(group)
+            group.memory, group.net, group.disk = self.get_tenant_group_consume(
+                group)
 
         if is_query_status:
             group.status = self.__get_tenant_group_status(group)
 
         return group
 
-    def list_tenant_service_group_by_region(self, tenant, region_name, is_cascade=False, is_query_status=False,
+    def list_tenant_service_group_by_region(self,
+                                            tenant,
+                                            region_name,
+                                            is_cascade=False,
+                                            is_query_status=False,
                                             is_query_consume=False):
         """
         查询指定租户数据中心下的应用组信息
@@ -518,19 +627,23 @@ class ApplicationGroupService(object):
         if not tenant:
             return []
 
-        group_list = TenantServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
+        group_list = TenantServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, region_name=region_name)
         if not group_list:
             return []
 
         for group in group_list:
             if is_cascade:
                 group.tenant = tenant
-                group.service_list = TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk) or list()
+                group.service_list = TenantServiceInfo.objects.filter(
+                    tenant_service_group_id=group.pk) or list()
                 for service in group.service_list:
-                    service.access_url = self.get_tenant_service_access_url(group.tenant, service)
+                    service.access_url = self.get_tenant_service_access_url(
+                        group.tenant, service)
 
             if is_query_consume:
-                group.memory, group.net, group.disk = self.get_tenant_group_consume(group)
+                group.memory, group.net, group.disk = self.get_tenant_group_consume(
+                    group)
 
             if is_query_status:
                 group.status = self.__get_tenant_group_status(group)
@@ -547,13 +660,16 @@ class ApplicationGroupService(object):
         total_net = 0
         total_disk = 0
 
-        tenant = group.tenant if hasattr(group, 'tenant') else Tenants.objects.get(tenant_id=group.tenant_id)
+        tenant = group.tenant if hasattr(group,
+                                         'tenant') else Tenants.objects.get(
+                                             tenant_id=group.tenant_id)
         service_list = group.service_list if hasattr(group, 'service_list') else \
             TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk)
 
         for service in service_list:
-            tss = TenantServiceStatics.objects.filter(service_id=service.service_id,
-                                                      tenant_id=tenant.tenant_id).order_by("-ID")[:1]
+            tss = TenantServiceStatics.objects.filter(
+                service_id=service.service_id,
+                tenant_id=tenant.tenant_id).order_by("-ID")[:1]
             if tss:
                 ts = tss[0]
                 memory, disk, net = ts.node_memory, ts.storage_disk, ts.flow
@@ -573,10 +689,13 @@ class ApplicationGroupService(object):
         :return: 
         """
         tenant = group.tenant or Tenants.objects.get(tenant_id=group.tenant_id)
-        service_list = group.service_list or TenantServiceInfo.objects.filter(tenant_service_group_id=group.pk)
+        service_list = group.service_list or TenantServiceInfo.objects.filter(
+            tenant_service_group_id=group.pk)
 
         service_ids = [s.service_id for s in service_list]
-        service_status_map = self.__map_region_service_status(tenant.enterprise_id, group.region_name, tenant.tenant_name, service_ids)
+        service_status_map = self.__map_region_service_status(
+            tenant.enterprise_id, group.region_name, tenant.tenant_name,
+            service_ids)
 
         for service in service_list:
             if service.service_id in service_status_map:
@@ -589,16 +708,18 @@ class ApplicationGroupService(object):
 
     def __get_tenant_service_status(self, tenant, service):
         try:
-            body = region_api.check_service_status(service.service_region, tenant.tenant_name,
-                                                   service.service_alias,
-                                                   tenant.enterprise_id)
+            body = region_api.check_service_status(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, tenant.enterprise_id)
             status = body["bean"]['cur_status']
 
         except region_api.CallApiError as e:
             if e.status == 404:
                 status = 'undeploy'
             else:
-                logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
+                logger.debug(service.service_region + "-" +
+                             service.service_id +
+                             " check_service_status is error")
                 logger.exception(e)
                 status = 'failure'
 
@@ -656,8 +777,7 @@ class ApplicationGroupService(object):
 
     def get_service_http_port(self, service_id):
         return TenantServicesPort.objects.filter(
-            service_id=service_id, protocol='http', is_outer_service=True
-        )
+            service_id=service_id, protocol='http', is_outer_service=True)
 
     def get_tenant_by_pk(self, tenant_id):
         try:
@@ -678,22 +798,27 @@ class ApplicationGroupService(object):
             return None
 
     def get_tenant_service_access_url(self, tenant, service):
-        tenant_ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id,
-                                                         is_outer_service=1, protocol='http')
+        tenant_ports = TenantServicesPort.objects.filter(
+            tenant_id=tenant.tenant_id,
+            service_id=service.service_id,
+            is_outer_service=1,
+            protocol='http')
         if not tenant_ports:
             return ''
 
         # 如果有多个对外端口，取第一个
         tenant_port = tenant_ports[0]
-        wild_domain = region_services.get_region_httpdomain(service.service_region)
+        wild_domain = region_services.get_region_httpdomain(
+            service.service_region)
 
-        access_url = "http://{0}.{1}.{2}.{3}".format(tenant_port.container_port, service.service_alias,
-                                                     tenant.tenant_name,
-                                                     wild_domain)
+        access_url = "http://{0}.{1}.{2}.{3}".format(
+            tenant_port.container_port, service.service_alias,
+            tenant.tenant_name, wild_domain)
 
         return access_url
 
-    def is_tenant_service_group_installed(self, tenant, region_name, group_key, group_version):
+    def is_tenant_service_group_installed(self, tenant, region_name, group_key,
+                                          group_version):
         """
         在指定租户的指定数据中心下, 指定类型应用组是否已安装过
         :param tenant: 租户信息
@@ -702,13 +827,16 @@ class ApplicationGroupService(object):
         :param group_version: 应用组模板version
         :return: 
         """
-        return TenantServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name,
-                                                 group_key=group_key,
-                                                 group_version=group_version).exists()
+        return TenantServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id,
+            region_name=region_name,
+            group_key=group_key,
+            group_version=group_version).exists()
 
     def build_tenant_service_group(self, user, group_id):
         group = self.get_tenant_service_group_by_pk(group_id, True, True)
-        logger.debug('prepare deploy service_group ==> [{}-{}:{}]'.format(group.group_alias, group_id, group.status))
+        logger.debug('prepare deploy service_group ==> [{}-{}:{}]'.format(
+            group.group_alias, group_id, group.status))
         if not group:
             return False, '应用组不存在'
 
@@ -719,8 +847,9 @@ class ApplicationGroupService(object):
 
         # 运行到这里, 云帮的应用已经都准备就绪了, 根据应用的关系, 向数据中心发部署请求
         sorted_services = self.__sort_service(group.service_list)
-        logger.debug(
-            'build order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
+        logger.debug('build order ==> {}'.format([
+            tenant_service.service_cname for tenant_service in sorted_services
+        ]))
 
         try:
             for s in sorted_services:
@@ -739,16 +868,17 @@ class ApplicationGroupService(object):
 
         # 将应用组中应用排序, 并逐一启动
         sorted_services = self.__sort_service(group.service_list)
-        logger.debug(
-            'restart order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
+        logger.debug('restart order ==> {}'.format([
+            tenant_service.service_cname for tenant_service in sorted_services
+        ]))
         for service in sorted_services:
             try:
                 app_manage_service.start(tenant, service, user)
             except Exception as e:
                 logger.exception(e)
-                logger.error(
-                    'restart {0}[{1}]:{2} failed!'.format(service.service_cname, service.service_alias,
-                                                          service.service_id))
+                logger.error('restart {0}[{1}]:{2} failed!'.format(
+                    service.service_cname, service.service_alias,
+                    service.service_id))
                 return False, '启动应用组失败'
         return True, '启动应用组成功'
 
@@ -761,8 +891,9 @@ class ApplicationGroupService(object):
 
         # 将应用组中应用排序, 并逐一启动
         sorted_services = self.__sort_service(group.service_list)
-        logger.debug(
-            'stop order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
+        logger.debug('stop order ==> {}'.format([
+            tenant_service.service_cname for tenant_service in sorted_services
+        ]))
         for service in sorted_services:
             try:
                 app_manage_service.stop(tenant, service, user)
@@ -784,20 +915,22 @@ class ApplicationGroupService(object):
         # 将应用组中的应用反向排序, 然后再逐一删除
         region_delete = True
         sorted_services = self.__sort_service(group.service_list, True)
-        logger.debug(
-            'delete order ==> {}'.format([tenant_service.service_cname for tenant_service in sorted_services]))
+        logger.debug('delete order ==> {}'.format([
+            tenant_service.service_cname for tenant_service in sorted_services
+        ]))
         for tenant_service in sorted_services:
             try:
-                region_api.delete_service(region_name, tenant.tenant_name, tenant_service.service_alias,
+                region_api.delete_service(region_name, tenant.tenant_name,
+                                          tenant_service.service_alias,
                                           tenant.enterprise_id)
             except region_api.CallApiError as delete_exc:
                 if delete_exc.status == 404:
                     continue
 
                 logger.exception(delete_exc)
-                logger.error('delete {0}[{1}]:{2} failed!'.format(tenant_service.service_cname,
-                                                                  tenant_service.service_alias,
-                                                                  tenant_service.service_id))
+                logger.error('delete {0}[{1}]:{2} failed!'.format(
+                    tenant_service.service_cname, tenant_service.service_alias,
+                    tenant_service.service_id))
                 region_delete = False
 
         if not region_delete:
@@ -814,7 +947,8 @@ class ApplicationGroupService(object):
         """
         group_list = list()
         for group_id in group_id_list:
-            tenant_group = self.get_tenant_service_group_by_pk(int(group_id), True)
+            tenant_group = self.get_tenant_service_group_by_pk(
+                int(group_id), True)
             if tenant_group:
                 group_list.append(tenant_group)
 
@@ -822,19 +956,24 @@ class ApplicationGroupService(object):
         service_map = dict()
         for tenant_group in group_list:
             # 按租户+数据中心给应用分组
-            query_key = ':'.join(
-                [tenant_group.tenant.enterprise_id, tenant_group.region_name, tenant_group.tenant.tenant_name])
+            query_key = ':'.join([
+                tenant_group.tenant.enterprise_id, tenant_group.region_name,
+                tenant_group.tenant.tenant_name
+            ])
             if query_key not in query_map:
                 query_map[query_key] = list()
 
             query_map[query_key].extend(tenant_group.service_list)
-            service_map.update({s.service_id: s for s in tenant_group.service_list})
+            service_map.update(
+                {s.service_id: s
+                 for s in tenant_group.service_list})
 
         # 同一数据中心,租户下的应用一次性查询出来
         for key, service_list in query_map.items():
             enterprise_id, region, tenant_name = key.split(':')
             service_ids = [s.service_id for s in service_list]
-            service_status_map = self.__map_region_service_status(enterprise_id, region, tenant_name, service_ids)
+            service_status_map = self.__map_region_service_status(
+                enterprise_id, region, tenant_name, service_ids)
 
             for service in service_list:
                 if service.service_id in service_status_map:
@@ -844,25 +983,30 @@ class ApplicationGroupService(object):
 
         # 将所有组下应用的状态汇总成为应用组状态
         for tenant_group in group_list:
-            list_service_status = [service.status for service in tenant_group.service_list]
-            tenant_group.status = self.__compute_group_service_status(list_service_status)
+            list_service_status = [
+                service.status for service in tenant_group.service_list
+            ]
+            tenant_group.status = self.__compute_group_service_status(
+                list_service_status)
 
         return group_list
 
-    def __map_region_service_status(self, enterprise_id, region, tenant_name, service_ids):
+    def __map_region_service_status(self, enterprise_id, region, tenant_name,
+                                    service_ids):
         try:
-            data = {
-                "service_ids": service_ids,
-                "enterprise_id": enterprise_id
-            }
+            data = {"service_ids": service_ids, "enterprise_id": enterprise_id}
             ret_data = region_api.service_status(region, tenant_name, data)
             services_status = ret_data.get("list") or list()
-            return {status_map["service_id"]: status_map['status'] for status_map in services_status}
+            return {
+                status_map["service_id"]: status_map['status']
+                for status_map in services_status
+            }
         except Exception as e:
             logger.exception(e)
             return {service_id: 'failure' for service_id in service_ids}
 
-    def __generate_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
+    def __generate_tenant_service_group(self, region, tenant_id, group_id,
+                                        group_key, group_version, group_alias):
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,
@@ -875,17 +1019,19 @@ class ApplicationGroupService(object):
         }
         return tenant_service_group_repo.create_tenant_service_group(**params)
 
-    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, service_origin):
+    def __init_market_app(self, tenant, region, user, app,
+                          tenant_service_group_id, service_origin):
         """
         初始化应用市场创建的应用默认数据
         """
-        is_slug = bool(
-            app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+        is_slug = bool(app["image"].startswith('goodrain.me/runner')
+                       and app["language"] not in ("dockerfile", "docker"))
 
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app_service.generate_service_cname(tenant, app["service_cname"], region)
+        tenant_service.service_cname = app_service.generate_service_cname(
+            tenant, app["service_cname"], region)
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         if is_slug:
@@ -902,7 +1048,8 @@ class ApplicationGroupService(object):
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]
         tenant_service.min_memory = app["extend_method_map"]["min_memory"]
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
+        tenant_service.min_cpu = baseService.calculate_service_cpu(
+            region, tenant_service.min_memory)
         tenant_service.inner_port = 0
         tenant_service.version = app["version"]
         if is_slug:
@@ -913,7 +1060,8 @@ class ApplicationGroupService(object):
                 tenant_service.namespace = app["service_image"]["namespace"]
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
-        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.create_time = datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S')
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
@@ -932,7 +1080,9 @@ class ApplicationGroupService(object):
         return tenant_service
 
     def __init_service_source(self, ts, app):
-        is_slug = bool(ts.image.startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+        is_slug = bool(
+            ts.image.startswith('goodrain.me/runner')
+            and app["language"] not in ("dockerfile", "docker"))
         if is_slug:
             extend_info = app["service_slug"]
             extend_info["slug_path"] = app.get("share_slug_path", "")
@@ -948,17 +1098,19 @@ class ApplicationGroupService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
+    def __save_service_deps(self, tenant, service_key_dep_key_map,
+                            key_service_map):
         if service_key_dep_key_map:
             for service_key in service_key_dep_key_map.keys():
                 ts = key_service_map[service_key]
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
                     dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts,
-                                                                               dep_service.service_id)
+                    code, msg, d = app_relation_service.add_service_dependency(
+                        tenant, ts, dep_service.service_id)
                     if code != 200:
-                        logger.error("compose add service error {0}".format(msg))
+                        logger.error(
+                            "compose add service error {0}".format(msg))
                         return code, msg
         return 200, "success"
 
@@ -966,9 +1118,9 @@ class ApplicationGroupService(object):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
-            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env["attr_value"], env["is_change"],
-                                                                      "inner")
+            code, msg, env_data = env_var_service.add_service_env_var(
+                tenant, service, 0, env["name"], env["attr_name"],
+                env["attr_value"], env["is_change"], "inner")
             if code != 200:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
@@ -977,10 +1129,10 @@ class ApplicationGroupService(object):
             if container_port == 0:
                 if env["attr_value"] == "**None**":
                     env["attr_value"] = service.service_id[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port,
-                                                                          env["name"], env["attr_name"],
-                                                                          env["attr_value"], env["is_change"],
-                                                                          "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(
+                    tenant, service, container_port, env["name"],
+                    env["attr_name"], env["attr_value"], env["is_change"],
+                    "outer")
                 if code != 200:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
@@ -990,12 +1142,10 @@ class ApplicationGroupService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(tenant, service,
-                                                                 int(port["container_port"]),
-                                                                 port["protocol"],
-                                                                 port["port_alias"],
-                                                                 port["is_inner_service"],
-                                                                 port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(
+                tenant, service, int(port["container_port"]), port["protocol"],
+                port["port_alias"], port["is_inner_service"],
+                port["is_outer_service"])
             if code != 200:
                 logger.error("save market app port error".format(msg))
                 return code, msg
@@ -1005,8 +1155,9 @@ class ApplicationGroupService(object):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                       volume["volume_type"], volume["volume_name"])
+            code, msg, volume_data = volume_service.add_service_volume(
+                tenant, service, volume["volume_path"], volume["volume_type"],
+                volume["volume_name"])
             if code != 200:
                 logger.error("save market app volume error".format(msg))
                 return code, msg

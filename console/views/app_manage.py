@@ -7,7 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.views.app_config.base import AppBaseView
@@ -65,6 +65,9 @@ class StartAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -177,6 +180,9 @@ class DeployAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -210,13 +216,14 @@ class RollBackAppView(AppBaseView):
         """
         try:
             deploy_version = request.data.get("deploy_version", None)
-            if not deploy_version:
-                return Response(general_message(400, "deploy version is not found", "请指明回滚的版本"), status=400)
+            upgrade_or_rollback = request.data.get("upgrade_or_rollback", None)
+            if not deploy_version or not upgrade_or_rollback:
+                return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
 
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法回滚"))
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version)
+                return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
+            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -227,6 +234,9 @@ class RollBackAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -281,6 +291,9 @@ class VerticalExtendAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -336,6 +349,9 @@ class HorizontalExtendAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -606,6 +622,9 @@ class UpgradeAppView(AppBaseView):
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
