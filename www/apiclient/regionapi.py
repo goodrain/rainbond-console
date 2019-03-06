@@ -562,6 +562,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         return self._delete(url, self.default_headers,region=region)
 
+    def upgrade_service_volumes(self, region, tenant_name, service_alias, body):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes".format(
+            tenant_name, service_alias)
+        self._set_headers(token)
+        return self._put(url, self.default_headers, json.dumps(body), region=region)
+
     def get_service_dep_volumes(self, region, tenant_name, service_alias,
                                 enterprise_id):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
