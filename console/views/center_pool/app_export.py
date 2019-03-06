@@ -33,25 +33,25 @@ class CenterAppExportView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: path
-            - name: app_id
-              description: rainbond app id
-              required: true
-              type: string
-              paramType: query
-
         """
         try:
-            app_id = request.GET.get("app_id", None)
-            if not app_id:
+            group_key = request.GET.get("group_key", None)
+            group_version = request.GET.get("group_version", None)
+            if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要查询的应用"), status=400)
-            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
-            if not app:
-                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            code, msg, result = export_service.get_export_status(self.tenant, app)
-            if code != 200:
-                return Response(general_message(code, "get export info error ", msg), status=code)
 
-            result = general_message(200, "success", "查询成功", bean=result)
+            result_list = []
+            group_version_list = group_version.split("#")
+            for version in group_version_list:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
+                if not app:
+                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+                code, msg, result = export_service.get_export_status(self.tenant, app)
+                if code != 200:
+                    return Response(general_message(code, "get export info error ", msg), status=code)
+                result_list.append(result)
+
+            result = general_message(200, "success", "查询成功", list=result_list)
 
         except Exception as e:
             logger.exception(e)
@@ -75,28 +75,28 @@ class CenterAppExportView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
-            - name: app_id
-              description: rainbond app id
-              required: true
-              type: string
-              paramType: form
         """
         try:
-            app_id = request.data.get("app_id", None)
+            group_key = request.data.get("group_key", None)
+            group_version = request.data.get("group_version", [])
             export_format = request.data.get("format", None)
-            if not app_id:
+            if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
             if not export_format or export_format not in ("rainbond-app", "docker-compose",):
                 return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
+            new_export_record_list = []
+            for version in group_version:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
+                if not app:
+                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
-            if not app:
-                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+                code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
+                if code != 200:
+                    return Response(general_message(code, "export error", msg), status=code)
 
-            code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
-            if code != 200:
-                return Response(general_message(code, "export error", msg), status=code)
-            result = general_message(200, "success", "操作成功，正在导出", bean=new_export_record.to_dict())
+                new_export_record_list.append(new_export_record.to_dict())
+
+            result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)

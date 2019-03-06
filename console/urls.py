@@ -37,7 +37,7 @@ from console.views.center_pool.app_export import CenterAppExportView, ExportFile
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
 from console.views.center_pool.apps import CenterAppListView, \
-    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
+    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView, CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
     GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView, AllTeamGroupAppsBackupView
@@ -490,6 +490,8 @@ urlpatterns = patterns(
 
     # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    # 查询云端指定版本app
+    url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
     # 下架应用
     url(r'^app_market/manage$', CenterAppManageView.as_view()),
 

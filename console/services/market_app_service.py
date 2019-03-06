@@ -542,6 +542,12 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
+    def get_rain_bond_app_by_key_and_version(self, group_key, group_version):
+        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)
+        if not app:
+            return 404, None
+        return 200, app
+
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
             return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
@@ -559,10 +565,43 @@ class MarketAppService(object):
         body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
         remote_apps = body["data"]['list']
         total = body["data"]['total']
+        # 创造数据格式app_list = [{group_key:xxx, "group_version_list":[]}, {}]
+        app_list = []
         result_list = []
+        group_key_list = []
         for app in remote_apps:
+            if app["group_key"] not in group_key_list:
+                group_key_list.append(app["group_key"])
+        logger.debug('==========0=================0{0}'.format(group_key_list))
+        if group_key_list:
+            for group_key in group_key_list:
+                app_dict = dict()
+                group_version_list = []
+                for app in remote_apps:
+                    if app["group_key"] == group_key:
+                        if app["group_version"] not in group_version_list:
+                            group_version_list.append(app["group_version"])
+                group_version_list.sort(reverse=True)
+                logger.debug('----------group_version_list------__>{0}'.format(group_version_list))
+                logger.debug('----------group_key------__>{0}'.format(group_key))
+
+                for app in remote_apps:
+                    if app["group_version"] == group_version_list[0] and app["group_key"] == group_key:
+                        app_dict["group_key"] = group_key
+                        app_dict["group_version_list"] = group_version_list
+                        app_dict["update_version"] = app["update_version"]
+                        app_dict["group_name"] = app["group_name"]
+                        app_dict["pic"] = app["pic"]
+                        app_dict["info"] = app["info"]
+                        app_dict["template_version"] = app.get("template_version", "")
+                        app_dict["is_official"] = app["is_official"]
+                        app_dict["desc"] = app["desc"]
+                        app_dict["update_version"] = app["update_version"]
+                        app_list.append(app_dict)
+
+        for app in app_list:
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
-                                                                      app["group_version"])
+                                                                      app["group_version_list"][0])
             is_upgrade = 0
             is_complete = False
             if rbc:
@@ -580,7 +619,7 @@ class MarketAppService(object):
             rbapp = {
                 "group_key": app["group_key"],
                 "group_name": app["group_name"],
-                "version": app["group_version"],
+                "version": app["group_version_list"],
                 "source": "market",
                 "scope": "goodrain",
                 "pic": app['pic'],
@@ -593,6 +632,51 @@ class MarketAppService(object):
                 "is_upgrade": is_upgrade
             }
             result_list.append(rbapp)
+        return total, result_list
+
+    def get_market_version_apps(self, tenant, app_name, group_key, version):
+        body = market_api.get_service_group_list(tenant.tenant_id, 1, 20, app_name)
+        remote_apps = body["data"]['list']
+        total = body["data"]['total']
+        result_list = []
+        app_list = []
+        for app in remote_apps:
+            if app["group_key"] == group_key and app["group_version"] == version:
+                app_list.append(app)
+        if len(app_list) > 0:
+            for app in app_list:
+                rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+                                                                              app["group_version"])
+                is_upgrade = 0
+                is_complete = False
+                if rbc:
+                    if rbc.is_complete:
+                        is_complete = True
+                if rbc and rbc.source != "local" and rbc.upgrade_time:
+                    # 判断云市应用是否有小版本更新
+                    try:
+                        old_version = int(rbc.upgrade_time)
+                        new_version = int(app["update_version"])
+                        if old_version < new_version:
+                            is_upgrade = 1
+                    except Exception as e:
+                        logger.exception(e)
+                rbapp = {
+                    "group_key": app["group_key"],
+                    "group_name": app["group_name"],
+                    "version": app["group_version"],
+                    "source": "market",
+                    "scope": "goodrain",
+                    "pic": app['pic'],
+                    "describe": app['info'],
+                    "template_version": app.get("template_version", ""),
+                    "is_complete": is_complete,
+                    "is_official": app["is_official"],
+                    "details": app["desc"],
+                    "upgrade_time": app["update_version"],
+                    "is_upgrade": is_upgrade
+                }
+                result_list.append(rbapp)
         return total, result_list
 
 

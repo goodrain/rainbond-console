@@ -123,16 +123,17 @@ class CenterAppView(RegionTenantHeaderView):
         """
         try:
             group_id = request.data.get("group_id", -1)
-            app_id = request.data.get("app_id", None)
-            is_deploy = request.data.get("is_deploy", True)
-            if not app_id:
+            group_key = request.data.get("group_key", None)
+            group_version = request.data.get("group_version", None)
+            if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
                 code, msg, group_info = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
 
-            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
+            code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
+
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
             allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant,
@@ -140,8 +141,8 @@ class CenterAppView(RegionTenantHeaderView):
             if not allow_create:
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
-            RainbondCenterApp.objects.filter(ID=app_id).update(install_number=F("install_number") + 1)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app)
+            RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
@@ -176,27 +177,31 @@ class CenterAppManageView(RegionTenantHeaderView):
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
                     return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
                                     status=403)
-            app_id = request.data.get("app_id", None)
+            group_key = request.data.get("group_key", None)
+            group_version_list = request.data.get("group_version_list", [])
             action = request.data.get("action", None)
-            if not app_id:
-                return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
+            if not group_key:
+                return Response(general_message(400, "group_key is null", "请指明需要安装应用的group_key"), status=400)
+            if not group_version_list:
+                return Response(general_message(400, "group_version_list is null", "请指明需要安装应用的版本"), status=400)
             if not action:
                 return Response(general_message(400, "action is not specified", "操作类型未指定"), status=400)
             if action not in ("online", "offline"):
                 return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
-            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
-            if not app:
-                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            if app.enterprise_id == "public":
-                if not self.user.is_sys_admin:
-                    return Response(general_message(403, "only system admin can manage public app", "非平台管理员无权操作"),
-                                    status=403)
+            for group_version in group_version_list:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
+                if not app:
+                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+                if app.enterprise_id == "public":
+                    if not self.user.is_sys_admin:
+                        return Response(general_message(403, "only system admin can manage public app", "非平台管理员无权操作"),
+                                        status=403)
 
-            if action == "online":
-                app.is_complete = True
-            else:
-                app.is_complete = False
-            app.save()
+                if action == "online":
+                    app.is_complete = True
+                else:
+                    app.is_complete = False
+                app.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
@@ -253,6 +258,11 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
               paramType: body
         """
         try:
+            group_key = request.data.get("group_key", None)
+            group_version = request.data.get("group_version", [])
+            template_version = request.data.get("template_version", "v2")
+            if not group_version or not group_key:
+                return Response(general_message(400, "app is null", "请指明需要更新的应用"), status=400)
             ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
@@ -266,11 +276,10 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
-            group_data = request.data
 
-            data = group_data[0]
-            market_sycn_service.down_market_group_app_detail(self.user, self.tenant, data["group_key"], data["version"],
-                                                             data.get("template_version", "v2"))
+            for version in group_version:
+                market_sycn_service.down_market_group_app_detail(self.user, self.tenant, group_key, version,
+                                                                 template_version)
             result = general_message(200, "success", "应用同步成功")
         except Exception as e:
             logger.exception(e)
@@ -323,3 +332,32 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        """
+        查询远端云市指定版本的应用
+
+        """
+        version = request.GET.get("version", None)
+        app_name = request.GET.get("app_name", None)
+        group_key = request.GET.get("group_key", None)
+        if not group_key or not app_name or not version:
+            result = general_message(400, "not config", "参数缺失")
+            return Response(result, status=400)
+        try:
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            if ent and not ent.is_active:
+                result = general_message(10407, "failed", "用户未跟云市认证")
+                return Response(result, 500)
+
+            total, apps = market_app_service.get_market_version_apps(self.tenant, app_name, group_key, version)
+
+            result = general_message(200, "success", "查询成功", list=apps)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
