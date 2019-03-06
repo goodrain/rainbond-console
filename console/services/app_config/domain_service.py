@@ -177,11 +177,9 @@ class DomainService(object):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
         return True if domain else False
 
-    def bind_domain(self, tenant, user, service, domain_name, container_port,
-                    protocol, certificate_id, domain_type, g_id,
-                    rule_extensions):
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name,
-                                             domain_type, certificate_id)
+    def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type, rule_extensions):
+        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+
         if code != 200:
             return code, msg
         certificate_info = None
@@ -233,16 +231,10 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["region_id"] = region.region_id
-        domain_info["g_id"] = str(g_id)
         domain_repo.add_service_domain(**domain_info)
         return 200, u"success"
 
-    def unbind_domain(self,
-                      tenant,
-                      service,
-                      container_port,
-                      domain_name,
-                      is_tcp=False):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
             servicerDomain = domain_repo.get_domain_by_name_and_port(
                 service.service_id, container_port, domain_name)
@@ -299,25 +291,18 @@ class DomainService(object):
             return False, u"do not delete this domain id {0} service_id {1}".format(
                 domain_id, service.service_id)
 
-    # tenant,user: type is model struct
-    # success return 200, u"success"
     def bind_siample_http_domain(self, tenant, user, service, domain_name,
                                  container_port):
-        groups = group_service.get_services_group_name([service.service_id])
-        gid = None
-        if groups and groups[service.service_id]:
-            gid = groups[service.service_id]["group_id"]
+
         res, msg = self.bind_domain(tenant, user, service, domain_name,
                                     container_port, "http", None,
-                                    DomainType.WWW, gid, None)
+                                    DomainType.WWW, None)
         if res == 200:
             return domain_repo.get_domain_by_domain_name(domain_name)
         return None
 
-    def bind_httpdomain(self, tenant, user, service, domain_name,
-                        container_port, protocol, certificate_id, domain_type,
-                        group_name, domain_path, domain_cookie, domain_heander,
-                        the_weight, g_id, rule_extensions):
+    def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
+                    domain_path, domain_cookie, domain_heander, the_weight, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name,
                                              domain_type, certificate_id)
@@ -386,16 +371,13 @@ class DomainService(object):
         domain_info["create_time"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info[
-            "certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["group_name"] = group_name
+        domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else None
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info[
             "domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
-        domain_info["g_id"] = str(g_id)
 
         rule_extensions_str = ""
         if rule_extensions:
@@ -422,11 +404,8 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
-    def update_httpdomain(self, tenant, user, service, domain_name,
-                          container_port, certificate_id, domain_type,
-                          group_name, domain_path, domain_cookie,
-                          domain_heander, http_rule_id, the_weight, g_id,
-                          rule_extensions):
+    def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type,
+                    domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name,
                                              domain_type, certificate_id)
@@ -489,16 +468,13 @@ class DomainService(object):
         domain_info["create_time"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info[
-            "certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["group_name"] = group_name
+        domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else None
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info[
             "domain_heander"] = domain_heander if domain_heander else None
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
-        domain_info["g_id"] = str(g_id)
         rule_extensions_str = ""
         if rule_extensions:
             # 拼接字符串，存入数据库
@@ -542,10 +518,8 @@ class DomainService(object):
         servicer_http_omain.delete()
         return 200, u"success"
 
-    def bind_tcpdomain(self, tenant, user, service, end_point, container_port,
-                       group_name, default_port, g_id, rule_extensions,
-                       default_ip):
-        tcp_rule_id = make_uuid(group_name)
+    def bind_tcpdomain(self, tenant, user, service, end_point, container_port, default_port, rule_extensions, default_ip):
+        tcp_rule_id = make_uuid(tenant.tenant_name)
         ip = str(end_point.split(":")[0])
         ip.replace(' ', '')
         port = end_point.split(":")[1]
@@ -574,7 +548,6 @@ class DomainService(object):
         domain_info["create_time"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info["group_name"] = group_name
         domain_info["tenant_id"] = tenant.tenant_id
         # 查询端口协议
         tenant_service_port = port_repo.get_service_port_by_port(
@@ -588,7 +561,6 @@ class DomainService(object):
         else:
             domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point
-        domain_info["g_id"] = str(g_id)
         domain_info["region_id"] = region.region_id
 
         rule_extensions_str = ""
@@ -609,9 +581,9 @@ class DomainService(object):
         domain_info.update({"rule_extensions": rule_extensions})
         return 200, u"success", domain_info
 
-    def update_tcpdomain(self, tenant, user, service, end_point,
-                         container_port, group_name, tcp_rule_id, protocol,
-                         type, g_id, rule_extensions, default_ip):
+    def update_tcpdomain(self, tenant, user, service, end_point, container_port,
+                         tcp_rule_id, protocol, type, rule_extensions, default_ip):
+
         ip = end_point.split(":")[0]
         ip.replace(' ', '')
         port = end_point.split(":")[1]
@@ -645,12 +617,10 @@ class DomainService(object):
         domain_info["create_time"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info["group_name"] = group_name
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
         domain_info["type"] = type
-        domain_info["g_id"] = str(g_id)
         rule_extensions_str = ""
         if rule_extensions:
             # 拼接字符串，存入数据库

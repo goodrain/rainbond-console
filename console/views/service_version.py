@@ -57,6 +57,11 @@ class AppVersionsView(AppBaseView):
             logger.debug('---------body------>{0}'.format(body))
             build_version_sort = body["bean"]["list"]
             run_version = body["bean"]["deploy_version"]
+            total_num_list = list()
+            for build_version_info in build_version_sort:
+                if build_version_info["FinalStatus"] in ("success", "failure"):
+                    total_num_list.append(build_version_info)
+            total_num = len(total_num_list)
             success_num = 0
             failure_num = 0
             for build_info in build_version_sort:
@@ -116,7 +121,7 @@ class AppVersionsView(AppBaseView):
                 "success_num": str(success_num),
                 "failure_num": str(failure_num)
             }
-            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(paginator.count))
+            result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(total_num))
             return Response(result, status=result["code"])
         except Exception as e:
             result = error_message(e.message)

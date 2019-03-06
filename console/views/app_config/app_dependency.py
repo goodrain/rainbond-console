@@ -12,6 +12,7 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
+from console.services.app_config import port_service
 
 logger = logging.getLogger("default")
 
@@ -53,13 +54,26 @@ class AppDependencyView(AppBaseView):
             service_group_map = group_service.get_services_group_name(service_ids)
             dep_list = []
             for dep in dependencies:
+                tenant_service_ports = port_service.get_service_ports(dep)
+                ports_list = []
+                if tenant_service_ports:
+                    for port in tenant_service_ports:
+                        ports_list.append(port.container_port)
                 dep_service_info = {"service_cname": dep.service_cname, "service_id": dep.service_id,
                                     "service_type": dep.service_type, "service_alias": dep.service_alias,
                                     "group_name": service_group_map[dep.service_id]["group_name"],
-                                    "group_id": service_group_map[dep.service_id]["group_id"]}
+                                    "group_id": service_group_map[dep.service_id]["group_id"],
+                                    "ports_list": ports_list}
                 dep_list.append(dep_service_info)
             rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
-            result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list))
+
+            service_ports = port_service.get_service_ports(self.service)
+            port_list = []
+            if service_ports:
+                for port in service_ports:
+                    port_list.append(port.container_port)
+            bean = {"port_list": port_list}
+            result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
