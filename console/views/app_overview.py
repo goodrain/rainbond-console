@@ -98,6 +98,7 @@ class AppDetailView(AppBaseView):
                     result = general_message(200, "success", "当前云市应用已删除", bean=bean)
                     return Response(result, status=result["code"])
                 else:
+                    bean.update({"rain_app_name": rain_app.group_name})
                     apps_template = json.loads(rain_app.app_template)
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
