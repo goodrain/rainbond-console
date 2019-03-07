@@ -215,7 +215,7 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user, is_upgrade, committer_name=None):
+    def deploy(self, tenant, service, user, is_upgrade, group_version, committer_name=None):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
         if code != 200:
             return code, msg, event
@@ -254,8 +254,12 @@ class AppManageService(AppManageBase):
                 group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
                 if group_obj:
                     # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                     group_obj.group_version)
+                    if group_version:
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                         group_version)
+                    else:
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                         group_obj.group_version)
                     if rain_app:
                         # 解析app_template的json数据
                         apps_template = json.loads(rain_app.app_template)
@@ -290,6 +294,8 @@ class AppManageService(AppManageBase):
                                         else app.get("service_key", "")
                                     service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
+                        group_obj.group_version = rain_app.version
+                        group_obj.save()
             except Exception as e:
                 logger.exception('===========000============>'.format(e))
                 body["image_url"] = service.image

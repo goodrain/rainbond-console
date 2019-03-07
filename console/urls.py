@@ -28,7 +28,8 @@ from console.views.app_create.source_outer import ThirdPartyServiceCreateView, T
     ThirdPartyUpdateSecretKeyView, ThirdPartyAppPodsView, ThirdPartyHealthzView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
-    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView
+    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, \
+    UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView, MarketServiceUpgradeView
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
@@ -362,6 +363,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view()),
     # 设置服务构建后是否升级属性
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$', ChangeServiceUpgradeView.as_view()),
+    # 查询云市安装的应用是否有（小版本，大版本）更新
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$', MarketServiceUpgradeView.as_view()),
 
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
