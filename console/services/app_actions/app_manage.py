@@ -9,12 +9,12 @@ import json
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions import AppEventService
-from console.services.app_config import AppServiceRelationService
+from console.services.app_config import AppServiceRelationService, AppEnvVarService, AppVolumeService, AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
 from console.repositories.app_config import env_var_repo, mnt_repo, volume_repo, port_repo, \
-    auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo
+    auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo, extend_repo
 from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, \
     relation_recycle_bin_repo
 from console.constants import AppConstants
@@ -35,6 +35,9 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 relation_service = AppServiceRelationService()
+env_var_service = AppEnvVarService()
+port_service = AppPortService()
+volume_service = AppVolumeService()
 
 
 class AppManageBase(object):
@@ -294,6 +297,32 @@ class AppManageService(AppManageBase):
                                         else app.get("service_key", "")
                                     service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
+
+                                    # 删除服务原有端口，环境变量，pod
+                                    code, msg = self.__delete_envs(tenant, service)
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    code, msg = self.__delete_volume(tenant, service)
+                                    if code != 200:
+                                        raise Exception(msg)
+
+                                    # 先保存env,再保存端口，因为端口需要处理env
+                                    code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
+                                                                app["service_connect_info_map_list"])
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+
+                                    code, msg = self.__save_port(tenant, service, app["port_map_list"])
+                                    if code != 200:
+                                        raise Exception(msg)
+
+                                    # 保存应用探针信息
+                                    self.__save_extend_info(service, app["extend_method_map"])
+
                         group_obj.group_version = rain_app.version
                         group_obj.save()
             except Exception as e:
@@ -337,6 +366,93 @@ class AppManageService(AppManageBase):
             return 507, "构建异常", event
 
         return 200, "操作成功", event
+
+    def __delete_envs(self, tenant, service):
+        service_envs = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
+        if service_envs:
+            for env in service_envs:
+                env_var_service.delete_env_by_attr_name(tenant, service, env.attr_name)
+        return 200, "success"
+
+    def __delete_volume(self, tenant, service):
+        service_volumes = volume_repo.get_service_volumes(service.service_id)
+        if service_volumes:
+            for volume in service_volumes:
+                code, msg, volume = volume_service.delete_service_volume_by_id(tenant, service, int(volume.volume_id))
+                if code != 200:
+                    return 400, msg
+        return 200, "success"
+
+    def __save_extend_info(self, service, extend_info):
+        if not extend_info:
+            return 200, "success"
+        params = {
+            "service_key": service.service_key,
+            "app_version": service.version,
+            "min_node": extend_info["min_node"],
+            "max_node": extend_info["max_node"],
+            "step_node": extend_info["step_node"],
+            "min_memory": extend_info["min_memory"],
+            "max_memory": extend_info["max_memory"],
+            "step_memory": extend_info["step_memory"],
+            "is_restart": extend_info["is_restart"]
+        }
+        extend_repo.create_extend_method(**params)
+
+    def __save_volume(self, tenant, service, volumes):
+        if not volumes:
+            return 200, "success"
+        for volume in volumes:
+            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                       volume["volume_type"], volume["volume_name"])
+            if code != 200:
+                logger.error("save market app volume error".format(msg))
+                return code, msg
+        return 200, "success"
+
+    def __save_env(self, tenant, service, inner_envs, outer_envs):
+        if not inner_envs and not outer_envs:
+            return 200, "success"
+        for env in inner_envs:
+            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
+                                                                      env["attr_value"], env["is_change"],
+                                                                      "inner")
+            if code != 200:
+                logger.error("save market app env error {0}".format(msg))
+                return code, msg
+        for env in outer_envs:
+            container_port = env.get("container_port", 0)
+            if container_port == 0:
+                if env["attr_value"] == "**None**":
+                    env["attr_value"] = service.service_id[:8]
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port,
+                                                                          env["name"], env["attr_name"],
+                                                                          env["attr_value"], env["is_change"],
+                                                                          "outer")
+                if code != 200:
+                    logger.error("save market app env error {0}".format(msg))
+                    return code, msg
+        return 200, "success"
+
+    def __save_port(self, tenant, service, ports):
+        if not ports:
+            return 200, "success"
+        for port in ports:
+
+            service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
+            if service_port:
+                continue
+            logger.debug('=================0000000000>{0}'.format(port))
+            code, msg, port_data = port_service.add_service_port(tenant, service,
+                                                                 int(port["container_port"]),
+                                                                 port["protocol"],
+                                                                 port["port_alias"],
+                                                                 port["is_inner_service"],
+                                                                 port["is_outer_service"])
+            if code != 200:
+                logger.error("save market app port error".format(msg))
+                return code, msg
+        return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None):
         code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)

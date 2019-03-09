@@ -366,3 +366,80 @@ class AppEnvManageView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class AppBuildEnvView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取构建服务的环境变量参数
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 服务别名
+              required: true
+              type: string
+              paramType: path
+            - name: env_type
+              description: 环境变量类型[构建运行时环境变量（build)]
+              required: true
+              type: string
+              paramType: query
+        """
+        try:
+            # 获取服务构建时环境变量
+            build_env_list = []
+            build_envs = env_var_service.get_service_build_envs(self.service)
+            if build_envs:
+                for build_env in build_envs:
+                    build_env_dict = dict()
+                    build_env_dict[build_env.attr_name] = build_env.attr_value
+                    build_env_list.append(build_env_dict)
+            result = general_message(200, "success", u"查询成功", list=build_env_list)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改构建运行时环境变量
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            build_env_dict = request.data.get("build_env_dict", None)
+            build_envs = env_var_service.get_service_build_envs(self.service)
+            # 传入为空，清除
+            if not build_env_dict:
+                if not build_envs:
+                    return Response(general_message(200, "success", u"设置成功"))
+                for build_env in build_envs:
+                    build_env.delete()
+                    return Response(general_message(200, "success", u"设置成功"))
+
+            # 传入有值，清空再添加
+            if build_envs:
+                for build_env in build_envs:
+                    build_env.delete()
+            for key, value in build_env_dict.items():
+                name = "构建运行时环境变量"
+                attr_name = key
+                attr_value = value
+                is_change = True
+                code, msg, data = env_var_service.add_service_build_env_var(self.tenant, self.service, 0, name,
+                                                                            attr_name, attr_value, is_change)
+                if code != 200:
+                    continue
+
+            result = general_message(200, "success", u"环境变量添加成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])

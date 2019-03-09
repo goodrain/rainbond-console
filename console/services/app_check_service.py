@@ -85,7 +85,6 @@ class AppCheckService(object):
                 return AppConstants.DOCKER_IMAGE
             return AppConstants.DOCKER_RUN
 
-
     def __wrap_check_service(self, service):
         return {
             "service_code_from": service.code_from,

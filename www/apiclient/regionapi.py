@@ -1054,6 +1054,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_query_service_access(self, region, tenant_name, params):
+        """获取团队下服务访问量排序"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/api/v1/query" + params
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_query_domain_access(self, region, tenant_name, params):
+        """获取团队下域名访问量排序"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/api/v1/query" + params
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_query_range_data(self, region, tenant_name, params):
         """获取监控范围数据"""
         url, token = self.__get_region_access_info(tenant_name, region)

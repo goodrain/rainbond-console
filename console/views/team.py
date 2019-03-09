@@ -31,9 +31,20 @@ from console.repositories.region_repo import region_repo
 from console.utils.timeutil import time_to_str
 from backends.services.userservice import user_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
+from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.app import service_repo
 
-
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+def get_sufix_path(full_url):
+    """获取get请求参数路径部分的数据"""
+    index = full_url.find("?")
+    sufix = ""
+    if index != -1:
+        sufix = full_url[index:]
+    return sufix
 
 
 class UserFuzSerView(JWTAuthApiView):
@@ -1302,3 +1313,71 @@ class CertificateView(JWTAuthApiView):
         }
         result = generate_result(200, "success", "获取成功", bean=bean)
         return Response(result)
+
+
+class TeamSortDomainQueryView(JWTAuthApiView):
+    def get(self, request, team_name, region_name, *args, **kwargs):
+        """
+        获取团队下域名访问量排序
+        ---
+        parameters:
+            - name: team_name
+              description: team name
+              required: true
+              type: string
+              paramType: path
+        """
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 5))
+        sufix = get_sufix_path(request.get_full_path())
+
+        try:
+            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+            logger.debug('=====body======>{0}'.format(body))
+            total = len(body["data"]["result"])
+            start = (page - 1) * page_size
+            end = page * page_size - 1
+            bean = {"total": total}
+            domain_list = body["data"]["result"][start: end]
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])
+
+
+class TeamSortServiceQueryView(JWTAuthApiView):
+    def get(self, request, team_name, region_name, *args, **kwargs):
+        """
+        获取团队下服务访问量排序
+        ---
+        parameters:
+            - name: team_name
+              description: team name
+              required: true
+              type: string
+              paramType: path
+        """
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 5))
+        sufix = get_sufix_path(request.get_full_path())
+        try:
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix)
+            logger.debug('=====body======>{0}'.format(body))
+            service_list = body["data"]["result"]
+            total = len(service_list)
+            start = (page - 1) * page_size
+            end = page * page_size - 1
+            bean = {"total": total}
+            services_l = service_list[start: end]
+            if services_l:
+                for service in services_l:
+                    service_obj = service_repo.get_service_by_service_id(service["metric"]["service"])
+                    if service_obj:
+                        service["metric"]["service_cname"] = service_obj.service_cname
+
+            result = general_message(200, "success", "查询成功", list=services_l, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])

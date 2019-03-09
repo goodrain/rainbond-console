@@ -17,6 +17,9 @@ class TenantServiceEnvVarRepository(object):
     def get_service_env(self, tenant_id, service_id):
         return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
+    def get_service_all_build_envs(self, tenant_id, service_id):
+        return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope="build").all()
+
     def get_service_env_by_attr_name(self, tenant_id, service_id, attr_name):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
         if envs:
@@ -57,7 +60,8 @@ class TenantServiceEnvVarRepository(object):
         default_envs = Q(attr_name__in=(
             "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
         prefix_start_env = Q(attr_name__startswith="BUILD_")
-        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env)
+        build_start_env = Q(scope="build")
+        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
         for benv in buildEnvs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):

@@ -11,7 +11,7 @@ from console.views.app_config.app_dependency import AppDependencyView, AppDepend
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
     GetSeniorUrlView, HttpStrategyView
-from console.views.app_config.app_env import AppEnvView, AppEnvManageView
+from console.views.app_config.app_env import AppEnvView, AppEnvManageView, AppBuildEnvView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
@@ -66,7 +66,7 @@ from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView, TenantServiceEnvsView
+    ServiceEventsView, TeamServiceOverViewView, TenantServiceEnvsView, TeamAppSortViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
@@ -80,7 +80,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView
+    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView, TeamSortDomainQueryView, TeamSortServiceQueryView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -150,6 +150,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
     # 团队详情
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
+    # 获取团队下域名访问量排序
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$', TeamSortDomainQueryView.as_view()),
+    # 获取团队下服务访问量排序
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$', TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view()),
     # 获取当前租户已开通的数据中心(简表)
@@ -163,6 +167,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view()),
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view()),
+
+    # 团队应用模块（5.1）
+    url(r'^teams/(?P<team_name>[\w\-]+)/overview/app/over$', TeamAppSortViewView.as_view()),
 
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view()),
@@ -307,6 +314,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<attr_name>[\w\-]+)$',
         AppEnvManageView.as_view()),
+    # 构建运行时环境变量配置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build_envs$', AppBuildEnvView.as_view()),
     # 端口配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$',
         AppPortView.as_view()),

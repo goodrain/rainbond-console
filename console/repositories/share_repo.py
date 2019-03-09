@@ -167,6 +167,9 @@ class ShareRepo(object):
         else:
             return share_record[0]
 
+    def get_app_share_record_count_by_groupid(self, group_id):
+        return ServiceShareRecord.objects.filter(group_id=group_id).count()
+
     def get_share_plugin(self, plugin_id):
         plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
         return plugins.first() if plugins else None
