@@ -51,6 +51,10 @@ class AppCheck(AppBaseView):
             code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
             # 如果已创建完成
             if self.service.create_status == "complete":
+                # 删除原有build类型env，保存新检测build类型env
+                save_code, save_msg = app_check_service.upgrade_service_env_info(self.tenant, self.service, data)
+                if save_code != 200:
+                    logger.debug('======构建时运行参数更新失败=====>{0}'.format(save_msg))
                 check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
                 return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
             # 开启保存点

@@ -41,6 +41,9 @@ class TenantServiceEnvVarRepository(object):
     def delete_service_env(self, tenant_id, service_id):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
 
+    def delete_service_build_env(self, tenant_id, service_id):
+        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope="build").delete()
+
     def delete_service_env_by_attr_name(self, tenant_id, service_id, attr_name):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name).delete()
 

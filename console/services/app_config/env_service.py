@@ -150,6 +150,9 @@ class AppEnvVarService(object):
     def delete_service_env(self, tenant, service):
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
 
+    def delete_service_build_env(self, tenant, service):
+        env_var_repo.delete_service_build_env(tenant.tenant_id, service.service_id)
+
     def delete_region_env(self, tenant, service):
         envs = self.get_env_var(service)
         for env in envs:
