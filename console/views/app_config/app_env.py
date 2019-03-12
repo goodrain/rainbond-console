@@ -392,14 +392,12 @@ class AppBuildEnvView(AppBaseView):
         """
         try:
             # 获取服务构建时环境变量
-            build_env_list = []
+            build_env_dict = dict()
             build_envs = env_var_service.get_service_build_envs(self.service)
             if build_envs:
                 for build_env in build_envs:
-                    build_env_dict = dict()
                     build_env_dict[build_env.attr_name] = build_env.attr_value
-                    build_env_list.append(build_env_dict)
-            result = general_message(200, "success", u"查询成功", list=build_env_list)
+            result = general_message(200, "success", u"查询成功", bean=build_env_dict)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

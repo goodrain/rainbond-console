@@ -47,9 +47,6 @@ class AppService(object):
             return False, u"应用名称不能为空"
         if len(service_cname) > 100:
             return False, u"应用名称最多支持100个字符"
-        r = re.compile(u'^[a-zA-Z0-9_\\-\\.\u4e00-\u9fa5]+$')
-        if not r.match(service_cname.decode("utf-8")):
-            return False, u"应用名称只支持中英文下划线和中划线和点（.）"
         return True, u"success"
 
     def __init_source_code_app(self, region):

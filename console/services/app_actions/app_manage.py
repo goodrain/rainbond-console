@@ -353,7 +353,7 @@ class AppManageService(AppManageBase):
                     if hub_user or hub_password:
                         body["user"] = hub_user
                         body["password"] = hub_password
-        logger.debug('-------------deploy-----body-------------------->{0}'.format(body))
+        logger.debug('-------------deploy-----body-------------------->{0}'.format(json.dumps(body)))
         try:
             region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
@@ -565,8 +565,8 @@ class AppManageService(AppManageBase):
                     self.restart(tenant, service, user)
                 elif action == "move":
                     self.move(service, move_group_id)
-                elif action == "deploy":
-                    self.deploy(tenant, service, user, is_upgrade=True)
+                elif action == "deploy" and service.service_source != "third_party":
+                    self.deploy(tenant, service, user, is_upgrade=True, group_version=None)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -574,6 +574,250 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
         logger.debug("fail service names {0}".format(fail_service_name))
         return code, msg
+
+    # 5.1新版批量操作（启动，关闭，构建）
+    def batch_operations(self, tenant, user, action, service_ids):
+        services = service_repo.get_services_by_service_ids(*service_ids)
+        try:
+            # 获取所有服务信息
+            body = dict()
+            code = 200
+            data = ''
+            if action == "start":
+                code, data = self.start_services_info(body, services, tenant, user)
+            elif action == "stop":
+                code, data = self.stop_services_info(body, services, tenant, user)
+            elif action == "upgrade":
+                code, data = self.upgrade_services_info(body, services, tenant, user)
+            elif action == "deploy":
+                code, data = self.deploy_services_info(body, services, tenant, user)
+            logger.debug('-===================---bodybody----------->{0}'.format(json.dumps(data)))
+            if code != 200:
+                return 415, "服务信息获取失败"
+            # 获取数据中心信息
+            one_service = services[0]
+            region_name = one_service.service_region
+            try:
+                region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+            except region_api.CallApiError as e:
+                logger.exception(e)
+        except Exception as e:
+            logger.exception(e)
+            return 500, "系统异常"
+
+    def start_services_info(self, body, services, tenant, user):
+        body["operation"] = "start"
+        start_infos_list = []
+        body["start_infos"] = start_infos_list
+        for service in services:
+            from console.services.app import app_service
+            if service.service_source == "":
+                continue
+            service_dict = dict()
+            new_add_memory = service.min_memory * service.min_node
+            allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory,
+                                                          "start_app")
+            if not allow_start:
+                continue
+            code, msg, event = event_service.create_event(tenant, service, user, self.START)
+            if code != 200:
+                continue
+
+            if service.create_status == "complete":
+                service_dict["event_id"] = event.event_id
+                service_dict["service_id"] = service.service_id
+                service_dict["configs"] = ''
+                start_infos_list.append(service_dict)
+            else:
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                continue
+        return 200, body
+
+    def stop_services_info(self, body, services, tenant, user):
+        body["operation"] = "stop"
+        stop_infos_list = []
+        body["stop_infos"] = stop_infos_list
+        for service in services:
+            service_dict = dict()
+            code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
+            if code != 200:
+                continue
+            if service.create_status == "complete":
+                service_dict["event_id"] = event.event_id
+                service_dict["service_id"] = service.service_id
+                service_dict["configs"] = ''
+                stop_infos_list.append(service_dict)
+            else:
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                continue
+        return 200, body
+
+    def upgrade_services_info(self, body, services, tenant, user):
+        body["operation"] = "upgrade"
+        upgrade_infos_list = []
+        body["upgrade_infos"] = upgrade_infos_list
+        for service in services:
+            service_dict = dict()
+            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
+            if code != 200:
+                continue
+            if service.create_status == "complete":
+                service_dict["event_id"] = event.event_id
+                service_dict["service_id"] = service.service_id
+                service_dict["upgrade_version"] = service.deploy_version
+                service_dict["configs"] = ''
+                upgrade_infos_list.append(service_dict)
+            else:
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                continue
+        return 200, body
+
+    def deploy_services_info(self, body, services, tenant, user):
+        body["operation"] = "build"
+        deploy_infos_list = []
+        body["build_infos"] = deploy_infos_list
+        for service in services:
+            service_dict = dict()
+            code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
+            if code != 200:
+                continue
+            service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            service.save()
+            event.deploy_version = service.deploy_version
+            event.save()
+
+            service_dict["event_id"] = event.event_id
+            service_dict["service_id"] = service.service_id
+            service_dict["deploy_version"] = service.deploy_version
+            service_dict["configs"] = ''
+            service_dict["action"] = 'upgrade'
+            envs = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
+            service_dict["envs"] = envs
+            kind = self.__get_service_kind(service)
+            service_dict["kind"] = kind
+            service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+            clone_url = service.git_url
+
+            # 源码
+            if kind == "build_from_source_code" or kind == "source":
+                source_code = dict()
+                service_dict["code_info"] = source_code
+                source_code["repo_url"] = clone_url
+                source_code["branch"] = service.code_version
+                source_code["server_type"] = service.server_type
+                source_code["lang"] = service.language
+                if service_source:
+                    if service_source.user_name or service_source.password:
+                        source_code["user"] = service_source.user_name
+                        source_code["password"] = service_source.password
+                    if service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if not service.is_slug():
+                            hub_user = extend_info.get("hub_user", None)
+                            hub_password = extend_info.get("hub_password", None)
+                            if hub_user or hub_password:
+                                source_code["user"] = hub_user
+                                source_code["password"] = hub_password
+            # 镜像
+            elif kind == "build_from_image":
+                source_image = dict()
+                service_dict["image_info"] = source_image
+                source_image["image_url"] = service.image
+                source_image["cmd"] = service.cmd
+                if service_source:
+                    if service_source.user_name or service_source.password:
+                        source_image["user"] = service_source.user_name
+                        source_image["password"] = service_source.password
+                    if service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if not service.is_slug():
+                            hub_user = extend_info.get("hub_user", None)
+                            hub_password = extend_info.get("hub_password", None)
+                            if hub_user or hub_password:
+                                source_image["user"] = hub_user
+                                source_image["password"] = hub_password
+
+            # 云市
+            elif service.service_source == "market":
+                try:
+                    # 获取组对象
+                    group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
+                    if group_obj:
+                        # 获取内部市场对象
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                         group_obj.group_version)
+                        if rain_app:
+                            # 解析app_template的json数据
+                            apps_template = json.loads(rain_app.app_template)
+                            apps_list = apps_template.get("apps")
+                            if service_source and service_source.extend_info:
+                                extend_info = json.loads(service_source.extend_info)
+                                for app in apps_list:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
+                                        share_image = app.get("share_image", None)
+                                        share_slug_path = app.get("share_slug_path", None)
+                                        new_extend_info = {}
+                                        if share_image:
+                                            if app.get("service_image", None):
+                                                source_image = dict()
+                                                service_dict["image_info"] = source_image
+                                                source_image["image_url"] = share_image
+                                                source_image["user"] = app.get("service_image").get("hub_user")
+                                                source_image["password"] = app.get("service_image").get("hub_password")
+                                                source_image["cmd"] = service.cmd
+                                                new_extend_info = app["service_image"]
+                                        if share_slug_path:
+                                            slug_info = app.get("service_slug")
+                                            slug_info["slug_path"] = share_slug_path
+                                            new_extend_info = slug_info
+                                            service_dict["slug_info"] = new_extend_info
+                                        # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
+                                        service.is_upgrate = False
+                                        service.save()
+                                        new_extend_info["source_deploy_version"] = app.get("deploy_version")
+                                        new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid") \
+                                            if app.get("service_share_uuid", None) \
+                                            else app.get("service_key", "")
+                                        service_source.extend_info = json.dumps(new_extend_info)
+                                        service_source.save()
+
+                                        # 删除服务原有端口，环境变量，pod
+                                        code, msg = self.__delete_envs(tenant, service)
+                                        if code != 200:
+                                            raise Exception(msg)
+                                        code, msg = self.__delete_volume(tenant, service)
+                                        if code != 200:
+                                            raise Exception(msg)
+
+                                        # 先保存env,再保存端口，因为端口需要处理env
+                                        code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
+                                                                    app["service_connect_info_map_list"])
+                                        if code != 200:
+                                            raise Exception(msg)
+                                        code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
+                                        if code != 200:
+                                            raise Exception(msg)
+                                        logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+
+                                        code, msg = self.__save_port(tenant, service, app["port_map_list"])
+                                        if code != 200:
+                                            raise Exception(msg)
+
+                                        # 保存应用探针信息
+                                        self.__save_extend_info(service, app["extend_method_map"])
+
+                            group_obj.group_version = rain_app.version
+                            group_obj.save()
+                except Exception as e:
+                    logger.exception('===========000============>'.format(e))
+                    if service_source:
+                        extend_info = json.loads(service_source.extend_info)
+                        if service.is_slug():
+                            service_dict["slug_info"] = extend_info
+
+            deploy_infos_list.append(service_dict)
+        return 200, body
 
     def vertical_upgrade(self, tenant, service, user, new_memory):
         """服务水平升级"""
@@ -590,7 +834,7 @@ class AppManageService(AppManageBase):
             return code, msg, event
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
-            body = {}
+            body = dict()
             body["container_memory"] = new_memory
             body["deploy_version"] = service.deploy_version
             body["container_cpu"] = new_cpu

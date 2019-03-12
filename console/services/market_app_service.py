@@ -337,13 +337,19 @@ class MarketAppService(object):
             raise e
 
     def __deploy_services(self, tenant, user, service_list):
-        for service in service_list:
-            try:
-                app_manage_service.deploy(
-                    tenant, service, user, is_upgrade=True, group_version=None)
-            except Exception as e:
-                logger.exception("batch deploy service error {0}".format(e))
-                continue
+        try:
+            body = dict()
+            code, data = app_manage_service.deploy_services_info(body, service_list, tenant, user)
+            if code == 200:
+                # 获取数据中心信息
+                one_service = service_list[0]
+                region_name = one_service.service_region
+                try:
+                    region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+                except region_api.CallApiError as e:
+                    logger.exception(e)
+        except Exception as e:
+            logger.exception("batch deploy service error {0}".format(e))
 
     def __save_service_deps(self, tenant, service_key_dep_key_map,
                             key_service_map):

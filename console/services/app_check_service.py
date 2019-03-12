@@ -150,6 +150,7 @@ class AppCheckService(object):
         code, msg = self.__upgrade_env(tenant, service, envs)
         if code != 200:
             return code, msg
+        return code, msg
 
     def __upgrade_env(self, tenant, service, envs):
         if envs:

@@ -417,8 +417,8 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         总览 团队应用信息
         """
         try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
             groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region)
             total = len(groups)
             app_num_dict = {"total": total}

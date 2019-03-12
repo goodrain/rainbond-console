@@ -1541,3 +1541,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
+
+    # 5.1版本服务批量操作
+    def batch_operation_service(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
