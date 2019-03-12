@@ -4,7 +4,7 @@
 """
 import datetime
 from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAuth, ServiceAttachInfo, \
-    ServicePaymentNotify, ServiceTcpDomain
+    ServicePaymentNotify, ServiceTcpDomain, GatewayCustomConfiguration
 from www.models import ServiceExtendMethod
 from www.models import TenantServiceEnv
 from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
@@ -491,6 +491,17 @@ class TenantServiceEndpoints(object):
         return None
 
 
+class GatewayCustom(object):
+    def get_configuration_by_rule_id(self, rule_id):
+        return GatewayCustomConfiguration.objects.filter(rule_id=rule_id).all()
+
+    def add_configuration(self, **configuration_info):
+        return GatewayCustomConfiguration.objects.create(**configuration_info)
+
+    def delete_configuration(self, config_id):
+        return GatewayCustomConfiguration.objects.filter(config_id=config_id).delete()
+
+
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()
 port_repo = TenantServicePortRepository()
@@ -508,3 +519,4 @@ create_step_repo = ServiceStepRepository()
 service_payment_repo = ServicePaymentRepository()
 # endpoints
 service_endpoints_repo = TenantServiceEndpoints()
+configuration_repo = GatewayCustomConfiguration()

@@ -26,8 +26,8 @@ class AppCheckService(object):
             return "third-party-service"
 
     def check_service(self, tenant, service):
-        if service.create_status == "complete":
-            return 409, "应用完成创建,请勿重复检测", None
+        # if service.create_status == "complete":
+        #     return 409, "应用完成创建,请勿重复检测", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)

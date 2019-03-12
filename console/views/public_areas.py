@@ -443,17 +443,18 @@ class TeamAppSortViewView(RegionTenantHeaderView):
 
                     run_service_num = 0
                     if services:
+                        service_ids = []
                         for service in services:
-                            service_obj = TenantServiceInfo.objects.filter(service_id=service.service_id).first()
-                            if service_obj:
-                                # 获取服务状态
-                                body = region_api.check_service_status(service_obj.service_region, self.team.tenant_name,
-                                                                       service_obj.service_alias, self.team.enterprise_id)
+                            service_ids.append(service.service_id)
 
-                                bean = body["bean"]
-                                status = bean["cur_status"]
-                                if status in ["running", "upgrade", "starting", "some_abnormal"]:
-                                    run_service_num += 1
+                        status_list = base_service.status_multi_service(region=self.response_region,
+                                                                        tenant_name=self.team_name,
+                                                                        service_ids=service_ids,
+                                                                        enterprise_id=self.team.enterprise_id)
+                        for status in status_list:
+                            if status["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
+                                run_service_num += 1
+
                     app_dict["run_service_num"] = run_service_num
                     app_list.append(app_dict)
 
