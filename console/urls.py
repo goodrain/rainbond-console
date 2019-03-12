@@ -11,7 +11,7 @@ from console.views.app_config.app_dependency import AppDependencyView, AppDepend
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
     GetSeniorUrlView, HttpStrategyView
-from console.views.app_config.app_env import AppEnvView, AppEnvManageView
+from console.views.app_config.app_env import AppEnvView, AppEnvManageView, AppBuildEnvView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
 from console.views.app_config.app_mnt import AppMntView, AppMntManageView
@@ -24,9 +24,12 @@ from console.views.app_create.docker_compose import DockerComposeCreateView, Com
     ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
+from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, \
+    ThirdPartyUpdateSecretKeyView, ThirdPartyAppPodsView, ThirdPartyHealthzView
 from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
 from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
-    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView
+    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, \
+    UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView, MarketServiceUpgradeView
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
@@ -35,7 +38,7 @@ from console.views.center_pool.app_export import CenterAppExportView, ExportFile
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
 from console.views.center_pool.apps import CenterAppListView, \
-    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView
+    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView, CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
     GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView, AllTeamGroupAppsBackupView
@@ -63,11 +66,11 @@ from console.views.plugin.service_plugin import ServicePluginsView, \
     ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView
+    ServiceEventsView, TeamServiceOverViewView, TenantServiceEnvsView, TeamAppSortViewView
 from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
     GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
 from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView
+    UserModifyPemView, TeamAddUserView, ServicePermissionView, ThreeServicePermOptionsView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
     ServiceShareEventPost, \
@@ -77,7 +80,7 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView
+    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView, TeamSortDomainQueryView, TeamSortServiceQueryView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
@@ -147,6 +150,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
     # 团队详情
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
+    # 获取团队下域名访问量排序
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$', TeamSortDomainQueryView.as_view()),
+    # 获取团队下服务访问量排序
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$', TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view()),
     # 获取当前租户已开通的数据中心(简表)
@@ -161,11 +168,18 @@ urlpatterns = patterns(
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view()),
 
+    # 团队应用模块（5.1）
+    url(r'^teams/(?P<team_name>[\w\-]+)/overview/app/over$', TeamAppSortViewView.as_view()),
+
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view()),
 
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view()),
+
+    # 团队下应用环境变量模糊查询
+    url(r'teams/(?P<team_name>[\w\-]+)/services/envs$', TenantServiceEnvsView.as_view()),
+
 
     # 应用组列表
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view()),
@@ -235,6 +249,14 @@ urlpatterns = patterns(
 
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view()),
+    # 三方服务创建
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view()),
+    # 三方服务api注册方式回调地址
+    url(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
+    # 三方服务api注册方式重置秘钥
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKeyView.as_view()),
+    # 三方服务健康检测
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view()),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view()),
     # docker-compose文件创建
@@ -280,6 +302,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view()),
     # 应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods', AppPodsView.as_view()),
+    # 三方应用pod信息
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods', ThirdPartyAppPodsView.as_view()),
     # 应用进入容器页面
     # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker', AppDockerView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view()),
@@ -290,6 +314,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<attr_name>[\w\-]+)$',
         AppEnvManageView.as_view()),
+    # 构建运行时环境变量配置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build_envs$', AppBuildEnvView.as_view()),
     # 端口配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$',
         AppPortView.as_view()),
@@ -346,6 +372,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view()),
     # 设置服务构建后是否升级属性
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$', ChangeServiceUpgradeView.as_view()),
+    # 查询云市安装的应用是否有（小版本，大版本）更新
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$', MarketServiceUpgradeView.as_view()),
 
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
@@ -476,6 +504,8 @@ urlpatterns = patterns(
 
     # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    # 查询云端指定版本app
+    url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
     # 下架应用
     url(r'^app_market/manage$', CenterAppManageView.as_view()),
 
@@ -504,6 +534,8 @@ urlpatterns = patterns(
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
+    # 获取三方服务自定义角色时可给角色绑定的权限选项
+    url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
     # 在一个团队中创建一个角色
     url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
     # 在一个团队中删除一个角色

@@ -13,7 +13,7 @@ logger = logging.getLogger("default")
 
 
 class ProbeService(object):
-    PROBE_MODE = ("readiness", "liveness")
+    PROBE_MODE = ("readiness", "liveness", "ignore")
 
     def get_service_probe_by_mode(self, service, mode):
         if not mode:
@@ -27,7 +27,7 @@ class ProbeService(object):
 
             return 200, u"success", m_list
         if mode not in self.PROBE_MODE:
-            return 400, u"参数错误,探针模式只能为readiness或liveness", None
+            return 400, u"参数错误,不健康处理方式只能为readiness或liveness或ignore", None
         probe = probe_repo.get_probe_by_mode(service.service_id, mode)
         if not probe:
             return 404, u"探针不存在，您可能并未设置检测探针", None
@@ -37,7 +37,7 @@ class ProbeService(object):
         mode = data.get("mode", None)
         if mode:
             if mode not in self.PROBE_MODE:
-                return 400, u"参数错误,探针模式只能为readiness或liveness"
+                return 400, u"参数错误,不健康处理方式只能为readiness或liveness或ignore"
         port = data.get("port", None)
         if port is not None:
             if port < 1:

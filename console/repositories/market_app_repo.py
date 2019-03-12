@@ -27,6 +27,12 @@ class RainbondCenterAppRepository(object):
             return rcapps[0]
         return None
 
+    def get_rainbond_app_by_key(self, group_key):
+        rcapps = RainbondCenterApp.objects.filter(group_key=group_key).all()
+        if rcapps:
+            return rcapps
+        return None
+
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version,
                                                   enterprise_id__in=["public", enterprise_id])

@@ -33,7 +33,7 @@ class AppProbeView(AppBaseView):
               type: string
               paramType: path
             - name: mode
-              description: 探针模式（readiness|liveness）
+              description: 不健康处理方式（readiness|liveness|ignore）
               required: true
               type: string
               paramType: query

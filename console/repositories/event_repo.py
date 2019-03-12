@@ -54,4 +54,5 @@ class ServiceEventRepository(object):
         else:
             return event_list
 
+
 event_repo = ServiceEventRepository()

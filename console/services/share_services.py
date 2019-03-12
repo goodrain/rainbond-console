@@ -209,6 +209,7 @@ class ShareService(object):
             probe_map = self.get_service_probes(array_ids)
 
             all_data_map = dict()
+
             for service in service_list:
                 data = dict()
                 data['service_id'] = service.service_id

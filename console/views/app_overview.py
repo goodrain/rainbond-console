@@ -5,6 +5,9 @@
 import datetime
 import logging
 import json
+import os
+import base64
+import pickle
 
 from django.db import transaction
 from django.shortcuts import redirect
@@ -34,6 +37,8 @@ from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
 from console.repositories.app import service_repo, service_webhooks_repo
 from console.views.base import JWTAuthApiView
+from console.repositories.app_config import service_endpoints_repo
+from console.repositories.deploy_repo import deploy_repo
 
 
 logger = logging.getLogger("default")
@@ -93,6 +98,7 @@ class AppDetailView(AppBaseView):
                     result = general_message(200, "success", "当前云市应用已删除", bean=bean)
                     return Response(result, status=result["code"])
                 else:
+                    bean.update({"rain_app_name": rain_app.group_name})
                     apps_template = json.loads(rain_app.app_template)
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
@@ -131,6 +137,27 @@ class AppDetailView(AppBaseView):
                     if compose_service_relation:
                         service_model["compose_id"] = compose_service_relation.compose_id
                         bean.update({"service": service_model})
+            bean["is_third"] = False
+            if self.service.service_source == "third_party":
+                bean["is_third"] = True
+                service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+                if service_endpoints:
+                    bean["register_way"] = service_endpoints.endpoints_type
+                    if service_endpoints.endpoints_type == "api":
+                        # 从环境变量中获取域名，没有在从请求中获取
+                        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
+                        key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
+                        if key_repo:
+                            bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
+                    if service_endpoints.endpoints_type == "discovery":
+                        # 返回类型和key
+                        endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
+                        logger.debug('--------endpoints_info---------->{0}'.format(endpoints_info_dict))
+
+                        bean["discovery_type"] = endpoints_info_dict["type"]
+                        bean["discovery_key"] = endpoints_info_dict["key"]
+
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
@@ -232,6 +259,7 @@ class AppStatusView(AppBaseView):
         """
         bean = dict()
         try:
+            bean["check_uuid"] = self.service.check_uuid
             status_map = app_service.get_service_status(self.tenant, self.service)
             bean.update(status_map)
             result = general_message(200, "success", "查询成功", bean=bean)

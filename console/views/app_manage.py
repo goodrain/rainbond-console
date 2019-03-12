@@ -3,7 +3,7 @@
   Created on 18/1/15.
 """
 import logging
-
+import json
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -17,9 +17,11 @@ from www.utils.return_message import general_message, error_message
 from console.services.app_actions import event_service
 from console.services.app import app_service
 from console.services.team_services import team_services
-from console.repositories.app import service_repo
+from console.repositories.app import service_repo, service_source_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from console.services.app_config import volume_service
+from console.repositories.group import tenant_service_group_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 
 
 logger = logging.getLogger("default")
@@ -165,11 +167,12 @@ class DeployAppView(AppBaseView):
 
         """
         try:
+            group_version = request.data.get("group_version", None)
             is_upgrade = request.data.get("is_upgrade", True)
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-            code, msg, event = app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade)
+            code, msg, event = app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade, group_version)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -681,4 +684,75 @@ class ChangeServiceUpgradeView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+# 判断云市安装的应用是否有（小版本，大版本）更新
+class MarketServiceUpgradeView(AppBaseView):
+    @never_cache
+    @perm_required('deploy_service')
+    def get(self, request, *args, **kwargs):
+        try:
+            bean = dict()
+            upgrate_version_list = []
+            if self.service.service_source != "market":
+                return Response(general_message(400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"), status=400)
+            # 获取组对象
+            group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
+            if group_obj:
+                # 获取内部市场对象
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                                                                                 group_obj.group_version)
+                if not rain_app:
+                    result = general_message(200, "success", "当前云市应用已删除")
+                    return Response(result, status=result["code"])
+                else:
+                    apps_template = json.loads(rain_app.app_template)
+                    apps_list = apps_template.get("apps")
+                    for app in apps_list:
+                        if app["service_key"] == self.service.service_key:
+                            if app["deploy_version"] > self.service.deploy_version:
+                                self.service.is_upgrate = True
+                                self.service.save()
+                    try:
+                        apps_template = json.loads(rain_app.app_template)
+                        apps_list = apps_template.get("apps")
+                        service_source = service_source_repo.get_service_source(self.service.tenant_id,
+                                                                                self.service.service_id)
+                        if service_source and service_source.extend_info:
+                            extend_info = json.loads(service_source.extend_info)
+                            if extend_info:
+                                for app in apps_list:
+                                    logger.debug('---------====app===============>{0}'.format(app))
+                                    logger.debug('---------=====extend_info==============>{0}'.format(extend_info))
+
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                        bean["is_upgrate"] = self.service.is_upgrate
+                    except Exception as e:
+                        logger.exception(e)
+                        result = error_message(e.message)
+                        return Response(result, status=result["code"])
+
+                # 通过group_key获取不同版本的应用市场对象
+                rain_apps = rainbond_app_repo.get_rainbond_app_by_key(group_obj.group_key)
+                if rain_apps:
+                    for r_app in rain_apps:
+                        if r_app.version > group_obj.group_version:
+                            upgrate_version_list.append(r_app.version)
+                        elif r_app.version == group_obj.group_version and self.service.is_upgrate:
+                            upgrate_version_list.append(r_app.version)
+
+            upgrate_version_list.sort()
+            result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
 

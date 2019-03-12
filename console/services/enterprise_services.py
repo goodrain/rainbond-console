@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-import datetime as dt
-import logging
+import os
 import random
 import string
 
 # from django.core.mail import send_mail
 
-from backends.services.exceptions import TenantExistError
 from console.repositories.enterprise_repo import enterprise_repo
-from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
-from www.utils.conf_tool import regionConfig
+
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()
@@ -76,7 +73,7 @@ class EnterpriseServices(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
-        enterprise.enterprise_id = make_uuid(enter_name)
+        enterprise.enterprise_id = os.environ.get('ENTERPRISE_ID', make_uuid(enter_name))
 
         # 处理企业别名
         if not enterprise_alias:
