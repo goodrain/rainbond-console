@@ -4,9 +4,10 @@ import logging
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from django.db import connection
 
 from backends.services.exceptions import GroupNotExistError
-from console.repositories.group import group_repo
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
@@ -20,6 +21,12 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
+from console.repositories.region_repo import region_repo
+from console.repositories.app_config import tcp_domain, domain_repo
+from console.repositories.share_repo import share_repo
+from console.repositories.backup_repo import backup_record_repo
+from www.models import TenantServiceInfo
+
 
 event_service = AppEventService()
 
@@ -84,6 +91,24 @@ class TeamOverView(RegionTenantHeaderView):
                 team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
                                                                                 region_name=self.response_region)
                 source = common_services.get_current_region_used_resource(self.team, self.response_region)
+                # 获取tcp和http策略数量
+                region = region_repo.get_region_by_region_name(self.response_region)
+                total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(self.team.tenant_id, region.region_id)
+                overview_detail["total_tcp_domain"] = total_tcp_domain
+
+                total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(self.team.tenant_id, region.region_id)
+                overview_detail["total_http_domain"] = total_http_domain
+
+                # 获取分享应用数量
+                groups = group_repo.get_tenant_region_groups(self.team.tenant_id, region.region_name)
+                share_app_num = 0
+                if groups:
+                    for group in groups:
+                        share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
+                        if share_record:
+                            share_app_num += 1
+                overview_detail["share_app_num"] = share_app_num
+
                 if source:
                     team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
                     overview_detail["team_app_num"] = team_app_num
@@ -386,6 +411,106 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
+class TeamAppSortViewView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        总览 团队应用信息
+        """
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region)
+            total = len(groups)
+            app_num_dict = {"total": total}
+            start = (page - 1) * page_size
+            end = page * page_size - 1
+            app_list = []
+            if groups:
+                for group in groups:
+                    app_dict = dict()
+                    app_dict["group_name"] = group.group_name
+                    # 分享记录和备份记录
+                    share_record_num = share_repo.get_app_share_record_count_by_groupid(group_id=group.ID)
+                    app_dict["share_record_num"] = share_record_num
+                    backup_records = backup_record_repo.get_group_backup_records(self.team.tenant_id,
+                                                                                 self.response_region, group.ID)
+                    backup_record_num = len(backup_records)
+                    app_dict["backup_record_num"] = backup_record_num
+                    # 服务数量记录
+                    services = group_service_relation_repo.get_services_by_group(group.ID)
+                    services_num = len(services)
+                    app_dict["services_num"] = services_num
+
+                    run_service_num = 0
+                    if services:
+                        for service in services:
+                            service_obj = TenantServiceInfo.objects.filter(service_id=service.service_id).first()
+                            if service_obj:
+                                # 获取服务状态
+                                body = region_api.check_service_status(service_obj.service_region, self.team.tenant_name,
+                                                                       service_obj.service_alias, self.team.enterprise_id)
+
+                                bean = body["bean"]
+                                status = bean["cur_status"]
+                                if status in ["running", "upgrade", "starting", "some_abnormal"]:
+                                    run_service_num += 1
+                    app_dict["run_service_num"] = run_service_num
+                    app_list.append(app_dict)
+
+                # 排序
+                app_list.sort(key=lambda x: x['run_service_num'], reverse=True)
+
+            apps_list = app_list[start: end]
+            result = general_message(200, "success", "查询成功", list=apps_list, bean=app_num_dict)
+            return Response(result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
+# 团队下应用环境变量模糊查询
+class TenantServiceEnvsView(RegionTenantHeaderView):
+
+    def get(self, request, *args, **kwargs):
+        attr_name = request.GET.get("attr_name", None)
+        attr_value = request.GET.get("attr_value", None)
+        if not attr_name and not attr_value:
+            result = general_message(400, "parameter is null", "参数缺失")
+            return Response(result)
+        if attr_name and attr_value:
+            result = general_message(400, "faild", "变量名和值不能同时存在")
+            return Response(result)
+        try:
+            # 查询变量名
+            if attr_name:
+                attr_name_list = []
+                cursor = connection.cursor()
+                cursor.execute("select attr_name from tenant_service_env_var where tenant_id='{0}' and attr_name like '%{1}%' order by attr_name;".format(self.team.tenant_id, attr_name))
+                service_envs = cursor.fetchall()
+                if len(service_envs) > 0:
+                    for service_env in service_envs:
+                        if service_env[0] not in attr_name_list:
+                            attr_name_list.append(service_env[0])
+                result = general_message(200, "success", "查询成功", list=attr_name_list)
+                return Response(result)
+
+            # 查询变量值
+            if attr_value:
+                attr_value_list = []
+                cursor = connection.cursor()
+                cursor.execute("select attr_value from tenant_service_env_var where tenant_id='{0}' and attr_value like '%{1}%' order by attr_value;".format(self.team.tenant_id, attr_value))
+                service_envs = cursor.fetchall()
+                if len(service_envs) > 0:
+                    for service_env in service_envs:
+                        if service_env[0] not in attr_value_list:
+                            attr_value_list.append(service_env[0])
+                result = general_message(200, "success", "查询成功", list=attr_value_list)
+                return Response(result)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+            return Response(result)
 
 
 

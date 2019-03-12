@@ -31,9 +31,20 @@ from console.repositories.region_repo import region_repo
 from console.utils.timeutil import time_to_str
 from backends.services.userservice import user_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
+from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.app import service_repo
 
-
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+def get_sufix_path(full_url):
+    """获取get请求参数路径部分的数据"""
+    index = full_url.find("?")
+    sufix = ""
+    if index != -1:
+        sufix = full_url[index:]
+    return sufix
 
 
 class UserFuzSerView(JWTAuthApiView):
@@ -1302,3 +1313,112 @@ class CertificateView(JWTAuthApiView):
         }
         result = generate_result(200, "success", "获取成功", bean=bean)
         return Response(result)
+
+
+class TeamSortDomainQueryView(JWTAuthApiView):
+    def get(self, request, team_name, region_name, *args, **kwargs):
+        """
+        获取团队下域名访问量排序
+        ---
+        parameters:
+            - name: team_name
+              description: team name
+              required: true
+              type: string
+              paramType: path
+        """
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 5))
+        sufix = get_sufix_path(request.get_full_path())
+
+        try:
+            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+            logger.debug('=====body======>{0}'.format(body))
+            total = len(body["data"]["result"])
+            start = (page - 1) * page_size
+            end = page * page_size - 1
+            bean = {"total": total}
+            domain_list = body["data"]["result"][start: end]
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])
+
+
+class TeamSortServiceQueryView(JWTAuthApiView):
+    def get(self, request, team_name, region_name, *args, **kwargs):
+        """
+        获取团队下服务访问量排序
+        ---
+        parameters:
+            - name: team_name
+              description: team name
+              required: true
+              type: string
+              paramType: path
+        """
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 5))
+        sufix = get_sufix_path(request.get_full_path())
+        try:
+
+            sufix_outer = "?query=sort_desc(sum(+ceil(increase(gateway_requests[1h])))+by+(service))"
+            sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7Bmethod%3D%22total%22%7D[1h])))by+(service_id))"
+            # 对外服务访问量
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
+            outer_service_list = body["data"]["result"]
+            import json
+            logger.debug('=====body======>{0}'.format(json.dumps(outer_service_list)))
+
+            # 对外服务访问量
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
+            inner_service_list = body["data"]["result"]
+            logger.debug('=====body======>{0}'.format(json.dumps(inner_service_list)))
+
+            # 合并
+            service_id_list = []
+            for service in outer_service_list:
+                service_id_list.append(service["metric"]["service"])
+            for service_oj in inner_service_list:
+                if service_oj["metric"]["service"] not in service_id_list:
+                    service_id_list.append(service_oj["metric"]["service"])
+            service_traffic_list = []
+            for service_id in service_id_list:
+                service_dict = dict()
+                metric = dict()
+                value = []
+                service_dict["metric"] = metric
+                service_dict["value"] = value
+                traffic_num = 0
+                v1 = 0
+                for service in outer_service_list:
+                    if service["metric"]["service"] == service_id:
+                        traffic_num += int(service["value"][1])
+                        v1 = service["value"][0]
+                for service_oj in inner_service_list:
+                    if service_oj["metric"]["service"] == service_id:
+                        traffic_num += int(service_oj["value"][1])
+                        v1 = service_oj["value"][0]
+                metric["service"] = service_id
+                value.append(v1)
+                value.append(traffic_num)
+                service_traffic_list.append(service_dict)
+
+            total = len(service_traffic_list)
+            start = (page - 1) * page_size
+            end = page * page_size - 1
+            bean = {"total": total}
+            services_l = service_traffic_list[start: end]
+            if services_l:
+                for service in services_l:
+                    service_obj = service_repo.get_service_by_service_id(service["metric"]["service"])
+                    if service_obj:
+                        service["metric"]["service_cname"] = service_obj.service_cname
+                        service["metric"]["service_alias"] = service_obj.service_alias
+
+            result = general_message(200, "success", "查询成功", list=services_l, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, e.message, "查询失败")
+        return Response(result, status=result["code"])

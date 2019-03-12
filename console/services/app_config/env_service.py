@@ -78,6 +78,33 @@ class AppEnvVarService(object):
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).filter(
                 scope__in=("outer", "both"))
 
+    def get_service_build_envs(self, service):
+        if service:
+            return env_var_repo.get_service_all_build_envs(service.tenant_id, service.service_id)
+
+    def add_service_build_env_var(self, tenant, service, container_port, name, attr_name, attr_value, is_change,
+                            scope="build"):
+        attr_name = str(attr_name).strip()
+        attr_value = str(attr_value).strip()
+        is_pass, msg = self.check_env_attr_name(attr_name)
+        if not is_pass:
+            return 400, msg, None
+        if len(str(attr_value)) > 512:
+            attr_value = str(attr_value)[:512]
+
+        tenant_service_env_var = dict()
+        tenant_service_env_var["tenant_id"] = service.tenant_id
+        tenant_service_env_var["service_id"] = service.service_id
+        tenant_service_env_var['container_port'] = container_port
+        tenant_service_env_var["name"] = name
+        tenant_service_env_var["attr_name"] = attr_name
+        tenant_service_env_var["attr_value"] = attr_value
+        tenant_service_env_var["is_change"] = is_change
+        tenant_service_env_var["scope"] = scope
+
+        new_env = env_var_repo.add_service_env(**tenant_service_env_var)
+        return 200, 'success', new_env
+
     def get_changeable_env(self, service):
         if service:
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).exclude(is_change=False)
@@ -122,6 +149,9 @@ class AppEnvVarService(object):
 
     def delete_service_env(self, tenant, service):
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
+
+    def delete_service_build_env(self, tenant, service):
+        env_var_repo.delete_service_build_env(tenant.tenant_id, service.service_id)
 
     def delete_region_env(self, tenant, service):
         envs = self.get_env_var(service)

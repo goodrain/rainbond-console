@@ -19,6 +19,8 @@ from console.repositories.perm_repo import service_perm_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.app import service_source_repo
 from console.repositories.plugin import app_plugin_relation_repo, service_plugin_config_repo
+from console.repositories.app_config import service_endpoints_repo
+
 
 import json
 import logging

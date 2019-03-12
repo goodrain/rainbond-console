@@ -12,8 +12,7 @@ from www.utils.crypt import make_uuid
 from console.repositories.migration_repo import migrate_repo
 from www.models.main import TenantServiceInfo, TenantServiceEnvVar, TenantServiceVolume, TenantServicesPort, \
     TenantServiceEnv, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth, ImageServiceRelation, \
-    TenantServiceRelation, \
-    TenantServiceMountRelation, TenantServiceConfigurationFile
+    TenantServiceRelation, TenantServiceMountRelation, ThirdPartyServiceEndpoints, TenantServiceConfigurationFile
 from console.models.main import ServiceRelPerms, ServiceSourceInfo
 from console.repositories.team_repo import team_repo
 from www.models.label import ServiceLabels
@@ -231,6 +230,7 @@ class GroupappsMigrateService(object):
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_service_image_relation(migrate_tenant, ts, app["image_service_relation"])
+            self.__save_service_endpoints(migrate_tenant, ts, app["service_endpoints"])
 
             service_relations = app["service_relation"]
             service_mnts = app["service_mnts"]
@@ -434,6 +434,17 @@ class GroupappsMigrateService(object):
 
     def update_migrate_original_group_id(self, old_original_group_id, new_original_group_id):
         migrate_repo.get_by_original_group_id(old_original_group_id).update(original_group_id=new_original_group_id)
+
+    def __save_service_endpoints(self, tenant, service, service_endpoints):
+        endpoints_list = []
+        for endpoint in service_endpoints:
+            endpoint.pop("ID")
+            new_service_endpoint = ThirdPartyServiceEndpoints(**endpoint)
+            new_service_endpoint.service_id = service.service_id
+            new_service_endpoint.tenant_id = tenant.tenant_id
+            endpoints_list.append(new_service_endpoint)
+        if endpoints_list:
+            ThirdPartyServiceEndpoints.objects.bulk_create(endpoints_list)
 
 
 migrate_service = GroupappsMigrateService()

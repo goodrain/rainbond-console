@@ -39,6 +39,24 @@ class PermOptionsView(JWTAuthApiView):
             return Response(result, status=500)
 
 
+class ThreeServicePermOptionsView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取三方服务自定义角色时可给角色绑定的权限选项
+        ---
+
+        """
+        try:
+            options_list = role_perm_repo.get_three_service_permission_options()
+
+            result = general_message(200, "get permissions success", "获取权限选项成功", list=options_list)
+            return Response(result, status=200)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
 class TeamAddRoleView(JWTAuthApiView):
     @perm_required('tenant_manage_role')
     def post(self, request, team_name, *args, **kwargs):

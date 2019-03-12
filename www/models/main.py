@@ -1400,7 +1400,7 @@ class ServiceProbe(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     probe_id = models.CharField(max_length=32, help_text=u"探针id")
-    mode = models.CharField(max_length=10, help_text=u"探针模式")
+    mode = models.CharField(max_length=10, help_text=u"不健康处理方式readiness（下线）或liveness（重启）或ignore（忽略）")
     scheme = models.CharField(
         max_length=10, default="tcp", help_text=u"探针使用协议,tcp,http,cmd")
     path = models.CharField(max_length=50, default="", help_text=u"路径")
@@ -1516,6 +1516,18 @@ class ServiceTcpDomain(BaseModel):
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
 
+class ThirdPartyServiceEndpoints(BaseModel):
+    """三方服务endpoints"""
+
+    class Meta:
+        db_table = 'third_party_service_endpoints'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_cname = models.CharField(max_length=128, help_text=u"服务名")
+    endpoints_info = models.TextField(help_text=u"endpoints信息")
+    endpoints_type = models.CharField(max_length=32, help_text=u"类型（static-静态， api， discovery-服务发现）")
+
 class ServiceWebhooks(BaseModel):
     """服务的自动部署属性"""
 
@@ -1526,3 +1538,4 @@ class ServiceWebhooks(BaseModel):
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
     webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
+

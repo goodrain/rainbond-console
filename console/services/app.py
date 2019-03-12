@@ -7,12 +7,14 @@ import logging
 import random
 import re
 import string
+import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.repositories.app import service_source_repo, service_repo
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo
+from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo, \
+    service_endpoints_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
 from console.services.app_config.port_service import AppPortService
@@ -45,9 +47,6 @@ class AppService(object):
             return False, u"应用名称不能为空"
         if len(service_cname) > 100:
             return False, u"应用名称最多支持100个字符"
-        r = re.compile(u'^[a-zA-Z0-9_\\-\\.\u4e00-\u9fa5]+$')
-        if not r.match(service_cname.decode("utf-8")):
-            return False, u"应用名称只支持中英文下划线和中划线和点（.）"
         return True, u"success"
 
     def __init_source_code_app(self, region):
@@ -252,6 +251,85 @@ class AppService(object):
 
         return 200, u"创建成功", ts
 
+    def __init_third_party_app(self, region, end_point):
+        """
+        初始化创建外置服务的默认数据,未存入数据库
+        """
+        tenant_service = TenantServiceInfo()
+        tenant_service.service_region = region
+        tenant_service.service_key = "application"
+        tenant_service.desc = "third party service"
+        tenant_service.category = "application"
+        tenant_service.image = "third_party"
+        tenant_service.cmd = ""
+        tenant_service.setting = ""
+        tenant_service.extend_method = "stateless"
+        tenant_service.env = ""
+        tenant_service.min_node = len(end_point)
+        tenant_service.min_memory = 0
+        tenant_service.min_cpu = 0
+        tenant_service.version = "81701"
+        tenant_service.namespace = "third_party"
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "application"
+        tenant_service.total_memory = 0
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.service_source = AppConstants.THIRD_PARTY
+        tenant_service.create_status = "creating"
+        return tenant_service
+
+    def create_third_party_app(self, region, tenant, user, service_cname, endpoints, endpoints_type):
+        service_cname = service_cname.rstrip().lstrip()
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
+        if not is_pass:
+            return 412, msg, None
+        # 初始化
+        new_service = self.__init_third_party_app(region, endpoints)
+        new_service.tenant_id = tenant.tenant_id
+        new_service.service_cname = service_cname
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = "gr" + service_id[-6:]
+        new_service.service_id = service_id
+        new_service.service_alias = service_alias
+        new_service.creater = user.pk
+        new_service.server_type = ''
+        new_service.protocol = 'tcp'
+        new_service.save()
+        if endpoints_type == "static":
+            # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
+            if endpoints:
+                port_list = []
+                for endpoint in endpoints:
+                    if ':' in endpoint:
+                        port_list.append(endpoint.split(':')[1])
+                logger.debug('---------111-------->{0}'.format(port_list))
+                port_re = list(set(port_list))
+                logger.debug('---------111-------->{0}'.format(port_re))
+                if len(port_re) == 1:
+                    port = int(port_re[0])
+                    if port:
+                        port_alias = new_service.service_alias.upper().replace("-", "_") + str(port)
+                        service_port = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
+                                        "container_port": port, "mapping_port": port,
+                                        "protocol": 'tcp', "port_alias": port_alias,
+                                        "is_inner_service": False,
+                                        "is_outer_service": False}
+                        port_repo.add_service_port(**service_port)
+        # 保存endpoints数据
+        service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
+                             "service_cname": new_service.service_cname, "endpoints_info": json.dumps(endpoints),
+                             "endpoints_type": endpoints_type}
+        logger.debug('------service_endpoints------------->{0}'.format(service_endpoints))
+        service_endpoints_repo.add_service_endpoints(service_endpoints)
+
+        ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        return 200, u"创建成功", ts
+
     def get_app_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         services = []
@@ -373,7 +451,7 @@ class AppService(object):
         return service
 
     def __init_create_data(self, tenant, service, user_name, do_deploy, dep_sids):
-        data = {}
+        data = dict()
         data["tenant_id"] = tenant.tenant_id
         data["service_id"] = service.service_id
         data["service_key"] = service.service_key
@@ -506,6 +584,52 @@ class AppService(object):
             else:
                 break
         return rt_name
+
+    def create_third_party_service(self, tenant, service, user_name):
+        data = self.__init_third_party_data(tenant, service, user_name)
+        # 端口
+        ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
+        ports_info = ports.values(
+            'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+
+        for port_info in ports_info:
+            port_info["is_inner_service"] = False
+            port_info["is_outer_service"] = False
+
+        if ports_info:
+            data["ports_info"] = list(ports_info)
+
+        # endpoints
+        endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        endpoints_dict = dict()
+        if endpoints:
+            if endpoints.endpoints_type != "api":
+                endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+                data["endpoints"] = endpoints_dict
+        data["kind"] = service.service_source
+
+        # 数据中心创建
+        logger.debug('-----------data-----------_>{0}'.format(data))
+        region_api.create_service(service.service_region, tenant.tenant_name, data)
+        # 将服务创建状态变更为创建完成
+        service.create_status = "complete"
+        self.__handle_service_ports(tenant, service, ports)
+        service.save()
+        return service
+
+    def __init_third_party_data(self, tenant, service, user_name):
+        data = dict()
+        data["tenant_id"] = tenant.tenant_id
+        data["service_id"] = service.service_id
+        data["service_alias"] = service.service_alias
+        data["protocol"] = service.protocol
+        data["ports_info"] = []
+        data["enterprise_id"] = tenant.enterprise_id
+        data["operator"] = user_name
+        data["namespace"] = service.namespace
+        data["service_key"] = service.service_key
+        data["port_type"] = service.port_type
+        return data
 
 
 app_service = AppService()
