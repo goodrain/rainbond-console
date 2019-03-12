@@ -64,22 +64,64 @@ class CenterAppListView(RegionTenantHeaderView):
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
             app_list = []
+            show_app_list = []
+            group_key_list = []
             for app in show_apps:
-                min_memory = self.__get_service_group_memory(app.app_template, app.group_name)
-                export_status = export_service.get_export_record_status(self.tenant.enterprise_id, app)
-                app_bean = app.to_dict()
-                app_bean["min_memory"] = min_memory
-                app_bean["export_status"] = export_status
-                app_bean.pop("app_template")
-                app_list.append(app_bean)
-            result = general_message(200, "success", "查询成功", list=app_list, total=paginator.count,
+                if app.group_key not in group_key_list:
+                    group_key_list.append(app.group_key)
+            logger.debug('==========0=================0{0}'.format(group_key_list))
+            if group_key_list:
+                for group_key in group_key_list:
+                    app_dict = dict()
+                    group_version_list = []
+                    for app in show_apps:
+                        if app.group_key == group_key:
+                            if app.version not in group_version_list:
+                                group_version_list.append(app.version)
+                    group_version_list.sort(reverse=True)
+
+                    logger.debug('----------group_version_list------__>{0}'.format(group_version_list))
+                    logger.debug('----------group_key------__>{0}'.format(group_key))
+                    for app in show_apps:
+                        if app.version == group_version_list[0] and app.group_key == group_key:
+                            app_dict["ID"] = app.ID
+                            app_dict["group_key"] = group_key
+                            app_dict["group_version_list"] = group_version_list
+                            app_dict["group_name"] = app.group_name
+                            app_dict["share_user"] = app.share_user
+                            app_dict["record_id"] = app.record_id
+                            app_dict["share_team"] = app.share_team
+                            app_dict["tenant_service_group_id"] = app.tenant_service_group_id
+                            app_dict["pic"] = app.pic
+                            app_dict["source"] = app.source
+                            app_dict["describe"] = app.describe
+                            app_dict["is_complete"] = app.is_complete
+                            app_dict["is_ingerit"] = app.is_ingerit
+                            app_dict["template_version"] = app.template_version
+                            app_dict["create_time"] = app.create_time
+                            app_dict["update_time"] = app.update_time
+                            app_dict["enterprise_id"] = app.enterprise_id
+                            app_dict["install_number"] = app.install_number
+                            app_dict["is_official"] = app.is_official
+                            app_dict["details"] = app.details
+                            app_dict["upgrade_time"] = app.upgrade_time
+                            min_memory = self.__get_service_group_memory(app.app_template)
+                            if min_memory:
+                                app_dict["min_memory"] = min_memory
+                            export_status = export_service.get_export_record_status(self.tenant.enterprise_id,
+                                                                                    group_key, group_version_list[0])
+                            if export_status:
+                                app_dict["export_status"] = export_status
+                            show_app_list.append(app_dict)
+
+            result = general_message(200, "success", "查询成功", list=show_app_list, total=paginator.count,
                                      next_page=int(page) + 1)
         except Exception as e:
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])
 
-    def __get_service_group_memory(self, app_template_raw, group_name):
+    def __get_service_group_memory(self, app_template_raw):
         try:
             app_template = json.loads(app_template_raw)
             apps = app_template["apps"]
@@ -93,7 +135,6 @@ class CenterAppListView(RegionTenantHeaderView):
             return total_memory
         except Exception as e:
             logger.debug("==============================>{0}".format(e))
-            logger.debug("==============================================>{0}".format(group_name))
             return 0
 
 
