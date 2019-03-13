@@ -86,7 +86,7 @@ class ConfigInfoView(AlowAnyApiView):
             enterprise = enterprise_repo.get_enterprise_first()
             if enterprise:
                 data["eid"] = enterprise.enterprise_id
-                data["enterprise_name"] = enterprise.enterprise_name
+                data["enterprise_name"] = enterprise.enterprise_alias
             data["version"] = os.getenv("RELEASE_DESC", "public-cloud")
             result = general_message(
                 code,
