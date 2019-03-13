@@ -454,8 +454,7 @@ class MarketAppService(object):
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app_service.generate_service_cname(
-            tenant, app["service_cname"], region)
+        tenant_service.service_cname = app["service_cname"]
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         if is_slug:

@@ -1042,65 +1042,16 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     # 获取策略的网关自定义参数
     @never_cache
     @perm_required('access_control')
-    def get(self, request, *args, **kwargs):
-        rule_id = request.GET.get("rule_id", None)
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
-        key = request.GET.get("key", None)
+    def get(self, request, rule_id, *args, **kwargs):
         if not rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
         try:
-            cc_list = []
-            if key:
-                # 获取总数
-                cursor = connection.cursor()
-                cursor.execute(
-                    "select count(*) from gateway_custom_configuration where rule_id='{0}' and key like '%{1}%';".format(
-                        rule_id, key))
-                cc_count = cursor.fetchall()
-
-                total = cc_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute(
-                    "select config_id, rule_id, key, value from gateway_custom_configuration where rule_id='{0}' and key like '%{1}%' LIMIT {2},{3};".format(
-                        rule_id, key, start, end))
-                cc_tuples = cursor.fetchall()
-            else:
-                # 获取总数
-                cursor = connection.cursor()
-                cursor.execute(
-                    "select count(*) from gateway_custom_configuration where rule_id='{0}';".format(rule_id))
-                cc_count = cursor.fetchall()
-
-                total = cc_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute(
-                    "select config_id, rule_id, key, value from gateway_custom_configuration where rule_id='{0}' LIMIT {1},{2};".format(
-                        rule_id, start, end))
-                cc_tuples = cursor.fetchall()
-
-            if len(cc_tuples) > 0:
-                for cc_tuple in cc_tuples:
-                    cc_dict = dict()
-                    cc_dict["config_id"] = cc_tuple[0]
-                    cc_dict["rule_id"] = cc_tuple[1]
-                    cc_dict["key"] = cc_tuple[2]
-                    cc_dict["value"] = cc_tuple[3]
-                    cc_list.append(cc_dict)
-            bean = {"total": total}
-            result = general_message(200, "success", "查询成功", bean=bean, list=cc_list)
+            cf = configuration_repo.get_configuration_by_rule_id(rule_id)
+            bean = dict()
+            if cf:
+                bean["rule_id"] = cf.rule_id
+                bean["value"] = cf.value
+            result = general_message(200, "success", "查询成功", bean=bean)
             return Response(result, status=200)
 
         except Exception as e:
@@ -1111,72 +1062,43 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     # 修改网关的自定义参数
     @never_cache
     @perm_required('control_operation')
-    def put(self, request, *args, **kwargs):
-        configuration_list = request.data.get("configuration_list", None)
-        rule_id = request.data.get("rule_id", None)
+    def put(self, request, rule_id, *args, **kwargs):
+        value = request.data.get("value", None)
         if not rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
-        cc_dict = dict()
-        cc_list = []
-        cc_dict["configs"] = cc_list
         try:
-            if not configuration_list:
-                cf_list = configuration_repo.get_configuration_by_rule_id(rule_id)
-                if not cf_list:
+            if not value:
+                cf = configuration_repo.get_configuration_by_rule_id(rule_id)
+                if not cf:
                     return Response(general_message(400, "no_modification", "暂无修改"), status=400)
-                for cf in cf_list:
-                    cf_dict = dict()
-                    cf_dict["config_id"] = cf.config_id
-                    cf_dict["rule_id"] = cf.rule_id
-                    cf_dict["key"] = cf.key
-                    cf_dict["value"] = cf.value
-                    cc_list.append(cf_dict)
-                res, data = region_api.upgrade_configuration(self.tenant, self.response_region, cc_dict)
+                gcc_dict = dict()
+                gcc_dict["body"] = cf
+                gcc_dict["rule_id"] = rule_id
+                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, gcc_dict)
                 if res.status != 200:
                     return Response(general_message(500, "upgrade faild", "数据中心修改失败"), status=500)
+                result = general_message(200, "success", "修改成功")
+                return Response(result, status=200)
             else:
-                cf_list = configuration_repo.get_configuration_by_rule_id(rule_id)
-                for configuration in configuration_list:
-                    cc_dict = dict()
-                    cc_dict["config_id"] = make_uuid()
-                    cc_dict["rule_id"] = configuration["rule_id"]
-                    cc_dict["key"] = configuration["key"]
-                    cc_dict["value"] = configuration["value"]
-                    cc_list.append(cc_dict)
-                res, data = region_api.upgrade_configuration(self.tenant, self.response_region, cc_dict)
+                cf = configuration_repo.get_configuration_by_rule_id(rule_id)
+                gcc_dict = dict()
+                gcc_dict["body"] = value
+                gcc_dict["rule_id"] = rule_id
+                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, gcc_dict)
                 if res.status == 200:
-                    if cf_list:
-                        for cf in cf_list:
-                            cf.delete()
-                    for cc in cc_list:
-                        configuration_repo.add_configuration(cc)
-            result = general_message(200, "success", "修改成功")
-            return Response(result, status=200)
-
+                    if cf:
+                        cf.value = value
+                    else:
+                        cf_dict = dict()
+                        cf_dict["rule_id"] = rule_id
+                        cf_dict["value"] = value
+                        configuration_repo.add_configuration(**cf_dict)
+                result = general_message(200, "success", "修改成功")
+                return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
-
-
-class GatewayRuleView(RegionTenantHeaderView):
-    # 删除网关自定义参数
-    @never_cache
-    @perm_required('control_operation')
-    def delete(self, request, config_id, *args, **kwargs):
-        try:
-            body = {"config_id": config_id}
-            res, data = region_api.delete_configuration(self.tenant, self.response_region, body)
-            if res.status != 200:
-                return Response(general_message(500, "upgrade faild", "数据中心删除失败"), status=500)
-
-            configuration_repo.delete_configuration(config_id)
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
 
 
 

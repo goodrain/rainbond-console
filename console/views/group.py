@@ -206,7 +206,7 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: action
-              description: 操作名称 stop| start|restart|deploy
+              description: 操作名称 stop| start|upgrade|deploy
               required: true
               type: string
               paramType: form

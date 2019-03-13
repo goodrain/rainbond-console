@@ -25,7 +25,7 @@ class AppCheckService(object):
         elif service_source == AppConstants.THIRD_PARTY:
             return "third-party-service"
 
-    def check_service(self, tenant, service):
+    def check_service(self, tenant, service, is_again):
         # if service.create_status == "complete":
         #     return 409, "应用完成创建,请勿重复检测", None
         body = dict()
@@ -63,8 +63,9 @@ class AppCheckService(object):
         service.check_uuid = bean["check_uuid"]
         service.check_event_id = bean["event_id"]
         # 更新创建状态
-        service.create_status = "checking"
-        service.save()
+        if not is_again:
+            service.create_status = "checking"
+            service.save()
         bean = dict()
         bean.update(service.to_dict())
         bean.update({"user_name": user_name, "password": password})
@@ -131,16 +132,10 @@ class AppCheckService(object):
     def upgrade_service_env_info(self, tenant, service, data):
         # 更新构建时环境变量
         if data["check_status"] == "success":
-            if service.create_status == "checking":
-
-                logger.debug("checking service info install,save info into database")
-                service_info_list = data["service_info"]
-                code, msg = self.upgrade_service_info(tenant, service, service_info_list[0])
-                if code != 200:
-                    return code, msg
-            # checked 表示检测完成
-            service.create_status = "checked"
-            service.save()
+            service_info_list = data["service_info"]
+            code, msg = self.upgrade_service_info(tenant, service, service_info_list[0])
+            if code != 200:
+                return code, msg
         return 200, "success"
 
     def upgrade_service_info(self, tenant, service, check_service_info):
@@ -247,6 +242,8 @@ class AppCheckService(object):
         if envs:
             # 删除原有env
             env_var_service.delete_service_env(tenant, service)
+            # 删除原有的build类型环境变量
+            env_var_service.delete_service_build_env(tenant, service)
             SENSITIVE_ENV_NAMES = (
                 'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
                 'SERVICE_EXTEND_METHOD',

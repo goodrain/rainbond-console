@@ -1542,12 +1542,11 @@ class ServiceWebhooks(BaseModel):
 
 
 class GatewayCustomConfiguration(BaseModel):
+    """网关自定义参数配置"""
     class Meta:
         db_table = 'gateway_custom_configuration'
 
-    config_id = models.CharField(max_length=32, help_text=u"自定义配置id")
     rule_id = models.CharField(max_length=32, help_text=u"规则id")
-    key = models.CharField(max_length=256, help_text=u"配置key")
-    value = models.CharField(max_length=256, help_text=u"配置value")
+    value = models.TextField(help_text=u"配置value")
 
 

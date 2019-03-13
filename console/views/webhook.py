@@ -64,27 +64,27 @@ class WebHooksDeploy(AlowAnyApiView):
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
                     logger.debug("提交信息无效")
-                    result = general_message(400, "failed", "提交信息无效")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交信息无效")
+                    return Response(result, status=200)
 
                 # signature = request.META.get("HTTP_X_HUB_SIGNATURE", None)
 
                 ref = request.data.get("ref")
                 if not ref:
                     logger.debug("获取分支信息失败")
-                    result = general_message(400, "failed", "获取分支信息失败")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "获取分支信息失败")
+                    return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
-                    result = general_message(400, "failed", "提交分支与部署分支不同")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
                     logger.debug("却少repository信息")
-                    result = general_message(400, "failed", "却少repository信息")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "却少repository信息")
+                    return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
                 logger.debug("git_url", service_obj.git_url)
@@ -92,8 +92,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug("ssh_url", ssh_url)
                 if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
                     logger.debug("github地址不相符")
-                    result = general_message(400, "failed", "仓库地址不相符")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "仓库地址不相符")
+                    return Response(result, status=200)
 
                 # 获取应用状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
@@ -123,8 +123,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
                     logger.debug("提交信息无效")
-                    result = general_message(400, "failed", "提交信息无效")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交信息无效")
+                    return Response(result, status=200)
 
                 event_name = request.data.get("object_kind", None)
                 logger.debug("kind", event_name)
@@ -136,25 +136,25 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 if event_name != "push" and event_name != "ping":
                     logger.debug("不支持此事件类型")
-                    result = general_message(400, "failed", "不支持此事件类型")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "不支持此事件类型")
+                    return Response(result, status=200)
 
                 ref = request.data.get("ref")
                 if not ref:
                     logger.debug("获取分支信息失败")
-                    result = general_message(400, "failed", "获取分支信息失败")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "获取分支信息失败")
+                    return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
-                    result = general_message(400, "failed", "提交分支与部署分支不同")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
                     logger.debug("却少repository信息")
-                    result = general_message(400, "failed", "却少repository信息")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "却少repository信息")
+                    return Response(result, status=200)
 
                 git_http_url = repository.get("git_http_url")
                 gitlab_ssh_url = repository.get("git_ssh_url")
@@ -166,8 +166,8 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 if not (service_obj.git_url == git_http_url or service_obj.git_url == git_ssh_url):
                     logger.debug("github地址不相符")
-                    result = general_message(400, "failed", "仓库地址不相符")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "仓库地址不相符")
+                    return Response(result, status=200)
 
                 # 获取应用状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
@@ -180,8 +180,8 @@ class WebHooksDeploy(AlowAnyApiView):
                                                         committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态不支持")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "应用状态不支持")
+                    return Response(result, status=200)
             # gitee
             elif request.META.get("HTTP_X_GITEE_EVENT", None) or request.META.get("HTTP_X_GIT_OSCHINA_EVENT", None):
                 logger.debug(request.data)
@@ -195,24 +195,24 @@ class WebHooksDeploy(AlowAnyApiView):
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
                     logger.debug("提交信息无效")
-                    result = general_message(400, "failed", "提交信息无效")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交信息无效")
+                    return Response(result, status=200)
                 ref = request.data.get("ref")
                 if not ref:
                     logger.debug("获取分支信息失败")
-                    result = general_message(400, "failed", "获取分支信息失败")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "获取分支信息失败")
+                    return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
-                    result = general_message(400, "failed", "提交分支与部署分支不同")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
                     logger.debug("却少repository信息")
-                    result = general_message(400, "failed", "却少repository信息")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "却少repository信息")
+                    return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
                 logger.debug("git_url", service_obj.git_url)
@@ -220,8 +220,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug("ssh_url", ssh_url)
                 if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
                     logger.debug("gitee地址不相符")
-                    result = general_message(400, "failed", "仓库地址不相符")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "仓库地址不相符")
+                    return Response(result, status=200)
 
                 # 获取应用状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
@@ -236,8 +236,8 @@ class WebHooksDeploy(AlowAnyApiView):
                                                         committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态不支持")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "应用状态不支持")
+                    return Response(result, status=200)
             # gogs
             elif request.META.get("HTTP_X_GOGS_EVENT", None):
                 logger.debug(request.data)
@@ -251,24 +251,24 @@ class WebHooksDeploy(AlowAnyApiView):
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
                     logger.debug("提交信息无效")
-                    result = general_message(400, "failed", "提交信息无效")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交信息无效")
+                    return Response(result, status=200)
                 ref = request.data.get("ref")
                 if not ref:
                     logger.debug("获取分支信息失败")
-                    result = general_message(400, "failed", "获取分支信息失败")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "获取分支信息失败")
+                    return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
-                    result = general_message(400, "failed", "提交分支与部署分支不同")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
                     logger.debug("却少repository信息")
-                    result = general_message(400, "failed", "却少repository信息")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "却少repository信息")
+                    return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
                 logger.debug("git_url", service_obj.git_url)
@@ -276,8 +276,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug("ssh_url", ssh_url)
                 if not (service_obj.git_url == clone_url or service_obj.git_url == ssh_url):
                     logger.debug("gogs地址不相符")
-                    result = general_message(400, "failed", "仓库地址不相符")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "仓库地址不相符")
+                    return Response(result, status=200)
 
                 # 获取应用状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
@@ -292,8 +292,8 @@ class WebHooksDeploy(AlowAnyApiView):
                                                         committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态不支持")
-                    return Response(result, status=400)
+                    result = general_message(200, "failed", "应用状态不支持")
+                    return Response(result, status=200)
 
 
 

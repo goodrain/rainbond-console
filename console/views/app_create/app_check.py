@@ -105,7 +105,8 @@ class AppCheck(AppBaseView):
 
         """
         try:
-            code, msg, service_info = app_check_service.check_service(self.tenant, self.service)
+            is_again = request.data.get("is_again", False)
+            code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again)
             if code != 200:
                 result = general_message(code, "check service error", msg)
             else:
