@@ -197,9 +197,9 @@ class AppExportService(object):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
                                                                       export_format)
 
-    def get_export_record_status(self, enterprise_id, app):
-        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, app.group_key,
-                                                                                    app.version)
+    def get_export_record_status(self, enterprise_id, group_key, version):
+        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, group_key,
+                                                                                    version)
         export_status = "other"
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:

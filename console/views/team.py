@@ -1329,21 +1329,34 @@ class TeamSortDomainQueryView(JWTAuthApiView):
         """
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 5))
-        sufix = get_sufix_path(request.get_full_path())
-
+        repo = request.GET.get("repo", "1")
         try:
-            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
-            logger.debug('=====body======>{0}'.format(body))
-            total = len(body["data"]["result"])
-            start = (page - 1) * page_size
-            end = page * page_size - 1
-            bean = {"total": total}
-            domain_list = body["data"]["result"][start: end]
-            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                result = general_message(400, "team id null", "团队不存在")
+                return Response(result, status=400)
+            if repo == "1":
+                sufix = "?query=sort_desc(sum(%20ceil(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))".format(team.tenant_id)
+                res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+                logger.debug('=====body======>{0}'.format(body))
+                total = len(body["data"]["result"])
+                start = (page - 1) * page_size
+                end = page * page_size - 1
+                bean = {"total": total}
+                domain_list = body["data"]["result"][start: end]
+                result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+                return Response(result, status=200)
+            else:
+                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start=1552438927.734&end=1552442527.734&step=14".format(
+                    team.tenant_id)
+                res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+                logger.debug('=====body=1=====>{0}'.format(body))
+                result = general_message(200, "success", "查询成功", bean=body)
+                return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
             result = general_message(400, e.message, "查询失败")
-        return Response(result, status=result["code"])
+            return Response(result, status=result["code"])
 
 
 class TeamSortServiceQueryView(JWTAuthApiView):
@@ -1358,22 +1371,23 @@ class TeamSortServiceQueryView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 5))
-        sufix = get_sufix_path(request.get_full_path())
         try:
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                result = general_message(400, "team id null", "团队不存在")
+                return Response(result, status=400)
+            sufix_outer = "?query=sort_desc(sum(%20ceil(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(team.tenant_id)
 
-            sufix_outer = "?query=sort_desc(sum(+ceil(increase(gateway_requests[1h])))+by+(service))"
-            sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7Bmethod%3D%22total%22%7D[1h])))by+(service_id))"
+            sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7Btenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(team.tenant_id)
             # 对外服务访问量
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
-            outer_service_list = body["data"]["result"]
+            outer_service_list = body["data"]["result"][0: 10]
             import json
             logger.debug('=====body======>{0}'.format(json.dumps(outer_service_list)))
 
             # 对外服务访问量
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
-            inner_service_list = body["data"]["result"]
+            inner_service_list = body["data"]["result"][0: 10]
             logger.debug('=====body======>{0}'.format(json.dumps(inner_service_list)))
 
             # 合并
@@ -1405,19 +1419,16 @@ class TeamSortServiceQueryView(JWTAuthApiView):
                 value.append(traffic_num)
                 service_traffic_list.append(service_dict)
 
-            total = len(service_traffic_list)
-            start = (page - 1) * page_size
-            end = page * page_size - 1
-            bean = {"total": total}
-            services_l = service_traffic_list[start: end]
-            if services_l:
-                for service in services_l:
-                    service_obj = service_repo.get_service_by_service_id(service["metric"]["service"])
-                    if service_obj:
-                        service["metric"]["service_cname"] = service_obj.service_cname
-                        service["metric"]["service_alias"] = service_obj.service_alias
+            for service_traffic in service_traffic_list:
+                service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
+                if service_obj:
+                    service_traffic["metric"]["service_cname"] = service_obj.service_cname
+                    service_traffic["metric"]["service_alias"] = service_obj.service_alias
 
-            result = general_message(200, "success", "查询成功", list=services_l, bean=bean)
+            # 排序取前十
+            service_list = sorted(service_traffic_list, key=lambda x: x["value"][1])[0: 10]
+
+            result = general_message(200, "success", "查询成功", list=service_list)
         except Exception as e:
             logger.exception(e)
             result = general_message(400, e.message, "查询失败")

@@ -364,9 +364,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
 
     # 5.1网关自定义参数
-    url(r'^teams/(?P<tenantName>[\w\-]+)/gateway_custom_configuration$', GatewayCustomConfigurationView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/put_gateway$', GatewayCustomConfigurationView.as_view()),
     # 5.1删除网关自定义参数
-    url(r'^teams/(?P<tenantName>[\w\-]+)/rule_id/(?P<rule_id>[\w\-]+)$', GatewayRuleView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/config_id/(?P<config_id>[\w\-]+)$', GatewayRuleView.as_view()),
 
     # 服务操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),
