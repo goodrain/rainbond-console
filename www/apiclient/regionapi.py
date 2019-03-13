@@ -1549,7 +1549,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
     # 修改网关自定义配置项
@@ -1557,7 +1557,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/add-or-update-rule-config"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/rule-config"
         self._set_headers(token)
         res, body = self._put(
             url, self.default_headers, json.dumps(body), region=region)

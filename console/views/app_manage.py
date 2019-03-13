@@ -722,15 +722,22 @@ class MarketServiceUpgradeView(AppBaseView):
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
                                 for app in apps_list:
-                                    logger.debug('---------====app===============>{0}'.format(app))
-                                    logger.debug('---------=====extend_info==============>{0}'.format(extend_info))
-
-                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                        new_version = int(app["deploy_version"])
-                                        old_version = int(extend_info["source_deploy_version"])
-                                        if new_version > old_version:
-                                            self.service.is_upgrate = True
-                                            self.service.save()
+                                    logger.debug('---------====app===============>{0}'.format(json.dumps(app)))
+                                    logger.debug('---------=====extend_info==============>{0}'.format(json.dumps(extend_info)))
+                                    if app.has_key("service_share_uuid"):
+                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                            new_version = int(app["deploy_version"])
+                                            old_version = int(extend_info["source_deploy_version"])
+                                            if new_version > old_version:
+                                                self.service.is_upgrate = True
+                                                self.service.save()
+                                    elif not app.has_key("service_share_uuid") and app.has_key("service_key"):
+                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                            new_version = int(app["deploy_version"])
+                                            old_version = int(extend_info["source_deploy_version"])
+                                            if new_version > old_version:
+                                                self.service.is_upgrate = True
+                                                self.service.save()
                         bean["is_upgrate"] = self.service.is_upgrate
                     except Exception as e:
                         logger.exception(e)
