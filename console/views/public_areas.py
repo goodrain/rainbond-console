@@ -429,6 +429,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
                 for group in groups:
                     app_dict = dict()
                     app_dict["group_name"] = group.group_name
+                    app_dict["group_id"] = group.ID
                     # 分享记录和备份记录
                     share_record_num = share_repo.get_app_share_record_count_by_groupid(group_id=group.ID)
                     app_dict["share_record_num"] = share_record_num
