@@ -49,9 +49,7 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 35);
 -- 2019-03-12新增网关自定义配置表
 CREATE TABLE `gateway_custom_configuration` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `config_id` varchar(32),
   `rule_id` varchar(32),
-  `key` varchar(512),
-  `value` varchar(512),
+  `value` text,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;

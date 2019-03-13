@@ -493,13 +493,10 @@ class TenantServiceEndpoints(object):
 
 class GatewayCustom(object):
     def get_configuration_by_rule_id(self, rule_id):
-        return GatewayCustomConfiguration.objects.filter(rule_id=rule_id).all()
+        return GatewayCustomConfiguration.objects.filter(rule_id=rule_id).first()
 
     def add_configuration(self, **configuration_info):
         return GatewayCustomConfiguration.objects.create(**configuration_info)
-
-    def delete_configuration(self, config_id):
-        return GatewayCustomConfiguration.objects.filter(config_id=config_id).delete()
 
 
 tcp_domain = ServiceTcpDomainRepository()
@@ -519,4 +516,4 @@ create_step_repo = ServiceStepRepository()
 service_payment_repo = ServicePaymentRepository()
 # endpoints
 service_endpoints_repo = TenantServiceEndpoints()
-configuration_repo = GatewayCustomConfiguration()
+configuration_repo = GatewayCustom()

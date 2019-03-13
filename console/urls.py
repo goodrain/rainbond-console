@@ -10,7 +10,7 @@ from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamF
 from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
 from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
     DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
-    GetSeniorUrlView, HttpStrategyView, GatewayCustomConfigurationView, GatewayRuleView
+    GetSeniorUrlView, HttpStrategyView, GatewayCustomConfigurationView
 from console.views.app_config.app_env import AppEnvView, AppEnvManageView, AppBuildEnvView
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
@@ -364,9 +364,7 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
 
     # 5.1网关自定义参数
-    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/put_gateway$', GatewayCustomConfigurationView.as_view()),
-    # 5.1删除网关自定义参数
-    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/config_id/(?P<config_id>[\w\-]+)$', GatewayRuleView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$', GatewayCustomConfigurationView.as_view()),
 
     # 服务操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),

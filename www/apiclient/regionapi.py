@@ -1554,28 +1554,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     # 修改网关自定义配置项
     def upgrade_configuration(self, region, tenant_name, body):
-
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/rule-config"
-
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/add-or-update-rule-config"
         self._set_headers(token)
-        logger.debug('------------------------------------>{0}'.format(body))
-        res, body = self._post(
+        res, body = self._put(
             url, self.default_headers, json.dumps(body), region=region)
-        return body
-
-    # 删除网关自定义配置项
-    def delete_configuration(self, region, tenant_name, body):
-
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/rule-config"
-
-        self._set_headers(token)
-        logger.debug('------------------------------------>{0}'.format(body))
-        res, body = self._post(
-            url, self.default_headers, json.dumps(body), region=region)
-        return body
+        logger.debug('-------1111--body----->{0}'.format(body))
+        return res, body

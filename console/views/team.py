@@ -1347,8 +1347,11 @@ class TeamSortDomainQueryView(JWTAuthApiView):
                 result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
                 return Response(result, status=200)
             else:
-                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start=1552438927.734&end=1552442527.734&step=14".format(
-                    team.tenant_id)
+                start = request.GET.get("start", None)
+                end = request.GET.get("end", None)
+                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=14".format(
+                    team.tenant_id, start, end)
+                logger.debug('--------->{0}'.format(sufix))
                 res, body = region_api.get_query_range_data(region_name, team_name, sufix)
                 logger.debug('=====body=1=====>{0}'.format(body))
                 result = general_message(200, "success", "查询成功", bean=body)
