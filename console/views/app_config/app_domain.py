@@ -1066,6 +1066,10 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
         value = request.data.get("value", None)
         if not rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        service_domain = domain_repo.get_service_domain_by_http_rule_id(rule_id)
+        if not service_domain:
+            return Response(general_message(400, "no domain", "策略不存在"), status=400)
+        service_obj = service_repo.get_service_by_service_id(service_domain.service_id)
         try:
             if not value:
                 cf = configuration_repo.get_configuration_by_rule_id(rule_id)
@@ -1074,7 +1078,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
                 gcc_dict = dict()
                 gcc_dict["body"] = cf
                 gcc_dict["rule_id"] = rule_id
-                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, gcc_dict)
+                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, service_obj.service_alias, gcc_dict)
                 if res.status != 200:
                     return Response(general_message(500, "upgrade faild", "数据中心修改失败"), status=500)
                 result = general_message(200, "success", "修改成功")
@@ -1084,7 +1088,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
                 gcc_dict = dict()
                 gcc_dict["body"] = value
                 gcc_dict["rule_id"] = rule_id
-                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, gcc_dict)
+                res, data = region_api.upgrade_configuration(self.response_region, self.tenant, service_obj.service_alias, gcc_dict)
                 if res.status == 200:
                     if cf:
                         cf.value = value
