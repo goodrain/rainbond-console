@@ -181,6 +181,8 @@ class GroupAppBackupService(object):
         apps = []
         total_memory = 0
         for service in services:
+            if service.service_source == "third_party":
+                continue
             total_memory += service.min_memory * service.min_node
             app_info = self.get_service_details(tenant, service)
             apps.append(app_info)

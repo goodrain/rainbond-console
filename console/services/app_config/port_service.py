@@ -59,6 +59,12 @@ class AppPortService(object):
 
     def add_service_port(self, tenant, service, container_port=0, protocol='', port_alias='',
                          is_inner_service=False, is_outer_service=False):
+        # 三方服务暂时只允许添加一个端口
+        tenant_service_ports = self.get_service_ports(service)
+        logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
+        if tenant_service_ports and service.service_source == "third_party":
+            return 400, u"三方服务只支持一个域名", None
+
         container_port = int(container_port)
         code, msg = self.check_port(service, container_port)
         if code != 200:

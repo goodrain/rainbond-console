@@ -65,8 +65,8 @@ class AppCheckService(object):
         # 更新创建状态
         if not is_again:
             service.create_status = "checking"
-            service.save()
-        bean = dict()
+        service.save()
+        bcean = dict()
         bean.update(service.to_dict())
         bean.update({"user_name": user_name, "password": password})
         bean.update(self.__wrap_check_service(service))

@@ -108,6 +108,8 @@ class ShareService(object):
         if env_list:
             service_env_map = {}
             for env in env_list:
+                if env.scope == "build":
+                    continue
                 service_id = env.service_id
                 tmp_list = []
                 if service_id in service_env_map.keys():
