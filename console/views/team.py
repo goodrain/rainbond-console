@@ -1340,16 +1340,20 @@ class TeamSortDomainQueryView(JWTAuthApiView):
                 res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
                 logger.debug('=====body======>{0}'.format(body))
                 total = len(body["data"]["result"])
+                domains = body["data"]["result"]
+                total_traffic = 0
+                for domain in domains:
+                    total_traffic += int(domain["value"][1])
                 start = (page - 1) * page_size
-                end = page * page_size - 1
-                bean = {"total": total}
+                end = page * page_size
+                bean = {"total": total, "total_traffic": total_traffic}
                 domain_list = body["data"]["result"][start: end]
                 result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
                 return Response(result, status=200)
             else:
                 start = request.GET.get("start", None)
                 end = request.GET.get("end", None)
-                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=14".format(
+                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(
                     team.tenant_id, start, end)
                 logger.debug('--------->{0}'.format(sufix))
                 res, body = region_api.get_query_range_data(region_name, team_name, sufix)
@@ -1427,9 +1431,9 @@ class TeamSortServiceQueryView(JWTAuthApiView):
                 if service_obj:
                     service_traffic["metric"]["service_cname"] = service_obj.service_cname
                     service_traffic["metric"]["service_alias"] = service_obj.service_alias
-
+            logger.debug('================+>{0}'.format(service_traffic_list))
             # 排序取前十
-            service_list = sorted(service_traffic_list, key=lambda x: x["value"][1])[0: 10]
+            service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0: 10]
 
             result = general_message(200, "success", "查询成功", list=service_list)
         except Exception as e:

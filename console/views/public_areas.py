@@ -423,7 +423,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
             total = len(groups)
             app_num_dict = {"total": total}
             start = (page - 1) * page_size
-            end = page * page_size - 1
+            end = page * page_size
             app_list = []
             if groups:
                 for group in groups:

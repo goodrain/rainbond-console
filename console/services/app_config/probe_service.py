@@ -33,6 +33,12 @@ class ProbeService(object):
             return 404, u"探针不存在，您可能并未设置检测探针", None
         return 200, u"success", probe
 
+    def get_service_probe(self, service):
+        probe = probe_repo.get_probe(service.service_id)
+        if not probe:
+            return 404, u"探针不存在，您可能并未设置检测探针", None
+        return 200, u"success", probe
+
     def __check_probe_data(self, data):
         mode = data.get("mode", None)
         if mode:
@@ -100,7 +106,7 @@ class ProbeService(object):
         # 真·深拷贝
         console_prob = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
-
+        logger.debug('----------prob_data-----------__>{0}'.format(prob_data))
         if service.create_status == "complete":
             res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
                                                      service.service_alias,

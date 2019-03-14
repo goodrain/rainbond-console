@@ -19,7 +19,10 @@ from console.services.region_services import region_services
 from console.repositories.app import service_repo
 from console.constants import AppConstants
 from console.repositories.app_config import tcp_domain
+from console.services.app_config.probe_service import ProbeService
+from console.repositories.probe_repo import probe_repo
 
+pros = ProbeService()
 region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
 logger = logging.getLogger("default")
@@ -99,6 +102,30 @@ class AppPortService(object):
                                         {"port": [service_port], "enterprise_id": tenant.enterprise_id})
 
         new_port = port_repo.add_service_port(**service_port)
+        # 三方服务在添加端口是添加一条默认的健康检测数据
+        if service.service_source == "third_party":
+            tenant_service_ports = self.get_service_ports(service)
+            port_list = []
+            for tenant_service_port in tenant_service_ports:
+                port_list.append(tenant_service_port.container_port)
+            if len(port_list) <= 1:
+                probe = probe_repo.get_probe(service.service_id)
+                if not probe:
+                    params = {
+                        "http_header": "",
+                        "initial_delay_second": 2,
+                        "is_used": True,
+                        "mode": "ignore",
+                        "path": "",
+                        "period_second": 3,
+                        "port": int(new_port.container_port),
+                        "scheme": "tcp",
+                        "success_threshold": 1,
+                        "timeout_second": 20
+                    }
+                    code, msg, probe = pros.add_service_probe(tenant, service, params)
+                    if code != 200:
+                        logger.debug('------111----->{0}'.format(msg))
         return 200, "success", new_port
 
     def get_service_ports(self, service):
