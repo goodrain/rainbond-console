@@ -98,6 +98,9 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
         deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
+        logger.debug('---------===========>{0}'.format(deploy_key_decode))
+        logger.debug('---------===========>{0}'.format(secret_key))
+
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
@@ -217,14 +220,16 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                 ip_list.append(endpoint["ip"])
             if ip not in ip_list:
                 return Response(general_message(412, "ip is null", "ip不存在"), status=412)
-            endpoint_dict = dict()
-            endpoint_dict["ip"] = ip
-            res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
-                                                                      tenant_obj.tenant_name,
-                                                                      service_obj.service_alias,
-                                                                        endpoint_dict)
-            if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心删除失败"), status=412)
+            for endpoint in endpoint_list:
+                if endpoint["ip"] == ip:
+                    endpoint_dict = dict()
+                    endpoint_dict["ep_id"] = endpoint["ep_id"]
+                    res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
+                                                                              tenant_obj.tenant_name,
+                                                                              service_obj.service_alias,
+                                                                                endpoint_dict)
+                    if res.status != 200:
+                        return Response(general_message(412, "region error", "数据中心删除失败"), status=412)
 
             result = general_message(200, "success", "删除成功")
         except Exception as e:
