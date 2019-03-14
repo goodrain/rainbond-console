@@ -455,7 +455,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if certificate_id:
                 protocol = "https"
             # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol)
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol, domain_path)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
@@ -694,22 +694,44 @@ class DomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             region = region_repo.get_region_by_region_name(self.response_region)
-            total = domain_repo.get_all_domain_count_by_tenant_and_region_id(tenant.tenant_id, region.region_id)
-
-            start = (page - 1) * page_size
-            remaining_num = total - (page - 1) * page_size
-            end = page_size
-            if remaining_num < page_size:
-                end = remaining_num
             try:
                 # 查询分页排序
                 if search_conditions:
+                    # 获取总数
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
+                        "select count(*) from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%';".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                    domain_count = cursor.fetchall()
+
+                    total = domain_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select domain_name, type, is_senior, certificate_id, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' order by type desc LIMIT {4},{5};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
+
+                    # 获取总数
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
+                    domain_count = cursor.fetchall()
+
+                    total = domain_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
                     cursor = connection.cursor()
 
                     cursor.execute(
@@ -775,21 +797,43 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
             region = region_repo.get_region_by_region_name(self.response_region)
-            total = tcp_domain.get_all_domain_count_by_tenant_and_region(tenant.tenant_id, region.region_id)
-            start = (page - 1) * page_size
-            remaining_num = total - (page - 1) * page_size
-            end = page_size
-            if remaining_num < page_size:
-                end = remaining_num
             try:
                 # 查询分页排序
                 if search_conditions:
+                    # 获取总数
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%';".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                    domain_count = cursor.fetchall()
+
+                    total = domain_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
                     cursor = connection.cursor()
                     cursor.execute(
                         "select end_point, type, protocol, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and end_point like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%' order by type desc LIMIT {5},{6};".format(
                             tenant.tenant_id, region.region_id, search_conditions, search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
+                    # 获取总数
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
+                    domain_count = cursor.fetchall()
+
+                    total = domain_count[0][0]
+                    start = (page - 1) * page_size
+                    remaining_num = total - (page - 1) * page_size
+                    end = page_size
+                    if remaining_num < page_size:
+                        end = remaining_num
+
                     cursor = connection.cursor()
                     cursor.execute(
                         "select end_point, type, protocol, service_name, service_alias, container_port, tcp_rule_id, service_id, is_outer_service from service_tcp_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};".format(

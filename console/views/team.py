@@ -1425,13 +1425,13 @@ class TeamSortServiceQueryView(JWTAuthApiView):
                 value.append(v1)
                 value.append(traffic_num)
                 service_traffic_list.append(service_dict)
-
             for service_traffic in service_traffic_list:
                 service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
                 if service_obj:
                     service_traffic["metric"]["service_cname"] = service_obj.service_cname
                     service_traffic["metric"]["service_alias"] = service_obj.service_alias
-            logger.debug('================+>{0}'.format(service_traffic_list))
+                if not service_obj:
+                    service_traffic_list.remove(service_traffic)
             # 排序取前十
             service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0: 10]
 
