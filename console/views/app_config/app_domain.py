@@ -455,7 +455,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if certificate_id:
                 protocol = "https"
             # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol)
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol, domain_path)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
