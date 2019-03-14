@@ -4,6 +4,7 @@
   应用迁移
 """
 from django.db import transaction
+import datetime
 
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
@@ -20,7 +21,8 @@ from console.services.group_service import group_service
 from console.constants import AppMigrateType
 import json
 import logging
-from console.repositories.app_config import volume_repo
+from console.repositories.app_config import volume_repo, domain_repo, tcp_domain
+from console.repositories.region_repo import region_repo
 
 
 region_api = RegionInvokeApi()
@@ -230,7 +232,7 @@ class GroupappsMigrateService(object):
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_service_image_relation(migrate_tenant, ts, app["image_service_relation"])
-            self.__save_service_endpoints(migrate_tenant, ts, app["service_endpoints"])
+            # self.__save_service_endpoints(migrate_tenant, ts, app["service_endpoints"])
 
             service_relations = app["service_relation"]
             service_mnts = app["service_mnts"]
@@ -320,6 +322,95 @@ class GroupappsMigrateService(object):
             port_list.append(new_port)
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
+            region = region_repo.get_region_by_region_name(service.service_region)
+            # 为每一个端口状态是打开的生成默认域名
+            for port in port_list:
+                if port.is_outer_service:
+                    if port.protocol == "http":
+                        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                                           port.container_port)
+                        # 在domain表中保存数据
+                        if service_domains:
+                            for service_domain in service_domains:
+                                service_domain.is_outer_service = True
+                                service_domain.save()
+                        else:
+                            # 在service_domain表中保存数据
+                            service_id = service.service_id
+                            service_name = service.service_alias
+                            container_port = port.container_port
+                            domain_name = str(container_port) + "." + str(service_name) + "." + str(
+                                tenant.tenant_name) + "." + str(region.httpdomain)
+                            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            protocol = "http"
+                            http_rule_id = make_uuid(domain_name)
+                            tenant_id = tenant.tenant_id
+                            service_alias = service.service_cname
+                            region_id = region.region_id
+                            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
+                                                               container_port, protocol, http_rule_id, tenant_id,
+                                                               service_alias, region_id)
+                            # 给数据中心发请求添加默认域名
+                            data = dict()
+                            data["domain"] = domain_name
+                            data["service_id"] = service.service_id
+                            data["tenant_id"] = tenant.tenant_id
+                            data["tenant_name"] = tenant.tenant_name
+                            data["protocol"] = protocol
+                            data["container_port"] = int(container_port)
+                            data["http_rule_id"] = http_rule_id
+                            try:
+                                region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
+                            except Exception as e:
+                                logger.exception(e)
+                                domain_repo.delete_http_domains(http_rule_id)
+                                continue
+
+                    else:
+                        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+                            service.service_id,
+                            port.container_port)
+                        if service_tcp_domains:
+                            for service_tcp_domain in service_tcp_domains:
+                                # 改变tcpdomain表中状态
+                                service_tcp_domain.is_outer_service = True
+                                service_tcp_domain.save()
+                        else:
+                            # ip+port
+                            # 在service_tcp_domain表中保存数据
+                            res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+                            if int(res.status) != 200:
+                                continue
+                            end_point = str(region.tcpdomain) + ":" + str(data["bean"])
+                            service_id = service.service_id
+                            service_name = service.service_alias
+                            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            container_port = port.container_port
+                            protocol = port.protocol
+                            service_alias = service.service_cname
+                            tcp_rule_id = make_uuid(end_point)
+                            tenant_id = tenant.tenant_id
+                            region_id = region.region_id
+                            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
+                                                                  container_port, protocol, service_alias, tcp_rule_id,
+                                                                  tenant_id, region_id)
+                            # 默认ip不需要传给数据中心
+                            # ip = end_point.split(":")[0]
+                            port = end_point.split(":")[1]
+                            data = dict()
+                            data["service_id"] = service.service_id
+                            data["container_port"] = int(container_port)
+                            # data["ip"] = ip
+                            data["port"] = int(port)
+                            data["tcp_rule_id"] = tcp_rule_id
+                            logger.debug('--------------------------------->{0}'.format(data["port"]))
+                            try:
+                                # 给数据中心传送数据添加策略
+                                region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
+                            except Exception as e:
+                                logger.exception(e)
+                                tcp_domain.delete_tcp_domain(tcp_rule_id)
+                                continue
 
     def __save_compile_env(self, service, compile_env):
         if compile_env:
