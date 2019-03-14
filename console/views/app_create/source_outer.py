@@ -106,10 +106,10 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
 
-            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,)
+            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias)
 
             if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
             endpoint_list = body["list"]
             bean = {"endpoint_num": len(endpoint_list)}
@@ -120,8 +120,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    # 添加实例endpoint
-    def post(self, request, service_id, *args, **kwargs):
+    # 修改实例endpoint
+    def put(self, request, service_id, *args, **kwargs):
         secret_key = request.data.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
@@ -130,6 +130,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
         ip = request.data.get("ip", None)
+        # is_online true为上线，false为下线
         is_online = request.data.get("is_online", True)
         if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
@@ -139,49 +140,52 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             endpoint_dict = dict()
             endpoint_dict["ip"] = ip
             endpoint_dict["is_online"] = is_online
+            # 根据ip从数据中心查询， 有就put，没有就post
+            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name,
+                                                                service_obj.service_alias)
 
-            res, body = region_api.post_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,
-                                                                      endpoint_dict)
             if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
-            result = general_message(200, "success", "添加成功")
+            endpoint_list = body["list"]
+            # 添加
+            if not endpoint_list:
+                res, body = region_api.post_third_party_service_endpoints(service_obj.service_region,
+                                                                         tenant_obj.tenant_name,
+                                                                         service_obj.service_alias,
+                                                                         endpoint_dict)
+                if res.status != 200:
+                    return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
+                return Response(general_message(200, "success", "修改成功"))
+            ip_list = []
+            for endpoint in endpoint_list:
+                ip_list.append(endpoint["ip"])
+            if ip not in ip_list:
+                # 添加
+                res, body = region_api.post_third_party_service_endpoints(service_obj.service_region,
+                                                                          tenant_obj.tenant_name,
+                                                                          service_obj.service_alias,
+                                                                          endpoint_dict)
+                if res.status != 200:
+                    return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
+                return Response(general_message(200, "success", "修改成功"))
+            # 修改
+            for endpoint in endpoint_list:
+                if endpoint["ip"] == ip:
+                    bean = dict()
+                    bean["ep_id"] = endpoint["ep_id"]
+                    bean["is_online"] = is_online
+                    res, body = region_api.put_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,
+                                                                             bean)
+                    if res.status != 200:
+                        return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
+
+                    result = general_message(200, "success", "修改成功")
+                    return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-    # 编辑实例endpoint上下线
-    def put(self, request, service_id, *args, **kwargs):
-        secret_key = request.data.get("secret_key")
-        # 加密
-        deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
-        deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
-        if secret_key != deploy_key_decode:
-            result = general_message(400, "failed", "密钥错误")
-            return Response(result, status=400)
-        ep_id = request.data.get("ep_id", None)
-        is_online = request.data.get("is_online", True)
-        if not ep_id:
-            return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-        try:
-            service_obj = TenantServiceInfo.objects.get(service_id=service_id)
-            tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
-
-            endpoint_dict = dict()
-            endpoint_dict["ep_id"] = ep_id
-            endpoint_dict["is_online"] = is_online
-            res, body = region_api.put_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
-                                                                      service_obj.service_alias,
-                                                                     endpoint_dict)
-            if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
-
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+            return Response(result, status=result["code"])
 
     # 删除实例endpoint
     def delete(self, request, service_id, *args, **kwargs):
@@ -192,15 +196,29 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        ep_id = request.data.get("ep_id", None)
-        if not ep_id:
+        ip = request.data.get("ip", None)
+        if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
+            # 查询
+            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name,
+                                                                service_obj.service_alias)
 
+            if res.status != 200:
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+
+            endpoint_list = body["list"]
+            if not endpoint_list:
+                return Response(general_message(412, "ip is null", "ip不存在"), status=412)
+            ip_list = []
+            for endpoint in endpoint_list:
+                ip_list.append(endpoint["ip"])
+            if ip not in ip_list:
+                return Response(general_message(412, "ip is null", "ip不存在"), status=412)
             endpoint_dict = dict()
-            endpoint_dict["ep_id"] = ep_id
+            endpoint_dict["ip"] = ip
             res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
                                                                       tenant_obj.tenant_name,
                                                                       service_obj.service_alias,

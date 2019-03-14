@@ -1353,7 +1353,7 @@ class TeamSortDomainQueryView(JWTAuthApiView):
             else:
                 start = request.GET.get("start", None)
                 end = request.GET.get("end", None)
-                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=14".format(
+                sufix = "?query=ceil(sum(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(
                     team.tenant_id, start, end)
                 logger.debug('--------->{0}'.format(sufix))
                 res, body = region_api.get_query_range_data(region_name, team_name, sufix)
