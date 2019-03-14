@@ -3,6 +3,7 @@
   Created on 18/1/15.
 """
 import logging
+import json
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -1094,7 +1095,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
             bean = dict()
             if cf:
                 bean["rule_id"] = cf.rule_id
-                bean["value"] = cf.value
+                bean["value"] = json.loads(cf.value)
             result = general_message(200, "success", "查询成功", bean=bean)
             return Response(result, status=200)
 
@@ -1135,11 +1136,12 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
                 res, data = region_api.upgrade_configuration(self.response_region, self.tenant, service_obj.service_alias, gcc_dict)
                 if res.status == 200:
                     if cf:
-                        cf.value = value
+                        cf.value = json.dumps(value)
+                        cf.save()
                     else:
                         cf_dict = dict()
                         cf_dict["rule_id"] = rule_id
-                        cf_dict["value"] = value
+                        cf_dict["value"] = json.dumps(value)
                         configuration_repo.add_configuration(**cf_dict)
                 result = general_message(200, "success", "修改成功")
                 return Response(result, status=200)
