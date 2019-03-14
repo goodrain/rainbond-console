@@ -1425,7 +1425,7 @@ class TeamSortServiceQueryView(JWTAuthApiView):
                 value.append(v1)
                 value.append(traffic_num)
                 service_traffic_list.append(service_dict)
-            for service_traffic in service_traffic_list:
+            for service_traffic in service_traffic_list[::-1]:
                 service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
                 if service_obj:
                     service_traffic["metric"]["service_cname"] = service_obj.service_cname
