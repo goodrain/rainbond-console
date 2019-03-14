@@ -22,6 +22,7 @@ from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from console.views.base import AlowAnyApiView
 from www.models.main import Tenants, TenantServiceInfo
+from console.services.app_config import port_service
 
 
 logger = logging.getLogger("default")
@@ -375,6 +376,16 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
+            # 上线操作需要端口开启状态
+            tenant_service_ports = port_service.get_service_ports(self.service)
+            open_list = []
+            if tenant_service_ports:
+                for port in tenant_service_ports:
+                    if port.is_outer_service:
+                        open_list.append("1")
+
+            if "1" not in open_list:
+                return Response(general_message(200, "port is closed", "端口未开启", bean={"port_closed": True}), status=200)
 
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id

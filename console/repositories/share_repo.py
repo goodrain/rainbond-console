@@ -11,7 +11,8 @@ class ShareRepo(object):
         if not svc_relations:
             return []
         svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
-        return TenantServiceInfo.objects.filter(service_id__in=svc_ids)
+        service_source_list = ["source_code", "market", "docker_run", "docker_compos"]
+        return TenantServiceInfo.objects.filter(service_id__in=svc_ids, service_source__in=service_source_list)
 
     def get_rainbond_cent_app_by_tenant_service_group_id(self, group_id):
         rainbond_cent_app = RainbondCenterApp.objects.filter(

@@ -964,7 +964,7 @@ class AppManageService(AppManageBase):
         if code != 200:
             return code, msg, event
         # 判断服务是否是运行状态
-        if self.__is_service_running(tenant, service):
+        if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"应用可能处于运行状态,请先关闭应用"
             event = event_service.update_event(event, msg, "failure")
             return 409, msg, event

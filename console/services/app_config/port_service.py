@@ -59,6 +59,12 @@ class AppPortService(object):
 
     def add_service_port(self, tenant, service, container_port=0, protocol='', port_alias='',
                          is_inner_service=False, is_outer_service=False):
+        # 三方服务暂时只允许添加一个端口
+        tenant_service_ports = self.get_service_ports(service)
+        logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
+        if tenant_service_ports and service.service_source == "third_party":
+            return 400, u"三方服务只支持一个域名", None
+
         container_port = int(container_port)
         code, msg = self.check_port(service, container_port)
         if code != 200:
@@ -378,21 +384,21 @@ class AppPortService(object):
 
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
-        if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
-            # 改变httpdomain表中端口状态
-            if service_domains:
-                for service_domain in service_domains:
-                    service_domain.is_outer_service = True
-                    service_domain.save()
-        else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                        deal_port.container_port)
-            if service_tcp_domains:
-                for service_tcp_domain in service_tcp_domains:
-                    # 改变tcpdomain表中状态
-                    service_tcp_domain.is_outer_service = True
-                    service_tcp_domain.save()
+
+        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+        # 改变httpdomain表中端口状态
+        if service_domains:
+            for service_domain in service_domains:
+                service_domain.is_outer_service = True
+                service_domain.save()
+
+        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
+                                                                                    deal_port.container_port)
+        if service_tcp_domains:
+            for service_tcp_domain in service_tcp_domains:
+                # 改变tcpdomain表中状态
+                service_tcp_domain.is_outer_service = True
+                service_tcp_domain.save()
 
         return 200, "success"
 
