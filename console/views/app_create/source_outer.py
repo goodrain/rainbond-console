@@ -381,7 +381,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             open_list = []
             if tenant_service_ports:
                 for port in tenant_service_ports:
-                    if port.is_outer_service:
+                    if port.is_outer_service or port.is_inner_service:
                         open_list.append("1")
 
             if "1" not in open_list:
