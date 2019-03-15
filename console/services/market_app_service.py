@@ -412,7 +412,7 @@ class MarketAppService(object):
                 code, msg, volume_data = volume_service.add_service_volume(
                     tenant, service, volume["volume_path"],
                     volume["volume_type"], volume["volume_name"],
-                    ["file_content"])
+                    volume["file_content"])
             else:
                 code, msg, volume_data = volume_service.add_service_volume(
                     tenant, service, volume["volume_path"],

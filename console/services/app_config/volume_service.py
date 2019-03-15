@@ -118,6 +118,7 @@ class AppVolumeService(object):
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)
+        logger.debug('===========------------------_>_+{0}'.format(file_content))
         if volume_type == "config-file":
             file_data = {
                 "service_id": service.service_id,
