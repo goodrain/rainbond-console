@@ -403,11 +403,19 @@ class AppManageService(AppManageBase):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                       volume["volume_type"], volume["volume_name"])
-            if code != 200:
-                logger.error("save market app volume error".format(msg))
-                return code, msg
+            if volume.has_key("file_content"):
+                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                           volume["volume_type"], volume["volume_name"],
+                                                                           volume["file_content"])
+                if code != 200:
+                    logger.error("save market app volume error".format(msg))
+                    return code, msg
+            else:
+                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                           volume["volume_type"], volume["volume_name"])
+                if code != 200:
+                    logger.error("save market app volume error".format(msg))
+                    return code, msg
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):

@@ -136,6 +136,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         ip = request.data.get("ip", None)
         # is_online true为上线，false为下线
         is_online = request.data.get("is_online", True)
+        if type(is_online) != bool:
+            return Response(general_message(400, "is_online type error", "参数类型错误"), status=400)
         if not ip:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
