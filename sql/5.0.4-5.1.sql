@@ -30,6 +30,8 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 32);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 33);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 34);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 35);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (1, 36);
+
 
 
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 31);
@@ -37,6 +39,8 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 32);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 33);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 34);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 35);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (2, 36);
+
 
 
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 31);
@@ -44,6 +48,8 @@ INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 32);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 33);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 34);
 INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 35);
+INSERT INTO `tenant_user_role_permission` (`role_id`, `per_id`) VALUES (3, 36);
+
 
 
 -- 2019-03-12新增网关自定义配置表
