@@ -446,11 +446,26 @@ class AppManageService(AppManageBase):
         if not ports:
             return 200, "success"
         for port in ports:
-
+            mapping_port = int(port["container_port"])
+            env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
             service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
+                if port["is_inner_service"]:
+                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]), u"连接地址",
+                                                                          env_prefix + "_HOST", "127.0.0.1", False,
+                                                                          scope="outer")
+                    if code != 200:
+                        return code, msg, None
+                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]), u"端口",
+                                                                          env_prefix + "_PORT", mapping_port, False,
+                                                                          scope="outer")
+                    if code != 200:
+                        return code, msg, None
+                if port["is_outer_service"]:
+                    if port["protocol"] != "http":
+                        if port_service.is_open_outer_steam_port(tenant.tenant_id, service.service_id, int(port["container_port"])):
+                            return 412, u"非http协议端口只能对外开放一个"
                 continue
-            logger.debug('=================0000000000>{0}'.format(port))
             code, msg, port_data = port_service.add_service_port(tenant, service,
                                                                  int(port["container_port"]),
                                                                  port["protocol"],
