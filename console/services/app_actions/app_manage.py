@@ -258,10 +258,10 @@ class AppManageService(AppManageBase):
                 if group_obj:
                     # 获取内部市场对象
                     if group_version:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                        rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, group_obj.group_key,
                                                                                          group_version)
                     else:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
+                        rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, group_obj.group_key,
                                                                                          group_obj.group_version)
                     if rain_app:
                         # 解析app_template的json数据
