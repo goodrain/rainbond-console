@@ -59,3 +59,12 @@ CREATE TABLE `gateway_custom_configuration` (
   `value` text,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
+
+
+-- **2019-03-18修改云市表唯一索引字段值，删除原有索引，添加新索引
+
+drop index `group_key` on rainbond_center_app;
+
+ALTER TABLE `rainbond_center_app` ADD UNIQUE ( `group_key`, `version`, `enterprise_id`)
+
+
