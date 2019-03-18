@@ -461,10 +461,7 @@ class AppManageService(AppManageBase):
                                                                           scope="outer")
                     if code != 200:
                         return code, msg, None
-                if port["is_outer_service"]:
-                    if port["protocol"] != "http":
-                        if port_service.is_open_outer_steam_port(tenant.tenant_id, service.service_id, int(port["container_port"])):
-                            return 412, u"非http协议端口只能对外开放一个"
+
                 continue
             code, msg, port_data = port_service.add_service_port(tenant, service,
                                                                  int(port["container_port"]),
