@@ -122,7 +122,9 @@ class ServiceRepo(object):
                 statuscn_cache[status["service_id"]] = status["status_cn"]
             result = []
             for service in group_services_list:
-                service["service_source"] = service.service_source
+                service_obj = TenantServiceInfo.objects.filter(service_id=service["service_id"]).first()
+                if service_obj:
+                    service["service_source"] = service_obj.service_source
                 service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 

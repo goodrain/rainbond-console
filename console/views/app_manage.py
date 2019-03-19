@@ -496,7 +496,7 @@ class BatchDelete(RegionTenantHeaderView):
             msg_list = []
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
-                msg_dict = {}
+                msg_dict = dict()
                 msg_dict['status'] = code
                 msg_dict['msg'] = msg
                 msg_dict['service_id'] = service.service_id
