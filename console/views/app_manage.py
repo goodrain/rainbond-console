@@ -496,7 +496,7 @@ class BatchDelete(RegionTenantHeaderView):
             msg_list = []
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
-                msg_dict = {}
+                msg_dict = dict()
                 msg_dict['status'] = code
                 msg_dict['msg'] = msg
                 msg_dict['service_id'] = service.service_id
@@ -748,7 +748,7 @@ class MarketServiceUpgradeView(AppBaseView):
                 rain_apps = rainbond_app_repo.get_rainbond_app_by_key(group_obj.group_key)
                 if rain_apps:
                     for r_app in rain_apps:
-                        if r_app.version > group_obj.group_version:
+                        if r_app.version > group_obj.group_version and r_app.version not in upgrate_version_list:
                             upgrate_version_list.append(r_app.version)
                         elif r_app.version == group_obj.group_version and self.service.is_upgrate:
                             upgrate_version_list.append(r_app.version)

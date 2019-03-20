@@ -36,7 +36,7 @@ class RainbondCenterApp(BaseModel):
 
     class Meta:
         db_table = "rainbond_center_app"
-        unique_together = ('group_key', 'version')
+        unique_together = ('group_key', 'version', 'enterprise_id')
 
     group_key = models.CharField(max_length=32, help_text=u"应用包")
     group_name = models.CharField(max_length=64, help_text=u"应用包名")

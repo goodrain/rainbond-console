@@ -35,10 +35,6 @@ class AppPortService(object):
             return 400, u"端口{0}已存在".format(container_port)
         if not (1 <= container_port <= 65535):
             return 412, u"端口必须为1到65535的整数"
-        if service.service_source == AppConstants.SOURCE_CODE:
-            if service.language not in ("dockerfile", "docker"):
-                if container_port <= 1024:
-                    return 400, u"源码应用非Dockerfile构建的应用端口不能小于1024"
         return 200, "success"
 
     def check_port_alias(self, port_alias):
@@ -239,11 +235,11 @@ class AppPortService(object):
         return 200, u"检测成功"
 
     def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias):
+        port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
         code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
         if code != 200:
             return code, msg, None
-        logger.debug('--------actionactionactionaction--------->{0}'.format(action))
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
             code, msg = self.__open_outer(tenant, service, region, deal_port)
