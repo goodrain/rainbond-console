@@ -45,7 +45,7 @@ let createWebsocketAt = 0;
 let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = "";
-let tiem=0;
+let tiem = 0;
 export function buildOptionsQuery(options) {
   if (options) {
     return options.map((value, param) => {
@@ -392,8 +392,8 @@ function goodrainData2scopeData(data = {}) {
           scopeData.add = scopeDataAdd
         }
         //update
-        if ( (newData[i].adjacency !== scopeDataAdd[k].adjacency) || (newData[i].cur_status !== scopeDataAdd[k].cur_status)) {
-          scopeData.update=scopeDataAdd
+        if ((newData[i].adjacency !== scopeDataAdd[k].adjacency) || (newData[i].cur_status !== scopeDataAdd[k].cur_status)) {
+          scopeData.update = scopeDataAdd
         }
 
       }
@@ -433,9 +433,9 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
           status_cn: "运行中"
         }
       },
-      json_svg:{
-        "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        "630243aab337b9a879ec24f53a4f596c":[]
+      json_svg: {
+        "9abc393dbbb1901aff3df5b704d7f3bf": [],
+        "630243aab337b9a879ec24f53a4f596c": []
       }
     }
     //调试用数据
@@ -459,8 +459,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
       success: (res) => {
         if (res.code === 200) {
           const scopeData = goodrainData2scopeData(res.data.bean);
-          console.log("scopeData回来数据",scopeData)
-      dispatch(receiveNodesDelta(scopeData));
+          dispatch(receiveNodesDelta(scopeData));
         }
       },
       error: () => {
@@ -468,7 +467,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         // var data = {
         //   json_data: {
         //     "9abc393dbbb1901aff3df5b704d7f3bf": {
-        //       cur_status: "undeploy",
+        //       cur_status: "third_party",
         //       is_internet: true,
         //       node_num: 1,
         //       service_alias: "grd7f3bf",
@@ -494,7 +493,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         // var datas = {
         //   json_data: {
         //     "9abc393dbbb1901aff3df5b704d7f3bf": {
-        //       cur_status: "undeploy",
+        //       cur_status: "third_party",
         //       is_internet: true,
         //       node_num: 1,
         //       service_alias: "grd7f3bf",

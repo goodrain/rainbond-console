@@ -26,7 +26,7 @@ const log = debug('scope:node-details');
 
 function getTruncationText(count) {
   return 'This section was too long to be handled efficiently and has been truncated'
-  + ` (${count} extra entries not included). We are working to remove this limitation.`;
+    + ` (${count} extra entries not included). We are working to remove this limitation.`;
 }
 
 class NodeDetails extends React.Component {
@@ -76,8 +76,8 @@ class NodeDetails extends React.Component {
     // caused by a bug having to do with animating the details panel).
     const spinnerClassName = classNames('fa fa-circle-o-notch', { 'fa-spin': this.props.mounted });
     const nodeColor = (node ?
-                       getNodeColorDark(node.get('rank'), label, node.get('pseudo')) :
-                       getNeutralColor());
+      getNodeColorDark(node.get('rank'), label, node.get('pseudo')) :
+      getNeutralColor());
     const tools = this.renderTools();
     const styles = {
       header: {
@@ -90,21 +90,21 @@ class NodeDetails extends React.Component {
     return (
       <div className={'node-details'}>
         {tools}
-        <div className="node-details-header"  style={{backgroundColor: getStatusColor(nodeInfo.cur_status)}}>
+        <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeInfo.cur_status) }}>
           <div className="node-details-header-wrapper">
-            
+
             <h2 className="node-details-header-label">
               {
-                nodeInfo.id == 'The Internet' ? 
-                   <span className="node-details-text truncate">{label} </span>
-                   :
-                    <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeInfo)}>
+                nodeInfo.id == 'The Internet' ?
+                  <span className="node-details-text truncate">{label} </span>
+                  :
+                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeInfo)}>
                     <span className="node-details-text truncate">{label} </span>
-                    <span style={{verticalAlign: 'middle'}} className="icon-angle-right"></span>
-                    </a>
+                    <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
+                  </a>
               }
             </h2>
-            
+
             <div className="node-details-relatives truncate">
               Loading...
             </div>
@@ -172,17 +172,17 @@ class NodeDetails extends React.Component {
     return this.renderLoading();
   }
 
-  handleClickService(nodeDetails){
+  handleClickService(nodeDetails) {
     //调用父页面预留的接口
     window.parent && parent.handleClickService && parent.handleClickService(nodeDetails);
   }
 
-  handleClickRelation(relation){
-     //调用父页面预留的接口
+  handleClickRelation(relation) {
+    //调用父页面预留的接口
     window.parent && parent.handleClickRelation && parent.handleClickRelation(relation);
   }
 
-  handleClickGiveMoney(nodeDetails){
+  handleClickGiveMoney(nodeDetails) {
     window.parent && parent.handleClickGiveMoney && parent.handleClickGiveMoney(nodeDetails);
   }
 
@@ -190,7 +190,7 @@ class NodeDetails extends React.Component {
     const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId } = this.props;
     const showControls = details.controls && details.controls.length > 0;
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
-    const {error, pending} = nodeControlStatus ? nodeControlStatus.toJS() : {};
+    const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
     const styles = {
       controls: {
@@ -203,185 +203,192 @@ class NodeDetails extends React.Component {
 
     // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
     const nodeInfo = this.props.nodes.get(this.props.id).toJS();
-console.log("nodeInfo",nodeInfo)
     const nodeDetails = details;
     //服务列表
-    const portList = nodeDetails.port_list||{};
+    const portList = nodeDetails.port_list || {};
     //此属性只有云节点有
     const nodeList = getNodeList(nodeDetails);
     //依赖列表
-    const relationList =  nodeDetails.relation_list||{};
+    const relationList = nodeDetails.relation_list || {};
     const show = showDetailContent(nodeDetails);
     const container_memory = nodeDetails.container_memory;
 
-    
+
     // 实例平均占用内存
     const podMemory = getPodMemory(nodeDetails);
     return (
       <div className={'node-details'}>
         {tools}
-        <div className="node-details-header" style={{backgroundColor: getStatusColor(nodeDetails.cur_status)}}>
+        <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeDetails.cur_status) }}>
           <div className="node-details-header-wrapper">
-            
+
             <h2 className="node-details-header-label" title={nodeInfo.label}>
               {
-                nodeDetails.id == 'The Internet' ? 
-                   <span className="node-details-text truncate"><MatchedText text={nodeInfo.label} match={nodeMatches.get('label')} /> </span>
-                   :
-                   <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeDetails)}>
+                nodeDetails.id == 'The Internet' ?
+                  <span className="node-details-text truncate"><MatchedText text={nodeInfo.label} match={nodeMatches.get('label')} /> </span>
+                  :
+                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeDetails)}>
                     <span className="node-details-text truncate"><MatchedText text={nodeInfo.label} match={nodeMatches.get('label')} /> </span>
-                    <span style={{verticalAlign: 'middle'}} className="icon-angle-right"></span>
+                    <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
                   </a>
               }
-              
+
             </h2>
-            
+
             {
-              nodeDetails.id== 'The Internet' ? null : 
-                <div className="node-details-header-relatives">
-                  <table style={{width: '100%'}}>
-                    <tr>
-                      <td style={{width: '33%', textAlign: 'left'}}>{nodeDetails.status_cn||'未知'}</td>
-                      <td style={{width: '33%', textAlign: 'center'}}>内存 {nodeDetails.total_memory}</td>
-                      <td style={{width: '33%', textAlign: 'right'}}>实例数 {getPodNum(nodeDetails)}</td>
-                    </tr>
-                  </table>
-                </div>
+              nodeDetails.id == 'The Internet' ? null :
+                nodeDetails.cur_status == "third_party" ?
+                  <div className="node-details-header-relatives">
+                    <table style={{ width: '100%' }}>
+                      <tr>
+                        <td style={{ width: '100%', textAlign: 'center' }}>第三方服务</td>
+                      </tr>
+                    </table>
+                  </div> :
+                  <div className="node-details-header-relatives">
+                    <table style={{ width: '100%' }}>
+                      <tr>
+                        <td style={{ width: '33%', textAlign: 'left' }}>{nodeDetails.status_cn || '未知'}</td>
+                        <td style={{ width: '33%', textAlign: 'center' }}>内存 {nodeDetails.total_memory}</td>
+                        <td style={{ width: '33%', textAlign: 'right' }}>实例数 {getPodNum(nodeDetails)}</td>
+                      </tr>
+                    </table>
+                  </div>
             }
           </div>
         </div>
 
-        <div className="node-details-content" style={{display:show?'block':'none'}}>
-
-        {
-          nodeList.length>0 && (<div className="node-details-content-section">
-            <table style={{width: '100%', tableLayout: 'fixed'}}>
-              <thead>
-                <tr>
-                  <th style={{textAlign: 'left'}}>服务</th>
-                  <th style={{width: '80px', textAlign: 'right'}}>端口</th>
-                </tr>
-              </thead>
-            {
-              nodeList.map((node, index) => {
-                let portMap = node.port_map||{};
-                return Object.keys(portMap).map((key, index) => {
-                    let portItem = portMap[key];
-                    return (
-                      <tbody>
-                      {
-                        portItem.outer_url && (
-                          <tr>
-                            <td style={{textAlign: 'left', textDecoration: 'underline', cursor: 'pointer'}}><a style={{color: '#3c3c5a'}} href={portItem.protocol+'://'+portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
-                            <td style={{textAlign: 'right'}}>{portItem.outer_url.split(':')[1]}</td>
-                          </tr>
-                        )
-                      }
-                      {
-                        (portItem.domain_list || []).map((domain, index) => {
-                         return (
-                          <tr>
-                            <td style={{textAlign: 'left', textDecoration: 'underline', cursor: 'pointer'}}><a style={{color: '#3c3c5a'}} href={domain} target="_blank">{domain}</a></td>
-                            <td style={{textAlign: 'right'}}>80</td>
-                          </tr>
-                         );
-                        })
-                      }
-                      {
-                        (portItem.is_inner_service) && (
-                        <tr>
-                          <td style={{textAlign: 'left'}}>{node.service_cname}</td>
-                          <td style={{textAlign: 'right'}}>{portItem.mapping_port}</td>
-                        </tr>
-                        )
-                      }
-                      <tr>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                      </tr>
-                      </tbody>
-                    )
-                }) 
-              })
-            }
-            </table>
-          </div>)
-        }
-
-        {
-           Object.keys(portList).length>0 && (<div className="node-details-content-section">
-            <table style={{width: '100%', tableLayout: 'fixed'}}>
-              <thead>
-                <tr>
-                  <th style={{textAlign: 'left'}}>服务</th>
-                  <th style={{width: '80px', textAlign: 'right'}}>端口</th>
-                </tr>
-              </thead>
-            {
-              Object.keys(portList).map((key, index) => {
-                let portItem = portList[key];
-                return (
-                  
-                    <tbody>
-                    {
-                      portItem.outer_url && (
-                        <tr>
-                          {
-                            portItem.protocol === 'stream' ?
-                            <td style={{textAlign: 'left'}}><a style={{color: '#3c3c5a'}} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
-                            :
-                            <td style={{textAlign: 'left', textDecoration: 'underline', cursor: 'pointer'}}><a style={{color: '#3c3c5a'}} href={portItem.protocol+'://'+portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
-                          }
-                          
-                          <td style={{textAlign: 'right'}}>{portItem.outer_url.split(':')[1]}</td>
-                        </tr>
-                      )
-                    }
-                    {
-                      (portItem.domain_list || []).map((domain, index) => {
-                       return (
-                        <tr>
-                          <td style={{textAlign: 'left', textDecoration: 'underline', cursor: 'pointer'}}><a style={{color: '#3c3c5a'}} href={domain} target="_blank">{domain}</a></td>
-                          <td style={{textAlign: 'right'}}>80</td>
-                        </tr>
-                       );
-                      })
-                    }
-                    {
-                      (portItem.is_inner_service) && (
-                      <tr>
-                        <td style={{textAlign: 'left'}}>{nodeDetails.service_cname}</td>
-                        <td style={{textAlign: 'right'}}>{portItem.mapping_port}</td>
-                      </tr>
-                      )
-                    }
-                    </tbody>
-                )
-              })
-            }
-            </table>
-          </div>)
-        }
-        
+        <div className="node-details-content" style={{ display: show ? 'block' : 'none' }}>
 
           {
-            Object.keys(relationList).length>0 && (<div className="node-details-content-section">
-              <table style={{width: '100%', tableLayout: 'fixed'}}>
+            nodeList.length > 0 && (<div className="node-details-content-section">
+              <table style={{ width: '100%', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left'}}>依赖服务</th>
-                    <th style={{width: '80px', textAlign: 'right'}}>端口</th>
+                    <th style={{ textAlign: 'left' }}>服务</th>
+                    <th style={{ width: '80px', textAlign: 'right' }}>端口</th>
+                  </tr>
+                </thead>
+                {
+                  nodeList.map((node, index) => {
+                    let portMap = node.port_map || {};
+                    return Object.keys(portMap).map((key, index) => {
+                      let portItem = portMap[key];
+                      return (
+                        <tbody>
+                          {
+                            portItem.outer_url && (
+                              <tr>
+                                <td style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}><a style={{ color: '#3c3c5a' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
+                                <td style={{ textAlign: 'right' }}>{portItem.outer_url.split(':')[1]}</td>
+                              </tr>
+                            )
+                          }
+                          {
+                            (portItem.domain_list || []).map((domain, index) => {
+                              return (
+                                <tr>
+                                  <td style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}><a style={{ color: '#3c3c5a' }} href={domain} target="_blank">{domain}</a></td>
+                                  <td style={{ textAlign: 'right' }}>80</td>
+                                </tr>
+                              );
+                            })
+                          }
+                          {
+                            (portItem.is_inner_service) && (
+                              <tr>
+                                <td style={{ textAlign: 'left' }}>{node.service_cname}</td>
+                                <td style={{ textAlign: 'right' }}>{portItem.mapping_port}</td>
+                              </tr>
+                            )
+                          }
+                          <tr>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                          </tr>
+                        </tbody>
+                      )
+                    })
+                  })
+                }
+              </table>
+            </div>)
+          }
+
+          {
+            Object.keys(portList).length > 0 && (<div className="node-details-content-section">
+              <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>服务</th>
+                    <th style={{ width: '80px', textAlign: 'right' }}>端口</th>
+                  </tr>
+                </thead>
+                {
+                  Object.keys(portList).map((key, index) => {
+                    let portItem = portList[key];
+                    return (
+
+                      <tbody>
+                        {
+                          portItem.outer_url && (
+                            <tr>
+                              {
+                                portItem.protocol === 'stream' ?
+                                  <td style={{ textAlign: 'left' }}><a style={{ color: '#3c3c5a' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
+                                  :
+                                  <td style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}><a style={{ color: '#3c3c5a' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a></td>
+                              }
+
+                              <td style={{ textAlign: 'right' }}>{portItem.outer_url.split(':')[1]}</td>
+                            </tr>
+                          )
+                        }
+                        {
+                          (portItem.domain_list || []).map((domain, index) => {
+                            return (
+                              <tr>
+                                <td style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}><a style={{ color: '#3c3c5a' }} href={domain} target="_blank">{domain}</a></td>
+                                <td style={{ textAlign: 'right' }}>80</td>
+                              </tr>
+                            );
+                          })
+                        }
+                        {
+                          (portItem.is_inner_service) && (
+                            <tr>
+                              <td style={{ textAlign: 'left' }}>{nodeDetails.service_cname}</td>
+                              <td style={{ textAlign: 'right' }}>{portItem.mapping_port}</td>
+                            </tr>
+                          )
+                        }
+                      </tbody>
+                    )
+                  })
+                }
+              </table>
+            </div>)
+          }
+
+
+          {
+            Object.keys(relationList).length > 0 && (<div className="node-details-content-section">
+              <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>依赖服务</th>
+                    <th style={{ width: '80px', textAlign: 'right' }}>端口</th>
                   </tr>
                 </thead>
                 <tbody>
                   {
                     Object.keys(relationList).map((key, index) => {
-                      let relationListItem = relationList[key]||[];
+                      let relationListItem = relationList[key] || [];
                       return relationListItem.map((item, index) => {
                         return (
                           <tr>
-                            <td onClick={(ev)=>{this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias )}} style={{textAlign: 'left', textDecoration: 'underline', cursor: 'pointer'}}>{item.service_cname}</td>
-                            <td style={{textAlign: 'right'}}>{item.mapping_port}</td>
+                            <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                            <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
                           </tr>
                         );
                       });
@@ -393,38 +400,38 @@ console.log("nodeInfo",nodeInfo)
           }
 
           {
-            ((nodeDetails.pod_list || []).length>0) && (
-                <div className="node-details-content-section">
-                  <table style={{width: '100%', tableLayout: 'fixed'}}>
-                    <thead>
-                      <tr>
-                        <th style={{textAlign: 'left'}}>实例</th>
-                        <th style={{width: '80px', textAlign: 'right'}}>使用内存</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {
-                        (nodeDetails.pod_list || []).map((value, index) => {
-                          return (
-                            <tr>
-                              <td style={{textAlign: 'left'}}>{value.pod_name}</td>
-                              <td style={{textAlign: 'right'}}>{container_memory}M</td>
-                            </tr>
-                          );
-                        })
-                      }
-                    </tbody>
-                  </table>
-                </div>
+            ((nodeDetails.pod_list || []).length > 0) && (
+              <div className="node-details-content-section">
+                <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>实例</th>
+                      <th style={{ width: '80px', textAlign: 'right' }}>使用内存</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {
+                      (nodeDetails.pod_list || []).map((value, index) => {
+                        return (
+                          <tr>
+                            <td style={{ textAlign: 'left' }}>{value.pod_name}</td>
+                            <td style={{ textAlign: 'right' }}>{container_memory}M</td>
+                          </tr>
+                        );
+                      })
+                    }
+                  </tbody>
+                </table>
+              </div>
             )
           }
 
           <div className="node-details-content-section">
-            <table style={{width: '100%', tableLayout: 'fixed'}}>
+            <table style={{ width: '100%', tableLayout: 'fixed' }}>
               <tbody>
                 <tr>
-                  <td style={{textAlign: 'left'}}></td>
-                  
+                  <td style={{ textAlign: 'left' }}></td>
+
                 </tr>
               </tbody>
             </table>
