@@ -88,8 +88,12 @@ const statusColorMap = {
   'running' : 'rgb(0,215,119)',//运行中 绿色
   'closed'  : 'rgb(0,0,33)',//已关闭 黑色
 
+  'third_party': "rgb(91,178,250)",
+
   'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
   'creating' : 'rgb(119,136,153)',//部署中 浅石板灰 
+
+  'waitting': 'rgb(246,157,74)',
 
   'starting' : 'rgb(246,157,74)',//开启中 道奇蓝 
   'startting' : 'rgb(246,157,74)',//开启中 道奇蓝 
@@ -117,5 +121,5 @@ const statusColorMap = {
 }
 
 export function getStatusColor(status) {
-  return statusColorMap[status] || statusColorMap['unknow'];
+  return statusColorMap[status] || statusColorMap['internet'];
 }
