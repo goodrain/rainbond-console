@@ -38,6 +38,7 @@ class AppPortService(object):
         return 200, "success"
 
     def check_port_alias(self, port_alias):
+        logger.debug('-------------------11111111111111111111111----------')
         if not port_alias:
             return 400, u"端口别名不能为空"
         if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
@@ -235,7 +236,8 @@ class AppPortService(object):
         return 200, u"检测成功"
 
     def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias):
-        port_alias = str(port_alias).strip()
+        if port_alias:
+            port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
         code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
         if code != 200:

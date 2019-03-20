@@ -391,6 +391,10 @@ class AppCheckService(object):
                 "key": "代码语言",
                 "value": service_info["language"]
             }
+            if service_info["language"] == "dockerfile":
+                service.cmd = ""
+            else:
+                service.cmd = "start web"
             service.language = service_info["language"]
             service.save()
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
