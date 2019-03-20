@@ -138,6 +138,24 @@ class AppCheckService(object):
                 return code, msg
         return 200, "success"
 
+    def add_service_check_port(self, tenant, service, data):
+        # 更新构建时环境变量
+        if data["check_status"] == "success":
+            service_info_list = data["service_info"]
+            code, msg = self.add_check_ports(tenant, service, service_info_list[0])
+            if code != 200:
+                return code, msg
+        return 200, "success"
+
+    def add_check_ports(self, tenant, service, check_service_info):
+        service_info = check_service_info
+        ports = service_info["ports"]
+        # 更新构建时环境变量
+        code, msg = self.__save_check_port(tenant, service, ports)
+        if code != 200:
+            return code, msg
+        return code, msg
+
     def upgrade_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
         envs = service_info["envs"]
@@ -146,6 +164,19 @@ class AppCheckService(object):
         if code != 200:
             return code, msg
         return code, msg
+
+    def __save_check_port(self, tenant, service, ports):
+        if ports:
+            for port in ports:
+                code, msg, port_data = port_service.add_service_port(tenant, service,
+                                                                     int(port["container_port"]),
+                                                                     port["protocol"],
+                                                                     service.service_alias.upper() + str(
+                                                                         port["container_port"]))
+                if code != 200:
+                    logger.error("service.check", "save service check info port error {0}".format(msg))
+                    # return code, msg
+        return 200, "success"
 
     def __upgrade_env(self, tenant, service, envs):
         if envs:
@@ -203,7 +234,7 @@ class AppCheckService(object):
         code, msg = self.__save_env(tenant, service, envs)
         if code != 200:
             return code, msg
-
+        logger.debug('=========ports=========>{0}'.format(ports))
         code, msg = self.__save_port(tenant, service, ports)
         if code != 200:
             return code, msg
