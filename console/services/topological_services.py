@@ -45,10 +45,10 @@ class TopologicalService(object):
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
+                "service_source": service_info.service_source,
                 "node_num": service_info.min_node,
             }
             json_svg[service_info.service_id] = []
-
             if service_status_map.get(service_info.service_id):
                 status = service_status_map.get(service_info.service_id).get("status", "Unknown")
                 status_cn = service_status_map.get(service_info.service_id).get("status_cn", None)
@@ -72,6 +72,9 @@ class TopologicalService(object):
                 else:
                     json_data[service_info.service_id]['cur_status'] = 'Unknown'
                     json_data[service_info.service_id]['status_cn'] = '未知'
+
+            if json_data[service_info.service_id]["service_source"] == "third_party":
+                json_data[service_info.service_id]['cur_status'] = "third_party"
 
             # 查询是否打开对外服务端口
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
