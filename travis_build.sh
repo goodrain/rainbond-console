@@ -6,7 +6,7 @@ image_name="rbd-app-ui"
 
 VERSION=${TRAVIS_BRANCH}
 if [ "$VERSION" != "master" ]; then
-  VERSION=5.1.0
+  VERSION=5.1.1
 fi
 buildTime=$(date +%F-%H)
 
