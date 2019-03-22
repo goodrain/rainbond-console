@@ -218,6 +218,8 @@ class TopologicalService(object):
                     relation_map[tmp_service_id] = relation_info
         result["relation_list"] = relation_map
         result["status"] = 200
+        if service.service_source == "third_party":
+            result["cur_status"] = "third_party"
         return result
 
     def get_internet_topological_graph(self, group_id, team_name):
