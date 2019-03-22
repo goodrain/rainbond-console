@@ -63,5 +63,6 @@ class ComposeServiceRepository(object):
             return csrs[0]
         return None
 
+
 compose_repo = GroupComposeRepository()
 compose_relation_repo = ComposeServiceRepository()
