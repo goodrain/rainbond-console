@@ -701,8 +701,8 @@ class DomainQueryView(RegionTenantHeaderView):
                     # 获取总数
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select count(*) from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%';".format(
-                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                        "select count(*) from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%';".format(
+                            tenant.tenant_id, region.region_id, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -714,8 +714,8 @@ class DomainQueryView(RegionTenantHeaderView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' or service_alias like '%{3}%' order by type desc LIMIT {4},{5};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, search_conditions, start, end))
+                        "select domain_name, type, is_senior, certificate_id, service_alias, protocol, service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name like '%{2}%' order by type desc LIMIT {3},{4};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
 
