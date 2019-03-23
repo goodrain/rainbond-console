@@ -163,7 +163,7 @@ class AppService(object):
             if not msg or msg == "success":
                 return True, "success"
             elif msg == "illegal_quantity":
-                raise ResourceNotEnoughException("请输入整数")
+                raise ResourceNotEnoughException("资源申请非法，请联系管理员")
             elif msg == "missing_tenant":
                 raise ResourceNotEnoughException("团队不存在")
             elif msg == "owned_fee":
