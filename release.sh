@@ -2,7 +2,7 @@
 
 set -xe
 
-VERSION=5.1.1
+VERSION=master
 buildTime=$(date +%F-%H)
 
 function release(){
