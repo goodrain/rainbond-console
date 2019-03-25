@@ -87,17 +87,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
-                # 切割，判断地址是否相同
-                service_url = ''
-                if "://" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("://")[1]
-                elif "git@" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("git@")[1]
-                http_url = clone_url.split("://")[1]
-                sh_url = ssh_url.split("git@")[1]
-                logger.debug("service_url", service_url)
-                logger.debug("http_url", http_url)
-                logger.debug("sh_url", sh_url)
+                service_url, http_url, sh_url = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
+
                 if not (service_url == http_url or service_url == sh_url):
                     logger.debug("github地址不相符")
                     result = general_message(200, "failed", "仓库地址不相符")
@@ -167,18 +158,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 git_http_url = repository.get("git_http_url")
                 gitlab_ssh_url = repository.get("git_ssh_url")
 
-                # 切割，判断地址是否相同
-                service_url = ''
-                if "://" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("://")[1]
-                elif "git@" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("git@")[1]
-                http_url = git_http_url.split("://")[1]
-                sh_url = gitlab_ssh_url.split("git@")[1]
-                logger.debug("service_url", service_url)
-                logger.debug("http_url", http_url)
-                logger.debug("sh_url", sh_url)
-
+                service_url, http_url, sh_url = self._check_warehouse(service_obj.git_url, git_http_url, gitlab_ssh_url)
                 if not (service_url == http_url or service_url == sh_url):
                     logger.debug("gitlab地址不相符")
                     result = general_message(200, "failed", "仓库地址不相符")
@@ -231,17 +211,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                # 切割，判断地址是否相同
-                service_url = ''
-                if "://" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("://")[1]
-                elif "git@" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("git@")[1]
-                http_url = clone_url.split("://")[1]
-                sh_url = ssh_url.split("git@")[1]
-                logger.debug("service_url", service_url)
-                logger.debug("http_url", http_url)
-                logger.debug("sh_url", sh_url)
+                service_url, http_url, sh_url = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
 
                 if not (service_url == http_url or service_url == sh_url):
                     logger.debug("gitee地址不相符")
@@ -297,17 +267,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                # 切割，判断地址是否相同
-                service_url = ''
-                if "://" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("://")[1]
-                elif "git@" in service_obj.git_url:
-                    service_url = service_obj.git_url.split("git@")[1]
-                http_url = clone_url.split("://")[1]
-                sh_url = ssh_url.split("git@")[1]
-                logger.debug("service_url", service_url)
-                logger.debug("http_url", http_url)
-                logger.debug("sh_url", sh_url)
+                service_url, http_url, sh_url = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
 
                 if not (service_url == http_url or http_url == sh_url):
                     logger.debug("gogs地址不相符")
@@ -349,6 +309,20 @@ class WebHooksDeploy(AlowAnyApiView):
             logger.exception(e)
             logger.error(e)
             return Response(e.message, status=500)
+
+    def _check_warehouse(self, service, clone_url, ssh_url):
+        # 切割，判断地址是否相同
+        service_url = ''
+        if "://" in service.git_url:
+            service_url = service.git_url.split("://")[1]
+        elif "git@" in service.git_url:
+            service_url = service.git_url.split("git@")[1]
+        http_url = clone_url.split("://")[1]
+        sh_url = ssh_url.split("git@")[1]
+        logger.debug("service_url", service_url)
+        logger.debug("http_url", http_url)
+        logger.debug("sh_url", sh_url)
+        return service_url, http_url, sh_url
 
 
 class GetWebHooksUrl(AppBaseView):
