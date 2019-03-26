@@ -294,6 +294,12 @@ class ServiceDomainRepository(object):
             except ServiceDomain.DoesNotExist:
                 return None
 
+    def get_domain_by_name_and_path(self, domain_name, domain_path):
+        if domain_path:
+            return ServiceDomain.objects.filter(domain_name=domain_name, domain_path=domain_path).all()
+        else:
+            return None
+
     def delete_service_domain_by_port(self, service_id, container_port):
         ServiceDomain.objects.filter(service_id=service_id, container_port=container_port).delete()
 
