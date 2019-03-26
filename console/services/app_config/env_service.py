@@ -80,7 +80,7 @@ class AppEnvVarService(object):
 
     def get_service_build_envs(self, service):
         if service:
-            return env_var_repo.get_service_all_build_envs(service.tenant_id, service.service_id)
+            return env_var_repo.get_service_env_by_scope(service.tenant_id, service.service_id, scope="build")
 
     def add_service_build_env_var(self, tenant, service, container_port, name, attr_name, attr_value, is_change,
                             scope="build"):
