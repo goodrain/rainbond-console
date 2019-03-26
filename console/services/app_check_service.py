@@ -353,7 +353,7 @@ class AppCheckService(object):
             if data["check_status"] == "success":
                 if service_info["language"] == "dockerfile":
                     service.cmd = ""
-                else:
+                elif service.service_source == AppConstants.SOURCE_CODE:
                     service.cmd = "start web"
                 service.language = service_info["language"]
                 service.save()
