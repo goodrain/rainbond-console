@@ -299,12 +299,12 @@ class AppManageService(AppManageBase):
                                     service_source.save()
 
                                     # 删除服务原有端口，环境变量，pod
-                                    code, msg = self.__delete_envs(tenant, service)
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    code, msg = self.__delete_volume(tenant, service)
-                                    if code != 200:
-                                        raise Exception(msg)
+                                    # code, msg = self.__delete_envs(tenant, service)
+                                    # if code != 200:
+                                    #     raise Exception(msg)
+                                    # code, msg = self.__delete_volume(tenant, service)
+                                    # if code != 200:
+                                    #     raise Exception(msg)
 
                                     # 先保存env,再保存端口，因为端口需要处理env
                                     code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
@@ -403,6 +403,9 @@ class AppManageService(AppManageBase):
         if not volumes:
             return 200, "success"
         for volume in volumes:
+            service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
+            if service_volume:
+                continue
             if volume.has_key("file_content"):
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
                                                                            volume["volume_type"], volume["volume_name"],
@@ -422,6 +425,14 @@ class AppManageService(AppManageBase):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
+            inner_attr_name = []
+            inner_envs = env_var_repo.get_service_env_by_scope(tenant_id=tenant.tenant_id,
+                                                               service_id=service.service_id, scope="inner")
+            if inner_envs:
+                for inner_env in inner_envs:
+                    inner_attr_name.append(inner_env.attr_name)
+            if env["attr_name"] in inner_attr_name:
+                continue
             code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
                                                                       env["attr_value"], env["is_change"],
                                                                       "inner")
@@ -429,6 +440,14 @@ class AppManageService(AppManageBase):
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
+            outer_attr_name = []
+            outer_envs = env_var_repo.get_service_env_by_scope(tenant_id=tenant.tenant_id,
+                                                               service_id=service.service_id, scope="outer")
+            if outer_envs:
+                for outer_env in outer_envs:
+                    outer_attr_name.append(outer_env.attr_name)
+            if env["attr_name"] in outer_attr_name:
+                continue
             container_port = env.get("container_port", 0)
             if container_port == 0:
                 if env["attr_value"] == "**None**":

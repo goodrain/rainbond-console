@@ -350,6 +350,13 @@ class AppCheckService(object):
         service_list = []
         if service_info_list:
             service_info = service_info_list[0]
+            if data["check_status"] == "success":
+                if service_info["language"] == "dockerfile":
+                    service.cmd = ""
+                elif service.service_source == AppConstants.SOURCE_CODE:
+                    service.cmd = "start web"
+                service.language = service_info["language"]
+                service.save()
 
             service_list = self.wrap_check_info(service, service_info)
 
@@ -391,12 +398,6 @@ class AppCheckService(object):
                 "key": "代码语言",
                 "value": service_info["language"]
             }
-            if service_info["language"] == "dockerfile":
-                service.cmd = ""
-            else:
-                service.cmd = "start web"
-            service.language = service_info["language"]
-            service.save()
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             service_code_from = {
                 "type": "source_from",
