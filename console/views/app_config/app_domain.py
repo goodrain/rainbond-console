@@ -425,12 +425,13 @@ class HttpStrategyView(RegionTenantHeaderView):
             domain_name = request.data.get("domain_name", None)
             certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
-            domain_path = request.data.get("domain_path", None)
+            do_path = request.data.get("domain_path", None)
             domain_cookie = request.data.get("domain_cookie", None)
             domain_heander = request.data.get("domain_heander", None)
             rule_extensions = request.data.get("rule_extensions", None)
             whether_open = request.data.get("whether_open", False)
             the_weight = request.data.get("the_weight", 100)
+            domain_path = do_path if do_path else "/"
 
             # 判断参数
             if not container_port or not domain_name or not service_id:
@@ -457,6 +458,28 @@ class HttpStrategyView(RegionTenantHeaderView):
             # 判断策略是否存在
             service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name, protocol, domain_path)
             if service_domain:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+
+            # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+            domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
+            domain_protocol_list = []
+            is_httptohttps = False
+            if domains:
+                for domain in domains:
+                    domain_protocol_list.append(domain.protocol)
+                    if "httptohttps" in domain.rule_extensions:
+                        is_httptohttps = True
+
+            if is_httptohttps:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+            add_httptohttps = False
+            if rule_extensions:
+                for rule in rule_extensions:
+                    if rule["key"] == "httptohttps":
+                        add_httptohttps = True
+            if "http" in domain_protocol_list and add_httptohttps:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
@@ -500,12 +523,13 @@ class HttpStrategyView(RegionTenantHeaderView):
             domain_name = request.data.get("domain_name", None)
             certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
-            domain_path = request.data.get("domain_path", None)
+            do_path = request.data.get("domain_path", None)
             domain_cookie = request.data.get("domain_cookie", None)
             domain_heander = request.data.get("domain_heander", None)
             rule_extensions = request.data.get("rule_extensions", None)
             http_rule_id = request.data.get("http_rule_id", None)
             the_weight = request.data.get("the_weight", 100)
+            domain_path = do_path if do_path else "/"
 
             # 判断参数
             if not service_id or not container_port or not domain_name or not http_rule_id:
@@ -527,6 +551,28 @@ class HttpStrategyView(RegionTenantHeaderView):
                 domain_name_spt = domain_name.split(region.httpdomain)
                 if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
                     return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
+
+            # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+            domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
+            domain_protocol_list = []
+            is_httptohttps = False
+            if domains:
+                for domain in domains:
+                    domain_protocol_list.append(domain.protocol)
+                    if "httptohttps" in domain.rule_extensions:
+                        is_httptohttps = True
+
+            if is_httptohttps:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+            add_httptohttps = False
+            if rule_extensions:
+                for rule in rule_extensions:
+                    if rule["key"] == "httptohttps":
+                        add_httptohttps = True
+            if "http" in domain_protocol_list and add_httptohttps:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
 
             # 编辑域名
             code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
