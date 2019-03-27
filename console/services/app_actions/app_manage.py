@@ -825,15 +825,6 @@ class AppManageService(AppManageBase):
                                             service_source.extend_info = json.dumps(new_extend_info)
                                             service_source.save()
 
-                                            # 删除服务原有端口，环境变量，pod
-                                            code, msg = self.__delete_envs(tenant, service)
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            code, msg = self.__delete_volume(tenant, service)
-                                            if code != 200:
-                                                raise Exception(msg)
-
-                                            # 先保存env,再保存端口，因为端口需要处理env
                                             code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
                                                                         app["service_connect_info_map_list"])
                                             if code != 200:
@@ -881,15 +872,6 @@ class AppManageService(AppManageBase):
                                             service_source.extend_info = json.dumps(new_extend_info)
                                             service_source.save()
 
-                                            # 删除服务原有端口，环境变量，pod
-                                            code, msg = self.__delete_envs(tenant, service)
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            code, msg = self.__delete_volume(tenant, service)
-                                            if code != 200:
-                                                raise Exception(msg)
-
-                                            # 先保存env,再保存端口，因为端口需要处理env
                                             code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
                                                                         app["service_connect_info_map_list"])
                                             if code != 200:
