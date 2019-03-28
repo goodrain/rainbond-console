@@ -300,9 +300,9 @@ class WebHooksDeploy(AlowAnyApiView):
             logger.error(e)
             return Response(e.message, status=500)
 
-    def _check_warehouse(self, service, clone_url, ssh_url):
+    def _check_warehouse(self, service_git_url, clone_url, ssh_url):
         # 判断地址是否相同
-        service_url = urlparse(service.git_url)
+        service_url = urlparse(service_git_url)
         http_url = urlparse(clone_url)
         sh_url = urlparse(ssh_url)
         service_url_netloc = service_url.netloc
@@ -521,6 +521,9 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             pusher = push_data.get("pusher")
             tag = push_data.get("tag")
             repo_name = repository.get("repo_name")
+            if not repo_name:
+                result = general_message(400, "failed", "暂时仅支持docker_hub镜像仓库webhooks")
+                return Response(result, status=400)
             image = repo_name + ":" + tag
             if image != service_obj.image:
                 result = general_message(400, "failed", "镜像不相符")
