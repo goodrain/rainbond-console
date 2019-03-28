@@ -119,7 +119,7 @@ class ProbeService(object):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             return code, msg, None
-        probe = probe_repo.get_probe_by_mode(service.service_id, data["mode"])
+        probe = probe_repo.get_probe_by_mode(service.service_id, data["old_mode"])
         if not probe:
             return 404, u"应用未设置探针，无法进行修改操作", None
         is_used = data.get("is_used", None)
@@ -144,6 +144,7 @@ class ProbeService(object):
             "mode": data["mode"]
         }
         console_probe = copy.deepcopy(prob_data)
+        logger.debug('=====999999999999999{0}'.format(console_probe))
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
             res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name,
@@ -152,7 +153,7 @@ class ProbeService(object):
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
         probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
-        new_probe = probe_repo.get_probe_by_mode(service.service_id, probe.mode)
+        new_probe = probe_repo.get_probe_by_probe_id(service.service_id, probe.probe_id)
         return 200, "success", new_probe
 
     def delete_service_probe(self, tenant, service, probe_id):
