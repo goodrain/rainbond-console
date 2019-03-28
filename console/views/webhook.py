@@ -521,6 +521,9 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             pusher = push_data.get("pusher")
             tag = push_data.get("tag")
             repo_name = repository.get("repo_name")
+            if not repo_name:
+                result = general_message(400, "failed", "暂时仅支持docker_hub镜像仓库webhooks")
+                return Response(result, status=400)
             image = repo_name + ":" + tag
             if image != service_obj.image:
                 result = general_message(400, "failed", "镜像不相符")
