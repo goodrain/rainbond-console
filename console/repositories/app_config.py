@@ -306,6 +306,12 @@ class ServiceDomainRepository(object):
         else:
             return None
 
+    def get_domain_by_name_and_path_and_protocol(self, domain_name, domain_path, protocol):
+        if domain_path:
+            return ServiceDomain.objects.filter(domain_name=domain_name, domain_path=domain_path, protocol=protocol).all()
+        else:
+            return None
+
     def delete_service_domain_by_port(self, service_id, container_port):
         ServiceDomain.objects.filter(service_id=service_id, container_port=container_port).delete()
 

@@ -660,10 +660,11 @@ class AppPortService(object):
         domains = domain_repo.get_service_domain_by_container_port(service.service_id, port)
         if domains:
             for d in domains:
+                domain_path = d.domain_path if d.domain_path else "/"
                 if d.protocol != "http":
-                    urls.insert(0, "https://{0}".format(d.domain_name))
+                    urls.insert(0, "https://{0}{1}".format(d.domain_name, domain_path))
                 else:
-                    urls.insert(0, "http://{0}".format(d.domain_name))
+                    urls.insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
 
         return urls
 
