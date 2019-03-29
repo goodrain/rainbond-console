@@ -5,7 +5,6 @@
 import datetime
 import logging
 import random
-import re
 import string
 import json
 
@@ -28,6 +27,7 @@ from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesSe
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 from console.repositories.perm_repo import role_repo
+from console.repositories.probe_repo import probe_repo
 
 
 tenantUsedResource = TenantUsedResource()
@@ -307,9 +307,7 @@ class AppService(object):
                 for endpoint in endpoints:
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
-                logger.debug('---------111-------->{0}'.format(port_list))
                 port_re = list(set(port_list))
-                logger.debug('---------111-------->{0}'.format(port_re))
                 if len(port_re) == 1:
                     port = int(port_re[0])
                     if port:
@@ -319,7 +317,32 @@ class AppService(object):
                                         "protocol": 'tcp', "port_alias": port_alias,
                                         "is_inner_service": False,
                                         "is_outer_service": False}
-                        port_repo.add_service_port(**service_port)
+                        service_port = port_repo.add_service_port(**service_port)
+                        # 添加默认端口后需要默认设置健康检测
+                        if service_port:
+                            tenant_service_ports = port_repo.get_service_ports(tenant.tenant_id, new_service.service_id)
+                            port_list = []
+                            for tenant_service_port in tenant_service_ports:
+                                port_list.append(tenant_service_port.container_port)
+                            if len(port_list) <= 1:
+                                probe = probe_repo.get_probe(new_service.service_id)
+                                if not probe:
+                                    params = {
+                                        "http_header": "",
+                                        "initial_delay_second": 2,
+                                        "is_used": True,
+                                        "mode": "ignore",
+                                        "path": "",
+                                        "period_second": 3,
+                                        "port": int(service_port.container_port),
+                                        "scheme": "tcp",
+                                        "success_threshold": 1,
+                                        "timeout_second": 20
+                                    }
+                                    code, msg, probe = probe_service.add_service_probe(tenant, new_service, params)
+                                    if code != 200:
+                                        logger.debug('------111----->{0}'.format(msg))
+
         # 保存endpoints数据
         service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
                              "service_cname": new_service.service_cname, "endpoints_info": json.dumps(endpoints),
@@ -370,9 +393,7 @@ class AppService(object):
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
-        logger.debug('---------status111111111111111111---------->{0}'.format(status))
         status_info_map = get_status_info_map(status)
-        logger.debug('---------status_info_map222222222---------->{0}'.format(status_info_map))
         return status_info_map
 
     def get_service_resource_with_plugin(self, tenant, service, status):

@@ -41,4 +41,5 @@ class ServiceProbeRepository(object):
     def get_service_probe(self, service_id):
         return ServiceProbe.objects.filter(service_id=service_id)
 
+
 probe_repo = ServiceProbeRepository()
