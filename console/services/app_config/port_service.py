@@ -8,16 +8,13 @@ from console.repositories.app_config import port_repo
 import re
 import datetime
 
-from console.repositories.group import group_service_relation_repo, group_repo
 from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
-from django.conf import settings
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
-from console.constants import AppConstants
 from console.repositories.app_config import tcp_domain
 from console.services.app_config.probe_service import ProbeService
 from console.repositories.probe_repo import probe_repo
