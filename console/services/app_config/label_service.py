@@ -70,6 +70,15 @@ class LabelService(object):
 
         return 200, u"操作成功", None
 
+    def get_region_labels(self, tenant, service):
+        try:
+            data = region_api.get_region_labels(service.service_region, tenant.tenant_name)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            return 507, u"服务异常", None
+
+        return 200, u"操作成功", data["list"]
+
     def delete_service_label(self, tenant, service, label_id):
 
         label = label_repo.get_label_by_label_id(label_id)
