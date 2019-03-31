@@ -46,13 +46,19 @@ class AppProbeView(AppBaseView):
                 result = general_message(200, "success", "查询成功", bean=probe.to_dict())
             else:
                 mode = request.GET.get("mode", None)
-                code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
-                if code != 200:
-                    return Response(general_message(code, "get probe error", msg))
                 if not mode:
-                    result = general_message(200, "success", "查询成功", list=probe)
-                else:
+                    code, msg, probe = probe_service.get_service_probe(self.service)
+                    if code != 200:
+                        return Response(general_message(code, "get probe error", msg))
                     result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+                else:
+                    code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
+                    if code != 200:
+                        return Response(general_message(code, "get probe error", msg))
+                    if not mode:
+                        result = general_message(200, "success", "查询成功", list=probe)
+                    else:
+                        result = general_message(200, "success", "查询成功", bean=probe.to_dict())
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
