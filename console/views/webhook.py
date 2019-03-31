@@ -585,10 +585,11 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)
             ref = reference.Reference.parse(service_obj.image)
-            if repo_name != ref.name:
+            hostname, name = ref.split_hostname()
+            if repo_name != name:
                 result = general_message(400, "failed", "镜像名称与服务构建源不符")
                 return Response(result, status=400)
-            if tag != ref.tag:
+            if tag != ref['tag']:
                 result = general_message(400, "failed", "镜像tag与服务构建源不符")
                 return Response(result, status=400)
             # 获取应用状态
