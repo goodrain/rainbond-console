@@ -4,10 +4,12 @@ set -xe
 
 image_name="rbd-app-ui"
 
-VERSION=${TRAVIS_BRANCH}
-if [ "$VERSION" != "master" ]; then
-  VERSION=${TRAVIS_BRANCH:1:3}
+if [ -z "$TRAVIS_TAG" ]; then
+	VERSION=$TRAVIS_BRANCH-dev
+else
+	VERSION=$TRAVIS_TAG
 fi
+
 buildTime=$(date +%F-%H)
 
 function release(){

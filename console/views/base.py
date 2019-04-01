@@ -46,7 +46,6 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
     def get_jwt_value(self, request):
         auth = get_authorization_header(request).split()
-        logger.debug(auth)
         auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
 
         if not auth:
