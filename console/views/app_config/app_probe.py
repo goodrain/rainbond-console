@@ -46,13 +46,19 @@ class AppProbeView(AppBaseView):
                 result = general_message(200, "success", "查询成功", bean=probe.to_dict())
             else:
                 mode = request.GET.get("mode", None)
-                code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
-                if code != 200:
-                    return Response(general_message(code, "get probe error", msg))
                 if not mode:
-                    result = general_message(200, "success", "查询成功", list=probe)
-                else:
+                    code, msg, probe = probe_service.get_service_probe(self.service)
+                    if code != 200:
+                        return Response(general_message(code, "get probe error", msg))
                     result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+                else:
+                    code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
+                    if code != 200:
+                        return Response(general_message(code, "get probe error", msg))
+                    if not mode:
+                        result = general_message(200, "success", "查询成功", list=probe)
+                    else:
+                        result = general_message(200, "success", "查询成功", bean=probe.to_dict())
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
@@ -95,13 +101,7 @@ class AppProbeView(AppBaseView):
         try:
             data = request.data
 
-            serializer = ProbeUpdateSerilizer(data=data)
-            if not serializer.is_valid():
-                result = general_message(400, "{0}".format(serializer.errors), "参数异常")
-                return Response(result, status=result["code"])
-            params = dict(serializer.data)
-
-            code, msg, probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=params)
+            code, msg, probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=data)
             if code != 200:
                 return Response(general_message(code, "update probe error", msg), status=code)
             result = general_message(200, u"success", "修改成功", bean=probe.to_dict())

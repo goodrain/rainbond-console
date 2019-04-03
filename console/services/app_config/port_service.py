@@ -8,16 +8,13 @@ from console.repositories.app_config import port_repo
 import re
 import datetime
 
-from console.repositories.group import group_service_relation_repo, group_repo
 from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
-from django.conf import settings
 from console.services.app_config.env_service import AppEnvVarService
 import logging
 from console.repositories.app_config import domain_repo
 from console.services.region_services import region_services
 from console.repositories.app import service_repo
-from console.constants import AppConstants
 from console.repositories.app_config import tcp_domain
 from console.services.app_config.probe_service import ProbeService
 from console.repositories.probe_repo import probe_repo
@@ -660,10 +657,11 @@ class AppPortService(object):
         domains = domain_repo.get_service_domain_by_container_port(service.service_id, port)
         if domains:
             for d in domains:
+                domain_path = d.domain_path if d.domain_path else "/"
                 if d.protocol != "http":
-                    urls.insert(0, "https://{0}".format(d.domain_name))
+                    urls.insert(0, "https://{0}{1}".format(d.domain_name, domain_path))
                 else:
-                    urls.insert(0, "http://{0}".format(d.domain_name))
+                    urls.insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
 
         return urls
 

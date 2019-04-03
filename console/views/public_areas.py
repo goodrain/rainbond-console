@@ -105,7 +105,7 @@ class TeamOverView(RegionTenantHeaderView):
                 if groups:
                     for group in groups:
                         share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
-                        if share_record:
+                        if share_record and share_record.step == 3:
                             share_app_num += 1
                 overview_detail["share_app_num"] = share_app_num
 

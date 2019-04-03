@@ -372,7 +372,7 @@ class DomainService(object):
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["domain_path"] = domain_path if domain_path else None
+        domain_info["domain_path"] = domain_path if domain_path else '/'
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info[
             "domain_heander"] = domain_heander if domain_heander else None
@@ -469,7 +469,7 @@ class DomainService(object):
             '%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["domain_path"] = domain_path if domain_path else None
+        domain_info["domain_path"] = domain_path if domain_path else '/'
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
         domain_info[
             "domain_heander"] = domain_heander if domain_heander else None
