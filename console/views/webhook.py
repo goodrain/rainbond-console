@@ -303,7 +303,73 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("应用状态异常")
                     result = general_message(200, "failed", "应用状态不支持")
                     return Response(result, status=200)
+            # coding 
+            elif request.META.get("HTTP_X_CODING_EVENT", None):
+                coding_event = request.META.get("HTTP_X_CODING_EVENT", None)
+                if coding_event == "ping":
+                    logger.debug("支持此事件类型")
+                    result = general_message(200, "success", "支持测试连接")
+                    return Response(result, status=200)
 
+                if coding_event != "push" and coding_event != "ping":
+                    logger.debug("不支持此事件类型")
+                    result = general_message(400, "failed", "不支持此事件类型")
+                    return Response(result, status=400)
+
+                commits_info = request.data.get("head_commit")
+                if not commits_info:
+                    logger.debug("提交信息获取失败")
+                    result = general_message(400, "failed", "提交信息获取失败")
+                    return Response(result, status=400)
+                message = commits_info.get("message")
+                keyword = "@" + service_webhook.deploy_keyword
+                if keyword not in message:
+                    logger.debug("提交信息无效")
+                    result = general_message(200, "failed", "提交信息无效")
+                    return Response(result, status=200)
+
+                ref = request.data.get("ref")
+                if not ref:
+                    logger.debug("获取分支信息失败")
+                    result = general_message(200, "failed", "获取分支信息失败")
+                    return Response(result, status=200)
+                ref = ref.split("/")[2]
+                if not service_obj.code_version == ref:
+                    logger.debug("当前分支与部署分支不同")
+                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    return Response(result, status=200)
+
+                repository = request.data.get("repository")
+                if not repository:
+                    logger.debug("却少repository信息")
+                    result = general_message(200, "failed", "却少repository信息")
+                    return Response(result, status=200)
+                clone_url = repository.get("clone_url")
+                ssh_url = repository.get("ssh_url")
+                code, msg, msg_show = self._check_warehouse(
+                    service_obj.git_url, clone_url, ssh_url)
+                if code != 200:
+                    return Response(
+                        general_message(200, msg, msg_show), status=200)
+
+                # 获取应用状态
+                status_map = app_service.get_service_status(
+                    tenant_obj, service_obj)
+                status = status_map.get("status", None)
+                logger.debug(status)
+
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+                committer_name = commits_info.get("author").get("username")
+                if status == "running" or status == "abnormal":
+                    return user_services.deploy_service(
+                        tenant_obj=tenant_obj,
+                        service_obj=service_obj,
+                        user=user_obj,
+                        committer_name=committer_name)
+                else:
+                    logger.debug("应用状态异常")
+                    result = general_message(400, "failed", "应用状态不支持")
+                    return Response(result, status=400)
             else:
                 logger.debug("暂时仅支持github与gitlab")
                 result = general_message(400, "failed", "暂时仅支持github与gitlab哦～")
