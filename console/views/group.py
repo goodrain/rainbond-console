@@ -225,15 +225,15 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             if not services:
                 result = general_message(400, "not service", "当前组内无应用，无法操作")
                 return Response(result)
-
+            service_ids = [service.service_id for service in services]
             if action not in ("stop", "start", "upgrade", "deploy"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
             # 去除掉三方服务
-            for service in services:
-                service_obj = service_repo.get_service_by_service_id(service.service_id)
+            for service_id in service_ids:
+                service_obj = service_repo.get_service_by_service_id(service_id)
                 if service_obj:
                     if service_obj.service_source == "third_party":
-                        services.remove(service)
+                        service_ids.remove(service_id)
 
             # 校验权限
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
@@ -252,12 +252,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             if action == "deploy":
                 if "deploy_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
-            # 构建service_ids列表
-            service_id_list = []
-            for service in services:
-                service_id_list.append(service.service_id)
                 # 批量操作
-            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_id_list)
+            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:
