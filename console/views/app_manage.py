@@ -694,6 +694,20 @@ class MarketServiceUpgradeView(AppBaseView):
         try:
             bean = dict()
             upgrate_version_list = []
+            # 判断服务状态，未部署的服务不提供升级数据
+            try:
+                body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_alias, self.tenant.enterprise_id)
+
+                bean = body["bean"]
+                status = bean["cur_status"]
+            except Exception as e:
+                logger.exception(e)
+                status = "unKnow"
+            if status == "undeploy":
+                result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)
+                return Response(result, status=result["code"])
+            
             if self.service.service_source != "market":
                 return Response(general_message(400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"), status=400)
             # 获取组对象

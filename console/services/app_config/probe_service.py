@@ -85,7 +85,7 @@ class ProbeService(object):
 
         probe = probe_repo.get_probe_by_mode(service.service_id, data["mode"])
         if probe:
-            return 409, u"已设置过改类型探针", None
+            return 409, u"已设置过该类型探针", None
         is_used = 1 if data.get("is_used", 1) else 0
         prob_data = {
             "service_id": service.service_id,
@@ -106,11 +106,10 @@ class ProbeService(object):
         # 真·深拷贝
         console_prob = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
-        logger.debug('----------prob_data-----------__>{0}'.format(prob_data))
         if service.create_status == "complete":
-            res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
-                                                     service.service_alias,
-                                                     prob_data)
+            res, body = region_api.add_service_probe(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, prob_data)
             logger.debug("add probe action status {0}".format(res.status))
         new_probe = probe_repo.add_service_probe(**console_prob)
         return 200, "success", new_probe
@@ -119,7 +118,16 @@ class ProbeService(object):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             return code, msg, None
-        probe = probe_repo.get_probe_by_mode(service.service_id, data["mode"])
+        probes = probe_repo.get_service_probe(service.service_id)
+        if not probes:
+            return 404, u"应用未设置探针，无法进行修改操作", None
+        probe = probes[0]
+        # delete more probe without first, one service will have one probe
+        if len(probes) > 1:
+            for index in range(len(probes)):
+                if index > 0:
+                    self.delete_service_probe(tenant, service,
+                                              probes[index].probe_id)
         if not probe:
             return 404, u"应用未设置探针，无法进行修改操作", None
         is_used = data.get("is_used", None)
@@ -128,31 +136,50 @@ class ProbeService(object):
         else:
             is_used = 1 if is_used else 0
         prob_data = {
-            "service_id": service.service_id,
-            "scheme": data.get("scheme", probe.scheme),
-            "path": data.get("path", probe.path),
-            "port": data.get("port", probe.port),
-            "cmd": data.get("cmd", probe.cmd),
-            "http_header": data.get("http_header", probe.http_header),
-            "initial_delay_second": data.get("initial_delay_second", probe.initial_delay_second),
-            "period_second": data.get("period_second", probe.period_second),
-            "timeout_second": data.get("timeout_second", probe.timeout_second),
-            "failure_threshold": data.get("failure_threshold", probe.failure_threshold),
-            "success_threshold": data.get("success_threshold", probe.success_threshold),
-            "is_used": is_used,
-            "probe_id": probe.probe_id,
-            "mode": data["mode"]
+            "service_id":
+            service.service_id,
+            "scheme":
+            data.get("scheme", probe.scheme),
+            "path":
+            data.get("path", probe.path),
+            "port":
+            data.get("port", probe.port),
+            "cmd":
+            data.get("cmd", probe.cmd),
+            "http_header":
+            data.get("http_header", probe.http_header),
+            "initial_delay_second":
+            data.get("initial_delay_second", probe.initial_delay_second),
+            "period_second":
+            data.get("period_second", probe.period_second),
+            "timeout_second":
+            data.get("timeout_second", probe.timeout_second),
+            "failure_threshold":
+            data.get("failure_threshold", probe.failure_threshold),
+            "success_threshold":
+            data.get("success_threshold", probe.success_threshold),
+            "is_used":
+            is_used,
+            "probe_id":
+            probe.probe_id,
+            "mode":
+            data["mode"]
         }
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
-            res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name,
-                                                        service.service_alias, prob_data)
+            res, body = region_api.update_service_probec(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, prob_data)
             logger.debug("update probe action status {0}".format(res.status))
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
-        probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
-        new_probe = probe_repo.get_probe_by_mode(service.service_id, probe.mode)
+        probe_repo.update_service_probeb(
+            service_id=service.service_id,
+            probe_id=probe.probe_id,
+            **console_probe)
+        new_probe = probe_repo.get_probe_by_probe_id(service.service_id,
+                                                     probe.probe_id)
         return 200, "success", new_probe
 
     def delete_service_probe(self, tenant, service, probe_id):
@@ -160,6 +187,8 @@ class ProbeService(object):
         if not probe:
             return 404, u"未找到探针"
         body = {"probe_id": probe_id}
-        region_api.delete_service_probe(service.service_region, tenant.tenant_name, service.service_alias, body)
+        region_api.delete_service_probe(service.service_region,
+                                        tenant.tenant_name,
+                                        service.service_alias, body)
         probe.delete()
         return 200, u"success"

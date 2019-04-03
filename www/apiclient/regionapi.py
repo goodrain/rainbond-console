@@ -291,6 +291,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def get_region_labels(self, region, tenant_name):
+        """获取数据中心可用的标签"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/resources/labels"
+
+        self._set_headers(token)
+        res, body = self._get(
+            url, self.default_headers, region=region)
+        return body
+
     def addServiceNodeLabel(self, region, tenant_name, service_alias, body):
         """添加应用对应的节点标签"""
 

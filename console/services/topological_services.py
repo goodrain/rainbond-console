@@ -160,16 +160,17 @@ class TopologicalService(object):
                 if len(service_domain_list) > 0:
                     for domain in service_domain_list:
                         if port.container_port == domain.container_port:
+                            domain_path = domain.domain_path if domain.domain_path else '/'
                             if port_info.get('domain_list') is None:
                                 if domain.protocol == "https":
-                                    port_info['domain_list'] = ["https://" + domain.domain_name]
+                                    port_info['domain_list'] = ["https://" + domain.domain_name + domain_path]
                                 else:
-                                    port_info['domain_list'] = ["http://" + domain.domain_name]
+                                    port_info['domain_list'] = ["http://" + domain.domain_name + domain_path]
                             else:
                                 if domain.protocol == "https":
-                                    port_info['domain_list'].append("https://" + domain.domain_name)
+                                    port_info['domain_list'].append("https://" + domain.domain_name + domain_path)
                                 else:
-                                    port_info['domain_list'].append("http://" + domain.domain_name)
+                                    port_info['domain_list'].append("http://" + domain.domain_name + domain_path)
             port_map[port.container_port] = port_info
         result["port_list"] = port_map
         # pod节点信息
