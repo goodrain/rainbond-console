@@ -12,9 +12,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.authentication import (
-    get_authorization_header
-)
+from rest_framework.authentication import (get_authorization_header)
 from rest_framework.compat import set_rollback
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -79,7 +77,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             msg = _('未提供验证信息')
             raise AuthenticationInfoHasExpiredError(msg)
         # if have SSO login modules
-        if settings.MODULES.get('SSO_LOGIN',None):
+        if settings.MODULES.get('SSO_LOGIN', None):
             sso_user_id = request.COOKIES.get('uid')
             sso_user_token = jwt_value
 
@@ -147,7 +145,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
 
 class BaseApiView(APIView):
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny, )
 
     def __init__(self, *args, **kwargs):
         super(BaseApiView, self).__init__(*args, **kwargs)
@@ -158,7 +156,7 @@ class AlowAnyApiView(APIView):
     """
     该API不需要通过任何认证
     """
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny, )
     authentication_classes = ()
 
     def __init__(self, *args, **kwargs):
@@ -171,8 +169,8 @@ class AlowAnyApiView(APIView):
 
 
 class JWTAuthApiView(APIView):
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (JSONWebTokenAuthentication,)
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (JSONWebTokenAuthentication, )
 
     def __init__(self, *args, **kwargs):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
@@ -213,7 +211,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             # self.tenant_name = self.request.COOKIES.get('team', None)
 
         if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
+            self.response_region = self.request.COOKIES.get(
+                'region_name', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team', None)
 
@@ -315,5 +314,9 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
+        return Response({
+            "code": 10401,
+            "msg": exc.message,
+            "msg_show": "服务端异常"
+        },
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
