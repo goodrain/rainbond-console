@@ -11,6 +11,25 @@ logger = logging.getLogger("default")
 
 
 class ServiceRepo(object):
+    def count_sourcecode_svc_by_tenant(self, tenant):
+        return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id,
+                                                service_region=tenant.region).count()
+
+    def list_db_from_market_by_tenant(self, tenant):
+        result = []
+        dbs = ["mysql", "mariadb"]
+        for db in dbs:
+            services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id,
+                                                        service_region=tenant.region,
+                                                        service_source="market",
+                                                        image__icontains=db)
+            for svc in services:
+                result.append({"tenant_id": svc.tenant_id, "service_id": svc.service_id})
+        return result
+
+    def list_svc_by_tenant(self, tenant):
+        return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
+
     def get_team_service_num_by_team_id(self, team_id, region_name):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
 

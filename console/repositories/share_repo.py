@@ -174,5 +174,8 @@ class ShareRepo(object):
         plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
         return plugins.first() if plugins else None
 
+    def count_app_by_team_name(self, team_name):
+        return ServiceShareRecord.objects.filter(team_name=team_name)
+
 
 share_repo = ShareRepo()

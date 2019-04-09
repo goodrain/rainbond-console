@@ -243,6 +243,9 @@ class ImageServiceRelationRepository(object):
 
 
 class ServiceDomainRepository(object):
+    def list_rules_by_tenant(self, tenant):
+        return ServiceDomain.objects.filter(tenant_id=tenant.tenant_id)
+
     def get_service_domain_by_container_port(self, service_id, container_port):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
 

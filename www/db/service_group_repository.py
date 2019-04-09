@@ -11,8 +11,13 @@ class ServiceGroupRepository(object):
         except ServiceGroupRelation.DoesNotExist:
             return None
 
-    def get_by_pk(self,pk):
+    def get_by_pk(self, pk):
         try:
             return ServiceGroup.objects.get(pk=pk)
         except ServiceGroup.DoesNotExist:
             return None
+
+    def count_non_default_group_by_tenant(self, tenant):
+        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id,
+                                           region_name=tenant.region,
+                                           is_default=False).count()

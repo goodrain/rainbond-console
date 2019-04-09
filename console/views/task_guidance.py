@@ -5,16 +5,18 @@ import logging
 from rest_framework.response import Response
 
 from console.views.base import EnterpriseHeaderView
-from console.views.enterprise_active import enterprise_services
+from console.services.task_guidance.base_task_guidance import BaseTaskGuidance
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
+
+base_task_guidance = BaseTaskGuidance()
 
 
 class BaseGuidance(EnterpriseHeaderView):
     def get(self, request, *args, **kwargs):
         try:
-            data = enterprise_services.list_base_tasks(self.enterprise.enterprise_id)
+            data = base_task_guidance.list_base_tasks(self.enterprise.enterprise_id)
             result = general_message(200, "success", "请求成功", list=data)
         except Exception as e:
             logger.exception(e)

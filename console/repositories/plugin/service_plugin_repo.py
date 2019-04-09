@@ -42,6 +42,9 @@ class AppPluginRelationRepo(object):
     def get_service_plugin_relations_by_service_ids(self, service_ids):
         return TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
 
+    def count_plugins_by_tenant(self, sid):
+        return TenantServicePluginRelation.objects.filter(service_id=sid).count()
+
 
 class ServicePluginAttrRepository(object):
     def delete_attr_by_plugin_id(self, plugin_id):
