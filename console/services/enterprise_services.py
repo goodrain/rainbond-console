@@ -2,13 +2,15 @@
 import os
 import random
 import string
+import json
 
 # from django.core.mail import send_mail
 
+from console.services.task_guidance_service import BaseTaskStatusContext
 from console.repositories.enterprise_repo import enterprise_repo
+from backends.services.configservice import config_service
 from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
-
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()
@@ -127,11 +129,71 @@ class EnterpriseServices(object):
         return enterprise_repo.create_enterprise(**params)
 
     # def get_enterprise_tenants(self,enterprise):
-    def get_enterprise_by_eids(self,eid_list):
+    def get_enterprise_by_eids(self, eid_list):
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
+
+    def list_base_tasks(self, eid):
+        cfg = config_service.get_config_by_key(eid)
+        if not cfg:
+            # init base tasks
+            logger.info("Enterprise id: {}; initialize basic tasks information".format(eid))
+            data = self.init_base_task()
+            # TODO: handle error
+            config_service.add_config_without_reload(key=eid, default_value=json.dumps(data), type="json")
+            return data
+        data = json.loads(cfg)
+        need_update = False
+        for item in data:
+            if not item["status"]:
+                ctx = BaseTaskStatusContext(item["key"])
+                if ctx.has_error:
+                    continue
+                status = ctx.confirm_status()
+                if status:
+                    logger.info("Enterprise id: {0}; Task: {1}; Original status: False; update status.")
+                    item["status"] = status
+                    need_update = True
+        if need_update:
+            # TODO: handle error
+            config_service.update_config(eid, json.dumps(data))
+
+        return data
+
+    def init_base_task(self):
+        data = [
+            {
+                "key": "app_create",
+                "status": False
+            },
+            {
+                "key": "source_code_service_create",
+                "status": False
+            },
+            {
+                "key": "install_mysql_from_market",
+                "status": False
+            },
+            {
+                "key": "service_connect_mysql",
+                "status": False
+            },
+            {
+                "key": "share_app",
+                "status": False
+            },
+            {
+                "key": "custom_gw_rule",
+                "status": False
+            },
+            {
+                "key": "install_plugin",
+                "status": False
+            }
+        ]
+        return data
 
 
 enterprise_services = EnterpriseServices()
