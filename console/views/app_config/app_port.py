@@ -59,6 +59,11 @@ class AppPortView(AppBaseView):
                 port_info["outer_url"] = outer_url
                 port_info["bind_domains"] = []
                 bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
+                if bind_domains:
+                    for bind_domain in bind_domains:
+                        if not bind_domain.domain_path:
+                            bind_domain.domain_path = '/'
+                            bind_domain.save()
                 port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
                 bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
 

@@ -554,24 +554,33 @@ class HttpStrategyView(RegionTenantHeaderView):
                     return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
 
             # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
-            domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
-            domain_protocol_list = []
-            is_httptohttps = False
-            if domains:
-                for domain in domains:
-                    domain_protocol_list.append(domain.protocol)
-                    if "httptohttps" in domain.rule_extensions:
-                        is_httptohttps = True
-
-            if is_httptohttps:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
             add_httptohttps = False
             if rule_extensions:
                 for rule in rule_extensions:
                     if rule["key"] == "httptohttps":
                         add_httptohttps = True
-            if "http" in domain_protocol_list and add_httptohttps:
+
+            domains = domain_repo.get_domain_by_name_and_path_and_protocol(domain_name, domain_path, "http")
+            rule_id_list = []
+            if domains:
+                for domain in domains:
+                    rule_id_list.append(domain.http_rule_id)
+            if len(rule_id_list) > 1 and add_httptohttps:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+            if len(rule_id_list) == 1 and add_httptohttps and http_rule_id != rule_id_list[0]:
+                result = general_message(400, "faild", "策略已存在")
+                return Response(result, status=400)
+
+            s_domains = domain_repo.get_domain_by_name_and_path_and_protocol(domain_name, domain_path, "https")
+            rule_ids_list = []
+            is_httptohttps = False
+            if s_domains:
+                for domain in s_domains:
+                    rule_ids_list.append(domain.http_rule_id)
+                    if "httptohttps" in domain.rule_extensions:
+                        is_httptohttps = True
+            if is_httptohttps and not add_httptohttps:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
