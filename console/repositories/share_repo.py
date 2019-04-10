@@ -175,7 +175,7 @@ class ShareRepo(object):
         return plugins.first() if plugins else None
 
     def count_app_by_team_name(self, team_name):
-        return ServiceShareRecord.objects.filter(team_name=team_name)
+        return ServiceShareRecord.objects.filter(team_name=team_name).count()
 
 
 share_repo = ShareRepo()

@@ -95,7 +95,7 @@ class CustomGatewayRuleStrategy(BaseTaskStatusStrategy):
             for rule in rules:
                 if rule.certificate_id != 0:
                     return True
-                if rule.domain_path != "/":
+                if rule.domain_path and rule.domain_path != "/":
                     return True
                 if rule.domain_cookie:
                     return True
@@ -103,9 +103,8 @@ class CustomGatewayRuleStrategy(BaseTaskStatusStrategy):
                     return True
                 if rule.the_weight != 100:
                     return True
-                # TODO: domain
-                # if not rule.domain_name.contains(tenant.tenant_name):
-                #     return True
+                if tenant.tenant_name not in rule.domain_name:
+                    return True
         return False
 
 
