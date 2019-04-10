@@ -485,7 +485,7 @@ class TenantServiceInfo(BaseModel):
         max_length=15,
         choices=extend_method,
         default='stateless',
-        help_text=u"伸缩方式")
+        help_text=u"服务部署类型,stateless or state")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)

@@ -12,6 +12,7 @@ from .domain_service import DomainService
 from .probe_service import ProbeService
 from .label_service import LabelService
 from .extend_service import AppExtendService
+from .deploy_type_service import DeployTypeService
 
 port_service = AppPortService()
 image_relation_service = AppImageRelationService()
@@ -24,3 +25,4 @@ probe_service = ProbeService()
 label_service = LabelService()
 extend_service = AppExtendService()
 compile_env_service = AppEnvService()
+deploy_type_service = DeployTypeService()

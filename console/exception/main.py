@@ -14,7 +14,8 @@ class BusinessException(Exception):
         if self.response:
             return self.response
         else:
-            return Response(general_message(10401, "failed", "无数据返回"), status=500)
+            return Response(
+                general_message(10401, "failed", "无数据返回"), status=500)
 
 
 class ResourceNotEnoughException(Exception):
@@ -25,3 +26,9 @@ class ResourceNotEnoughException(Exception):
 class AccountOverdueException(Exception):
     def __init__(self, message):
         super(AccountOverdueException, self).__init__(message)
+
+
+class CallRegionAPIException(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        super(CallRegionAPIException, self).__init__(message)

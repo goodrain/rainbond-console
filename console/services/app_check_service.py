@@ -203,9 +203,11 @@ class AppCheckService(object):
         service_info = check_service_info
         service.language = service_info["language"]
         memory = service_info.get("memory", 128)
-        min_cpu = common_services.calculate_cpu(service.service_region,memory)
+        min_cpu = common_services.calculate_cpu(service.service_region, memory)
         service.min_memory = memory
         service.min_cpu = min_cpu
+        # Set the deployment type based on the test results
+        service.extend_method = "state" if service_info["deploy_type"] == "StatefulServiceType" else "stateless"
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)
@@ -225,6 +227,7 @@ class AppCheckService(object):
         ports = service_info["ports"]
         volumes = service_info["volumes"]
 
+        # 5.1.3版本废弃
         code, msg = self.__save_compile_env(tenant, service, service_info["language"], library, runtime,
                                             procfile)
         if code != 200:
@@ -242,6 +245,7 @@ class AppCheckService(object):
         code, msg = self.__save_volume(tenant, service, volumes)
         if code != 200:
             return code, msg
+
         return 200, "success"
 
     def __save_compile_env(self, tenant, service, language, library, run_time, procfile):
