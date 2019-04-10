@@ -26,8 +26,8 @@ class AppEnvVarService(object):
             return False, u"变量名称{0}不符合规范".format(attr_name)
         return True, u"success"
 
-    def add_service_env_var(self, tenant, service, container_port, name, attr_name, attr_value, isChange,
-                            scope="outer"):
+    def add_service_env_var(self, tenant, service, container_port, name, attr_name,
+                            attr_value, is_change, scope="outer"):
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
@@ -42,7 +42,7 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["name"] = name
         tenantServiceEnvVar["attr_name"] = attr_name
         tenantServiceEnvVar["attr_value"] = attr_value
-        tenantServiceEnvVar["is_change"] = isChange
+        tenantServiceEnvVar["is_change"] = is_change
         tenantServiceEnvVar["scope"] = scope
         env = env_var_repo.get_service_env_by_attr_name(service.tenant_id, service.service_id, attr_name)
         if env:

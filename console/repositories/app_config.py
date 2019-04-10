@@ -20,6 +20,15 @@ class TenantServiceEnvVarRepository(object):
     def get_service_env_by_scope(self, tenant_id, service_id, scope):
         return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope=scope).all()
 
+    def get_by_attr_name_and_scope(self, tenant_id, service_id, attr_name, scope):
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id,
+                                                  service_id=service_id,
+                                                  attr_name=attr_name,
+                                                  scope=scope)
+        if envs:
+            return envs[0]
+        return None
+
     def get_service_env_by_attr_name(self, tenant_id, service_id, attr_name):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
         if envs:

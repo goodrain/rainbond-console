@@ -102,7 +102,7 @@ class AppEventService(object):
                 return True
         return False
 
-    def create_event(self, tenant, service, user, action, committer_name=None):
+    def create_event(self, tenant, service, user, action, committer_name=None, deploy_version=None):
         last_event = event_repo.get_last_event(tenant.tenant_id, service.service_id)
         # 提前从数据中心更新event信息
         if last_event:
@@ -118,20 +118,7 @@ class AppEventService(object):
         if not action:
             return 400, "操作类型参数不存在", None
         event_id = make_uuid()
-        if committer_name:
-            event_info = {
-                "event_id": event_id,
-                "service_id": service.service_id,
-                "tenant_id": tenant.tenant_id,
-                "type": action,
-                "deploy_version": service.deploy_version,
-                "old_deploy_version": old_deploy_version,
-                "user_name": committer_name,
-                "region": service.service_region,
-                "start_time": datetime.datetime.now()
-            }
-        else:
-            event_info = {
+        event_info = {
                 "event_id": event_id,
                 "service_id": service.service_id,
                 "tenant_id": tenant.tenant_id,
@@ -142,6 +129,10 @@ class AppEventService(object):
                 "user_name": user.nick_name,
                 "start_time": datetime.datetime.now()
             }
+        if committer_name:
+            event_info["user_name"] = committer_name
+        if deploy_version:
+            event_info["deploy_version"] = deploy_version
 
         if action == "deploy":
             last_deploy_event = event_repo.get_last_deploy_event(tenant.tenant_id, service.service_id)
