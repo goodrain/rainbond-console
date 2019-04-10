@@ -689,11 +689,17 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 return Response(result, status=400)
 
             # 标签匹配
-            if not re.match(service_webhook.trigger, tag):
-                result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
-                return Response(result, status=400)
-
-            service_repo.change_service_image_tag(service_obj, tag)
+            if service_webhook.trigger:
+                # 如果有正则表达式根据正则触发
+                if not re.match(service_webhook.trigger, tag):
+                    result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
+                    return Response(result, status=400)
+                service_repo.change_service_image_tag(service_obj, tag)
+            else:
+                # 如果没有根据标签触发
+                if tag != ref['tag']:
+                    result = general_message(400, "failed", "镜像tag与服务构建源不符")
+                    return Response(result, status=400)
 
             # 获取应用状态
             status_map = app_service.get_service_status(

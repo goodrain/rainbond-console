@@ -1468,7 +1468,7 @@ class TenantEnterpriseToken(BaseModel):
 
     enterprise_id = models.IntegerField(default=0, help_text=u"企业id")
     access_target = models.CharField(max_length=32, blank=True, null=True, default='', help_text=u"要访问的目标服务名称")
-    access_url = models.CharField(max_length=255,  help_text=u"需要访问的api地址")
+    access_url = models.CharField(max_length=255, help_text=u"需要访问的api地址")
     access_id = models.CharField(max_length=32, help_text=u"target分配给客户端的ID")
     access_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"客户端token")
     crt = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书")
@@ -1541,7 +1541,7 @@ class ServiceWebhooks(BaseModel):
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
     webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
-    trigger = models.CharField(max_length=256, default='*', help_text=u"触发正则表达式")
+    trigger = models.CharField(max_length=256, default='', help_text=u"触发正则表达式")
 
 
 class GatewayCustomConfiguration(BaseModel):
