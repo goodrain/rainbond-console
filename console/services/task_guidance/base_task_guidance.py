@@ -20,8 +20,8 @@ class BaseTaskGuidance:
             data = self.init_base_task()
             # TODO: handle error
             config_service.add_config_without_reload(key=eid, default_value=json.dumps(data), type="json")
-            return data
-        data = json.loads(cfg)
+        else:
+            data = json.loads(cfg)
         need_update = False
         for item in data:
             if not item["status"]:
