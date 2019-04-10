@@ -3,6 +3,7 @@ import base64
 import logging
 import pickle
 import os
+import re
 
 from docker_image import reference
 from urlparse import urlparse
@@ -18,7 +19,7 @@ from www.utils.return_message import general_message, error_message
 from console.services.user_services import user_services
 from www.decorator import perm_required
 from console.constants import AppConstants
-from console.repositories.app import service_webhooks_repo
+from console.repositories.app import service_webhooks_repo, service_repo
 
 logger = logging.getLogger("default")
 
@@ -188,7 +189,7 @@ class WebHooksDeploy(AlowAnyApiView):
             # gitee
             elif request.META.get("HTTP_X_GITEE_EVENT",
                                   None) or request.META.get(
-                                      "HTTP_X_GIT_OSCHINA_EVENT", None):
+                "HTTP_X_GIT_OSCHINA_EVENT", None):
                 logger.debug(request.data)
 
                 commits_info = request.data.get("head_commit")
@@ -410,6 +411,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
 
 class GetWebHooksUrl(AppBaseView):
+
     def get(self, request, *args, **kwargs):
         """
         判断该应用是否有webhooks自动部署功能，有则返回URL
@@ -437,11 +439,8 @@ class GetWebHooksUrl(AppBaseView):
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
 
-            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
-                self.service.service_id, deployment_way)
-            if not service_webhook:
-                service_webhook = service_webhooks_repo.create_service_webhooks(
-                    self.service.service_id, deployment_way)
+            service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id,
+                                                                                  deployment_way)
 
             # api处发自动部署
             if deployment_way == "api_webhooks":
@@ -451,7 +450,6 @@ class GetWebHooksUrl(AppBaseView):
                 secret_key = pickle.loads(
                     base64.b64decode(deploy)).get("secret_key")
                 url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
-                status = service_webhook.state
                 result = general_message(
                     200,
                     "success",
@@ -459,14 +457,13 @@ class GetWebHooksUrl(AppBaseView):
                     bean={
                         "url": url,
                         "secret_key": secret_key,
-                        "status": status,
+                        "status": service_webhook.state,
                         "display": True,
                         "support_type": support_type
                     })
             # 镜像处发自动部署
             elif deployment_way == "image_webhooks":
                 url = "http://" + host + "/console/" + "image/webhooks/" + service_obj.service_id
-                status = service_webhook.state
 
                 result = general_message(
                     200,
@@ -474,14 +471,14 @@ class GetWebHooksUrl(AppBaseView):
                     "获取URl及开启状态成功",
                     bean={
                         "url": url,
-                        "status": status,
+                        "status": service_webhook.state,
                         "display": True,
-                        "support_type": support_type
+                        "support_type": support_type,
+                        "trigger": service_webhook.trigger,
                     })
             # 源码处发自动部署
             else:
                 url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
-                status = service_webhook.state
                 deploy_keyword = service_webhook.deploy_keyword
                 result = general_message(
                     200,
@@ -489,7 +486,7 @@ class GetWebHooksUrl(AppBaseView):
                     "获取URl及开启状态成功",
                     bean={
                         "url": url,
-                        "status": status,
+                        "status": service_webhook.state,
                         "display": True,
                         "support_type": support_type,
                         "deploy_keyword": deploy_keyword
@@ -499,6 +496,37 @@ class GetWebHooksUrl(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=500)
+
+
+class ImageWebHooksTrigger(AppBaseView):
+    def put(self, request, *args, **kwargs):
+        """镜像更新自动部署触发条件"""
+        try:
+            service_webhook = service_webhooks_repo.get_or_create_service_webhook(
+                self.service.service_id,
+                "image_webhooks"
+            )
+            trigger = request.data.get("trigger")
+            if trigger:
+                service_webhook.trigger = trigger
+                service_webhook.save()
+        except Exception as e:
+            logger.exception(e)
+            return error_message(e.message)
+        return Response(
+            general_message(
+                200,
+                "success",
+                "自动部署触发条件更新成功",
+                bean={
+                    "url": "http://{host}/console/image/webhooks/{service_id}".format(
+                        host=os.environ.get('DEFAULT_DOMAIN', request.get_host()),
+                        service_id=self.service.service_id
+                    ),
+                    "trigger": service_webhook.trigger
+                }),
+            status=200
+        )
 
 
 class WebHooksStatus(AppBaseView):
@@ -590,6 +618,10 @@ class CustomWebHooksDeploy(AlowAnyApiView):
 
 
 class UpdateSecretKey(AppBaseView):
+    """
+    修改部署秘钥
+    """
+
     def put(self, request, *args, **kwargs):
         try:
             secret_key = request.data.get("secret_key", None)
@@ -655,9 +687,14 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             if repo_name != name:
                 result = general_message(400, "failed", "镜像名称与服务构建源不符")
                 return Response(result, status=400)
-            if tag != ref['tag']:
-                result = general_message(400, "failed", "镜像tag与服务构建源不符")
+
+            # 标签匹配
+            if not re.match(service_webhook.trigger, tag):
+                result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
                 return Response(result, status=400)
+
+            service_repo.change_service_image_tag(service_obj, tag)
+
             # 获取应用状态
             status_map = app_service.get_service_status(
                 tenant_obj, service_obj)
