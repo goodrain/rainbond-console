@@ -33,12 +33,14 @@ from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, 
 from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
     BatchAppMonitorQueryView
 from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
-    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView, AppKeywordView
+    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView, \
+    AppKeywordView
 from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
 from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
     CenterAppImportingAppsView, ImportingRecordView
 from console.views.center_pool.apps import CenterAppListView, \
-    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView, CenterVersionlMarversionketAppView
+    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView, \
+    CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
     GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView, AllTeamGroupAppsBackupView
@@ -48,7 +50,8 @@ from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, Serv
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
     BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView, GroupStatusView
+from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView, \
+    GroupStatusView
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigInfoView, PhpConfigView
 from console.views.message import UserMessageView
@@ -80,17 +83,18 @@ from console.views.services_toplogical import TopologicalGraphView, GroupService
 from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
     UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
     TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView, TeamSortDomainQueryView, TeamSortServiceQueryView
+    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView, TeamSortDomainQueryView, \
+    TeamSortServiceQueryView
 from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
     UserDetailsView
-from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey, ImageWebHooksDeploy
+from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey, \
+    ImageWebHooksDeploy, ImageWebHooksTrigger
 from console.views.receipt import *
 from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
 from console.views.service_share import ShareRecordView
-
 
 urlpatterns = patterns(
     '',
@@ -180,7 +184,6 @@ urlpatterns = patterns(
     # 团队下应用环境变量模糊查询
     url(r'teams/(?P<team_name>[\w\-]+)/services/envs$', TenantServiceEnvsView.as_view()),
 
-
     # 应用组列表
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view()),
     # 应用组应用列表、状态展示
@@ -206,7 +209,6 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)/plugin$',
         ServicePluginShareEventPost.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
-
 
     # 安装应用
     # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),
@@ -588,6 +590,9 @@ urlpatterns = patterns(
 
     # 获取自动部署回调地址
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/get-url', GetWebHooksUrl.as_view()),
+
+    # 更新自动部署触发方式
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/trigger', ImageWebHooksTrigger.as_view()),
     # 自动部署功能状态与操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
