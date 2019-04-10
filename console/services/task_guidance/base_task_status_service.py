@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
-import json
+import abc  # Python's built-in abstract class library
 
 from console.services.service_group_service import service_group_service
 from console.services.team_services import team_services
@@ -15,6 +15,10 @@ logger = logging.getLogger("default")
 class BaseTaskStatusStrategy(object):
     """Abstract class: confirm the status of the base task"""
 
+    # define abstract classes
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def confirm_status(self, tenants):
         raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
 
