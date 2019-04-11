@@ -149,7 +149,9 @@ class AppCheckService(object):
 
     def add_check_ports(self, tenant, service, check_service_info):
         service_info = check_service_info
-        ports = service_info["ports"]
+        ports = service_info.get("ports", None)
+        if not ports:
+            return 200, "success"
         # 更新构建时环境变量
         code, msg = self.__save_check_port(tenant, service, ports)
         if code != 200:
@@ -221,9 +223,9 @@ class AppCheckService(object):
         procfile = service_info.get("procfile", False)
         runtime = service_info.get("runtime", False)
 
-        envs = service_info["envs"]
-        ports = service_info["ports"]
-        volumes = service_info["volumes"]
+        envs = service_info.get("envs", None)
+        ports = service_info.get("ports", None)
+        volumes = service_info.get("volumes", None)
 
         code, msg = self.__save_compile_env(tenant, service, service_info["language"], library, runtime,
                                             procfile)
@@ -234,7 +236,6 @@ class AppCheckService(object):
         code, msg = self.__save_env(tenant, service, envs)
         if code != 200:
             return code, msg
-        logger.debug('=========ports=========>{0}'.format(ports))
         code, msg = self.__save_port(tenant, service, ports)
         if code != 200:
             return code, msg
@@ -346,6 +347,10 @@ class AppCheckService(object):
         rt_info = dict()
         rt_info["check_status"] = data["check_status"]
         rt_info["error_infos"] = data["error_infos"]
+        if data["service_info"] and len(data["service_info"]) > 1:
+            rt_info["is_multi"] = True
+        else:
+            rt_info["is_multi"] = False
         service_info_list = data["service_info"]
         service_list = []
         if service_info_list:

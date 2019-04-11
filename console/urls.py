@@ -22,6 +22,7 @@ from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import AppCheck, AppCheckUpdate, GetCheckUUID
 from console.views.app_create.docker_compose import DockerComposeCreateView, ComposeCheckView, ComposeCheckUpdate, \
     ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
+from console.views.app_create.multi_app import MultiAppCheckView, MultiAppCreateView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
 from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, \
@@ -90,6 +91,7 @@ from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
 from console.views.service_share import ShareRecordView
+
 
 
 urlpatterns = patterns(
@@ -264,6 +266,9 @@ urlpatterns = patterns(
     # 应用检测
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check$', AppCheck.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get_check_uuid$', GetCheckUUID.as_view()),
+    # multiple services check
+    url(r'^teams/(?P<tenantName>[\w\-]+)/multi/check$', MultiAppCheckView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/multi/create$', MultiAppCreateView.as_view()),
     # 应用检测修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check_update$', AppCheckUpdate.as_view()),
     # compose文件检测更新
