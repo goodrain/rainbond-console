@@ -102,8 +102,8 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         """
 
         group_name = request.data.get("group_name", None)
-        hub_user = request.data.get("user_name", None)
-        hub_pass = request.data.get("password", None)
+        hub_user = request.data.get("user_name", "")
+        hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
         try:
             if not group_name:
@@ -128,6 +128,10 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             bean["group_name"] = group_info.group_name
             result = general_message(200, "operation success", "compose组创建成功", bean=bean)
         except Exception as e:
+            if group_info:
+                group_info.delete()
+            if group_compose:
+                group_compose.delete()    
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])

@@ -42,8 +42,8 @@ class ComposeService(object):
                              region,
                              group_id,
                              compose_content,
-                             hub_user=None,
-                             hub_pass=None):
+                             hub_user="",
+                             hub_pass=""):
         gc = compose_repo.get_group_compose_by_group_id(group_id)
         if gc:
             return 409, "该组已与其他compose组关联", None
