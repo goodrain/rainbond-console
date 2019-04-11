@@ -3,6 +3,7 @@ from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondC
 from www.models import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, TenantServicePluginRelation, TenantServicePluginAttr, ServiceInfo, \
     TenantServiceExtendMethod, ServiceProbe,ServicePluginConfigVar
+from www.db import BaseConnection
 
 
 class ShareRepo(object):
@@ -174,8 +175,23 @@ class ShareRepo(object):
         plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
         return plugins.first() if plugins else None
 
-    def count_app_by_team_name(self, team_name):
-        return ServiceShareRecord.objects.filter(team_name=team_name).count()
+    def check_app_by_eid(self, eid):
+        """
+        check if an app has been shared
+        """
+        conn = BaseConnection()
+        sql = """
+            SELECT
+                a.team_name 
+            FROM
+                service_share_record a,
+                tenant_info b 
+            WHERE
+                a.team_name = b.tenant_name 
+                AND b.enterprise_id = "{eid}" 
+                LIMIT 1""".format(eid=eid)
+        result = conn.query(sql)
+        return True if len(result) > 0 else False
 
 
 share_repo = ShareRepo()

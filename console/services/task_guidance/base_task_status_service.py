@@ -2,7 +2,8 @@
 import logging
 import abc  # Python's built-in abstract class library
 
-from console.services.service_group_service import service_group_service
+from www.db import svc_grop_repo as svc_group_repo
+
 from console.services.team_services import team_services
 from console.repositories.service_repo import service_repo
 from console.repositories.app_config import dep_relation_repo, domain_repo as http_rule_repo
@@ -20,7 +21,8 @@ class BaseTaskStatusStrategy(object):
 
     @abc.abstractmethod
     def confirm_status(self, tenants):
-        raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
+        raise NotImplementedError(
+            "Doesn't provide a reprØesentation for BaseTaskStatus.")
 
 
 class DefaultStrategy(BaseTaskStatusStrategy):
@@ -38,86 +40,50 @@ class DefaultStrategy(BaseTaskStatusStrategy):
 class AppCreationStrategy(BaseTaskStatusStrategy):
     """Task: app creation"""
 
-    def confirm_status(self, tenants):
-        return service_group_service.has_created_app(tenants)
+    def confirm_status(self, eid):
+        return svc_group_repo.check_non_default_group_by_eid(eid)
 
 
 class SourceCodeServiceCreationStrategy(BaseTaskStatusStrategy):
     """Task: create a service based on source code"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            if service_repo.count_sourcecode_svc_by_tenant(tenant) > 0:
-                return True
-        return False
+    def confirm_status(self, eid):
+        return service_repo.check_sourcecode_svc_by_eid(eid)
 
 
 class InstallMysqlFromMarketStrategy(BaseTaskStatusStrategy):
     """Task: install the database based on the application market"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            if len(service_repo.list_db_from_market_by_tenant(tenant)) > 0:
-                return True
-        return False
+    def confirm_status(self, eid):
+        return service_repo.check_db_from_market_by_eid(eid)
 
 
 class ServiceConnectDBStrategy(BaseTaskStatusStrategy):
     """Task: connect database with service"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            services = service_repo.list_db_from_market_by_tenant(tenant)
-            for svc in services:
-                dep = dep_relation_repo.get_dependency_by_dep_id(tenant_id=svc["tenant_id"],
-                                                                 dep_service_id=svc["service_id"])
-                if dep:
-                    return True
-        return False
+    def confirm_status(self, eid):
+        return dep_relation_repo.check_db_dep_by_eid(eid)
 
 
 class ShareAppStrategy(BaseTaskStatusStrategy):
     """Task: share application to market"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            if share_repo.count_app_by_team_name(tenant.tenant_name) > 0:
-                return True
-        return False
+    def confirm_status(self, eid):
+        return share_repo.check_app_by_eid(eid)
 
 
 class CustomGatewayRuleStrategy(BaseTaskStatusStrategy):
     """Task: customize application access rules"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            rules = http_rule_repo.list_rules_by_tenant(tenant)
-            for rule in rules:
-                if rule.certificate_id != 0:
-                    return True
-                if rule.domain_path and rule.domain_path != "/":
-                    return True
-                if rule.domain_cookie:
-                    return True
-                if rule.domain_heander:
-                    return True
-                if rule.the_weight != 100:
-                    return True
-                if tenant.tenant_name not in rule.domain_name:
-                    return True
-        return False
+    def confirm_status(self, eid):
+        return http_rule_repo.check_custom_rule(eid)
 
 
 class InstallPluginStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
 
-    def confirm_status(self, tenants):
-        for tenant in tenants:
-            services = service_repo.list_svc_by_tenant(tenant)
-            for svc in services:
-                if app_plugin_relation_repo.count_plugins_by_tenant(svc.service_id) > 0:
-                    return True
-        return False
+    def confirm_status(self, eid):
+        return app_plugin_relation_repo.check_plugins_by_eid(eid)
 
 
 class BaseTaskStatusContext(object):
@@ -138,9 +104,8 @@ class BaseTaskStatusContext(object):
         elif task == 'install_plugin':
             self.strategy = InstallPluginStrategy()
         else:
-            logger.warning("Task: {}; unsupported task", task)
+            logger.warning("Task: {task}; unsupported task".format(task=task))
             self.strategy = DefaultStrategy()
 
     def confirm_status(self):
-        tenants = team_services.get_enterprise_teams(self.eid)
-        return self.strategy.confirm_status(tenants)
+        return self.strategy.confirm_status(self.eid)
