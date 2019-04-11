@@ -83,6 +83,16 @@ class DockerComposeCreateView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
+            - name: user_name
+              description: 镜像仓库名称
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 镜像仓库密码
+              required: true
+              type: string
+              paramType: form
             - name: yaml_content
               description: compose文件内容
               required: true
@@ -92,8 +102,8 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         """
 
         group_name = request.data.get("group_name", None)
-        hub_user = request.data.get("hub_user", None)
-        hub_pass = request.data.get("hub_pass", None)
+        hub_user = request.data.get("user_name", None)
+        hub_pass = request.data.get("password", None)
         yaml_content = request.data.get("yaml_content", "")
         try:
             if not group_name:
