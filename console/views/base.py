@@ -22,7 +22,8 @@ from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import BusinessException
+from console.exception.main import BusinessException, ServiceHandleException
+from console.repositories.enterprise_repo import enterprise_repo
 from www.models import Users, Tenants
 from goodrain_web import errors
 
@@ -145,7 +146,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
 
 class BaseApiView(APIView):
-    permission_classes = (AllowAny, )
+    permission_classes = (AllowAny,)
 
     def __init__(self, *args, **kwargs):
         super(BaseApiView, self).__init__(*args, **kwargs)
@@ -156,7 +157,7 @@ class AlowAnyApiView(APIView):
     """
     该API不需要通过任何认证
     """
-    permission_classes = (AllowAny, )
+    permission_classes = (AllowAny,)
     authentication_classes = ()
 
     def __init__(self, *args, **kwargs):
@@ -169,8 +170,8 @@ class AlowAnyApiView(APIView):
 
 
 class JWTAuthApiView(APIView):
-    permission_classes = (IsAuthenticated, )
-    authentication_classes = (JSONWebTokenAuthentication, )
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
 
     def __init__(self, *args, **kwargs):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
@@ -232,6 +233,25 @@ class RegionTenantHeaderView(JWTAuthApiView):
         pass
 
 
+class EnterpriseHeaderView(JWTAuthApiView):
+    def __init__(self, *args, **kwargs):
+        super(EnterpriseHeaderView, self).__init__(*args, **kwargs)
+        self.enterprise = None
+
+    def initial(self, request, *args, **kwargs):
+        super(EnterpriseHeaderView, self).initial(request, *args, **kwargs)
+        eid = kwargs.get("eid", None)
+        if not eid:
+            raise ImportError("enterprise_id not found !")
+        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
+        if not self.enterprise:
+            raise NotFound("enterprise id: {};enterprise not found".format(eid))
+        self.initial_header_info(request)
+
+    def initial_header_info(self, request):
+        pass
+
+
 def custom_exception_handler(exc, context):
     """
         Returns the response that should be used for any given exception.
@@ -242,7 +262,9 @@ def custom_exception_handler(exc, context):
         Any unhandled exceptions may return `None`, which will cause a 500 error
         to be raised.
     """
-    if isinstance(exc, exceptions.APIException):
+    if isinstance(exc, ServiceHandleException):
+        return exc.get_response()
+    elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
             headers['WWW-Authenticate'] = exc.auth_header
@@ -319,4 +341,4 @@ def custom_exception_handler(exc, context):
             "msg": exc.message,
             "msg_show": "服务端异常"
         },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR)

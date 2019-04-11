@@ -83,6 +83,16 @@ class DockerComposeCreateView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
+            - name: user_name
+              description: 镜像仓库名称
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 镜像仓库密码
+              required: true
+              type: string
+              paramType: form
             - name: yaml_content
               description: compose文件内容
               required: true
@@ -92,12 +102,15 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         """
 
         group_name = request.data.get("group_name", None)
+        hub_user = request.data.get("user_name", None)
+        hub_pass = request.data.get("password", None)
         yaml_content = request.data.get("yaml_content", "")
         try:
             if not group_name:
                 return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
             if not yaml_content:
                 return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
+            # Parsing yaml determines whether the input is illegal
             code, msg, json_data = compose_service.yaml_to_json(yaml_content)
             if code != 200:
                 return Response(general_message(code, "parse yaml error", msg), status=code)
@@ -106,7 +119,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "create group error", msg), status=code)
             code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region,
-                                                                            group_info.ID, json_data)
+                                                                            group_info.ID, yaml_content, hub_user, hub_pass)
             if code != 200:
                 return Response(general_message(code, "create group compose error", msg), status=code)
             bean = dict()
