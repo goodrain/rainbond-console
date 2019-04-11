@@ -95,6 +95,7 @@ from console.views.team import ApplicantsView
 from console.views.app_manage import BatchDelete
 from console.views.app_manage import AgainDelete
 from console.views.service_share import ShareRecordView
+from console.views.task_guidance import BaseGuidance
 
 urlpatterns = patterns(
     '',
@@ -622,6 +623,8 @@ urlpatterns = patterns(
     # url(r'^enterprise/users$', AllUserView.as_view()),
     # # 企业中心模糊查询团队
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
+    # get basic task guided information
+    url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
