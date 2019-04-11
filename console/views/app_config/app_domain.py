@@ -452,7 +452,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if domain_name.endswith(region.httpdomain):
                 domain_name_spt = domain_name.split(region.httpdomain)
                 if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
-                    return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
+                    return Response(general_message(400, "the default domain include other tenant name", "默认域名不允许包含其他团队别名"), status=400)
             protocol = "http"
             if certificate_id:
                 protocol = "https"
