@@ -57,7 +57,6 @@ class AppCheckService(object):
         body["username"] = user_name
         body["password"] = password
         body["source_body"] = source_body
-        logger.debug('======body========>{0}'.format(json.dumps(body)))
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
         bean = body["bean"]
         service.check_uuid = bean["check_uuid"]
@@ -219,17 +218,11 @@ class AppCheckService(object):
             service.image = service_image
             service.version = image["tag"]
 
-        library = service_info.get("dependencies", False)
-        procfile = service_info.get("procfile", False)
-        runtime = service_info.get("runtime", False)
-
         envs = service_info["envs"]
         ports = service_info["ports"]
         volumes = service_info["volumes"]
 
-        # 5.1.3版本废弃
-        code, msg = self.__save_compile_env(tenant, service, service_info["language"], library, runtime,
-                                            procfile)
+        code, msg = self.__save_compile_env(tenant, service, service_info["language"])
         if code != 200:
             return code, msg
 
@@ -248,7 +241,7 @@ class AppCheckService(object):
 
         return 200, "success"
 
-    def __save_compile_env(self, tenant, service, language, library, run_time, procfile):
+    def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
         logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
         compile_env_service.delete_service_compile_env(service)
@@ -256,19 +249,10 @@ class AppCheckService(object):
             language = False
         check_dependency = {
             "language": language,
-            "runtimes": run_time,
-            "dependencies": library,
-            "procfile": procfile
         }
         check_dependency_json = json.dumps(check_dependency)
         # 添加默认编译环境
         user_dependency = compile_env_service.get_service_default_env_by_language(language)
-        if check_dependency["runtimes"]:
-            user_dependency["runtimes"] = ""
-        if check_dependency["procfile"]:
-            user_dependency["procfile"] = ""
-        if check_dependency["dependencies"]:
-            user_dependency["dependencies"] = {}
         user_dependency_json = json.dumps(user_dependency)
         compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
         return 200, "success"

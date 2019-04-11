@@ -22,7 +22,7 @@ from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import BusinessException
+from console.exception.main import BusinessException, ServiceHandleException
 from www.models import Users, Tenants
 from goodrain_web import errors
 
@@ -242,7 +242,9 @@ def custom_exception_handler(exc, context):
         Any unhandled exceptions may return `None`, which will cause a 500 error
         to be raised.
     """
-    if isinstance(exc, exceptions.APIException):
+    if isinstance(exc, ServiceHandleException):
+        return exc.get_response()
+    elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
             headers['WWW-Authenticate'] = exc.auth_header

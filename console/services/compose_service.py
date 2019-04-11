@@ -122,7 +122,7 @@ class ComposeService(object):
                 group_compose.save()
         except Exception as e:
             logger.exception(e)
-            return 500, "{0}".format(e.message),service_list
+            return 500, "{0}".format(e.message), service_list
 
         return 200, "success", service_list
 

@@ -31,4 +31,23 @@ class AccountOverdueException(Exception):
 class CallRegionAPIException(Exception):
     def __init__(self, code, message):
         self.code = code
+        self.message = message
+        super(CallRegionAPIException, self).__init__("Region api return code {0},error message {1}".format(code, message))
+
+
+class ServiceHandleException(Exception):
+    def __init__(self, code, message, b_code=None, message_show=None):
+        self.code = code
+        self.message = message
+        if not b_code:
+            self.b_code = code
+        else:
+            self.b_code = b_code
+        if not message_show:
+            self.message_show = message
         super(CallRegionAPIException, self).__init__(message)
+
+    def get_response(self):
+        return Response(
+            general_message(self.b_code, self.message, self.message_show), status=self.code)
+   
