@@ -15,7 +15,6 @@ def method_perf_time(func):
         ret = func(self, *args, **kwargs)
         end_time = time.time()
         use_time = end_time - start_time
-        logger.debug("perf", "class {0}, function {1}, cost_time {2}".format(class_name, func.__name__, use_time))
         return ret
 
     return wrapper

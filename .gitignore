@@ -16,3 +16,4 @@ test/
 .vscode/
 goodrain_web/conf/local_test.py
 Dockerfile.build
+start.sh
