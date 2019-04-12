@@ -138,6 +138,32 @@ class AppMntService(object):
                      relation msg: {1}".format(service.service_id, msg))
         return 200, "success"
 
+    def add_mnt_relation(self, tenant, service, source_path, dep_service_id, volume_name, volume_type):
+        if service.create_status == "complete":
+            if volume_type != "config-file":
+                data = {
+                    "depend_service_id": dep_service_id,
+                    "volume_name": volume_name,
+                    "volume_path": source_path,
+                    "enterprise_id": tenant.enterprise_id,
+                    "volume_type": volume_type
+                }
+            else:
+                return 400, "unsupport volume type: {}".format(volume_type)
+
+            res, body = region_api.add_service_dep_volumes(
+                service.service_region, tenant.tenant_name, service.service_alias, data
+            )
+            logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
+
+        mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
+                                                         dep_service_id,
+                                                         volume_name, source_path)
+        logger.debug(
+            "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
+                                                               mnt_relation.mnt_dir))
+        return 200, "success"
+
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
         if service.create_status == "complete":
             if dep_volume.volume_type != "config-file":

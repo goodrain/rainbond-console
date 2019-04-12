@@ -17,7 +17,7 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service
+from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service, AppMntService
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
@@ -37,6 +37,7 @@ baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
 market_api = MarketOpenAPI()
 region_api = RegionInvokeApi()
+mnt_service = AppMntService()
 
 
 class MarketAppService(object):
@@ -60,8 +61,11 @@ class MarketAppService(object):
                 region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
                 raise Exception(msg)
-
+            
+            
+            app_map = {}
             for app in apps:
+                app_map[app.get("service_share_uuid")] = app
                 ts = self.__init_market_app(tenant, region, user, app,
                                             tenant_service_group.ID)
                 service_source_data = {
@@ -120,6 +124,10 @@ class MarketAppService(object):
             # 创建应用插件
             self.__create_service_plugins(region, tenant, service_list,
                                           app_plugin_map, old_new_id_map)
+            
+            # dependent volume
+            self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+            
             if is_deploy:
                 # 部署所有应用
                 self.__deploy_services(tenant, user, new_service_list)
@@ -135,6 +143,31 @@ class MarketAppService(object):
                 except Exception as le:
                     logger.exception(le)
             raise e
+
+    def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
+        for app in apps:
+            # dependent volume
+            dep_mnts = app.get("mnt_relation_list", None)
+            service = key_service_map.get(app.get("service_share_uuid"))
+            if dep_mnts:
+                for item in dep_mnts:
+                    dep_service = key_service_map.get(item["service_share_uuid"])
+                    if not dep_service:
+                        logger.info("Service share uuid: {}; dependent service not found".\
+                            format(item["service_share_uuid"]))
+                        continue
+                    dep_app = app_map.get(item["service_share_uuid"])
+                    if not dep_app:
+                        logger.debug("Service share uuid: {}; ; app not found".format(item["service_share_uuid"]))
+                        continue
+                    volume_list = dep_app.get("service_volume_map_list")
+                    if volume_list:
+                        for volume in volume_list:
+                            if volume["volume_name"] == item["mnt_name"]:
+                                code, msg = mnt_service.add_mnt_relation(tenant, service, item["mnt_dir"], 
+                                    dep_service.service_id, item["mnt_name"], volume["volume_type"])
+                                if code != 200:
+                                    logger.info("fail to mount relative volume: {}".format(msg))
 
     def __create_service_plugins(self, region, tenant, service_list,
                                  app_plugin_map, old_new_id_map):
