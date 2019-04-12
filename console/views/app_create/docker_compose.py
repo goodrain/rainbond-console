@@ -254,7 +254,6 @@ class ComposeCheckView(ComposeGroupBaseView):
                     data["error_infos"] = [save_error]
             else:
                 transaction.savepoint_commit(sid)
-            logger.debug("check result = {0}".format(data))
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief,
                                      list=[s.to_dict() for s in service_list])
