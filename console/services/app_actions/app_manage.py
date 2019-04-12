@@ -411,8 +411,7 @@ class AppManageService(AppManageBase):
                     if hub_user or hub_password:
                         body["user"] = hub_user
                         body["password"] = hub_password
-        logger.debug(
-            '-------------deploy-----body-------------------->{0}'.format(json.dumps(body)))
+                        
         try:
             region_api.build_service(
                 service.service_region, tenant.tenant_name, service.service_alias, body)

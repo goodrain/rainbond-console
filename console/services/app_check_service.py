@@ -11,7 +11,6 @@ from console.constants import AppConstants
 from console.services.common_services import common_services
 from console.repositories.app_config import service_endpoints_repo
 
-
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -30,9 +29,11 @@ class AppCheckService(object):
         #     return 409, "应用完成创建,请勿重复检测", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
-        body["source_type"] = self.__get_service_region_type(service.service_source)
+        body["source_type"] = self.__get_service_region_type(
+            service.service_source)
         source_body = ""
-        service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(
+            tenant.tenant_id, service.service_id)
         user_name = ""
         password = ""
         service.service_source = self.__get_service_source(service)
@@ -41,15 +42,21 @@ class AppCheckService(object):
             password = service_source.password
         if service.service_source == AppConstants.SOURCE_CODE:
 
-            sb = {"server_type": service.server_type, "repository_url": service.git_url,
-                  "branch": service.code_version, "user": user_name,
-                  "password": password, "tenant_id": tenant.tenant_id}
+            sb = {
+                "server_type": service.server_type,
+                "repository_url": service.git_url,
+                "branch": service.code_version,
+                "user": user_name,
+                "password": password,
+                "tenant_id": tenant.tenant_id
+            }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             source_body = service.docker_cmd
         elif service.service_source == AppConstants.THIRD_PARTY:
             # endpoints信息
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(
+                service.service_id)
             if service_endpoints:
                 if service_endpoints.endpoints_type == "discovery":
                     source_body = service_endpoints.endpoints_info
@@ -57,8 +64,8 @@ class AppCheckService(object):
         body["username"] = user_name
         body["password"] = password
         body["source_body"] = source_body
-        logger.debug('======body========>{0}'.format(json.dumps(body)))
-        res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
+        res, body = region_api.service_source_check(service.service_region,
+                                                    tenant.tenant_name, body)
         bean = body["bean"]
         service.check_uuid = bean["check_uuid"]
         service.check_event_id = bean["event_id"]
@@ -96,7 +103,8 @@ class AppCheckService(object):
     def get_service_check_info(self, tenant, region, check_uuid):
         rt_msg = dict()
         try:
-            res, body = region_api.get_service_check_info(region, tenant.tenant_name, check_uuid)
+            res, body = region_api.get_service_check_info(
+                region, tenant.tenant_name, check_uuid)
             bean = body["bean"]
             if not bean["check_status"]:
                 bean["check_status"] = "checking"
@@ -119,9 +127,11 @@ class AppCheckService(object):
         if data["check_status"] == "success":
             if service.create_status == "checking":
 
-                logger.debug("checking service info install,save info into database")
+                logger.debug(
+                    "checking service info install,save info into database")
                 service_info_list = data["service_info"]
-                code, msg = self.save_service_info(tenant, service, service_info_list[0])
+                code, msg = self.save_service_info(tenant, service,
+                                                   service_info_list[0])
                 if code != 200:
                     return code, msg
             # checked 表示检测完成
@@ -133,7 +143,8 @@ class AppCheckService(object):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            code, msg = self.upgrade_service_info(tenant, service, service_info_list[0])
+            code, msg = self.upgrade_service_info(tenant, service,
+                                                  service_info_list[0])
             if code != 200:
                 return code, msg
         return 200, "success"
@@ -142,14 +153,17 @@ class AppCheckService(object):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            code, msg = self.add_check_ports(tenant, service, service_info_list[0])
+            code, msg = self.add_check_ports(tenant, service,
+                                             service_info_list[0])
             if code != 200:
                 return code, msg
         return 200, "success"
 
     def add_check_ports(self, tenant, service, check_service_info):
         service_info = check_service_info
-        ports = service_info["ports"]
+        ports = service_info.get("ports", None)
+        if not ports:
+            return 200, "success"
         # 更新构建时环境变量
         code, msg = self.__save_check_port(tenant, service, ports)
         if code != 200:
@@ -168,13 +182,15 @@ class AppCheckService(object):
     def __save_check_port(self, tenant, service, ports):
         if ports:
             for port in ports:
-                code, msg, port_data = port_service.add_service_port(tenant, service,
-                                                                     int(port["container_port"]),
-                                                                     port["protocol"],
-                                                                     service.service_alias.upper() + str(
-                                                                         port["container_port"]))
+                code, msg, port_data = port_service.add_service_port(
+                    tenant, service, int(port["container_port"]),
+                    port["protocol"],
+                    service.service_alias.upper() + str(
+                        port["container_port"]))
                 if code != 200:
-                    logger.error("service.check", "save service check info port error {0}".format(msg))
+                    logger.error(
+                        "service.check",
+                        "save service check info port error {0}".format(msg))
                     # return code, msg
         return 200, "success"
 
@@ -182,30 +198,37 @@ class AppCheckService(object):
         if envs:
             # 删除原有的build类型环境变量
             env_var_service.delete_service_build_env(tenant, service)
-            SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
-                'SERVICE_EXTEND_METHOD',
-                'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH', 'PORT', 'POD_NET_IP',
-                'LOG_MATCH'
-            )
+            SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME',
+                                   'SERVICE_NAME', 'SERVICE_VERSION',
+                                   'MEMORY_SIZE', 'SERVICE_EXTEND_METHOD',
+                                   'SLUG_URL', 'DEPEND_SERVICE',
+                                   'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
+                                   'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH')
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
                 elif env["name"].startswith("BUILD_"):
-                    code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"],
-                                                                                env["name"], env["value"], True)
+                    code, msg, data = env_var_service.add_service_build_env_var(
+                        tenant, service, 0, env["name"], env["name"],
+                        env["value"], True)
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
+                        logger.error(
+                            "service.check",
+                            "save service check info env error {0}".format(
+                                msg))
         return 200, "success"
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
         service.language = service_info["language"]
         memory = service_info.get("memory", 128)
-        min_cpu = common_services.calculate_cpu(service.service_region,memory)
+        min_cpu = common_services.calculate_cpu(service.service_region, memory)
         service.min_memory = memory
         service.min_cpu = min_cpu
+        # Set the deployment type based on the test results
+        service.extend_method = "state" if service_info[
+            "deploy_type"] == "StatefulServiceType" else "stateless"
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)
@@ -217,16 +240,12 @@ class AppCheckService(object):
             service.image = service_image
             service.version = image["tag"]
 
-        library = service_info.get("dependencies", False)
-        procfile = service_info.get("procfile", False)
-        runtime = service_info.get("runtime", False)
+        envs = service_info.get("envs", None)
+        ports = service_info.get("ports", None)
+        volumes = service_info.get("volumes", None)
 
-        envs = service_info["envs"]
-        ports = service_info["ports"]
-        volumes = service_info["volumes"]
-
-        code, msg = self.__save_compile_env(tenant, service, service_info["language"], library, runtime,
-                                            procfile)
+        code, msg = self.__save_compile_env(tenant, service,
+                                            service_info["language"])
         if code != 200:
             return code, msg
 
@@ -234,7 +253,6 @@ class AppCheckService(object):
         code, msg = self.__save_env(tenant, service, envs)
         if code != 200:
             return code, msg
-        logger.debug('=========ports=========>{0}'.format(ports))
         code, msg = self.__save_port(tenant, service, ports)
         if code != 200:
             return code, msg
@@ -242,31 +260,26 @@ class AppCheckService(object):
         code, msg = self.__save_volume(tenant, service, volumes)
         if code != 200:
             return code, msg
+
         return 200, "success"
 
-    def __save_compile_env(self, tenant, service, language, library, run_time, procfile):
+    def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
-        logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
+        logger.debug("save tenant {0} compile service env {1}".format(
+            tenant.tenant_name, service.service_cname))
         compile_env_service.delete_service_compile_env(service)
         if not language:
             language = False
         check_dependency = {
             "language": language,
-            "runtimes": run_time,
-            "dependencies": library,
-            "procfile": procfile
         }
         check_dependency_json = json.dumps(check_dependency)
         # 添加默认编译环境
-        user_dependency = compile_env_service.get_service_default_env_by_language(language)
-        if check_dependency["runtimes"]:
-            user_dependency["runtimes"] = ""
-        if check_dependency["procfile"]:
-            user_dependency["procfile"] = ""
-        if check_dependency["dependencies"]:
-            user_dependency["dependencies"] = {}
+        user_dependency = compile_env_service.get_service_default_env_by_language(
+            language)
         user_dependency_json = json.dumps(user_dependency)
-        compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
+        compile_env_service.save_compile_env(
+            service, language, check_dependency_json, user_dependency_json)
         return 200, "success"
 
     def __save_env(self, tenant, service, envs):
@@ -275,27 +288,34 @@ class AppCheckService(object):
             env_var_service.delete_service_env(tenant, service)
             # 删除原有的build类型环境变量
             env_var_service.delete_service_build_env(tenant, service)
-            SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
-                'SERVICE_EXTEND_METHOD',
-                'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH', 'PORT', 'POD_NET_IP',
-                'LOG_MATCH'
-            )
+            SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME',
+                                   'SERVICE_NAME', 'SERVICE_VERSION',
+                                   'MEMORY_SIZE', 'SERVICE_EXTEND_METHOD',
+                                   'SLUG_URL', 'DEPEND_SERVICE',
+                                   'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
+                                   'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH')
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
                 elif env["name"].startswith("BUILD_"):
-                    code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
-                                                                          env["value"], True)
+                    code, msg, data = env_var_service.add_service_build_env_var(
+                        tenant, service, 0, env["name"], env["name"],
+                        env["value"], True)
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
+                        logger.error(
+                            "service.check",
+                            "save service check info env error {0}".format(
+                                msg))
                 else:
-                    code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["name"],
-                                                                          env["value"], True,
-                                                                          "inner")
+                    code, msg, env_data = env_var_service.add_service_env_var(
+                        tenant, service, 0, env["name"], env["name"],
+                        env["value"], True, "inner")
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
+                        logger.error(
+                            "service.check",
+                            "save service check info env error {0}".format(
+                                msg))
                         # return code, msg
         return 200, "success"
 
@@ -304,21 +324,23 @@ class AppCheckService(object):
             # 删除原有port
             port_service.delete_service_port(tenant, service)
             for port in ports:
-                code, msg, port_data = port_service.add_service_port(tenant, service,
-                                                                     int(port["container_port"]),
-                                                                     port["protocol"],
-                                                                     service.service_alias.upper() + str(
-                                                                         port["container_port"]))
+                code, msg, port_data = port_service.add_service_port(
+                    tenant, service, int(port["container_port"]),
+                    port["protocol"],
+                    service.service_alias.upper() + str(
+                        port["container_port"]))
                 if code != 200:
-                    logger.error("service.check", "save service check info port error {0}".format(msg))
+                    logger.error(
+                        "service.check",
+                        "save service check info port error {0}".format(msg))
                     # return code, msg
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 port_service.delete_service_port(tenant, service)
                 # 添加默认5000端口
-                port_service.add_service_port(tenant, service, 5000, "http",
-                                              service.service_alias.upper() + str(5000),
-                                              False, True)
+                port_service.add_service_port(
+                    tenant, service, 5000, "http",
+                    service.service_alias.upper() + str(5000), False, True)
         return 200, "success"
 
     def __save_volume(self, tenant, service, volumes):
@@ -329,16 +351,25 @@ class AppCheckService(object):
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if volume.has_key("file_content"):
-                    code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                               volume["volume_type"], volume_name, volume["file_content"])
+                    code, msg, volume_data = volume_service.add_service_volume(
+                        tenant, service, volume["volume_path"],
+                        volume["volume_type"], volume_name,
+                        volume["file_content"])
                     if code != 200:
-                        logger.error("service.check", "save service check info port error {0}".format(msg))
+                        logger.error(
+                            "service.check",
+                            "save service check info port error {0}".format(
+                                msg))
                         # return code, msg
                 else:
-                    code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                               volume["volume_type"], volume_name)
+                    code, msg, volume_data = volume_service.add_service_volume(
+                        tenant, service, volume["volume_path"],
+                        volume["volume_type"], volume_name)
                     if code != 200:
-                        logger.error("service.check", "save service check info port error {0}".format(msg))
+                        logger.error(
+                            "service.check",
+                            "save service check info port error {0}".format(
+                                msg))
                         # return code, msg
         return 200, "success"
 
@@ -346,6 +377,10 @@ class AppCheckService(object):
         rt_info = dict()
         rt_info["check_status"] = data["check_status"]
         rt_info["error_infos"] = data["error_infos"]
+        if data["service_info"] and len(data["service_info"]) > 1:
+            rt_info["is_multi"] = True
+        else:
+            rt_info["is_multi"] = False
         service_info_list = data["service_info"]
         service_list = []
         if service_info_list:
@@ -371,27 +406,39 @@ class AppCheckService(object):
         service_attr_list = []
         if service_info["ports"]:
             service_port_bean = {
-                "type": "ports",
-                "key": "端口信息",
-                "value": [str(port["container_port"]) + "(" + port["protocol"] + ")" for port in
-                          service_info["ports"]]
+                "type":
+                "ports",
+                "key":
+                "端口信息",
+                "value": [
+                    str(port["container_port"]) + "(" + port["protocol"] + ")"
+                    for port in service_info["ports"]
+                ]
             }
             service_attr_list.append(service_port_bean)
         if service_info["volumes"]:
             service_volume_bean = {
-                "type": "volumes",
-                "key": "持久化目录",
-                "value": [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in
-                          service_info["volumes"]]
+                "type":
+                "volumes",
+                "key":
+                "持久化目录",
+                "value": [
+                    volume["volume_path"] + "(" + volume["volume_type"] + ")"
+                    for volume in service_info["volumes"]
+                ]
             }
             service_attr_list.append(service_volume_bean)
         service_code_from = {}
         service_language = {}
         if service.service_source == AppConstants.SOURCE_CODE:
             service_code_from = {
-                "type": "source_from",
-                "key": "源码信息",
-                "value": "{0}  branch: {1}".format(service.git_url, service.code_version)
+                "type":
+                "source_from",
+                "key":
+                "源码信息",
+                "value":
+                "{0}  branch: {1}".format(service.git_url,
+                                          service.code_version)
             }
             service_language = {
                 "type": "language",
@@ -413,7 +460,7 @@ class AppCheckService(object):
         if service_language:
             service_attr_list.append(service_language)
         if service_code_from:
-            service_attr_list.append(service_code_from)    
+            service_attr_list.append(service_code_from)
         return service_attr_list
 
 

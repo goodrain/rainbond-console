@@ -1387,12 +1387,10 @@ class TeamSortServiceQueryView(JWTAuthApiView):
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
             outer_service_list = body["data"]["result"][0: 10]
             import json
-            logger.debug('=====body======>{0}'.format(json.dumps(outer_service_list)))
 
             # 对外服务访问量
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
             inner_service_list = body["data"]["result"][0: 10]
-            logger.debug('=====body======>{0}'.format(json.dumps(inner_service_list)))
 
             # 合并
             service_id_list = []

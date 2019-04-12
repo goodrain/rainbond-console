@@ -9,7 +9,7 @@ logger = logging.getLogger("default")
 
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 plugin_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
-user_identity = ((u"管理员", "admin"),)
+user_identity = ((u"管理员", "admin"), )
 
 
 class BaseModel(models.Model):
@@ -97,23 +97,27 @@ class RainbondCenterPlugin(BaseModel):
     class Meta:
         db_table = "rainbond_center_plugin"
 
-    plugin_key = models.CharField(max_length=32,  help_text=u"插件分享key")
+    plugin_key = models.CharField(max_length=32, help_text=u"插件分享key")
     plugin_name = models.CharField(max_length=32, help_text=u"插件名称")
     plugin_id = models.CharField(max_length=32, null=True, help_text=u"插件id")
     category = models.CharField(max_length=32, help_text=u"插件类别")
     record_id = models.IntegerField(help_text=u"分享流程id")
     version = models.CharField(max_length=20, help_text=u"版本")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
-    pic = models.CharField(max_length=100, null=True,
-                           blank=True, help_text=u"插件头像信息")
+    pic = models.CharField(
+        max_length=100, null=True, blank=True, help_text=u"插件头像信息")
     scope = models.CharField(
         max_length=10, choices=plugin_scope, help_text=u"可用范围")
     source = models.CharField(
-        max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
+        max_length=15,
+        default="",
+        null=True,
+        blank=True,
+        help_text=u"应用来源(本地创建，好雨云市)")
     share_user = models.IntegerField(help_text=u"分享人id")
     share_team = models.CharField(max_length=32, help_text=u"来源应用所属团队")
-    desc = models.CharField(max_length=400, null=True,
-                            blank=True, help_text=u"插件描述信息")
+    desc = models.CharField(
+        max_length=400, null=True, blank=True, help_text=u"插件描述信息")
     plugin_template = models.TextField(help_text=u"全量插件信息")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     create_time = models.DateTimeField(
@@ -213,12 +217,35 @@ class ComposeGroup(BaseModel):
         null=True, blank=True, help_text=u"compose文件内容")
     compose_id = models.CharField(
         max_length=32, unique=True, help_text=u"compose id")
-    create_status = models.CharField(max_length=15, null=True, blank=True,
-                                     help_text=u"compose组创建状态 creating|checking|checked|complete")
+    create_status = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True,
+        help_text=u"compose组创建状态 creating|checking|checked|complete")
     check_uuid = models.CharField(
-        max_length=36, blank=True, null=True, default="", help_text=u"compose检测ID")
+        max_length=36,
+        blank=True,
+        null=True,
+        default="",
+        help_text=u"compose检测ID")
     check_event_id = models.CharField(
-        max_length=32, blank=True, null=True, default="", help_text=u"compose检测事件ID")
+        max_length=32,
+        blank=True,
+        null=True,
+        default="",
+        help_text=u"compose检测事件ID")
+    hub_user = models.CharField(
+        max_length=256,
+        blank=True,
+        null=True,
+        default="",
+        help_text=u"镜像仓库用户名称")
+    hub_pass = models.CharField(
+        max_length=256,
+        blank=True,
+        null=True,
+        default="",
+        help_text=u"镜像仓库用户密码，服务创建后给服务赋值")
 
     create_time = models.DateTimeField(
         auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
@@ -304,9 +331,7 @@ class ServiceRecycleBin(BaseModel):
     setting = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"设置项")
     extend_method = models.CharField(
-        max_length=15,
-        default='stateless',
-        help_text=u"伸缩方式")
+        max_length=15, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -360,17 +385,27 @@ class ServiceRecycleBin(BaseModel):
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(
         default=0, help_text=u"应用归属的服务组id")
-
-    service_source = models.CharField(max_length=15, default="", null=True, blank=True,
-                                      help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
+    service_source = models.CharField(
+        max_length=15,
+        default="",
+        null=True,
+        blank=True,
+        help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(
-        max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
+        max_length=15,
+        null=True,
+        blank=True,
+        help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"更新时间")
     check_uuid = models.CharField(
         max_length=36, blank=True, null=True, default="", help_text=u"应用检测ID")
     check_event_id = models.CharField(
-        max_length=32, blank=True, null=True, default="", help_text=u"应用检测事件ID")
+        max_length=32,
+        blank=True,
+        null=True,
+        default="",
+        help_text=u"应用检测事件ID")
     docker_cmd = models.CharField(
         max_length=1024, null=True, blank=True, help_text=u"镜像创建命令")
 
@@ -408,7 +443,7 @@ class TenantUserRole(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_role'
-        unique_together = (('role_name', 'tenant_id'),)
+        unique_together = (('role_name', 'tenant_id'), )
 
     role_name = models.CharField(max_length=32, help_text=u'角色名称')
     tenant_id = models.IntegerField(null=True, blank=True, help_text=u'团队id')
@@ -423,7 +458,7 @@ class TenantUserPermission(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_permission'
-        unique_together = (('codename', 'per_info'),)
+        unique_together = (('codename', 'per_info'), )
 
     codename = models.CharField(max_length=32, help_text=u'权限名称')
     per_info = models.CharField(max_length=32, help_text=u'权限对应的操作信息')
@@ -487,8 +522,8 @@ class AppExportRecord(BaseModel):
     format = models.CharField(max_length=15, help_text=u"导出应用的格式")
     event_id = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=10, null=True,
-                              blank=True, help_text=u"时间请求状态")
+    status = models.CharField(
+        max_length=10, null=True, blank=True, help_text=u"时间请求状态")
     file_path = models.CharField(
         max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(
@@ -526,12 +561,12 @@ class AppImportRecord(BaseModel):
 
     event_id = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=15, null=True,
-                              blank=True, help_text=u"导入状态")
-    scope = models.CharField(max_length=10, null=True,
-                             blank=True, default="", help_text=u"导入范围")
-    format = models.CharField(max_length=15, null=True,
-                              blank=True, default="", help_text=u"类型")
+    status = models.CharField(
+        max_length=15, null=True, blank=True, help_text=u"导入状态")
+    scope = models.CharField(
+        max_length=10, null=True, blank=True, default="", help_text=u"导入范围")
+    format = models.CharField(
+        max_length=15, null=True, blank=True, default="", help_text=u"类型")
     source_dir = models.CharField(
         max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(
@@ -540,8 +575,8 @@ class AppImportRecord(BaseModel):
         auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
-    region = models.CharField(max_length=32, null=True,
-                              blank=True, help_text=u"数据中心")
+    region = models.CharField(
+        max_length=32, null=True, blank=True, help_text=u"数据中心")
     user_name = models.CharField(
         max_length=24, null=True, blank=True, help_text=u"操作人")
 
@@ -561,16 +596,16 @@ class GroupAppBackupRecord(BaseModel):
         max_length=36, null=True, blank=True, help_text=u"备份ID")
     team_id = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"团队ID")
-    user = models.CharField(max_length=20, null=True,
-                            blank=True, help_text=u"备份人")
-    region = models.CharField(max_length=15, null=True,
-                              blank=True, help_text=u"数据中心")
-    status = models.CharField(max_length=15, null=True,
-                              blank=True, help_text=u"时间请求状态")
-    note = models.CharField(max_length=128, null=True,
-                            blank=True, default="", help_text=u"备份说明")
-    mode = models.CharField(max_length=15, null=True,
-                            blank=True, default="", help_text=u"备份类型")
+    user = models.CharField(
+        max_length=20, null=True, blank=True, help_text=u"备份人")
+    region = models.CharField(
+        max_length=15, null=True, blank=True, help_text=u"数据中心")
+    status = models.CharField(
+        max_length=15, null=True, blank=True, help_text=u"时间请求状态")
+    note = models.CharField(
+        max_length=128, null=True, blank=True, default="", help_text=u"备份说明")
+    mode = models.CharField(
+        max_length=15, null=True, blank=True, default="", help_text=u"备份类型")
     source_dir = models.CharField(
         max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     backup_size = models.IntegerField(help_text=u"备份文件大小")
@@ -598,12 +633,12 @@ class GroupAppMigrateRecord(BaseModel):
         max_length=36, null=True, blank=True, help_text=u"备份ID")
     migrate_team = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
-    user = models.CharField(max_length=20, null=True,
-                            blank=True, help_text=u"恢复人")
+    user = models.CharField(
+        max_length=20, null=True, blank=True, help_text=u"恢复人")
     migrate_region = models.CharField(
         max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
-    status = models.CharField(max_length=15, null=True,
-                              blank=True, help_text=u"时间请求状态")
+    status = models.CharField(
+        max_length=15, null=True, blank=True, help_text=u"时间请求状态")
     migrate_type = models.CharField(
         max_length=15, default="migrate", help_text=u"类型")
     restore_id = models.CharField(
@@ -621,8 +656,8 @@ class GroupAppBackupImportRecord(BaseModel):
 
     event_id = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=15, null=True,
-                              blank=True, help_text=u"时间请求状态")
+    status = models.CharField(
+        max_length=15, null=True, blank=True, help_text=u"时间请求状态")
     file_temp_dir = models.CharField(
         max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(
@@ -631,8 +666,8 @@ class GroupAppBackupImportRecord(BaseModel):
         auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
     team_name = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
-    region = models.CharField(max_length=32, null=True,
-                              blank=True, help_text=u"数据中心")
+    region = models.CharField(
+        max_length=32, null=True, blank=True, help_text=u"数据中心")
 
 
 class Applicants(BaseModel):
