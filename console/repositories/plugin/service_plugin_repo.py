@@ -59,6 +59,7 @@ class AppPluginRelationRepo(object):
             WHERE
                 c.tenant_id = b.tenant_id 
                 AND a.service_id = c.service_id 
+                AND c.service_source <> "market"
                 AND b.enterprise_id = "{eid}" 
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)

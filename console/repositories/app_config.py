@@ -224,6 +224,7 @@ class TenantServiceRelationRepository(object):
                 AND b.service_source = "market" 
                 AND a.dep_service_id = b.service_id 
                 AND c.enterprise_id = "{eid}"
+                AND a.service_source <> "market"
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
