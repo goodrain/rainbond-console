@@ -2,6 +2,9 @@
 """
   Created on 18/1/12.
 """
+import json
+import logging
+
 import datetime
 from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAuth, ServiceAttachInfo, \
     ServicePaymentNotify, ServiceTcpDomain, GatewayCustomConfiguration
@@ -11,6 +14,8 @@ from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRela
     TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep, TenantServiceConfigurationFile, \
     ThirdPartyServiceEndpoints
 from django.db.models import Q
+
+logger = logging.getLogger("default")
 
 
 class TenantServiceEnvVarRepository(object):
@@ -213,6 +218,14 @@ class TenantServiceMntRelationRepository(object):
         dep_mnts = TenantServiceMountRelation.objects.filter(
             tenant_id=tenant_id, service_id=service_id
         )
+        return dep_mnts
+
+    def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
+        dep_mnts = TenantServiceMountRelation.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=service_ids
+        )
+
         return dep_mnts
 
     def add_service_mnt_relation(self, tenant_id, service_id, dep_service_id, mnt_name, mnt_dir):
