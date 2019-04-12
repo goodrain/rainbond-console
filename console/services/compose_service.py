@@ -113,7 +113,7 @@ class ComposeService(object):
                     name_service_map = {}
                     for service_info in service_info_list:
                         service_cname = service_info.get(
-                            "image_alias", service_info["image"]["name"])
+                            "image_alias", service_info["image_alias"])
                         image = service_info["image"][
                             "name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
