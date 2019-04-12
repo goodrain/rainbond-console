@@ -193,7 +193,7 @@ class AppPortService(object):
                                            container_port, tenant.enterprise_id)
 
         # 删除端口时禁用相关服务
-        self.disable_service_when_delete_port(tenant, service)
+        self.disable_service_when_delete_port(tenant, service, container_port)
 
         # 删除env
         env_var_service.delete_env_by_container_port(tenant, service, container_port)
@@ -203,13 +203,14 @@ class AppPortService(object):
         domain_repo.delete_service_domain_by_port(service.service_id, container_port)
         return 200, u"删除成功", port_info
 
-    def disable_service_when_delete_port(self, tenant, service):
+    def disable_service_when_delete_port(self, tenant, service, container_port):
         """删除端口时禁用相关服务"""
         # 禁用健康检测
         from console.services.app_config import probe_service
         probe = probe_repo.get_service_probe(service.service_id).first()
-        probe.is_used = False
-        probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
+        if container_port == probe.port:
+            probe.is_used = False
+            probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
 
     def delete_service_port(self, tenant, service):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
