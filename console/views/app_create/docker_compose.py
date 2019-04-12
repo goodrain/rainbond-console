@@ -241,7 +241,8 @@ class ComposeCheckView(ComposeGroupBaseView):
                                                                                       self.response_region,
                                                                                       group_compose, data)
             if save_code != 200:
-                transaction.savepoint_rollback(sid)
+                if sid:
+                    transaction.savepoint_rollback(sid)
                 data["check_status"] = "failure"
                 save_error = {
                     "error_type": "check info save error",

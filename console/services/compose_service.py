@@ -119,11 +119,14 @@ class ComposeService(object):
                         # 保存信息
                         service = self.__init_compose_service(
                             tenant, user, service_cname, image, region)
+                        # 缓存创建的服务
+                        service_list.append(service)
+                        name_service_map[service_cname] = service
+
                         group_service.add_service_to_group(
                             tenant, region, group_compose.group_id,
                             service.service_id)
-                        service_list.append(service)
-                        name_service_map[service_cname] = service
+
                         code, msg = app_check_service.save_service_info(
                             tenant, service, service_info)
                         if code != 200:
@@ -143,7 +146,6 @@ class ComposeService(object):
                     # 保存依赖关系
                     self.__save_service_dep_relation(tenant, service_dep_map,
                                                      name_service_map)
-
                     for s in service_list:
                         s.create_status = "checked"
                         s.save()
@@ -174,7 +176,7 @@ class ComposeService(object):
                 for dep_name in dep_services_names:
                     dep_service = name_service_map[dep_name]
                     code, msg, d = app_relation_service.add_service_dependency(
-                        tenant, s, dep_service.service_id)
+                        tenant, s, dep_service.service_id, open_inner=True)
                     if code != 200:
                         logger.error(
                             "compose add service error {0}".format(msg))
@@ -192,8 +194,7 @@ class ComposeService(object):
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app_service.generate_service_cname(
-            tenant, service_cname, region)
+        tenant_service.service_cname = service_cname
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         tenant_service.image = image
