@@ -66,7 +66,8 @@ class MarketAppService(object):
                                             tenant_service_group.ID)
                 service_source_data = {
                     "group_key": market_app.group_key,
-                    "version": market_app.version
+                    "version": market_app.version,
+                    "service_share_uuid": app.get("service_share_uuid")
                 }
                 service_source_repo.update_service_source(ts.tenant_id, ts.service_id, 
                     **service_source_data)

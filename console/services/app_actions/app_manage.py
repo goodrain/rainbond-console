@@ -328,6 +328,33 @@ class AppManageService(AppManageBase):
                                     raise Exception(msg)
 
                                 self.__save_extend_info(service, app["extend_method_map"])
+
+                                # dependent volume
+
+                                # dependent service
+                                dep_services = app.get("dep_service_map_list", None)
+                                for item in dep_services:
+                                    dep_service_source = service_source_repo.get_by_share_key(tenant.tenant_id, 
+                                        item.get("dep_service_key"))
+                                    if not dep_service_source:
+                                        continue
+                                    logger.debug("Service: {}; Dep service: {}".format(service.service_id, 
+                                        dep_service_source.service_id))
+                                    dep_service = service_repo.get_service_by_service_id(dep_service_source.service_id)
+                                    if not dep_service:
+                                        logger.debug("Service ID: {}; Name: {}; found service".format(dep_service.service_id, 
+                                            dep_service.service_alias))
+                                        continue
+                                    code, msg, _ = app_service_relation.add_service_dependency(tenant=tenant, service=service, \
+                                        dep_service_id=dep_service.service_id)
+                                    if code >= 300 and code != 412:
+                                        logger.warning("Service id: {0}; Dep service share key: {1}: {2}".\
+                                            format(service.service_id, dep_service.get("dep_service_key"), msg))
+                                    logger.info("Service: {0}; dep service: {1}; msg: {2}".format(service.service_alias, 
+                                        dep_service.service_alias, msg))
+
+                                # plugin
+
                     service_source_data = {
                         "version": rain_app.version
                     }

@@ -3,6 +3,7 @@
   Created on 18/1/16.
 """
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, ServiceWebhooks
+from www.db import BaseConnection
 from console.models.main import ServiceSourceInfo, ServiceRecycleBin, ServiceRelationRecycleBin
 
 
@@ -70,6 +71,9 @@ class TenantServiceInfoRepository(object):
         service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
         return service_list
 
+    def get_service_by_key(self, tenant_id):
+        ServiceSourceInfo.objects.filter()
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
@@ -86,7 +90,12 @@ class ServiceSourceRepository(object):
 
     def update_service_source(self, team_id, service_id, **data):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)
-        
+    
+    def get_by_share_key(self, team_id, service_share_uuid):
+        service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_share_uuid=service_share_uuid)
+        if service_sources:
+            return service_sources[0]
+        return None
 
 
 class ServiceRecycleBinRepository(object):
