@@ -13,6 +13,7 @@ from console.repositories.app import service_repo
 import logging
 import yaml
 import datetime
+from django.db import transaction
 from console.services.app import app_service
 from StringIO import StringIO
 from console.services.app_check_service import AppCheckService
@@ -37,12 +38,20 @@ class ComposeService(object):
         except yaml.YAMLError as exc:
             return 400, "yaml内容格式不正确{0}".format(exc.message), {}
 
-    def create_group_compose(self, tenant, region, group_id, compose_content):
+    def create_group_compose(self,
+                             tenant,
+                             region,
+                             group_id,
+                             compose_content,
+                             hub_user="",
+                             hub_pass=""):
         gc = compose_repo.get_group_compose_by_group_id(group_id)
         if gc:
             return 409, "该组已与其他compose组关联", None
         # 将yaml格式信息转成json数据
         group_compose_data = {
+            "hub_user": hub_user,
+            "hub_pass": hub_pass,
             "group_id": group_id,
             "team_id": tenant.tenant_id,
             "region": region,
@@ -56,20 +65,25 @@ class ComposeService(object):
         return 200, "创建groupcompose成功", group_compose
 
     def check_compose(self, region, tenant, compose_id):
-        group_compose = compose_repo.get_group_compose_by_compose_id(compose_id)
+        group_compose = compose_repo.get_group_compose_by_compose_id(
+            compose_id)
         if not group_compose:
             return 404, "未找到对应的compose内容", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "docker-compose"
         body["source_body"] = group_compose.compose_content
-        res, body = region_api.service_source_check(region, tenant.tenant_name, body)
+        body["username"] = group_compose.hub_user
+        body["password"] = group_compose.hub_pass
+        res, body = region_api.service_source_check(region, tenant.tenant_name,
+                                                    body)
         bean = body["bean"]
         group_compose.check_uuid = bean["check_uuid"]
         group_compose.check_event_id = bean["event_id"]
         group_compose.create_status = "checking"
         group_compose.save()
-        group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_compose.group_id)
+        group = group_repo.get_group_by_pk(tenant.tenant_id, region,
+                                           group_compose.group_id)
         compose_bean = group_compose.to_dict()
         if group:
             compose_bean["group_name"] = group.group_name
@@ -81,14 +95,20 @@ class ComposeService(object):
     def get_group_compose_by_group_id(self, group_id):
         return compose_repo.get_group_compose_by_group_id(group_id)
 
+    @transaction.atomic
     def save_compose_services(self, tenant, user, region, group_compose, data):
+        # 开启保存点
+        sid = transaction.savepoint()
         service_list = []
         try:
             if data["check_status"] == "success":
                 if group_compose.create_status == "checking":
-                    logger.debug("checking compose service install,save info into database")
+                    logger.debug(
+                        "checking compose service install,save info into database"
+                    )
                 # 先删除原来创建的应用
-                self.__delete_created_compose_info(tenant, group_compose.compose_id)
+                self.__delete_created_compose_info(tenant,
+                                                   group_compose.compose_id)
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
@@ -96,34 +116,50 @@ class ComposeService(object):
                     # 服务列表
                     name_service_map = {}
                     for service_info in service_info_list:
-                        service_cname = service_info.get("image_alias", service_info["image"]["name"])
-                        image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
+                        service_cname = service_info.get(
+                            "image_alias", service_info["image_alias"])
+                        image = service_info["image"][
+                            "name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
-                        service = self.__init_compose_service(tenant, user, service_cname, image, region)
-                        group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
+                        service = self.__init_compose_service(
+                            tenant, user, service_cname, image, region)
+                        # 缓存创建的服务
                         service_list.append(service)
                         name_service_map[service_cname] = service
-                        code, msg = app_check_service.save_service_info(tenant, service, service_info)
+
+                        group_service.add_service_to_group(
+                            tenant, region, group_compose.group_id,
+                            service.service_id)
+
+                        code, msg = app_check_service.save_service_info(
+                            tenant, service, service_info)
                         if code != 200:
                             return code, msg, None
+                        # save service info
+                        service.save()
+                        # 创建服务构建源信息，存储账号密码
+                        app_service.create_service_source_info(
+                            tenant, service, group_compose.hub_user,
+                            group_compose.hub_pass)
                         dependencies = service_info.get("depends", None)
                         if dependencies:
                             service_dep_map[service_cname] = dependencies
 
                     # 保存compose-relation
-                    self.__save_compose_relation(service_list, tenant.tenant_id, group_compose.compose_id)
+                    self.__save_compose_relation(service_list,
+                                                 tenant.tenant_id,
+                                                 group_compose.compose_id)
                     # 保存依赖关系
-                    self.__save_service_dep_relation(tenant, service_dep_map, name_service_map)
-
-                    for s in service_list:
-                        s.create_status = "checked"
-                        s.save()
+                    self.__save_service_dep_relation(tenant, service_dep_map,
+                                                     name_service_map)
                 group_compose.create_status = "checked"
                 group_compose.save()
+                transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)
-            return 500, "{0}".format(e.message),service_list
-
+            if sid:
+                transaction.savepoint_rollback(sid)
+            return 500, "{0}".format(e.message), service_list
         return 200, "success", service_list
 
     def verify_compose_services(self, tenant, region, data):
@@ -131,34 +167,39 @@ class ComposeService(object):
             service_info_list = data["service_info"]
             # 默认128 M
             new_add_memory = len(service_info_list) * 128
-            return app_service.verify_source(tenant, region, new_add_memory, "compose_service_create")
+            return app_service.verify_source(tenant, region, new_add_memory,
+                                             "compose_service_create")
         else:
             return True, "check is not success"
 
-    def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
+    def __save_service_dep_relation(self, tenant, service_dep_map,
+                                    name_service_map):
         if service_dep_map:
             for key in service_dep_map.keys():
                 dep_services_names = service_dep_map[key]
                 s = name_service_map[key]
                 for dep_name in dep_services_names:
                     dep_service = name_service_map[dep_name]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, s,
-                                                                               dep_service.service_id)
+                    code, msg, d = app_relation_service.add_service_dependency(
+                        tenant, s, dep_service.service_id, open_inner=True)
                     if code != 200:
-                        logger.error("compose add service error {0}".format(msg))
+                        logger.error(
+                            "compose add service error {0}".format(msg))
 
     def __save_compose_relation(self, services, team_id, compose_id):
         service_id_list = [s.service_id for s in services]
-        compose_relation_repo.bulk_create_compose_service_relation(service_id_list, team_id, compose_id)
+        compose_relation_repo.bulk_create_compose_service_relation(
+            service_id_list, team_id, compose_id)
 
-    def __init_compose_service(self, tenant, user, service_cname, image, region):
+    def __init_compose_service(self, tenant, user, service_cname, image,
+                               region):
         """
         初始化docker compose创建的应用默认数据
         """
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app_service.generate_service_cname(tenant, service_cname, region)
+        tenant_service.service_cname = service_cname
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
         tenant_service.image = image
@@ -177,7 +218,8 @@ class ComposeService(object):
         tenant_service.namespace = "goodrain"
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
-        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.create_time = datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S')
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
@@ -187,9 +229,7 @@ class ComposeService(object):
         tenant_service.code_from = "image_manual"
         tenant_service.language = "docker-compose"
         tenant_service.service_source = AppConstants.DOCKER_COMPOSE
-        tenant_service.create_status = "creating"
-        # 保存并返回
-        tenant_service.save()
+        tenant_service.create_status = "checked"
         return tenant_service
 
     def update_compose(self, group_id, compose_content):
@@ -201,13 +241,14 @@ class ComposeService(object):
         return 200, "success", group_compose
 
     def get_compose_services(self, compose_id):
-        compse_service_relations = compose_relation_repo.get_compose_service_relation_by_compose_id(compose_id)
+        compse_service_relations = compose_relation_repo.get_compose_service_relation_by_compose_id(
+            compose_id)
         service_ids = [csr.service_id for csr in compse_service_relations]
         service_ids = list(service_ids)
         return service_repo.get_services_by_service_ids(*service_ids)
 
     def give_up_compose_create(self, tenant, group_id, compose_id):
-        self.__delete_created_compose_info(tenant,compose_id)
+        self.__delete_created_compose_info(tenant, compose_id)
 
         compose_repo.delete_group_compose_by_compose_id(compose_id)
         group_repo.delete_group_by_pk(group_id)
@@ -223,7 +264,8 @@ class ComposeService(object):
             if code != 200:
                 logger.error("delete compose services error {0}".format(msg))
 
-        compose_relation_repo.delete_compose_service_relation_by_compose_id(compose_id)
+        compose_relation_repo.delete_compose_service_relation_by_compose_id(
+            compose_id)
 
     def wrap_compose_check_info(self, data):
         rt_info = dict()
@@ -237,25 +279,38 @@ class ComposeService(object):
                 service_attr_list = []
                 if service_info["ports"]:
                     service_port_bean = {
-                        "type": "ports",
-                        "key": "端口信息",
-                        "value": [str(port["container_port"]) + "(" + port["protocol"] + ")" for port in
-                                  service_info["ports"]]
+                        "type":
+                        "ports",
+                        "key":
+                        "端口信息",
+                        "value": [
+                            str(port["container_port"]) + "(" +
+                            port["protocol"] + ")"
+                            for port in service_info["ports"]
+                        ]
                     }
                     service_attr_list.append(service_port_bean)
                 if service_info["volumes"]:
                     service_volume_bean = {
-                        "type": "volumes",
-                        "key": "持久化目录",
-                        "value": [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in
-                                  service_info["volumes"]]
+                        "type":
+                        "volumes",
+                        "key":
+                        "持久化目录",
+                        "value": [
+                            volume["volume_path"] + "(" + volume["volume_type"]
+                            + ")" for volume in service_info["volumes"]
+                        ]
                     }
                     service_attr_list.append(service_volume_bean)
                 if service_info["image"]:
                     service_image_bean = {
-                        "type": "image",
-                        "key": "镜像名称",
-                        "value": service_info["image"]["name"] + ":" + service_info["image"]["tag"]
+                        "type":
+                        "image",
+                        "key":
+                        "镜像名称",
+                        "value":
+                        service_info["image"]["name"] + ":" +
+                        service_info["image"]["tag"]
                     }
                     service_attr_list.append(service_image_bean)
 
@@ -266,7 +321,8 @@ class ComposeService(object):
                 # }
                 # service_attr_list.append(service_name_bean)
 
-                compose_service_wrap_map["service_cname"] = service_info["image_alias"]
+                compose_service_wrap_map["service_cname"] = service_info[
+                    "image_alias"]
                 compose_service_wrap_map["service_info"] = service_attr_list
 
                 compose_service_wrap_list.append(compose_service_wrap_map)
@@ -275,7 +331,8 @@ class ComposeService(object):
         return rt_info
 
     def get_service_compose_id(self, service):
-        return compose_relation_repo.get_compose_id_by_service_id(service.service_id)
+        return compose_relation_repo.get_compose_id_by_service_id(
+            service.service_id)
 
 
 compose_service = ComposeService()

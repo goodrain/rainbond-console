@@ -6,7 +6,7 @@
 import logging
 
 from www.apiclient.regionapi import RegionInvokeApi
-from console.exception import CallRegionAPIException
+from console.exception.main import CallRegionAPIException
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")

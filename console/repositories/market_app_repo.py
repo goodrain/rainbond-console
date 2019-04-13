@@ -2,8 +2,11 @@
 """
   Created on 18/3/5.
 """
+import logging
+
 from console.models.main import RainbondCenterApp, AppExportRecord, AppImportRecord
 
+logger = logging.getLogger("default")
 
 class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_id(self, id):
@@ -43,6 +46,9 @@ class RainbondCenterAppRepository(object):
                 return rcapp[0]
             else:
                 return rcapps[0]
+        logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id,
+                                                                                 group_key,
+                                                                                 group_version))
         return None
 
     def bulk_create_rainbond_apps(self, rainbond_apps):

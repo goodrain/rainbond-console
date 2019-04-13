@@ -48,7 +48,8 @@ class AppCheck(AppBaseView):
             check_uuid = request.GET.get("check_uuid", None)
             if not check_uuid:
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
-            code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
+            code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region,
+                                                                       check_uuid)
             # 如果已创建完成
             if self.service.create_status == "complete":
                 # 删除原有build类型env，保存新检测build类型env
@@ -62,25 +63,27 @@ class AppCheck(AppBaseView):
                     logger.debug('======对检测出来的端口做加法=====>{0}'.format(save_msg))
                 check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
                 return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
-            # 开启保存点
-            sid = transaction.savepoint()
-            logger.debug("start save check info ! {0}".format(self.service.create_status))
-            save_code, save_msg = app_check_service.save_service_check_info(self.tenant, self.service, data)
-            if save_code != 200:
-                transaction.savepoint_rollback(sid)
-                data["check_status"] = "failure"
-                save_error = {
-                    "error_type": "check info save error",
-                    "solve_advice": "修改相关信息后重新尝试",
-                    "error_info": "{}".format(save_msg)
-                }
-                if data["error_infos"]:
-                    data["error_infos"].append(save_error)
+
+            if data["service_info"] and len(data["service_info"]) < 2:
+                # No need to save env, ports and other information for multiple services here.
+                # 开启保存点
+                sid = transaction.savepoint()
+                logger.debug("start save check info ! {0}".format(self.service.create_status))
+                save_code, save_msg = app_check_service.save_service_check_info(self.tenant, self.service, data)
+                if save_code != 200:
+                    transaction.savepoint_rollback(sid)
+                    data["check_status"] = "failure"
+                    save_error = {
+                        "error_type": "check info save error",
+                        "solve_advice": "修改相关信息后重新尝试",
+                        "error_info": "{}".format(save_msg)
+                    }
+                    if data["error_infos"]:
+                        data["error_infos"].append(save_error)
+                    else:
+                        data["error_infos"] = [save_error]
                 else:
-                    data["error_infos"] = [save_error]
-            else:
-                transaction.savepoint_commit(sid)
-            logger.debug("check result = {0}".format(data))
+                    transaction.savepoint_commit(sid)
             check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
             result = general_message(200, "success", "请求成功", bean=check_brief_info)
         except Exception as e:

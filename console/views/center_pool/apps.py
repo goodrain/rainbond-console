@@ -170,7 +170,7 @@ class CenterAppView(RegionTenantHeaderView):
             if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
-                code, msg, group_info = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
+                code, _, _ = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
 

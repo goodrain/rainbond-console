@@ -2,6 +2,9 @@
 """
   Created on 18/1/12.
 """
+import json
+import logging
+
 import datetime
 from www.db import BaseConnection
 from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAuth, ServiceAttachInfo, \
@@ -13,6 +16,8 @@ from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRela
     ThirdPartyServiceEndpoints
 from django.db.models import Q
 
+logger = logging.getLogger("default")
+
 
 class TenantServiceEnvVarRepository(object):
     def get_service_env(self, tenant_id, service_id):
@@ -20,6 +25,15 @@ class TenantServiceEnvVarRepository(object):
 
     def get_service_env_by_scope(self, tenant_id, service_id, scope):
         return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope=scope).all()
+
+    def get_by_attr_name_and_scope(self, tenant_id, service_id, attr_name, scope):
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id,
+                                                  service_id=service_id,
+                                                  attr_name=attr_name,
+                                                  scope=scope)
+        if envs:
+            return envs[0]
+        return None
 
     def get_service_env_by_attr_name(self, tenant_id, service_id, attr_name):
         envs = TenantServiceEnvVar.objects.filter(
@@ -224,6 +238,7 @@ class TenantServiceRelationRepository(object):
                 AND b.service_source = "market" 
                 AND a.dep_service_id = b.service_id 
                 AND c.enterprise_id = "{eid}"
+                AND a.service_source <> "market"
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
@@ -238,6 +253,14 @@ class TenantServiceMntRelationRepository(object):
         dep_mnts = TenantServiceMountRelation.objects.filter(
             tenant_id=tenant_id, service_id=service_id
         )
+        return dep_mnts
+
+    def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
+        dep_mnts = TenantServiceMountRelation.objects.filter(
+            tenant_id=tenant_id,
+            service_id__in=service_ids
+        )
+
         return dep_mnts
 
     def add_service_mnt_relation(self, tenant_id, service_id, dep_service_id, mnt_name, mnt_dir):

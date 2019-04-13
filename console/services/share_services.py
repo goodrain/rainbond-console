@@ -6,11 +6,11 @@ import logging
 from django.db import transaction
 
 from console.appstore.appstore import app_store
-from console.repositories.app_config import volume_repo
 from console.models.main import RainbondCenterApp, ServiceShareRecordEvent, PluginShareRecordEvent
 from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
 from console.repositories.plugin import plugin_repo, app_plugin_relation_repo,service_plugin_config_repo
 from console.repositories.share_repo import share_repo
+from console.repositories.app_config import mnt_repo
 from console.services.plugin import plugin_service
 from console.services.service_services import base_service
 from www.apiclient.marketclient import MarketOpenAPI
@@ -96,6 +96,22 @@ class ShareService(object):
             return dep_service_map
         else:
             return {}
+    
+    def get_dep_mnts_by_ids(self, tenant_id, service_ids):
+        mnt_relations = mnt_repo.list_mnt_relations_by_service_ids(tenant_id, service_ids)
+        if not mnt_relations:
+            return {}
+        result = {}
+        for mnt_relation in mnt_relations:
+            service_id = mnt_relation.service_id
+            if service_id in result.keys():
+                values = result.get(service_id)
+            else:
+                values = []
+                result[service_id] = values
+            values.append(mnt_relation)
+
+        return result
 
     def get_service_env_by_ids(self, service_ids):
         """
@@ -180,7 +196,7 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["service_id"]] = version["build_version"]
+                    service_versions[version["ServiceID"]] = version["BuildVersion"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -205,6 +221,8 @@ class ShareService(object):
             service_env_map = self.get_service_env_by_ids(array_ids)
             # 查询服务持久化信息
             service_volume_map = self.get_service_volume_by_ids(array_ids)
+            # dependent volume
+            dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids)
             # 查询服务伸缩方式信息
             extend_method_map = self.get_service_extend_method_by_keys(array_keys)
             # 获取应用的健康检测设置
@@ -332,6 +350,17 @@ class ShareService(object):
                             d['dep_service_key'] = all_data_map[dep.service_id]["service_share_uuid"]
                             service['dep_service_map_list'].append(d)
 
+                service["mnt_relation_list"] = list()
+
+                if dep_mnt_map.get(service_id):
+                    for dep_mnt in dep_mnt_map.get(service_id):
+                        if not all_data_map[dep_mnt.dep_service_id]:
+                            continue
+                        service["mnt_relation_list"].append({
+                            "service_share_uuid": all_data_map[dep_mnt.dep_service_id]["service_share_uuid"],
+                            "mnt_name": dep_mnt.mnt_name,
+                            "mnt_dir": dep_mnt.mnt_dir
+                        })
                 all_data.append(service)
             return all_data
         else:
