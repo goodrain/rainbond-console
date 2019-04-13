@@ -45,14 +45,10 @@ class RainbondCenterApp(BaseModel):
     share_team = models.CharField(max_length=32, help_text=u"来源应用所属团队")
     tenant_service_group_id = models.IntegerField(
         default=0, help_text=u"应用归属的服务组id")
-    pic = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"应用头像信息")
+    pic = models.CharField(max_length=100, null=True,
+                           blank=True, help_text=u"应用头像信息")
     source = models.CharField(
-        max_length=15,
-        default="",
-        null=True,
-        blank=True,
-        help_text=u"应用来源(本地创建，好雨云市)")
+        max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     version = models.CharField(max_length=20, help_text=u"版本")
     scope = models.CharField(
         max_length=10, choices=app_scope, help_text=u"可用范围")
@@ -280,6 +276,12 @@ class ServiceSourceInfo(BaseModel):
         max_length=32, null=True, blank=True, help_text=u"用户名")
     password = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"密码")
+    group_key = models.CharField(max_length=32, null=True, \
+        blank=True, help_text="group of service from market")
+    version = models.CharField(max_length=32, null=True, \
+        blank=True, help_text="version of service from market")
+    service_share_uuid = models.CharField(max_length=65, null=True, \
+        blank=True, help_text="unique identification of service from market")
     extend_info = models.CharField(
         max_length=1024, null=True, blank=True, default="", help_text=u"扩展信息")
     create_time = models.DateTimeField(
@@ -383,7 +385,6 @@ class ServiceRecycleBin(BaseModel):
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(
         default=0, help_text=u"应用归属的服务组id")
-
     service_source = models.CharField(
         max_length=15,
         default="",
@@ -698,3 +699,17 @@ class DeployRelation(BaseModel):
         max_length=32, unique=True, help_text=u"服务id")
     key_type = models.CharField(max_length=10, help_text=u"密钥类型")
     secret_key = models.CharField(max_length=200, help_text=u"密钥")
+
+
+class ServiceBuildSource(BaseModel):
+    """
+    save the build source information of the service
+    """
+
+    class Meta:
+        db_table = "service_build_source"
+
+    service_id = models.CharField(
+        max_length=32, unique=True, help_text=u"service id")
+    group_key = models.CharField(max_length=32, help_text="key to market app, unique identifier")
+    version = models.CharField(max_length=32, help_text="version to market app")

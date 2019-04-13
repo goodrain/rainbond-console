@@ -5,6 +5,7 @@
 from docker_image import reference
 
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, ServiceWebhooks
+from www.db import BaseConnection
 from console.models.main import ServiceSourceInfo, ServiceRecycleBin, ServiceRelationRecycleBin
 
 
@@ -72,6 +73,9 @@ class TenantServiceInfoRepository(object):
         service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
         return service_list
 
+    def get_service_by_key(self, tenant_id):
+        ServiceSourceInfo.objects.filter()
+
     def change_service_image_tag(self, service, tag):
         """改变镜像标签"""
         ref = reference.Reference.parse(service.image)
@@ -92,6 +96,15 @@ class ServiceSourceRepository(object):
 
     def delete_service_source(self, team_id, service_id):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()
+
+    def update_service_source(self, team_id, service_id, **data):
+        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)
+    
+    def get_by_share_key(self, team_id, service_share_uuid):
+        service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_share_uuid=service_share_uuid)
+        if service_sources:
+            return service_sources[0]
+        return None
 
 
 class ServiceRecycleBinRepository(object):
