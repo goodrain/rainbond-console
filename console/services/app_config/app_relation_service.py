@@ -82,7 +82,8 @@ class AppServiceRelationService(object):
                 openServicePorts.append(tenant_service_port)
             else:
                 ports = port_service.get_service_ports(dep_service)
-                openServicePorts.extend(ports)
+                if ports:
+                    openServicePorts.extend(ports)
             for tenant_service_port in openServicePorts:
                 code, msg, data = port_service.manage_port(
                     tenant, dep_service, dep_service.service_region,
