@@ -164,8 +164,13 @@ class MarketAppService(object):
                     if volume_list:
                         for volume in volume_list:
                             if volume["volume_name"] == item["mnt_name"]:
-                                code, msg = mnt_service.add_mnt_relation(tenant, service, item["mnt_dir"], 
-                                    dep_service.service_id, item["mnt_name"], volume["volume_type"])
+                                code, msg = mnt_service.add_mnt_relation(
+                                    tenant, service,
+                                    item["mnt_dir"],
+                                    dep_service.service_id, 
+                                    item["mnt_name"],
+                                    volume["volume_type"],
+                                    volume["file_content"])
                                 if code != 200:
                                     logger.info("fail to mount relative volume: {}".format(msg))
 
