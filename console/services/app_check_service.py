@@ -4,12 +4,14 @@
 """
 from www.apiclient.regionapi import RegionInvokeApi
 import logging
+from django.db import transaction
 import json
 from console.services.app_config import env_var_service, port_service, volume_service, compile_env_service
 from console.repositories.app import service_source_repo
 from console.constants import AppConstants
 from console.services.common_services import common_services
 from console.repositories.app_config import service_endpoints_repo
+from console.exception.main import ServiceHandleException
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -122,21 +124,63 @@ class AppCheckService(object):
 
         return 200, "success", rt_msg
 
+    def update_service_check_info(self, tenant, service, data):
+        sid = None
+        try:
+            sid = transaction.savepoint()
+            # 删除原有build类型env，保存新检测build类型env
+            save_code, save_msg = self.upgrade_service_env_info(
+                self.tenant, self.service, data)
+            if save_code != 200:
+                logger.error(
+                    'upgrade service env  by code check failure {0}'.format(
+                        save_msg))
+            # 重新检测后对端口做加法
+            save_code, save_msg = self.add_service_check_port(
+                self.tenant, self.service, data)
+            if save_code != 200:
+                logger.error(
+                    'upgrade service port  by code check failure {0}'.format(
+                        save_msg))
+            if data["language"] == "dockerfile":
+                service.cmd = ""
+            elif service.service_source == AppConstants.SOURCE_CODE:
+                service.cmd = "start web"
+            service.language = data["language"]
+            service.save()
+            transaction.savepoint_commit(sid)
+        except Exception as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
+            raise ServiceHandleException(
+                400,
+                "handle check service code info failure",
+                message_show="处理检测结果失败")
+
     def save_service_check_info(self, tenant, service, data):
         # 检测成功将信息存储
         if data["check_status"] == "success":
             if service.create_status == "checking":
-
                 logger.debug(
                     "checking service info install,save info into database")
                 service_info_list = data["service_info"]
-                code, msg = self.save_service_info(tenant, service,
-                                                   service_info_list[0])
-                if code != 200:
-                    return code, msg
-            # checked 表示检测完成
-            service.create_status = "checked"
-            service.save()
+                sid = None
+                try:
+                    sid = transaction.savepoint()
+                    code, msg = self.save_service_info(tenant, service,
+                                                       service_info_list[0])
+                    if code != 200:
+                        return code, msg
+                    # save service info, checked 表示检测完成
+                    service.create_status = "checked"
+                    service.save()
+                    transaction.savepoint_commit(sid)
+                except Exception as e:
+                    if sid:
+                        transaction.savepoint_rollback(sid)
+                    logger.exception(e)
+                    return 400, "解析并存储服务属性发生错误"
         return 200, "success"
 
     def upgrade_service_env_info(self, tenant, service, data):
@@ -221,7 +265,7 @@ class AppCheckService(object):
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
-        service.language = service_info["language"]
+        service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
         min_cpu = common_services.calculate_cpu(service.service_region, memory)
         service.min_memory = memory
@@ -244,8 +288,7 @@ class AppCheckService(object):
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
 
-        code, msg = self.__save_compile_env(tenant, service,
-                                            service_info["language"])
+        code, msg = self.__save_compile_env(tenant, service, service.language)
         if code != 200:
             return code, msg
 
@@ -384,14 +427,6 @@ class AppCheckService(object):
         service_list = []
         if service_info_list:
             service_info = service_info_list[0]
-            if data["check_status"] == "success":
-                if service_info["language"] == "dockerfile":
-                    service.cmd = ""
-                elif service.service_source == AppConstants.SOURCE_CODE:
-                    service.cmd = "start web"
-                service.language = service_info["language"]
-                service.save()
-
             service_list = self.wrap_check_info(service, service_info)
 
             # service_middle_ware_bean = {}

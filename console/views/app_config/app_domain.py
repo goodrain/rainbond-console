@@ -4,6 +4,7 @@
 """
 import logging
 import json
+import re
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -27,6 +28,26 @@ from console.repositories.group import group_service_relation_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+# dns1123_subdomain_max_length is a subdomain's max length in DNS (RFC 1123)
+dns1123_subdomain_max_length = 253
+
+def validate_domain(domain):
+    if len(domain) > dns1123_subdomain_max_length:
+        return False, "域名长度不能超过{}".format(dns1123_subdomain_max_length)
+
+    dns1123_label_fmt = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+    dns1123_subdomain_fmt = dns1123_label_fmt + "(\\." + dns1123_label_fmt + ")*"
+    fmt = "^" + dns1123_subdomain_fmt + "$"
+    wildcard_dns1123_subdomain_fmt = "\\*\\." + dns1123_subdomain_fmt
+    wildcard_fmt = "^" + wildcard_dns1123_subdomain_fmt + "$"
+    if domain.startswith("*"):
+        pattern = re.compile(wildcard_fmt)
+    else:
+        pattern = re.compile(fmt)
+    if not pattern.match(domain):
+        return False, "非法域名"
+    return True, ""
 
 
 class TenantCertificateView(RegionTenantHeaderView):
@@ -296,6 +317,10 @@ class ServiceDomainView(AppBaseView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
+            flag, msg = validate_domain(domain_name)
+            if not flag:
+                result = general_message(400, "invalid domain", msg)
+                return Response(result, status=400)
             protocol = request.data.get("protocol", None)
             certificate_id = request.data.get("certificate_id", None)
             rule_extensions = request.data.get("rule_extensions", None)
@@ -359,6 +384,10 @@ class ServiceDomainView(AppBaseView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
+            flag, msg = validate_domain(domain_name)
+            if not flag:
+                result = general_message(400, "invalid domain", msg)
+                return Response(result, status=400)
             is_tcp = request.data.get("is_tcp", False)
             if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
@@ -424,6 +453,10 @@ class HttpStrategyView(RegionTenantHeaderView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
+            flag, msg = validate_domain(domain_name)
+            if not flag:
+                result = general_message(400, "invalid domain", msg)
+                return Response(result, status=400)
             certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
             do_path = request.data.get("domain_path", None)
@@ -522,6 +555,10 @@ class HttpStrategyView(RegionTenantHeaderView):
         try:
             container_port = request.data.get("container_port", None)
             domain_name = request.data.get("domain_name", None)
+            flag, msg = validate_domain(domain_name)
+            if not flag:
+                result = general_message(400, "invalid domain", msg)
+                return Response(result, status=400)
             certificate_id = request.data.get("certificate_id", None)
             service_id = request.data.get("service_id", None)
             do_path = request.data.get("domain_path", None)
@@ -718,6 +755,10 @@ class SecondLevelDomainView(AppBaseView):
             domain_name = request.data.get("domain_name", None)
             if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
+            flag, msg = validate_domain(domain_name)
+            if not flag:
+                result = general_message(400, "invalid domain", msg)
+                return Response(result, status=400)
             container_port = int(container_port)
             sld_domains = domain_service.get_sld_domains(self.service, container_port)
             if not sld_domains:
