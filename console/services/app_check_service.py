@@ -4,12 +4,14 @@
 """
 from www.apiclient.regionapi import RegionInvokeApi
 import logging
+from django.db import transaction
 import json
 from console.services.app_config import env_var_service, port_service, volume_service, compile_env_service
 from console.repositories.app import service_source_repo
 from console.constants import AppConstants
 from console.services.common_services import common_services
 from console.repositories.app_config import service_endpoints_repo
+from console.exception.main import ServiceHandleException
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -122,21 +124,56 @@ class AppCheckService(object):
 
         return 200, "success", rt_msg
 
+    @transaction.atomic
+    def update_service_check_info(self, tenant, service, data):
+        try:
+            sid = transaction.savepoint()
+            # 删除原有build类型env，保存新检测build类型env
+            save_code, save_msg = self.upgrade_service_env_info(
+                self.tenant, self.service, data)
+            if save_code != 200:
+                logger.error(
+                    'upgrade service env  by code check failure {0}'.format(
+                        save_msg))
+            # 重新检测后对端口做加法
+            save_code, save_msg = self.add_service_check_port(
+                self.tenant, self.service, data)
+            if save_code != 200:
+                logger.error(
+                    'upgrade service port  by code check failure {0}'.format(
+                        save_msg))
+            transaction.savepoint_commit(sid)
+        except Exception as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
+            raise ServiceHandleException(
+                400,
+                "handle check service code info failure",
+                message_show="处理检测结果失败")
+
+    @transaction.atomic
     def save_service_check_info(self, tenant, service, data):
         # 检测成功将信息存储
         if data["check_status"] == "success":
             if service.create_status == "checking":
-
                 logger.debug(
                     "checking service info install,save info into database")
                 service_info_list = data["service_info"]
-                code, msg = self.save_service_info(tenant, service,
-                                                   service_info_list[0])
-                if code != 200:
-                    return code, msg
-            # checked 表示检测完成
-            service.create_status = "checked"
-            service.save()
+                try:
+                    sid = transaction.savepoint()
+                    code, msg = self.save_service_info(tenant, service,
+                                                       service_info_list[0])
+                    if code != 200:
+                        return code, msg
+                    # checked 表示检测完成
+                    service.create_status = "checked"
+                    service.save()
+                    transaction.savepoint_commit(sid)
+                except Exception as e:
+                    logger.exception(e)
+                    if sid:
+                        transaction.savepoint_rollback(sid)
         return 200, "success"
 
     def upgrade_service_env_info(self, tenant, service, data):
