@@ -2,6 +2,8 @@
 """
   Created on 18/2/1.
 """
+import json
+
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -50,6 +52,7 @@ class AppCheck(AppBaseView):
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
             code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region,
                                                                        check_uuid)
+            logger.debug("code, msg, data data: {}".format(json.dumps(data)))
             # 如果已创建完成
             if self.service.create_status == "complete":
                 # 删除原有build类型env，保存新检测build类型env
@@ -63,7 +66,7 @@ class AppCheck(AppBaseView):
                     logger.debug('======对检测出来的端口做加法=====>{0}'.format(save_msg))
                 check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
                 return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
-
+            logger.debug("data: {}".format(data))
             if data["service_info"] and len(data["service_info"]) < 2:
                 # No need to save env, ports and other information for multiple services here.
                 # 开启保存点
@@ -84,6 +87,7 @@ class AppCheck(AppBaseView):
                         data["error_infos"] = [save_error]
                 else:
                     transaction.savepoint_commit(sid)
+            logger.debug("data: {}".format(data))
             check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
             result = general_message(200, "success", "请求成功", bean=check_brief_info)
         except Exception as e:

@@ -126,7 +126,6 @@ class AppCheckService(object):
         # 检测成功将信息存储
         if data["check_status"] == "success":
             if service.create_status == "checking":
-
                 logger.debug(
                     "checking service info install,save info into database")
                 service_info_list = data["service_info"]
@@ -221,14 +220,13 @@ class AppCheckService(object):
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
-        service.language = service_info["language"]
+        service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
         min_cpu = common_services.calculate_cpu(service.service_region, memory)
         service.min_memory = memory
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results
-        service.extend_method = "state" if service_info[
-            "deploy_type"] == "StatefulServiceType" else "stateless"
+        service.extend_method = "state" if service_info["deploy_type"] == "StatefulServiceType" else "stateless"
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)
@@ -236,8 +234,7 @@ class AppCheckService(object):
             service.cmd = ""
         image = service_info.get("image", None)
         if image:
-            service_image = image["name"] + ":" + image["tag"]
-            service.image = service_image
+            service.image = image["name"] + ":" + image["tag"]
             service.version = image["tag"]
 
         envs = service_info.get("envs", None)
@@ -245,10 +242,9 @@ class AppCheckService(object):
         volumes = service_info.get("volumes", None)
 
         code, msg = self.__save_compile_env(tenant, service,
-                                            service_info["language"])
+                                            service.language)
         if code != 200:
             return code, msg
-
         # 先保存env,再保存端口，因为端口需要处理env
         code, msg = self.__save_env(tenant, service, envs)
         if code != 200:
@@ -256,7 +252,6 @@ class AppCheckService(object):
         code, msg = self.__save_port(tenant, service, ports)
         if code != 200:
             return code, msg
-
         code, msg = self.__save_volume(tenant, service, volumes)
         if code != 200:
             return code, msg
@@ -385,11 +380,12 @@ class AppCheckService(object):
         if service_info_list:
             service_info = service_info_list[0]
             if data["check_status"] == "success":
-                if service_info["language"] == "dockerfile":
+                lang = service_info.get("language", "")
+                if lang == "dockerfile":
                     service.cmd = ""
                 elif service.service_source == AppConstants.SOURCE_CODE:
                     service.cmd = "start web"
-                service.language = service_info["language"]
+                service.language = lang
                 service.save()
 
             service_list = self.wrap_check_info(service, service_info)
