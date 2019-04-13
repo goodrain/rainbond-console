@@ -76,6 +76,7 @@ class TenantServiceInfoRepository(object):
         """改变镜像标签"""
         ref = reference.Reference.parse(service.image)
         service.image = "{}:{}".format(ref['name'], tag)
+        service.version = tag
         service.save()
 
 
