@@ -260,7 +260,6 @@ class AppCheckService(object):
         code, msg = self.__save_volume(tenant, service, volumes)
         if code != 200:
             return code, msg
-
         return 200, "success"
 
     def __save_compile_env(self, tenant, service, language):

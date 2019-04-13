@@ -89,19 +89,25 @@ class AppServiceRelationService(object):
                     int(tenant_service_port.container_port), "open_inner",
                     tenant_service_port.protocol,
                     tenant_service_port.port_alias)
-            if code != 200:
-                return 412, u"开启对内端口失败", None
-        # 校验要依赖的服务是否开启了对内端口
-        open_inner_services = port_repo.get_service_ports(
-            tenant.tenant_id,
-            dep_service.service_id).filter(is_inner_service=True)
-        if not open_inner_services:
-            service_ports = port_repo.get_service_ports(
-                tenant.tenant_id, dep_service.service_id)
-            port_list = [
-                service_port.container_port for service_port in service_ports
-            ]
-            return 201, u"要关联的服务暂未开启对内端口，是否打开", port_list
+                if code != 200:
+                    logger.warning(
+                        "auto open depend service inner port faliure {}".
+                        format(msg))
+                else:
+                    logger.debug(
+                        "auto open depend service inner port success ")
+        else:
+            # 校验要依赖的服务是否开启了对内端口
+            open_inner_services = port_repo.get_service_ports(
+                tenant.tenant_id,
+                dep_service.service_id).filter(is_inner_service=True)
+            if not open_inner_services:
+                service_ports = port_repo.get_service_ports(
+                    tenant.tenant_id, dep_service.service_id)
+                port_list = [
+                    service_port.container_port for service_port in service_ports
+                ]
+                return 201, u"要关联的服务暂未开启对内端口，是否打开", port_list
 
         is_duplicate = self.__is_env_duplicate(tenant, service, dep_service)
         if is_duplicate:

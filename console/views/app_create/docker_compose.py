@@ -192,7 +192,6 @@ class ComposeCheckView(ComposeGroupBaseView):
 
     @never_cache
     @perm_required('create_service')
-    @transaction.atomic
     def get(self, request, *args, **kwargs):
         """
         获取compose文件检测信息
@@ -234,15 +233,11 @@ class ComposeCheckView(ComposeGroupBaseView):
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法创建应用"))
 
-            # 开启保存点
-            sid = transaction.savepoint()
             logger.debug("start save compose info ! {0}".format(group_compose.create_status))
             save_code, save_msg, service_list = compose_service.save_compose_services(self.tenant, self.user,
                                                                                       self.response_region,
                                                                                       group_compose, data)
             if save_code != 200:
-                if sid:
-                    transaction.savepoint_rollback(sid)
                 data["check_status"] = "failure"
                 save_error = {
                     "error_type": "check info save error",
@@ -267,8 +262,6 @@ class ComposeCheckView(ComposeGroupBaseView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            if sid:
-                transaction.savepoint_rollback(sid)
         return Response(result, status=result["code"])
 
 

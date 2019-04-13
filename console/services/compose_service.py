@@ -13,6 +13,7 @@ from console.repositories.app import service_repo
 import logging
 import yaml
 import datetime
+from django.db import transaction
 from console.services.app import app_service
 from StringIO import StringIO
 from console.services.app_check_service import AppCheckService
@@ -94,7 +95,10 @@ class ComposeService(object):
     def get_group_compose_by_group_id(self, group_id):
         return compose_repo.get_group_compose_by_group_id(group_id)
 
+    @transaction.atomic
     def save_compose_services(self, tenant, user, region, group_compose, data):
+        # 开启保存点
+        sid = transaction.savepoint()
         service_list = []
         try:
             if data["check_status"] == "success":
@@ -131,6 +135,8 @@ class ComposeService(object):
                             tenant, service, service_info)
                         if code != 200:
                             return code, msg, None
+                        # save service info
+                        service.save()
                         # 创建服务构建源信息，存储账号密码
                         app_service.create_service_source_info(
                             tenant, service, group_compose.hub_user,
@@ -146,15 +152,14 @@ class ComposeService(object):
                     # 保存依赖关系
                     self.__save_service_dep_relation(tenant, service_dep_map,
                                                      name_service_map)
-                    for s in service_list:
-                        s.create_status = "checked"
-                        s.save()
                 group_compose.create_status = "checked"
                 group_compose.save()
+                transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
             return 500, "{0}".format(e.message), service_list
-
         return 200, "success", service_list
 
     def verify_compose_services(self, tenant, region, data):
@@ -224,9 +229,7 @@ class ComposeService(object):
         tenant_service.code_from = "image_manual"
         tenant_service.language = "docker-compose"
         tenant_service.service_source = AppConstants.DOCKER_COMPOSE
-        tenant_service.create_status = "creating"
-        # 保存并返回
-        tenant_service.save()
+        tenant_service.create_status = "checked"
         return tenant_service
 
     def update_compose(self, group_id, compose_content):
