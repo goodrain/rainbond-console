@@ -85,6 +85,12 @@ class InstallPluginStrategy(BaseTaskStatusStrategy):
     def confirm_status(self, eid):
         return app_plugin_relation_repo.check_plugins_by_eid(eid)
 
+class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
+    """Task: install the performance analysis plugin"""
+
+    def confirm_status(self, eid):
+        return service_repo.check_image_svc_by_eid(eid)
+
 
 class BaseTaskStatusContext(object):
     def __init__(self, eid, task):
@@ -103,6 +109,8 @@ class BaseTaskStatusContext(object):
             self.strategy = CustomGatewayRuleStrategy()
         elif task == 'install_plugin':
             self.strategy = InstallPluginStrategy()
+        elif task == "image_service_create":
+            self.strategy = ImageServiceCreateStrategy()
         else:
             logger.warning("Task: {task}; unsupported task".format(task=task))
             self.strategy = DefaultStrategy()

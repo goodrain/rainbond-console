@@ -67,6 +67,10 @@ class BaseTaskGuidance:
             {
                 "key": "install_plugin",
                 "status": False
+            },
+            {
+                "key": "image_service_create",
+                "status": False
             }
         ]
         return data
