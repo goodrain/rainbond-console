@@ -44,11 +44,10 @@ class ServiceRepo(object):
                 AND a.service_region = b.region 
                 AND b.enterprise_id = "{eid}" 
                 AND a.create_status="complete"
-                AND a.service_source IN ( "docker_image", "docker_compose" ) 
+                AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
-        
 
     def check_db_from_market_by_eid(self, eid):
         conn = BaseConnection()
@@ -72,7 +71,8 @@ class ServiceRepo(object):
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_team_service_num_by_team_id(self, team_id, region_name):
-        return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
+        return TenantServiceInfo.objects.filter(
+            tenant_id=team_id, service_region=region_name).count()
 
     def get_no_grop_service_by_team_id(self, team_id, region_name):
         team_service = TenantServiceInfo.objects.filter(
@@ -82,9 +82,9 @@ class ServiceRepo(object):
             for team_every_service in team_service:
                 every_service_id = team_every_service.service_id
                 every_service_ids.append(every_service_id)
-            group_service_ids = ServiceGroupRelation.objects.filter(tenant_id=team_id,
-                                                                    region_name=region_name).values_list("service_id",
-                                                                                                         flat=True)
+            group_service_ids = ServiceGroupRelation.objects.filter(
+                tenant_id=team_id, region_name=region_name).values_list(
+                    "service_id", flat=True)
             no_group_ids = list(
                 set(every_service_ids).difference(set(group_service_ids)))
             no_group_info = list()
@@ -92,19 +92,18 @@ class ServiceRepo(object):
                 try:
                     service = TenantServiceInfo.objects.filter(
                         service_id=no_group_id)[0]
-                    code, bool, result = OpenTenantServiceManager().status_service(service=service)
-                    no_group_info.append(
-                        {
-                            "service_id": service.service_id,
-                            "service_name": service.service_cname,
-                            "group_id": -1,
-                            "group_name": "未分组",
-                            "service_version": service.version,
-                            "update_time": service.update_time,
-                            "service_alias": service.service_alias,
-                            "service_status": result
-                        }
-                    )
+                    code, bool, result = OpenTenantServiceManager(
+                    ).status_service(service=service)
+                    no_group_info.append({
+                        "service_id": service.service_id,
+                        "service_name": service.service_cname,
+                        "group_id": -1,
+                        "group_name": "未分组",
+                        "service_version": service.version,
+                        "update_time": service.update_time,
+                        "service_alias": service.service_alias,
+                        "service_status": result
+                    })
                 except Exception as e:
                     logger.exception(e)
                     pass
@@ -144,15 +143,16 @@ class ServiceRepo(object):
             for no_service in no_services:
                 service = TenantServiceInfo.objects.filter(
                     service_id=no_service.get("service_id"))[0]
-                no_service_list.append(
-                    {
-                        "service_id": service.service_id,
-                        "service_cname": service.service_cname,
-                        "service_alias": service.service_alias
-                    }
-                )
-            group_list.append(
-                {"group_id": -1, "group_name": "未分组", "service_list": no_service_list})
+                no_service_list.append({
+                    "service_id": service.service_id,
+                    "service_cname": service.service_cname,
+                    "service_alias": service.service_alias
+                })
+            group_list.append({
+                "group_id": -1,
+                "group_name": "未分组",
+                "service_list": no_service_list
+            })
             return group_list
         else:
             return []
@@ -168,28 +168,33 @@ class ServiceRepo(object):
             for no_service in no_services:
                 service = TenantServiceInfo.objects.filter(
                     service_id=no_service.get("service_id"))[0]
-                no_service_list.append(
-                    {
-                        "service_id": service.service_id,
-                        "service_cname": service.service_cname,
-                        "service_alias": service.service_alias
-                    }
-                )
-            group_list.append(
-                {"group_id": -1, "group_name": "未分组", "service_list": no_service_list})
+                no_service_list.append({
+                    "service_id": service.service_id,
+                    "service_cname": service.service_cname,
+                    "service_alias": service.service_alias
+                })
+            group_list.append({
+                "group_id": -1,
+                "group_name": "未分组",
+                "service_list": no_service_list
+            })
             return group_list
         else:
             return []
 
-    def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id):
-        group_services_list = base_service.get_group_services_list(team_id=team_id, region_name=region_name,
-                                                                   group_id=group_id)
+    def get_group_service_by_group_id(self, group_id, region_name, team_id,
+                                      team_name, enterprise_id):
+        group_services_list = base_service.get_group_services_list(
+            team_id=team_id, region_name=region_name, group_id=group_id)
         if group_services_list:
             service_ids = [
-                service.service_id for service in group_services_list]
-            status_list = base_service.status_multi_service(region=region_name, tenant_name=team_name,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=enterprise_id)
+                service.service_id for service in group_services_list
+            ]
+            status_list = base_service.status_multi_service(
+                region=region_name,
+                tenant_name=team_name,
+                service_ids=service_ids,
+                enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:
@@ -205,13 +210,15 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service["create_status"] != "complete":
+                if status == "unknow" and service[
+                        "create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service["status"] == "undeploy":
+                if service["status"] == "closed" or service[
+                        "status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)
@@ -220,14 +227,17 @@ class ServiceRepo(object):
         else:
             return []
 
-    def get_no_group_service_status_by_group_id(self, team_name, team_id, region_name, enterprise_id):
+    def get_no_group_service_status_by_group_id(self, team_name, team_id,
+                                                region_name, enterprise_id):
         no_services = base_service.get_no_group_services_list(
             team_id=team_id, region_name=region_name)
         if no_services:
             service_ids = [service.service_id for service in no_services]
-            status_list = base_service.status_multi_service(region=region_name, tenant_name=team_name,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=enterprise_id)
+            status_list = base_service.status_multi_service(
+                region=region_name,
+                tenant_name=team_name,
+                service_ids=service_ids,
+                enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:
@@ -241,13 +251,15 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service["create_status"] != "complete":
+                if status == "unknow" and service[
+                        "create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service["status"] == "undeploy":
+                if service["status"] == "closed" or service[
+                        "status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)
