@@ -190,6 +190,10 @@ class TenantServiceVolumnRepository(object):
     def delete_service_volumes(self, service_id):
         TenantServiceVolume.objects.filter(service_id=service_id).delete()
 
+    def get_by_sid_name(self, service_id, volume_name):
+        return TenantServiceVolume.objects.filter(service_id=service_id, 
+                                                  volume_name=volume_name).first()
+
 
 class TenantServiceRelationRepository(object):
     def get_service_dependencies(self, tenant_id, service_id):
@@ -232,14 +236,18 @@ class TenantServiceRelationRepository(object):
             FROM
                 tenant_service_relation a,
                 tenant_service b,
-                tenant_info c 
+                tenant_info c,
+                service_source d,
+                service_source e
             WHERE
                 b.tenant_id = c.tenant_id 
                 AND b.service_source = "market" 
+                AND c.enterprise_id = "{eid}" 
                 AND a.dep_service_id = b.service_id 
-                AND c.enterprise_id = "{eid}"
-                AND a.service_source <> "market"
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
+                AND a.service_id = d.service_id 
+                AND a.dep_service_id = e.service_id
+                AND d.group_key <> e.group_key
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False

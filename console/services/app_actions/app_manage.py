@@ -532,13 +532,13 @@ class AppManageService(AppManageBase):
                                                                           env_prefix + "_HOST", "127.0.0.1", False,
                                                                           scope="outer")
                     if code != 200 and code != 412:
-                        return code, msg, None
+                        return code, msg
                     code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]),
                                                                           u"端口",
                                                                           env_prefix + "_PORT", mapping_port, False,
                                                                           scope="outer")
-                    if code != 200:
-                        return code, msg, None
+                    if code != 200 and code != 412:
+                        return code, msg
                 continue
 
             code, msg, port_data = port_service.add_service_port(tenant, service,

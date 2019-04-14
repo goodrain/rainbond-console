@@ -26,6 +26,25 @@ class ServiceRepo(object):
                 AND a.service_region = b.region
                 AND b.enterprise_id = "{eid}" 
                 AND a.service_source = "source_code" 
+                AND a.create_status = "complete"
+                LIMIT 1""".format(eid=eid)
+        result = conn.query(sql)
+        return True if len(result) > 0 else False
+
+    def check_image_svc_by_eid(self, eid):
+        conn = BaseConnection()
+        sql = """
+            SELECT
+                service_alias
+            FROM
+                tenant_service a,
+                tenant_info b 
+            WHERE
+                a.tenant_id = b.tenant_id 
+                AND a.service_region = b.region 
+                AND b.enterprise_id = "{eid}" 
+                AND a.create_status="complete"
+                AND a.service_source IN ( "docker_image", "docker_compose" ) 
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
