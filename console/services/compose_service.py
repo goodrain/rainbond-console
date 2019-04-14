@@ -138,9 +138,16 @@ class ComposeService(object):
                         # save service info
                         service.save()
                         # 创建服务构建源信息，存储账号密码
+                        envs = service_info.get("envs", [])
+                        hub_user = group_compose.hub_user
+                        hub_password = group_compose.hub_pass
+                        for env in envs:
+                            if env.get("name", "") == "HUB_USER":
+                                hub_user = env.get("value")
+                            if env.get("name", "") == "HUB_PASSWORD":
+                                hub_password = env.get("value")
                         app_service.create_service_source_info(
-                            tenant, service, group_compose.hub_user,
-                            group_compose.hub_pass)
+                            tenant, service, hub_user, hub_password)
                         dependencies = service_info.get("depends", None)
                         if dependencies:
                             service_dep_map[service_cname] = dependencies

@@ -15,6 +15,7 @@ from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.app_config import volume_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service, AppMntService
@@ -164,8 +165,11 @@ class MarketAppService(object):
                     if volume_list:
                         for volume in volume_list:
                             if volume["volume_name"] == item["mnt_name"]:
-                                code, msg = mnt_service.add_mnt_relation(tenant, service, item["mnt_dir"], 
-                                    dep_service.service_id, item["mnt_name"], volume["volume_type"])
+                                dep_volume = volume_repo.get_by_sid_name(dep_service.service_id, item["mnt_name"])
+                                code, msg = mnt_service.add_service_mnt_relation(
+                                    tenant, service,
+                                    item["mnt_dir"],
+                                    dep_volume)
                                 if code != 200:
                                     logger.info("fail to mount relative volume: {}".format(msg))
 
