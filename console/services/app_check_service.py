@@ -335,7 +335,7 @@ class AppCheckService(object):
                                    'MEMORY_SIZE', 'SERVICE_EXTEND_METHOD',
                                    'SLUG_URL', 'DEPEND_SERVICE',
                                    'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
-                                   'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH')
+                                   'PATH', 'POD_NET_IP')
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
