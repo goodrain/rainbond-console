@@ -232,25 +232,46 @@ class TenantServiceRelationRepository(object):
         conn = BaseConnection()
         sql = """
             SELECT
-                b.service_id 
+                a.service_id, a.dep_service_id
             FROM
                 tenant_service_relation a,
                 tenant_service b,
                 tenant_info c,
-                service_source d,
-                service_source e
+                tenant_service d
+            WHERE
+                b.tenant_id = c.tenant_id
+                AND c.enterprise_id = "{eid}" 
+                AND a.service_id = d.service_id
+                AND a.dep_service_id = b.service_id
+                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
+                AND (b.service_source <> "market" OR d.service_source <> "market")
+                limit 1""".format(eid=eid)
+        result = conn.query(sql)
+        if len(result) > 0:
+            return True
+        sql2 = """
+            SELECT
+                a.dep_service_id 
+            FROM
+                tenant_service_relation a,
+                tenant_service b,
+                tenant_info c,
+                tenant_service d,
+                service_source e,
+                service_source f 
             WHERE
                 b.tenant_id = c.tenant_id 
-                AND b.service_source = "market" 
                 AND c.enterprise_id = "{eid}" 
+                AND a.service_id = d.service_id 
                 AND a.dep_service_id = b.service_id 
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
-                AND a.service_id = d.service_id 
-                AND a.dep_service_id = e.service_id
-                AND d.group_key <> e.group_key
+                AND ( b.service_source = "market" AND d.service_source = "market" ) 
+                AND e.service_id = b.service_id 
+                AND f.service_id = d.service_id 
+                AND e.group_key <> f.group_key 
                 LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
-        return True if len(result) > 0 else False
+        result2 = conn.query(sql2)   
+        return True if len(result2) > 0 else False
 
 
 class TenantServiceMntRelationRepository(object):
