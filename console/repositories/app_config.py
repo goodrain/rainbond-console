@@ -190,6 +190,10 @@ class TenantServiceVolumnRepository(object):
     def delete_service_volumes(self, service_id):
         TenantServiceVolume.objects.filter(service_id=service_id).delete()
 
+    def get_by_sid_name(self, service_id, volume_name):
+        return TenantServiceVolume.objects.filter(service_id=service_id, 
+                                                  volume_name=volume_name).first()
+
 
 class TenantServiceRelationRepository(object):
     def get_service_dependencies(self, tenant_id, service_id):
