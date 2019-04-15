@@ -208,7 +208,7 @@ class AppPortService(object):
         # 禁用健康检测
         from console.services.app_config import probe_service
         probe = probe_repo.get_service_probe(service.service_id).first()
-        if container_port == probe.port:
+        if probe and container_port == probe.port:
             probe.is_used = False
             probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
 
