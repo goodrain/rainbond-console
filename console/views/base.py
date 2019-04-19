@@ -263,7 +263,7 @@ def custom_exception_handler(exc, context):
         to be raised.
     """
     if isinstance(exc, ServiceHandleException):
-        return exc.get_response()
+        return exc.response
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):

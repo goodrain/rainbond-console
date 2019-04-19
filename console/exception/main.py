@@ -2,6 +2,7 @@
 """
   Created on 18/1/15.
 """
+from console.utils.response import MessageResponse
 from www.utils.return_message import general_message
 from rest_framework.response import Response
 
@@ -36,18 +37,24 @@ class CallRegionAPIException(Exception):
 
 
 class ServiceHandleException(Exception):
-    def __init__(self, code, message, b_code=None, message_show=None):
-        self.code = code
-        self.message = message
-        if not b_code:
-            self.b_code = code
-        else:
-            self.b_code = b_code
-        if not message_show:
-            self.message_show = message
-        super(CallRegionAPIException, self).__init__(message)
+    def __init__(self, msg, msg_show, status_code=400, error_code=None):
+        """
+        :param msg: 错误信息(英文)
+        :param msg_show: 错误信息(中文)
+        :param status_code: http 状态码
+        :param error_code: 错误码
+        """
+        super(Exception, self).__init__(status_code, error_code, msg, msg_show)
+        self.msg = msg
+        self.msg_show = msg_show
+        self.status_code = status_code
+        self.error_code = error_code or status_code
 
-    def get_response(self):
-        return Response(
-            general_message(self.b_code, self.message, self.message_show), status=self.code)
-   
+    @property
+    def response(self):
+        return MessageResponse(self.msg, self.msg_show, status_code=self.status_code, error_code=self.error_code)
+
+
+class AbortRequest(ServiceHandleException):
+    """终止请求"""
+    pass
