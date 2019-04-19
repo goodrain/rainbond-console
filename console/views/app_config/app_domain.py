@@ -25,12 +25,12 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
 from console.repositories.group import group_service_relation_repo
 
-
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 # dns1123_subdomain_max_length is a subdomain's max length in DNS (RFC 1123)
 dns1123_subdomain_max_length = 253
+
 
 def validate_domain(domain):
     if len(domain) > dns1123_subdomain_max_length:
@@ -70,7 +70,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         try:
             certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
             bean = {"nums": nums}
-            result = general_message(200, "success", "查询成功", list=certificates,bean=bean)
+            result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -109,9 +109,9 @@ class TenantCertificateView(RegionTenantHeaderView):
             alias = request.data.get("alias", None)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
-            certificate_type = request.data.get("certificate_type",None)
+            certificate_type = request.data.get("certificate_type", None)
             certificate_id = make_uuid()
-            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id,certificate, private_key,certificate_type)
+            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
             if code != 200:
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}
@@ -197,7 +197,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             certificate = request.data.get("certificate", None)
             certificate_type = request.data.get("certificate_type", None)
             code, msg = domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate,
-                                                          private_key,certificate_type)
+                                                          private_key, certificate_type)
             if code != 200:
                 return Response(general_message(code, "update certificate error", msg), status=code)
 
@@ -484,7 +484,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             region = region_repo.get_region_by_region_name(service.service_region)
             if domain_name.endswith(region.httpdomain):
                 domain_name_spt = domain_name.split(region.httpdomain)
-                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
+                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.')) - 2]:
                     return Response(general_message(400, "the default domain include other tenant name", "默认域名不允许包含其他团队别名"), status=400)
             protocol = "http"
             if certificate_id:
@@ -521,7 +521,8 @@ class HttpStrategyView(RegionTenantHeaderView):
                 try:
                     tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                     # 仅开启对外端口
-                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
+                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region, int(tenant_service_port.container_port),
+                                                               "only_open_outer",
                                                                tenant_service_port.protocol, tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(code, "change port fail", msg), status=code)
@@ -535,8 +536,8 @@ class HttpStrategyView(RegionTenantHeaderView):
 
             # 绑定端口(添加策略)
             code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port, protocol,
-                                                   certificate_id, DomainType.WWW, domain_path,
-                                                   domain_cookie, domain_heander, the_weight, rule_extensions)
+                                                             certificate_id, DomainType.WWW, domain_path,
+                                                             domain_cookie, domain_heander, the_weight, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -587,7 +588,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             region = region_repo.get_region_by_region_name(service.service_region)
             if domain_name.endswith(region.httpdomain):
                 domain_name_spt = domain_name.split(region.httpdomain)
-                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.'))-2]:
+                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.')) - 2]:
                     return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
 
             # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
@@ -623,8 +624,8 @@ class HttpStrategyView(RegionTenantHeaderView):
 
             # 编辑域名
             code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
-                                                   certificate_id, DomainType.WWW, domain_path,
-                                                   domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
+                                                               certificate_id, DomainType.WWW, domain_path,
+                                                               domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -966,6 +967,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 domain_dict["service_id"] = tenant_tuple[7]
                 domain_dict["is_outer_service"] = tenant_tuple[8]
                 domain_dict["group_id"] = group_id
+                domain_dict["service_source"] = service.service_source if service else ''
 
                 domain_list.append(domain_dict)
             bean = dict()
@@ -1104,7 +1106,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             # 修改策略
             code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                     tcp_rule_id, protocol, type, rule_extensions, default_ip)
+                                                        tcp_rule_id, protocol, type, rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -1245,14 +1247,3 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
-
-
-
-
-
-
-
-
-
-
-
