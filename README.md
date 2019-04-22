@@ -4,7 +4,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-console.svg?style=flat-square)](https://github.com/goodrain/rainbond-console/stargazers)
 [![Build Status](https://travis-ci.org/goodrain/rainbond-console.svg?branch=V5.0)](https://travis-ci.org/goodrain/rainbond-console)
 
-[项目官网](http://www.rainbond.com) • [文档](https://www.rainbond.com/docs/stable/) • [在线体验](https://console.goodrain.com)
+[项目官网](http://www.rainbond.com) • [文档](https://www.rainbond.com/docs/)
 
 
 **Rainbond** 企业应用云操作系统
