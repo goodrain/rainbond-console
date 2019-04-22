@@ -2,9 +2,10 @@
 """
   Created on 18/1/15.
 """
+from rest_framework.response import Response
+
 from console.utils.response import MessageResponse
 from www.utils.return_message import general_message
-from rest_framework.response import Response
 
 
 class BusinessException(Exception):
@@ -15,8 +16,7 @@ class BusinessException(Exception):
         if self.response:
             return self.response
         else:
-            return Response(
-                general_message(10401, "failed", "无数据返回"), status=500)
+            return Response(general_message(10401, "failed", "无数据返回"), status=500)
 
 
 class ResourceNotEnoughException(Exception):
@@ -33,11 +33,13 @@ class CallRegionAPIException(Exception):
     def __init__(self, code, message):
         self.code = code
         self.message = message
-        super(CallRegionAPIException, self).__init__("Region api return code {0},error message {1}".format(code, message))
+        super(CallRegionAPIException, self).__init__(
+            "Region api return code {0},error message {1}".format(code, message)
+        )
 
 
 class ServiceHandleException(Exception):
-    def __init__(self, msg, msg_show, status_code=400, error_code=None):
+    def __init__(self, msg, msg_show=None, status_code=400, error_code=None):
         """
         :param msg: 错误信息(英文)
         :param msg_show: 错误信息(中文)
@@ -46,13 +48,18 @@ class ServiceHandleException(Exception):
         """
         super(Exception, self).__init__(status_code, error_code, msg, msg_show)
         self.msg = msg
-        self.msg_show = msg_show
+        self.msg_show = msg_show or self.msg
         self.status_code = status_code
         self.error_code = error_code or status_code
 
     @property
     def response(self):
-        return MessageResponse(self.msg, self.msg_show, status_code=self.status_code, error_code=self.error_code)
+        return MessageResponse(
+            self.msg,
+            msg_show=self.msg_show,
+            status_code=self.status_code,
+            error_code=self.error_code
+        )
 
 
 class AbortRequest(ServiceHandleException):
