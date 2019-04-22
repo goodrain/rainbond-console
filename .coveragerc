@@ -1,0 +1,10 @@
+[run]
+branch = true
+include =
+omit =
+timid = true
+
+[report]
+fail_under = 0
+show_missing = true
+skip_covered = true
