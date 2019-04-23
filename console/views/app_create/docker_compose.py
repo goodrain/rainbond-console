@@ -83,6 +83,16 @@ class DockerComposeCreateView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
+            - name: user_name
+              description: 镜像仓库名称
+              required: true
+              type: string
+              paramType: form
+            - name: password
+              description: 镜像仓库密码
+              required: true
+              type: string
+              paramType: form
             - name: yaml_content
               description: compose文件内容
               required: true
@@ -92,12 +102,15 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         """
 
         group_name = request.data.get("group_name", None)
+        hub_user = request.data.get("user_name", "")
+        hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
         try:
             if not group_name:
                 return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
             if not yaml_content:
                 return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
+            # Parsing yaml determines whether the input is illegal
             code, msg, json_data = compose_service.yaml_to_json(yaml_content)
             if code != 200:
                 return Response(general_message(code, "parse yaml error", msg), status=code)
@@ -106,7 +119,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "create group error", msg), status=code)
             code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region,
-                                                                            group_info.ID, json_data)
+                                                                            group_info.ID, yaml_content, hub_user, hub_pass)
             if code != 200:
                 return Response(general_message(code, "create group compose error", msg), status=code)
             bean = dict()
@@ -115,6 +128,10 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             bean["group_name"] = group_info.group_name
             result = general_message(200, "operation success", "compose组创建成功", bean=bean)
         except Exception as e:
+            if group_info:
+                group_info.delete()
+            if group_compose:
+                group_compose.delete()    
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])
@@ -175,7 +192,6 @@ class ComposeCheckView(ComposeGroupBaseView):
 
     @never_cache
     @perm_required('create_service')
-    @transaction.atomic
     def get(self, request, *args, **kwargs):
         """
         获取compose文件检测信息
@@ -217,14 +233,11 @@ class ComposeCheckView(ComposeGroupBaseView):
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法创建应用"))
 
-            # 开启保存点
-            sid = transaction.savepoint()
             logger.debug("start save compose info ! {0}".format(group_compose.create_status))
             save_code, save_msg, service_list = compose_service.save_compose_services(self.tenant, self.user,
                                                                                       self.response_region,
                                                                                       group_compose, data)
             if save_code != 200:
-                transaction.savepoint_rollback(sid)
                 data["check_status"] = "failure"
                 save_error = {
                     "error_type": "check info save error",
@@ -237,7 +250,6 @@ class ComposeCheckView(ComposeGroupBaseView):
                     data["error_infos"] = [save_error]
             else:
                 transaction.savepoint_commit(sid)
-            logger.debug("check result = {0}".format(data))
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief,
                                      list=[s.to_dict() for s in service_list])
@@ -250,8 +262,6 @@ class ComposeCheckView(ComposeGroupBaseView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            if sid:
-                transaction.savepoint_rollback(sid)
         return Response(result, status=result["code"])
 
 

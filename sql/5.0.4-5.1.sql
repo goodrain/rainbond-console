@@ -66,5 +66,3 @@ CREATE TABLE `gateway_custom_configuration` (
 drop index `group_key` on rainbond_center_app;
 
 ALTER TABLE `rainbond_center_app` ADD UNIQUE ( `group_key`, `version`, `enterprise_id`)
-
-

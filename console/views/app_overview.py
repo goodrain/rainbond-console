@@ -35,7 +35,7 @@ from www.utils.md5Util import md5fun
 from django.conf import settings
 from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
-from console.repositories.app import service_repo, service_webhooks_repo
+from console.repositories.app import service_repo, service_webhooks_repo, service_source_repo
 from console.views.base import JWTAuthApiView
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
@@ -89,11 +89,12 @@ class AppDetailView(AppBaseView):
             event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
             bean.update({"event_websocket_url": event_websocket_url})
             if self.service.service_source == "market":
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
-                if not group_obj:
+                service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
+                if not service_source:
                     result = general_message(200, "success", "查询成功", bean=bean)
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                 service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市应用已删除", bean=bean)
                     return Response(result, status=result["code"])
@@ -116,9 +117,6 @@ class AppDetailView(AppBaseView):
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
                                 for app in apps_list:
-                                    logger.debug('---------====app===============>{0}'.format(app))
-                                    logger.debug('---------=====extend_info==============>{0}'.format(extend_info))
-
                                     if app.has_key("service_share_uuid"):
                                         if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
                                             new_version = int(app["deploy_version"])
@@ -163,7 +161,6 @@ class AppDetailView(AppBaseView):
                     if service_endpoints.endpoints_type == "discovery":
                         # 返回类型和key
                         endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
-                        logger.debug('--------endpoints_info---------->{0}'.format(endpoints_info_dict))
 
                         bean["discovery_type"] = endpoints_info_dict["type"]
                         bean["discovery_key"] = endpoints_info_dict["key"]
@@ -196,11 +193,12 @@ class AppBriefView(AppBaseView):
         """
         try:
             if self.service.service_source == "market":
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
-                if not group_obj:
+                service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
+                if not service_source:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key, group_obj.group_version)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                 service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
@@ -659,56 +657,48 @@ class BuildSourceinfo(AppBaseView):
         查询构建源信息
         ---
         """
-        service_alias = self.service.service_alias
         try:
-            service_source = team_services.get_service_source(service_alias=service_alias)
-            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
-                                                                         service_id=self.service.service_id)
-            user = ""
-            password = ""
-            bean = {}
-            if service_source_user:
-                user = service_source_user.user_name
-                password = service_source_user.password
-            bean["user_name"] = user
-            bean["password"] = password
-            if not service_source:
-                return Response(general_message(404, "no found source", "没有这个应用的构建源"), status=404)
-            if service_source.service_source == 'market':
-                # 获取组对象
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(
-                    service_source.tenant_service_group_id)
-                if group_obj:
+            service_source = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                    service_id=self.service.service_id)
+            bean = {
+                "user_name": "",
+                "password": ""
+            }                                         
+            if service_source:
+                bean["user"] = service_source.user_name
+                bean["password"] = service_source.password
+            
+            if self.service.service_source == 'market':
+                if service_source:
                     # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                     group_obj.group_version)
+                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                     service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details
+                        logger.debug("app_version: {}".format(rain_app.version))
                         bean["app_version"] = rain_app.version
                         bean["group_key"] = rain_app.group_key
-            bean["service_source"] = service_source.service_source
-            bean["image"] = service_source.image
-            bean["cmd"] = service_source.cmd
-            bean["code_from"] = service_source.code_from
-            bean["version"] = service_source.version
-            bean["docker_cmd"] = service_source.docker_cmd
-            bean["create_time"] = service_source.create_time
-            bean["git_url"] = service_source.git_url
-            bean["code_version"] = service_source.code_version
-            bean["server_type"] = service_source.server_type
-            bean["language"] = service_source.language
-            if service_source.service_source == 'market':
-                # 获取组对象
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(
-                    service_source.tenant_service_group_id)
-                if group_obj:
+            bean["service_source"] = self.service.service_source
+            bean["image"] = self.service.image
+            bean["cmd"] = self.service.cmd
+            bean["code_from"] = self.service.code_from
+            bean["version"] = self.service.version
+            bean["docker_cmd"] = self.service.docker_cmd
+            bean["create_time"] = self.service.create_time
+            bean["git_url"] = self.service.git_url
+            bean["code_version"] = self.service.code_version
+            bean["server_type"] = self.service.server_type
+            bean["language"] = self.service.language
+            if self.service.service_source == 'market':
+                if service_source:
                     # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                     group_obj.group_version)
+                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                     service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details
+                        logger.debug("version: {}".format(rain_app.version))
                         bean["version"] = rain_app.version
                         bean["group_key"] = rain_app.group_key
             result = general_message(200, "success", "查询成功", bean=bean)

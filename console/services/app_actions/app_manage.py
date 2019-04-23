@@ -9,14 +9,15 @@ import json
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions import AppEventService
-from console.services.app_config import AppServiceRelationService, AppEnvVarService, AppVolumeService, AppPortService
+from console.services.app_config import AppMntService, AppServiceRelationService, AppEnvVarService, \
+    AppVolumeService, AppPortService, AppServiceRelationService
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import TenantUsedResource, BaseTenantService
 import logging
 from console.repositories.app_config import env_var_repo, mnt_repo, volume_repo, port_repo, \
     auth_repo, domain_repo, dep_relation_repo, service_attach_repo, create_step_repo, service_payment_repo, extend_repo
 from console.repositories.app import service_repo, recycle_bin_repo, service_source_repo, delete_service_repo, \
-    relation_recycle_bin_repo
+    relation_recycle_bin_repo, service_source_repo
 from console.constants import AppConstants
 from console.repositories.group import group_service_relation_repo, tenant_service_group_repo
 from console.repositories.probe_repo import probe_repo
@@ -28,7 +29,6 @@ from www.utils.crypt import make_uuid
 from console.repositories.event_repo import event_repo
 from console.repositories.app_config import tcp_domain
 
-
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
 region_api = RegionInvokeApi()
@@ -38,6 +38,8 @@ relation_service = AppServiceRelationService()
 env_var_service = AppEnvVarService()
 port_service = AppPortService()
 volume_service = AppVolumeService()
+app_service_relation = AppServiceRelationService()
+mnt_service = AppMntService()
 
 
 class AppManageBase(object):
@@ -71,7 +73,8 @@ class AppManageBase(object):
         return False
 
     def is_over_resource(self, tenant, service):
-        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(tenant)
+        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(
+            tenant)
         if tenant.pay_type == "free":
             # 免费用户使用上限
             new_add_memory = service.min_node * service.min_memory
@@ -105,9 +108,11 @@ class AppManageBase(object):
         """
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
-                new_add_memory = new_add_memory + self.cur_service_memory(tenant, service)
+                new_add_memory = new_add_memory + \
+                    self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
-                tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
+                tm = tenantUsedResource.calculate_real_used_resource(
+                    tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
                 if tm > tenant.limit_memory:
                     return True
@@ -134,7 +139,8 @@ class AppManageService(AppManageBase):
         if not allow_start:
             return 412, "资源不足，无法启动应用", None
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.START)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.START)
         if code != 200:
             return code, msg, event
 
@@ -161,7 +167,8 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def stop(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.STOP)
         if code != 200:
             return code, msg, event
 
@@ -190,7 +197,8 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def restart(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.RESTART)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.RESTART)
         if code != 200:
             return code, msg, event
 
@@ -219,7 +227,9 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def deploy(self, tenant, service, user, is_upgrade, group_version, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name)
+        deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY,
+                                                      committer_name, deploy_version)
         if code != 200:
             return code, msg, event
 
@@ -230,10 +240,8 @@ class AppManageService(AppManageBase):
         if is_upgrade:
             body["action"] = "upgrade"
             service.build_upgrade = True
-        service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        service.deploy_version = deploy_version
         service.save()
-        event.deploy_version = service.deploy_version
-        event.save()
 
         clone_url = service.git_url
 
@@ -241,92 +249,142 @@ class AppManageService(AppManageBase):
         body["operator"] = str(user.nick_name)
         body["event_id"] = event.event_id
         body["service_id"] = service.service_id
-        envs = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
+        envs = env_var_repo.get_build_envs(
+            tenant.tenant_id, service.service_id)
         body["envs"] = envs
 
         kind = self.__get_service_kind(service)
-        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if kind == "build_from_source_code" or kind == "source":
             body["repo_url"] = clone_url
             body["branch"] = service.code_version
             body["server_type"] = service.server_type
 
+        service_source = service_source_repo.get_service_source(
+            service.tenant_id, service.service_id)
         if service.service_source == "market":
             try:
-                # 获取组对象
-                group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
-                if group_obj:
-                    # 获取内部市场对象
-                    if group_version:
-                        rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, group_obj.group_key,
-                                                                                         group_version)
-                    else:
-                        rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, group_obj.group_key,
-                                                                                         group_obj.group_version)
-                    if rain_app:
-                        # 解析app_template的json数据
-                        apps_template = json.loads(rain_app.app_template)
-                        apps_list = apps_template.get("apps")
-                        if service_source and service_source.extend_info:
-                            extend_info = json.loads(service_source.extend_info)
-                            for app in apps_list:
-                                if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                    # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                                    share_image = app.get("share_image", None)
-                                    share_slug_path = app.get("share_slug_path", None)
-                                    new_extend_info = {}
-                                    if share_image:
-                                        if app.get("service_image", None):
-                                            body["image_url"] = share_image
-                                            body["user"] = app.get("service_image").get("hub_user")
-                                            body["password"] = app.get("service_image").get("hub_password")
-                                            new_extend_info = app["service_image"]
-                                    if share_slug_path:
-                                        slug_info = app.get("service_slug")
-                                        slug_info["slug_path"] = share_slug_path
-                                        new_extend_info = slug_info
-                                        body["slug_info"] = new_extend_info
-                                    # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-                                    service.cmd = app.get("cmd", "")
-                                    service.version = app["version"]
-                                    service.is_upgrate = False
-                                    service.save()
-                                    new_extend_info["source_deploy_version"] = app.get("deploy_version")
-                                    new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid")  \
-                                        if app.get("service_share_uuid", None)\
-                                        else app.get("service_key", "")
-                                    service_source.extend_info = json.dumps(new_extend_info)
-                                    service_source.save()
+                # 获取内部市场对象
+                if group_version:
+                    rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id,
+                                                                                       service_source.group_key,
+                                                                                       group_version)
+                else:
+                    rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id,
+                                                                                       service_source.group_key,
+                                                                                       service_source.version)
+                if rain_app:
+                    # 解析app_template的json数据
+                    apps_template = json.loads(rain_app.app_template)
+                    apps_list = apps_template.get("apps")
+                    if service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        for app in apps_list:
+                            if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
+                                share_image = app.get("share_image", None)
+                                share_slug_path = app.get(
+                                    "share_slug_path", None)
+                                new_extend_info = {}
+                                if share_image:
+                                    if app.get("service_image", None):
+                                        body["image_url"] = share_image
+                                        body["user"] = app.get(
+                                            "service_image").get("hub_user")
+                                        body["password"] = app.get(
+                                            "service_image").get("hub_password")
+                                        new_extend_info = app["service_image"]
+                                if share_slug_path:
+                                    slug_info = app.get("service_slug")
+                                    slug_info["slug_path"] = share_slug_path
+                                    new_extend_info = slug_info
+                                    body["slug_info"] = new_extend_info
+                                # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
+                                service.cmd = app.get("cmd", "")
+                                service.version = app["version"]
+                                service.is_upgrate = False
+                                service.save()
+                                new_extend_info["source_deploy_version"] = app.get(
+                                    "deploy_version")
+                                new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid") \
+                                    if app.get("service_share_uuid", None) \
+                                    else app.get("service_key", "")
+                                service_source.extend_info = json.dumps(
+                                    new_extend_info)
+                                service_source.save()
 
-                                    # 删除服务原有端口，环境变量，pod
-                                    # code, msg = self.__delete_envs(tenant, service)
-                                    # if code != 200:
-                                    #     raise Exception(msg)
-                                    # code, msg = self.__delete_volume(tenant, service)
-                                    # if code != 200:
-                                    #     raise Exception(msg)
+                                # 先保存env,再保存端口，因为端口需要处理env
+                                code, msg = self.__save_env(tenant, service,
+                                                            app["service_env_map_list"],
+                                                            app["service_connect_info_map_list"])
+                                if code != 200:
+                                    raise Exception(msg)
+                                code, msg = self.__save_volume(
+                                    tenant, service, app["service_volume_map_list"])
+                                if code != 200:
+                                    raise Exception(msg)
 
-                                    # 先保存env,再保存端口，因为端口需要处理env
-                                    code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
-                                                                app["service_connect_info_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+                                code, msg = self.__save_port(
+                                    tenant, service, app["port_map_list"])
+                                if code != 200:
+                                    raise Exception(msg)
 
-                                    code, msg = self.__save_port(tenant, service, app["port_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
+                                self.__save_extend_info(service, app["extend_method_map"])
 
-                                    # 保存应用探针信息
-                                    self.__save_extend_info(service, app["extend_method_map"])
+                                # dependent volume
+                                dep_mnts = app.get("mnt_relation_list", None)
+                                if dep_mnts:
+                                    mnt_datas = []
+                                    for item in dep_mnts:
+                                        dep_service_source = service_source_repo.get_by_share_key(tenant.tenant_id, 
+                                            item.get("service_share_uuid"))
+                                        if not dep_service_source:
+                                            continue
+                                        dep_service = service_repo.get_service_by_service_id(dep_service_source.service_id)
+                                        if not dep_service:
+                                            logger.debug("Service ID: {}; Name: {}; service not found".format(dep_service.service_id, 
+                                                dep_service.service_alias))
+                                            continue
+                                        mnt_data = {
+                                            "service_id": dep_service.service_id,
+                                            "volume_name": item["mnt_name"],
+                                            "path": item["mnt_dir"]
+                                        }
+                                        mnt_datas.append(mnt_data)
+                                    if len(mnt_datas) > 0:
+                                        code, msg = mnt_service.batch_mnt_svc_volume(tenant, service, mnt_datas)
+                                        if code != 200:
+                                            logger.info("fail to mount relative volume: {}".format(msg))
+                                        
+                                # dependent service
+                                dep_services = app.get("dep_service_map_list", None)
+                                if dep_services:
+                                    for item in dep_services:
+                                        dep_service_source = service_source_repo.get_by_share_key(tenant.tenant_id, 
+                                            item.get("dep_service_key"))
+                                        if not dep_service_source:
+                                            continue
+                                        dep_service = service_repo.get_service_by_service_id(dep_service_source.service_id)
+                                        if not dep_service:
+                                            logger.debug("Service ID: {}; Name: {}; service not found".format(dep_service.service_id, 
+                                                dep_service.service_alias))
+                                            continue
+                                        code, msg, _ = app_service_relation.add_service_dependency(tenant=tenant, service=service, \
+                                            dep_service_id=dep_service.service_id)
+                                        if code >= 300 and code != 412:
+                                            logger.warning("Service id: {0}; Dep service share key: {1}: {2}".\
+                                                format(service.service_id, dep_service.get("dep_service_key"), msg))
+                                        logger.info("Service: {0}; dep service: {1}; msg: {2}".format(service.service_alias, 
+                                            dep_service.service_alias, msg))
 
-                        group_obj.group_version = rain_app.version
-                        group_obj.save()
+                                # plugin
+
+                    service_source_data = {
+                        "version": rain_app.version
+                    }
+                    service_source_repo.update_service_source(service.tenant_id, service.service_id,
+                        **service_source_data)
             except Exception as e:
-                logger.exception('===========000============>'.format(e))
+                logger.exception("error handling market info: {}".format(e))
                 body["image_url"] = service.image
                 if service_source:
                     extend_info = json.loads(service_source.extend_info)
@@ -353,9 +411,10 @@ class AppManageService(AppManageBase):
                     if hub_user or hub_password:
                         body["user"] = hub_user
                         body["password"] = hub_password
-        logger.debug('-------------deploy-----body-------------------->{0}'.format(json.dumps(body)))
+                        
         try:
-            region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+            region_api.build_service(
+                service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
             logger.exception(e)
             if event:
@@ -368,17 +427,20 @@ class AppManageService(AppManageBase):
         return 200, "操作成功", event
 
     def __delete_envs(self, tenant, service):
-        service_envs = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
+        service_envs = env_var_repo.get_service_env(
+            tenant.tenant_id, service.service_id)
         if service_envs:
             for env in service_envs:
-                env_var_service.delete_env_by_attr_name(tenant, service, env.attr_name)
+                env_var_service.delete_env_by_attr_name(
+                    tenant, service, env.attr_name)
         return 200, "success"
 
     def __delete_volume(self, tenant, service):
         service_volumes = volume_repo.get_service_volumes(service.service_id)
         if service_volumes:
             for volume in service_volumes:
-                code, msg, volume = volume_service.delete_service_volume_by_id(tenant, service, int(volume.ID))
+                code, msg, volume = volume_service.delete_service_volume_by_id(
+                    tenant, service, int(volume.ID))
                 if code != 200:
                     return 400, msg
         return 200, "success"
@@ -403,59 +465,51 @@ class AppManageService(AppManageBase):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
+            service_volume = volume_repo.get_service_volume_by_name(
+                service.service_id, volume["volume_name"])
             if service_volume:
                 continue
-            if volume.has_key("file_content"):
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume["volume_name"],
-                                                                           volume["file_content"])
-                if code != 200:
-                    logger.error("save market app volume error".format(msg))
-                    return code, msg
-            else:
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume["volume_name"])
-                if code != 200:
-                    logger.error("save market app volume error".format(msg))
-                    return code, msg
+            file_content = volume.get("file_content", None)
+            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                       volume_type=volume["volume_type"],
+                                                                       volume_name=volume["volume_name"],
+                                                                       file_content=file_content)
+            if code != 200:
+                logger.error("save market app volume error: {}".format(msg))
+                return code, msg
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
-            inner_attr_name = []
-            inner_envs = env_var_repo.get_service_env_by_scope(tenant_id=tenant.tenant_id,
-                                                               service_id=service.service_id, scope="inner")
-            if inner_envs:
-                for inner_env in inner_envs:
-                    inner_attr_name.append(inner_env.attr_name)
-            if env["attr_name"] in inner_attr_name:
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="inner")
+            if exist:
                 continue
-            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env["attr_value"], env["is_change"],
-                                                                      "inner")
+            code, msg, env_data = env_var_service. \
+                add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
+                                    env["attr_value"], env["is_change"], scope="inner")
             if code != 200:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
-            outer_attr_name = []
-            outer_envs = env_var_repo.get_service_env_by_scope(tenant_id=tenant.tenant_id,
-                                                               service_id=service.service_id, scope="outer")
-            if outer_envs:
-                for outer_env in outer_envs:
-                    outer_attr_name.append(outer_env.attr_name)
-            if env["attr_name"] in outer_attr_name:
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="outer")
+            if exist:
                 continue
             container_port = env.get("container_port", 0)
             if container_port == 0:
                 if env["attr_value"] == "**None**":
                     env["attr_value"] = service.service_id[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port,
-                                                                          env["name"], env["attr_name"],
-                                                                          env["attr_value"], env["is_change"],
-                                                                          "outer")
+                code, msg, env_data = env_var_service. \
+                    add_service_env_var(tenant, service, container_port,
+                                        env["name"], env["attr_name"],
+                                        env["attr_value"], env["is_change"], "outer")
                 if code != 200:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
@@ -466,22 +520,27 @@ class AppManageService(AppManageBase):
             return 200, "success"
         for port in ports:
             mapping_port = int(port["container_port"])
-            env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
-            service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
+            env_prefix = port["port_alias"].upper() if bool(
+                port["port_alias"]) else service.service_key.upper()
+            service_port = port_repo.get_service_port_by_port(tenant.tenant_id,
+                                                              service.service_id,
+                                                              int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
-                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]), u"连接地址",
+                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]),
+                                                                          u"连接地址",
                                                                           env_prefix + "_HOST", "127.0.0.1", False,
                                                                           scope="outer")
-                    if code != 200:
-                        return code, msg, None
-                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]), u"端口",
+                    if code != 200 and code != 412:
+                        return code, msg
+                    code, msg, data = env_var_service.add_service_env_var(tenant, service, int(port["container_port"]),
+                                                                          u"端口",
                                                                           env_prefix + "_PORT", mapping_port, False,
                                                                           scope="outer")
-                    if code != 200:
-                        return code, msg, None
-
+                    if code != 200 and code != 412:
+                        return code, msg
                 continue
+
             code, msg, port_data = port_service.add_service_port(tenant, service,
                                                                  int(port["container_port"]),
                                                                  port["protocol"],
@@ -489,12 +548,13 @@ class AppManageService(AppManageBase):
                                                                  port["is_inner_service"],
                                                                  port["is_outer_service"])
             if code != 200:
-                logger.error("save market app port error".format(msg))
+                logger.error("save market app port error: {}".format(msg))
                 return code, msg
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.UPGRADE, committer_name)
         if code != 200:
             return code, msg, event
 
@@ -507,7 +567,8 @@ class AppManageService(AppManageBase):
         body["service_name"] = service.service_name
         body["event_id"] = event.event_id
         try:
-            region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+            region_api.upgrade_service(
+                service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
             logger.exception(e)
             if event:
@@ -547,9 +608,11 @@ class AppManageService(AppManageBase):
 
     def roll_back(self, tenant, service, user, deploy_version, upgrade_or_rollback):
         if int(upgrade_or_rollback) == 1:
-            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.UPGRADE)
         else:
-            code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.ROLLBACK)
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
@@ -605,7 +668,8 @@ class AppManageService(AppManageBase):
                 elif action == "move":
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
-                    self.deploy(tenant, service, user, is_upgrade=True, group_version=None)
+                    self.deploy(tenant, service, user,
+                                is_upgrade=True, group_version=None)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -623,22 +687,29 @@ class AppManageService(AppManageBase):
             code = 200
             data = ''
             if action == "start":
-                code, data = self.start_services_info(body, services, tenant, user)
+                code, data = self.start_services_info(
+                    body, services, tenant, user)
             elif action == "stop":
-                code, data = self.stop_services_info(body, services, tenant, user)
+                code, data = self.stop_services_info(
+                    body, services, tenant, user)
             elif action == "upgrade":
-                code, data = self.upgrade_services_info(body, services, tenant, user)
+                code, data = self.upgrade_services_info(
+                    body, services, tenant, user)
             elif action == "deploy":
-                code, data = self.deploy_services_info(body, services, tenant, user)
-            logger.debug('-===================---bodybody----------->{0}'.format(json.dumps(data)))
+                code, data = self.deploy_services_info(
+                    body, services, tenant, user)
+            logger.debug(
+                '-===================---bodybody----------->{0}'.format(json.dumps(data)))
             if code != 200:
                 return 415, "服务信息获取失败"
             # 获取数据中心信息
             one_service = services[0]
             region_name = one_service.service_region
             try:
-                logger.debug('--------12222222222----___>{0}'.format(json.dumps(data)))
-                region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+                logger.debug(
+                    '--------12222222222----___>{0}'.format(json.dumps(data)))
+                region_api.batch_operation_service(
+                    region_name, tenant.tenant_name, data)
                 return 200, "操作成功"
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -661,7 +732,8 @@ class AppManageService(AppManageBase):
                                                           "start_app")
             if not allow_start:
                 continue
-            code, msg, event = event_service.create_event(tenant, service, user, self.START)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.START)
             if code != 200:
                 continue
 
@@ -671,7 +743,8 @@ class AppManageService(AppManageBase):
 
                 start_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                event = event_service.update_event(
+                    event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -682,7 +755,8 @@ class AppManageService(AppManageBase):
         body["stop_infos"] = stop_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.STOP)
             if code != 200:
                 continue
             if service.create_status == "complete":
@@ -690,7 +764,8 @@ class AppManageService(AppManageBase):
                 service_dict["service_id"] = service.service_id
                 stop_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                event = event_service.update_event(
+                    event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -700,7 +775,8 @@ class AppManageService(AppManageBase):
         body["upgrade_infos"] = upgrade_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.UPGRADE)
             if code != 200:
                 continue
             if service.create_status == "complete":
@@ -710,7 +786,8 @@ class AppManageService(AppManageBase):
 
                 upgrade_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
+                event = event_service.update_event(
+                    event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -720,7 +797,8 @@ class AppManageService(AppManageBase):
         body["build_infos"] = deploy_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
+            code, msg, event = event_service.create_event(
+                tenant, service, user, self.DEPLOY)
             if code != 200:
                 continue
             service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -733,7 +811,8 @@ class AppManageService(AppManageBase):
             service_dict["deploy_version"] = service.deploy_version
 
             service_dict["action"] = 'upgrade'
-            envs = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
+            envs = env_var_repo.get_build_envs(
+                tenant.tenant_id, service.service_id)
             service_dict["envs"] = envs
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind
@@ -756,7 +835,8 @@ class AppManageService(AppManageBase):
                         extend_info = json.loads(service_source.extend_info)
                         if not service.is_slug():
                             hub_user = extend_info.get("hub_user", None)
-                            hub_password = extend_info.get("hub_password", None)
+                            hub_password = extend_info.get(
+                                "hub_password", None)
                             if hub_user or hub_password:
                                 source_code["user"] = hub_user
                                 source_code["password"] = hub_password
@@ -774,7 +854,8 @@ class AppManageService(AppManageBase):
                         extend_info = json.loads(service_source.extend_info)
                         if not service.is_slug():
                             hub_user = extend_info.get("hub_user", None)
-                            hub_password = extend_info.get("hub_password", None)
+                            hub_password = extend_info.get(
+                                "hub_password", None)
                             if hub_user or hub_password:
                                 source_image["user"] = hub_user
                                 source_image["password"] = hub_password
@@ -782,94 +863,53 @@ class AppManageService(AppManageBase):
             # 云市
             elif service.service_source == "market":
                 try:
-                    # 获取组对象
-                    group_obj = tenant_service_group_repo.get_group_by_service_group_id(service.tenant_service_group_id)
-                    if group_obj:
+                    if service_source:
                         # 获取内部市场对象
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                         group_obj.group_version)
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                         service_source.version)
                         if rain_app:
                             # 解析app_template的json数据
                             apps_template = json.loads(rain_app.app_template)
                             apps_list = apps_template.get("apps")
                             if service_source and service_source.extend_info:
-                                extend_info = json.loads(service_source.extend_info)
+                                extend_info = json.loads(
+                                    service_source.extend_info)
                                 for app in apps_list:
                                     if app.has_key("service_share_uuid"):
                                         if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
                                             # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                                            share_image = app.get("share_image", None)
-                                            share_slug_path = app.get("share_slug_path", None)
+                                            share_image = app.get(
+                                                "share_image", None)
+                                            share_slug_path = app.get(
+                                                "share_slug_path", None)
                                             new_extend_info = {}
                                             if share_image:
                                                 if app.get("service_image", None):
                                                     source_image = dict()
                                                     service_dict["image_info"] = source_image
                                                     source_image["image_url"] = share_image
-                                                    source_image["user"] = app.get("service_image").get("hub_user")
-                                                    source_image["password"] = app.get("service_image").get("hub_password")
-                                                    source_image["cmd"] = service.cmd
-                                                    new_extend_info = app["service_image"]
-                                            if share_slug_path:
-                                                slug_info = app.get("service_slug")
-                                                slug_info["slug_path"] = share_slug_path
-                                                new_extend_info = slug_info
-                                                service_dict["slug_info"] = new_extend_info
-                                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-                                            service.is_upgrate = False
-                                            service.save()
-                                            new_extend_info["source_deploy_version"] = app.get("deploy_version")
-                                            new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid") \
-                                                if app.get("service_share_uuid", None) \
-                                                else app.get("service_key", "")
-                                            service_source.extend_info = json.dumps(new_extend_info)
-                                            service_source.save()
-
-                                            code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
-                                                                        app["service_connect_info_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            logger.debug('-------222---->{0}'.format(app["port_map_list"]))
-
-                                            code, msg = self.__save_port(tenant, service, app["port_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-
-                                            # 保存应用探针信息
-                                            self.__save_extend_info(service, app["extend_method_map"])
-
-                                    if not app.has_key("service_share_uuid") and app.has_key("service_key"):
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                                            share_image = app.get("share_image", None)
-                                            share_slug_path = app.get("share_slug_path", None)
-                                            new_extend_info = {}
-                                            if share_image:
-                                                if app.get("service_image", None):
-                                                    source_image = dict()
-                                                    service_dict["image_info"] = source_image
-                                                    source_image["image_url"] = share_image
-                                                    source_image["user"] = app.get("service_image").get("hub_user")
+                                                    source_image["user"] = app.get(
+                                                        "service_image").get("hub_user")
                                                     source_image["password"] = app.get("service_image").get(
                                                         "hub_password")
                                                     source_image["cmd"] = service.cmd
                                                     new_extend_info = app["service_image"]
                                             if share_slug_path:
-                                                slug_info = app.get("service_slug")
+                                                slug_info = app.get(
+                                                    "service_slug")
                                                 slug_info["slug_path"] = share_slug_path
                                                 new_extend_info = slug_info
                                                 service_dict["slug_info"] = new_extend_info
                                             # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
                                             service.is_upgrate = False
                                             service.save()
-                                            new_extend_info["source_deploy_version"] = app.get("deploy_version")
+                                            new_extend_info["source_deploy_version"] = app.get(
+                                                "deploy_version")
                                             new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid") \
                                                 if app.get("service_share_uuid", None) \
                                                 else app.get("service_key", "")
-                                            service_source.extend_info = json.dumps(new_extend_info)
+                                            service_source.extend_info = json.dumps(
+                                                new_extend_info)
                                             service_source.save()
 
                                             code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
@@ -880,17 +920,78 @@ class AppManageService(AppManageBase):
                                                                            app["service_volume_map_list"])
                                             if code != 200:
                                                 raise Exception(msg)
-                                            logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+                                            logger.debug(
+                                                '-------222---->{0}'.format(app["port_map_list"]))
 
-                                            code, msg = self.__save_port(tenant, service, app["port_map_list"])
+                                            code, msg = self.__save_port(
+                                                tenant, service, app["port_map_list"])
                                             if code != 200:
                                                 raise Exception(msg)
 
                                             # 保存应用探针信息
-                                            self.__save_extend_info(service, app["extend_method_map"])
+                                            self.__save_extend_info(
+                                                service, app["extend_method_map"])
 
-                            group_obj.group_version = rain_app.version
-                            group_obj.save()
+                                    if not app.has_key("service_share_uuid") and app.has_key("service_key"):
+                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
+                                            share_image = app.get(
+                                                "share_image", None)
+                                            share_slug_path = app.get(
+                                                "share_slug_path", None)
+                                            new_extend_info = {}
+                                            if share_image:
+                                                if app.get("service_image", None):
+                                                    source_image = dict()
+                                                    service_dict["image_info"] = source_image
+                                                    source_image["image_url"] = share_image
+                                                    source_image["user"] = app.get(
+                                                        "service_image").get("hub_user")
+                                                    source_image["password"] = app.get("service_image").get(
+                                                        "hub_password")
+                                                    source_image["cmd"] = service.cmd
+                                                    new_extend_info = app["service_image"]
+                                            if share_slug_path:
+                                                slug_info = app.get(
+                                                    "service_slug")
+                                                slug_info["slug_path"] = share_slug_path
+                                                new_extend_info = slug_info
+                                                service_dict["slug_info"] = new_extend_info
+                                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
+                                            service.is_upgrate = False
+                                            service.save()
+                                            new_extend_info["source_deploy_version"] = app.get(
+                                                "deploy_version")
+                                            new_extend_info["source_service_share_uuid"] = app.get("service_share_uuid") \
+                                                if app.get("service_share_uuid", None) \
+                                                else app.get("service_key", "")
+                                            service_source.extend_info = json.dumps(
+                                                new_extend_info)
+                                            service_source.save()
+
+                                            code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
+                                                                        app["service_connect_info_map_list"])
+                                            if code != 200:
+                                                raise Exception(msg)
+                                            code, msg = self.__save_volume(tenant, service,
+                                                                           app["service_volume_map_list"])
+                                            if code != 200:
+                                                raise Exception(msg)
+                                            logger.debug(
+                                                '-------222---->{0}'.format(app["port_map_list"]))
+
+                                            code, msg = self.__save_port(
+                                                tenant, service, app["port_map_list"])
+                                            if code != 200:
+                                                raise Exception(msg)
+
+                                            self.__save_extend_info(
+                                                service, app["extend_method_map"])
+                            service_source_data = {
+                                "version": rain_app.version
+                            }
+                            service_source_repo.update_service_source(tenant.tenant_id, \
+                                service.service_id, **service_source_data)
                 except Exception as e:
                     logger.exception('===========000============>'.format(e))
                     if service_source:
@@ -911,10 +1012,12 @@ class AppManageService(AppManageBase):
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
             return code, msg, event
-        new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
+        new_cpu = baseService.calculate_service_cpu(
+            service.service_region, new_memory)
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
@@ -952,7 +1055,8 @@ class AppManageService(AppManageBase):
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级", None
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.HORIZONTAL_UPGRADE)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.HORIZONTAL_UPGRADE)
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
@@ -981,7 +1085,8 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         # 判断服务是否是运行状态
@@ -997,16 +1102,19 @@ class AppManageService(AppManageBase):
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除", "failure")
+            event = event_service.update_event(
+                event, "当前应用被其他应用挂载, 不可删除", "failure")
             return 412, "当前应用被{0}挂载, 不可删除".format(msg), event
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
-            event = event_service.update_event(event, "当前应用已绑定域名,请先解绑", "failure")
+            event = event_service.update_event(
+                event, "当前应用已绑定域名,请先解绑", "failure")
             return 412, "请先解绑应用绑定的域名", event
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
-            event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件", "failure")
+            event = event_service.update_event(
+                event, "当前应用已安装插件,请先卸载相关插件", "failure")
             return 412, "请先卸载应用安装的插件", event
 
         if not is_force:
@@ -1052,25 +1160,30 @@ class AppManageService(AppManageBase):
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
-        dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        dep_relation_repo.delete_service_relation(
+            tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
-        group_service_relation_repo.delete_relation_by_service_id(service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(
+            service.service_id)
         service_attach_repo.delete_service_attach(service.service_id)
         create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
-        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
+        service_source_repo.delete_service_source(
+            tenant.tenant_id, service.service_id)
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(
+                service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(
+                    service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
@@ -1106,24 +1219,29 @@ class AppManageService(AppManageBase):
 
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(
+                service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(
+                    service.tenant_service_group_id)
 
         service.delete()
         return trash_service
 
     def move_service_relation_info_recycle_bin(self, tenant, service):
         # 1.如果服务依赖其他服务，将服务对应的关系放入回收站
-        relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_service_dependencies(
+            tenant.tenant_id, service.service_id)
         if relations:
             for r in relations:
                 r_data = r.to_dict()
                 r_data.pop("ID")
-                relation_recycle_bin_repo.create_trash_service_relation(**r_data)
+                relation_recycle_bin_repo.create_trash_service_relation(
+                    **r_data)
                 r.delete()
         # 如果服务关系回收站有被此服务依赖的服务，将信息及其对应的数据中心的依赖关系删除
-        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
+        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(
+            service.service_id)
         if recycle_relations:
             for recycle_relation in recycle_relations:
                 task = dict()
@@ -1152,19 +1270,23 @@ class AppManageService(AppManageBase):
         return True
 
     def __is_service_mnt_related(self, tenant, service):
-        sms = mnt_repo.get_mount_current_service(tenant.tenant_id, service.service_id)
+        sms = mnt_repo.get_mount_current_service(
+            tenant.tenant_id, service.service_id)
         if sms:
             sids = [sm.service_id for sm in sms]
-            services = service_repo.get_services_by_service_ids(*sids).values_list("service_cname", flat=True)
+            services = service_repo.get_services_by_service_ids(
+                *sids).values_list("service_cname", flat=True)
             mnt_service_names = ",".join(list(services))
             return True, mnt_service_names
         return False, ""
 
     def __is_service_related(self, tenant, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(
+            tenant.tenant_id, service.service_id)
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
-            services = service_repo.get_services_by_service_ids(*sids).values_list("service_cname", flat=True)
+            services = service_repo.get_services_by_service_ids(
+                *sids).values_list("service_cname", flat=True)
             if not services:
                 return False, ""
             dep_service_names = ",".join(list(services))
@@ -1178,7 +1300,8 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name,
                                                           service.service_alias, tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if status in (
+                    "running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -1194,7 +1317,8 @@ class AppManageService(AppManageBase):
 
     def delete_region_service(self, tenant, service):
         try:
-            logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
+            logger.debug("delete service {0} for team {1}".format(
+                service.service_cname, tenant.tenant_name))
             region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
                                       tenant.enterprise_id)
             return 200, "success"
@@ -1207,14 +1331,16 @@ class AppManageService(AppManageBase):
     # 变更应用分组
     def move(self, service, move_group_id):
         # 先删除分组应用关系表中该应用数据
-        group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(
+            service_id=service.service_id)
         # 再新建该应用新的关联数据
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
 
     # 批量删除应用
     def batch_delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         # 判断服务是否是运行状态
@@ -1273,7 +1399,8 @@ class AppManageService(AppManageBase):
                 return code, msg, event
 
     def delete_again(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
+        code, msg, event = event_service.create_event(
+            tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         if not is_force:
@@ -1318,17 +1445,20 @@ class AppManageService(AppManageBase):
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
-        dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        dep_relation_repo.delete_service_relation(
+            tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
-        group_service_relation_repo.delete_relation_by_service_id(service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(
+            service.service_id)
         service_attach_repo.delete_service_attach(service.service_id)
         create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
-        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
+        service_source_repo.delete_service_source(
+            tenant.tenant_id, service.service_id)
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
@@ -1336,9 +1466,11 @@ class AppManageService(AppManageBase):
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(
+                service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(
+                    service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"

@@ -1,10 +1,13 @@
 # -*- coding: utf8 -*-
-
 from django.db import models
 
 from .main import BaseModel
 
-data_type = ((u"应用端口", 'upstream_port'), (u"应用下游依赖端口", "downstream_port"), (u"无", "un_define"),)
+data_type = (
+    (u"应用端口", 'upstream_port'),
+    (u"应用下游依赖端口", "downstream_port"),
+    (u"无", "un_define"),
+)
 injection_method = ((u"自主发现", 'auto'), (u"环境变量", "env"))
 plugin_status = ((u"启用", "active"), (u"停用", "deactivate"),)
 
@@ -137,7 +140,7 @@ class ServicePluginConfigVar(BaseModel):
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
     service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
     injection = models.CharField(max_length=32, help_text=u"注入方式 auto, env")
-    dest_service_id = models.CharField(max_length=32,default='', help_text=u"服务ID")
+    dest_service_id = models.CharField(max_length=32, default='', help_text=u"服务ID")
     dest_service_alias = models.CharField(max_length=32, default="", help_text=u"服务别名")
     container_port = models.IntegerField(help_text=u"依赖端口")
     attrs = models.CharField(max_length=1024, help_text=u"键值对", default="")
@@ -149,6 +152,8 @@ class ConstKey():
     UPSTREAM_PORT = "upstream_port"
     DOWNSTREAM_PORT = "downstream_port"
     UNDEFINE = "un_define"
+    AUTO_JNJECTION = "auto_jnjection"
+    AUTO_ENV = "auto_env"
 
 
 class HasNoDownStreamService(Exception):

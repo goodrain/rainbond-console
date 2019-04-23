@@ -77,7 +77,6 @@ class AppMonitorQueryRangeView(AppBaseView):
 
         """
         sufix = get_sufix_path(request.get_full_path())
-        logger.debug("service.monitor", "{0}".format(sufix))
         try:
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
@@ -143,7 +142,6 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
         """
         group_id = kwargs.get("group_id", None)
-        logger.debug('---------group_id---------->{0}'.format(group_id))
         result_list = []
         try:
             """
@@ -237,10 +235,8 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         query_service_ids = "|".join(service_id_list)
         query_pod_ips = "|".join(all_pod_ips)
         response_time = 'avg(app_client_requesttime{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}) by (service_id,client)'
-        logger.debug(" 1 ======> raw response_time {0}".format(response_time))
         response_time = urlencode({"1": response_time})[2:]
 
         throughput_rate = 'sum(ceil(increase(app_client_request{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
-        logger.debug(" 2 ======> raw throughput_rate {0}".format(throughput_rate))
         throughput_rate = urlencode({"1": throughput_rate})[2:]
         return response_time, throughput_rate

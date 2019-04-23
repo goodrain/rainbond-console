@@ -7,6 +7,7 @@ from console.repositories.app import service_source_repo
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.services.market_app_service import template_transform_service
 from www.models import *
+from www.models import TenantServiceInfo
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.status_translate import get_status_info_map
 from www.apiclient.marketclient import MarketOpenAPI
@@ -853,7 +854,8 @@ class ApplicationGroupService(object):
 
         try:
             for s in sorted_services:
-                app_manage_service.deploy(tenant, s, user, is_upgrade=True, group_version=None)
+                app_manage_service.deploy(
+                    tenant, s, user, is_upgrade=True, group_version=None)
         except Exception as deploy_error:
             logger.exception(deploy_error)
 
@@ -1156,15 +1158,17 @@ class ApplicationGroupService(object):
             return 200, "success"
         for volume in volumes:
             if volume.has_key("file_content"):
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                    volume["volume_name"], volume["file_content"])
+                code, msg, volume_data = volume_service.add_service_volume(
+                    tenant, service, volume["volume_path"],
+                    volume["volume_type"], volume["volume_name"],
+                    volume["file_content"])
                 if code != 200:
                     logger.error("save market app volume error".format(msg))
                     return code, msg
             else:
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"],
-                                                                           volume["volume_name"])
+                code, msg, volume_data = volume_service.add_service_volume(
+                    tenant, service, volume["volume_path"],
+                    volume["volume_type"], volume["volume_name"])
                 if code != 200:
                     logger.error("save market app volume error".format(msg))
                     return code, msg
