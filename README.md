@@ -17,7 +17,7 @@ Rainbond（云帮）是企业应用的操作系统。 Rainbond支撑企业应用
 
 ## 项目说明
 
-当前项目为[Rainbond](https://github.com/goodrain/rainbond)的子项目，提供应用控制台的业务级支持，与[Rainbond-UI](https://github.com/goodrain/rainbond-ui）协同工作。
+当前项目为[Rainbond](https://github.com/goodrain/rainbond)的子项目，提供应用控制台的业务级支持，与[Rainbond-UI](https://github.com/goodrain/rainbond-ui)协同工作。
 
 
 
