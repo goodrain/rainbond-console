@@ -3,12 +3,9 @@ import os
 import random
 import string
 
-# from django.core.mail import send_mail
-
 from console.repositories.enterprise_repo import enterprise_repo
 from www.models.main import *
 from www.monitorservice.monitorhook import MonitorHook
-
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()
@@ -127,7 +124,7 @@ class EnterpriseServices(object):
         return enterprise_repo.create_enterprise(**params)
 
     # def get_enterprise_tenants(self,enterprise):
-    def get_enterprise_by_eids(self,eid_list):
+    def get_enterprise_by_eids(self, eid_list):
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):

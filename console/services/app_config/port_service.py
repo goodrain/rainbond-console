@@ -2,6 +2,8 @@
 """
   Created on 18/1/17.
 """
+from django.db import transaction
+
 from console.constants import ServicePortConstants
 from console.repositories.region_repo import region_repo
 from console.repositories.app_config import port_repo
@@ -64,7 +66,7 @@ class AppPortService(object):
         if code != 200:
             return code, msg, None
         if not port_alias:
-            port_alias = service.service_alias.upper()+str(container_port)
+            port_alias = service.service_alias.upper() + str(container_port)
         code, msg = self.check_port_alias(port_alias)
         if code != 200:
             return code, msg, None
@@ -171,6 +173,7 @@ class AppPortService(object):
                 }
         return data
 
+    @transaction.atomic
     def delete_port_by_container_port(self, tenant, service, container_port):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
 
@@ -189,6 +192,9 @@ class AppPortService(object):
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
                                            container_port, tenant.enterprise_id)
 
+        # 删除端口时禁用相关服务
+        self.disable_service_when_delete_port(tenant, service, container_port)
+
         # 删除env
         env_var_service.delete_env_by_container_port(tenant, service, container_port)
         # 删除端口
@@ -196,6 +202,15 @@ class AppPortService(object):
         # 删除端口绑定的域名
         domain_repo.delete_service_domain_by_port(service.service_id, container_port)
         return 200, u"删除成功", port_info
+
+    def disable_service_when_delete_port(self, tenant, service, container_port):
+        """删除端口时禁用相关服务"""
+        # 禁用健康检测
+        from console.services.app_config import probe_service
+        probe = probe_repo.get_service_probe(service.service_id).first()
+        if probe and container_port == probe.port:
+            probe.is_used = False
+            probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
 
     def delete_service_port(self, tenant, service):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
@@ -266,7 +281,7 @@ class AppPortService(object):
 
         if deal_port.protocol == "http":
             service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                              deal_port.container_port)
+                                                                               deal_port.container_port)
             # 在domain表中保存数据
             if service_domains:
                 for service_domain in service_domains:
@@ -284,7 +299,8 @@ class AppPortService(object):
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
                 region_id = region.region_id
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, tenant_id, service_alias, region_id)
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, tenant_id,
+                                                   service_alias, region_id)
                 # 给数据中心发请求添加默认域名
                 data = dict()
                 data["domain"] = domain_name
@@ -303,7 +319,7 @@ class AppPortService(object):
 
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                           deal_port.container_port)
+                                                                                            deal_port.container_port)
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     # 改变tcpdomain表中状态
@@ -381,7 +397,7 @@ class AppPortService(object):
                 service_domain.save()
 
         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                    deal_port.container_port)
+                                                                                        deal_port.container_port)
         if service_tcp_domains:
             for service_tcp_domain in service_tcp_domains:
                 # 改变tcpdomain表中状态
@@ -551,7 +567,6 @@ class AppPortService(object):
             for p in http_outer_port:
                 port_dict = p.to_dict()
                 port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
-                logger.debug('------------------port_dict["access_urls"]---------------0000{0}'.format(port_dict["access_urls"]))
                 port_dict["service_cname"] = service.service_cname
                 port_info_list.append(port_dict)
             return access_type, port_info_list

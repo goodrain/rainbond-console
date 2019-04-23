@@ -136,34 +136,20 @@ class ProbeService(object):
         else:
             is_used = 1 if is_used else 0
         prob_data = {
-            "service_id":
-            service.service_id,
-            "scheme":
-            data.get("scheme", probe.scheme),
-            "path":
-            data.get("path", probe.path),
-            "port":
-            data.get("port", probe.port),
-            "cmd":
-            data.get("cmd", probe.cmd),
-            "http_header":
-            data.get("http_header", probe.http_header),
-            "initial_delay_second":
-            data.get("initial_delay_second", probe.initial_delay_second),
-            "period_second":
-            data.get("period_second", probe.period_second),
-            "timeout_second":
-            data.get("timeout_second", probe.timeout_second),
-            "failure_threshold":
-            data.get("failure_threshold", probe.failure_threshold),
-            "success_threshold":
-            data.get("success_threshold", probe.success_threshold),
-            "is_used":
-            is_used,
-            "probe_id":
-            probe.probe_id,
-            "mode":
-            data["mode"]
+            "service_id": service.service_id,
+            "scheme": data.get("scheme", probe.scheme),
+            "path": data.get("path", probe.path),
+            "port": data.get("port", probe.port),
+            "cmd": data.get("cmd", probe.cmd),
+            "http_header": data.get("http_header", probe.http_header),
+            "initial_delay_second": data.get("initial_delay_second", probe.initial_delay_second),
+            "period_second": data.get("period_second", probe.period_second),
+            "timeout_second": data.get("timeout_second", probe.timeout_second),
+            "failure_threshold": data.get("failure_threshold", probe.failure_threshold),
+            "success_threshold": data.get("success_threshold", probe.success_threshold),
+            "is_used": is_used,
+            "probe_id": probe.probe_id,
+            "mode": data["mode"]
         }
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id

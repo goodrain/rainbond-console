@@ -672,7 +672,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         """获取多个应用的状态"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
-        logger.debug('-----------token------->{0}'.format(token))
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services_status"
 

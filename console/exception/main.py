@@ -2,8 +2,10 @@
 """
   Created on 18/1/15.
 """
-from www.utils.return_message import general_message
 from rest_framework.response import Response
+
+from console.utils.response import MessageResponse
+from www.utils.return_message import general_message
 
 
 class BusinessException(Exception):
@@ -25,3 +27,41 @@ class ResourceNotEnoughException(Exception):
 class AccountOverdueException(Exception):
     def __init__(self, message):
         super(AccountOverdueException, self).__init__(message)
+
+
+class CallRegionAPIException(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+        super(CallRegionAPIException, self).__init__(
+            "Region api return code {0},error message {1}".format(code, message)
+        )
+
+
+class ServiceHandleException(Exception):
+    def __init__(self, msg, msg_show=None, status_code=400, error_code=None):
+        """
+        :param msg: 错误信息(英文)
+        :param msg_show: 错误信息(中文)
+        :param status_code: http 状态码
+        :param error_code: 错误码
+        """
+        super(Exception, self).__init__(status_code, error_code, msg, msg_show)
+        self.msg = msg
+        self.msg_show = msg_show or self.msg
+        self.status_code = status_code
+        self.error_code = error_code or status_code
+
+    @property
+    def response(self):
+        return MessageResponse(
+            self.msg,
+            msg_show=self.msg_show,
+            status_code=self.status_code,
+            error_code=self.error_code
+        )
+
+
+class AbortRequest(ServiceHandleException):
+    """终止请求"""
+    pass

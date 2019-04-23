@@ -7,9 +7,10 @@ import json
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
+from console.exception.main import ResourceNotEnoughException, AccountOverdueException, CallRegionAPIException
 from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_config import deploy_type_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
@@ -20,9 +21,7 @@ from console.services.team_services import team_services
 from console.repositories.app import service_repo, service_source_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from console.services.app_config import volume_service
-from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-
 
 logger = logging.getLogger("default")
 
@@ -577,25 +576,10 @@ class ChangeServiceTypeView(AppBaseView):
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
                 return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
-            label_dict = dict()
-            body = dict()
-            # made ...
-            body["label_key"] = "service-type"
-            body["label_value"] = "StatelessServiceType" if extend_method == "stateless" else "StatefulServiceType"
-            label_list = list()
-            label_list.append(body)
-            label_dict["labels"] = label_list
-            logger.debug('---------------label_dict------------->{0}'.format(label_dict))
-
-            res, body = region_api.update_service_state_label(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                                              label_dict)
-
-            if int(res.status) != 200:
-                result = general_message(500, "region faild", "数据中心请求失败")
-                return Response(result, status=500)
-            self.service.extend_method = extend_method
-            self.service.save()
+            deploy_type_service.put_service_deploy_type(self.service, extend_method)
             result = general_message(200, "success", "操作成功")
+        except CallRegionAPIException as e:
+            result = general_message(e.code, "failure", e.message)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -707,15 +691,14 @@ class MarketServiceUpgradeView(AppBaseView):
             if status == "undeploy":
                 result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)
                 return Response(result, status=result["code"])
-            
             if self.service.service_source != "market":
                 return Response(general_message(400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"), status=400)
-            # 获取组对象
-            group_obj = tenant_service_group_repo.get_group_by_service_group_id(self.service.tenant_service_group_id)
-            if group_obj:
+
+            service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
+            if service_source:
                 # 获取内部市场对象
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_obj.group_key,
-                                                                                 group_obj.group_version)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                 service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市应用已删除")
                     return Response(result, status=result["code"])
@@ -736,8 +719,6 @@ class MarketServiceUpgradeView(AppBaseView):
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
                                 for app in apps_list:
-                                    logger.debug('---------====app===============>{0}'.format(json.dumps(app)))
-                                    logger.debug('---------=====extend_info==============>{0}'.format(json.dumps(extend_info)))
                                     if app.has_key("service_share_uuid"):
                                         if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
                                             new_version = int(app["deploy_version"])
@@ -759,13 +740,16 @@ class MarketServiceUpgradeView(AppBaseView):
                         return Response(result, status=result["code"])
 
                 # 通过group_key获取不同版本的应用市场对象
-                rain_apps = rainbond_app_repo.get_rainbond_app_by_key(group_obj.group_key)
+                rain_apps = rainbond_app_repo.get_rainbond_app_by_key(service_source.group_key)
                 if rain_apps:
                     for r_app in rain_apps:
-                        if r_app.version > group_obj.group_version and r_app.version not in upgrate_version_list:
+                        if r_app.version > service_source.version and r_app.version not in upgrate_version_list:
                             upgrate_version_list.append(r_app.version)
-                        elif r_app.version == group_obj.group_version and self.service.is_upgrate:
+                        elif r_app.version == service_source.version and self.service.is_upgrate:
                             upgrate_version_list.append(r_app.version)
+            else:
+                logger.info("Tenant id: {0}; Service id: {1}; service source not found".format(
+                    self.tenant.tenant_id, self.service.service_id))
 
             upgrate_version_list.sort()
             result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)

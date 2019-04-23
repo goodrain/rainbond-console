@@ -64,7 +64,6 @@ class AppMntService(object):
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type__in=[self.SHARE, self.CONFIG]).exclude(
             service_id=service.service_id).exclude(volume_name__in=dep_mnt_names)
         # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
-        logger.debug('----------volumes----->{0}'.format(type(service_volumes)))
         volumes = list(service_volumes)
         for volume in volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)
@@ -112,6 +111,32 @@ class AppMntService(object):
             if code != 200:
                 return code, msg
         return 200, "success"
+    
+    def batch_mnt_svc_volume(self, tenant, service, dep_vol_data):
+        local_path = []
+        tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
+        local_path = [l_path.volume_path for l_path in tenant_service_volumes]
+        for i in range(len(dep_vol_data)):
+            dep_vol = dep_vol_data[i]
+            code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
+            if code != 200:
+                logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))
+                dep_vol_data.delete(dep_vol)
+        for dep_vol in dep_vol_data:
+            dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"], dep_vol["volume_name"])
+            if not dep_volume:
+                logger.info("service_id: {0}; volume_name: {1}; volume not found".format(dep_vol["service_id"], dep_vol["volume_name"]))
+                continue
+            source_path = dep_vol['path'].strip()
+            try:
+                code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume)
+            except Exception as e:
+                logger.exception(e)
+                code, msg = 500, "添加异常"
+            if code != 200:
+                logger.debug("Service id: {0}; ingore mnt; error add mnt\
+                     relation msg: {1}".format(service.service_id, msg))
+        return 200, "success"
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
         if service.create_status == "complete":
@@ -133,7 +158,6 @@ class AppMntService(object):
                     "file_content": config_file.file_content,
                     "enterprise_id": tenant.enterprise_id
                 }
-            logger.debug('---------------333----------->{0}'.format(data))
             res, body = region_api.add_service_dep_volumes(
                 service.service_region, tenant.tenant_name, service.service_alias, data
             )

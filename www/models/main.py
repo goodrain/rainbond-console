@@ -1,6 +1,4 @@
 # -*- coding: utf8 -*-
-from datetime import datetime
-
 import re
 from django.db import models
 from django.utils.crypto import salted_hmac
@@ -309,6 +307,7 @@ class Tenants(BaseModel):
     """
     租户表
     """
+
     class Meta:
         db_table = 'tenant_info'
 
@@ -486,7 +485,7 @@ class TenantServiceInfo(BaseModel):
         max_length=15,
         choices=extend_method,
         default='stateless',
-        help_text=u"伸缩方式")
+        help_text=u"服务部署类型,stateless or state")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -748,7 +747,6 @@ class TenantServiceAuth(BaseModel):
 
 
 class TenantServiceExtendMethod(BaseModel):
-
     class Meta:
         db_table = 'tenant_service_extend_method'
 
@@ -824,6 +822,7 @@ class PermRelService(BaseModel):
     """
     用户和服务关系表/用户在一个服务中的角色
     """
+
     class Meta:
         db_table = 'service_perms'
 
@@ -839,6 +838,7 @@ class PermRelTenant(BaseModel):
     用户和团队的关系表
     identity ：租户权限
     """
+
     class Meta:
         db_table = 'tenant_perms'
 
@@ -1091,8 +1091,10 @@ class TenantServiceVolume(BaseModel):
 
 class TenantServiceConfigurationFile(BaseModel):
     """服务配置文件"""
+
     class Meta:
         db_table = 'tenant_service_config'
+
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     volume_id = models.IntegerField(null=True, help_text=u"存储id")
     file_content = models.TextField(blank=True, null=True, help_text=u"配置文件内容")
@@ -1466,7 +1468,7 @@ class TenantEnterpriseToken(BaseModel):
 
     enterprise_id = models.IntegerField(default=0, help_text=u"企业id")
     access_target = models.CharField(max_length=32, blank=True, null=True, default='', help_text=u"要访问的目标服务名称")
-    access_url = models.CharField(max_length=255,  help_text=u"需要访问的api地址")
+    access_url = models.CharField(max_length=255, help_text=u"需要访问的api地址")
     access_id = models.CharField(max_length=32, help_text=u"target分配给客户端的ID")
     access_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"客户端token")
     crt = models.TextField(default='', blank=True, null=True, help_text=u"客户端证书")
@@ -1539,14 +1541,14 @@ class ServiceWebhooks(BaseModel):
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
     webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
+    trigger = models.CharField(max_length=256, default='', help_text=u"触发正则表达式")
 
 
 class GatewayCustomConfiguration(BaseModel):
     """网关自定义参数配置"""
+
     class Meta:
         db_table = 'gateway_custom_configuration'
 
     rule_id = models.CharField(max_length=32, help_text=u"规则id")
     value = models.TextField(help_text=u"配置value")
-
-
