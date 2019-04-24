@@ -136,3 +136,10 @@ venv.bak/
 
 # vscode
 .vscode/
+goodrain_web/conf/local_test.py
+Dockerfile.build
+
+start.sh
+temp
+logs
+local_settings.py

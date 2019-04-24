@@ -10,4 +10,4 @@
   rev: v1.4.0
   hooks:
     - id: reorder-python-imports
-      language_version: python2
+      language_version: python2.7

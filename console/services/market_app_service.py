@@ -9,29 +9,38 @@ import logging
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.repositories.app import service_source_repo, service_repo
+from console.models.main import RainbondCenterApp
+from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.plugin import plugin_repo
+from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.app_config import volume_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import env_var_service, port_service, volume_service, label_service, probe_service, AppMntService
+from console.services.app_config import AppMntService
+from console.services.app_config import env_var_service
+from console.services.app_config import label_service
+from console.services.app_config import port_service
+from console.services.app_config import probe_service
+from console.services.app_config import volume_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.common_services import common_services
 from console.services.group_service import group_service
+from console.services.plugin import app_plugin_service
+from console.services.plugin import plugin_config_service
+from console.services.plugin import plugin_service
+from console.services.plugin import plugin_version_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import TenantServiceInfo, PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar
+from www.models import ServicePluginConfigVar
+from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.models.main import RainbondCenterApp
-from console.services.common_services import common_services
-from console.repositories.plugin import plugin_repo
-from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
-from console.repositories.share_repo import share_repo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -62,8 +71,7 @@ class MarketAppService(object):
                 region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
                 raise Exception(msg)
-            
-            
+
             app_map = {}
             for app in apps:
                 app_map[app.get("service_share_uuid")] = app
@@ -73,9 +81,11 @@ class MarketAppService(object):
                     "group_key": market_app.group_key,
                     "version": market_app.version,
                     "service_share_uuid": app.get("service_share_uuid")
+                    if app.get("service_share_uuid", None) else app.get("service_key")
                 }
-                service_source_repo.update_service_source(ts.tenant_id, ts.service_id, 
-                    **service_source_data)
+                service_source_repo.update_service_source(ts.tenant_id,
+                                                          ts.service_id,
+                                                          **service_source_data)
                 group_service.add_service_to_group(tenant, region, group_id,
                                                    ts.service_id)
                 service_list.append(ts)
@@ -125,10 +135,10 @@ class MarketAppService(object):
             # 创建应用插件
             self.__create_service_plugins(region, tenant, service_list,
                                           app_plugin_map, old_new_id_map)
-            
+
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
-            
+
             if is_deploy:
                 # 部署所有应用
                 self.__deploy_services(tenant, user, new_service_list)
@@ -154,8 +164,8 @@ class MarketAppService(object):
                 for item in dep_mnts:
                     dep_service = key_service_map.get(item["service_share_uuid"])
                     if not dep_service:
-                        logger.info("Service share uuid: {}; dependent service not found".\
-                            format(item["service_share_uuid"]))
+                        logger.info("Service share uuid: {}; dependent service not found".
+                                    format(item["service_share_uuid"]))
                         continue
                     dep_app = app_map.get(item["service_share_uuid"])
                     if not dep_app:
@@ -377,7 +387,7 @@ class MarketAppService(object):
                                 except Exception as le:
                                     logger.exception(
                                         "local market install app delete service probe {0}"
-                                            .format(le))
+                                        .format(le))
             raise e
 
     def __deploy_services(self, tenant, user, service_list):
@@ -566,8 +576,8 @@ class MarketAppService(object):
         else:
             extend_info = app["service_image"]
         extend_info["source_deploy_version"] = app.get("deploy_version")
-        extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get("service_share_uuid", None) \
-            else app.get("service_key", "")
+        extend_info["source_service_share_uuid"] = app.get(
+            "service_share_uuid") if app.get("service_share_uuid", None) else app.get("service_key", "")
 
         service_source_params = {
             "team_id": ts.tenant_id,

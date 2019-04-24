@@ -65,3 +65,17 @@ class ServiceHandleException(Exception):
 class AbortRequest(ServiceHandleException):
     """终止请求"""
     pass
+
+
+class RecordNotFound(Exception):
+    """
+    There is no corresponding record in the database
+    """
+
+    def __init__(self, msg):
+        super(RecordNotFound, self).__init__(msg)
+
+
+class RbdAppNotFound(Exception):
+    def __init__(self, msg):
+        super(RbdAppNotFound, self).__init__(msg)

@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
 from console.services.service_services import base_service
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
-
-from www.db import BaseConnection
-from www.models import TenantServiceInfo, ServiceGroupRelation, ServiceGroup, ServiceEvent
+from www.models import ServiceEvent
+from www.models import ServiceGroup
+from www.models import ServiceGroupRelation
+from www.models import TenantServiceInfo
 from www.utils.status_translate import get_status_info_map
 
 logger = logging.getLogger("default")
@@ -17,15 +19,15 @@ class ServiceRepo(object):
         conn = BaseConnection()
         sql = """
             SELECT
-                service_alias 
+                service_alias
             FROM
                 tenant_service a,
-                tenant_info b 
+                tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
                 AND a.service_region = b.region
-                AND b.enterprise_id = "{eid}" 
-                AND a.service_source = "source_code" 
+                AND b.enterprise_id = "{eid}"
+                AND a.service_source = "source_code"
                 AND a.create_status = "complete"
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
@@ -38,11 +40,11 @@ class ServiceRepo(object):
                 service_alias
             FROM
                 tenant_service a,
-                tenant_info b 
+                tenant_info b
             WHERE
-                a.tenant_id = b.tenant_id 
-                AND a.service_region = b.region 
-                AND b.enterprise_id = "{eid}" 
+                a.tenant_id = b.tenant_id
+                AND a.service_region = b.region
+                AND b.enterprise_id = "{eid}"
                 AND a.create_status="complete"
                 AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
                 LIMIT 1""".format(eid=eid)
@@ -53,16 +55,16 @@ class ServiceRepo(object):
         conn = BaseConnection()
         sql = """
             SELECT
-                service_alias 
+                service_alias
             FROM
                 tenant_service a,
-                tenant_info b 
+                tenant_info b
             WHERE
-                a.tenant_id = b.tenant_id 
-                AND a.service_region = b.region 
-                AND b.enterprise_id = "{eid}" 
-                AND a.service_source = "market" 
-                AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" ) 
+                a.tenant_id = b.tenant_id
+                AND a.service_region = b.region
+                AND b.enterprise_id = "{eid}"
+                AND a.service_source = "market"
+                AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
@@ -272,6 +274,34 @@ class ServiceRepo(object):
     def create_service_event(self, create_info):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
+
+    def list_by_ids(self, service_ids):
+        return TenantServiceInfo.objects.filter(service_id_in=service_ids)
+
+    def list_by_svc_share_uuids(self, group_id, uuids):
+        conn = BaseConnection()
+        sql = """
+            SELECT
+                a.service_id,
+                a.service_cname
+            FROM
+                tenant_service a,
+                service_source b,
+                service_group_relation c
+            WHERE
+                a.tenant_id = b.team_id
+                AND a.service_id = b.service_id
+                AND b.service_share_uuid IN ( {uuids} )
+                AND a.service_id = c.service_id
+                AND c.group_id = {group_id}
+            """.format(group_id=group_id, uuids=uuids)
+        # args = {
+        # "uuids": ",".join(uuid for uuid in uuids),
+        # "group_id": group_id
+        # }
+        print sql
+        result = conn.query(sql)
+        return result
 
 
 service_repo = ServiceRepo()
