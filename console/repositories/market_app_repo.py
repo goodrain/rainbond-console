@@ -4,9 +4,12 @@
 """
 import logging
 
-from console.models.main import RainbondCenterApp, AppExportRecord, AppImportRecord
+from console.models.main import AppExportRecord
+from console.models.main import AppImportRecord
+from console.models.main import RainbondCenterApp
 
 logger = logging.getLogger("default")
+
 
 class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_id(self, id):
@@ -32,6 +35,12 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key(self, group_key):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key).all()
+        if rcapps:
+            return rcapps
+        return None
+
+    def list_by_key_time(self, group_key, time):
+        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, update_time__gte=time).all()
         if rcapps:
             return rcapps
         return None
@@ -99,8 +108,8 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params):
         return AppImportRecord.objects.create(**params)
 
-    def get_importing_record(self,user_name, team_name):
-        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name,status="importing")
+    def get_importing_record(self, user_name, team_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name, status="importing")
 
     def get_user_unfinished_import_record(self, team_name, user_name):
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(

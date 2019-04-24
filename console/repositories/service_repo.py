@@ -164,7 +164,7 @@ class ServiceRepo(object):
         return service_event
 
     def list_by_ids(self, service_ids):
-        return TenantServiceInfo.objects.filter(service_id_in=service_ids)
+        return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     def list_by_svc_share_uuids(self, group_id, uuids):
         conn = BaseConnection()

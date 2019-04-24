@@ -17,8 +17,6 @@ class PropertiesChanges(object):
         self.service = service
         self.service_source = service_source_repo.get_service_source(
             service.tenant_id, service.service_id)
-        self.service_group = service_group_relation_repo.get_group_id_by_service(
-            service)
 
     def get_property_changes(self, eid, version):
         """
@@ -42,6 +40,8 @@ class PropertiesChanges(object):
                                             version,
                                             self.service_source.service_share_uuid))
 
+        # when modifying the following properties, you need to
+        # synchronize the method 'properties_changes.has_changes'
         deploy_version = self.deploy_version_changes(app["deploy_version"])
         app_version = self.app_version_changes(version)
         envs = self.env_changes(app.get("service_env_map_list"))
@@ -111,8 +111,9 @@ class PropertiesChanges(object):
 
         uuids = "'{}'".format("','".join(str(uuid)
                                          for uuid in dep_uuids))
+        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         new_dep_services = service_repo.list_by_svc_share_uuids(
-            self.service_group.group_id, uuids)
+            group_id, uuids)
         new_service_ids = [svc.service_id for svc in new_dep_services]
 
         add = [svc for svc in new_dep_services if svc.service_id not in service_ids]
@@ -131,9 +132,27 @@ class PropertiesChanges(object):
         """port can only be created, cannot be updated and deleted"""
         old_ports = port_repo.get_service_ports(self.service.tenant_id,
                                                 self.service.service_id)
-        old_container_ports = [port.contain_port for port in old_ports]
+        old_container_ports = [port.container_port for port in old_ports]
         create_ports = [port for port in new_ports
-                        if port.contain_port not in old_container_ports]
+                        if port["container_port"] not in old_container_ports]
         return {
             "add": create_ports
         }
+
+
+def has_changes(data):
+    def alpha(x): return x and x.get("is_change", None)
+    if alpha(data.get("deploy_version", None)):
+        return True
+    if alpha(data.get("app_version", None)):
+        return True
+
+    def beta(x): return x and (x.get("add", None) or x.get("del", None)
+                               or x.get("upd", None))
+    if beta(data.get("envs", None)):
+        return True
+    if beta(data.get("ports", None)):
+        return True
+    if beta(data.get("dep_services", None)):
+        return True
+    return False

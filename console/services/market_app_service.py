@@ -21,6 +21,8 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
+from console.services.app_actions.properties_changes import has_changes
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppMntService
 from console.services.app_config import env_var_service
 from console.services.app_config import label_service
@@ -800,6 +802,44 @@ class MarketAppService(object):
                 }
                 result_list.append(rbapp)
         return total, result_list
+
+    def list_upgradeable_versions(self, tenant, service):
+        """
+        list the upgradeable versions of the rainbond center app
+        corresponding to the tenant and service
+        """
+        service_source = service_source_repo.get_service_source(service.tenant_id,
+                                                                service.service_id)
+        if service_source is None:
+            logger.warn("service id: {}; service source not found".format(
+                service.service_id))
+            return None
+        cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+            service_source.group_key, service_source.version)
+        if cur_rbd_app is None:
+            logger.warn("group key: {0}; version: {1}; service source not found".format(
+                        service_source.group_key, service_source.version))
+            return None
+        rbd_center_apps = rainbond_app_repo.list_by_key_time(
+            service_source.group_key, cur_rbd_app.update_time)
+        if not rbd_center_apps:
+            return None
+
+        pc = PropertiesChanges(service)
+        result = []
+        for item in rbd_center_apps:
+            changes = pc.get_property_changes(
+                tenant.enterprise_id, item.version)
+            if not has_changes(changes):
+                logger.debug("current rbd app: group_key={0}, version={1}, update_time={2}; \
+                dest version: {3}; no changes".format(service_source.group_key,
+                                                      service_source.version,
+                                                      cur_rbd_app.update_time,
+                                                      item.version))
+                continue
+            result.append(item.version)
+
+        return result
 
 
 class MarketTemplateTranslateService(object):
