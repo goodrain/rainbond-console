@@ -16,10 +16,13 @@ class MessageResponse(Response):
         :param list: 列表信息
         :param kwargs:
         """
+        response_key = {"template_name", "headers", "exception", "content_type"}
+        body_kwargs = {k: v for k, v in kwargs.items() if k not in response_key}
+        response_kwargs = {k: v for k, v in kwargs.items() if k in response_key}
         body = {
             "code": error_code or status_code,
             "msg": msg,
             "msg_show": msg_show or msg,
-            "data": dict(bean=bean or {}, list=list or [])
+            "data": dict(bean=bean or {}, list=list or [], **body_kwargs)
         }
-        super(MessageResponse, self).__init__(data=body, status=status_code, **kwargs)
+        super(MessageResponse, self).__init__(data=body, status=status_code, **response_kwargs)

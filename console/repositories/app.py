@@ -139,6 +139,10 @@ class ServiceSourceRepository(object):
             return service_sources[0]
         return None
 
+    def get_service_sources_by_service_ids(self, service_ids):
+        """使用service_ids获取服务源信息的查询集"""
+        return ServiceSourceInfo.objects.filter(service_id__in=service_ids)
+
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
