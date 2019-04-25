@@ -728,3 +728,18 @@ class ServiceBuildSource(BaseModel):
         max_length=32, help_text="key to market app, unique identifier")
     version = models.CharField(
         max_length=32, help_text="version to market app")
+
+
+class TenantServiceBackup(BaseModel):
+    class Meta:
+        db_table = "tenant_service_backup"
+
+    region_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    tenant_id = models.CharField(max_length=32)
+    service_id = models.CharField(max_length=32)
+    backup_id = models.CharField(max_length=32, unique=True)
+    backup_data = models.TextField()
+    create_time = models.DateTimeField(
+        auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(
+        auto_now_add=True, blank=True, null=True, help_text=u"更新时间")

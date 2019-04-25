@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from datetime import datetime
 
 from django.db import transaction
 
@@ -8,13 +9,16 @@ from console.exception.main import EnvAlreadyExist
 from console.exception.main import InvalidEnvName
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import port_repo
+from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
+from console.services.backup_service import groupapp_backup_service as backup_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from www.apiclient.regionapi import RegionInvokeApi
-# from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -67,6 +71,9 @@ class MarketService(object):
                 tenant.tenant_id, service.service_id)
             version = service_source.version
         self.version = version
+        # data that has been successfully changed
+        self.changed = {}
+        self.backup = None
         self.update_funcs = {
             "envs": self._update_envs,
             "ports": self._update_ports,
@@ -74,6 +81,10 @@ class MarketService(object):
         self.sync_funcs = {
             "envs": self._sync_envs,
             "ports": self._sync_ports,
+        }
+        self.resotre_func = {
+            "envs": self._resotre_envs,
+            "ports": self._resotre_ports,
         }
 
     def pre_action(self):
@@ -83,7 +94,9 @@ class MarketService(object):
         """
         logger.info("type: market; service id: {}; pre-deployment action.".format(
             self.service.service_id))
-        self.create_backup()
+        backup = self.create_backup()
+        logger.info("service id: {}; backup id: {}; backup successfully.".format(
+            self.service.service_id, backup.backup_id))
 
         # list properties changes
         pc = PropertiesChanges(self.service)
@@ -96,14 +109,24 @@ class MarketService(object):
             self.modify_property(changes)
             self.sync_region_property(changes)
 
-        # self.restore_backup()
+        self.restore_backup()
 
     def create_backup(self):
         """
         Create a pre-service backup to prepare for deployment failure
         """
-        # TODO: do sth.
-        pass
+        backup_data = backup_service.get_service_details(self.tenant,
+                                                         self.service)
+        backup = {
+            "region_name": self.tenant.region,
+            "tenant_id": self.tenant.tenant_id,
+            "service_id": self.service.service_id,
+            "backup_id": make_uuid(),
+            "backup_data": json.dumps(backup_data),
+            "create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "update_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        return service_backup_repo.create(**backup)
 
     def modify_property(self, changes):
         """
@@ -132,21 +155,32 @@ class MarketService(object):
         raise: RegionApiBaseHttpClient.CallApiError
         """
         for k, v in changes.items():
-            func = self.update_funcs.get(k, None)
+            func = self.sync_funcs.get(k, None)
             if func is None:
                 logger.warning(
                     "key: {}; unsuppurt key for sync func".format(k))
                 continue
             # TODO: deep copy
             func(v)
+            self.changed[k] = v
 
     def restore_backup(self):
         """
         Restore data in the region based on backup information
         when an error occurs during deployment.
         """
-        # TODO: do sth.
-        pass
+        for k, v in self.changed.items():
+            func = self.resotre_func.get(k, None)
+            if func is None:
+                logger.warning(
+                    "key: {}; unsuppurt key for restore func".format(k))
+                continue
+            try:
+                func(v)
+            except RegionApiBaseHttpClient.CallApiError as e:
+                # ignore restore error
+                logger.error("service id: {}; failed to restore {}; {}".format(
+                    self.service.service_id, k, e))
 
     def _update_service(self, app):
         params = {
@@ -246,13 +280,21 @@ class MarketService(object):
                                        self.tenant.tenant_name,
                                        self.service.service_alias, attr)
 
+    def _resotre_envs(self, envs):
+        if self.backup is None:
+            logger.warning("service id: {}; can't find any backup to restore envs.".format(
+                self.service.service_id))
+            return
+        # TODO
+        pass
+
     def _update_ports(self, ports):
         if ports is None:
             return
         add = ports.get("add", [])
         for port in add:
             container_port = int(port["container_port"])
-            port_alias = self.service.service_key.upper()
+            port_alias = self.service.service_key.upper()[:8]
             port["tenant_id"] = self.tenant.tenant_id
             port["service_id"] = self.service.service_id
             port["mapping_port"] = container_port
@@ -279,7 +321,7 @@ class MarketService(object):
         add = ports.get("add", [])
         for port in add:
             container_port = int(port["container_port"])
-            port_alias = self.service.service_key.upper()
+            port_alias = self.service.service_key.upper()[:8]
             port["tenant_id"] = self.tenant.tenant_id
             port["service_id"] = self.service.service_id
             port["mapping_port"] = container_port
@@ -287,3 +329,7 @@ class MarketService(object):
         region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
                                     self.service.service_alias,
                                     {"port": add, "enterprise_id": self.tenant.enterprise_id})
+
+    def _resotre_ports(self, ports):
+        # TODO
+        pass
