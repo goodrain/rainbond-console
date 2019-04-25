@@ -543,7 +543,7 @@ class MarketAppService(object):
         tenant_service.port_type = "multi_outer"
         tenant_service.create_time = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
-        tenant_service.deploy_version = ""
+        tenant_service.deploy_version = app["deploy_version"]
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
         tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
@@ -828,8 +828,7 @@ class MarketAppService(object):
         pc = PropertiesChanges(service)
         result = []
         for item in rbd_center_apps:
-            changes = pc.get_property_changes(
-                tenant.enterprise_id, item.version)
+            changes = pc.get_property_changes(tenant.enterprise_id, item.version)
             if not has_changes(changes):
                 logger.debug("current rbd app: group_key={0}, version={1}, update_time={2}; \
                 dest version: {3}; no changes".format(service_source.group_key,

@@ -14,6 +14,7 @@ from console.repositories.app import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
+from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_config import deploy_type_service
 from console.services.app_config import volume_service
 from console.services.app_config.env_service import AppEnvVarService
@@ -29,6 +30,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 env_var_service = AppEnvVarService()
+app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
@@ -174,8 +176,10 @@ class DeployAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-            code, msg, event = app_manage_service.deploy(
-                self.tenant, self.service, self.user, is_upgrade, group_version)
+
+            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user,
+                                                         is_upgrade, version=group_version)
+
             bean = {}
             if event:
                 bean = event.to_dict()

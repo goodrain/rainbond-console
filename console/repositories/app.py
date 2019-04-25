@@ -4,9 +4,12 @@
 """
 from docker_image import reference
 
-from www.models import TenantServiceInfo, TenantServiceInfoDelete, ServiceWebhooks
-from www.db import BaseConnection
-from console.models.main import ServiceSourceInfo, ServiceRecycleBin, ServiceRelationRecycleBin
+from console.models.main import ServiceRecycleBin
+from console.models.main import ServiceRelationRecycleBin
+from console.models.main import ServiceSourceInfo
+from www.models import ServiceWebhooks
+from www.models import TenantServiceInfo
+from www.models import TenantServiceInfoDelete
 
 
 class TenantServiceInfoRepository(object):
@@ -83,6 +86,10 @@ class TenantServiceInfoRepository(object):
         service.version = tag
         service.save()
 
+    def update(self, tenant_id, service_id, **params):
+        TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id, service_id=service_id).update(**params)
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
@@ -99,7 +106,7 @@ class ServiceSourceRepository(object):
 
     def update_service_source(self, team_id, service_id, **data):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)
-    
+
     def get_by_share_key(self, team_id, service_share_uuid):
         service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_share_uuid=service_share_uuid)
         if service_sources:

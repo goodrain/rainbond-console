@@ -34,7 +34,8 @@ class CallRegionAPIException(Exception):
         self.code = code
         self.message = message
         super(CallRegionAPIException, self).__init__(
-            "Region api return code {0},error message {1}".format(code, message)
+            "Region api return code {0},error message {1}".format(
+                code, message)
         )
 
 
@@ -79,3 +80,15 @@ class RecordNotFound(Exception):
 class RbdAppNotFound(Exception):
     def __init__(self, msg):
         super(RbdAppNotFound, self).__init__(msg)
+
+
+class InvalidEnvName(Exception):
+    def __init__(self, msg="invlaid env name"):
+        super(InvalidEnvName, self).__init__(msg)
+
+
+class EnvAlreadyExist(Exception):
+    def __init__(self, env_name=None):
+        msg = "env name: {}; already exist.".format(
+            env_name) if env_name else "env already exist"
+        super(EnvAlreadyExist, self).__init__(msg)
