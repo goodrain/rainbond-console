@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from console.repositories.app import service_repo
@@ -40,6 +41,13 @@ class PropertiesChanges(object):
             "deploy_version": self.deploy_version_changes(app["deploy_version"]),
             "app_version": self.app_version_changes(version),
         }
+        # source code service does not have 'share_image'
+        image = self.image_changes(app.get("share_image", None))
+        if image:
+            result["image"] = image
+        slug_path = self.slug_path_changes(app.get("share_slug_path", None))
+        if slug_path:
+            result["slug_path"] = slug_path
         envs = self.env_changes(app.get("service_env_map_list", []))
         if envs:
             result["envs"] = envs
@@ -112,6 +120,40 @@ class PropertiesChanges(object):
             "old": self.service_source.version,
             "new": new,
             "is_change": self.service_source.version != new
+        }
+
+    def image_changes(self, new):
+        """
+        compare the old and new image to determine if there is any change.
+        """
+        if new is None:
+            return None
+        if self.service.image != new:
+            logger.debug("new: {0}; old: {1}; image has changes".format(
+                new, self.service.image))
+        return {
+            "old": self.service.image,
+            "new": new,
+            "is_change": self.service.image != new
+        }
+
+    def slug_path_changes(self, new):
+        """
+        compare the old and new slug_path to determine if there is any change.
+        """
+        if new is None:
+            return None
+        extend_info = json.loads(self.service_source.extend_info)
+        old_slug_path = extend_info.get("share_slug_path", None)
+        if old_slug_path is None:
+            return None
+        if old_slug_path != new:
+            logger.debug("new: {0}; old: {1}; slug path has changes".format(
+                new, old_slug_path))
+        return {
+            "old": old_slug_path,
+            "new": new,
+            "is_change": old_slug_path != new
         }
 
     def dep_services_changes(self, dep_uuids):

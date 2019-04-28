@@ -29,12 +29,21 @@ from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 app_port_service = AppPortService()
 app_relation_service = AppServiceRelationService()
+baseService = BaseTenantService()
+
+
+def enum(**enums):
+    return type('Enum', (), enums)
+
+
+AsyncAction = enum(BUILD=2, UPDATE=1, NOTHING=2)
 
 
 class AppDeployService(object):
@@ -44,16 +53,19 @@ class AppDeployService(object):
             impl = MarketService(tenant, service, version)
         else:
             impl = OhterService(service)
-        impl.pre_action()
+        return impl.pre_action()
 
     def deploy(self, tenant, service, user, is_upgrade, version, committer_name=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
-        self.pre_deploy_action(tenant, service, version)
-        code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
-                                                     group_version=version,
-                                                     committer_name=committer_name)
+        async_action = self.pre_deploy_action(tenant, service, version)
+        if async_action == AsyncAction.BUILD:
+            code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
+                                                         group_version=version,
+                                                         committer_name=committer_name)
+        elif async_action == AsyncAction.UPDATE:
+            code, msg, event = app_manage_service.upgrade(tenant, service, user, committer_name)
         return code, msg, event
 
 
@@ -68,6 +80,7 @@ class OhterService(object):
     def pre_action(self):
         logger.info("type: other; service id: {}; pre-deployment action.".format(
             self.service.service_id))
+        return AsyncAction.BUILD
 
 
 class MarketService(object):
@@ -83,12 +96,16 @@ class MarketService(object):
                 tenant.tenant_id, service.service_id)
             version = service_source.version
         self.version = version
+
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
+
         self.update_funcs = self._create_update_funcs()
         self.sync_funcs = self._create_sync_funcs()
         self.resotre_func = self._create_restore_funcs()
+
+        self.async_build, self.async_update = self._create_async_action_tbl()
 
     def dummy_func(self, changes):
         pass
@@ -135,6 +152,16 @@ class MarketService(object):
             "plugins": self._restore_plugins,
         }
 
+    def _create_async_action_tbl(self):
+        """
+        create an asynchronous action corresponding to the modification of each property
+        asynchronous action: build, update or nothing
+        """
+        async_build = ["deploy_version", "image", "slug_path"]
+        async_update = ["envs", "connect_infos", "ports", "volumes", "probe",
+                        "dep_services", "dep_volumes", "plugins"]
+        return async_build, async_update
+
     def pre_action(self):
         """
         raise RbdAppNotFound
@@ -155,10 +182,12 @@ class MarketService(object):
             self.service.service_id, self.version, changes))
 
         with transaction.atomic():
-            self.modify_property(changes)
+            async_action = self.modify_property(changes)
             self.sync_region_property(changes)
 
         # self.restore_backup()
+
+        return async_action
 
     def create_backup(self):
         """
@@ -188,6 +217,9 @@ class MarketService(object):
                                                      service_source)
         self._update_service(app)
         self._update_service_source(app, self.version)
+        # priority: build > update > nothing
+        priority = {AsyncAction.BUILD: 0, AsyncAction.UPDATE: 1, AsyncAction.NOTHING: 2}
+        async_action = AsyncAction.NOTHING
         for k, v in changes.items():
             func = self.update_funcs.get(k, None)
             if func is None:
@@ -195,6 +227,20 @@ class MarketService(object):
                     "key: {}; unsuppurt key for upgrade func".format(k))
                 continue
             func(v)
+
+            aa = self._get_async_action(k)
+            if priority[aa] < priority[async_action]:
+                logger.debug("key: {}; select asynchronous action: {}".format)
+                async_action = aa
+
+        return async_action
+
+    def _get_async_action(self, key):
+        if key in self.async_build:
+            return AsyncAction.BUILD
+        if key in self.async_update:
+            return AsyncAction.UPDATE
+        return AsyncAction.NOTHING
 
     def sync_region_property(self, changes):
         """
@@ -229,24 +275,16 @@ class MarketService(object):
                     self.service.service_id, k, e))
 
     def _update_service(self, app):
-        # TODO: 实例可选项, 内存可选项
-        params = {
-            "cmd": app.get("cmd", ""),
-            "version": app["version"],
-            "deploy_version": app["deploy_version"]
-        }
         share_image = app.get("share_image", None)
         if share_image:
-            params["image"] = share_image
             self.service.image = share_image
-        logger.debug("tenant id: {}; service id: {}; data: {}; update service.".format(
-            self.tenant.tenant_id, self.service.service_id, params))
-        # service_repo.update(self.tenant.tenant_id,
-        #                     self.service.service_id,
-        #                     **params)
         self.service.cmd = app.get("cmd", "")
         self.service.version = app["version"]
-        self.service.deploy_version = app["deploy_version"]
+        self.service.min_node = app["extend_method_map"]["min_node"]
+        self.service.min_memory = app["extend_method_map"]["min_memory"]
+        self.service.min_cpu = baseService.calculate_service_cpu(
+            self.service.service_region, self.service.min_memory)
+        self.service.total_memory = self.service.min_node * self.service.min_memory
         self.service.save()
 
     def _update_service_source(self, app, version):
@@ -496,6 +534,7 @@ class MarketService(object):
                                                      self.service.service_id)
             if not inner_ports:
                 logger.warning("failed to sync dependent service: inner ports not found")
+                return
             body = dict()
             body["dep_service_id"] = dep_service.service_id
             body["tenant_id"] = self.tenant.tenant_id
