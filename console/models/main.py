@@ -31,6 +31,18 @@ class BaseModel(models.Model):
         return data
 
 
+class ConsoleSysConfig(BaseModel):
+    class Meta:
+        db_table = 'console_sys_config'
+
+    key = models.CharField(max_length=32, help_text=u"key")
+    type = models.CharField(max_length=32, help_text=u"类型")
+    value = models.CharField(max_length=4096, help_text=u"value")
+    desc = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"描述")
+    enable = models.BooleanField(default=True, help_text=u"是否生效")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
 class RainbondCenterApp(BaseModel):
     """云市应用包(组)"""
 

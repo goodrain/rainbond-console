@@ -1,12 +1,10 @@
 # -*- coding: utf8 -*-
 import logging
 
-import os
-
-from cadmin.models import ConsoleSysConfig
+from console.models.main import ConsoleSysConfig
+from console.repositories.team_repo import team_repo
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
-from console.repositories.team_repo import team_repo
 
 logger = logging.getLogger('default')
 market_api = MarketOpenAPI()
