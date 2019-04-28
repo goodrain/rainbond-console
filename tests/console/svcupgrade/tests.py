@@ -61,7 +61,7 @@ def test_envs_changes():
     tenantServiceEnvVar["attr_name"] = "NGINX_VERSION"
     tenantServiceEnvVar["attr_value"] = "1.15.12-1~stretch"
     tenantServiceEnvVar["is_change"] = False
-    tenantServiceEnvVar["scope"] = "outer"
+    tenantServiceEnvVar["scope"] = "inner"
     env_var_repo.add_service_env(**tenantServiceEnvVar)
 
     envs = [

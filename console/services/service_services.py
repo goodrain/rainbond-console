@@ -119,7 +119,7 @@ class BaseService(object):
                 AND t.service_region = "{region_name}"
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
-                t.{ FIELDS } { ORDER };
+                t.{fields} {order};
         '''.format(team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
         services = dsn.query(query_sql)
         return services
