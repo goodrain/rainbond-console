@@ -2,19 +2,30 @@
 """
   Created on 18/1/12.
 """
-import json
+import datetime
 import logging
 
-import datetime
-from www.db import BaseConnection
-from www.models import ServiceDomain, ServiceDomainCertificate, TenantServiceAuth, ServiceAttachInfo, \
-    ServicePaymentNotify, ServiceTcpDomain, GatewayCustomConfiguration
-from www.models import ServiceExtendMethod
-from www.models import TenantServiceEnv
-from www.models import TenantServiceEnvVar, TenantServicesPort, ImageServiceRelation, TenantServiceVolume, \
-    TenantServiceMountRelation, TenantServiceRelation, ServiceCreateStep, TenantServiceConfigurationFile, \
-    ThirdPartyServiceEndpoints
 from django.db.models import Q
+
+from www.db import BaseConnection
+from www.models import GatewayCustomConfiguration
+from www.models import ImageServiceRelation
+from www.models import ServiceAttachInfo
+from www.models import ServiceCreateStep
+from www.models import ServiceDomain
+from www.models import ServiceDomainCertificate
+from www.models import ServiceExtendMethod
+from www.models import ServicePaymentNotify
+from www.models import ServiceTcpDomain
+from www.models import TenantServiceAuth
+from www.models import TenantServiceConfigurationFile
+from www.models import TenantServiceEnv
+from www.models import TenantServiceEnvVar
+from www.models import TenantServiceMountRelation
+from www.models import TenantServiceRelation
+from www.models import TenantServicesPort
+from www.models import TenantServiceVolume
+from www.models import ThirdPartyServiceEndpoints
 
 logger = logging.getLogger("default")
 
@@ -97,6 +108,11 @@ class TenantServiceEnvVarRepository(object):
 
 
 class TenantServicePortRepository(object):
+    def list_inner_ports(self, tenant_id, service_id):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id,
+                                                 service_id=service_id,
+                                                 is_inner_service=True)
+
     def get_service_ports(self, tenant_id, service_id):
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
@@ -191,7 +207,7 @@ class TenantServiceVolumnRepository(object):
         TenantServiceVolume.objects.filter(service_id=service_id).delete()
 
     def get_by_sid_name(self, service_id, volume_name):
-        return TenantServiceVolume.objects.filter(service_id=service_id, 
+        return TenantServiceVolume.objects.filter(service_id=service_id,
                                                   volume_name=volume_name).first()
 
 
@@ -240,10 +256,10 @@ class TenantServiceRelationRepository(object):
                 tenant_service d
             WHERE
                 b.tenant_id = c.tenant_id
-                AND c.enterprise_id = "{eid}" 
+                AND c.enterprise_id = "{eid}"
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
-                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
+                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
                 AND (b.service_source <> "market" OR d.service_source <> "market")
                 limit 1""".format(eid=eid)
         result = conn.query(sql)
@@ -251,26 +267,26 @@ class TenantServiceRelationRepository(object):
             return True
         sql2 = """
             SELECT
-                a.dep_service_id 
+                a.dep_service_id
             FROM
                 tenant_service_relation a,
                 tenant_service b,
                 tenant_info c,
                 tenant_service d,
                 service_source e,
-                service_source f 
+                service_source f
             WHERE
-                b.tenant_id = c.tenant_id 
-                AND c.enterprise_id = "{eid}" 
-                AND a.service_id = d.service_id 
-                AND a.dep_service_id = b.service_id 
-                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" ) 
-                AND ( b.service_source = "market" AND d.service_source = "market" ) 
-                AND e.service_id = b.service_id 
-                AND f.service_id = d.service_id 
-                AND e.group_key <> f.group_key 
+                b.tenant_id = c.tenant_id
+                AND c.enterprise_id = "{eid}"
+                AND a.service_id = d.service_id
+                AND a.dep_service_id = b.service_id
+                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
+                AND ( b.service_source = "market" AND d.service_source = "market" )
+                AND e.service_id = b.service_id
+                AND f.service_id = d.service_id
+                AND e.group_key <> f.group_key
                 LIMIT 1""".format(eid=eid)
-        result2 = conn.query(sql2)   
+        result2 = conn.query(sql2)
         return True if len(result2) > 0 else False
 
 
@@ -359,8 +375,10 @@ class ServiceDomainRepository(object):
         return None
 
     def get_domain_by_domain_name_or_service_alias_or_group_name(self, search_conditions):
-        domains = ServiceDomain.objects.filter(Q(domain_name__contains=search_conditions) | Q(service_alias__contains=search_conditions) | Q(
-            group_name__contains=search_conditions)).order_by("-type")
+        domains = ServiceDomain.objects.filter(
+            Q(domain_name__contains=search_conditions)
+            | Q(service_alias__contains=search_conditions)
+            | Q(group_name__contains=search_conditions)).order_by("-type")
         return domains
 
     def get_all_domain(self):
@@ -376,17 +394,21 @@ class ServiceDomainRepository(object):
         except ServiceDomain.DoesNotExist:
             return None
 
-    def get_domain_by_name_and_port_and_protocol(self, service_id, container_port, domain_name, protocol, domain_path=None):
+    def get_domain_by_name_and_port_and_protocol(self, service_id, container_port,
+                                                 domain_name, protocol, domain_path=None):
         if domain_path:
             try:
                 return ServiceDomain.objects.get(service_id=service_id,
-                                                 container_port=container_port, domain_name=domain_name, protocol=protocol, domain_path=domain_path)
+                                                 container_port=container_port,
+                                                 domain_name=domain_name,
+                                                 protocol=protocol,
+                                                 domain_path=domain_path)
             except ServiceDomain.DoesNotExist:
                 return None
         else:
             try:
-                return ServiceDomain.objects.get(service_id=service_id,
-                                                 container_port=container_port, domain_name=domain_name, protocol=protocol)
+                return ServiceDomain.objects.get(
+                    service_id=service_id, container_port=container_port, domain_name=domain_name, protocol=protocol)
             except ServiceDomain.DoesNotExist:
                 return None
 
@@ -398,7 +420,9 @@ class ServiceDomainRepository(object):
 
     def get_domain_by_name_and_path_and_protocol(self, domain_name, domain_path, protocol):
         if domain_path:
-            return ServiceDomain.objects.filter(domain_name=domain_name, domain_path=domain_path, protocol=protocol).all()
+            return ServiceDomain.objects.filter(domain_name=domain_name,
+                                                domain_path=domain_path,
+                                                protocol=protocol).all()
         else:
             return None
 
@@ -485,21 +509,21 @@ class ServiceDomainRepository(object):
         conn = BaseConnection()
         sql = """
             SELECT
-                * 
+                *
             FROM
                 service_domain a,
-                tenant_info b 
+                tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}" 
+                AND b.enterprise_id = "{eid}"
                 AND (
-                    a.certificate_id <> 0 
-                    OR ( a.domain_path <> "/" AND a.domain_path <> "" ) 
-                    OR a.domain_cookie <> "" 
-                    OR a.domain_heander <> "" 
-                    OR a.the_weight <> 100 
-                    OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%') 
-                ) 
+                    a.certificate_id <> 0
+                    OR ( a.domain_path <> "/" AND a.domain_path <> "" )
+                    OR a.domain_cookie <> ""
+                    OR a.domain_heander <> ""
+                    OR a.the_weight <> 100
+                    OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%')
+                )
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
@@ -617,7 +641,8 @@ class ServiceTcpDomainRepository(object):
         ServiceTcpDomain.objects.filter(service_id=service_id).delete()
 
     def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
-        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+        return ServiceTcpDomain.objects.filter(tenant_id=tenant_id, region_id=region_id,
+                                               service_id=service_id, container_port=container_port).first()
 
 
 class TenantServiceEndpoints(object):

@@ -2,11 +2,16 @@
 """
   Created on 18/1/17.
 """
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo
+import logging
+
+from console.exception.main import InnerPortNotFound
+from console.exception.main import ServiceRelationAlreadyExist
 from console.repositories.app import service_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import port_repo
 from console.services.app_config.port_service import AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
-import logging
 
 region_api = RegionInvokeApi()
 port_service = AppPortService()
@@ -59,6 +64,31 @@ class AppServiceRelationService(object):
         if envs:
             return True
         return False
+
+    def create_service_relation(self, tenant, service, dep_service_id):
+        """
+        raise ServiceRelationAlreadyExist
+        raise InnerPortNotFound
+        """
+        dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
+            tenant.tenant_id, service.service_id, dep_service_id)
+        if dep_service_relation:
+            raise ServiceRelationAlreadyExist()
+        dep_service = service_repo.get_service_by_tenant_and_id(
+            tenant.tenant_id, dep_service_id)
+        # check inner port
+        open_inner_services = port_repo.list_inner_ports(tenant.tenant_id,
+                                                         dep_service.service_id)
+        if not open_inner_services:
+            raise InnerPortNotFound()
+        tenant_service_relation = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id,
+            "dep_service_id": dep_service_id,
+            "dep_service_type": dep_service.service_type,
+            "dep_order": 0,
+        }
+        return dep_relation_repo.add_service_dependency(**tenant_service_relation)
 
     def add_service_dependency(self,
                                tenant,

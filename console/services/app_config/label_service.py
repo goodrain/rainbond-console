@@ -2,16 +2,16 @@
 """
   Created on 18/1/30.
 """
+import logging
 
-from console.repositories.label_repo import service_label_repo, node_label_repo, label_repo
+from console.repositories.label_repo import label_repo
+from console.repositories.label_repo import node_label_repo
+from console.repositories.label_repo import service_label_repo
 from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import ServiceLabels
-from console.services.app_actions.app_log import AppEventService
-import logging
 
 logger = logging.getLogger("default")
-event_service = AppEventService()
 region_api = RegionInvokeApi()
 
 
@@ -113,5 +113,8 @@ class LabelService(object):
         label_list = list()
         label_list.append(body)
         label_dict["labels"] = label_list
-        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
+        region_api.update_service_state_label(service.service_region,
+                                              tenant.tenant_name,
+                                              service.service_alias,
+                                              label_dict)
         return 200, u"success"

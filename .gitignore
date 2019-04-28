@@ -136,3 +136,9 @@ venv.bak/
 
 # vscode
 .vscode/
+Dockerfile.build
+
+start.sh
+temp
+logs
+local_settings.py
