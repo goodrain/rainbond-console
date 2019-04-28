@@ -2,8 +2,9 @@
 """
   Created on 18/1/26.
 """
-from www.models.main import ServiceProbe
 import logging
+
+from www.models.main import ServiceProbe
 
 logger = logging.getLogger("default")
 
@@ -40,6 +41,11 @@ class ServiceProbeRepository(object):
 
     def get_service_probe(self, service_id):
         return ServiceProbe.objects.filter(service_id=service_id)
+
+    def update_or_create(self, service_id, defaults):
+        obj, _ = ServiceProbe.objects.update_or_create(service_id=service_id,
+                                                       defaults=defaults)
+        return obj
 
 
 probe_repo = ServiceProbeRepository()

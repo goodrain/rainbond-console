@@ -3,31 +3,40 @@
   Created on 18/1/11.
 """
 import datetime
+import json
 import logging
 import random
 import string
-import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
-from console.repositories.app import service_source_repo, service_repo
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo, \
-    service_endpoints_repo
+from console.exception.main import AccountOverdueException
+from console.exception.main import ResourceNotEnoughException
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import service_endpoints_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
-from console.services.app_config.port_service import AppPortService
-from console.services.app_config.probe_service import ProbeService
-
-from www.apiclient.regionapi import RegionInvokeApi
-from www.github_http import GitHubApi
-from www.models import TenantServiceInfo, ServiceConsume
-from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesService, BaseTenantService, \
-    ServicePluginResource
-from www.utils.crypt import make_uuid
-from www.utils.status_translate import get_status_info_map
 from console.repositories.perm_repo import role_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.services.app_config.port_service import AppPortService
+from console.services.app_config.probe_service import ProbeService
+from www.apiclient.regionapi import RegionInvokeApi
+from www.github_http import GitHubApi
+from www.models import ServiceConsume
+from www.models import TenantServiceInfo
+from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import CodeRepositoriesService
+from www.tenantservice.baseservice import ServicePluginResource
+from www.tenantservice.baseservice import TenantUsedResource
+from www.utils.crypt import make_uuid
+from www.utils.status_translate import get_status_info_map
 
 
 tenantUsedResource = TenantUsedResource()
@@ -142,8 +151,6 @@ class AppService(object):
 
     def verify_source(self, tenant, region, new_add_memory, reason=""):
         """判断资源"""
-        allow_create = True
-        tips = u"success"
         data = {
             "quantity": new_add_memory,
             "reason": reason,
@@ -374,10 +381,19 @@ class AppService(object):
                     dsn = BaseConnection()
                     add_sql = ''
                     query_sql = '''
-                          select s.* from tenant_service s, service_perms sp where s.tenant_id = "{tenant_id}"
-                          and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}" {add_sql} order by s.service_alias
-                          '''.format(tenant_id=tenant_id, user_id=user_pk, region=region,
-                                     add_sql=add_sql)
+                        SELECT
+                            s.*
+                        FROM
+                            tenant_service s,
+                            service_perms sp
+                        WHERE
+                            s.tenant_id = "{tenant_id}"
+                            AND sp.user_id = { user_id }
+                            AND sp.service_id = s.ID
+                            AND s.service_region = "{region}" { add_sql }
+                        ORDER BY
+                            s.service_alias'''.format(tenant_id=tenant_id, user_id=user_pk,
+                                                      region=region, add_sql=add_sql)
                     services = dsn.query(query_sql)
 
         return services
@@ -513,15 +529,15 @@ class AppService(object):
         try:
             for port in ports:
                 if port.is_outer_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_outer",
-                                                               port.protocol,
-                                                               port.port_alias)
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region,
+                                                               port.container_port, "open_outer",
+                                                               port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
                 if port.is_inner_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_inner",
-                                                               port.protocol,
-                                                               port.port_alias)
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region,
+                                                               port.container_port, "open_inner",
+                                                               port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
         except Exception as e:
@@ -651,6 +667,18 @@ class AppService(object):
         data["service_key"] = service.service_key
         data["port_type"] = service.port_type
         return data
+
+    def get_service_by_service_key(self, service, dep_service_key):
+        """
+        get service according to service_key that is sometimes called service_share_uuid.
+        """
+        group_id = service_group_relation_repo.get_group_id_by_service(service)
+        dep_services = service_repo.list_by_svc_share_uuids(group_id, [dep_service_key])
+        if not dep_services:
+            logger.warning("service share uuid: {}; failed to get dep service: \
+                service not found".format(dep_service_key))
+            return None
+        return dep_services[0]
 
 
 app_service = AppService()

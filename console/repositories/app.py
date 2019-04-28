@@ -7,12 +7,38 @@ from docker_image import reference
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
+from console.repositories.base import BaseConnection
 from www.models import ServiceWebhooks
 from www.models import TenantServiceInfo
 from www.models import TenantServiceInfoDelete
 
 
 class TenantServiceInfoRepository(object):
+    def list_by_svc_share_uuids(self, group_id, dep_uuids):
+        uuids = "'{}'".format("','".join(str(uuid)
+                                         for uuid in dep_uuids))
+        conn = BaseConnection()
+        sql = """
+            SELECT
+                a.service_id,
+                a.service_cname
+            FROM
+                tenant_service a,
+                service_source b,
+                service_group_relation c
+            WHERE
+                a.tenant_id = b.team_id
+                AND a.service_id = b.service_id
+                AND b.service_share_uuid IN ( {uuids} )
+                AND a.service_id = c.service_id
+                AND c.group_id = {group_id}
+            """.format(group_id=group_id, uuids=uuids)
+        result = conn.query(sql)
+        return result
+
+    def list_by_ids(self, service_ids):
+        return TenantServiceInfo.objects.filter(service_id__in=service_ids)
+
     def get_services_by_service_ids(self, *service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 

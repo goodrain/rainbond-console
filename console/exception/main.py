@@ -92,3 +92,31 @@ class EnvAlreadyExist(Exception):
         msg = "env name: {}; already exist.".format(
             env_name) if env_name else "env already exist"
         super(EnvAlreadyExist, self).__init__(msg)
+
+
+class ServiceRelationAlreadyExist(Exception):
+    def __init__(self):
+        msg = "service relation already exist"
+        super(ServiceRelationAlreadyExist, self).__init__(msg)
+
+
+class InnerPortNotFound(Exception):
+    def __init__(self):
+        pass
+
+
+class ErrInvalidVolume(Exception):
+    def __init__(self, msg):
+        super(ErrInvalidVolume, self).__init__(msg)
+
+
+class ErrDepVolumeNotFound(Exception):
+    def __init__(self, dep_service_id, dep_vol_name):
+        msg = "dep service id: {}; volume name: {}; dep volume not found".format(
+            dep_service_id, dep_vol_name)
+        super(ErrDepVolumeNotFound, self).__init__(msg)
+
+
+class ErrPluginAlreadyInstalled(Exception):
+    def __init__(self, msg):
+        super(ErrPluginAlreadyInstalled, self).__init__(msg)

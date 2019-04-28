@@ -35,5 +35,21 @@ class RbdCenterAppService(object):
 
         return app
 
+    def get_service_key_by_service_id(self, tenant, service_source, version, service_id):
+        """get service_key(service_share_uuid) according to service_id
+        service_id: service_id corresponding to the app before sharing
+        """
+        app = self.get_version_app(tenant.enterprice_id, version, service_source)
+        if not app:
+            return ""
+        service = next(iter(filter(lambda x: x["service_id"] == service_id, app)), None)
+        if not service:
+            return ""
+        if service.get("service_share_uuid", None):
+            return service["service_share_uuid"]
+        if service.get("service_key", None):
+            return service["service_key"]
+        return ""
+
 
 rbd_center_app_service = RbdCenterAppService()

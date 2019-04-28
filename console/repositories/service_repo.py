@@ -163,33 +163,5 @@ class ServiceRepo(object):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
 
-    def list_by_ids(self, service_ids):
-        return TenantServiceInfo.objects.filter(service_id__in=service_ids)
-
-    def list_by_svc_share_uuids(self, group_id, uuids):
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                a.service_id,
-                a.service_cname
-            FROM
-                tenant_service a,
-                service_source b,
-                service_group_relation c
-            WHERE
-                a.tenant_id = b.team_id
-                AND a.service_id = b.service_id
-                AND b.service_share_uuid IN ( {uuids} )
-                AND a.service_id = c.service_id
-                AND c.group_id = {group_id}
-            """.format(group_id=group_id, uuids=uuids)
-        # args = {
-        # "uuids": ",".join(uuid for uuid in uuids),
-        # "group_id": group_id
-        # }
-        print sql
-        result = conn.query(sql)
-        return result
-
 
 service_repo = ServiceRepo()

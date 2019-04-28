@@ -9,20 +9,32 @@ import os
 
 from addict import Dict
 
-from console.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
-from console.repositories.app import service_repo
-from console.repositories.app_config import port_repo
-from console.repositories.base import BaseConnection
-from console.repositories.plugin import app_plugin_relation_repo, plugin_repo, config_group_repo, config_item_repo, \
-    app_plugin_attr_repo, plugin_version_repo
-from console.repositories.plugin import service_plugin_config_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from goodrain_web.tools import JuncheePaginator
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models.plugin import ServicePluginConfigVar, PluginConfigGroup, PluginConfigItems
-from www.utils.crypt import make_uuid
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
+from console.constants import PluginCategoryConstants
+from console.constants import PluginInjection
+from console.constants import PluginMetaType
+from console.exception.main import ErrPluginAlreadyInstalled
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import port_repo
+from console.repositories.base import BaseConnection
+from console.repositories.plugin import app_plugin_attr_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import config_group_repo
+from console.repositories.plugin import config_item_repo
+from console.repositories.plugin import plugin_repo
+from console.repositories.plugin import plugin_version_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.services.app import app_service
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.rbd_center_app_service import rbd_center_app_service
+from goodrain_web.tools import JuncheePaginator
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.plugin import PluginConfigGroup
+from www.models.plugin import PluginConfigItems
+from www.models.plugin import ServicePluginConfigVar
+from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -55,7 +67,7 @@ class AppPluginService(object):
             data["service_cname"] = s.service_cname
             data["build_version"] = service_plugin_version_map[s.service_id]
             result_list.append(data)
-        return result_list,total
+        return result_list, total
 
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
@@ -74,23 +86,42 @@ class AppPluginService(object):
     def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
         """获取应用已开通和未开通的插件"""
 
-        QUERY_INSTALLED_SQL = """SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version, pbv.min_memory as min_memory ,tsp.plugin_status as plugin_status
-                           FROM tenant_service_plugin_relation tsp
-                              LEFT JOIN plugin_build_version pbv ON tsp.plugin_id=pbv.plugin_id AND tsp.build_version=pbv.build_version
-                                  JOIN tenant_plugin tp ON tp.plugin_id=tsp.plugin_id
-                                      WHERE tsp.service_id="{0}" AND tp.region="{1}" AND tp.tenant_id="{2}" """.format(
-            service_id,
-            region,
-            tenant_id)
+        QUERY_INSTALLED_SQL = """
+        SELECT
+            tp.plugin_id AS plugin_id,
+            tp.DESC AS "desc",
+            tp.plugin_alias AS plugin_alias,
+            tp.category AS category,
+            tp.origin_share_id AS origin_share_id,
+            pbv.build_version AS build_version,
+            pbv.min_memory AS min_memory,
+            tsp.plugin_status AS plugin_status
+        FROM
+            tenant_service_plugin_relation tsp
+            LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
+            AND tsp.build_version = pbv.build_version
+            JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
+        WHERE
+            tsp.service_id = "{0}"
+            AND tp.region = "{1}"
+            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant_id)
 
         QUERI_UNINSTALLED_SQL = """
-            SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,tp.category as category,pbv.build_version as build_version
-                FROM tenant_plugin AS tp
-                    JOIN plugin_build_version AS pbv ON (tp.plugin_id=pbv.plugin_id)
-                        WHERE pbv.plugin_id NOT IN (
-                            SELECT plugin_id FROM tenant_service_plugin_relation
-                                WHERE service_id="{0}") AND tp.tenant_id="{1}" AND tp.region="{2}" AND pbv.build_status="{3}" """.format(
-            service_id, tenant_id, region, "build_success")
+            SELECT
+                tp.plugin_id AS plugin_id,
+                tp.DESC AS "desc",
+                tp.plugin_alias AS plugin_alias,
+                tp.category AS category,
+                pbv.build_version AS build_version
+            FROM
+                tenant_plugin AS tp
+                JOIN plugin_build_version AS pbv ON ( tp.plugin_id = pbv.plugin_id )
+            WHERE
+                pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}" )
+                AND tp.tenant_id = "{1}"
+                AND tp.region = "{2}"
+                AND pbv.build_status = "{3}"
+        """.format(service_id, tenant_id, region, "build_success")
 
         if category == "analysis":
             query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
@@ -194,7 +225,7 @@ class AppPluginService(object):
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
         return 200, "success"
 
-    def __check_ports_for_config_items(self,ports, items):
+    def __check_ports_for_config_items(self, ports, items):
         for item in items:
             if item.protocol == "":
                 return True
@@ -204,7 +235,6 @@ class AppPluginService(object):
                     if port.protocol in protocols:
                         return True
         return False
-
 
     def get_region_config_from_db(self, service, plugin_id, build_version):
         attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
@@ -435,6 +465,67 @@ class AppPluginService(object):
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
+    def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
+        plugin_version_service.update_plugin_build_status(region_name, tenant)
+        for plugin in plugins:
+            data = self.build_plugin_data_4marketsvc(tenant, service, plugin)
+
+            service_plugin_config_vars = plugin["attr"]
+            self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"],
+                                              data["version_id"], service_plugin_config_vars)
+
+            code, msg, _ = self.create_service_plugin_relation(
+                service.service_id, data["plugin_id"], data["version_id"], "", True)
+            if code == 409:
+                raise ErrPluginAlreadyInstalled(msg)
+
+    def build_plugin_data_4marketsvc(self, tenant, service, plugin):
+        plugin_key = plugin["plugin_key"]
+        p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id,
+                                                      plugin_key)
+        plugin_id = p[0].plugin_id
+        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
+        build_version = plugin_version.build_version
+
+        region_config = self.get_region_config_from_db(service, plugin_id,
+                                                       build_version)
+        data = dict()
+        data["plugin_id"] = plugin_id
+        data["switch"] = True
+        data["version_id"] = build_version
+        data.update(region_config)
+        return data
+
+    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id,
+                                     build_version, service_plugin_config_vars):
+        service_source = service_source_repo.get_service_source(tenant.tenant_id,
+                                                                service.service_id)
+        config_list = []
+        for config in service_plugin_config_vars:
+            dest_service_id, dest_service_alias = "", ""
+            if config["service_meta_type"] == "downstream_port":
+                service_key = rbd_center_app_service.get_service_key_by_service_id(
+                    tenant, service_source, version, config["dest_service_id"])
+                dest_service = app_service.get_service_by_service_key(service, service_key)
+                dest_service_id = dest_service.service_id
+                dest_service_alias = dest_service.service_alias
+
+            config_list.append(
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"],
+                    dest_service_id=dest_service_id,
+                    dest_service_alias=dest_service_alias,
+                    container_port=config["container_port"],
+                    attrs=config["attrs"],
+                    protocol=config["protocol"])
+            )
+
+        ServicePluginConfigVar.objects.bulk_create(config_list)
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):
@@ -638,4 +729,5 @@ class PluginService(object):
         if plugins:
             return plugins
         else:
-            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(category="analyst-plugin:perf",image="goodrain.me/tcm")
+            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
+                category="analyst-plugin:perf", image="goodrain.me/tcm")

@@ -29,10 +29,9 @@ def test_list_by_svc_share_uuids():
     group_relation.group_id = group_id
     group_relation.save()
 
-    from console.repositories.service_repo import service_repo
-    uuids = "'{}'".format("','".join(str(uuid) for uuid in ["2669c2cec6bc7bf5aab29a0ea2703d66"]))
+    from console.repositories.app import service_repo
     result = service_repo.list_by_svc_share_uuids(
-        group_id, uuids)
+        group_id, ["2669c2cec6bc7bf5aab29a0ea2703d66"])
     service = result[0]
     assert service.get("service_id") == service_id
     assert service.get("service_cname") == service_cname

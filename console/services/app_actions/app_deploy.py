@@ -1,20 +1,31 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from copy import deepcopy
 from datetime import datetime
 
 from django.db import transaction
 
 from console.exception.main import EnvAlreadyExist
+from console.exception.main import ErrDepVolumeNotFound
+from console.exception.main import ErrInvalidVolume
+from console.exception.main import InnerPortNotFound
 from console.exception.main import InvalidEnvName
+from console.exception.main import ServiceRelationAlreadyExist
+from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import port_repo
+from console.repositories.app_config import volume_repo
+from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
+from console.services.app_config import mnt_service
+from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.backup_service import groupapp_backup_service as backup_service
+from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -23,6 +34,7 @@ from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 app_port_service = AppPortService()
+app_relation_service = AppServiceRelationService()
 
 
 class AppDeployService(object):
@@ -74,17 +86,53 @@ class MarketService(object):
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
-        self.update_funcs = {
+        self.update_funcs = self._create_update_funcs()
+        self.sync_funcs = self._create_sync_funcs()
+        self.resotre_func = self._create_restore_funcs()
+
+    def dummy_func(self, changes):
+        pass
+
+    def _create_update_funcs(self):
+        return {
+            "deploy_version": self._update_deploy_version,
+            "app_version": self._update_version,
             "envs": self._update_envs,
+            "connect_infos": self._update_envs,
             "ports": self._update_ports,
+            "volumes": self._update_volumes,
+            "probe": self._update_probe,
+            "dep_services": self._update_dep_services,
+            "dep_volumes": self._update_dep_volumes,
+            "plugins": self._update_plugins,
         }
-        self.sync_funcs = {
+
+    def _create_sync_funcs(self):
+        return {
+            "deploy_version": self.dummy_func,
+            "app_version": self.dummy_func,
             "envs": self._sync_envs,
+            "connect_infos": self._sync_envs,
             "ports": self._sync_ports,
+            "volumes": self._sync_volumes,
+            "probe": self._sync_probe,
+            "dep_services": self._sync_dep_services,
+            "dep_volumes": self._sync_dep_volumes,
+            "plugins": self._sync_plugins,
         }
-        self.resotre_func = {
+
+    def _create_restore_funcs(self):
+        return {
+            "deploy_version": self.dummy_func,
+            "app_version": self.dummy_func,
             "envs": self._resotre_envs,
+            "connect_infos": self._resotre_envs,
             "ports": self._resotre_ports,
+            "volumes": self._restore_volumes,
+            "probe": self._restore_probe,
+            "dep_services": self._restore_dep_services,
+            "dep_volumes": self._restore_dep_volumes,
+            "plugins": self._restore_plugins,
         }
 
     def pre_action(self):
@@ -100,8 +148,9 @@ class MarketService(object):
 
         # list properties changes
         pc = PropertiesChanges(self.service)
-        changes = pc.get_property_changes(self.tenant.enterprise_id,
-                                          self.version)
+        raw_changes = pc.get_property_changes(self.tenant.enterprise_id,
+                                              self.version)
+        changes = deepcopy(raw_changes)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(
             self.service.service_id, self.version, changes))
 
@@ -109,7 +158,7 @@ class MarketService(object):
             self.modify_property(changes)
             self.sync_region_property(changes)
 
-        self.restore_backup()
+        # self.restore_backup()
 
     def create_backup(self):
         """
@@ -145,7 +194,6 @@ class MarketService(object):
                 logger.warning(
                     "key: {}; unsuppurt key for upgrade func".format(k))
                 continue
-            # TODO: deep copy
             func(v)
 
     def sync_region_property(self, changes):
@@ -160,7 +208,6 @@ class MarketService(object):
                 logger.warning(
                     "key: {}; unsuppurt key for sync func".format(k))
                 continue
-            # TODO: deep copy
             func(v)
             self.changed[k] = v
 
@@ -172,8 +219,7 @@ class MarketService(object):
         for k, v in self.changed.items():
             func = self.resotre_func.get(k, None)
             if func is None:
-                logger.warning(
-                    "key: {}; unsuppurt key for restore func".format(k))
+                logger.warning("key: {}; unsuppurt key for restore func".format(k))
                 continue
             try:
                 func(v)
@@ -183,6 +229,7 @@ class MarketService(object):
                     self.service.service_id, k, e))
 
     def _update_service(self, app):
+        # TODO: 实例可选项, 内存可选项
         params = {
             "cmd": app.get("cmd", ""),
             "version": app["version"],
@@ -224,11 +271,23 @@ class MarketService(object):
             "extend_info": json.dumps(new_extend_info),
             "version": version,
         }
-        logger.debug("service id: {}; data: {};update service source.".format(
+        logger.debug("service id: {}; data: {}; update service source.".format(
             self.service.service_id, data))
         service_source_repo.update_service_source(self.tenant.tenant_id,
                                                   self.service.service_id,
                                                   **data)
+
+    def _update_deploy_version(self, dv):
+        if not dv["is_change"]:
+            return
+        self.service.deploy_version = dv["new"]
+        self.service.save()
+
+    def _update_version(self, v):
+        if not v["is_change"]:
+            return
+        self.service.version = v["new"]
+        self.service.save()
 
     def _update_envs(self, envs):
         if envs is None:
@@ -281,11 +340,6 @@ class MarketService(object):
                                        self.service.service_alias, attr)
 
     def _resotre_envs(self, envs):
-        if self.backup is None:
-            logger.warning("service id: {}; can't find any backup to restore envs.".format(
-                self.service.service_id))
-            return
-        # TODO
         pass
 
     def _update_ports(self, ports):
@@ -331,5 +385,214 @@ class MarketService(object):
                                     {"port": add, "enterprise_id": self.tenant.enterprise_id})
 
     def _resotre_ports(self, ports):
+        # TODO
+        pass
+
+    def _update_volumes(self, volumes):
+        for volume in volumes.get("add"):
+            volume["service_id"] = self.service.service_id
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
+                self.tenant.tenant_id, self.service.service_id, volume["volume_path"])
+            volume["host_path"] = host_path
+            file_content = volume["file_content"]
+            volume.pop("file_content")
+            v = volume_repo.add_service_volume(**volume)
+            if not file_content and volume["volume_type"] != "config-file":
+                continue
+            file_data = {
+                "service_id": self.service.service_id,
+                "volume_id": v.ID,
+                "file_content": file_content
+            }
+            _ = volume_repo.add_service_config_file(**file_data)
+        for volume in volumes.get("upd"):
+            # only volume of type config-file can be updated,
+            # and only the contents of the configuration file can be updated.
+            if not volume["file_content"] and volume["volume_type"] != "config-file":
+                continue
+            v = volume_repo.get_service_volume_by_name(self.service.service_id,
+                                                       volume["volume_name"])
+            if not v:
+                logger.warning("service id: {}; volume name: {}; failed to update volume: \
+                    volume not found.".format(self.service.service_id, volume["volume_name"]))
+            cfg = volume_repo.get_service_config_file(v.ID)
+            cfg.file_content = volume["file_content"]
+            cfg.save()
+
+    def _sync_volumes(self, volumes):
+        """
+        raise RegionApiBaseHttpClient.CallApiError
+        """
+        for volume in volumes.get("add"):
+            volume["enterprise_id"] = self.tenant.enterprise_id
+            region_api.add_service_volumes(self.service.service_region,
+                                           self.tenant.tenant_name,
+                                           self.service.service_alias,
+                                           volume)
+
+    def _restore_volumes(self, volumes):
+        # TODO
+        pass
+
+    def _update_probe(self, probe):
+        logger.debug("probe: {}".format(probe))
+        add = probe.get("add")
+        if add:
+            add["probe_id"] = make_uuid()
+            probe_repo.update_or_create(self.service.service_id, add)
+        upd = probe.get("upd", None)
+        if upd:
+            probe_repo.update_or_create(self.service.service_id, upd)
+
+    def _sync_probe(self, probe):
+        """
+        raise RegionApiBaseHttpClient.CallApiError
+        """
+        p = probe_repo.get_probe(self.service.service_id)
+        data = p.to_dict()
+        data["is_used"] = 1 if data["is_used"] else 0
+        add = probe.get("add", None)
+        if add:
+            region_api.add_service_probe(self.tenant.region,
+                                         self.tenant.tenant_name,
+                                         self.service.service_alias,
+                                         data)
+        upd = probe.get("upd", None)
+        if upd:
+            region_api.update_service_probec(self.tenant.region,
+                                             self.tenant.tenant_name,
+                                             self.service.service_alias,
+                                             data)
+
+    def _restore_probe(self, probe):
+        # TODO
+        pass
+
+    def _update_dep_services(self, dep_services):
+        def create_dep_service(dep_serivce_id):
+            dep_service = service_repo.get_service_by_service_id(dep_serivce_id)
+            if dep_service is None:
+                return
+
+            try:
+                app_relation_service.create_service_relation(
+                    self.tenant, self.service, dep_service.service_id)
+            except (ServiceRelationAlreadyExist, InnerPortNotFound) as e:
+                logger.warning("failed to create service relation: {}".format(e))
+
+        add = dep_services.get("add", [])
+        for dep_service in add:
+            create_dep_service(dep_service["service_id"])
+
+    def _sync_dep_services(self, dep_services):
+        def sync_dep_service(dep_serivce_id):
+            """
+            raise RegionApiBaseHttpClient.CallApiError
+            """
+            dep_service = service_repo.get_service_by_service_id(dep_serivce_id)
+            if dep_service is None:
+                return
+            inner_ports = port_repo.list_inner_ports(self.tenant.tenant_id,
+                                                     self.service.service_id)
+            if not inner_ports:
+                logger.warning("failed to sync dependent service: inner ports not found")
+            body = dict()
+            body["dep_service_id"] = dep_service.service_id
+            body["tenant_id"] = self.tenant.tenant_id
+            body["dep_service_type"] = dep_service.service_type
+            body["enterprise_id"] = self.tenant.enterprise_id
+
+            region_api.add_service_dependency(self.tenant.region,
+                                              self.tenant.tenant_name,
+                                              self.service.service_alias, body)
+        add = dep_services.get("add", [])
+        for dep_service in add:
+            sync_dep_service(dep_service["service_id"])
+
+    def _restore_dep_services(self, dep_services):
+        # TODO
+        pass
+
+    def _update_dep_volumes(self, dep_volumes):
+        def create_dep_vol(dep_volume):
+            data = {
+                "service_id": dep_volume["service_id"],
+                "volume_name": dep_volume["mnt_name"],
+                "path": dep_volume["mnt_dir"]
+            }
+            try:
+                mnt_service.create_service_volume(self.tenant, self.service, data)
+            except (ErrInvalidVolume, ErrDepVolumeNotFound) as e:
+                logger.warning("failed to create dep volume: {}".format(e))
+
+        add = dep_volumes.get("add", [])
+        for dep_volume in add:
+            create_dep_vol(dep_volume)
+
+    def _sync_dep_volumes(self, dep_volumes):
+        def sync_dep_vol(dep_vol_info):
+            """
+            raise RegionApiBaseHttpClient.CallApiError
+            """
+            dep_vol = volume_repo.get_service_volume_by_name(
+                dep_vol_info["service_id"], dep_vol_info["mnt_name"])
+            if dep_vol is None:
+                logger.warning("dep service id: {}; volume name: {}; fail to \
+                    sync dep volume: dep volume not found".format(
+                    dep_vol_info["service_id"], dep_vol_info["mnt_name"]))
+                return
+            data = {
+                "depend_service_id": dep_vol.service_id,
+                "volume_name": dep_vol.volume_name,
+                "volume_path": dep_vol_info['mnt_dir'].strip(),
+                "enterprise_id": self.tenant.enterprise_id,
+                "volume_type": dep_vol.volume_type
+            }
+            if dep_vol.volume_type == "config-file":
+                config_file = volume_repo.get_service_config_file(dep_vol.ID)
+                data["file_content"] = config_file.file_content
+            region_api.add_service_dep_volumes(self.tenant.region,
+                                               self.tenant.tenant_name,
+                                               self.service.service_alias, data)
+
+        add = dep_volumes.get("add", [])
+        for dep_vol in add:
+            sync_dep_vol(dep_vol)
+
+    def _restore_dep_volumes(self, dep_volumes):
+        # TODO
+        pass
+
+    def _update_plugins(self, plugins):
+        add = plugins.get("add", [])
+        app_plugin_service.create_plugin_4marketsvc(
+            self.tenant.region, self.tenant, self.service, self.version, add)
+
+        delete = plugins.get("delete", [])
+        for plugin in delete:
+            app_plugin_service.delete_service_plugin_relation(self.service,
+                                                              plugin["plugin_id"])
+            app_plugin_service.delete_service_plugin_config(self.service,
+                                                            plugin["plugin_id"])
+
+    def _sync_plugins(self, plugins):
+        """
+        raise RegionApiBaseHttpClient.CallApiError
+        """
+        add = plugins.get("add", [])
+        for plugin in add:
+            data = app_plugin_service.build_plugin_data_4marketsvc(
+                self.tenant, self.service, plugin)
+            region_api.install_service_plugin(
+                self.tenant.region, self.tenant.tenant_name, self.service.service_alias, data)
+
+        delete = plugins.get("delete", [])
+        for plugin in delete:
+            region_api.uninstall_service_plugin(self.tenant.region,
+                                                self.tenant.tenant_name,
+                                                plugin["plugin_id"],
+                                                self.service.service_alias)
+
+    def _restore_plugins(self, plugins):
         # TODO
         pass
