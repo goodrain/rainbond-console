@@ -2,30 +2,40 @@
 """
   Created on 2018/5/23.
 """
-from cadmin.models import ConsoleSysConfig
-from console.repositories.backup_repo import backup_record_repo
-from console.services.group_service import group_service
-from www.apiclient.regionapi import RegionInvokeApi
-from console.appstore.appstore import app_store
-from www.utils.crypt import make_uuid
-from console.utils.timeutil import current_time_str
-from console.repositories.compose_repo import compose_repo, compose_relation_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.label_repo import service_label_repo
-from console.repositories.app_config import domain_repo, auth_repo, env_var_repo, compile_env_repo, extend_repo, \
-    image_service_relation_repo, mnt_repo, dep_relation_repo, volume_repo, port_repo, tcp_domain
-from console.repositories.event_repo import event_repo
-from console.repositories.perm_repo import service_perm_repo
-from console.repositories.probe_repo import probe_repo
-from console.repositories.app import service_source_repo
-from console.repositories.plugin import app_plugin_relation_repo, service_plugin_config_repo
-from console.repositories.app_config import service_endpoints_repo
-
-
 import json
 import logging
+
+from console.appstore.appstore import app_store
+from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import auth_repo
+from console.repositories.app_config import compile_env_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.app_config import image_service_relation_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import volume_repo
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.compose_repo import compose_relation_repo
+from console.repositories.compose_repo import compose_repo
+from console.repositories.event_repo import event_repo
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.repositories.label_repo import service_label_repo
+from console.repositories.perm_repo import service_perm_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.probe_repo import probe_repo
+from console.services.group_service import group_service
+from console.utils.timeutil import current_time_str
+from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import AuthCode
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -259,7 +269,7 @@ class GroupAppBackupService(object):
         data = json.loads(AuthCode.decode(content, KEY))
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])
         if current_backup:
-            return 412,"当前团队已导入过该备份", None
+            return 412, "当前团队已导入过该备份", None
         event_id = make_uuid()
         group_uuid = make_uuid()
         params = {
