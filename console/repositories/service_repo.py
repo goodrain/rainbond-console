@@ -100,15 +100,13 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service[
-                        "create_status"] != "complete":
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service[
-                        "status"] == "undeploy":
+                if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)
@@ -141,15 +139,13 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service[
-                        "create_status"] != "complete":
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service[
-                        "status"] == "undeploy":
+                if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)

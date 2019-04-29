@@ -2,25 +2,29 @@
 """
   Created on 18/2/8.
 """
+import datetime
+import logging
+from StringIO import StringIO
+
+import yaml
+from django.db import transaction
+
 from console.constants import AppConstants
+from console.repositories.app import service_repo
+from console.repositories.compose_repo import compose_relation_repo
+from console.repositories.compose_repo import compose_repo
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service
+from console.services.app_check_service import AppCheckService
+from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.group_service import group_service
+from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.utils.timeutil import current_time_str
-from console.repositories.compose_repo import compose_repo, compose_relation_repo
-from console.repositories.app import service_repo
-import logging
-import yaml
-import datetime
-from django.db import transaction
-from console.services.app import app_service
-from StringIO import StringIO
-from console.services.app_check_service import AppCheckService
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.services.app_actions import app_manage_service
-from console.services.group_service import group_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -252,7 +256,7 @@ class ComposeService(object):
             compose_id)
         service_ids = [csr.service_id for csr in compse_service_relations]
         service_ids = list(service_ids)
-        return service_repo.get_services_by_service_ids(*service_ids)
+        return service_repo.get_services_by_service_ids(service_ids)
 
     def give_up_compose_create(self, tenant, group_id, compose_id):
         self.__delete_created_compose_info(tenant, compose_id)

@@ -93,8 +93,7 @@ class PropertiesChanges(object):
         exist_envs = env_var_repo.get_service_env_by_scope(
             self.service.tenant_id, self.service.service_id, scope)
         exist_envs_dict = {env.attr_name: env for env in exist_envs}
-        add_env = [env for env in envs if exist_envs_dict
-                   .get(env["attr_name"], None) is None]
+        add_env = [env for env in envs if exist_envs_dict.get(env["attr_name"], None) is None]
         if not add_env:
             return None
         return {
@@ -213,7 +212,7 @@ class PropertiesChanges(object):
             if not old_volume:
                 add.append(new_volume)
                 continue
-            if not new_volume["file_content"]:
+            if not new_volume.get("file_content"):
                 continue
             old_file_content = volume_repo.get_service_config_file(old_volume.ID)
             if old_file_content != new_volume["file_content"]:
@@ -308,11 +307,13 @@ class PropertiesChanges(object):
 
 
 def has_changes(changes):
-    def alpha(x): return x and x.get("is_change", None)
+    def alpha(x):
+        return x and x.get("is_change", None)
 
-    def beta(x): return x and (x.get("add", None)
-                               or x.get("del", None)
-                               or x.get("upd", None))
+    def beta(x):
+        return x and (x.get("add", None)
+                      or x.get("del", None)
+                      or x.get("upd", None))
 
     a = ["deploy_version", "app_version"]
     b = [

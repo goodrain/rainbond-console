@@ -58,7 +58,7 @@ class AppMntService(object):
 
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
 
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
         # 已挂载的服务路径
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name',

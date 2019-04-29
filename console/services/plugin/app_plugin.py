@@ -55,7 +55,7 @@ class AppPluginService(object):
         aprr = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
         service_ids = [r.service_id for r in aprr]
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
-        services = service_repo.get_services_by_service_ids(*service_ids).filter(tenant_id=tenant_id)
+        services = service_repo.get_services_by_service_ids(service_ids).filter(tenant_id=tenant_id)
         paginator = JuncheePaginator(services, int(page_size))
         total = paginator.count
         show_apps = paginator.page(int(page))

@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-
-import logging
-from django.db.models import Q
 import datetime
+import logging
 
+from django.db.models import Q
+
+from console.repositories.app import service_repo
+from console.repositories.event_repo import event_repo
+from console.repositories.team_repo import team_repo
+from console.services.app_actions.app_log import AppEventService
+from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db import BaseConnection
 from www.models.main import ServiceEvent
-from goodrain_web.tools import JuncheePaginator
-from console.repositories.app import service_repo
-from console.services.app_actions.app_log import AppEventService
-from console.repositories.team_repo import team_repo
-from console.repositories.event_repo import event_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -24,8 +24,16 @@ class ServiceEventDynamic(object):
         start = (int(page)-1) * int(page_size)
         end = page_size
 
-        query_sql = ''' select e.start_time, e.event_id,s.service_alias,s.service_cname from service_event e JOIN tenant_service s on e.service_id=s.service_id  WHERE e.tenant_id="{team_id}" and s.service_region="{region_name}" ORDER BY start_time DESC LIMIT {start},{end} '''.format(
-            team_id=team.tenant_id, region_name=region, start=start, end=end)
+        query_sql = """
+        select e.start_time, e.event_id, s.service_alias, s.service_cname
+        from service_event e
+                 JOIN tenant_service s on e.service_id = s.service_id
+        WHERE e.tenant_id = "{team_id}"
+          and s.service_region = "{region_name}"
+        ORDER BY start_time DESC
+        LIMIT {start},{end}
+        """.format(team_id=team.tenant_id, region_name=region, start=start, end=end)
+
         events = dsn.query(query_sql)
         events_ids = []
         event_id_service_info_map = dict()
@@ -45,12 +53,12 @@ class ServiceEventDynamic(object):
                 event.service_cname = bean["service_cname"]
         return events
 
-    def get_current_region_service_events(self,region, team):
+    def get_current_region_service_events(self, region, team):
         events = event_repo.get_specified_region_events(team.tenant_id, region)
         # paginator = JuncheePaginator(events, int(page_size))
         # show_events = paginator.page(int(page))
         service_ids = [e.service_id for e in events]
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         id_service_map = {s.service_id: s for s in services}
         event_list = []
         try:
@@ -93,7 +101,7 @@ class ServiceEventDynamic(object):
         service_ids = list(set([e.service_id for e in show_events]))
         team_ids = list(set([e.tenant_id for e in show_events]))
         teams = team_repo.get_team_by_team_ids(team_ids)
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         id_service_map = {s.service_id: s for s in services}
         id_team_map = {t.tenant_id: t for t in teams}
         # 数据中心对应的event
