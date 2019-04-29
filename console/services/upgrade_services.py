@@ -59,7 +59,7 @@ class UpgradeService(object):
         versions = set()
         for service in services:
             service_version = market_app_service.list_upgradeable_versions(tenant, service)
-            versions |= set(service_version)
+            versions |= set(service_version or [])
         return versions
 
 
