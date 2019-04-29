@@ -2,26 +2,27 @@
 """
   Created on 18/2/1.
 """
-from django.views.decorators.cache import never_cache
+import logging
 
+from django.db.models import F
+from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
+from console.exception.main import AccountOverdueException
+from console.exception.main import ResourceNotEnoughException
+from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
+from console.services.app_import_and_export_service import export_service
+from console.services.enterprise_services import enterprise_services
+from console.services.group_service import group_service
+from console.services.market_app_service import market_app_service
+from console.services.market_app_service import market_sycn_service
+from console.services.user_services import user_services
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-import logging
-from console.services.market_app_service import market_app_service
-from console.services.group_service import group_service
-from console.services.market_app_service import market_sycn_service
-import json
-from console.services.app_import_and_export_service import export_service
-from console.services.enterprise_services import enterprise_services
-from console.services.user_services import user_services
-from console.models.main import RainbondCenterApp
-from django.db.models import F
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
@@ -63,7 +64,6 @@ class CenterAppListView(RegionTenantHeaderView):
                 "-install_number", "-is_official")
             paginator = JuncheePaginator(apps, int(page_size))
             show_apps = paginator.page(int(page))
-            app_list = []
             show_app_list = []
             group_key_list = []
             for app in show_apps:
@@ -105,9 +105,7 @@ class CenterAppListView(RegionTenantHeaderView):
                             app_dict["is_official"] = app.is_official
                             app_dict["details"] = app.details
                             app_dict["upgrade_time"] = app.upgrade_time
-                            min_memory = self.__get_service_group_memory(app.app_template)
-                            if min_memory:
-                                app_dict["min_memory"] = min_memory
+                            app_dict["min_memory"] = group_service.get_service_group_memory(app.app_template)
                             export_status = export_service.get_export_record_status(self.tenant.enterprise_id,
                                                                                     group_key, group_version_list[0])
                             if export_status:
@@ -120,22 +118,6 @@ class CenterAppListView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])
-
-    def __get_service_group_memory(self, app_template_raw):
-        try:
-            app_template = json.loads(app_template_raw)
-            apps = app_template["apps"]
-            total_memory = 0
-            for app in apps:
-                extend_method_map = app.get("extend_method_map", None)
-                if extend_method_map:
-                    total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
-                else:
-                    total_memory += 128
-            return total_memory
-        except Exception as e:
-            logger.debug("==============================>{0}".format(e))
-            return 0
 
 
 class CenterAppView(RegionTenantHeaderView):
@@ -184,7 +166,8 @@ class CenterAppView(RegionTenantHeaderView):
                 return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
                                 status=412)
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
-            RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(install_number=F("install_number") + 1)
+            RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
+                install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
@@ -252,36 +235,6 @@ class CenterAppManageView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-# class DownloadMarketAppGroupView(RegionTenantHeaderView):
-#     @never_cache
-#     def get(self, request, *args, **kwargs):
-#         """
-#         同步下载云市组概要模板到云帮
-#         ---
-#         parameters:
-#             - name: tenantName
-#               description: 团队名称
-#               required: true
-#               type: string
-#               paramType: path
-#         """
-#         try:
-#             if not self.user.is_sys_admin:
-#                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-#                     return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-#                                     status=403)
-#             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
-#             if not enterprise.is_active:
-#                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
-#             logger.debug("start synchronized market apps")
-#             market_sycn_service.down_market_group_list(self.user, self.tenant)
-#             result = general_message(200, "success", "同步成功")
-#         except Exception as e:
-#             logger.exception(e)
-#             result = error_message(e.message)
-#         return Response(result, status=result["code"])
 
 
 class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
@@ -405,4 +358,3 @@ class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-

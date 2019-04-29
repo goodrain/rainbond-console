@@ -2,14 +2,17 @@
 """
   Created by leon on 18/1/5.
 """
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.app import service_repo
-from console.repositories.compose_repo import compose_repo
+import json
 import logging
 import re
+
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
-from console.syncservice.create_default_group import syncManager
-from www.models import ServiceGroupRelation, TenantServiceInfo, ServiceGroup
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.utils.shortcuts import get_object_or_404
+from www.models import ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -85,6 +88,22 @@ class GroupService(object):
         rt_bean = {"group_id": group.ID, "group_name": group.group_name}
         return 200, u"success", rt_bean
 
+    def get_group_or_404(self, tenant, response_region, group_id):
+        """
+        :param tenant:
+        :param response_region:
+        :param group_id:
+        :rtype: ServiceGroup
+        """
+        return get_object_or_404(
+            ServiceGroup,
+            msg="Group does not exist",
+            msg_show=u"组不存在",
+            tenant_id=tenant.tenant_id,
+            region_name=response_region,
+            pk=group_id
+        )
+
     def get_services_group_name(self, service_ids):
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
 
@@ -146,8 +165,20 @@ class GroupService(object):
         """查询某一组下的应用"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [gs.service_id for gs in gsr]
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         return services
+
+    def get_rainbond_services(self, group_id, group_key):
+        """获取云市应用下的所有服务"""
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = gsr.values_list('service_id', flat=True)
+        return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
+
+    def get_group_service_sources(self, group_id):
+        """查询某一组下的服务源信息"""
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = gsr.values_list('service_id', flat=True)
+        return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
     # 组内没有应用情况下删除组
     def delete_group_no_service(self, group_id):
@@ -159,6 +190,23 @@ class GroupService(object):
         # 删除组
         group_repo.delete_group_by_pk(group_id)
         return 200, u"删除成功", group_id
+
+    def group_service(self, app_template_raw):
+        """获取一组服务内存"""
+        try:
+            app_template = json.loads(app_template_raw)
+            apps = app_template["apps"]
+            total_memory = 0
+            for app in apps:
+                extend_method_map = app.get("extend_method_map", None)
+                if extend_method_map:
+                    total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
+                else:
+                    total_memory += 128
+            return total_memory
+        except Exception as e:
+            logger.debug("==============================>{0}".format(e))
+            return 0
 
 
 group_service = GroupService()

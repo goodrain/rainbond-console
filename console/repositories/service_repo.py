@@ -100,15 +100,13 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service[
-                        "create_status"] != "complete":
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service[
-                        "status"] == "undeploy":
+                if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)
@@ -141,15 +139,13 @@ class ServiceRepo(object):
                     service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
-                if status == "unknow" and service[
-                        "create_status"] != "complete":
+                if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
                     service["status"] = status_cache.get(
                         service["service_id"], "unknow")
-                if service["status"] == "closed" or service[
-                        "status"] == "undeploy":
+                if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
                 service.update(status_map)
@@ -162,6 +158,13 @@ class ServiceRepo(object):
     def create_service_event(self, create_info):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
+
+    def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
+        """使用service_ids 和 group_key 查找一组云市应用下的服务"""
+        return TenantServiceInfo.objects.filter(
+            service_source_info__group_key=group_key,
+            service_id__in=service_ids
+        )
 
 
 service_repo = ServiceRepo()

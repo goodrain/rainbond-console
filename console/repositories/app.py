@@ -39,7 +39,7 @@ class TenantServiceInfoRepository(object):
     def list_by_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
-    def get_services_by_service_ids(self, *service_ids):
+    def get_services_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     def get_service_by_tenant_and_id(self, tenant_id, service_id):
@@ -138,6 +138,14 @@ class ServiceSourceRepository(object):
         if service_sources:
             return service_sources[0]
         return None
+
+    def get_service_sources_by_service_ids(self, service_ids):
+        """使用service_ids获取服务源信息的查询集"""
+        return ServiceSourceInfo.objects.filter(service_id__in=service_ids)
+
+    def get_service_sources_by_group_key(self, group_key):
+        """使用group_key获取一组云市应用下的所有服务源信息的查询集"""
+        return ServiceSourceInfo.objects.filter(group_key=group_key)
 
 
 class ServiceRecycleBinRepository(object):
