@@ -159,12 +159,5 @@ class ServiceRepo(object):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
 
-    def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
-        """使用service_ids 和 group_key 查找一组云市应用下的服务"""
-        return TenantServiceInfo.objects.filter(
-            service_source_info__group_key=group_key,
-            service_id__in=service_ids
-        )
-
 
 service_repo = ServiceRepo()
