@@ -237,10 +237,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
 class AppUpgradeRollbackView(RegionTenantHeaderView):
     def post(self, request, group_id, record_id, *args, **kwargs):
         """提交回滚任务"""
-        rq_args = (
-            {'key': 'services', 'required': True, 'error': 'services is a required parameter'},
-        )
-        data = parse_date(request, rq_args)
+        services_data = parse_item(request, 'services', required=True, error='group_key is a required parameter')
+
         app_record = get_object_or_404(
             AppUpgradeRecord,
             msg="This upgrade cannot be rolled back",
@@ -252,7 +250,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         )
         service_infos = {
             service['service']['service_id']: service['upgrade_info']
-            for service in data['services']
+            for service in services_data
         }
         services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_infos.keys())
         for service in services:
