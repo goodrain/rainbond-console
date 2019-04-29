@@ -37,10 +37,13 @@ class PropertiesChanges(object):
                                                      self.service_source)
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
-        result = {
-            "deploy_version": self.deploy_version_changes(app["deploy_version"]),
-            "app_version": self.app_version_changes(version),
-        }
+        result = {}
+        deploy_version = self.deploy_version_changes(app["deploy_version"])
+        if deploy_version["is_change"]:
+            result["deploy_version"] = deploy_version
+        app_version = self.app_version_changes(version)
+        if app_version["is_change"]:
+            result["app_version"] = app_version
         # source code service does not have 'share_image'
         image = self.image_changes(app.get("share_image", None))
         if image:
