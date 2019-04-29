@@ -2,26 +2,31 @@
 """
   Created on 18/1/15.
 """
-import logging
 import json
+import logging
+
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException, CallRegionAPIException
+from console.exception.main import AccountOverdueException
+from console.exception.main import CallRegionAPIException
+from console.exception.main import ResourceNotEnoughException
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_actions import event_service
 from console.services.app_config import deploy_type_service
+from console.services.app_config import volume_service
+from console.services.app_config.env_service import AppEnvVarService
+from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.app_actions import event_service
-from console.services.app import app_service
-from console.services.team_services import team_services
-from console.repositories.app import service_repo, service_source_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from console.services.app_config import volume_service
-from console.repositories.market_app_repo import rainbond_app_repo
+from www.decorator import perm_required
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -576,7 +581,7 @@ class ChangeServiceTypeView(AppBaseView):
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
                 return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
-            deploy_type_service.put_service_deploy_type(self.service, extend_method)
+            deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)
@@ -758,6 +763,3 @@ class MarketServiceUpgradeView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-
