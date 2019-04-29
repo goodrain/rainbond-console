@@ -815,8 +815,37 @@ urlpatterns = [
 
 # 云市应用升级相关接口
 urlpatterns += [
-
     # 查询当前组下的云市应用
-    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps', app_upgrade.AppView.as_view())
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps', app_upgrade.GroupAppView.as_view()),
+    # 查询当前组下某云市应用的更新版本
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-versions',
+        app_upgrade.AppUpgradeVersion.as_view()
+    ),
+    # 升级记录集合
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records',
+        app_upgrade.AppUpgradeRecordsView.as_view()
+    ),
+    # 某一条升级记录
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)',
+        app_upgrade.AppUpgradeRecordView.as_view()
+    ),
+    # 查询某云市应用下服务的更新信息
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info',
+        app_upgrade.AppUpgradeInfoView.as_view()
+    ),
+    # 创建升级任务
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-tasks',
+        app_upgrade.AppUpgradeTaskView.as_view()
+    ),
+    # 回滚某一条升级
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback',
+        app_upgrade.AppUpgradeRollbackView.as_view()
+    ),
 
 ]

@@ -6,6 +6,8 @@ from django.db import models
 from django.db.models.fields.files import FileField
 from enum import IntEnum
 
+from www.models.main import TenantServiceInfo
+
 logger = logging.getLogger("default")
 
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
@@ -284,7 +286,14 @@ class ServiceSourceInfo(BaseModel):
     class Meta:
         db_table = "service_source"
 
-    service_id = models.CharField(max_length=32, help_text=u"服务ID")
+    service = models.OneToOneField(
+        TenantServiceInfo,
+        to_field='service_id',
+        on_delete=models.CASCADE,
+        db_constraint=False,
+        related_name="service_source_info",
+        help_text=u"服务信息",
+    )
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
     user_name = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"用户名")
@@ -761,7 +770,8 @@ class UpgradeStatus(IntEnum):
     UPGRADING = 2  # 升级中
     UPGRADED = 3  # 已升级
     ROLLING = 4  # 回滚中
-    ROLLBACK = 5  # 已回滚
+    PARTIAL_ROLLBACK = 5  # 部分回滚
+    ROLLBACK = 6  # 已回滚
 
 
 class AppUpgradeRecord(BaseModel):
@@ -770,12 +780,13 @@ class AppUpgradeRecord(BaseModel):
     class Meta:
         db_table = "app_upgrade_record"
 
-    tenant_id = models.CharField(max_length=33, verbose_name=u"租户id")
-    group_id = models.CharField(max_length=32, verbose_name=u"应用组id")
-    group_key = models.CharField(max_length=32, verbose_name=u"应用包")
-    status = models.IntegerField(verbose_name="升级状态")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    tenant_id = models.CharField(max_length=33, help_text=u"租户id")
+    group_id = models.IntegerField(help_text=u"应用组id")
+    group_key = models.CharField(max_length=32, help_text=u"应用包")
+    group_name = models.CharField(max_length=64, help_text=u"应用包名")
+    status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -789,9 +800,12 @@ class ServiceUpgradeRecord(BaseModel):
         on_delete=models.CASCADE,
         db_constraint=False,
         related_name="service_upgrade_records",
-        verbose_name=u"这条服务升级记录所关联的云市场应用升级记录",
+        help_text=u"这条服务升级记录所关联的云市场应用升级记录",
     )
-    service_id = models.CharField(max_length=32, unique=True, verbose_name=u"服务id")
-    status = models.IntegerField(verbose_name=u"升级状态")
-    update_time = models.DateTimeField(auto_now=True, verbose_name=u"更新时间")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name=u"创建时间")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_cname = models.CharField(max_length=100, help_text=u"服务名")
+    event_id = models.CharField(max_length=32)
+    update = models.TextField(help_text=u"升级信息")
+    status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

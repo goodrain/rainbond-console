@@ -165,8 +165,14 @@ class GroupService(object):
         """查询某一组下的应用"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [gs.service_id for gs in gsr]
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         return services
+
+    def get_rainbond_services(self, group_id, group_key):
+        """获取云市应用下的所有服务"""
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = gsr.values_list('service_id', flat=True)
+        return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
 
     def get_group_service_sources(self, group_id):
         """查询某一组下的服务源信息"""

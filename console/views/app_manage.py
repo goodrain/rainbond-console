@@ -505,7 +505,7 @@ class BatchDelete(RegionTenantHeaderView):
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service_id_list = service_ids.split(",")
-            services = service_repo.get_services_by_service_ids(*service_id_list)
+            services = service_repo.get_services_by_service_ids(service_id_list)
             msg_list = []
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)

@@ -551,7 +551,7 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def batch_action(self, tenant, user, action, service_ids, move_group_id):
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
         fail_service_name = []
@@ -579,7 +579,7 @@ class AppManageService(AppManageBase):
 
     # 5.1新版批量操作（启动，关闭，构建）
     def batch_operations(self, tenant, user, action, service_ids):
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         try:
             # 获取所有服务信息
             body = dict()
@@ -1176,7 +1176,7 @@ class AppManageService(AppManageBase):
         if sms:
             sids = [sm.service_id for sm in sms]
             services = service_repo.get_services_by_service_ids(
-                *sids).values_list("service_cname", flat=True)
+                sids).values_list("service_cname", flat=True)
             mnt_service_names = ",".join(list(services))
             return True, mnt_service_names
         return False, ""
@@ -1187,7 +1187,7 @@ class AppManageService(AppManageBase):
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             services = service_repo.get_services_by_service_ids(
-                *sids).values_list("service_cname", flat=True)
+                sids).values_list("service_cname", flat=True)
             if not services:
                 return False, ""
             dep_service_names = ",".join(list(services))
