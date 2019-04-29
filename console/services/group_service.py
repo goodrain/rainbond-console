@@ -191,7 +191,7 @@ class GroupService(object):
         group_repo.delete_group_by_pk(group_id)
         return 200, u"删除成功", group_id
 
-    def group_service(self, app_template_raw):
+    def get_service_group_memory(self, app_template_raw):
         """获取一组服务内存"""
         try:
             app_template = json.loads(app_template_raw)

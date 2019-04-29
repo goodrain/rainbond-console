@@ -36,6 +36,8 @@ class GroupAppView(RegionTenantHeaderView):
             for group_key in set(service_group_keys):
                 app_qs = rainbond_app_repo.get_market_app_qs_by_key(group_key=group_key)
                 app = app_qs.first()
+                if not app:
+                    continue
                 group_version_list = app_qs.values_list('version', flat=True)
                 upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
                 not_upgrade_record = upgrade_service.get_app_not_upgrade_record(
@@ -58,7 +60,7 @@ class GroupAppView(RegionTenantHeaderView):
                     'enterprise_id': app.enterprise_id,
                     'is_official': app.is_official,
                     'details': app.details,
-                    'min_memory': group_service.group_service(app.app_template),
+                    'min_memory': group_service.get_service_group_memory(app.app_template),
                 }
 
         return MessageResponse(msg="success", list=[app_info for app_info in yield_app_info()])
