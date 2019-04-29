@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 
 import httplib2
 from django import http
@@ -9,8 +10,8 @@ from django.conf import settings
 from backends.models import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantRegionInfo, Tenants
-import os
+from www.models.main import TenantRegionInfo
+from www.models.main import Tenants
 
 logger = logging.getLogger('default')
 
@@ -216,6 +217,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def restore_service_envs(self, region, tenant_name, service_alias, body):
+        """Restore environment variables"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/restore-envs"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, region=region, body=json.dumps(body))
+        return body
+
     def add_service_env(self, region, tenant_name, service_alias, body):
         """添加环境变量"""
 
@@ -361,6 +374,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region)
+        return body
+
+    def restore_ports(self, region, tenant_name, service_alias, body):
+        """restore ports"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/restore-ports"
+
+        self._set_headers(token)
+        res, body = self._post(
+            url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def add_service_port(self, region, tenant_name, service_alias, body):

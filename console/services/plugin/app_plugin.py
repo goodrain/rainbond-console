@@ -466,6 +466,9 @@ class AppPluginService(object):
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
+        """
+        raise ErrPluginAlreadyInstalled
+        """
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         for plugin in plugins:
             data = self.build_plugin_data_4marketsvc(tenant, service, plugin)

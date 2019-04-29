@@ -4,11 +4,14 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 
+from addict import Dict
 from django.db import transaction
+from enum import IntEnum
 
 from console.exception.main import EnvAlreadyExist
 from console.exception.main import ErrDepVolumeNotFound
 from console.exception.main import ErrInvalidVolume
+from console.exception.main import ErrPluginAlreadyInstalled
 from console.exception.main import InnerPortNotFound
 from console.exception.main import InvalidEnvName
 from console.exception.main import ServiceRelationAlreadyExist
@@ -19,6 +22,7 @@ from console.repositories.app_config import volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
+from console.services.app_actions.exception import ErrBackupNotFound
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
@@ -39,11 +43,10 @@ app_relation_service = AppServiceRelationService()
 baseService = BaseTenantService()
 
 
-def enum(**enums):
-    return type('Enum', (), enums)
-
-
-AsyncAction = enum(BUILD=2, UPDATE=1, NOTHING=2)
+class AsyncAction(IntEnum):
+    BUILD = 0
+    UPDATE = 1
+    NOTHING = 2
 
 
 class AppDeployService(object):
@@ -60,12 +63,16 @@ class AppDeployService(object):
         After the preparation is completed, emit a deployment task to the data center.
         """
         async_action = self.pre_deploy_action(tenant, service, version)
-        if async_action == AsyncAction.BUILD:
+        if async_action == AsyncAction.BUILD.value:
             code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
                                                          group_version=version,
                                                          committer_name=committer_name)
-        elif async_action == AsyncAction.UPDATE:
+        elif async_action == AsyncAction.UPDATE.value:
             code, msg, event = app_manage_service.upgrade(tenant, service, user, committer_name)
+        else:
+            # TODO
+            return 200, "", None
+
         return code, msg, event
 
 
@@ -80,7 +87,7 @@ class OhterService(object):
     def pre_action(self):
         logger.info("type: other; service id: {}; pre-deployment action.".format(
             self.service.service_id))
-        return AsyncAction.BUILD
+        return AsyncAction.BUILD.value
 
 
 class MarketService(object):
@@ -103,7 +110,7 @@ class MarketService(object):
 
         self.update_funcs = self._create_update_funcs()
         self.sync_funcs = self._create_sync_funcs()
-        self.resotre_func = self._create_restore_funcs()
+        self.restore_func = self._create_restore_funcs()
 
         self.async_build, self.async_update = self._create_async_action_tbl()
 
@@ -114,8 +121,10 @@ class MarketService(object):
         return {
             "deploy_version": self._update_deploy_version,
             "app_version": self._update_version,
-            "envs": self._update_envs,
-            "connect_infos": self._update_envs,
+            "image": self.dummy_func,
+            "slug_path": self.dummy_func,
+            "envs": self._update_inner_envs,
+            "connect_infos": self._update_outer_envs,
             "ports": self._update_ports,
             "volumes": self._update_volumes,
             "probe": self._update_probe,
@@ -128,8 +137,10 @@ class MarketService(object):
         return {
             "deploy_version": self.dummy_func,
             "app_version": self.dummy_func,
-            "envs": self._sync_envs,
-            "connect_infos": self._sync_envs,
+            "image": self.dummy_func,
+            "slug_path": self.dummy_func,
+            "envs": self._sync_inner_envs,
+            "connect_infos": self._sync_outer_envs,
             "ports": self._sync_ports,
             "volumes": self._sync_volumes,
             "probe": self._sync_probe,
@@ -142,9 +153,11 @@ class MarketService(object):
         return {
             "deploy_version": self.dummy_func,
             "app_version": self.dummy_func,
-            "envs": self._resotre_envs,
-            "connect_infos": self._resotre_envs,
-            "ports": self._resotre_ports,
+            "image": self.dummy_func,
+            "slug_path": self.dummy_func,
+            "envs": self._restore_inner_envs,
+            "connect_infos": self._restore_outer_envs,
+            "ports": self._restore_ports,
             "volumes": self._restore_volumes,
             "probe": self._restore_probe,
             "dep_services": self._restore_dep_services,
@@ -181,11 +194,15 @@ class MarketService(object):
         logger.debug("service id: {}; dest version: {}; changes: {}".format(
             self.service.service_id, self.version, changes))
 
-        with transaction.atomic():
-            async_action = self.modify_property(changes)
-            self.sync_region_property(changes)
-
-        # self.restore_backup()
+        try:
+            with transaction.atomic():
+                async_action = self.modify_property(changes)
+                self.sync_region_property(changes)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            logger.error("service id: {}; failed to change properties for market service: {}",
+                         self.service.service_id, e)
+            self.restore_backup()
+            return AsyncAction.NOTHING.value
 
         return async_action
 
@@ -218,8 +235,12 @@ class MarketService(object):
         self._update_service(app)
         self._update_service_source(app, self.version)
         # priority: build > update > nothing
-        priority = {AsyncAction.BUILD: 0, AsyncAction.UPDATE: 1, AsyncAction.NOTHING: 2}
-        async_action = AsyncAction.NOTHING
+        priority = {
+            AsyncAction.BUILD.value: 0,
+            AsyncAction.UPDATE.value: 1,
+            AsyncAction.NOTHING.value: 2
+        }
+        async_action = AsyncAction.NOTHING.value
         for k, v in changes.items():
             func = self.update_funcs.get(k, None)
             if func is None:
@@ -230,17 +251,17 @@ class MarketService(object):
 
             aa = self._get_async_action(k)
             if priority[aa] < priority[async_action]:
-                logger.debug("key: {}; select asynchronous action: {}".format)
+                logger.debug("key: {}; select asynchronous action: {}".format(k, aa))
                 async_action = aa
 
         return async_action
 
     def _get_async_action(self, key):
         if key in self.async_build:
-            return AsyncAction.BUILD
+            return AsyncAction.BUILD.value
         if key in self.async_update:
-            return AsyncAction.UPDATE
-        return AsyncAction.NOTHING
+            return AsyncAction.UPDATE.value
+        return AsyncAction.NOTHING.value
 
     def sync_region_property(self, changes):
         """
@@ -251,8 +272,7 @@ class MarketService(object):
         for k, v in changes.items():
             func = self.sync_funcs.get(k, None)
             if func is None:
-                logger.warning(
-                    "key: {}; unsuppurt key for sync func".format(k))
+                logger.warning("key: {}; unsuppurt key for sync func".format(k))
                 continue
             func(v)
             self.changed[k] = v
@@ -262,13 +282,26 @@ class MarketService(object):
         Restore data in the region based on backup information
         when an error occurs during deployment.
         """
+        logger.info("service id: {}; changed properties: {}; restore service from backup".format(
+                    self.service.service_id, self.changed))
+        # use the latest backup
+        backup = service_backup_repo.get_newest_by_sid(self.tenant.tenant_id,
+                                                       self.service.service_id)
+        if backup is None:
+            raise ErrBackupNotFound(self.service.service_id)
+        # check changed
+        if self.changed is None:
+            logger.info("service id: {}; backup id: {}; no specified changed, will restore \
+                all properties".format(self.service.service_id, backup.backup_id))
+            self.changed = self.update_funcs.keys
+
         for k, v in self.changed.items():
-            func = self.resotre_func.get(k, None)
+            func = self.restore_func.get(k, None)
             if func is None:
                 logger.warning("key: {}; unsuppurt key for restore func".format(k))
                 continue
             try:
-                func(v)
+                func(backup)
             except RegionApiBaseHttpClient.CallApiError as e:
                 # ignore restore error
                 logger.error("service id: {}; failed to restore {}; {}".format(
@@ -327,7 +360,13 @@ class MarketService(object):
         self.service.version = v["new"]
         self.service.save()
 
-    def _update_envs(self, envs):
+    def _update_inner_envs(self, envs):
+        self._update_envs(envs, "inner")
+
+    def _update_outer_envs(self, envs):
+        self._update_envs(envs, "outer")
+
+    def _update_envs(self, envs, scope):
         if envs is None:
             return
         logger.debug("service id: {}; update envs; data: {}".format(
@@ -342,12 +381,17 @@ class MarketService(object):
                 env_var_service.create_env_var(self.service, container_port,
                                                env["name"], env["attr_name"],
                                                env["attr_value"], env["is_change"],
-                                               "inner")
+                                               scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
-                logger.warning(
-                    "failed to create env: {}; will ignore this env".format(e))
+                logger.warning("failed to create env: {}; will ignore this env".format(e))
 
-    def _sync_envs(self, envs):
+    def _sync_inner_envs(self, envs):
+        self._sync_envs(envs, "inner")
+
+    def _sync_outer_envs(self, envs):
+        self._sync_envs(envs, "outer")
+
+    def _sync_envs(self, envs, scope):
         """
         raise RegionApiBaseHttpClient.CallApiError
         """
@@ -357,28 +401,52 @@ class MarketService(object):
             self.service.service_id, envs))
         add = envs.get("add", [])
         for env in add:
-            container_port = env.get("container_port", 0)
-            if container_port == 0 and env["attr_value"] == "**None**":
-                env["attr_value"] = self.service.service_id[:8]
-            attr = {
-                "container_port": container_port,
-                "tenant_id": self.service.tenant_id,
-                "service_id": self.service.service_id,
-                "name": env["name"],
-                "attr_name": env["attr_name"],
-                "attr_value": str(env["attr_value"]),
-                "is_change": True,
-                "scope": "inner",  # TODO: do not hard code
-                "env_name": env["attr_name"],
-                "env_value": str(env["attr_value"]),
-                "enterprise_id": self.tenant.enterprise_id
-            }
+            body = self._create_env_body(env, scope)
             region_api.add_service_env(self.service.service_region,
                                        self.tenant.tenant_name,
-                                       self.service.service_alias, attr)
+                                       self.service.service_alias, body)
 
-    def _resotre_envs(self, envs):
-        pass
+    def _restore_inner_envs(self, backup):
+        self._restore_envs(backup, "inner")
+
+    def _restore_outer_envs(self, backup):
+        self._restore_envs(backup, "outer")
+
+    def _restore_envs(self, backup, scope):
+        backup_data = json.loads(backup.backup_data)
+        body = {"scope": scope, "envs": []}
+        for env in backup_data.get("service_env_vars", []):
+            if scope != env["scope"]:
+                continue
+            body["envs"].append(self._create_env_body(env, scope))
+        try:
+            region_api.restore_service_envs(self.tenant.region, self.tenant.tenant_name,
+                                            self.service.service_alias, body)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore envs error:
+            logger.error("backup id: {}; failed to restore envs: {}".format(backup.backup_id, e))
+
+    def _create_env_body(self, env, scope):
+        """
+        convert env to the body needed to add environment variables to the region
+        """
+        container_port = env.get("container_port", 0)
+        if container_port == 0 and env["attr_value"] == "**None**":
+            env["attr_value"] = self.service.service_id[:8]
+        result = {
+            "container_port": container_port,
+            "tenant_id": self.service.tenant_id,
+            "service_id": self.service.service_id,
+            "name": env["name"],
+            "attr_name": env["attr_name"],
+            "attr_value": str(env["attr_value"]),
+            "is_change": True,
+            "scope": scope,
+            "env_name": env["attr_name"],
+            "env_value": str(env["attr_value"]),
+            "enterprise_id": self.tenant.enterprise_id
+        }
+        return result
 
     def _update_ports(self, ports):
         if ports is None:
@@ -392,39 +460,44 @@ class MarketService(object):
             port["mapping_port"] = container_port
             port["port_alias"] = port_alias
             port_repo.add_service_port(**port)
-            if port["is_inner_service"]:
-                try:
-                    env_var_service.create_env_var(self.service, container_port,
-                                                   u"连接地址", port_alias + "_HOST",
-                                                   "127.0.0.1")
-                    env_var_service.create_env_var(self.service, container_port,
-                                                   u"端口", port_alias + "_PORT",
-                                                   container_port)
-                except (EnvAlreadyExist, InvalidEnvName) as e:
-                    logger.warning(
-                        "failed to create env: {}; will ignore this env".format(e))
+            if not port["is_inner_service"]:
+                continue
+            try:
+                env_var_service.create_env_var(self.service, container_port,
+                                               u"连接地址", port_alias + "_HOST",
+                                               "127.0.0.1")
+                env_var_service.create_env_var(self.service, container_port,
+                                               u"端口", port_alias + "_PORT",
+                                               container_port)
+            except (EnvAlreadyExist, InvalidEnvName) as e:
+                logger.warning(
+                    "failed to create env: {}; will ignore this env".format(e))
 
     def _sync_ports(self, ports):
         """
         raise RegionApiBaseHttpClient.CallApiError
         """
-        if ports is None:
-            return
-        add = ports.get("add", [])
-        for port in add:
-            container_port = int(port["container_port"])
-            port_alias = self.service.service_key.upper()[:8]
-            port["tenant_id"] = self.tenant.tenant_id
-            port["service_id"] = self.service.service_id
-            port["mapping_port"] = container_port
-            port["port_alias"] = port_alias
-        region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
-                                    self.service.service_alias,
-                                    {"port": add, "enterprise_id": self.tenant.enterprise_id})
+        # if ports is None:
+        #     return
+        # add = ports.get("add", [])
+        # for port in add:
+        #     container_port = int(port["container_port"])
+        #     port_alias = self.service.service_key.upper()[:8]
+        #     port["tenant_id"] = self.tenant.tenant_id
+        #     port["service_id"] = self.service.service_id
+        #     port["mapping_port"] = container_port
+        #     port["port_alias"] = port_alias
 
-    def _resotre_ports(self, ports):
-        # TODO
-        pass
+        # region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
+        #                             self.service.service_alias,
+        #                             {"port": add, "enterprise_id": self.tenant.enterprise_id})
+
+        raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method", Dict({"status": 101}), "body")
+
+    def _restore_ports(self, backup):
+        ports = backup.get("service_ports", [])
+        region_api.restore_ports(self.tenant.region, self.tenant.tenant_name,
+                                 self.service.service_alias, {"ports": ports})
 
     def _update_volumes(self, volumes):
         for volume in volumes.get("add"):
@@ -604,8 +677,11 @@ class MarketService(object):
 
     def _update_plugins(self, plugins):
         add = plugins.get("add", [])
-        app_plugin_service.create_plugin_4marketsvc(
-            self.tenant.region, self.tenant, self.service, self.version, add)
+        try:
+            app_plugin_service.create_plugin_4marketsvc(
+                self.tenant.region, self.tenant, self.service, self.version, add)
+        except ErrPluginAlreadyInstalled as e:
+            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:
