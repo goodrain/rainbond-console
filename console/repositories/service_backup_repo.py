@@ -9,7 +9,7 @@ class TenantServiceBackupRepository(object):
     def get_newest_by_sid(self, tid, sid):
         try:
             return TenantServiceBackup.objects.filter(tenant_id=tid, service_id=sid)\
-                .order_by("update_time")[0:1].get()
+                .order_by("-update_time")[0:1].get()
         except IndexError:
             return None
 
