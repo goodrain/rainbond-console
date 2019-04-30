@@ -4,7 +4,6 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 
-from addict import Dict
 from django.db import transaction
 from enum import IntEnum
 
@@ -47,6 +46,17 @@ class AsyncAction(IntEnum):
     BUILD = 0
     UPDATE = 1
     NOTHING = 2
+
+
+class PropertyType(IntEnum):
+    """type of property
+    ALL: do not distinguish, use all properties
+    ORDINARY: ordinary properties
+    DEPENDENT: properties that need to handle dependencies
+    """
+    ALL = 0
+    ORDINARY = 1
+    DEPENDENT = 2
 
 
 class AppDeployService(object):
@@ -116,6 +126,31 @@ class MarketService(object):
 
     def dummy_func(self, changes):
         pass
+
+    def set_properties(self, type=PropertyType.ALL.value):
+        """
+        Types of service properites are ordinary and dependent. when updating an application,
+        you need to process the ordinary properites first and then the dependent ones.
+        In addition, you don't need to distinguish properites when you roll back.
+        """
+        all_update_funcs = self._create_update_funcs()
+        all_sync_funcs = self._create_sync_funcs()
+        m = {
+            PropertyType.ORDINARY.value: [
+                "deploy_version", "app_version", "image", "slug_path", "envs",
+                "connect_infos", "ports", "volumes", "probe"
+            ],
+            PropertyType.DEPENDENT.value: ["dep_services", "dep_volumes", "plugins"]
+        }
+        keys = m.get(type, None)
+        if keys is None:
+            self.update_funcs = all_update_funcs
+            self.sync_funcs = all_sync_funcs
+            return
+        self.update_funcs = {key: all_update_funcs[key] for key in keys
+                             if key in all_update_funcs}
+        self.sync_funcs = {key: all_sync_funcs[key] for key in keys
+                           if key in all_sync_funcs}
 
     def _create_update_funcs(self):
         return {
@@ -420,8 +455,8 @@ class MarketService(object):
                 continue
             body["envs"].append(self._create_env_body(env, scope))
         try:
-            region_api.restore_service_envs(self.tenant.region, self.tenant.tenant_name,
-                                            self.service.service_alias, body)
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/restore-envs", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore envs error:
             logger.error("backup id: {}; failed to restore envs: {}".format(backup.backup_id, e))
@@ -477,25 +512,26 @@ class MarketService(object):
         """
         raise RegionApiBaseHttpClient.CallApiError
         """
-        # if ports is None:
-        #     return
-        # add = ports.get("add", [])
-        # for port in add:
-        #     container_port = int(port["container_port"])
-        #     port_alias = self.service.service_key.upper()[:8]
-        #     port["tenant_id"] = self.tenant.tenant_id
-        #     port["service_id"] = self.service.service_id
-        #     port["mapping_port"] = container_port
-        #     port["port_alias"] = port_alias
+        if ports is None:
+            return
+        add = ports.get("add", [])
+        for port in add:
+            container_port = int(port["container_port"])
+            port_alias = self.service.service_key.upper()[:8]
+            port["tenant_id"] = self.tenant.tenant_id
+            port["service_id"] = self.service.service_id
+            port["mapping_port"] = container_port
+            port["port_alias"] = port_alias
 
-        # region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
-        #                             self.service.service_alias,
-        #                             {"port": add, "enterprise_id": self.tenant.enterprise_id})
-
-        raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method", Dict({"status": 101}), "body")
+        region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                      self.service.service_alias, "/restore-ports",
+                                      {"port": add, "enterprise_id": self.tenant.enterprise_id})
 
     def _restore_ports(self, backup):
-        ports = backup.get("service_ports", [])
+        backup_data = json.loads(backup.backup_data)
+        ports = backup_data.get("service_ports", [])
+        if not ports:
+            return
         region_api.restore_ports(self.tenant.region, self.tenant.tenant_name,
                                  self.service.service_alias, {"ports": ports})
 
@@ -541,9 +577,22 @@ class MarketService(object):
                                            self.service.service_alias,
                                            volume)
 
-    def _restore_volumes(self, volumes):
-        # TODO
-        pass
+    def _restore_volumes(self, backup):
+        backup_data = json.loads(backup.backup_data)
+
+        config_files = backup_data.get("service_volumes", [])
+        cfgfs = {item["volume_id"]: item["file_content"] for item in config_files}
+
+        volumes = backup_data.get("service_volumes", [])
+        body = {"volumes": []}
+        for item in volumes:
+            item["file_content"] = cfgfs.get(item["ID"], "")
+            body["volumes"].append(item)
+        if not body["volumes"]:
+            return
+
+        region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                      self.service.service_alias, "/restore-volumes", body)
 
     def _update_probe(self, probe):
         logger.debug("probe: {}".format(probe))
