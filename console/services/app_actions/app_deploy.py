@@ -49,6 +49,14 @@ class AsyncAction(IntEnum):
     NOTHING = 2
 
 
+# priority: build > update > nothing
+priority = {
+    AsyncAction.BUILD.value: 0,
+    AsyncAction.UPDATE.value: 1,
+    AsyncAction.NOTHING.value: 2
+}
+
+
 class PropertyType(IntEnum):
     """type of property
     ALL: do not distinguish, use all properties
@@ -61,19 +69,23 @@ class PropertyType(IntEnum):
 
 
 class AppDeployService(object):
+    def __init__(self):
+        self.impl = OhterService()
+
     def pre_deploy_action(self, tenant, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
-            impl = MarketService(tenant, service, version)
-        else:
-            impl = OhterService(service)
-        return impl.pre_action()
+            self.impl = MarketService(tenant, service, version)
 
-    def deploy(self, tenant, service, user, is_upgrade, version, committer_name=None):
-        """
-        After the preparation is completed, emit a deployment task to the data center.
-        """
-        async_action = self.pre_deploy_action(tenant, service, version)
+        self.impl.pre_action()
+
+    def get_async_action(self):
+        return self.impl.get_async_action()
+
+    def execute(self, tenant, service, user, is_upgrade, version, committer_name=None):
+        async_action = self.get_async_action()
+        logger.info("service id: {}; async action is '{}'".format(
+            service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
             code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
                                                          group_version=version,
@@ -81,10 +93,16 @@ class AppDeployService(object):
         elif async_action == AsyncAction.UPDATE.value:
             code, msg, event = app_manage_service.upgrade(tenant, service, user, committer_name)
         else:
-            # TODO
             return 200, "", None
-
         return code, msg, event
+
+    def deploy(self, tenant, service, user, is_upgrade, version, committer_name=None):
+        """
+        After the preparation is completed, emit a deployment task to the data center.
+        """
+        self.pre_deploy_action(tenant, service, version)
+
+        return self.execute(tenant, service, user, is_upgrade, version, committer_name)
 
 
 class OhterService(object):
@@ -92,13 +110,11 @@ class OhterService(object):
     Services outside the market service
     """
 
-    def __init__(self, service):
-        self.service = service
-
     def pre_action(self):
-        logger.info("type: other; service id: {}; pre-deployment action.".format(
-            self.service.service_id))
-        return AsyncAction.BUILD.value
+        logger.info("type: other; pre-deployment action.")
+
+    def get_async_action(self):
+        return AsyncAction.NOTHING.value
 
 
 class MarketService(object):
@@ -118,6 +134,8 @@ class MarketService(object):
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
+        # whether the restore_backup method has been executed
+        self.is_restored = False
 
         self.update_funcs = self._create_update_funcs()
         self.sync_funcs = self._create_sync_funcs()
@@ -221,26 +239,28 @@ class MarketService(object):
         backup = self.create_backup()
         logger.info("service id: {}; backup id: {}; backup successfully.".format(
             self.service.service_id, backup.backup_id))
-
-        # list properties changes
-        pc = PropertiesChanges(self.service)
-        raw_changes = pc.get_property_changes(self.tenant.enterprise_id,
-                                              self.version)
-        changes = deepcopy(raw_changes)
-        logger.debug("service id: {}; dest version: {}; changes: {}".format(
-            self.service.service_id, self.version, changes))
+        self.set_changes()
 
         try:
             with transaction.atomic():
-                async_action = self.modify_property(changes)
-                self.sync_region_property(changes)
+                self.modify_property()
+                self.sync_region_property()
         except RegionApiBaseHttpClient.CallApiError as e:
-            logger.error("service id: {}; failed to change properties for market service: {}",
-                         self.service.service_id, e)
+            logger.error("service id: {}; failed to change properties for market service: {}".
+                         format(self.service.service_id, e))
             self.restore_backup(backup)
-            return AsyncAction.NOTHING.value
+            # when a single service is upgraded, if a restore occurs,
+            # there is no need to emit an asynchronous action.
+            self.is_restored = True
 
-        return async_action
+    def set_changes(self):
+        # list properties changes
+        pc = PropertiesChanges(self.service)
+        changes = pc.get_property_changes(self.tenant.enterprise_id,
+                                          self.version)
+        logger.debug("service id: {}; dest version: {}; changes: {}".format(
+            self.service.service_id, self.version, changes))
+        self.changes = changes
 
     def create_backup(self):
         """
@@ -259,9 +279,9 @@ class MarketService(object):
         }
         return service_backup_repo.create(**backup)
 
-    def modify_property(self, changes):
+    def modify_property(self):
         """
-        Perform modifications to the given properties
+        Perform modifications to the given properties. must be called after `set_changes`.
         """
         service_source = service_source_repo.get_service_source(
             self.tenant.tenant_id, self.service.service_id)
@@ -270,13 +290,7 @@ class MarketService(object):
                                                      service_source)
         self._update_service(app)
         self._update_service_source(app, self.version)
-        # priority: build > update > nothing
-        priority = {
-            AsyncAction.BUILD.value: 0,
-            AsyncAction.UPDATE.value: 1,
-            AsyncAction.NOTHING.value: 2
-        }
-        async_action = AsyncAction.NOTHING.value
+        changes = deepcopy(self.changes)
         for k, v in changes.items():
             func = self.update_funcs.get(k, None)
             if func is None:
@@ -285,26 +299,41 @@ class MarketService(object):
                 continue
             func(v)
 
-            aa = self._get_async_action(k)
-            if priority[aa] < priority[async_action]:
-                logger.debug("key: {}; select asynchronous action: {}".format(k, aa))
-                async_action = aa
+    def _compare_async_action(self, a, b):
+        """
+        compare a, b, two asynchronous actions, returning the ones with higher priority
+        """
+        if priority[a] < priority[b]:
+            return a
+        return b
 
+    def get_async_action(self):
+        """ get asynchronous action
+        must be called after `set_changes`.
+        """
+        def key_action(key):
+            if key in self.async_build:
+                return AsyncAction.BUILD.value
+            if key in self.async_update:
+                return AsyncAction.UPDATE.value
+            return AsyncAction.NOTHING.value
+
+        if self.is_restored:
+            logger.debug("the restore_backup method has been executed")
+            return AsyncAction.NOTHING.value
+        changes = deepcopy(self.changes)
+        async_action = AsyncAction.NOTHING.value
+        for key in changes:
+            async_action = self._compare_async_action(async_action, key_action(key))
         return async_action
 
-    def _get_async_action(self, key):
-        if key in self.async_build:
-            return AsyncAction.BUILD.value
-        if key in self.async_update:
-            return AsyncAction.UPDATE.value
-        return AsyncAction.NOTHING.value
-
-    def sync_region_property(self, changes):
+    def sync_region_property(self):
         """
         After modifying the properties on the console side, you need to
-        synchronize with the region side.
+        synchronize with the region side. must be called after `set_changes`.
         raise: RegionApiBaseHttpClient.CallApiError
         """
+        changes = deepcopy(self.changes)
         for k, v in changes.items():
             func = self.sync_funcs.get(k, None)
             if func is None:
@@ -549,8 +578,9 @@ class MarketService(object):
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
                 self.tenant.tenant_id, self.service.service_id, volume["volume_path"])
             volume["host_path"] = host_path
-            file_content = volume["file_content"]
-            volume.pop("file_content")
+            file_content = volume.get("file_content", None)
+            if file_content is not None:
+                volume.pop("file_content")
             v = volume_repo.add_service_volume(**volume)
             if not file_content and volume["volume_type"] != "config-file":
                 continue
@@ -563,7 +593,8 @@ class MarketService(object):
         for volume in volumes.get("upd"):
             # only volume of type config-file can be updated,
             # and only the contents of the configuration file can be updated.
-            if not volume["file_content"] and volume["volume_type"] != "config-file":
+            file_content = volume.get("file_content", None)
+            if not file_content and volume["volume_type"] != "config-file":
                 continue
             v = volume_repo.get_service_volume_by_name(self.service.service_id,
                                                        volume["volume_name"])
@@ -571,7 +602,7 @@ class MarketService(object):
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
             cfg = volume_repo.get_service_config_file(v.ID)
-            cfg.file_content = volume["file_content"]
+            cfg.file_content = file_content
             cfg.save()
 
     def _sync_volumes(self, volumes):
