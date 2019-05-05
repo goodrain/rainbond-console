@@ -10,7 +10,6 @@ from console.models import AppUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.upgrade_services import upgrade_service
@@ -20,7 +19,6 @@ from console.utils.reqparse import parse_date
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.app_manage import app_deploy_service
 from console.views.base import RegionTenantHeaderView
 
 
@@ -216,9 +214,21 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
         }
         services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], service_infos.keys())
-        for service in services:
-            code, msg, event = app_deploy_service.deploy(self.tenant, service, self.user, False, data['version'])
-            upgrade_repo.create_service_upgrade_record(app_record, service, event, service_infos[service.service_id])
+
+        market_services = [
+            upgrade_service.market_service_and_create_backup(self.tenant, service, data['version'])
+            for service in services
+        ]
+
+        upgrade_service.upgrade_database(market_services, service_infos)
+        upgrade_service.send_upgrade_request(
+            market_services,
+            self.tenant,
+            self.user,
+            data['version'],
+            app_record,
+            service_infos
+        )
 
         return MessageResponse(
             msg="success",

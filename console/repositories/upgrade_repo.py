@@ -13,15 +13,16 @@ class UpgradeRepo(object):
     def create_app_upgrade_record(self, **kwargs):
         return AppUpgradeRecord.objects.create(**kwargs)
 
-    def create_service_upgrade_record(self, app_upgrade_record, service, event, update):
+    def create_service_upgrade_record(self, app_upgrade_record, service, event, update,
+                                      status=UpgradeStatus.UPGRADING.value):
         """创建服务升级记录"""
         return ServiceUpgradeRecord.objects.create(
             app_upgrade_record=app_upgrade_record,
             service_id=service.service_id,
             service_cname=service.service_cname,
-            event_id=event.event_id,
+            event_id=event.event_id if event else '',
             update=json.dumps(update),
-            status=UpgradeStatus.UPGRADING.value,
+            status=status,
         )
 
 
