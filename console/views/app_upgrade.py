@@ -221,7 +221,14 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         ]
 
         upgrade_service.upgrade_database(market_services, service_infos)
-        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, service_infos)
+        upgrade_service.send_upgrade_request(
+            market_services,
+            self.tenant,
+            self.user,
+            data['version'],
+            app_record,
+            service_infos
+        )
 
         return MessageResponse(
             msg="success",
