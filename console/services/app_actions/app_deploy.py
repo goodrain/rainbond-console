@@ -549,8 +549,9 @@ class MarketService(object):
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
                 self.tenant.tenant_id, self.service.service_id, volume["volume_path"])
             volume["host_path"] = host_path
-            file_content = volume["file_content"]
-            volume.pop("file_content")
+            file_content = volume.get("file_content", None)
+            if file_content is not None:
+                volume.pop("file_content")
             v = volume_repo.add_service_volume(**volume)
             if not file_content and volume["volume_type"] != "config-file":
                 continue
@@ -563,7 +564,8 @@ class MarketService(object):
         for volume in volumes.get("upd"):
             # only volume of type config-file can be updated,
             # and only the contents of the configuration file can be updated.
-            if not volume["file_content"] and volume["volume_type"] != "config-file":
+            file_content = volume.get("file_content", None)
+            if not file_content and volume["volume_type"] != "config-file":
                 continue
             v = volume_repo.get_service_volume_by_name(self.service.service_id,
                                                        volume["volume_name"])
@@ -571,7 +573,7 @@ class MarketService(object):
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
             cfg = volume_repo.get_service_config_file(v.ID)
-            cfg.file_content = volume["file_content"]
+            cfg.file_content = file_content
             cfg.save()
 
     def _sync_volumes(self, volumes):
