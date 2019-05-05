@@ -34,6 +34,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+# from addict import Dict
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -236,7 +237,7 @@ class MarketService(object):
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.error("service id: {}; failed to change properties for market service: {}",
                          self.service.service_id, e)
-            self.restore_backup()
+            self.restore_backup(backup)
             return AsyncAction.NOTHING.value
 
         return async_action
@@ -312,16 +313,19 @@ class MarketService(object):
             func(v)
             self.changed[k] = v
 
-    def restore_backup(self):
+        # raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method", Dict({"status": 101}), "body")
+
+    def restore_backup(self, backup=None):
         """
         Restore data in the region based on backup information
         when an error occurs during deployment.
         """
         logger.info("service id: {}; changed properties: {}; restore service from backup".format(
                     self.service.service_id, self.changed))
-        # use the latest backup
-        backup = service_backup_repo.get_newest_by_sid(self.tenant.tenant_id,
-                                                       self.service.service_id)
+        if backup is None:
+            # use the latest backup
+            backup = service_backup_repo.get_newest_by_sid(
+                self.tenant.tenant_id, self.service.service_id)
         if backup is None:
             raise ErrBackupNotFound(self.service.service_id)
         # check changed
@@ -456,7 +460,7 @@ class MarketService(object):
             body["envs"].append(self._create_env_body(env, scope))
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/restore-envs", body)
+                                          self.service.service_alias, "/app-restore/envs", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore envs error:
             logger.error("backup id: {}; failed to restore envs: {}".format(backup.backup_id, e))
@@ -524,7 +528,7 @@ class MarketService(object):
             port["port_alias"] = port_alias
 
         region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                      self.service.service_alias, "/restore-ports",
+                                      self.service.service_alias, "/app-restore/ports",
                                       {"port": add, "enterprise_id": self.tenant.enterprise_id})
 
     def _restore_ports(self, backup):
@@ -532,8 +536,12 @@ class MarketService(object):
         ports = backup_data.get("service_ports", [])
         if not ports:
             return
-        region_api.restore_ports(self.tenant.region, self.tenant.tenant_name,
-                                 self.service.service_alias, {"ports": ports})
+        try:
+            region_api.restore_ports(self.tenant.region, self.tenant.tenant_name,
+                                     self.service.service_alias, {"ports": ports})
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore ports error:
+            logger.error("backup id: {}; failed to restore ports: {}".format(backup.backup_id, e))
 
     def _update_volumes(self, volumes):
         for volume in volumes.get("add"):
@@ -591,8 +599,12 @@ class MarketService(object):
         if not body["volumes"]:
             return
 
-        region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                      self.service.service_alias, "/restore-volumes", body)
+        try:
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/volumes", body)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore volumes error:
+            logger.error("backup id: {}; failed to restore volumes: {}".format(backup.backup_id, e))
 
     def _update_probe(self, probe):
         logger.debug("probe: {}".format(probe))
@@ -624,9 +636,21 @@ class MarketService(object):
                                              self.service.service_alias,
                                              data)
 
-    def _restore_probe(self, probe):
-        # TODO
-        pass
+    def _restore_probe(self, backup):
+        # raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method",
+        #                                            Dict({"status": 101}), "body")
+        backup_data = json.loads(backup.backup_data)
+        pd = backup_data.get("service_probes", [])
+        if not pd:
+            return
+        probe = pd[0]
+
+        try:
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/probe", probe)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore probe error:
+            logger.error("backup id: {}; failed to restore probe: {}".format(backup.backup_id, e))
 
     def _update_dep_services(self, dep_services):
         def create_dep_service(dep_serivce_id):
@@ -670,9 +694,24 @@ class MarketService(object):
         for dep_service in add:
             sync_dep_service(dep_service["service_id"])
 
-    def _restore_dep_services(self, dep_services):
-        # TODO
-        pass
+    def _restore_dep_services(self, backup):
+        backup_data = json.loads(backup.backup_data)
+        relations = backup_data.get("service_relation", [])
+        body = {"deps": []}
+        for item in relations:
+            body["deps"].append({
+                "dep_service_id": item["dep_service_id"],
+                "dep_service_type": item["dep_service_type"],
+            })
+        if not body["deps"]:
+            return
+        try:
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/deps", body)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore service relations error:
+            logger.error("backup id: {}; failed to restore service relations: {}".format(
+                backup.backup_id, e))
 
     def _update_dep_volumes(self, dep_volumes):
         def create_dep_vol(dep_volume):
@@ -720,9 +759,25 @@ class MarketService(object):
         for dep_vol in add:
             sync_dep_vol(dep_vol)
 
-    def _restore_dep_volumes(self, dep_volumes):
-        # TODO
-        pass
+    def _restore_dep_volumes(self, backup):
+        backup_data = json.loads(backup.backup_data)
+        dep_vols = backup_data.get("service_mnts", [])
+        body = {"dep_vols": []}
+        for dv in dep_vols:
+            body["dep_vols"].append({
+                "dep_service_id": dv["dep_service_id"],
+                "volume_path": dv["mnt_dir"],
+                "volume_name": dv["mnt_name"]
+            })
+        if not body["dep_vols"]:
+            return
+        try:
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/depvols", body)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore service dependent volumes error:
+            logger.error("backup id: {}; failed to restore service dependent volumes: {}".format(
+                backup.backup_id, e))
 
     def _update_plugins(self, plugins):
         add = plugins.get("add", [])
@@ -757,6 +812,20 @@ class MarketService(object):
                                                 plugin["plugin_id"],
                                                 self.service.service_alias)
 
-    def _restore_plugins(self, plugins):
-        # TODO
-        pass
+    def _restore_plugins(self, backup):
+        backup_data = json.loads(backup.backup_data)
+        relations = backup_data.get("service_plugin_relation", [])
+        body = {"plugins": []}
+        for r in relations:
+            body["plugins"].append({
+                "plugin_id": r["plugin_id"],
+                "version_id": r["build_version"],
+                "switch": r["plugin_status"],
+            })
+        try:
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/plugins", body)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            # ignore restore service plugins error:
+            logger.error("backup id: {}; failed to restore service plugins: {}".format(
+                backup.backup_id, e))
