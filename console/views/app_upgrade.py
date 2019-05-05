@@ -34,7 +34,7 @@ class GroupAppView(RegionTenantHeaderView):
 
         def yield_app_info():
             for group_key in set(service_group_keys):
-                app_qs = rainbond_app_repo.get_market_app_qs_by_key(group_key=group_key)
+                app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key=group_key)
                 app = app_qs.first()
                 if not app:
                     continue
@@ -105,17 +105,17 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         paginator = Paginator(record_qs, page_size)
         records = paginator.page(page)
 
-        # 如果记录状态是升级中或者回滚中， 同步状态
+        # 同步升级记录状态
+        for record in records:
+            upgrade_service.synchronous_upgrade_status(self.tenant, record)
+
         return MessageResponse(
             msg="success",
+            bean={
+
+            },
             list=[
-                dict(
-                    service_record=[
-                        service_record.to_dict()
-                        for service_record in record.service_upgrade_records.all()
-                    ],
-                    **record.to_dict()
-                )
+                upgrade_service.serialized_upgrade_record(record)
                 for record in records
             ]
         )
@@ -145,17 +145,13 @@ class AppUpgradeRecordView(RegionTenantHeaderView):
             group_id=int(group_id),
             pk=int(record_id)
         )
+
         # 同步升级记录状态
+        upgrade_service.synchronous_upgrade_status(self.tenant, record)
 
         return MessageResponse(
             msg="success",
-            bean=dict(
-                service_record=[
-                    service_record.to_dict()
-                    for service_record in record.service_upgrade_records.all()
-                ],
-                **record.to_dict()
-            )
+            bean=upgrade_service.serialized_upgrade_record(record)
         )
 
 
@@ -199,7 +195,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (
-            {'key': 'upgrade_record_id', 'required': True, 'error': 'group_key is a required parameter'},
+            {'key': 'upgrade_record_id', 'required': True, 'error': 'upgrade_record_id is a required parameter'},
             {'key': 'group_key', 'required': True, 'error': 'group_key is a required parameter'},
             {'key': 'version', 'required': True, 'error': 'version is a required parameter'},
             {'key': 'services', 'required': True, 'error': 'services is a required parameter'},
@@ -226,13 +222,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
 
         return MessageResponse(
             msg="success",
-            bean=dict(
-                service_record=[
-                    service_record.to_dict()
-                    for service_record in app_record.service_upgrade_records.all()
-                ],
-                **app_record.to_dict()
-            )
+            bean=upgrade_service.serialized_upgrade_record(app_record)
         )
 
 
@@ -260,11 +250,5 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
 
         return MessageResponse(
             msg="success",
-            bean=dict(
-                service_record=[
-                    service_record.to_dict()
-                    for service_record in app_record.service_upgrade_records.all()
-                ],
-                **app_record.to_dict()
-            )
+            bean=upgrade_service.serialized_upgrade_record(app_record)
         )

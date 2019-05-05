@@ -770,8 +770,11 @@ class UpgradeStatus(IntEnum):
     UPGRADING = 2  # 升级中
     UPGRADED = 3  # 已升级
     ROLLING = 4  # 回滚中
-    PARTIAL_ROLLBACK = 5  # 部分回滚
-    ROLLBACK = 6  # 已回滚
+    ROLLBACK = 5  # 已回滚
+    PARTIAL_UPGRADED = 6  # 部分升级
+    PARTIAL_ROLLBACK = 7  # 部分回滚
+    UPGRADE_FAILED = 8  # 升级失败
+    ROLLBACK_FAILED = 9  # 回滚失败
 
 
 class AppUpgradeRecord(BaseModel):
