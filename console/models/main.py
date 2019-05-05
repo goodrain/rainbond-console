@@ -787,6 +787,7 @@ class AppUpgradeRecord(BaseModel):
     group_id = models.IntegerField(help_text=u"应用组id")
     group_key = models.CharField(max_length=32, help_text=u"应用包")
     group_name = models.CharField(max_length=64, help_text=u"应用包名")
+    version = models.CharField(max_length=20, default='', help_text=u"版本号")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
