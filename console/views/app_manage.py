@@ -408,19 +408,19 @@ class BatchActionView(RegionTenantHeaderView):
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
 
             if action == "stop":
-                if "stop_service" not in perm_tuple and "owner" not in identitys\
+                if "stop_service" not in perm_tuple and "owner" not in identitys \
                         and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
             if action == "start":
-                if "start_service" not in perm_tuple and "owner" not in identitys and "admin"\
+                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" \
                         not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
             if action == "restart":
-                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin"\
+                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" \
                         not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
             if action == "move":
-                if "manage_group" not in perm_tuple and "owner" not in identitys and "admin"\
+                if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" \
                         not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有变更应用分组权限"), status=400)
             service_id_list = service_ids.split(",")
@@ -501,7 +501,7 @@ class BatchDelete(RegionTenantHeaderView):
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin"\
+            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service_id_list = service_ids.split(",")
@@ -546,7 +546,7 @@ class AgainDelete(RegionTenantHeaderView):
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin"\
+            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service = service_repo.get_service_by_service_id(service_id)

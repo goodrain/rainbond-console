@@ -1,11 +1,15 @@
 # coding: utf-8
 """存放应用升级细节"""
+from django.db import DatabaseError
+from django.db import transaction
+
 from console.exception.main import AbortRequest
 from console.models import AppUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 
 
 class UpgradeService(object):
@@ -106,6 +110,58 @@ class UpgradeService(object):
         if status:
             record.status = status
             record.save()
+
+    @staticmethod
+    def market_service_and_create_backup(tenant, service, version):
+        """创建服务升级接口并创建备份"""
+        from console.services.app_actions.app_deploy import MarketService
+
+        market_service = MarketService(tenant, service, version)
+        market_service.create_backup()
+        return market_service
+
+    @staticmethod
+    def upgrade_database(market_services, service_infos):
+        """升级数据库数据"""
+        from console.services.app_actions.app_deploy import PropertyType
+        try:
+            with transaction.atomic():
+                for market_service in market_services:
+                    market_service.set_properties(PropertyType.ORDINARY.value)
+                    market_service.modify_property(service_infos[market_service.service.service_id])
+                    market_service.sync_region_property(service_infos[market_service.service.service_id])
+
+                for market_service in market_services:
+                    market_service.set_properties(PropertyType.DEPENDENT.value)
+                    market_service.modify_property(service_infos[market_service.service.service_id])
+                    market_service.sync_region_property(service_infos[market_service.service.service_id])
+        except (DatabaseError, RegionApiBaseHttpClient.CallApiError):
+            for market_service in market_services:
+                market_service.restore_backup()
+
+    @staticmethod
+    def send_upgrade_request(market_services, tenant, user, version, app_record, service_infos):
+        """向数据中心发送更新请求"""
+        from console.services.app_actions.app_deploy import AppDeployService
+
+        app_deploy_service = AppDeployService()
+
+        for market_service in market_services:
+            code, msg, event = app_deploy_service.deploy(
+                tenant,
+                market_service.service,
+                user,
+                False,
+                version
+            )
+            status = UpgradeStatus.UPGRADING.value if code == '200' else UpgradeStatus.UPGRADE_FAILED.value
+            upgrade_repo.create_service_upgrade_record(
+                app_record,
+                market_service.service,
+                event,
+                service_infos[market_service.service.service_id],
+                status
+            )
 
     @staticmethod
     def _change_service_record_status(event, service_record):
