@@ -72,6 +72,9 @@ class AppDeployService(object):
     def __init__(self):
         self.impl = OhterService()
 
+    def set_impl(self, impl):
+        self.impl = impl
+
     def pre_deploy_action(self, tenant, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
@@ -114,7 +117,7 @@ class OhterService(object):
         logger.info("type: other; pre-deployment action.")
 
     def get_async_action(self):
-        return AsyncAction.NOTHING.value
+        return AsyncAction.BUILD.value
 
 
 class MarketService(object):
@@ -134,8 +137,7 @@ class MarketService(object):
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
-        # whether the restore_backup method has been executed
-        self.is_restored = False
+        self.async_action = None
 
         self.update_funcs = self._create_update_funcs()
         self.sync_funcs = self._create_sync_funcs()
@@ -251,7 +253,7 @@ class MarketService(object):
             self.restore_backup(backup)
             # when a single service is upgraded, if a restore occurs,
             # there is no need to emit an asynchronous action.
-            self.is_restored = True
+            self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
         # list properties changes
@@ -311,21 +313,20 @@ class MarketService(object):
         """ get asynchronous action
         must be called after `set_changes`.
         """
-        def key_action(key):
-            if key in self.async_build:
-                return AsyncAction.BUILD.value
-            if key in self.async_update:
-                return AsyncAction.UPDATE.value
-            return AsyncAction.NOTHING.value
-
-        if self.is_restored:
-            logger.debug("the restore_backup method has been executed")
-            return AsyncAction.NOTHING.value
+        if self.async_action:
+            return self.async_action
         changes = deepcopy(self.changes)
         async_action = AsyncAction.NOTHING.value
         for key in changes:
-            async_action = self._compare_async_action(async_action, key_action(key))
+            async_action = self._compare_async_action(async_action, self._key_action(key))
         return async_action
+
+    def _key_action(self, key):
+        if key in self.async_build:
+            return AsyncAction.BUILD.value
+        if key in self.async_update:
+            return AsyncAction.UPDATE.value
+        return AsyncAction.NOTHING.value
 
     def sync_region_property(self):
         """
@@ -363,6 +364,7 @@ class MarketService(object):
                 all properties".format(self.service.service_id, backup.backup_id))
             self.changed = self.update_funcs.keys
 
+        async_action = AsyncAction.NOTHING.value
         for k, v in self.changed.items():
             func = self.restore_func.get(k, None)
             if func is None:
@@ -374,6 +376,8 @@ class MarketService(object):
                 # ignore restore error
                 logger.error("service id: {}; failed to restore {}; {}".format(
                     self.service.service_id, k, e))
+            async_action = self._compare_async_action(async_action, self._key_action(k))
+        self.async_action = async_action
 
     def _update_service(self, app):
         share_image = app.get("share_image", None)
