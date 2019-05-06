@@ -70,9 +70,13 @@ class UpgradeService(object):
         # 查询某一个云市应用下的所有服务
         services = group_service.get_rainbond_services(group_id, group_key)
         versions = set()
+
+        # 查询可升级的应用
         for service in services:
             service_version = market_app_service.list_upgradeable_versions(tenant, service)
             versions |= set(service_version or [])
+
+        # 查询新增应用的版本
         return versions
 
     def synchronous_upgrade_status(self, tenant, record):
@@ -82,13 +86,17 @@ class UpgradeService(object):
         """
         from console.services.app_actions import event_service
 
-        if record.status not in {UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value}:
+        # 升级中，回滚中 才需要同步
+        synchronization_type = {UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value}
+
+        if record.status not in synchronization_type:
             return
 
         service_records = record.service_upgrade_records.all()
         event_service_mapping = {
             record.event_id: record
             for record in service_records
+            if record.status in synchronization_type
         }
         events = event_repo.get_events_by_event_ids(event_service_mapping.keys())
         # 去数据中心同步事件
@@ -108,8 +116,7 @@ class UpgradeService(object):
 
         status = judging_status[record.status](service_status)
         if status:
-            record.status = status
-            record.save()
+            upgrade_repo.change_app_record_status(record, status)
 
     @staticmethod
     def market_service_and_create_backup(tenant, service, version):
@@ -147,7 +154,7 @@ class UpgradeService(object):
         app_deploy_service = AppDeployService()
 
         for market_service in market_services:
-            code, msg, event = app_deploy_service.deploy(
+            code, msg, event = app_deploy_service.execute(
                 tenant,
                 market_service.service,
                 user,
@@ -174,14 +181,13 @@ class UpgradeService(object):
             },
             # 回滚中
             UpgradeStatus.ROLLING.value: {
-                "success": UpgradeStatus.UPGRADING.value,
+                "success": UpgradeStatus.ROLLBACK.value,
                 "failure": UpgradeStatus.ROLLBACK_FAILED.value,
             },
         }
         status = operation.get(service_record.status, {}).get(event.status)
         if status:
-            service_record.status = status
-            service_record.save()
+            upgrade_repo.change_service_record_status(service_record, status)
 
     @staticmethod
     def _judging_status_upgrading(service_status):
@@ -193,6 +199,8 @@ class UpgradeService(object):
             status = UpgradeStatus.PARTIAL_UPGRADED.value
         elif service_status == {UpgradeStatus.UPGRADED.value}:
             status = UpgradeStatus.UPGRADED.value
+        elif service_status == {UpgradeStatus.UPGRADE_FAILED.value}:
+            status = UpgradeStatus.UPGRADE_FAILED.value
         return status
 
     @staticmethod
@@ -201,10 +209,12 @@ class UpgradeService(object):
         status = None
         if UpgradeStatus.ROLLING.value in service_status:
             pass
-        elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.UPGRADED.value}:
+        elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.ROLLBACK.value}:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
             status = UpgradeStatus.ROLLBACK.value
+        elif service_status == {UpgradeStatus.PARTIAL_ROLLBACK.value}:
+            status = UpgradeStatus.PARTIAL_ROLLBACK.value
         return status
 
     @staticmethod

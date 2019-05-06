@@ -10,6 +10,8 @@ from console.models import AppUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.upgrade_repo import upgrade_repo
+from console.services.app_actions.app_deploy import MarketService
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.upgrade_services import upgrade_service
@@ -208,6 +210,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             status=UpgradeStatus.NOT.value,
             pk=data['upgrade_record_id'],
         )
+        app_record.version = data['version']
+        app_record.save()
 
         service_infos = {
             service['service']['service_id']: service['upgrade_info']
@@ -229,6 +233,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             app_record,
             service_infos
         )
+        upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
         return MessageResponse(
             msg="success",
@@ -239,24 +244,28 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
 class AppUpgradeRollbackView(RegionTenantHeaderView):
     def post(self, request, group_id, record_id, *args, **kwargs):
         """提交回滚任务"""
-        services_data = parse_item(request, 'services', required=True, error='group_key is a required parameter')
+        service_ids = parse_item(request, 'service_ids', required=True, error='service_ids is a required parameter')
 
-        app_record = get_object_or_404(
-            AppUpgradeRecord,
-            msg="This upgrade cannot be rolled back",
-            msg_show=u"本次升级无法回滚",
+        # 判断是不是最后一条升级记录
+        app_record = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            status=UpgradeStatus.UPGRADED.value,
-            pk=int(record_id)
-        )
-        service_infos = {
-            service['service']['service_id']: service['upgrade_info']
-            for service in services_data
-        }
-        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_infos.keys())
+            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value)
+        ).order_by('-create_time').first()
+
+        if app_record.Id != int(record_id):
+            raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
+
+        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_ids)
         for service in services:
-            pass
+            service_record = app_record.service_upgrade_records.get(service_id=service.service_id)
+            if service_record.status == UpgradeStatus.ROLLBACK.value:
+                continue
+            market_service = MarketService(self.tenant, service, app_record.version)
+            market_service.restore_backup()
+            upgrade_repo.change_service_record_status(service_record, UpgradeStatus.ROLLING.value)
+
+        upgrade_repo.change_app_record_status(app_record, UpgradeStatus.ROLLING.value)
 
         return MessageResponse(
             msg="success",

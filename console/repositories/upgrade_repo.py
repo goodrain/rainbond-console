@@ -25,5 +25,15 @@ class UpgradeRepo(object):
             status=status,
         )
 
+    def change_app_record_status(self, app_record, status):
+        """改变应用升级记录状态"""
+        app_record.status = status
+        app_record.save()
+
+    def change_service_record_status(self, service_record, status):
+        """改变服务升级记录状态"""
+        service_record.status = status
+        service_record.save()
+
 
 upgrade_repo = UpgradeRepo()
