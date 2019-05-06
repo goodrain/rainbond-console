@@ -72,6 +72,9 @@ class AppDeployService(object):
     def __init__(self):
         self.impl = OhterService()
 
+    def set_impl(self, impl):
+        self.impl = impl
+
     def pre_deploy_action(self, tenant, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
