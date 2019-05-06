@@ -22,6 +22,7 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.exception import ErrBackupNotFound
+from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
@@ -90,9 +91,16 @@ class AppDeployService(object):
         logger.info("service id: {}; async action is '{}'".format(
             service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
-                                                         group_version=version,
-                                                         committer_name=committer_name)
+            try:
+                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
+                                                             group_version=version,
+                                                             committer_name=committer_name)
+            except ErrVersionAlreadyExists:
+                service.deploy_version = datetime.now().strftime('%Y%m%d%H%M%S')
+                service.save()
+                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
+                                                             group_version=version,
+                                                             committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
             code, msg, event = app_manage_service.upgrade(tenant, service, user, committer_name)
         else:
