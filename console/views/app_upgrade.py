@@ -2,17 +2,14 @@
 """升级从云市安装的应用"""
 from django.core.paginator import Paginator
 from django.db.models import Q
+from enum import Enum
 
 from console.exception.main import AbortRequest
-from console.exception.main import RbdAppNotFound
-from console.exception.main import RecordNotFound
 from console.models import AppUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
-from console.services.app_actions.app_deploy import MarketService
-from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
@@ -155,6 +152,11 @@ class AppUpgradeRecordView(RegionTenantHeaderView):
         )
 
 
+class UpgradeType(Enum):
+    UPGRADE = 'upgrade'
+    ADD = 'add'
+
+
 class AppUpgradeInfoView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取升级信息"""
@@ -166,28 +168,35 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         # 查询某一个云市应用下的所有服务
         services = group_service.get_rainbond_services(int(group_id), group_key)
 
-        def get_service_changes(service):
-            try:
-                # 查询更新信息
-                pc = PropertiesChanges(service)
-                return pc.get_property_changes(self.tenant.enterprise_id, version)
-            except RecordNotFound as e:
-                AbortRequest(msg=str(e))
-            except RbdAppNotFound as e:
-                AbortRequest(msg=str(e))
+        upgrade_info = [
+            {
+                'service': {
+                    'service_id': service.service_id,
+                    'service_cname': service.service_cname,
+                    'service_key': service.service_key,
+                    'type': UpgradeType.UPGRADE.value
+                },
+                'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
+            }
+            for service in services
+        ]
+
+        add_info = [
+            {
+                'service': {
+                    'service_id': '',
+                    'service_cname': service_info['service_cname'],
+                    'service_key': service_info['service_key'],
+                    'type': UpgradeType.ADD.value
+                },
+                'upgrade_info': service_info,
+            }
+            for service_info in upgrade_service.get_add_services(services, group_key, version)
+        ]
 
         return MessageResponse(
             msg="success",
-            list=[
-                {
-                    'service': {
-                        'service_id': service.service_id,
-                        'service_cname': service.service_cname,
-                    },
-                    'upgrade_info': get_service_changes(service),
-                }
-                for service in services
-            ]
+            list=upgrade_info + add_info
         )
 
 
@@ -213,25 +222,28 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         app_record.version = data['version']
         app_record.save()
 
-        service_infos = {
+        # 处理需要升级的服务
+        upgrade_service_infos = {
             service['service']['service_id']: service['upgrade_info']
             for service in data['services']
+            if service['service']['type'] == UpgradeType.UPGRADE.value
         }
-        services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], service_infos.keys())
+        services = service_repo.get_services_by_service_ids_and_group_key(
+            data['group_key'], upgrade_service_infos.keys()
+        )
 
         market_services = [
-            upgrade_service.market_service_and_create_backup(self.tenant, service, data['version'])
+            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version)
             for service in services
         ]
 
-        upgrade_service.upgrade_database(market_services, service_infos)
+        upgrade_service.upgrade_database(market_services)
         upgrade_service.send_upgrade_request(
             market_services,
             self.tenant,
             self.user,
-            data['version'],
             app_record,
-            service_infos
+            upgrade_service_infos
         )
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
@@ -256,14 +268,25 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         if app_record.Id != int(record_id):
             raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
 
-        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_ids)
-        for service in services:
-            service_record = app_record.service_upgrade_records.get(service_id=service.service_id)
-            if service_record.status == UpgradeStatus.ROLLBACK.value:
-                continue
-            market_service = MarketService(self.tenant, service, app_record.version)
-            market_service.restore_backup()
-            upgrade_repo.change_service_record_status(service_record, UpgradeStatus.ROLLING.value)
+        service_records = app_record.service_upgrade_records.filter(
+            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.UPGRADE_FAILED.value),
+            service_id__in=service_ids
+        )
+        services = service_repo.get_services_by_service_ids_and_group_key(
+            app_record.group_key,
+            service_records.values_list('service_id', flat=True) or []
+        )
+
+        market_services = [
+            upgrade_service.market_service_and_restore_backup(self.tenant, service, app_record.version)
+            for service in services
+        ]
+        upgrade_service.send_rolling_request(
+            market_services,
+            self.tenant,
+            self.user,
+            app_record,
+        )
 
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.ROLLING.value)
 
