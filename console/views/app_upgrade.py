@@ -288,7 +288,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
             )
         ).order_by('-create_time').first()
 
-        if app_record.ID != int(record_id):
+        if not app_record or app_record.ID != int(record_id):
             raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
 
         service_records = app_record.service_upgrade_records.filter(

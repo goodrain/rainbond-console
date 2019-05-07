@@ -273,7 +273,7 @@ class UpgradeService(object):
         """判断升级状态"""
         status = None
         if UpgradeStatus.UPGRADING.value in service_status:
-            pass
+            return
         elif service_status == {UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.UPGRADED.value}:
             status = UpgradeStatus.PARTIAL_UPGRADED.value
         elif service_status == {UpgradeStatus.UPGRADED.value}:
@@ -287,13 +287,13 @@ class UpgradeService(object):
         """判断回滚状态"""
         status = None
         if UpgradeStatus.ROLLING.value in service_status:
-            pass
+            return
         elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.ROLLBACK.value}:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
             status = UpgradeStatus.ROLLBACK.value
-        elif service_status == {UpgradeStatus.PARTIAL_ROLLBACK.value}:
-            status = UpgradeStatus.PARTIAL_ROLLBACK.value
+        elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value}:
+            status = UpgradeStatus.ROLLBACK_FAILED.value
         return status
 
     @staticmethod
