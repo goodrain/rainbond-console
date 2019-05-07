@@ -29,6 +29,7 @@ from console.services.app_config import env_var_service
 from console.services.app_config import mnt_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.backup_service import groupapp_backup_service as backup_service
+from console.services.exception import ErrDepServiceNotFound
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from www.apiclient.regionapi import RegionInvokeApi
@@ -696,15 +697,11 @@ class MarketService(object):
             logger.error("backup id: {}; failed to restore probe: {}".format(backup.backup_id, e))
 
     def _update_dep_services(self, dep_services):
-        def create_dep_service(dep_serivce_id):
-            dep_service = service_repo.get_service_by_service_id(dep_serivce_id)
-            if dep_service is None:
-                return
-
+        def create_dep_service(dep_service_id):
             try:
                 app_relation_service.create_service_relation(
-                    self.tenant, self.service, dep_service.service_id)
-            except (ServiceRelationAlreadyExist, InnerPortNotFound) as e:
+                    self.tenant, self.service, dep_service_id)
+            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
                 logger.warning("failed to create service relation: {}".format(e))
 
         add = dep_services.get("add", [])
@@ -712,24 +709,23 @@ class MarketService(object):
             create_dep_service(dep_service["service_id"])
 
     def _sync_dep_services(self, dep_services):
-        def sync_dep_service(dep_serivce_id):
+        def sync_dep_service(dep_service_id):
             """
             raise RegionApiBaseHttpClient.CallApiError
             """
-            dep_service = service_repo.get_service_by_service_id(dep_serivce_id)
-            if dep_service is None:
+            try:
+                app_relation_service.check_relation(self.service.tenant_id,
+                                                    self.service.service_id,
+                                                    dep_service_id)
+            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
+                logger.warning("failed to sync dependent service: {}".format(e))
                 return
-            inner_ports = port_repo.list_inner_ports(self.tenant.tenant_id,
-                                                     self.service.service_id)
-            if not inner_ports:
-                logger.warning("failed to sync dependent service: inner ports not found")
-                return
+            dep_service = service_repo.get_service_by_service_id(dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id
             body["tenant_id"] = self.tenant.tenant_id
             body["dep_service_type"] = dep_service.service_type
             body["enterprise_id"] = self.tenant.enterprise_id
-
             region_api.add_service_dependency(self.tenant.region,
                                               self.tenant.tenant_name,
                                               self.service.service_alias, body)
@@ -823,6 +819,7 @@ class MarketService(object):
                 backup.backup_id, e))
 
     def _update_plugins(self, plugins):
+        logger.debug("start updating plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         try:
             app_plugin_service.create_plugin_4marketsvc(
@@ -841,6 +838,7 @@ class MarketService(object):
         """
         raise RegionApiBaseHttpClient.CallApiError
         """
+        logger.debug("start syncing plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         for plugin in add:
             data = app_plugin_service.build_plugin_data_4marketsvc(
