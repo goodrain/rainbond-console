@@ -80,6 +80,7 @@ class PropertiesChanges(object):
 
         plugins = self.plugin_changes(app.get("service_related_plugin_config", []))
         if plugins:
+            logger.debug("plugin changes: {}".format(json.dumps(plugins)))
             result["plugins"] = plugins
 
         return result
@@ -221,6 +222,8 @@ class PropertiesChanges(object):
             self.service.service_region, self.service.tenant_id, self.service.service_id, "")
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
+        logger.debug("start getting plugin changes; old_plugin_keys: {}; \
+            new_plugin_keys: {}".format(json.dumps(old_plugin_keys), json.dumps(new_plugin_keys)))
 
         add = []
         delete = []
@@ -236,7 +239,7 @@ class PropertiesChanges(object):
                 "plugin_id": old_plugin.plugin_id,
             })
         # TODO: if add and delete:
-        if add:
+        if not add:
             return None
         return {
             "add": add,
