@@ -1,9 +1,13 @@
 # coding: utf-8
 """存放应用升级细节"""
+import json
+
 from django.db import DatabaseError
 from django.db import transaction
 
 from console.exception.main import AbortRequest
+from console.exception.main import RbdAppNotFound
+from console.exception.main import RecordNotFound
 from console.models import AppUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.event_repo import event_repo
@@ -77,10 +81,74 @@ class UpgradeService(object):
             versions |= set(service_version or [])
 
         # 查询新增应用的版本
+        service_keys = services.values_list('service_key', flat=True)
+        service_keys = set(service_keys) if service_keys else set()
+        app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key=group_key)
+        add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
+
+        versions |= add_versions
+
         return versions
 
-    def synchronous_upgrade_status(self, tenant, record):
+    def query_the_version_of_the_add_service(self, app_qs, service_keys):
+        """查询增加服务的版本
+        :param app_qs: 所有版本的应用
+        :type service_keys: set
+        :rtype: set
         """
+        version_app_template_mapping = {
+            app.version: self.parse_app_template(app.app_template)
+            for app in app_qs
+        }
+        return {
+            version
+            for version, parse_app_template in version_app_template_mapping.items()
+            if self.get_new_services(parse_app_template, service_keys)
+        }
+
+    @staticmethod
+    def get_new_services(parse_app_template, service_keys):
+        """获取新添加的服务信息
+        :type parse_app_template: dict
+        :type service_keys: set
+        :rtype: dict
+        """
+        new_service_keys = set(parse_app_template.keys()) - set(service_keys)
+        return {
+            key: parse_app_template[key]
+            for key in new_service_keys
+        }
+
+    @staticmethod
+    def parse_app_template(app_template):
+        """解析app_template， 返回service_key与service_info映射"""
+        return {
+            app['service_key']: app
+            for app in json.loads(app_template)['apps']
+        }
+
+    @staticmethod
+    def get_service_changes(service, tenant, version):
+        """获取服务更新信息"""
+        from console.services.app_actions.properties_changes import PropertiesChanges
+
+        try:
+            pc = PropertiesChanges(service)
+            return pc.get_property_changes(tenant.enterprise_id, version)
+        except RecordNotFound as e:
+            AbortRequest(msg=str(e))
+        except RbdAppNotFound as e:
+            AbortRequest(msg=str(e))
+
+    def get_add_services(self, services, group_key, version):
+        """获取新增服务"""
+        service_keys = services.values_list('service_key', flat=True)
+        service_keys = set(service_keys) if service_keys else set()
+        app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=group_key, version=version)
+        return self.get_new_services(self.parse_app_template(app.app_template), service_keys).values()
+
+    def synchronous_upgrade_status(self, tenant, record):
+        """ 同步升级状态
         :type tenant: www.models.main.Tenants
         :type record: AppUpgradeRecord
         """
@@ -128,47 +196,58 @@ class UpgradeService(object):
         return market_service
 
     @staticmethod
-    def upgrade_database(market_services, service_infos):
+    def upgrade_database(market_services):
         """升级数据库数据"""
         from console.services.app_actions.app_deploy import PropertyType
         try:
             with transaction.atomic():
                 for market_service in market_services:
+                    market_service.set_changes()
                     market_service.set_properties(PropertyType.ORDINARY.value)
-                    market_service.modify_property(service_infos[market_service.service.service_id])
-                    market_service.sync_region_property(service_infos[market_service.service.service_id])
+                    market_service.modify_property()
+                    market_service.sync_region_property()
 
                 for market_service in market_services:
                     market_service.set_properties(PropertyType.DEPENDENT.value)
-                    market_service.modify_property(service_infos[market_service.service.service_id])
-                    market_service.sync_region_property(service_infos[market_service.service.service_id])
+                    market_service.modify_property()
+                    market_service.sync_region_property()
         except (DatabaseError, RegionApiBaseHttpClient.CallApiError):
             for market_service in market_services:
                 market_service.restore_backup()
 
-    @staticmethod
-    def send_upgrade_request(market_services, tenant, user, version, app_record, service_infos):
+    def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos):
         """向数据中心发送更新请求"""
         from console.services.app_actions.app_deploy import AppDeployService
 
-        app_deploy_service = AppDeployService()
-
         for market_service in market_services:
+            app_deploy_service = AppDeployService()
+            app_deploy_service.set_impl(market_service)
             code, msg, event = app_deploy_service.execute(
                 tenant,
                 market_service.service,
                 user,
-                False,
-                version
+                True,
+                app_record.version
             )
-            status = UpgradeStatus.UPGRADING.value if code == '200' else UpgradeStatus.UPGRADE_FAILED.value
+
             upgrade_repo.create_service_upgrade_record(
                 app_record,
                 market_service.service,
                 event,
                 service_infos[market_service.service.service_id],
-                status
+                self._get_sync_upgrade_status(code, event)
             )
+
+    @staticmethod
+    def _get_sync_upgrade_status(code, event):
+        """通过异步请求状态判断升级状态"""
+        if code == '200' and event:
+            status = UpgradeStatus.UPGRADING.value
+        elif code == '200' and not event:
+            status = UpgradeStatus.UPGRADED.value
+        else:
+            status = UpgradeStatus.UPGRADE_FAILED.value
+        return status
 
     @staticmethod
     def _change_service_record_status(event, service_record):
@@ -215,6 +294,50 @@ class UpgradeService(object):
             status = UpgradeStatus.ROLLBACK.value
         elif service_status == {UpgradeStatus.PARTIAL_ROLLBACK.value}:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
+        return status
+
+    @staticmethod
+    def market_service_and_restore_backup(tenant, service, version):
+        """创建服务回滚接口并回滚数据库"""
+        from console.services.app_actions.app_deploy import MarketService
+
+        market_service = MarketService(tenant, service, version)
+        market_service.restore_backup()
+        return market_service
+
+    def send_rolling_request(self, market_services, tenant, user, app_record, service_records):
+        """向数据中心发送回滚请求"""
+        from console.services.app_actions.app_deploy import AppDeployService
+
+        for market_service in market_services:
+            app_deploy_service = AppDeployService()
+            app_deploy_service.set_impl(market_service)
+            code, msg, event = app_deploy_service.execute(
+                tenant,
+                market_service.service,
+                user,
+                True,
+                app_record.version
+            )
+            service_record = service_records.get(service_id=market_service.service.service_id)
+            upgrade_repo.change_service_record_status(
+                service_record,
+                self._get_sync_rolling_status(code, event)
+            )
+            # 改变event id
+            if code == '200':
+                service_record.event_id = event.event_id
+                service_record.save()
+
+    @staticmethod
+    def _get_sync_rolling_status(code, event):
+        """通过异步请求状态判断回滚状态"""
+        if code == '200' and event:
+            status = UpgradeStatus.ROLLING.value
+        elif code == '200' and not event:
+            raise AbortRequest(msg='rolling error', msg_show=u"回滚错误")
+        else:
+            status = UpgradeStatus.ROLLBACK_FAILED.value
         return status
 
     @staticmethod
