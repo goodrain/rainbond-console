@@ -112,7 +112,7 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         return MessageResponse(
             msg="success",
             bean={
-
+                "total": paginator.count
             },
             list=[
                 upgrade_service.serialized_upgrade_record(record)
@@ -230,10 +230,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
             if service['service']['type'] == UpgradeType.ADD.value
         ]
-        # 获取云市应用
         if add_service_infos:
-            app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=data['group_key'],
-                                                                    version=app_record.version)
+            app = rainbond_app_repo.get_rainbond_app_by_key_version(
+                group_key=data['group_key'],
+                version=app_record.version
+            )
             # mock app信息
             template = json.loads(app.app_template)
             template['apps'] = add_service_infos
@@ -281,10 +282,14 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         app_record = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value)
+            status__in=(
+                UpgradeStatus.UPGRADED.value,
+                UpgradeStatus.PARTIAL_UPGRADED.value,
+                UpgradeStatus.UPGRADE_FAILED.value
+            )
         ).order_by('-create_time').first()
 
-        if app_record.Id != int(record_id):
+        if not app_record or app_record.ID != int(record_id):
             raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
 
         service_records = app_record.service_upgrade_records.filter(
@@ -305,6 +310,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
             self.tenant,
             self.user,
             app_record,
+            service_records
         )
 
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.ROLLING.value)
