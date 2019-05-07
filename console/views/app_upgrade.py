@@ -1,5 +1,7 @@
 # coding: utf-8
 """升级从云市安装的应用"""
+import json
+
 from django.core.paginator import Paginator
 from django.db.models import Q
 from enum import Enum
@@ -229,11 +231,15 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             if service['service']['type'] == UpgradeType.ADD.value
         ]
         # 获取云市应用
-        app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=data['group_key'], version=app_record.version)
-        # mock app信息
-        app.app_template = add_service_infos
-        market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
-        market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, True)
+        if add_service_infos:
+            app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=data['group_key'],
+                                                                    version=app_record.version)
+            # mock app信息
+            template = json.loads(app.app_template)
+            template['apps'] = add_service_infos
+            app.app_template = json.dumps(template)
+            market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, True)
 
         # 处理需要升级的服务
         upgrade_service_infos = {
