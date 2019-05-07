@@ -160,14 +160,13 @@ class CenterAppView(RegionTenantHeaderView):
 
             if not app:
                 return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            allow_create, tips, total_memory = market_app_service.check_package_app_resource(self.tenant,
-                                                                                             self.response_region, app)
-            if not allow_create:
-                return Response(general_message(412, "over resource", "应用所需内存大小为{0}，{1}".format(total_memory, tips)),
-                                status=412)
+            market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
+
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
+
             RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
-                install_number=F("install_number") + 1)
+                install_number=F("install_number") + 1
+            )
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
