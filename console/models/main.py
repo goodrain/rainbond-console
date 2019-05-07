@@ -770,8 +770,11 @@ class UpgradeStatus(IntEnum):
     UPGRADING = 2  # 升级中
     UPGRADED = 3  # 已升级
     ROLLING = 4  # 回滚中
-    PARTIAL_ROLLBACK = 5  # 部分回滚
-    ROLLBACK = 6  # 已回滚
+    ROLLBACK = 5  # 已回滚
+    PARTIAL_UPGRADED = 6  # 部分升级
+    PARTIAL_ROLLBACK = 7  # 部分回滚
+    UPGRADE_FAILED = 8  # 升级失败
+    ROLLBACK_FAILED = 9  # 回滚失败
 
 
 class AppUpgradeRecord(BaseModel):
@@ -784,6 +787,7 @@ class AppUpgradeRecord(BaseModel):
     group_id = models.IntegerField(help_text=u"应用组id")
     group_key = models.CharField(max_length=32, help_text=u"应用包")
     group_name = models.CharField(max_length=64, help_text=u"应用包名")
+    version = models.CharField(max_length=20, default='', help_text=u"版本号")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

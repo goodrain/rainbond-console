@@ -10,6 +10,7 @@ from django.db.models import Q
 
 from console.constants import AppConstants
 from console.exception.main import RbdAppNotFound
+from console.exception.main import AbortRequest
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
@@ -389,8 +390,7 @@ class MarketAppService(object):
                                         tenant, service, probe_id)
                                 except Exception as le:
                                     logger.exception(
-                                        "local market install app delete service probe {0}"
-                                        .format(le))
+                                        "local market install app delete service probe {0}".format(le))
             raise e
 
     def __deploy_services(self, tenant, user, service_list):
@@ -606,7 +606,12 @@ class MarketAppService(object):
             total_memory += min_node * min_memory
         allow_create, tips = app_service.verify_source(
             tenant, region, total_memory, "market_app_create")
-        return allow_create, tips, total_memory
+        if not allow_create:
+            raise AbortRequest(
+                msg="over resource",
+                msg_show=u"应用所需内存大小为{0}，{1}".format(total_memory, tips),
+                status_code=412
+            )
 
     def get_visiable_apps(self, tenant, scope, app_name):
 
@@ -819,7 +824,7 @@ class MarketAppService(object):
             service_source.group_key, service_source.version)
         if cur_rbd_app is None:
             logger.warn("group key: {0}; version: {1}; service source not found".format(
-                        service_source.group_key, service_source.version))
+                service_source.group_key, service_source.version))
             return None
         rbd_center_apps = rainbond_app_repo.list_by_key_time(
             service_source.group_key, cur_rbd_app.update_time)
