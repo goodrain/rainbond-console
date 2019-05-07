@@ -305,8 +305,6 @@ class MarketService(object):
         for k, v in changes.items():
             func = self.update_funcs.get(k, None)
             if func is None:
-                logger.warning(
-                    "key: {}; unsuppurt key for upgrade func".format(k))
                 continue
             func(v)
 
@@ -347,7 +345,6 @@ class MarketService(object):
         for k, v in changes.items():
             func = self.sync_funcs.get(k, None)
             if func is None:
-                logger.warning("key: {}; unsuppurt key for sync func".format(k))
                 continue
             func(v)
             self.changed[k] = v
@@ -377,7 +374,6 @@ class MarketService(object):
         for k, v in self.changed.items():
             func = self.restore_func.get(k, None)
             if func is None:
-                logger.warning("key: {}; unsuppurt key for restore func".format(k))
                 continue
             try:
                 func(backup)
