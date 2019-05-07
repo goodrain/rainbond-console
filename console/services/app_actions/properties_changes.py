@@ -107,7 +107,7 @@ class PropertiesChanges(object):
         return {
             "old": self.service.deploy_version,
             "new": new,
-            "is_change": self.service.deploy_version != new
+            "is_change": self.service.deploy_version < new
         }
 
     def app_version_changes(self, new):
@@ -219,7 +219,6 @@ class PropertiesChanges(object):
     def plugin_changes(self, new_plugins):
         old_plugins, _ = app_plugin_service.get_plugins_by_service_id(
             self.service.service_region, self.service.tenant_id, self.service.service_id, "")
-        logger.debug("old_plugins: {}".format(old_plugins))
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
 

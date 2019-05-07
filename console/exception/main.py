@@ -102,7 +102,7 @@ class ServiceRelationAlreadyExist(Exception):
 
 class InnerPortNotFound(Exception):
     def __init__(self):
-        pass
+        super(InnerPortNotFound, self).__init__("inner port not found")
 
 
 class ErrInvalidVolume(Exception):

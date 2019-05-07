@@ -11,6 +11,7 @@ from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.services.app_config.port_service import AppPortService
+from console.services.exception import ErrDepServiceNotFound
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -65,22 +66,30 @@ class AppServiceRelationService(object):
             return True
         return False
 
+    def check_relation(self, tenant_id, service_id, dep_service_id):
+        """
+        when creating service dependency, the dependent service needs to have an inner port.
+        """
+        dep_service = service_repo.get_service_by_service_id(dep_service_id)
+        if dep_service is None:
+            raise ErrDepServiceNotFound(dep_service_id)
+        dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
+            tenant_id, service_id, dep_service_id)
+        if dep_service_relation:
+            raise ServiceRelationAlreadyExist()
+        open_inner_services = port_repo.list_inner_ports(tenant_id, dep_service_id)
+        if not open_inner_services:
+            raise InnerPortNotFound()
+
     def create_service_relation(self, tenant, service, dep_service_id):
         """
+        raise ErrDepServiceNotFound
         raise ServiceRelationAlreadyExist
         raise InnerPortNotFound
         """
-        dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
-            tenant.tenant_id, service.service_id, dep_service_id)
-        if dep_service_relation:
-            raise ServiceRelationAlreadyExist()
+        self.check_relation(service.tenant_id, service.service_id, dep_service_id)
         dep_service = service_repo.get_service_by_tenant_and_id(
             tenant.tenant_id, dep_service_id)
-        # check inner port
-        open_inner_services = port_repo.list_inner_ports(tenant.tenant_id,
-                                                         dep_service.service_id)
-        if not open_inner_services:
-            raise InnerPortNotFound()
         tenant_service_relation = {
             "tenant_id": tenant.tenant_id,
             "service_id": service.service_id,
