@@ -37,6 +37,7 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
+from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_config import AppEnvVarService
 from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
@@ -252,6 +253,7 @@ class AppManageService(AppManageBase):
         code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY,
                                                       committer_name, deploy_version)
         if code != 200:
+            logger.error("code: {}; msg: {}; event: {}".format(code, msg, event))
             return code, msg, event
 
         body = dict()
@@ -307,12 +309,14 @@ class AppManageService(AppManageBase):
                                      service.service_alias,
                                      body)
         except region_api.CallApiError as e:
+            event.message = u"应用构建失败".format(e.message)
+            event.final_status = "complete"
+            event.status = "failure"
+            event.save()
+            if e.status == 400:
+                logger.warning("failed to deploy service: {}".format(e))
+                raise ErrVersionAlreadyExists()
             logger.exception(e)
-            if event:
-                event.message = u"应用构建失败".format(e.message)
-                event.final_status = "complete"
-                event.status = "failure"
-                event.save()
             return 507, "构建异常", event
 
         return 200, "操作成功", event
