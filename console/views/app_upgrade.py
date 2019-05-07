@@ -11,6 +11,7 @@ from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
+from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
 from console.utils.reqparse import parse_argument
@@ -221,6 +222,18 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         )
         app_record.version = data['version']
         app_record.save()
+        # 处理新增的服务
+        add_service_infos = [
+            service['upgrade_info']
+            for service in data['services']
+            if service['service']['type'] == UpgradeType.ADD.value
+        ]
+        # 获取云市应用
+        app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=data['group_key'], version=app_record.version)
+        # mock app信息
+        app.app_template = add_service_infos
+        market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
+        market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, True)
 
         # 处理需要升级的服务
         upgrade_service_infos = {
