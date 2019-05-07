@@ -9,6 +9,7 @@ import logging
 from django.db.models import Q
 
 from console.constants import AppConstants
+from console.exception.main import RbdAppNotFound
 from console.exception.main import AbortRequest
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
@@ -833,7 +834,11 @@ class MarketAppService(object):
         pc = PropertiesChanges(service)
         result = []
         for item in rbd_center_apps:
-            changes = pc.get_property_changes(tenant.enterprise_id, item.version)
+            try:
+                changes = pc.get_property_changes(tenant.enterprise_id, item.version)
+            except RbdAppNotFound as e:
+                logger.warning(e)
+                continue
             if not has_changes(changes):
                 logger.debug("current rbd app: group_key={0}, version={1}, update_time={2}; \
                 dest version: {3}; no changes".format(service_source.group_key,
