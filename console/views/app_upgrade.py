@@ -112,7 +112,7 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         return MessageResponse(
             msg="success",
             bean={
-
+                "total": paginator.count
             },
             list=[
                 upgrade_service.serialized_upgrade_record(record)
@@ -230,10 +230,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
             if service['service']['type'] == UpgradeType.ADD.value
         ]
-        # 获取云市应用
         if add_service_infos:
-            app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=data['group_key'],
-                                                                    version=app_record.version)
+            app = rainbond_app_repo.get_rainbond_app_by_key_version(
+                group_key=data['group_key'],
+                version=app_record.version
+            )
             # mock app信息
             template = json.loads(app.app_template)
             template['apps'] = add_service_infos
