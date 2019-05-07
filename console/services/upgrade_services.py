@@ -164,7 +164,7 @@ class UpgradeService(object):
         event_service_mapping = {
             record.event_id: record
             for record in service_records
-            if record.status in synchronization_type
+            if record.status in synchronization_type and record.event_id
         }
         events = event_repo.get_events_by_event_ids(event_service_mapping.keys())
         # 去数据中心同步事件
@@ -211,9 +211,10 @@ class UpgradeService(object):
                     market_service.set_properties(PropertyType.DEPENDENT.value)
                     market_service.modify_property()
                     market_service.sync_region_property()
-        except (DatabaseError, RegionApiBaseHttpClient.CallApiError):
+        except (DatabaseError, RegionApiBaseHttpClient.CallApiError) as e:
             for market_service in market_services:
                 market_service.restore_backup()
+            raise AbortRequest(msg=str(e))
 
     def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos):
         """向数据中心发送更新请求"""
@@ -241,9 +242,9 @@ class UpgradeService(object):
     @staticmethod
     def _get_sync_upgrade_status(code, event):
         """通过异步请求状态判断升级状态"""
-        if code == '200' and event:
+        if code == 200 and event:
             status = UpgradeStatus.UPGRADING.value
-        elif code == '200' and not event:
+        elif code == 200 and not event:
             status = UpgradeStatus.UPGRADED.value
         else:
             status = UpgradeStatus.UPGRADE_FAILED.value
@@ -325,17 +326,17 @@ class UpgradeService(object):
                 self._get_sync_rolling_status(code, event)
             )
             # 改变event id
-            if code == '200':
-                service_record.event_id = event.event_id
+            if code == 200:
+                service_record.event_id = event.event_id if event else ''
                 service_record.save()
 
     @staticmethod
     def _get_sync_rolling_status(code, event):
         """通过异步请求状态判断回滚状态"""
-        if code == '200' and event:
+        if code == 200 and event:
             status = UpgradeStatus.ROLLING.value
-        elif code == '200' and not event:
-            raise AbortRequest(msg='rolling error', msg_show=u"回滚错误")
+        elif code == 200 and not event:
+            status = UpgradeStatus.ROLLBACK.value
         else:
             status = UpgradeStatus.ROLLBACK_FAILED.value
         return status
