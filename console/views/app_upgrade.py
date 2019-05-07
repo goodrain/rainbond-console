@@ -281,10 +281,14 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         app_record = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value)
+            status__in=(
+                UpgradeStatus.UPGRADED.value,
+                UpgradeStatus.PARTIAL_UPGRADED.value,
+                UpgradeStatus.UPGRADE_FAILED.value
+            )
         ).order_by('-create_time').first()
 
-        if app_record.Id != int(record_id):
+        if app_record.ID != int(record_id):
             raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
 
         service_records = app_record.service_upgrade_records.filter(
@@ -305,6 +309,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
             self.tenant,
             self.user,
             app_record,
+            service_records
         )
 
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.ROLLING.value)
