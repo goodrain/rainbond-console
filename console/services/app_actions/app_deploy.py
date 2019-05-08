@@ -275,6 +275,7 @@ class MarketService(object):
 
     def create_backup(self):
         """
+        TODO: delete service => delete backup
         Create a pre-service backup to prepare for deployment failure
         """
         backup_data = backup_service.get_service_details(self.tenant,
@@ -349,8 +350,6 @@ class MarketService(object):
             func(v)
             self.changed[k] = v
 
-        # raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method", Dict({"status": 101}), "body")
-
     def restore_backup(self, backup=None):
         """
         Restore data in the region based on backup information
@@ -369,6 +368,7 @@ class MarketService(object):
             logger.info("service id: {}; backup id: {}; no specified changed, will restore \
                 all properties".format(self.service.service_id, backup.backup_id))
             self.changed = self.update_funcs.keys
+        logger.debug("changed to be restored: {}".format(self.changed))
 
         async_action = AsyncAction.NOTHING.value
         for k, v in self.changed.items():
@@ -540,6 +540,7 @@ class MarketService(object):
             if not port["is_inner_service"]:
                 continue
             try:
+                # TODO create these envs in region
                 env_var_service.create_env_var(self.service, container_port,
                                                u"连接地址", port_alias + "_HOST",
                                                "127.0.0.1")
@@ -554,6 +555,7 @@ class MarketService(object):
         """
         raise RegionApiBaseHttpClient.CallApiError
         """
+        # raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method", Dict({"status": 101}), "body")
         if ports is None:
             return
         add = ports.get("add", [])
@@ -565,18 +567,17 @@ class MarketService(object):
             port["mapping_port"] = container_port
             port["port_alias"] = port_alias
 
-        region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                      self.service.service_alias, "/app-restore/ports",
-                                      {"port": add, "enterprise_id": self.tenant.enterprise_id})
+        body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
+        region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
+                                    self.service.service_alias, body)
 
     def _restore_ports(self, backup):
         backup_data = json.loads(backup.backup_data)
         ports = backup_data.get("service_ports", [])
-        if not ports:
-            return
         try:
-            region_api.restore_ports(self.tenant.region, self.tenant.tenant_name,
-                                     self.service.service_alias, {"ports": ports})
+            body = {"ports": ports}
+            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
+                                          self.service.service_alias, "/app-restore/ports", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore ports error:
             logger.error("backup id: {}; failed to restore ports: {}".format(backup.backup_id, e))
@@ -627,18 +628,14 @@ class MarketService(object):
 
     def _restore_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
-
-        config_files = backup_data.get("service_volumes", [])
+        config_files = backup_data.get("service_config_file", [])
+        volumes = backup_data.get("service_volumes", [])
         cfgfs = {item["volume_id"]: item["file_content"] for item in config_files}
 
-        volumes = backup_data.get("service_volumes", [])
         body = {"volumes": []}
         for item in volumes:
             item["file_content"] = cfgfs.get(item["ID"], "")
             body["volumes"].append(item)
-        if not body["volumes"]:
-            return
-
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
                                           self.service.service_alias, "/app-restore/volumes", body)
@@ -677,13 +674,13 @@ class MarketService(object):
                                              data)
 
     def _restore_probe(self, backup):
-        # raise RegionApiBaseHttpClient.CallApiError('Not specified', "url", "method",
-        #                                            Dict({"status": 101}), "body")
         backup_data = json.loads(backup.backup_data)
         pd = backup_data.get("service_probes", [])
-        if not pd:
-            return
-        probe = pd[0]
+        if pd:
+            probe = pd[0]
+            probe["is_used"] = 1 if probe["is_used"] else 0
+        else:
+            probe = ""
 
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
@@ -738,8 +735,6 @@ class MarketService(object):
                 "dep_service_id": item["dep_service_id"],
                 "dep_service_type": item["dep_service_type"],
             })
-        if not body["deps"]:
-            return
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
                                           self.service.service_alias, "/app-restore/deps", body)
@@ -804,8 +799,6 @@ class MarketService(object):
                 "volume_path": dv["mnt_dir"],
                 "volume_name": dv["mnt_name"]
             })
-        if not body["dep_vols"]:
-            return
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
                                           self.service.service_alias, "/app-restore/depvols", body)
