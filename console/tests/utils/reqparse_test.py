@@ -19,17 +19,34 @@ class ParseArgumentTestCase(TestCase):
 
     def setUp(self):
         self.request = mock.create_autospec(Request)
-        self.request.GET = QueryDict('a=1&b=hello&c=django&c=test')
+        self.request.GET = QueryDict('a=1&b=hello&c=django&c=test&d=true')
 
     def test_value_type_error(self):
         """测试 value_type TypeError"""
         with self.assertRaises(TypeError):
-            parse_argument(self.request, 'a', value_type=bool)
+            parse_argument(self.request, 'a', value_type=dict)
 
     def test_parse_argument_default_error(self):
         """测试默认参数类型错误"""
         with self.assertRaises(TypeError):
             parse_argument(self.request, 'a', default='hello', value_type=int)
+
+    def test_parse_argument_return_bool(self):
+        """测试 bool 参数获取"""
+        value = parse_argument(self.request, 'd', value_type=bool)
+        self.assertEqual(value, True)
+
+    def test_parse_argument_return_default_bool(self):
+        """测试 bool 默认参数获取"""
+        value = parse_argument(self.request, 'i', default=True, value_type=bool)
+        self.assertEqual(value, True)
+
+    def test_parse_argument_return_bool_error(self):
+        """测试 bool 参数获取错误"""
+        try:
+            parse_argument(self.request, 'a', value_type=bool)
+        except AbortRequest as e:
+            self.assertEqual(isinstance(e, AbortRequest), True)
 
     def test_parse_argument_return_int(self):
         """测试 int 参数获取"""
@@ -49,12 +66,12 @@ class ParseArgumentTestCase(TestCase):
 
     def test_not__return_int(self):
         """测试获取不到 int 参数"""
-        value = parse_argument(self.request, 'd', value_type=int)
+        value = parse_argument(self.request, 'not_int', value_type=int)
         self.assertEqual(value, None)
 
     def test_not_get_argument_return_list(self):
         """测试获取不到 list 参数"""
-        value = parse_argument(self.request, 'd', value_type=list)
+        value = parse_argument(self.request, 'not_list', value_type=list)
         self.assertEqual(value, None)
 
     def test_parse_argument_return_int_must(self):
@@ -85,7 +102,7 @@ class ParseArgumentTestCase(TestCase):
         try:
             parse_argument(
                 self.request,
-                'd',
+                'not_list',
                 value_type=list,
                 required=True,
                 error="缺少必填参数"
@@ -98,7 +115,7 @@ class ParseArgumentTestCase(TestCase):
         try:
             parse_argument(
                 self.request,
-                'd',
+                'not_int',
                 value_type=int,
                 required=True,
                 error="缺少必填参数"
@@ -112,7 +129,7 @@ class ParseArgumentTestCase(TestCase):
             {'key': 'a', 'value_type': int},
             {'key': 'b', 'value_type': str},
             {'key': 'c', 'value_type': list},
-            {'key': 'd', 'value_type': list},
+            {'key': 'not_list', 'value_type': list},
         )
         args = parse_args(self.request, args_conf)
         self.assertEqual(
