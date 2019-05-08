@@ -2,24 +2,24 @@
 """
   Created on 18/1/17.
 """
+import datetime
+import logging
+import re
+
 from django.db import transaction
 
 from console.constants import ServicePortConstants
-from console.repositories.region_repo import region_repo
-from console.repositories.app_config import port_repo
-import re
-import datetime
-
-from www.utils.crypt import make_uuid
-from www.apiclient.regionapi import RegionInvokeApi
-from console.services.app_config.env_service import AppEnvVarService
-import logging
-from console.repositories.app_config import domain_repo
-from console.services.region_services import region_services
 from console.repositories.app import service_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
-from console.services.app_config.probe_service import ProbeService
 from console.repositories.probe_repo import probe_repo
+from console.repositories.region_repo import region_repo
+from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_config.probe_service import ProbeService
+from console.services.region_services import region_services
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 
 pros = ProbeService()
 region_api = RegionInvokeApi()
@@ -184,7 +184,7 @@ class AppPortService(object):
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
         if port_info.is_inner_service:
-            return 409, u"请关闭对外服务", None
+            return 409, u"请关闭对内服务", None
         if port_info.is_outer_service:
             return 409, u"请关闭外部服务", None
         if service.create_status == "complete":

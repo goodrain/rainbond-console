@@ -6,7 +6,8 @@
         - --max-line-length=120
       exclude: >
           (?x)^(
-              console/views/app_manage.py
+              console/views/app_manage.py|
+              console/services/app_config/port_service.py
           )$
     - id: check-docstring-first
     - id: debug-statements
