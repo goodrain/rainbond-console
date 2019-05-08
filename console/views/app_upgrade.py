@@ -48,6 +48,7 @@ class GroupAppView(RegionTenantHeaderView):
                 yield {
                     'can_upgrade': bool(upgrade_versions),
                     'not_upgrade_record_id': not_upgrade_record.ID,
+                    'not_upgrade_record_status': not_upgrade_record.status,
                     'group_version_list': group_version_list,
                     'group_key': app.group_key,
                     'group_name': app.group_name,
