@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 import datetime
-import json
 import logging
 
 from django.db.models import Q
 from rest_framework.response import Response
 
 from backends.services.exceptions import UserNotExistError
-from console.models.main import ServiceShareRecordEvent, PluginShareRecordEvent
+from console.models.main import PluginShareRecordEvent
+from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
+from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.share_services import share_service
 from console.services.user_services import user_services
+from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message, error_message
-from console.services.enterprise_services import enterprise_services
-
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -247,6 +248,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
+        use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
             if not share_record:
@@ -277,7 +280,9 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 share_record=share_record,
                 share_team=self.team,
                 share_user=request.user,
-                share_info=request.data)
+                share_info=request.data,
+                use_force=use_force
+            )
             result = general_message(code, "create share info", msg, bean=bean)
             return Response(result, status=code)
         except Exception as e:
@@ -412,7 +417,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
                 return Response(result, status=400)
 
-            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id,ID=event_id).order_by("ID")
+            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id).order_by("ID")
             if not plugin_events:
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
@@ -442,7 +447,8 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(
+                Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "应用或插件同步未全部完成")
                 return Response(result, status=415)
@@ -475,7 +481,8 @@ class ShareRecordView(RegionTenantHeaderView):
         share_record = share_repo.get_service_share_record_by_groupid(group_id=group_id)
         if share_record:
             if share_record.step == 2:
-                result = general_message(200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
+                result = general_message(200, "the current application does not confirm sharing", "当前应用未确认分享",
+                                         bean=share_record.to_dict())
                 return Response(result, status=200)
         result = general_message(200, "the current application is not Shared or Shared", "当前应用未分享或已分享",
                                  bean=share_record.to_dict())
