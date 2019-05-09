@@ -1,0 +1,1 @@
+alter table tenant_service modify version varchar(255);
