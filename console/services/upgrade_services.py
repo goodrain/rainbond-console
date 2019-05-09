@@ -348,7 +348,17 @@ class UpgradeService(object):
         """
         return dict(
             service_record=[
-                service_record.to_dict()
+                {
+                    "status": service_record.status,
+                    "update_time": service_record.update_time,
+                    "event_id": service_record.event_id,
+                    "update": json.loads(service_record.update),
+                    "app_upgrade_record": service_record.app_upgrade_record_id,
+                    "service_cname": service_record.service_cname,
+                    "create_time": service_record.create_time,
+                    "service_id": service_record.service_id,
+                    "ID": service_record.ID
+                }
                 for service_record in app_record.service_upgrade_records.all()
             ],
             **app_record.to_dict()
