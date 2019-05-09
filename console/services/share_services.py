@@ -914,15 +914,15 @@ class ShareService(object):
             return 500, "应用分享处理发生错误", None
 
     @staticmethod
-    def _handle_dependencies(service, dev_service_map, use_force):
+    def _handle_dependencies(service, dev_service_set, use_force):
         """检查服务依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
 
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
-            if dep_service_key not in dev_service_map and use_force:
+            if dep_service_key not in dev_service_set and use_force:
                 return False
-            elif dev_service_map not in dev_service_map and not use_force:
+            elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
                     msg="{} service is missing dependencies".format(service['service_cname']),
                     msg_show=u"{}服务缺少依赖服务，请添加依赖服务，或强制执行".format(service['service_cname'])

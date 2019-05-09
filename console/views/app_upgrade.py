@@ -101,7 +101,7 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         record_qs = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-        ).filter(q)
+        ).filter(q).order_by('-create_time')
 
         paginator = Paginator(record_qs, page_size)
         records = paginator.page(page)

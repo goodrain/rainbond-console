@@ -7,6 +7,8 @@ import logging
 
 from django.db.models import Q
 
+from console.exception.main import AbortRequest
+from console.utils.shortcuts import get_object_or_404
 from www.db import BaseConnection
 from www.models import GatewayCustomConfiguration
 from www.models import ImageServiceRelation
@@ -52,6 +54,16 @@ class TenantServiceEnvVarRepository(object):
         if envs:
             return envs[0]
         return None
+
+    def get_service_env_or_404_by_attr_name(self, tenant_id, service_id, attr_name):
+        return get_object_or_404(
+            TenantServiceEnvVar,
+            msg="Environment variable with name {} not found".format(attr_name),
+            msg_show=u"环境变量`{}`不存在".format(attr_name),
+            tenant_id=tenant_id,
+            service_id=service_id,
+            attr_name=attr_name
+        )
 
     def get_env_by_ids_and_attr_names(self, tenant_id, service_ids, attr_names):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids,
@@ -105,6 +117,19 @@ class TenantServiceEnvVarRepository(object):
         if compile_env:
             envs["PROC_ENV"] = compile_env.user_dependency
         return envs
+
+    def change_service_env_scope(self, env, scope):
+        """变更环境变量范围"""
+        scope = self._check_service_env_scope(scope)
+        env.scope = scope
+        env.save()
+
+    @staticmethod
+    def _check_service_env_scope(scope):
+        try:
+            return TenantServiceEnvVar.ScopeType(scope).value
+        except ValueError:
+            raise AbortRequest(msg="the value of scope is outer or inner")
 
 
 class TenantServicePortRepository(object):
@@ -448,7 +473,7 @@ class ServiceDomainRepository(object):
         # if start <= nums - 1:
 
         part_cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)[
-            start:end+1]
+                    start:end + 1]
         return part_cert, nums
 
     def get_certificate_by_alias(self, tenant_id, alias):

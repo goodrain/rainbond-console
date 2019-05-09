@@ -252,8 +252,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/env"
 
         self._set_headers(token)
-        res, body = self._put(
-            url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
     def horizontal_upgrade(self, region, tenant_name, service_alias, body):
