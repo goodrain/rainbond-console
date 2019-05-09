@@ -364,7 +364,7 @@ class MarketService(object):
         if backup is None:
             raise ErrBackupNotFound(self.service.service_id)
         # check changed
-        if self.changed is None:
+        if not self.changed:
             logger.info("service id: {}; backup id: {}; no specified changed, will restore \
                 all properties".format(self.service.service_id, backup.backup_id))
             self.changed = self.update_funcs.keys
