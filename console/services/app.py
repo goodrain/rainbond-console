@@ -3,31 +3,39 @@
   Created on 18/1/11.
 """
 import datetime
+import json
 import logging
 import random
 import string
-import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
-from console.repositories.app import service_source_repo, service_repo
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo, \
-    service_endpoints_repo
+from console.exception.main import AccountOverdueException
+from console.exception.main import ResourceNotEnoughException
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import service_endpoints_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
-from console.services.app_config.port_service import AppPortService
-from console.services.app_config.probe_service import ProbeService
-
-from www.apiclient.regionapi import RegionInvokeApi
-from www.github_http import GitHubApi
-from www.models import TenantServiceInfo, ServiceConsume
-from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesService, BaseTenantService, \
-    ServicePluginResource
-from www.utils.crypt import make_uuid
-from www.utils.status_translate import get_status_info_map
 from console.repositories.perm_repo import role_repo
 from console.repositories.probe_repo import probe_repo
+from console.services.app_config.port_service import AppPortService
+from console.services.app_config.probe_service import ProbeService
+from www.apiclient.regionapi import RegionInvokeApi
+from www.github_http import GitHubApi
+from www.models import ServiceConsume
+from www.models import TenantServiceInfo
+from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import CodeRepositoriesService
+from www.tenantservice.baseservice import ServicePluginResource
+from www.tenantservice.baseservice import TenantUsedResource
+from www.utils.crypt import make_uuid
+from www.utils.status_translate import get_status_info_map
 
 
 tenantUsedResource = TenantUsedResource()
@@ -505,7 +513,7 @@ class AppService(object):
         data["enterprise_id"] = tenant.enterprise_id
         data["service_name"] = service.service_name
         data[
-            "service_label"] = "StatefulServiceType " if service.extend_method == "state" else "StatelessServiceType"
+            "service_label"] = "StatefulServiceType" if service.extend_method == "state" else "StatelessServiceType"
         return data
 
     def __handle_service_ports(self, tenant, service, ports):
