@@ -590,12 +590,8 @@ class ChangeServiceTypeView(AppBaseView):
                     if tenant_service_volume.volume_type == "local":
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
-                return Response(general_message(
-                    code=400,
-                    msg="local storage cannot be modified to be stateless",
-                    msg_show="本地存储不可修改为无状态"),
-                    status=400)
-            deploy_type_service.put_service_deploy_type(self.service, extend_method)
+                return Response(general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
+            deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)

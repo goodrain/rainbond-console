@@ -6,10 +6,13 @@
         - --max-line-length=120
       exclude: >
           (?x)^(
-              www/apiclient/regionapi.py
+              www/apiclient/regionapi.py|
+              console/views/app_manage.py|
+              console/services/app_config/port_service.py
           )$
     - id: check-docstring-first
     - id: debug-statements
+    
 - repo: https://github.com/asottile/reorder_python_imports
   rev: v1.4.0
   hooks:
