@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.fields import DateTimeField
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
+from enum import Enum
 
 from www.utils.crypt import encrypt_passwd
 from www.utils.crypt import make_tenant_id
@@ -1032,16 +1033,19 @@ class TenantServiceEnvVar(BaseModel):
     class Meta:
         db_table = 'tenant_service_env_var'
 
+    class ScopeType(Enum):
+        """范围"""
+        OUTER = "outer"
+        INNER = "inner"
+
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(
-        max_length=32, db_index=True, help_text=u"服务id")
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
     container_port = models.IntegerField(default=0, help_text=u"端口")
     name = models.CharField(max_length=100, blank=True, help_text=u"名称")
     attr_name = models.CharField(max_length=100, help_text=u"属性")
     attr_value = models.CharField(max_length=512, help_text=u"值")
-    is_change = models.BooleanField(
-        default=False, blank=True, help_text=u"是否可改变")
-    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
+    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
+    scope = models.CharField(max_length=10, help_text=u"范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
     def __unicode__(self):
