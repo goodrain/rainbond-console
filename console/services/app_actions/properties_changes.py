@@ -39,10 +39,10 @@ class PropertiesChanges(object):
         # synchronize the method 'properties_changes.has_changes'
         result = {}
         deploy_version = self.deploy_version_changes(app["deploy_version"])
-        if deploy_version["is_change"]:
+        if deploy_version:
             result["deploy_version"] = deploy_version
         app_version = self.app_version_changes(version)
-        if app_version["is_change"]:
+        if app_version is not None:
             result["app_version"] = app_version
         # source code service does not have 'share_image'
         image = self.image_changes(app.get("share_image", None))
@@ -66,14 +66,12 @@ class PropertiesChanges(object):
         probe = self.probe_changes(app["probes"])
         if probe:
             result["probe"] = probe
-
         dep_uuids = []
         if app.get("dep_service_map_list", []):
             dep_uuids = [item["dep_service_key"] for item in app.get("dep_service_map_list")]
         dep_services = self.dep_services_changes(dep_uuids)
         if dep_services:
             result["dep_services"] = dep_services
-
         dep_volumes = self.dep_volumes_changes(app.get("mnt_relation_list", []))
         if dep_volumes:
             result["dep_volumes"] = dep_volumes
@@ -116,9 +114,8 @@ class PropertiesChanges(object):
         compare the old and new application versions to determine if there is any change.
         application means application from market.
         """
-        if self.service_source.version != new:
-            logger.debug("new: {0}; old: {1}; app version has changes".format(
-                new, self.service_source.version))
+        if self.service_source.version == new:
+            return None
         return {
             "old": self.service_source.version,
             "new": new,
@@ -129,11 +126,8 @@ class PropertiesChanges(object):
         """
         compare the old and new image to determine if there is any change.
         """
-        if new is None:
+        if new is None or self.service.image == new:
             return None
-        if self.service.image != new:
-            logger.debug("new: {0}; old: {1}; image has changes".format(
-                new, self.service.image))
         return {
             "old": self.service.image,
             "new": new,
@@ -147,12 +141,9 @@ class PropertiesChanges(object):
         if new is None:
             return None
         extend_info = json.loads(self.service_source.extend_info)
-        old_slug_path = extend_info.get("share_slug_path", None)
-        if old_slug_path is None:
+        old_slug_path = extend_info.get("slug_path", None)
+        if old_slug_path is None or old_slug_path == new:
             return None
-        if old_slug_path != new:
-            logger.debug("new: {0}; old: {1}; slug path has changes".format(
-                new, old_slug_path))
         return {
             "old": old_slug_path,
             "new": new,
@@ -169,10 +160,8 @@ class PropertiesChanges(object):
             self.service.service_id)
         service_ids = [item.dep_service_id for item in dep_relations]
 
-        group_id = service_group_relation_repo.get_group_id_by_service(
-            self.service)
-        new_dep_services = service_repo.list_by_svc_share_uuids(group_id,
-                                                                dep_uuids)
+        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
+        new_dep_services = service_repo.list_by_svc_share_uuids(group_id, dep_uuids)
         add = [svc for svc in new_dep_services if svc.service_id not in service_ids]
         if not add:
             return None
