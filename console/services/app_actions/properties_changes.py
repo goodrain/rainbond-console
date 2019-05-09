@@ -141,7 +141,7 @@ class PropertiesChanges(object):
         if new is None:
             return None
         extend_info = json.loads(self.service_source.extend_info)
-        old_slug_path = extend_info.get("share_slug_path", None)
+        old_slug_path = extend_info.get("slug_path", None)
         if old_slug_path is None or old_slug_path == new:
             return None
         return {

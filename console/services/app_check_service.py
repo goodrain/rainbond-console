@@ -2,16 +2,21 @@
 """
   Created on 18/2/1.
 """
-from www.apiclient.regionapi import RegionInvokeApi
-import logging
-from django.db import transaction
 import json
-from console.services.app_config import env_var_service, port_service, volume_service, compile_env_service
-from console.repositories.app import service_source_repo
+import logging
+
+from django.db import transaction
+
 from console.constants import AppConstants
-from console.services.common_services import common_services
-from console.repositories.app_config import service_endpoints_repo
 from console.exception.main import ServiceHandleException
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import service_endpoints_repo
+from console.services.app_config import compile_env_service
+from console.services.app_config import env_var_service
+from console.services.app_config import port_service
+from console.services.app_config import volume_service
+from console.services.common_services import common_services
+from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -125,28 +130,31 @@ class AppCheckService(object):
         return 200, "success", rt_msg
 
     def update_service_check_info(self, tenant, service, data):
+        if data["check_status"] != "success":
+            return
         sid = None
         try:
             sid = transaction.savepoint()
             # 删除原有build类型env，保存新检测build类型env
             save_code, save_msg = self.upgrade_service_env_info(
-                self.tenant, self.service, data)
+                tenant, service, data)
             if save_code != 200:
                 logger.error(
                     'upgrade service env  by code check failure {0}'.format(
                         save_msg))
             # 重新检测后对端口做加法
             save_code, save_msg = self.add_service_check_port(
-                self.tenant, self.service, data)
+                tenant, service, data)
             if save_code != 200:
                 logger.error(
                     'upgrade service port  by code check failure {0}'.format(
                         save_msg))
-            if data["language"] == "dockerfile":
+            lang = data["service_info"][0]["language"]
+            if lang == "dockerfile":
                 service.cmd = ""
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
-            service.language = data["language"]
+            service.language = lang
             service.save()
             transaction.savepoint_commit(sid)
         except Exception as e:
@@ -154,9 +162,9 @@ class AppCheckService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             raise ServiceHandleException(
-                400,
-                "handle check service code info failure",
-                message_show="处理检测结果失败")
+                status_code=400,
+                msg="handle check service code info failure",
+                msg_show="处理检测结果失败")
 
     def save_service_check_info(self, tenant, service, data):
         # 检测成功将信息存储
@@ -392,7 +400,7 @@ class AppCheckService(object):
             for volume in volumes:
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
-                if volume.has_key("file_content"):
+                if "file_content" in volume.keys():
                     code, msg, volume_data = volume_service.add_service_volume(
                         tenant, service, volume["volume_path"],
                         volume["volume_type"], volume_name,
