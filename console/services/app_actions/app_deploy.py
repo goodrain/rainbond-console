@@ -363,12 +363,8 @@ class MarketService(object):
                 self.tenant.tenant_id, self.service.service_id)
         if backup is None:
             raise ErrBackupNotFound(self.service.service_id)
-        # check changed
-        if not self.changed:
-            logger.info("service id: {}; backup id: {}; no specified changed, will restore \
-                all properties".format(self.service.service_id, backup.backup_id))
-            self.changed = self.update_funcs.keys
-        logger.debug("changed to be restored: {}".format(self.changed))
+
+        self._update_changed()
 
         async_action = AsyncAction.NOTHING.value
         for k, v in self.changed.items():
@@ -383,6 +379,13 @@ class MarketService(object):
                     self.service.service_id, k, e))
             async_action = self._compare_async_action(async_action, self._key_action(k))
         self.async_action = async_action
+
+    def _update_changed(self):
+        if not self.changed:
+            logger.info("service id: {}; no specified changed, will restore \
+                all properties".format(self.service.service_id))
+            self.changed = self._create_update_funcs()
+        logger.debug("changed to be restored: {}".format(self.changed))
 
     def _update_service(self, app):
         share_image = app.get("share_image", None)
