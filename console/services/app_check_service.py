@@ -134,15 +134,13 @@ class AppCheckService(object):
         try:
             sid = transaction.savepoint()
             # 删除原有build类型env，保存新检测build类型env
-            save_code, save_msg = self.upgrade_service_env_info(
-                self.tenant, self.service, data)
+            save_code, save_msg = self.upgrade_service_env_info(tenant, service, data)
             if save_code != 200:
                 logger.error(
                     'upgrade service env  by code check failure {0}'.format(
                         save_msg))
             # 重新检测后对端口做加法
-            save_code, save_msg = self.add_service_check_port(
-                self.tenant, self.service, data)
+            save_code, save_msg = self.add_service_check_port(tenant, service, data)
             if save_code != 200:
                 logger.error(
                     'upgrade service port  by code check failure {0}'.format(
