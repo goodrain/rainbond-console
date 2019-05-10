@@ -2,16 +2,21 @@
 """
   Created on 18/2/1.
 """
-from www.apiclient.regionapi import RegionInvokeApi
-import logging
-from django.db import transaction
 import json
-from console.services.app_config import env_var_service, port_service, volume_service, compile_env_service
-from console.repositories.app import service_source_repo
+import logging
+
+from django.db import transaction
+
 from console.constants import AppConstants
-from console.services.common_services import common_services
+from console.exception.main import AbortRequest
+from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
-from console.exception.main import ServiceHandleException
+from console.services.app_config import compile_env_service
+from console.services.app_config import env_var_service
+from console.services.app_config import port_service
+from console.services.app_config import volume_service
+from console.services.common_services import common_services
+from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -153,10 +158,7 @@ class AppCheckService(object):
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            raise ServiceHandleException(
-                400,
-                "handle check service code info failure",
-                message_show="处理检测结果失败")
+            raise AbortRequest(msg=str(e), msg_show=u"处理检测结果失败")
 
     def save_service_check_info(self, tenant, service, data):
         # 检测成功将信息存储
