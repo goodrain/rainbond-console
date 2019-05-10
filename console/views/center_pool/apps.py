@@ -2,6 +2,7 @@
 """
   Created on 18/2/1.
 """
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 
 from rest_framework.response import Response
@@ -201,6 +202,7 @@ class CenterAppView(RegionTenantHeaderView):
 
 class CenterAppManageView(RegionTenantHeaderView):
     @never_cache
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         应用上下线
