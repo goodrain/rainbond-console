@@ -33,3 +33,17 @@ create table `service_upgrade_record`
     ENGINE = InnoDB
     AUTO_INCREMENT = 38
     DEFAULT CHARSET = utf8;
+
+DROP TABLE IF EXISTS `tenant_service_backup`;
+CREATE TABLE `tenant_service_backup` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `region_name` varchar(32) NOT NULL,
+  `tenant_id` varchar(32) NOT NULL,
+  `service_id` varchar(32) NOT NULL,
+  `backup_id` varchar(32) NOT NULL,
+  `backup_data` longtext NOT NULL,
+  `create_time` datetime(6) DEFAULT NULL,
+  `update_time` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `backup_id` (`backup_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8;
