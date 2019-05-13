@@ -321,7 +321,7 @@ class MarketService(object):
         """ get asynchronous action
         must be called after `set_changes`.
         """
-        if self.async_action:
+        if self.async_action is not None:
             return self.async_action
         changes = deepcopy(self.changes)
         async_action = AsyncAction.NOTHING.value
