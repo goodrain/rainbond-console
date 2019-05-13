@@ -4,7 +4,9 @@
 """
 import logging
 
+from django.core.paginator import Paginator
 from django.db.models import F
+from django.db.models import Min
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -18,8 +20,8 @@ from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
 from console.services.user_services import user_services
+from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
-from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -59,65 +61,38 @@ class CenterAppListView(RegionTenantHeaderView):
         app_name = request.GET.get("app_name", None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
-        try:
-            apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).order_by(
-                "-install_number", "-is_official")
-            paginator = JuncheePaginator(apps, int(page_size))
-            show_apps = paginator.page(int(page))
-            show_app_list = []
-            group_key_list = []
-            for app in show_apps:
-                if app.group_key not in group_key_list:
-                    group_key_list.append(app.group_key)
-            logger.debug('==========0=================0{0}'.format(group_key_list))
-            if group_key_list:
-                for group_key in group_key_list:
-                    app_dict = dict()
-                    group_version_list = []
-                    for app in show_apps:
-                        if app.group_key == group_key:
-                            if app.version not in group_version_list:
-                                group_version_list.append(app.version)
-                    group_version_list.sort(reverse=True)
 
-                    logger.debug('----------group_version_list------__>{0}'.format(group_version_list))
-                    logger.debug('----------group_key------__>{0}'.format(group_key))
-                    for app in show_apps:
-                        if app.version == group_version_list[0] and app.group_key == group_key:
-                            app_dict["ID"] = app.ID
-                            app_dict["group_key"] = group_key
-                            app_dict["group_version_list"] = group_version_list
-                            app_dict["group_name"] = app.group_name
-                            app_dict["share_user"] = app.share_user
-                            app_dict["record_id"] = app.record_id
-                            app_dict["share_team"] = app.share_team
-                            app_dict["tenant_service_group_id"] = app.tenant_service_group_id
-                            app_dict["pic"] = app.pic
-                            app_dict["source"] = app.source
-                            app_dict["describe"] = app.describe
-                            app_dict["is_complete"] = app.is_complete
-                            app_dict["is_ingerit"] = app.is_ingerit
-                            app_dict["template_version"] = app.template_version
-                            app_dict["create_time"] = app.create_time
-                            app_dict["update_time"] = app.update_time
-                            app_dict["enterprise_id"] = app.enterprise_id
-                            app_dict["install_number"] = app.install_number
-                            app_dict["is_official"] = app.is_official
-                            app_dict["details"] = app.details
-                            app_dict["upgrade_time"] = app.upgrade_time
-                            app_dict["min_memory"] = group_service.get_service_group_memory(app.app_template)
-                            export_status = export_service.get_export_record_status(self.tenant.enterprise_id,
-                                                                                    group_key, group_version_list[0])
-                            if export_status:
-                                app_dict["export_status"] = export_status
-                            show_app_list.append(app_dict)
+        apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).order_by(
+            "-install_number", "-is_official"
+        ).values('group_key').annotate(id=Min('ID'))
 
-            result = general_message(200, "success", "查询成功", list=show_app_list, total=paginator.count,
-                                     next_page=int(page) + 1)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message()
-        return Response(result, status=result["code"])
+        paginator = Paginator(apps, int(page_size))
+        show_apps = paginator.page(int(page))
+
+        def yield_apps():
+            for app_value in show_apps:
+                app = RainbondCenterApp.objects.get(pk=app_value['id'])
+                group_version_list = RainbondCenterApp.objects.filter(
+                    group_key=app_value['group_key']
+                ).values_list('version', flat=True) or []
+                yield dict(
+                    group_version_list=group_version_list,
+                    min_memory=group_service.get_service_group_memory(app.app_template),
+                    export_status=export_service.get_export_record_status(
+                        self.tenant.enterprise_id,
+                        app.group_key,
+                        group_version_list[0]
+                    ) or '',
+                    **app.to_dict()
+                )
+
+        return MessageResponse(
+            "success",
+            msg_show="查询成功",
+            list=[app for app in yield_apps()],
+            total=paginator.count,
+            next_page=int(page) + 1
+        )
 
 
 class CenterAppView(RegionTenantHeaderView):
