@@ -7,6 +7,7 @@ create table `app_upgrade_record`
     `group_key`   varchar(32) not null,
     `group_name`  varchar(64) not null,
     `version`     varchar(20) not null,
+    `old_version` varchar(20) not null,
     `status`      tinyint     not null,
     `create_time` timestamp   not null default current_timestamp,
     `update_time` timestamp   not null default current_timestamp on update current_timestamp(3),

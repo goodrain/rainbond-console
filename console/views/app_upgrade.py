@@ -38,18 +38,22 @@ class GroupAppView(RegionTenantHeaderView):
                 app = app_qs.first()
                 if not app:
                     continue
-                group_version_list = app_qs.values_list('version', flat=True)
                 upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
                 not_upgrade_record = upgrade_service.get_app_not_upgrade_record(
                     self.tenant.tenant_id,
                     group_id,
                     group_key
                 )
+                services = group_service.get_rainbond_services(int(group_id), group_key)
                 yield {
+                    'current_version': upgrade_service.get_old_version(
+                        group_key,
+                        services.values_list('service_id', flat=True)
+                    ),
                     'can_upgrade': bool(upgrade_versions),
+                    'upgrade_versions': list(upgrade_versions),
                     'not_upgrade_record_id': not_upgrade_record.ID,
                     'not_upgrade_record_status': not_upgrade_record.status,
-                    'group_version_list': group_version_list,
                     'group_key': app.group_key,
                     'group_name': app.group_name,
                     'share_user': app.share_user,
@@ -86,13 +90,17 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 
         rq_args = (
             {'key': 'group_key', 'value_type': str},
-            {'key': 'status', 'value_type': int},
+            {'key': 'status__in', 'value_type': list},
+            {'key': 'status__gt', 'value_type': int},
+            {'key': 'status__lt', 'value_type': int},
         )
 
         qs_args = parse_args(request, rq_args)
         switch = {
             'group_key': Q(group_key=qs_args.get('group_key')),
-            'status': Q(status=qs_args.get('status')),
+            'status__in': Q(status__in=qs_args.get('status__in')),
+            'status__gt': Q(status__gt=qs_args.get('status__gt')),
+            'status__lt': Q(status__lt=qs_args.get('status__lt')),
         }
         q = Q()
         for arg_key in qs_args.keys():
@@ -214,17 +222,19 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             {'key': 'services', 'required': True, 'error': 'services is a required parameter'},
         )
         data = parse_date(request, rq_args)
+        group_key = data['group_key']
+        version = data['version']
+
         app_record = get_object_or_404(
             AppUpgradeRecord,
             msg="Upgrade record not found",
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            group_key=data['group_key'],
+            group_key=group_key,
             status=UpgradeStatus.NOT.value,
             pk=data['upgrade_record_id'],
         )
-        app_record.version = data['version']
-        app_record.save()
+
         # 处理新增的服务
         add_service_infos = [
             service['upgrade_info']
@@ -233,8 +243,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         ]
         if add_service_infos:
             app = rainbond_app_repo.get_rainbond_app_by_key_version(
-                group_key=data['group_key'],
-                version=app_record.version
+                group_key=group_key,
+                version=version
             )
             # mock app信息
             template = json.loads(app.app_template)
@@ -249,6 +259,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
             if service['service']['type'] == UpgradeType.UPGRADE.value
         }
+
+        app_record.version = version
+        app_record.old_version = upgrade_service.get_old_version(group_key, upgrade_service_infos.keys())
+        app_record.save()
+
         services = service_repo.get_services_by_service_ids_and_group_key(
             data['group_key'], upgrade_service_infos.keys()
         )

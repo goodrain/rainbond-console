@@ -9,6 +9,8 @@ from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
 from console.models import AppUpgradeRecord
+from console.models import RainbondCenterApp
+from console.models import ServiceSourceInfo
 from console.models import UpgradeStatus
 from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -89,6 +91,19 @@ class UpgradeService(object):
         versions |= add_versions
 
         return versions
+
+    def get_old_version(self, group_key, service_ids):
+        """获取旧版本版本号"""
+        versions = ServiceSourceInfo.objects.filter(
+            group_key=group_key,
+            service_id__in=service_ids,
+        ).values_list('version', flat=True) or []
+
+        app = RainbondCenterApp.objects.filter(
+            group_key=group_key,
+            version__in=versions
+        ).order_by('create_time').first()
+        return app.version if app else ''
 
     def query_the_version_of_the_add_service(self, app_qs, service_keys):
         """查询增加服务的版本

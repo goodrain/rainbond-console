@@ -87,8 +87,7 @@ class RainbondCenterApp(BaseModel):
     install_number = models.IntegerField(default=0, help_text=u'安装次数')
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
-    upgrade_time = models.CharField(
-        max_length=30, default="", help_text=u"升级时间")
+    upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -788,6 +787,7 @@ class AppUpgradeRecord(BaseModel):
     group_key = models.CharField(max_length=32, help_text=u"应用包")
     group_name = models.CharField(max_length=64, help_text=u"应用包名")
     version = models.CharField(max_length=20, default='', help_text=u"版本号")
+    old_version = models.CharField(max_length=20, default='', help_text=u"旧版本号")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
