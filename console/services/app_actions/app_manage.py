@@ -315,6 +315,7 @@ class AppManageService(AppManageBase):
             event.save()
             if e.status == 400:
                 logger.warning("failed to deploy service: {}".format(e))
+                event.delete()
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
             return 507, "构建异常", event
