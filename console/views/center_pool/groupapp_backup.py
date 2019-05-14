@@ -8,15 +8,17 @@ import StringIO
 from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from console.repositories.group import group_repo
 
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView
+from console.constants import StorageUnit
+from console.repositories.group import group_repo
+from console.services.backup_service import groupapp_backup_service
+from console.services.team_services import team_services
+from console.views.base import AlowAnyApiView
+from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.backup_service import groupapp_backup_service
-from console.constants import StorageUnit
-from console.services.team_services import team_services
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
@@ -114,9 +116,11 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             backup_id = request.GET.get("backup_id", None)
             if not backup_id:
                 return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
-            code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(self.tenant,
-                                                                                                       self.response_region,
-                                                                                                       backup_id)
+            code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(
+                self.tenant,
+                self.response_region,
+                backup_id
+            )
             if code != 200:
                 return Response(general_message(code, "get backup status error", msg), status=code)
             bean = backup_record.to_dict()
@@ -159,9 +163,12 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             backup_id = request.data.get("backup_id", None)
             if not backup_id:
                 return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
-            code, msg = groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant,
-                                                                                 self.response_region,
-                                                                                 backup_id)
+            code, msg = groupapp_backup_service.delete_group_backup_by_backup_id(
+                self.tenant,
+                self.response_region,
+                backup_id,
+                group_id,
+            )
             if code != 200:
                 return Response(general_message(code, "get backup status error", msg), status=code)
 
@@ -196,9 +203,11 @@ class GroupAppsBackupStatusView(RegionTenantHeaderView):
             group_id = int(kwargs.get("group_id", None))
             if not group_id:
                 return Response(general_message(400, "group id is null", "请选择需要备份的组"), status=400)
-            code, msg, backup_records = groupapp_backup_service.get_group_backup_status_by_group_id(self.tenant,
-                                                                                                    self.response_region,
-                                                                                                    group_id)
+            code, msg, backup_records = groupapp_backup_service.get_group_backup_status_by_group_id(
+                self.tenant,
+                self.response_region,
+                group_id
+            )
             if code == 404:
                 return Response(general_message(200, "success", "查询成功"), status=200)
 
@@ -300,8 +309,10 @@ class AllTeamGroupAppsBackupView(RegionTenantHeaderView):
                     group_obj = group_repo.get_group_by_id(backup_dict["group_id"])
                     if group_obj:
                         backup_dict["group_name"] = group_obj.group_name
+                        backup_dict["is_delete"] = False
                     else:
                         backup_dict["group_name"] = "应用已删除"
+                        backup_dict["is_delete"] = True
                     backup_list.append(backup_dict)
             result = general_message(200, "success", "查询成功", list=backup_list, total=paginator.count)
         except Exception as e:
