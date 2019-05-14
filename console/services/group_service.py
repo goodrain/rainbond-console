@@ -6,11 +6,14 @@ import json
 import logging
 import re
 
+from django.db import transaction
+
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models import ServiceGroup
 
@@ -181,6 +184,7 @@ class GroupService(object):
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
     # 组内没有应用情况下删除组
+    @transaction.atomic
     def delete_group_no_service(self, group_id):
         if not group_id or group_id < 0:
             return 400, u"需要删除的组不合法", None
@@ -189,6 +193,9 @@ class GroupService(object):
         #     return 409, u"当前组有备份记录，暂无法删除", None
         # 删除组
         group_repo.delete_group_by_pk(group_id)
+        # 删除升级记录
+        upgrade_repo.delete_app_record_by_group_id(group_id)
+
         return 200, u"删除成功", group_id
 
     def get_service_group_memory(self, app_template_raw):

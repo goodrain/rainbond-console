@@ -273,11 +273,13 @@ class UpgradeService(object):
             UpgradeStatus.UPGRADING.value: {
                 "success": UpgradeStatus.UPGRADED.value,
                 "failure": UpgradeStatus.UPGRADE_FAILED.value,
+                "timeout": UpgradeStatus.UPGRADED.value,
             },
             # 回滚中
             UpgradeStatus.ROLLING.value: {
                 "success": UpgradeStatus.ROLLBACK.value,
                 "failure": UpgradeStatus.ROLLBACK_FAILED.value,
+                "timeout": UpgradeStatus.ROLLBACK.value,
             },
         }
         status = operation.get(service_record.status, {}).get(event.status)
