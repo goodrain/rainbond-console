@@ -62,8 +62,8 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
 
-        apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).order_by(
-            "-install_number", "-is_official"
+        apps = market_app_service.get_visiable_apps(
+            self.tenant, scope, app_name
         ).values('group_key').annotate(id=Min('ID'))
 
         paginator = Paginator(apps, int(page_size))

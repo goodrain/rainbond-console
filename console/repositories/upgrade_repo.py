@@ -35,5 +35,9 @@ class UpgradeRepo(object):
         service_record.status = status
         service_record.save()
 
+    def delete_app_record_by_group_id(self, group_id):
+        """级联删除升级记录"""
+        AppUpgradeRecord.objects.filter(group_id=group_id).delete()
+
 
 upgrade_repo = UpgradeRepo()
