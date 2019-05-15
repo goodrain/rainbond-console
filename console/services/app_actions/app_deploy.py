@@ -849,6 +849,10 @@ class MarketService(object):
     def _restore_dep_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
         dep_vols = backup_data.get("service_mnts", [])
+
+        if not self.auto_restore:
+            self.app_restore.dep_volumes(dep_vols)
+
         body = {"dep_vols": []}
         for dv in dep_vols:
             body["dep_vols"].append({
@@ -902,6 +906,10 @@ class MarketService(object):
     def _restore_plugins(self, backup):
         backup_data = json.loads(backup.backup_data)
         relations = backup_data.get("service_plugin_relation", [])
+
+        if not self.auto_restore:
+            self.app_restore.plugins(relations)
+
         body = {"plugins": []}
         for r in relations:
             body["plugins"].append({
