@@ -577,7 +577,7 @@ class MarketService(object):
             port_repo.add_service_port(**port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].append(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port))
         upd = ports.get("upd", [])
         for port in upd:
             self.update_port_data(port)
@@ -599,7 +599,7 @@ class MarketService(object):
             self.update_port_data(port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].append(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port))
         upd = ports.get("upd", [])
         for port in upd:
             self.update_port_data(port)
