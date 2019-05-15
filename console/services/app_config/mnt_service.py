@@ -60,7 +60,7 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
+    def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size, q):
 
         services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
@@ -71,7 +71,7 @@ class AppMntService(object):
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
             .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
             .exclude(service_id=service.service_id) \
-            .exclude(volume_name__in=dep_mnt_names)
+            .exclude(volume_name__in=dep_mnt_names).filter(q)
         # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
         volumes = list(service_volumes)
         for volume in volumes:
