@@ -57,7 +57,8 @@ class PropertiesChanges(object):
         ports = self.port_changes(app.get("port_map_list", []))
         if ports:
             result["ports"] = ports
-        connect_infos = self.env_changes(app.get("service_connect_info_map_list", []))
+        connect_infos = self.env_changes(app.get("service_connect_info_map_list", []),
+                                         scope="outer")
         if connect_infos:
             result["connect_infos"] = connect_infos
         volumes = self.volume_changes(app.get("service_volume_map_list", []))
@@ -103,10 +104,13 @@ class PropertiesChanges(object):
         """
         compare the old and new deploy versions to determine if there is any change
         """
+        is_change = self.service.deploy_version < new
+        if not is_change:
+            return None
         return {
             "old": self.service.deploy_version,
             "new": new,
-            "is_change": self.service.deploy_version < new
+            "is_change": is_change
         }
 
     def app_version_changes(self, new):
