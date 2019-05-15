@@ -22,10 +22,14 @@ from console.services.app_config import domain_service
 from console.services.app_config import port_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.reqparse import parse_item
+from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
+from www.models import ServiceDomain
+from www.models import TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -1215,46 +1219,38 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     @never_cache
     @perm_required('control_operation')
     def put(self, request, rule_id, *args, **kwargs):
-        value = request.data.get("value", None)
-        if not rule_id:
-            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
-        service_domain = domain_repo.get_service_domain_by_http_rule_id(rule_id)
-        if not service_domain:
-            return Response(general_message(400, "no domain", "策略不存在"), status=400)
-        service_obj = service_repo.get_service_by_service_id(service_domain.service_id)
-        try:
-            if not value:
-                cf = configuration_repo.get_configuration_by_rule_id(rule_id)
-                if not cf:
-                    return Response(general_message(400, "no_modification", "暂无修改"), status=400)
-                gcc_dict = dict()
-                gcc_dict["body"] = cf
-                gcc_dict["rule_id"] = rule_id
-                res, data = region_api.upgrade_configuration(self.response_region, self.tenant,
-                                                             service_obj.service_alias, gcc_dict)
-                if res.status != 200:
-                    return Response(general_message(500, "upgrade faild", "数据中心修改失败"), status=500)
-                result = general_message(200, "success", "修改成功")
-                return Response(result, status=200)
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+        service_domain = get_object_or_404(
+            ServiceDomain,
+            msg="no domain",
+            msg_show=u"策略不存在",
+            http_rule_id=rule_id
+
+        )
+        service = get_object_or_404(
+            TenantServiceInfo,
+            msg="no service",
+            msg_show=u"服务不存在",
+            service_id=service_domain.service_id
+
+        )
+
+        cf = configuration_repo.get_configuration_by_rule_id(rule_id)
+        gcc_dict = dict()
+        gcc_dict["body"] = value
+        gcc_dict["rule_id"] = rule_id
+        res, data = region_api.upgrade_configuration(
+            self.response_region, self.tenant,
+            service.service_alias, gcc_dict
+        )
+        if res.status == 200:
+            if cf:
+                cf.value = json.dumps(value)
+                cf.save()
             else:
-                cf = configuration_repo.get_configuration_by_rule_id(rule_id)
-                gcc_dict = dict()
-                gcc_dict["body"] = value
-                gcc_dict["rule_id"] = rule_id
-                res, data = region_api.upgrade_configuration(self.response_region, self.tenant,
-                                                             service_obj.service_alias, gcc_dict)
-                if res.status == 200:
-                    if cf:
-                        cf.value = json.dumps(value)
-                        cf.save()
-                    else:
-                        cf_dict = dict()
-                        cf_dict["rule_id"] = rule_id
-                        cf_dict["value"] = json.dumps(value)
-                        configuration_repo.add_configuration(**cf_dict)
-                result = general_message(200, "success", "修改成功")
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+                cf_dict = dict()
+                cf_dict["rule_id"] = rule_id
+                cf_dict["value"] = json.dumps(value)
+                configuration_repo.add_configuration(**cf_dict)
+        result = general_message(200, "success", "修改成功")
+        return Response(result, status=200)
