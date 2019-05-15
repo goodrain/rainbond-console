@@ -370,6 +370,9 @@ class TenantServiceMntRelationRepository(object):
         TenantServiceMountRelation.objects.filter(
             service_id=service_id).delete()
 
+    def bulk_create(self, mnts):
+        TenantServiceMountRelation.objects.bulk_create(mnts)
+
 
 class ImageServiceRelationRepository(object):
     def create_image_service_relation(self, tenant_id, service_id, image_url, service_cname):

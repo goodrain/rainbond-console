@@ -5,12 +5,16 @@ from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from www.models.main import TenantServiceEnvVar
+from www.models.main import TenantServiceMountRelation
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServicesPort
+from www.models.plugin import TenantServicePluginRelation
 
 logger = logging.getLogger("default")
 
@@ -22,14 +26,20 @@ class AppRestore(object):
         self.service = service
 
     def svc(self, service_base):
+        if not service_base:
+            logger.warning("service id: {}; service base not found while \
+                restoring service".format(self.service.service_id))
+            return
         service_repo.del_by_sid(self.service.service_id)
         service_base.pop("ID")
         service_repo.create(service_base)
 
     def svc_source(self, service_source):
-        service_source_repo.delete_service_source(self.tenant.tenant_id, self.service.service_id)
         if not service_source:
+            logger.warning("service id: {}; service source data not found while \
+                restoring service source".format(self.service.service_id))
             return
+        service_source_repo.delete_service_source(self.tenant.tenant_id, self.service.service_id)
         service_source["service_id"] = service_source["service"]
         service_source.pop("ID")
         service_source.pop("service")
@@ -88,6 +98,21 @@ class AppRestore(object):
             relations.append(new_service_relation)
         TenantServiceRelation.objects.bulk_create(relations)
 
-    def dep_volumes(self):
-        # TODO
-        pass
+    def dep_volumes(self, service_mnts):
+        mnt_repo.delete_mnt(self.service.service_id)
+        if not service_mnts:
+            return
+        mnts = []
+        for item in service_mnts:
+            item.pop("ID")
+            mnt = TenantServiceMountRelation(**item)
+            mnts.append(mnt)
+        mnt_repo.bulk_create(mnts)
+
+    def plugins(self, service_plugin_relation):
+        app_plugin_relation_repo.delete_by_sid(self.service.service_id)
+        plugin_relations = []
+        for item in service_plugin_relation:
+            item.pop("ID")
+            plugin_relations.append(TenantServicePluginRelation(**item))
+        app_plugin_relation_repo.bulk_create(plugin_relations)
