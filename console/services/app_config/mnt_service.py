@@ -26,9 +26,13 @@ class AppMntService(object):
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
-    def get_service_mnt_details(self, tenant, service, page=1, page_size=20):
+    def get_service_mnt_details(self, tenant, service, volume_type, page=1, page_size=20):
 
-        all_mnt_relations = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(
+            tenant.tenant_id,
+            service.service_id,
+            volume_type
+        )
         total = len(all_mnt_relations)
         mnt_paginator = JuncheePaginator(all_mnt_relations, int(page_size))
         mnt_relations = mnt_paginator.page(page)
@@ -64,9 +68,9 @@ class AppMntService(object):
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name',
                                                                                                     flat=True)
         # 当前未被挂载的共享路径
-        service_volumes = volume_repo.get_services_volumes(current_tenant_services_id)\
-            .filter(volume_type__in=[self.SHARE, self.CONFIG])\
-            .exclude(service_id=service.service_id)\
+        service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
+            .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
+            .exclude(service_id=service.service_id) \
             .exclude(volume_name__in=dep_mnt_names)
         # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
         volumes = list(service_volumes)

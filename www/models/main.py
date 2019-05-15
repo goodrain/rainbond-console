@@ -801,12 +801,12 @@ class ServiceDomain(BaseModel):
     domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
-    domain_path = models.TextField(null=True, blank=True, help_text=u"域名path")
-    domain_cookie = models.TextField(null=True, blank=True, help_text=u"域名cookie")
-    domain_heander = models.TextField(null=True, blank=True, help_text=u"域名heander")
+    domain_path = models.TextField(blank=True, help_text=u"域名path")
+    domain_cookie = models.TextField(blank=True, help_text=u"域名cookie")
+    domain_heander = models.TextField(blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(default=100, help_text=u"权重")
-    rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
+    rule_extensions = models.TextField(blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
     def __unicode__(self):
@@ -1097,11 +1097,11 @@ class TenantServiceVolume(BaseModel):
     TMPFS = 'memoryfs'
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
+    category = models.CharField(max_length=50, blank=True, help_text=u"服务类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
-    volume_type = models.CharField(max_length=30, blank=True, null=True)
+    volume_type = models.CharField(max_length=30, blank=True)
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
-    volume_name = models.CharField(max_length=100, blank=True, null=True)
+    volume_name = models.CharField(max_length=100, blank=True)
 
 
 class TenantServiceConfigurationFile(BaseModel):
@@ -1112,7 +1112,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     volume_id = models.IntegerField(null=True, help_text=u"存储id")
-    file_content = models.TextField(blank=True, null=True, help_text=u"配置文件内容")
+    file_content = models.TextField(blank=True, help_text=u"配置文件内容")
 
 
 class ServiceGroup(BaseModel):
