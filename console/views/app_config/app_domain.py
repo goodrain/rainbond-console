@@ -2,28 +2,33 @@
 """
   Created on 18/1/15.
 """
-import logging
 import json
+import logging
 import re
 
+from django.db import connection
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+
+from console.constants import DomainType
+from console.repositories.app import service_repo
+from console.repositories.app_config import configuration_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
 from console.repositories.group import group_repo
-from django.db import connection
-from console.services.app_config import domain_service, port_service
+from console.repositories.group import group_service_relation_repo
+from console.repositories.region_repo import region_repo
+from console.services.app_config import domain_service
+from console.services.app_config import port_service
+from console.services.region_services import region_services
+from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from console.constants import DomainType
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.region_services import region_services
-from console.repositories.app import service_repo
-from console.services.team_services import team_services
-from www.utils.crypt import make_uuid
-from console.repositories.app_config import domain_repo, tcp_domain, configuration_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.region_repo import region_repo
-from console.repositories.group import group_service_relation_repo
+from www.decorator import perm_required
+from www.utils.crypt import make_uuid
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -616,7 +621,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             if s_domains:
                 for domain in s_domains:
                     rule_ids_list.append(domain.http_rule_id)
-                    if "httptohttps" in domain.rule_extensions:
+                    if "httptohttps" in domain.rule_extensions or '':
                         is_httptohttps = True
             if is_httptohttps and not add_httptohttps:
                 result = general_message(400, "faild", "策略已存在")

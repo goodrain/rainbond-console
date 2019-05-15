@@ -240,7 +240,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         add_service_infos = {
             service['service']['service_key']: service['upgrade_info']
             for service in data['services']
-            if service['service']['type'] == UpgradeType.ADD.value
+            if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
         if add_service_infos:
             app = rainbond_app_repo.get_rainbond_app_by_key_version(
@@ -262,7 +262,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         upgrade_service_infos = {
             service['service']['service_id']: service['upgrade_info']
             for service in data['services']
-            if service['service']['type'] == UpgradeType.UPGRADE.value
+            if service['service']['type'] == UpgradeType.UPGRADE.value and service['upgrade_info']
         }
 
         app_record.version = version
