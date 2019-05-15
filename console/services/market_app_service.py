@@ -849,6 +849,7 @@ class MarketAppService(object):
                                                       cur_rbd_app.update_time,
                                                       item.version))
                 continue
+            # logger.debug("changes: {}".format(json.dumps(changes)))
             result.append(item.version)
 
         return result

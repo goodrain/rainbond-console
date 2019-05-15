@@ -123,6 +123,12 @@ class TenantServiceInfoRepository(object):
             service_id__in=service_ids
         )
 
+    def del_by_sid(self, sid):
+        TenantServiceInfo.objects.filter(service_id=sid).delete()
+
+    def create(self, service_base):
+        TenantServiceInfo(**service_base).save()
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
