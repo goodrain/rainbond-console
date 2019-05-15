@@ -4,6 +4,7 @@ import json
 
 from django.db import DatabaseError
 from django.db import transaction
+from django.db.models import Q
 
 from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
@@ -11,7 +12,9 @@ from console.exception.main import RecordNotFound
 from console.models import AppUpgradeRecord
 from console.models import RainbondCenterApp
 from console.models import ServiceSourceInfo
+from console.models import ServiceUpgradeRecord
 from console.models import UpgradeStatus
+from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -175,7 +178,12 @@ class UpgradeService(object):
         if record.status not in synchronization_type:
             return
 
-        service_records = record.service_upgrade_records.all()
+        # 回滚时只同步升级类型的记录
+        q = Q(upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value
+              ) if record.status == UpgradeStatus.ROLLING.value else Q()
+
+        service_records = record.service_upgrade_records.filter(q).all()
+
         event_service_mapping = {
             record.event_id: record
             for record in service_records
@@ -200,6 +208,24 @@ class UpgradeService(object):
         status = judging_status[record.status](service_status)
         if status:
             upgrade_repo.change_app_record_status(record, status)
+
+    @staticmethod
+    def create_add_service_record(app_record, events, add_service_infos):
+        """创建新增服务升级记录"""
+        service_id_event_mapping = {
+            event.service_id: event
+            for event in events
+        }
+        services = service_repo.get_services_by_service_ids_and_group_key(
+            app_record.group_key,
+            service_id_event_mapping.keys()
+        )
+        for service in services:
+            upgrade_repo.create_service_upgrade_record(
+                app_record, service, service_id_event_mapping[service.service_id],
+                add_service_infos[service.service_key],
+                upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value
+            )
 
     @staticmethod
     def market_service_and_create_backup(tenant, service, version):
@@ -306,7 +332,11 @@ class UpgradeService(object):
         status = None
         if UpgradeStatus.ROLLING.value in service_status:
             return
-        elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.ROLLBACK.value}:
+        elif len(service_status) > 1 and service_status <= {
+            UpgradeStatus.ROLLBACK_FAILED.value,
+            UpgradeStatus.ROLLBACK.value,
+            UpgradeStatus.UPGRADED.value,
+        }:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
             status = UpgradeStatus.ROLLBACK.value
@@ -374,6 +404,7 @@ class UpgradeService(object):
                     "service_cname": service_record.service_cname,
                     "create_time": service_record.create_time,
                     "service_id": service_record.service_id,
+                    "upgrade_type": service_record.upgrade_type,
                     "ID": service_record.ID
                 }
                 for service_record in app_record.service_upgrade_records.all()

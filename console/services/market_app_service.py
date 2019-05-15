@@ -9,8 +9,8 @@ import logging
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.exception.main import RbdAppNotFound
 from console.exception.main import AbortRequest
+from console.exception.main import RbdAppNotFound
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
@@ -143,10 +143,11 @@ class MarketAppService(object):
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
 
+            events = []
             if is_deploy:
                 # 部署所有应用
-                self.__deploy_services(tenant, user, new_service_list)
-            return tenant_service_group
+                events = self.__deploy_services(tenant, user, new_service_list)
+            return tenant_service_group, events
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
@@ -396,7 +397,7 @@ class MarketAppService(object):
     def __deploy_services(self, tenant, user, service_list):
         try:
             body = dict()
-            code, data = app_manage_service.deploy_services_info(
+            code, data, events = app_manage_service.deploy_services_info(
                 body, service_list, tenant, user)
             if code == 200:
                 # 获取数据中心信息
@@ -409,6 +410,8 @@ class MarketAppService(object):
                     logger.exception(e)
         except Exception as e:
             logger.exception("batch deploy service error {0}".format(e))
+
+        return events
 
     def __save_service_deps(self, tenant, service_key_dep_key_map,
                             key_service_map):

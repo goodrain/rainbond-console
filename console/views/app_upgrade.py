@@ -8,6 +8,7 @@ from enum import Enum
 
 from console.exception.main import AbortRequest
 from console.models import AppUpgradeRecord
+from console.models import ServiceUpgradeRecord
 from console.models import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -236,11 +237,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         )
 
         # 处理新增的服务
-        add_service_infos = [
-            service['upgrade_info']
+        add_service_infos = {
+            service['service']['service_key']: service['upgrade_info']
             for service in data['services']
             if service['service']['type'] == UpgradeType.ADD.value
-        ]
+        }
         if add_service_infos:
             app = rainbond_app_repo.get_rainbond_app_by_key_version(
                 group_key=group_key,
@@ -248,10 +249,14 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             )
             # mock app信息
             template = json.loads(app.app_template)
-            template['apps'] = add_service_infos
+            template['apps'] = add_service_infos.values()
             app.app_template = json.dumps(template)
             market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, True)
+            _, events = market_app_service.install_service(
+                self.tenant, self.response_region, self.user,
+                group_id, app, True
+            )
+            upgrade_service.create_add_service_record(app_record, events, add_service_infos)
 
         # 处理需要升级的服务
         upgrade_service_infos = {
@@ -318,6 +323,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
                 UpgradeStatus.UPGRADE_FAILED.value,
                 UpgradeStatus.ROLLBACK_FAILED.value
             ),
+            upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
             service_id__in=service_ids
         )
         services = service_repo.get_services_by_service_ids_and_group_key(

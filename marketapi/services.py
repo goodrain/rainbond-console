@@ -1,18 +1,26 @@
 # -*- coding: utf8 -*-
 import logging
-
 import os
-import datetime
-from django.db.models import Q
+
 from django.conf import settings
-from console.services.market_app_service import market_app_service, market_sycn_service
-from openapi.controllers.openservicemanager import OpenTenantServiceManager
-from www.apiclient.regionapi import RegionInvokeApi
-from www.apiclient.baseclient import client_auth_service
-from www.models import ServiceDomainCertificate, ServiceDomain, make_uuid
-from www.services import app_group_svc, tenant_svc, enterprise_svc, user_svc, app_svc
+from django.db.models import Q
+
+from console.repositories.group import group_repo
+from console.repositories.group import tenant_service_group_repo
 from console.services.app_config import domain_service
-from console.repositories.group import group_repo, tenant_service_group_repo
+from console.services.market_app_service import market_app_service
+from console.services.market_app_service import market_sycn_service
+from openapi.controllers.openservicemanager import OpenTenantServiceManager
+from www.apiclient.baseclient import client_auth_service
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models import make_uuid
+from www.models import ServiceDomain
+from www.models import ServiceDomainCertificate
+from www.services import app_group_svc
+from www.services import app_svc
+from www.services import enterprise_svc
+from www.services import tenant_svc
+from www.services import user_svc
 
 logger = logging.getLogger('default')
 LOGGER_TAG = 'marketapi'
@@ -254,11 +262,11 @@ class MarketServiceAPIManager(object):
                                  market_client_id, market_client_token):
         """
         将sso_user 绑定到指定的enterprise上，并绑定访问云市的认证信息
-        :param sso_user: 
-        :param enterprise_id: 
-        :param market_client_id: 
-        :param market_client_token: 
-        :return: 
+        :param sso_user:
+        :param enterprise_id:
+        :param market_client_id:
+        :param market_client_token:
+        :return:
         """
         enterprise = enterprise_svc.get_enterprise_by_id(enterprise_id)
         # 如果要绑定的企业在本地云帮不存在, 且eid与云市eid一致，则创建一个与公有云一致的企业信息
@@ -276,10 +284,9 @@ class MarketServiceAPIManager(object):
             user.enterprise_id = enterprise.enterprise_id
             user.save()
 
-            logger.info(
-                'create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.
-                format(user.user_id, user.nick_name, user.rf,
-                       user.sso_user_id))
+            logger.info('create user[{0}] with name [{1}] from [{2}] use sso_id [{3}]'.format(
+                user.user_id, user.nick_name, user.rf, user.sso_user_id
+            ))
             # 初始化用户工作环境
             # tenant = enterprise_svc.create_and_init_tenant(user_id=user.user_id, enterprise_id=user.enterprise_id)
 
@@ -310,8 +317,10 @@ class MarketServiceAPIManager(object):
     def get_binded_domains(self, service_id):
         domains = ServiceDomain.objects.filter(
             service_id=service_id, protocol='http')
-        return [{'domain_name': d.domain_name, 'domain_id': d.ID, 'service_id': d.service_id} \
-                for d in domains]
+        return [
+            {'domain_name': d.domain_name, 'domain_id': d.ID, 'service_id': d.service_id}
+            for d in domains
+        ]
 
     def bind_domain(self, service_id, domain_name):
         try:
@@ -398,7 +407,9 @@ class MarketServiceAPIManager(object):
                 user, tenant, group_key, group_version)
             new_group = self.__create_group(tenant.tenant_id, region_name,
                                             app.group_name)
-            tenant_service_group = market_app_service.install_service(tenant, region_name, user, new_group.ID, app, True)
+            tenant_service_group, _ = market_app_service.install_service(
+                tenant, region_name, user, new_group.ID, app, True
+            )
             if tenant_service_group:
                 tenant_service_group = self.get_group_services_by_pk(
                     tenant_service_group.pk)
