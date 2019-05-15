@@ -128,7 +128,7 @@ class AppManageBase(object):
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
                 new_add_memory = new_add_memory + \
-                    self.cur_service_memory(tenant, service)
+                                 self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
                 tm = tenantUsedResource.calculate_real_used_resource(
                     tenant) + new_add_memory
@@ -483,13 +483,13 @@ class AppManageService(AppManageBase):
                 # return "source"
                 return "build_from_source_code"
             elif service.service_source == AppConstants.DOCKER_RUN \
-                or service.service_source == AppConstants.DOCKER_COMPOSE \
+                    or service.service_source == AppConstants.DOCKER_COMPOSE \
                     or service.service_source == AppConstants.DOCKER_IMAGE:
                 # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
                 if service.image.startswith('goodrain.me/runner') \
-                    and service.language \
+                        and service.language \
                         not in ("dockerfile", "docker"):
                     return "build_from_market_slug"
                 else:
@@ -501,7 +501,7 @@ class AppManageService(AppManageBase):
             if service.category == "app_publish":
                 kind = "build_from_market_image"
                 if service.image.startswith('goodrain.me/runner') \
-                    and service.language \
+                        and service.language \
                         not in ("dockerfile", "docker"):
                     kind = "build_from_market_slug"
                 if service.service_key == "0000":
@@ -600,7 +600,7 @@ class AppManageService(AppManageBase):
                 code, data = self.upgrade_services_info(
                     body, services, tenant, user)
             elif action == "deploy":
-                code, data = self.deploy_services_info(
+                code, data, _ = self.deploy_services_info(
                     body, services, tenant, user)
             logger.debug(
                 '-===================---bodybody----------->{0}'.format(json.dumps(data)))
@@ -699,6 +699,7 @@ class AppManageService(AppManageBase):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
+        events = []
         for service in services:
             service_dict = dict()
             code, msg, event = event_service.create_event(
@@ -710,6 +711,7 @@ class AppManageService(AppManageBase):
             service.save()
             event.deploy_version = service.deploy_version
             event.save()
+            events.append(event)
 
             service_dict["event_id"] = event.event_id
             service_dict["service_id"] = service.service_id
@@ -812,7 +814,7 @@ class AppManageService(AppManageBase):
                                             new_extend_info["source_deploy_version"] = app.get(
                                                 "deploy_version")
                                             new_extend_info["source_service_share_uuid"] \
-                                                = app.get("service_share_uuid")\
+                                                = app.get("service_share_uuid") \
                                                 if app.get("service_share_uuid", None) \
                                                 else app.get("service_key", "")
                                             service_source.extend_info = json.dumps(new_extend_info)
@@ -868,8 +870,8 @@ class AppManageService(AppManageBase):
                                             service.save()
                                             new_extend_info["source_deploy_version"] = app.get(
                                                 "deploy_version")
-                                            new_extend_info["source_service_share_uuid"]\
-                                                = app.get("service_share_uuid") if app.get("service_share_uuid", None)\
+                                            new_extend_info["source_service_share_uuid"] \
+                                                = app.get("service_share_uuid") if app.get("service_share_uuid", None) \
                                                 else app.get("service_key", "")
                                             service_source.extend_info = json.dumps(
                                                 new_extend_info)
@@ -906,7 +908,7 @@ class AppManageService(AppManageBase):
                             service_dict["slug_info"] = extend_info
 
             deploy_infos_list.append(service_dict)
-        return 200, body
+        return 200, body, events
 
     def vertical_upgrade(self, tenant, service, user, new_memory):
         """服务水平升级"""

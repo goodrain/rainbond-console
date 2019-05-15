@@ -17,6 +17,7 @@ Dockerfile.build
 temp
 start.sh
 local_tool.sh
+data/
 
 # pipenv
 Pipfile

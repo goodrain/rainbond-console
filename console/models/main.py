@@ -4,6 +4,7 @@ from datetime import datetime
 
 from django.db import models
 from django.db.models.fields.files import FileField
+from enum import Enum
 from enum import IntEnum
 
 from www.models.main import TenantServiceInfo
@@ -799,6 +800,10 @@ class ServiceUpgradeRecord(BaseModel):
     class Meta:
         db_table = "service_upgrade_record"
 
+    class UpgradeType(Enum):
+        UPGRADE = 'upgrade'
+        ADD = 'add'
+
     app_upgrade_record = models.ForeignKey(
         AppUpgradeRecord,
         on_delete=models.CASCADE,
@@ -808,6 +813,7 @@ class ServiceUpgradeRecord(BaseModel):
     )
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_cname = models.CharField(max_length=100, help_text=u"服务名")
+    upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text=u"升级类型")
     event_id = models.CharField(max_length=32)
     update = models.TextField(help_text=u"升级信息")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")

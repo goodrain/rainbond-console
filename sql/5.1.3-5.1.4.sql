@@ -24,6 +24,7 @@ create table `service_upgrade_record`
     `app_upgrade_record_id`    int          not null,
     `service_id`               varchar(32)  not null,
     `service_cname`            varchar(100) not null,
+    `upgrade_type`             varchar(20)  not null,
     `event_id`                 varchar(32)  not null,
     `update`                   longtext     not null,
     `status`                   tinyint      not null,
