@@ -320,6 +320,7 @@ class UpgradeService(object):
         from console.services.app_actions.app_deploy import MarketService
 
         market_service = MarketService(tenant, service, version)
+        market_service.auto_restore = False
         market_service.restore_backup()
         return market_service
 

@@ -9,8 +9,8 @@ import logging
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.exception.main import RbdAppNotFound
 from console.exception.main import AbortRequest
+from console.exception.main import RbdAppNotFound
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
@@ -846,6 +846,7 @@ class MarketAppService(object):
                                                       cur_rbd_app.update_time,
                                                       item.version))
                 continue
+            # logger.debug("changes: {}".format(json.dumps(changes)))
             result.append(item.version)
 
         return result

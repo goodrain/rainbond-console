@@ -173,14 +173,29 @@ class PropertiesChanges(object):
         """port can only be created, cannot be updated and deleted"""
         old_ports = port_repo.get_service_ports(self.service.tenant_id,
                                                 self.service.service_id)
-        old_container_ports = [port.container_port for port in old_ports]
+        old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports
                         if port["container_port"] not in old_container_ports]
-        if not create_ports:
+        update_ports = []
+        for new_port in new_ports:
+            if new_port["container_port"] not in old_container_ports:
+                continue
+            old_port = old_container_ports[new_port["container_port"]]
+            if new_port["is_outer_service"] and not old_port.is_outer_service:
+                update_ports.append(new_port)
+                continue
+            if new_port["is_inner_service"] and not old_port.is_inner_service:
+                update_ports.append(new_port)
+                continue
+        if not create_ports and not update_ports:
             return None
-        return {
-            "add": create_ports
-        }
+        result = {}
+        if create_ports:
+            result["add"] = create_ports
+        if update_ports:
+            result["upd"] = update_ports
+        logger.debug("ports: {}".format(json.dumps(result)))
+        return result
 
     def volume_changes(self, new_volumes):
         old_volumes = volume_repo.get_service_volumes(self.service.service_id)

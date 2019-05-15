@@ -131,6 +131,9 @@ class TenantServiceEnvVarRepository(object):
         except ValueError:
             raise AbortRequest(msg="the value of scope is outer or inner")
 
+    def bulk_create(self, envs):
+        TenantServiceEnvVar.objects.bulk_create(envs)
+
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):
@@ -180,6 +183,14 @@ class TenantServicePortRepository(object):
 
     def get_service_port_by_lb_mapping_port(self, service_id, lb_mapping_port):
         return TenantServicesPort.objects.filter(service_id=service_id, lb_mapping_port=lb_mapping_port).first()
+
+    def bulk_create(self, ports):
+        TenantServicesPort.objects.bulk_create(ports)
+
+    def update(self, **param):
+        TenantServicesPort.objects.filter(
+            tenant_id=param["tenant_id"], service_id=param["service_id"],
+            container_port=param["container_port"]).update(**param)
 
 
 class TenantServiceVolumnRepository(object):
@@ -234,6 +245,9 @@ class TenantServiceVolumnRepository(object):
     def get_by_sid_name(self, service_id, volume_name):
         return TenantServiceVolume.objects.filter(service_id=service_id,
                                                   volume_name=volume_name).first()
+
+    def delete_config_files(self, sid):
+        TenantServiceConfigurationFile.objects.filter(service_id=sid).defer()
 
 
 class TenantServiceRelationRepository(object):
