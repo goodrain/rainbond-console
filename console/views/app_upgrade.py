@@ -1,12 +1,15 @@
 # coding: utf-8
 """升级从云市安装的应用"""
 import json
+import logging
 
 from django.core.paginator import Paginator
 from django.db.models import Q
 from enum import Enum
 
 from console.exception.main import AbortRequest
+from console.exception.main import AccountOverdueException
+from console.exception.main import ResourceNotEnoughException
 from console.models import AppUpgradeRecord
 from console.models import ServiceUpgradeRecord
 from console.models import UpgradeStatus
@@ -23,6 +26,8 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
 from console.views.base import RegionTenantHeaderView
+
+logger = logging.getLogger('default')
 
 
 class GroupAppView(RegionTenantHeaderView):
@@ -251,11 +256,20 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             template = json.loads(app.app_template)
             template['apps'] = add_service_infos.values()
             app.app_template = json.dumps(template)
-            market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
-            _, events = market_app_service.install_service(
-                self.tenant, self.response_region, self.user,
-                group_id, app, True
-            )
+            try:
+                market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
+                _, events = market_app_service.install_service(
+                    self.tenant, self.response_region, self.user,
+                    group_id, app, True
+                )
+            except (ResourceNotEnoughException, AccountOverdueException) as re:
+                logger.exception(re)
+                return MessageResponse(
+                    msg="resource is not enough",
+                    msg_show=re.message,
+                    status_code=412,
+                    error_code=10406
+                )
             upgrade_service.create_add_service_record(app_record, events, add_service_infos)
 
         # 处理需要升级的服务
