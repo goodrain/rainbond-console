@@ -49,3 +49,7 @@ CREATE TABLE `tenant_service_backup` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `backup_id` (`backup_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8;
+
+-- **2019-05-15 增加唯一索引
+alter table gateway_custom_configuration
+    modify rule_id varchar(32) unique not null;
