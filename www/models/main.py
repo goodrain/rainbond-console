@@ -1566,5 +1566,5 @@ class GatewayCustomConfiguration(BaseModel):
     class Meta:
         db_table = 'gateway_custom_configuration'
 
-    rule_id = models.CharField(max_length=32, help_text=u"规则id")
+    rule_id = models.CharField(max_length=32, unique=True, help_text=u"规则id")
     value = models.TextField(help_text=u"配置value")
