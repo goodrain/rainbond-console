@@ -9,6 +9,7 @@ import re
 from django.db import transaction
 
 from console.constants import ServicePortConstants
+from console.exception.main import AbortRequest
 from console.repositories.app import service_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -18,6 +19,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
+from goodrain_web.errors import CallApiError
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -207,10 +209,14 @@ class AppPortService(object):
         """删除端口时禁用相关服务"""
         # 禁用健康检测
         from console.services.app_config import probe_service
-        probe = probe_repo.get_service_probe(service.service_id).first()
+        probe = probe_repo.get_service_probe(service.service_id).filter(is_used=True).first()
         if probe and container_port == probe.port:
             probe.is_used = False
-            probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
+            try:
+                probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
+            except CallApiError as e:
+                logger.exception(e)
+                raise AbortRequest(msg=e.message, status_code=404)
 
     def delete_service_port(self, tenant, service):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
@@ -228,7 +234,8 @@ class AppPortService(object):
 
     def __check_params(self, action, protocol, port_alias, service_id):
         standard_actions = (
-            "open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol", "change_port_alias")
+            "open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
+            "change_port_alias")
         if not action:
             return 400, u"操作类型不能为空"
         if action not in standard_actions:
@@ -292,14 +299,16 @@ class AppPortService(object):
                 service_id = service.service_id
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(region.httpdomain)
+                domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
+                    region.httpdomain)
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
                 region_id = region.region_id
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, tenant_id,
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port,
+                                                   protocol, http_rule_id, tenant_id,
                                                    service_alias, region_id)
                 # 给数据中心发请求添加默认域名
                 data = dict()
@@ -416,13 +425,15 @@ class AppPortService(object):
         deal_port.save()
         # 改变httpdomain表中端口状态
         if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                               deal_port.container_port)
             if service_domains:
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, deal_port.container_port)
+            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
+                                                                                            deal_port.container_port)
             # 改变tcpdomain表中状态
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
@@ -615,7 +626,8 @@ class AppPortService(object):
     def __get_stream_outer_url(self, tenant, service, port):
         region = region_repo.get_region_by_region_name(service.service_region)
         if region:
-            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id, service.service_id, port.container_port)
+            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id,
+                                                                  service.service_id, port.container_port)
 
             if service_tcp_domain:
                 return service_tcp_domain.end_point
