@@ -26,12 +26,12 @@ class AppMntService(object):
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
-    def get_service_mnt_details(self, tenant, service, volume_type, page=1, page_size=20):
+    def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
 
         all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(
             tenant.tenant_id,
             service.service_id,
-            volume_type
+            volume_types
         )
         total = len(all_mnt_relations)
         mnt_paginator = JuncheePaginator(all_mnt_relations, int(page_size))

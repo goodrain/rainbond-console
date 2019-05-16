@@ -5,7 +5,6 @@
 import logging
 
 from django.db.models import Q
-from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -41,9 +40,9 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
         """
-        volume_type = parse_argument(request, 'volume_type', value_type=str)
+        volume_types = parse_argument(request, 'volume_types', value_type=list)
         try:
-            q = Q(volume_type=volume_type) if volume_type else Q()
+            q = Q(volume_type__in=volume_types) if volume_types else Q()
             tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service).filter(q)
 
             volumes_list = []
