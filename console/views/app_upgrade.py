@@ -2,6 +2,7 @@
 """升级从云市安装的应用"""
 import json
 import logging
+from copy import deepcopy
 
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -247,24 +248,25 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
             if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
-        service_key_dep_key_map, key_service_map = {}, {}
+        install_info = {}
         if add_service_infos:
-            app = rainbond_app_repo.get_rainbond_app_by_key_version(
+            old_app = rainbond_app_repo.get_rainbond_app_by_key_version(
                 group_key=group_key,
                 version=version
             )
+            new_app = deepcopy(old_app)
             # mock app信息
-            template = json.loads(app.app_template)
+            template = json.loads(new_app.app_template)
             template['apps'] = add_service_infos.values()
-            app.app_template = json.dumps(template)
+            new_app.app_template = json.dumps(template)
 
             # 查询某一个云市应用下的所有服务
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
-                market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
-                _, events, service_key_dep_key_map, key_service_map = market_app_service.install_service_when_upgrade_app(
+                market_app_service.check_package_app_resource(self.tenant, self.response_region, new_app)
+                install_info = market_app_service.install_service_when_upgrade_app(
                     self.tenant, self.response_region, self.user,
-                    group_id, app, services, True
+                    group_id, new_app, old_app, services, True
                 )
 
             except (ResourceNotEnoughException, AccountOverdueException) as re:
@@ -275,7 +277,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
                     status_code=412,
                     error_code=10406
                 )
-            upgrade_service.create_add_service_record(app_record, events, add_service_infos)
+            upgrade_service.create_add_service_record(app_record, install_info['events'], add_service_infos)
 
         # 处理需要升级的服务
         upgrade_service_infos = {
@@ -309,7 +311,13 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
 
         # 处理依赖关系
         if add_service_infos:
-            market_app_service.save_service_deps_when_upgrade_app(self.tenant, service_key_dep_key_map, key_service_map)
+            market_app_service.save_service_deps_when_upgrade_app(
+                self.tenant,
+                install_info['service_key_dep_key_map'],
+                install_info['key_service_map'],
+                install_info['apps'],
+                install_info['app_map'],
+            )
 
         return MessageResponse(
             msg="success",
