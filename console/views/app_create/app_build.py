@@ -9,14 +9,20 @@ from rest_framework.response import Response
 
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
-from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.app_config import label_service, probe_service, port_service, volume_service, env_var_service, \
-    dependency_service
-from console.services.app_actions import app_manage_service, event_service
+from console.services.app_actions import app_manage_service
+from console.services.app_actions import event_service
+from console.services.app_config import dependency_service
+from console.services.app_config import env_var_service
+from console.services.app_config import label_service
+from console.services.app_config import port_service
+from console.services.app_config import probe_service
+from console.services.app_config import volume_service
 from console.services.compose_service import compose_service
+from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -42,26 +48,21 @@ class AppBuild(AppBaseView):
 
         """
         probe = None
+        is_deploy = request.data.get("is_deploy", True)
         try:
             if self.service.service_source == "third_party":
+                is_deploy = False
                 # 数据中心连接创建三方服务
-                try:
-                    new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
-                    self.service = new_service
-                    result = general_message(200, "success", "创建成功")
-                except Exception as e:
-                    logger.exception(e)
-                    result = error_message(e.message)
-                    self.service.create_status = "checked"
-                    self.service.save()
-                return Response(result, status=result["code"])
-            is_deploy = request.data.get("is_deploy", True)
-            # 数据中心创建应用
-            new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
+                new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
+            else:
+                # 数据中心创建应用
+                new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
+
             self.service = new_service
             # 为服务添加默认探针
             if self.is_need_to_add_default_probe():
                 code, msg, probe = app_service.add_service_default_porbe(self.tenant, self.service)
+                logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
             if is_deploy:
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
@@ -79,13 +80,13 @@ class AppBuild(AppBaseView):
             # 删除region端数据
             if probe:
                 probe_service.delete_service_probe(self.tenant, self.service, probe.probe_id)
-            event_service.delete_service_events(self.service)
-            port_service.delete_region_port(self.tenant, self.service)
-            volume_service.delete_region_volumes(self.tenant, self.service)
-            env_var_service.delete_region_env(self.tenant, self.service)
-            dependency_service.delete_region_dependency(self.tenant, self.service)
-
-            app_manage_service.delete_region_service(self.tenant, self.service)
+            if self.service.service_source != "third_party":
+                event_service.delete_service_events(self.service)
+                port_service.delete_region_port(self.tenant, self.service)
+                volume_service.delete_region_volumes(self.tenant, self.service)
+                env_var_service.delete_region_env(self.tenant, self.service)
+                dependency_service.delete_region_dependency(self.tenant, self.service)
+                app_manage_service.delete_region_service(self.tenant, self.service)
             self.service.create_status = "checked"
             self.service.save()
 

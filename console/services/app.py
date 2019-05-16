@@ -3,31 +3,38 @@
   Created on 18/1/11.
 """
 import datetime
+import json
 import logging
 import random
 import string
-import json
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
-from console.repositories.app import service_source_repo, service_repo
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo, volume_repo, mnt_repo, \
-    service_endpoints_repo
+from console.exception.main import AccountOverdueException
+from console.exception.main import ResourceNotEnoughException
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import service_endpoints_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
+from console.repositories.perm_repo import role_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
-
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
-from www.models import TenantServiceInfo, ServiceConsume
-from www.tenantservice.baseservice import TenantUsedResource, CodeRepositoriesService, BaseTenantService, \
-    ServicePluginResource
+from www.models import ServiceConsume
+from www.models import TenantServiceInfo
+from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import CodeRepositoriesService
+from www.tenantservice.baseservice import ServicePluginResource
+from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-from console.repositories.perm_repo import role_repo
-from console.repositories.probe_repo import probe_repo
 
 
 tenantUsedResource = TenantUsedResource()
@@ -142,7 +149,6 @@ class AppService(object):
 
     def verify_source(self, tenant, region, new_add_memory, reason=""):
         """判断资源"""
-        allow_create = True
         tips = u"success"
         data = {
             "quantity": new_add_memory,
@@ -318,30 +324,6 @@ class AppService(object):
                                         "is_inner_service": False,
                                         "is_outer_service": False}
                         service_port = port_repo.add_service_port(**service_port)
-                        # 添加默认端口后需要默认设置健康检测
-                        if service_port:
-                            tenant_service_ports = port_repo.get_service_ports(tenant.tenant_id, new_service.service_id)
-                            port_list = []
-                            for tenant_service_port in tenant_service_ports:
-                                port_list.append(tenant_service_port.container_port)
-                            if len(port_list) <= 1:
-                                probe = probe_repo.get_probe(new_service.service_id)
-                                if not probe:
-                                    params = {
-                                        "http_header": "",
-                                        "initial_delay_second": 2,
-                                        "is_used": True,
-                                        "mode": "ignore",
-                                        "path": "",
-                                        "period_second": 3,
-                                        "port": int(service_port.container_port),
-                                        "scheme": "tcp",
-                                        "success_threshold": 1,
-                                        "timeout_second": 20
-                                    }
-                                    code, msg, probe = probe_service.add_service_probe(tenant, new_service, params)
-                                    if code != 200:
-                                        logger.debug('------111----->{0}'.format(msg))
 
         # 保存endpoints数据
         service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
@@ -418,12 +400,12 @@ class AppService(object):
         service_dep_relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         # 依赖
         depend_ids = [{
-                          "dep_order": dep.dep_order,
-                          "dep_service_type": dep.dep_service_type,
-                          "depend_service_id": dep.dep_service_id,
-                          "service_id": dep.service_id,
-                          "tenant_id": dep.tenant_id
-                      } for dep in service_dep_relations]
+            "dep_order": dep.dep_order,
+            "dep_service_type": dep.dep_service_type,
+            "depend_service_id": dep.dep_service_id,
+            "service_id": dep.service_id,
+            "tenant_id": dep.tenant_id
+        } for dep in service_dep_relations]
         data["depend_ids"] = depend_ids
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
@@ -513,15 +495,13 @@ class AppService(object):
         try:
             for port in ports:
                 if port.is_outer_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_outer",
-                                                               port.protocol,
-                                                               port.port_alias)
+                    code, msg, data = port_service.manage_port(
+                        tenant, service, service.service_region, port.container_port, "open_outer", port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
                 if port.is_inner_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port, "open_inner",
-                                                               port.protocol,
-                                                               port.port_alias)
+                    code, msg, data = port_service.manage_port(
+                        tenant, service, service.service_region, port.container_port, "open_inner", port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
         except Exception as e:
