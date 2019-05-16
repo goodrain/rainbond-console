@@ -339,10 +339,10 @@ class TenantServiceMntRelationRepository(object):
         )
         return dep_mnts
 
-    def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_type=None):
+    def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_types=None):
         query = "mnt.tenant_id = %s and mnt.service_id = %s"
-        if volume_type:
-            query += " and volume.volume_type = %s"
+        if volume_types:
+            query += " and volume.volume_type in ({})".format(','.join(['%s'] * len(volume_types)))
 
         sql = """
         select *
@@ -352,9 +352,9 @@ class TenantServiceMntRelationRepository(object):
         where {};
         """.format(query)
 
-        params = [tenant_id, service_id, volume_type]
+        params = [tenant_id, service_id] + (volume_types or [])
 
-        return list(TenantServiceMountRelation.objects.raw(sql, params=[v for v in params if v is not None]))
+        return list(TenantServiceMountRelation.objects.raw(sql, params=params))
 
     def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
         dep_mnts = TenantServiceMountRelation.objects.filter(

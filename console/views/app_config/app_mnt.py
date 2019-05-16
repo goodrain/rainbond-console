@@ -58,12 +58,12 @@ class AppMntView(AppBaseView):
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
-        volume_type = parse_argument(request, 'volume_type', value_type=str)
+        volume_types = parse_argument(request, 'volume_types', value_type=list)
         try:
             if query_type == "mnt":
-                mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_type)
+                mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
             elif query_type == "unmnt":
-                q = Q(volume_type=volume_type) if volume_type else Q()
+                q = Q(volume_type__in=volume_types) if volume_types else Q()
                 services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id,
                                                     self.service.service_region)
 
