@@ -2,15 +2,19 @@
 """
   Created on 18/1/15.
 """
+import logging
+
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.views.app_config.base import AppBaseView
+from console.exception.main import AbortRequest
+from console.serializer import ProbeSerilizer
 from console.services.app_config import probe_service
+from console.views.app_config.base import AppBaseView
+from goodrain_web.errors import CallApiError
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.serializer import ProbeSerilizer, ProbeUpdateSerilizer
-import logging
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -98,14 +102,14 @@ class AppProbeView(AppBaseView):
         ---
         serializer: ProbeSerilizer
         """
-        try:
-            data = request.data
+        data = request.data
 
+        try:
             code, msg, probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=data)
-            if code != 200:
-                return Response(general_message(code, "update probe error", msg), status=code)
-            result = general_message(200, u"success", "修改成功", bean=probe.to_dict())
-        except Exception as e:
+        except CallApiError as e:
             logger.exception(e)
-            result = error_message(e.message)
+            raise AbortRequest(msg=e.message, status_code=e.status)
+        if code != 200:
+            return Response(general_message(code, "update probe error", msg), status=code)
+        result = general_message(200, u"success", "修改成功", bean=probe.to_dict())
         return Response(result, status=result["code"])

@@ -160,7 +160,8 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, services, is_deploy):
+    def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services,
+                                         is_deploy):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -176,6 +177,11 @@ class MarketAppService(object):
             else:
                 key_service_map[service.service_key] = service
 
+        app_map = {
+            app.get('service_share_uuid'): app
+            for app in json.loads(old_app.app_template)["apps"]
+        }
+
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
@@ -188,9 +194,7 @@ class MarketAppService(object):
             if status != 200:
                 raise Exception(msg)
 
-            app_map = {}
             for app in apps:
-                app_map[app.get("service_share_uuid")] = app
                 ts = self.__init_market_app(tenant, region, user, app,
                                             tenant_service_group.ID)
                 service_source_data = {
@@ -248,14 +252,18 @@ class MarketAppService(object):
             self.__create_service_plugins(region, tenant, service_list,
                                           app_plugin_map, old_new_id_map)
 
-            # dependent volume
-            self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
-
             events = []
             if is_deploy:
                 # 部署所有应用
                 events = self.__deploy_services(tenant, user, new_service_list)
-            return tenant_service_group, events, service_key_dep_key_map, key_service_map
+            return {
+                "tenant_service_group": tenant_service_group,
+                "events": events,
+                "service_key_dep_key_map": service_key_dep_key_map,
+                "key_service_map": key_service_map,
+                "apps": apps,
+                "app_map": app_map,
+            }
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
@@ -268,9 +276,11 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map):
+    def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map, apps, app_map):
         # 保存依赖关系
         self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
+        # dependent volume
+        self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:
