@@ -282,7 +282,6 @@ class MarketService(object):
 
     def create_backup(self):
         """create_backup
-        TODO: delete service => delete backup
         Create a pre-service backup to prepare for deployment failure
         """
         backup_data = backup_service.get_service_details(self.tenant,

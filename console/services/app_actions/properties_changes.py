@@ -54,8 +54,7 @@ class PropertiesChanges(object):
         ports = self.port_changes(app.get("port_map_list", []))
         if ports:
             result["ports"] = ports
-        connect_infos = self.env_changes(app.get("service_connect_info_map_list", []),
-                                         scope="outer")
+        connect_infos = self.env_changes(app.get("service_connect_info_map_list", []))
         if connect_infos:
             result["connect_infos"] = connect_infos
         volumes = self.volume_changes(app.get("service_volume_map_list", []))

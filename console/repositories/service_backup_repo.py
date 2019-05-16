@@ -13,5 +13,8 @@ class TenantServiceBackupRepository(object):
         except IndexError:
             return None
 
+    def del_by_sid(self, tid, sid):
+        TenantServiceBackup.objects.filter(tenant_id=tid, service_id=sid).delete()
+
 
 service_backup_repo = TenantServiceBackupRepository()

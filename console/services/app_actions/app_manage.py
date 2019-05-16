@@ -35,6 +35,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
@@ -1085,6 +1086,7 @@ class AppManageService(AppManageBase):
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
+        service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(
