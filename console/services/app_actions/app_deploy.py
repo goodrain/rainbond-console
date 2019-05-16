@@ -4,6 +4,7 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 
+from addict import Dict
 from django.db import transaction
 from enum import IntEnum
 
@@ -37,8 +38,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-
-# from addict import Dict
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -491,9 +490,16 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             body = self._create_env_body(env, scope)
-            region_api.add_service_env(self.service.service_region,
-                                       self.tenant.tenant_name,
-                                       self.service.service_alias, body)
+            try:
+                region_api.add_service_env(self.service.service_region,
+                                           self.tenant.tenant_name,
+                                           self.service.service_alias, body)
+            except region_api.CallApiError as e:
+                if e.status == 400:
+                    logger.warning("env name: {}; failed to create env: {}".format(env["attr_name"], e))
+                    continue
+                res = Dict({"status": e.status})
+                raise region_api.CallApiError(e.apitype, e.url, e.method, res, e.body)
 
     def _restore_inner_envs(self, backup):
         self._restore_envs(backup, "inner")

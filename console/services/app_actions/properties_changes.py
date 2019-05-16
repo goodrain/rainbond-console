@@ -81,14 +81,14 @@ class PropertiesChanges(object):
 
         return result
 
-    def env_changes(self, envs, scope="inner"):
+    def env_changes(self, envs):
         """
         Environment variables are only allowed to increase, not allowed to
         update and delete. Compare existing environment variables and input
         environment variables to find out which ones need to be added.
         """
-        exist_envs = env_var_repo.get_service_env_by_scope(
-            self.service.tenant_id, self.service.service_id, scope)
+        exist_envs = env_var_repo.get_service_env(self.service.tenant_id,
+                                                  self.service.service_id)
         exist_envs_dict = {env.attr_name: env for env in exist_envs}
         add_env = [env for env in envs if exist_envs_dict.get(env["attr_name"], None) is None]
         if not add_env:
