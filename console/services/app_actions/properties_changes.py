@@ -41,9 +41,6 @@ class PropertiesChanges(object):
         deploy_version = self.deploy_version_changes(app["deploy_version"])
         if deploy_version:
             result["deploy_version"] = deploy_version
-        app_version = self.app_version_changes(version)
-        if app_version is not None:
-            result["app_version"] = app_version
         # source code service does not have 'share_image'
         image = self.image_changes(app.get("share_image", None))
         if image:
@@ -132,6 +129,9 @@ class PropertiesChanges(object):
         """
         if new is None or self.service.image == new:
             return None
+        # goodrain.me/bjlaezp3/nginx:20190516112845_v1.0
+        if new.rpartition("_")[0] == self.service.image.rpartition("_")[0]:
+            return None
         return {
             "old": self.service.image,
             "new": new,
@@ -147,6 +147,8 @@ class PropertiesChanges(object):
         extend_info = json.loads(self.service_source.extend_info)
         old_slug_path = extend_info.get("slug_path", None)
         if old_slug_path is None or old_slug_path == new:
+            return None
+        if old_slug_path.rpartition("_")[1] == new.rpartition("_")[1]:
             return None
         return {
             "old": old_slug_path,
