@@ -1,14 +1,17 @@
 # -*- coding: utf8 -*-
+import logging
 import re
+from datetime import datetime
+
+from django.conf import settings
 from django.db import models
+from django.db.models.fields import DateTimeField
+from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 
-from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
-from django.db.models.fields import DateTimeField
-from datetime import datetime
-from django.db.models.fields.files import FileField
-from django.conf import settings
-import logging
+from www.utils.crypt import encrypt_passwd
+from www.utils.crypt import make_tenant_id
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
@@ -91,8 +94,8 @@ class WeChatConfig(models.Model):
     BIZ = "biz"
     BIZPLUGIN = "bizplugin"
 
-    OPEN_TYPE = ((MOBILE, "移动应用"), (WEB, "网站应用"), (BIZ, "公众帐号"), (BIZPLUGIN,
-                                                                  "公众号第三方平台"))
+    OPEN_TYPE = ((MOBILE, "移动应用"), (WEB, "网站应用"),
+                 (BIZ, "公众帐号"), (BIZPLUGIN, "公众号第三方平台"))
 
     config = models.CharField(
         unique=True, max_length=100, help_text=u'微信应用的名称')
@@ -474,7 +477,7 @@ class TenantServiceInfo(BaseModel):
     service_port = models.IntegerField(help_text=u"服务端口", default=0)
     is_web_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否web服务")
-    version = models.CharField(max_length=20, help_text=u"版本")
+    version = models.CharField(max_length=255, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=100, help_text=u"镜像")
     cmd = models.CharField(
@@ -577,7 +580,8 @@ class TenantServiceInfo(BaseModel):
             code_user = self.git_url.split("/")[3]
             code_project_name = self.git_url.split("/")[4].split(".")[0]
             createUser = Users.objects.get(user_id=self.creater)
-            git_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+            git_url = "https://" + createUser.github_token + "@github.com/"\
+                + code_user + "/" + code_project_name + ".git"
             return git_url
         else:
             return self.git_url
@@ -1539,7 +1543,8 @@ class ServiceWebhooks(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
-    webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
+    webhooks_type = models.CharField(
+        max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
     trigger = models.CharField(max_length=256, default='', help_text=u"触发正则表达式")
 
