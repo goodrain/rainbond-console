@@ -2,18 +2,20 @@
 """
   Created on 18/1/15.
 """
+import logging
+
+from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.views.app_config.base import AppBaseView
-from console.services.app_config import volume_service
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from django.forms.models import model_to_dict
-from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.app_config import volume_repo
-
-import logging
+from console.services.app_config import volume_service
+from console.utils.reqparse import parse_argument
+from console.views.app_config.base import AppBaseView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.decorator import perm_required
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -38,8 +40,10 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
         """
+        volume_types = parse_argument(request, 'volume_types', value_type=list)
         try:
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
+            q = Q(volume_type__in=volume_types) if volume_types else Q()
+            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service).filter(q)
 
             volumes_list = []
             if tenant_service_volumes:
@@ -142,7 +146,7 @@ class AppVolumeManageView(AppBaseView):
         """
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
-            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"),status=400)
+            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
         try:
             code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
             logger.debug(code)

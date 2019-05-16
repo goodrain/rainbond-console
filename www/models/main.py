@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.fields import DateTimeField
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
+from enum import Enum
 
 from www.utils.crypt import encrypt_passwd
 from www.utils.crypt import make_tenant_id
@@ -94,8 +95,12 @@ class WeChatConfig(models.Model):
     BIZ = "biz"
     BIZPLUGIN = "bizplugin"
 
-    OPEN_TYPE = ((MOBILE, "移动应用"), (WEB, "网站应用"),
-                 (BIZ, "公众帐号"), (BIZPLUGIN, "公众号第三方平台"))
+    OPEN_TYPE = (
+        (MOBILE, "移动应用"),
+        (WEB, "网站应用"),
+        (BIZ, "公众帐号"),
+        (BIZPLUGIN, "公众号第三方平台")
+    )
 
     config = models.CharField(
         unique=True, max_length=100, help_text=u'微信应用的名称')
@@ -580,8 +585,11 @@ class TenantServiceInfo(BaseModel):
             code_user = self.git_url.split("/")[3]
             code_project_name = self.git_url.split("/")[4].split(".")[0]
             createUser = Users.objects.get(user_id=self.creater)
-            git_url = "https://" + createUser.github_token + "@github.com/"\
-                + code_user + "/" + code_project_name + ".git"
+            git_url = "https://{github_token}@github.com/{code_user}/{code_project_name}.git".format(
+                github_token=createUser.github_token,
+                code_user=code_user,
+                code_project_name=code_project_name
+            )
             return git_url
         else:
             return self.git_url
@@ -793,12 +801,12 @@ class ServiceDomain(BaseModel):
     domain_type = models.CharField(max_length=20, default='www', help_text=u"服务域名类型")
     service_alias = models.CharField(max_length=32, default='', help_text=u"服务别名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
-    domain_path = models.TextField(null=True, blank=True, help_text=u"域名path")
-    domain_cookie = models.TextField(null=True, blank=True, help_text=u"域名cookie")
-    domain_heander = models.TextField(null=True, blank=True, help_text=u"域名heander")
+    domain_path = models.TextField(blank=True, help_text=u"域名path")
+    domain_cookie = models.TextField(blank=True, help_text=u"域名cookie")
+    domain_heander = models.TextField(blank=True, help_text=u"域名heander")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     the_weight = models.IntegerField(default=100, help_text=u"权重")
-    rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
+    rule_extensions = models.TextField(blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
 
     def __unicode__(self):
@@ -1025,16 +1033,19 @@ class TenantServiceEnvVar(BaseModel):
     class Meta:
         db_table = 'tenant_service_env_var'
 
+    class ScopeType(Enum):
+        """范围"""
+        OUTER = "outer"
+        INNER = "inner"
+
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(
-        max_length=32, db_index=True, help_text=u"服务id")
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
     container_port = models.IntegerField(default=0, help_text=u"端口")
     name = models.CharField(max_length=100, blank=True, help_text=u"名称")
     attr_name = models.CharField(max_length=100, help_text=u"属性")
     attr_value = models.CharField(max_length=512, help_text=u"值")
-    is_change = models.BooleanField(
-        default=False, blank=True, help_text=u"是否可改变")
-    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
+    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
+    scope = models.CharField(max_length=10, help_text=u"范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
     def __unicode__(self):
@@ -1086,11 +1097,11 @@ class TenantServiceVolume(BaseModel):
     TMPFS = 'memoryfs'
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
+    category = models.CharField(max_length=50, blank=True, help_text=u"服务类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
-    volume_type = models.CharField(max_length=30, blank=True, null=True)
+    volume_type = models.CharField(max_length=30, blank=True)
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
-    volume_name = models.CharField(max_length=100, blank=True, null=True)
+    volume_name = models.CharField(max_length=100, blank=True)
 
 
 class TenantServiceConfigurationFile(BaseModel):
@@ -1101,7 +1112,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     volume_id = models.IntegerField(null=True, help_text=u"存储id")
-    file_content = models.TextField(blank=True, null=True, help_text=u"配置文件内容")
+    file_content = models.TextField(blank=True, help_text=u"配置文件内容")
 
 
 class ServiceGroup(BaseModel):
@@ -1543,8 +1554,8 @@ class ServiceWebhooks(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
-    webhooks_type = models.CharField(
-        max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
+    webhooks_type = models.CharField(max_length=128,
+                                     help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
     trigger = models.CharField(max_length=256, default='', help_text=u"触发正则表达式")
 
@@ -1555,5 +1566,5 @@ class GatewayCustomConfiguration(BaseModel):
     class Meta:
         db_table = 'gateway_custom_configuration'
 
-    rule_id = models.CharField(max_length=32, help_text=u"规则id")
+    rule_id = models.CharField(max_length=32, unique=True, help_text=u"规则id")
     value = models.TextField(help_text=u"配置value")

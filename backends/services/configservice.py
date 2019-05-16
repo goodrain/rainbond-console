@@ -1,14 +1,15 @@
 # -*- coding: utf8 -*-
-
 import datetime
 import json
 import logging
 
 from backends.models.main import CloundBangImages
-from backends.services.exceptions import *
-from cadmin.models import ConsoleSysConfig
-from www.utils.license import LICENSE
+from backends.services.exceptions import ConfigExistError
+from backends.services.exceptions import ParamsError
+from backends.services.exceptions import TenantOverFlowError
+from console.models.main import ConsoleSysConfig
 from goodrain_web.custom_config import custom_config as custom_settings
+from www.utils.license import LICENSE
 logger = logging.getLogger("default")
 
 
@@ -19,6 +20,7 @@ class ConfigService(object):
             cbi = CloundBangImages.objects.get(identify=identify)
             logo = cbi.logo.name
         except CloundBangImages.DoesNotExist as e:
+            logger.error(e)
             logo = ""
         return logo
 
@@ -45,7 +47,7 @@ class ConfigService(object):
 
         logo_conf = self.get_config_by_key("LOGO")
         if logo_conf:
-            self.update_config("LOGO",rt_url)
+            self.update_config("LOGO", rt_url)
         else:
             self.add_config("LOGO", rt_url, "string", "云帮LOGO")
         return rt_url
@@ -134,7 +136,7 @@ class ConfigService(object):
 
     def get_license_info(self):
         license_info = LICENSE.license_info
-        module_list = license_info.get("module_list",[])
+        module_list = license_info.get("module_list", [])
         tranf_module_list = []
         if "all" in module_list:
             tranf_module_list.append("全部功能")
@@ -290,11 +292,10 @@ class ConfigService(object):
         value = json.dumps(value_map)
         self.update_config("APPSTORE_SLUG_PATH", value)
 
-
     def manage_code_conf(self, action, type):
         if action not in ("open", "close",):
             raise ParamsError("操作参数错误")
-        if type not in ("github", "gitlab","ftpconf","hubconf"):
+        if type not in ("github", "gitlab", "ftpconf", "hubconf"):
             raise ParamsError("操作参数错误")
         if action == "open":
             if type == "github":
@@ -316,7 +317,6 @@ class ConfigService(object):
                 ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=False)
         custom_settings.reload()
 
-
     def get_regist_status(self):
         is_regist = self.get_config_by_key("REGISTER_STATUS")
         if not is_regist:
@@ -335,5 +335,6 @@ class ConfigService(object):
             self.update_config("REGISTER_STATUS", "yes")
         else:
             self.update_config("REGISTER_STATUS", "no")
+
 
 config_service = ConfigService()

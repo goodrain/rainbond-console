@@ -4,7 +4,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-console.svg?style=flat-square)](https://github.com/goodrain/rainbond-console/stargazers)
 [![Build Status](https://travis-ci.org/goodrain/rainbond-console.svg?branch=V5.0)](https://travis-ci.org/goodrain/rainbond-console)
 
-[项目官网](http://www.rainbond.com) • [文档](https://www.rainbond.com/docs/stable/) • [在线体验](https://console.goodrain.com)
+[项目官网](http://www.rainbond.com) • [文档](https://www.rainbond.com/docs/)
 
 
 **Rainbond** 企业应用云操作系统
@@ -17,7 +17,7 @@ Rainbond（云帮）是企业应用的操作系统。 Rainbond支撑企业应用
 
 ## 项目说明
 
-当前项目为[Rainbond](https://github.com/goodrain/rainbond)的子项目，提供应用控制台的业务级支持，与[Rainbond-UI](https://github.com/goodrain/rainbond-ui）协同工作。
+当前项目为[Rainbond](https://github.com/goodrain/rainbond)的子项目，提供应用控制台的业务级支持，与[Rainbond-UI](https://github.com/goodrain/rainbond-ui)协同工作。
 
 
 

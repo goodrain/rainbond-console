@@ -2,30 +2,40 @@
 """
   Created on 2018/5/23.
 """
-from cadmin.models import ConsoleSysConfig
-from console.repositories.backup_repo import backup_record_repo
-from console.services.group_service import group_service
-from www.apiclient.regionapi import RegionInvokeApi
-from console.appstore.appstore import app_store
-from www.utils.crypt import make_uuid
-from console.utils.timeutil import current_time_str
-from console.repositories.compose_repo import compose_repo, compose_relation_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.label_repo import service_label_repo
-from console.repositories.app_config import domain_repo, auth_repo, env_var_repo, compile_env_repo, extend_repo, \
-    image_service_relation_repo, mnt_repo, dep_relation_repo, volume_repo, port_repo, tcp_domain
-from console.repositories.event_repo import event_repo
-from console.repositories.perm_repo import service_perm_repo
-from console.repositories.probe_repo import probe_repo
-from console.repositories.app import service_source_repo
-from console.repositories.plugin import app_plugin_relation_repo, service_plugin_config_repo
-from console.repositories.app_config import service_endpoints_repo
-
-
 import json
 import logging
+
+from console.appstore.appstore import app_store
+from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import auth_repo
+from console.repositories.app_config import compile_env_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.app_config import image_service_relation_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import volume_repo
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.compose_repo import compose_relation_repo
+from console.repositories.compose_repo import compose_repo
+from console.repositories.event_repo import event_repo
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.repositories.label_repo import service_label_repo
+from console.repositories.perm_repo import service_perm_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.probe_repo import probe_repo
+from console.services.group_service import group_service
+from console.utils.timeutil import current_time_str
+from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import AuthCode
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -131,13 +141,13 @@ class GroupAppBackupService(object):
             backup_record.save()
         return 200, "success", backup_record
 
-    def delete_group_backup_by_backup_id(self, tenant, region, backup_id):
+    def delete_group_backup_by_backup_id(self, tenant, region, backup_id, group_id):
         backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
         if not backup_record:
             return 404, "不存在该备份记录"
         if backup_record.status == "starting":
             return 409, "该备份正在进行中"
-        if backup_record.status == "success":
+        if backup_record.status == "success" and group_repo.get_group_by_id(group_id):
             return 409, "该备份不可删除"
         region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
         backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
@@ -172,7 +182,7 @@ class GroupAppBackupService(object):
 
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [sgr.service_id for sgr in service_group_relations]
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
         all_data["compose_service_relation"] = [relation.to_dict() for relation in
                                                 compose_service_relation] if compose_service_relation else None
@@ -259,7 +269,7 @@ class GroupAppBackupService(object):
         data = json.loads(AuthCode.decode(content, KEY))
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])
         if current_backup:
-            return 412,"当前团队已导入过该备份", None
+            return 412, "当前团队已导入过该备份", None
         event_id = make_uuid()
         group_uuid = make_uuid()
         params = {

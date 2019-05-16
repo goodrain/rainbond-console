@@ -2,17 +2,20 @@
 """
   Created on 18/1/15.
 """
+import json
 import logging
 
+from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.services.app import app_service
 from console.services.app_config import mnt_service
+from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-import json
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -52,24 +55,26 @@ class AppMntView(AppBaseView):
               paramType: query
 
         """
-        result = {}
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
+        volume_types = parse_argument(request, 'volume_types', value_type=list)
         try:
-
             if query_type == "mnt":
-                mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service)
+                mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
             elif query_type == "unmnt":
+                q = Q(volume_type__in=volume_types) if volume_types else Q()
                 services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id,
                                                     self.service.service_region)
 
                 services_ids = [s.service_id for s in services]
-                mnt_list, total = mnt_service.get_service_unmnt_details(self.tenant, self.service, services_ids, page,
-                                                                 page_size)
+                mnt_list, total = mnt_service.get_service_unmnt_details(
+                    self.tenant, self.service,
+                    services_ids, page, page_size, q
+                )
             else:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
-            result = general_message(200, "success", "查询成功", list=mnt_list,total=total)
+            result = general_message(200, "success", "查询成功", list=mnt_list, total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -153,4 +158,3 @@ class AppMntManageView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-

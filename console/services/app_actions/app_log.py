@@ -2,20 +2,21 @@
 """
   Created on 18/1/24.
 """
+import datetime
+import logging
+
 from django.conf import settings
 
+from console.constants import LogConstants
+from console.constants import ServiceEventConstants
 from console.repositories.event_repo import event_repo
-import datetime
-from console.utils.timeutil import time_to_str, str_to_time, current_time, current_time_str
+from console.repositories.region_repo import region_repo
+from console.services.plugin.app_plugin import AppPluginService
+from console.utils.timeutil import str_to_time
+from console.utils.timeutil import time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from console.constants import LogConstants, ServiceEventConstants
 from www.utils.crypt import make_uuid
-import logging
-from console.services.plugin.app_plugin import AppPluginService
-from console.repositories.plugin import plugin_repo
-from backends.models.main import RegionConfig
-from console.repositories.region_repo import region_repo
 
 app_plugin_service = AppPluginService()
 region_api = RegionInvokeApi()
@@ -119,16 +120,16 @@ class AppEventService(object):
             return 400, "操作类型参数不存在", None
         event_id = make_uuid()
         event_info = {
-                "event_id": event_id,
-                "service_id": service.service_id,
-                "tenant_id": tenant.tenant_id,
-                "type": action,
-                "deploy_version": service.deploy_version,
-                "old_deploy_version": old_deploy_version,
-                "region": service.service_region,
-                "user_name": user.nick_name,
-                "start_time": datetime.datetime.now()
-            }
+            "event_id": event_id,
+            "service_id": service.service_id,
+            "tenant_id": tenant.tenant_id,
+            "type": action,
+            "deploy_version": service.deploy_version,
+            "old_deploy_version": old_deploy_version,
+            "region": service.service_region,
+            "user_name": user.nick_name,
+            "start_time": datetime.datetime.now()
+        }
         if committer_name:
             event_info["user_name"] = committer_name
         if deploy_version:
@@ -219,6 +220,9 @@ class AppEventService(object):
                     versioninfo["rollback"] = True
                 return versioninfo
         return {}
+
+    def sync_region_service_event_status(self, region, tenant_name, events):
+        return self.__sync_region_service_event_status(region, tenant_name, events)
 
     def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
         local_events_not_complete = dict()

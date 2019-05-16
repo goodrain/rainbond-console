@@ -2,7 +2,6 @@
 """
   Created on 18/1/15.
 """
-import json
 import logging
 
 from django.views.decorators.cache import never_cache
@@ -12,14 +11,14 @@ from console.exception.main import AccountOverdueException
 from console.exception.main import CallRegionAPIException
 from console.exception.main import ResourceNotEnoughException
 from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
+from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_config import deploy_type_service
 from console.services.app_config import volume_service
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.market_app_service import market_app_service
 from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -31,6 +30,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 env_var_service = AppEnvVarService()
+app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
@@ -176,7 +176,10 @@ class DeployAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-            code, msg, event = app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade, group_version)
+
+            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user,
+                                                         is_upgrade, version=group_version)
+
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -230,7 +233,8 @@ class RollBackAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
+            code, msg, event = app_manage_service.roll_back(
+                self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -404,16 +408,20 @@ class BatchActionView(RegionTenantHeaderView):
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
 
             if action == "stop":
-                if "stop_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "stop_service" not in perm_tuple and "owner" not in identitys \
+                        and "admin" not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
             if action == "start":
-                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" \
+                        not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
             if action == "restart":
-                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" \
+                        not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
             if action == "move":
-                if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" \
+                        not in identitys and "developer" not in identitys:
                     return Response(general_message(400, "Permission denied", "没有变更应用分组权限"), status=400)
             service_id_list = service_ids.split(",")
             code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id)
@@ -493,10 +501,11 @@ class BatchDelete(RegionTenantHeaderView):
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
+                    not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service_id_list = service_ids.split(",")
-            services = service_repo.get_services_by_service_ids(*service_id_list)
+            services = service_repo.get_services_by_service_ids(service_id_list)
             msg_list = []
             for service in services:
                 code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
@@ -537,7 +546,8 @@ class AgainDelete(RegionTenantHeaderView):
             identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
                                                                             tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+            if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
+                    not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service = service_repo.get_service_by_service_id(service_id)
             code, msg, event = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
@@ -680,86 +690,27 @@ class MarketServiceUpgradeView(AppBaseView):
     @never_cache
     @perm_required('deploy_service')
     def get(self, request, *args, **kwargs):
+        if self.service.service_source != "market":
+            return Response(general_message(
+                400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"),
+                status=400)
+
+        # 判断服务状态，未部署的服务不提供升级数据
         try:
-            bean = dict()
-            upgrate_version_list = []
-            # 判断服务状态，未部署的服务不提供升级数据
-            try:
-                body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
-                                                       self.service.service_alias, self.tenant.enterprise_id)
-
-                bean = body["bean"]
-                status = bean["cur_status"]
-            except Exception as e:
-                logger.exception(e)
-                status = "unKnow"
-            if status == "undeploy":
-                result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)
-                return Response(result, status=result["code"])
-            if self.service.service_source != "market":
-                return Response(general_message(400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"), status=400)
-
-            service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-            if service_source:
-                # 获取内部市场对象
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                 service_source.version)
-                if not rain_app:
-                    result = general_message(200, "success", "当前云市应用已删除")
-                    return Response(result, status=result["code"])
-                else:
-                    apps_template = json.loads(rain_app.app_template)
-                    apps_list = apps_template.get("apps")
-                    for app in apps_list:
-                        if app["service_key"] == self.service.service_key:
-                            if app["deploy_version"] > self.service.deploy_version:
-                                self.service.is_upgrate = True
-                                self.service.save()
-                    try:
-                        apps_template = json.loads(rain_app.app_template)
-                        apps_list = apps_template.get("apps")
-                        service_source = service_source_repo.get_service_source(self.service.tenant_id,
-                                                                                self.service.service_id)
-                        if service_source and service_source.extend_info:
-                            extend_info = json.loads(service_source.extend_info)
-                            if extend_info:
-                                for app in apps_list:
-                                    if app.has_key("service_share_uuid"):
-                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                                    elif not app.has_key("service_share_uuid") and app.has_key("service_key"):
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                        bean["is_upgrate"] = self.service.is_upgrate
-                    except Exception as e:
-                        logger.exception(e)
-                        result = error_message(e.message)
-                        return Response(result, status=result["code"])
-
-                # 通过group_key获取不同版本的应用市场对象
-                rain_apps = rainbond_app_repo.get_rainbond_app_by_key(service_source.group_key)
-                if rain_apps:
-                    for r_app in rain_apps:
-                        if r_app.version > service_source.version and r_app.version not in upgrate_version_list:
-                            upgrate_version_list.append(r_app.version)
-                        elif r_app.version == service_source.version and self.service.is_upgrate:
-                            upgrate_version_list.append(r_app.version)
-            else:
-                logger.info("Tenant id: {0}; Service id: {1}; service source not found".format(
-                    self.tenant.tenant_id, self.service.service_id))
-
-            upgrate_version_list.sort()
-            result = general_message(200, "success", "查询成功", bean=bean, list=upgrate_version_list)
-
+            body = region_api.check_service_status(self.service.service_region,
+                                                   self.tenant.tenant_name,
+                                                   self.service.service_alias,
+                                                   self.tenant.enterprise_id)
+            status = body["bean"]["cur_status"]
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+            status = "unknown"
+        if status == "undeploy" or status == "unknown":
+            result = general_message(200, "success", "查询成功", list=[])
+            return Response(result, status=result["code"])
+
+        # List the versions that can be upgraded
+        versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
+        if versions is None:
+            versions = []
+        return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))

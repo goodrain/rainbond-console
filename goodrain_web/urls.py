@@ -49,9 +49,7 @@ urlpatterns = patterns(
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^license', views.LicenceView.as_view()),
     url(r'^backend/', include('backends.urls')),
-    # url(r'^backend/account/', include('backends.accounturls')),
     url(r'^marketapi/', include('marketapi.urls')),
     url(r'^sso_callback$', csrf_exempt(views.GoorainSSOCallBack.as_view())),
-    # url(r'^sso_notify$', csrf_exempt(views.GoodrainSSONotify.as_view())),
     url(r'^sso_notify$', GoodrainSSONotify.as_view()),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()

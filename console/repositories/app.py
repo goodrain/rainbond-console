@@ -4,13 +4,42 @@
 """
 from docker_image import reference
 
-from www.models import TenantServiceInfo, TenantServiceInfoDelete, ServiceWebhooks
-from www.db import BaseConnection
-from console.models.main import ServiceSourceInfo, ServiceRecycleBin, ServiceRelationRecycleBin
+from console.models.main import ServiceRecycleBin
+from console.models.main import ServiceRelationRecycleBin
+from console.models.main import ServiceSourceInfo
+from console.repositories.base import BaseConnection
+from www.models import ServiceWebhooks
+from www.models import TenantServiceInfo
+from www.models import TenantServiceInfoDelete
 
 
 class TenantServiceInfoRepository(object):
-    def get_services_by_service_ids(self, *service_ids):
+    def list_by_svc_share_uuids(self, group_id, dep_uuids):
+        uuids = "'{}'".format("','".join(str(uuid)
+                                         for uuid in dep_uuids))
+        conn = BaseConnection()
+        sql = """
+            SELECT
+                a.service_id,
+                a.service_cname
+            FROM
+                tenant_service a,
+                service_source b,
+                service_group_relation c
+            WHERE
+                a.tenant_id = b.team_id
+                AND a.service_id = b.service_id
+                AND b.service_share_uuid IN ( {uuids} )
+                AND a.service_id = c.service_id
+                AND c.group_id = {group_id}
+            """.format(group_id=group_id, uuids=uuids)
+        result = conn.query(sql)
+        return result
+
+    def list_by_ids(self, service_ids):
+        return TenantServiceInfo.objects.filter(service_id__in=service_ids)
+
+    def get_services_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     def get_service_by_tenant_and_id(self, tenant_id, service_id):
@@ -83,6 +112,23 @@ class TenantServiceInfoRepository(object):
         service.version = tag
         service.save()
 
+    def update(self, tenant_id, service_id, **params):
+        TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id, service_id=service_id).update(**params)
+
+    def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
+        """使用service_ids 和 group_key 查找一组云市应用下的服务"""
+        return TenantServiceInfo.objects.filter(
+            service_source_info__group_key=group_key,
+            service_id__in=service_ids
+        )
+
+    def del_by_sid(self, sid):
+        TenantServiceInfo.objects.filter(service_id=sid).delete()
+
+    def create(self, service_base):
+        TenantServiceInfo(**service_base).save()
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
@@ -99,12 +145,20 @@ class ServiceSourceRepository(object):
 
     def update_service_source(self, team_id, service_id, **data):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)
-    
+
     def get_by_share_key(self, team_id, service_share_uuid):
         service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_share_uuid=service_share_uuid)
         if service_sources:
             return service_sources[0]
         return None
+
+    def get_service_sources_by_service_ids(self, service_ids):
+        """使用service_ids获取服务源信息的查询集"""
+        return ServiceSourceInfo.objects.filter(service_id__in=service_ids)
+
+    def get_service_sources_by_group_key(self, group_key):
+        """使用group_key获取一组云市应用下的所有服务源信息的查询集"""
+        return ServiceSourceInfo.objects.filter(group_key=group_key)
 
 
 class ServiceRecycleBinRepository(object):

@@ -6,18 +6,27 @@ import logging
 from django.db import transaction
 
 from console.appstore.appstore import app_store
-from console.models.main import RainbondCenterApp, ServiceShareRecordEvent, PluginShareRecordEvent
-from console.repositories.market_app_repo import rainbond_app_repo, app_export_record_repo
-from console.repositories.plugin import plugin_repo, app_plugin_relation_repo, service_plugin_config_repo
+from console.exception.main import AbortRequest
+from console.models.main import PluginShareRecordEvent
+from console.models.main import RainbondCenterApp
+from console.models.main import ServiceShareRecordEvent
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import volume_repo
+from console.repositories.market_app_repo import app_export_record_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import plugin_repo
+from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.share_repo import share_repo
-from console.repositories.app_config import mnt_repo, volume_repo
+from console.services.group_service import group_service
+from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.service_services import base_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import TenantServiceInfo, ServiceEvent, make_uuid
-from console.services.group_service import group_service
-from console.services.plugin import plugin_config_service
+from www.models import make_uuid
+from www.models import ServiceEvent
+from www.models import TenantServiceInfo
 
 logger = logging.getLogger("default")
 
@@ -276,7 +285,10 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                if service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql':
+                if (service.service_key == 'application' or
+                        service.service_key == '0000' or
+                        service.service_key == 'mysql'):
+
                     data['service_key'] = make_uuid()
                     service.service_key = data['service_key']
                     service.save()
@@ -408,12 +420,12 @@ class ShareService(object):
                             continue
                         service["mnt_relation_list"].append({
                             "service_share_uuid":
-                            all_data_map[dep_mnt.dep_service_id]
-                            ["service_share_uuid"],
+                                all_data_map[dep_mnt.dep_service_id]
+                                ["service_share_uuid"],
                             "mnt_name":
-                            dep_mnt.mnt_name,
+                                dep_mnt.mnt_name,
                             "mnt_dir":
-                            dep_mnt.mnt_dir
+                                dep_mnt.mnt_dir
                         })
                 all_data.append(service)
             return all_data
@@ -594,21 +606,13 @@ class ShareService(object):
             if record_event.plugin_id == plugin["plugin_id"]:
                 event_id = make_uuid()
                 body = {
-                    "plugin_id":
-                    plugin["plugin_id"],
-                    "plugin_version":
-                    plugin["build_version"],
-                    "plugin_key":
-                    plugin["plugin_key"],
-                    "event_id":
-                    event_id,
-                    "share_user":
-                    user.nick_name,
-                    "share_scope":
-                    rc_app.scope,
-                    "image_info":
-                    plugin.get("plugin_image")
-                    if plugin.get("plugin_image") else "",
+                    "plugin_id": plugin["plugin_id"],
+                    "plugin_version": plugin["build_version"],
+                    "plugin_key": plugin["plugin_key"],
+                    "event_id": event_id,
+                    "share_user": user.nick_name,
+                    "share_scope": rc_app.scope,
+                    "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
                 }
 
                 try:
@@ -753,8 +757,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, share_record, share_team, share_user,
-                          share_info):
+    def create_share_info(self, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -815,34 +818,43 @@ class ShareService(object):
                         v["ServiceID"]: v["DeliveredType"]
                         for v in version_list
                     }
+
+                    dep_service_keys = {
+                        service['service_share_uuid']
+                        for service in services
+                    }
+
                     for service in services:
                         # slug应用
                         # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
-                            service[
-                                'service_slug'] = app_store.get_slug_connection_info(
-                                    group_info["scope"],
-                                    share_team.tenant_name)
+                            service['service_slug'] = app_store.get_slug_connection_info(
+                                group_info["scope"],
+                                share_team.tenant_name
+                            )
                             service["share_type"] = "slug"
                             if not service['service_slug']:
                                 if sid:
                                     transaction.savepoint_rollback(sid)
                                 return 400, "获取源码包上传地址错误", None
                         else:
-                            service[
-                                "service_image"] = app_store.get_image_connection_info(
-                                    group_info["scope"],
-                                    share_team.tenant_name)
+                            service["service_image"] = app_store.get_image_connection_info(
+                                group_info["scope"],
+                                share_team.tenant_name
+                            )
                             service["share_type"] = "image"
                             if not service["service_image"]:
                                 if sid:
                                     transaction.savepoint_rollback(sid)
                                 return 400, "获取镜像上传地址错误", None
 
-                        service[
-                            "service_related_plugin_config"] = self.wrapper_service_plugin_config(
-                                service["service_related_plugin_config"],
-                                shared_plugin_info)
+                        # 处理依赖关系
+                        self._handle_dependencies(service, dep_service_keys, use_force)
+
+                        service["service_related_plugin_config"] = self.wrapper_service_plugin_config(
+                            service["service_related_plugin_config"],
+                            shared_plugin_info
+                        )
 
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
@@ -853,7 +865,8 @@ class ShareService(object):
                                 service_alias=service["service_alias"],
                                 record_id=share_record.ID,
                                 team_name=share_team.tenant_name,
-                                event_status="not_start")
+                                event_status="not_start"
+                            )
                             ssre.save()
                         new_services.append(service)
                     app_templete["apps"] = new_services
@@ -899,6 +912,26 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
+
+    @staticmethod
+    def _handle_dependencies(service, dev_service_set, use_force):
+        """检查服务依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
+
+        def filter_dep(dev_service):
+            """过滤依赖关系"""
+            dep_service_key = dev_service['dep_service_key']
+            if dep_service_key not in dev_service_set and use_force:
+                return False
+            elif dep_service_key not in dev_service_set and not use_force:
+                raise AbortRequest(
+                    msg="{} service is missing dependencies".format(service['service_cname']),
+                    msg_show=u"{}服务缺少依赖服务，请添加依赖服务，或强制执行".format(service['service_cname'])
+                )
+            else:
+                return True
+
+        if service.get('dep_service_map_list'):
+            service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
     def complete(self, tenant, user, share_record):
         app = rainbond_app_repo.get_rainbond_app_by_record_id(share_record.ID)

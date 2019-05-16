@@ -3,16 +3,20 @@
   Created on 18/1/15.
 """
 import logging
+
+from django.db import connection
+from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from django.db import connection
 
-from console.views.app_config.base import AppBaseView
+from console.repositories.app_config import env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
+from console.utils.reqparse import parse_item
+from console.utils.response import MessageResponse
+from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from django.forms.models import model_to_dict
-
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -364,6 +368,22 @@ class AppEnvManageView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+    @never_cache
+    @perm_required('manage_service_config')
+    def patch(self, request, attr_name, *args, **kwargs):
+        """变更环境变量范围"""
+        scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
+
+        env = env_var_repo.get_service_env_or_404_by_attr_name(
+            self.tenant.tenant_id, self.service.service_id, attr_name
+        )
+        env_var_repo.change_service_env_scope(env, scope)
+        return MessageResponse(
+            msg="success",
+            msg_show=u"更新成功",
+            bean=env.to_dict()
+        )
 
 
 class AppBuildEnvView(AppBaseView):

@@ -2,14 +2,17 @@
 """
   Created on 18/1/19.
 """
-from console.repositories.app import service_repo
-from console.repositories.group import group_service_relation_repo, group_repo
-from goodrain_web.tools import JuncheePaginator
-from console.repositories.app_config import volume_repo, mnt_repo
-from console.services.app_config.volume_service import AppVolumeService
-
 import logging
 
+from console.exception.main import ErrDepVolumeNotFound
+from console.exception.main import ErrInvalidVolume
+from console.repositories.app import service_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import volume_repo
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.services.app_config.volume_service import AppVolumeService
+from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
@@ -23,9 +26,13 @@ class AppMntService(object):
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
-    def get_service_mnt_details(self, tenant, service, page=1, page_size=20):
+    def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
 
-        all_mnt_relations = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(
+            tenant.tenant_id,
+            service.service_id,
+            volume_types
+        )
         total = len(all_mnt_relations)
         mnt_paginator = JuncheePaginator(all_mnt_relations, int(page_size))
         mnt_relations = mnt_paginator.page(page)
@@ -53,16 +60,18 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size):
+    def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size, q):
 
-        services = service_repo.get_services_by_service_ids(*service_ids)
+        services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
         # 已挂载的服务路径
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name',
                                                                                                     flat=True)
         # 当前未被挂载的共享路径
-        service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type__in=[self.SHARE, self.CONFIG]).exclude(
-            service_id=service.service_id).exclude(volume_name__in=dep_mnt_names)
+        service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
+            .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
+            .exclude(service_id=service.service_id) \
+            .exclude(volume_name__in=dep_mnt_names).filter(q)
         # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
         volumes = list(service_volumes)
         for volume in volumes:
@@ -111,32 +120,28 @@ class AppMntService(object):
             if code != 200:
                 return code, msg
         return 200, "success"
-    
-    def batch_mnt_svc_volume(self, tenant, service, dep_vol_data):
-        local_path = []
-        tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
+
+    def create_service_volume(self, tenant, service, dep_vol):
+        """
+        raise ErrInvalidVolume
+        raise ErrDepVolumeNotFound
+        """
+        tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
         local_path = [l_path.volume_path for l_path in tenant_service_volumes]
-        for i in range(len(dep_vol_data)):
-            dep_vol = dep_vol_data[i]
-            code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
-            if code != 200:
-                logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))
-                dep_vol_data.delete(dep_vol)
-        for dep_vol in dep_vol_data:
-            dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"], dep_vol["volume_name"])
-            if not dep_volume:
-                logger.info("service_id: {0}; volume_name: {1}; volume not found".format(dep_vol["service_id"], dep_vol["volume_name"]))
-                continue
-            source_path = dep_vol['path'].strip()
-            try:
-                code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume)
-            except Exception as e:
-                logger.exception(e)
-                code, msg = 500, "添加异常"
-            if code != 200:
-                logger.debug("Service id: {0}; ingore mnt; error add mnt\
-                     relation msg: {1}".format(service.service_id, msg))
-        return 200, "success"
+        code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
+        if code != 200:
+            logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))
+            raise ErrInvalidVolume(msg)
+
+        dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"],
+                                                            dep_vol["volume_name"])
+        if not dep_volume:
+            raise ErrDepVolumeNotFound(dep_vol["service_id"], dep_vol["volume_name"])
+
+        source_path = dep_vol['path'].strip()
+        return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
+                                                 dep_volume.service_id,
+                                                 dep_volume.volume_name, source_path)
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
         if service.create_status == "complete":

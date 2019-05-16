@@ -3,15 +3,18 @@
   Created on 18/1/15.
 """
 import logging
+
+from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.views.app_config.base import AppBaseView
-from console.services.app_config import port_service, domain_service
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from django.forms.models import model_to_dict
 from console.repositories.app_config import port_repo
+from console.services.app_config import domain_service
+from console.services.app_config import port_service
+from console.views.app_config.base import AppBaseView
+from www.decorator import perm_required
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -214,14 +217,10 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
-        try:
-            code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port))
-            if code != 200:
-                return Response(general_message(code, "delete port fail", msg), status=code)
-            result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port))
+        if code != 200:
+            return Response(general_message(code, "delete port fail", msg), status=code)
+        result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
 
     @never_cache

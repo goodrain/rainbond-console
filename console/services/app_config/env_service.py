@@ -2,10 +2,14 @@
 """
   Created on 18/1/17.
 """
-import re
-from console.repositories.app_config import env_var_repo, compile_env_repo
-from www.apiclient.regionapi import RegionInvokeApi
 import logging
+import re
+
+from console.exception.main import EnvAlreadyExist
+from console.exception.main import InvalidEnvName
+from console.repositories.app_config import compile_env_repo
+from console.repositories.app_config import env_var_repo
+from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -22,9 +26,36 @@ class AppEnvVarService(object):
         if attr_name in self.SENSITIVE_ENV_NAMES:
             return False, u"不允许的变量名{0}".format(attr_name)
 
-        if not re.match(r'^[a-zA-Z0-9_\\-]+$', attr_name):
+        if not re.match(r"[-._a-zA-Z][-._a-zA-Z0-9]*", attr_name):
             return False, u"变量名称{0}不符合规范".format(attr_name)
         return True, u"success"
+
+    def create_env_var(self, service, container_port, name, attr_name,
+                       attr_value, is_change=False, scope="outer"):
+        """
+        raise: EnvAlreadyExist
+        raise: InvalidEnvName
+        """
+        if env_var_repo.get_service_env_by_attr_name(
+                service.tenant_id, service.service_id, attr_name):
+            raise EnvAlreadyExist()
+        attr_name = str(attr_name).strip()
+        attr_value = str(attr_value).strip()
+        is_pass, msg = self.check_env_attr_name(attr_name)
+        if not is_pass:
+            raise InvalidEnvName(msg)
+        if len(str(attr_value)) > 512:
+            attr_value = str(attr_value)[:512]
+        tenantServiceEnvVar = {}
+        tenantServiceEnvVar["tenant_id"] = service.tenant_id
+        tenantServiceEnvVar["service_id"] = service.service_id
+        tenantServiceEnvVar['container_port'] = container_port
+        tenantServiceEnvVar["name"] = name
+        tenantServiceEnvVar["attr_name"] = attr_name
+        tenantServiceEnvVar["attr_value"] = attr_value
+        tenantServiceEnvVar["is_change"] = is_change
+        tenantServiceEnvVar["scope"] = scope
+        return env_var_repo.add_service_env(**tenantServiceEnvVar)
 
     def add_service_env_var(self, tenant, service, container_port, name, attr_name,
                             attr_value, is_change, scope="outer"):
@@ -82,8 +113,8 @@ class AppEnvVarService(object):
         if service:
             return env_var_repo.get_service_env_by_scope(service.tenant_id, service.service_id, scope="build")
 
-    def add_service_build_env_var(self, tenant, service, container_port, name, attr_name, attr_value, is_change,
-                            scope="build"):
+    def add_service_build_env_var(self, tenant, service, container_port, name, attr_name,
+                                  attr_value, is_change, scope="build"):
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)

@@ -2,11 +2,17 @@
 """
   Created on 18/1/17.
 """
-from console.repositories.app_config import dep_relation_repo, port_repo, env_var_repo
-from console.repositories.app import service_repo
-from console.services.app_config.port_service import AppPortService
-from www.apiclient.regionapi import RegionInvokeApi
 import logging
+
+from console.exception.main import InnerPortNotFound
+from console.exception.main import ServiceRelationAlreadyExist
+from console.repositories.app import service_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import port_repo
+from console.services.app_config.port_service import AppPortService
+from console.services.exception import ErrDepServiceNotFound
+from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 port_service = AppPortService()
@@ -17,16 +23,16 @@ class AppServiceRelationService(object):
     def __get_dep_service_ids(self, tenant, service):
         return dep_relation_repo.get_service_dependencies(
             tenant.tenant_id, service.service_id).values_list(
-                "dep_service_id", flat=True)
+            "dep_service_id", flat=True)
 
     def get_dep_service_ids(self, service):
         return dep_relation_repo.get_service_dependencies(
             service.tenant_id, service.service_id).values_list(
-                "dep_service_id", flat=True)
+            "dep_service_id", flat=True)
 
     def get_service_dependencies(self, tenant, service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
-        services = service_repo.get_services_by_service_ids(*dep_ids)
+        services = service_repo.get_services_by_service_ids(dep_ids)
         return services
 
     def get_undependencies(self, tenant, service):
@@ -53,12 +59,45 @@ class AppServiceRelationService(object):
         attr_names = env_var_repo.get_service_env(
             tenant.tenant_id,
             dep_service.service_id).filter(scope="outer").values_list(
-                "attr_name", flat=True)
+            "attr_name", flat=True)
         envs = env_var_repo.get_env_by_ids_and_attr_names(
             dep_service.tenant_id, dep_ids, attr_names).filter(scope="outer")
         if envs:
             return True
         return False
+
+    def check_relation(self, tenant_id, service_id, dep_service_id):
+        """
+        when creating service dependency, the dependent service needs to have an inner port.
+        """
+        dep_service = service_repo.get_service_by_service_id(dep_service_id)
+        if dep_service is None:
+            raise ErrDepServiceNotFound(dep_service_id)
+        dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
+            tenant_id, service_id, dep_service_id)
+        if dep_service_relation:
+            raise ServiceRelationAlreadyExist()
+        open_inner_services = port_repo.list_inner_ports(tenant_id, dep_service_id)
+        if not open_inner_services:
+            raise InnerPortNotFound()
+
+    def create_service_relation(self, tenant, service, dep_service_id):
+        """
+        raise ErrDepServiceNotFound
+        raise ServiceRelationAlreadyExist
+        raise InnerPortNotFound
+        """
+        self.check_relation(service.tenant_id, service.service_id, dep_service_id)
+        dep_service = service_repo.get_service_by_tenant_and_id(
+            tenant.tenant_id, dep_service_id)
+        tenant_service_relation = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id,
+            "dep_service_id": dep_service_id,
+            "dep_service_type": dep_service.service_type,
+            "dep_order": 0,
+        }
+        return dep_relation_repo.add_service_dependency(**tenant_service_relation)
 
     def add_service_dependency(self,
                                tenant,
@@ -91,9 +130,7 @@ class AppServiceRelationService(object):
                     tenant_service_port.protocol,
                     tenant_service_port.port_alias)
                 if code != 200:
-                    logger.warning(
-                        "auto open depend service inner port faliure {}".
-                        format(msg))
+                    logger.warning("auto open depend service inner port faliure {}".format(msg))
                 else:
                     logger.debug(
                         "auto open depend service inner port success ")
@@ -138,7 +175,7 @@ class AppServiceRelationService(object):
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(
             tenant.tenant_id, service.service_id, dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
-        services = service_repo.get_services_by_service_ids(*dep_ids)
+        services = service_repo.get_services_by_service_ids(dep_ids)
         if dep_service_relations:
             service_cnames = [s.service_cname for s in services]
             return 412, u"应用{0}已被关联".format(service_cnames)
@@ -187,4 +224,4 @@ class AppServiceRelationService(object):
         relations = dep_relation_repo.get_services_dep_current_service(
             tenant.tenant_id, service.service_id)
         service_ids = [r.service_id for r in relations]
-        return service_repo.get_services_by_service_ids(*service_ids)
+        return service_repo.get_services_by_service_ids(service_ids)

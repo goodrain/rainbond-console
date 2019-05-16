@@ -2,17 +2,17 @@
 """
   Created on 18/1/29.
 """
+import logging
+from urllib import urlencode
+
+from rest_framework.response import Response
+
+from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
-import logging
-from rest_framework.response import Response
-from console.services.group_service import group_service
-from urllib import urlencode
-import json
-from console.services.app_config import port_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -47,7 +47,6 @@ class AppMonitorQueryView(AppBaseView):
 
         """
         sufix = get_sufix_path(request.get_full_path())
-        logger.debug("service.monitor", "{0}".format(sufix))
         try:
             res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
@@ -229,14 +228,18 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     def get_query_statements(self, service_id_list, all_pod_ips):
-        # 响应时间语句： avg(app_client_requesttime{client="17216189100", service_id=~"968f6919a1bb4cc988d48fd4ebf6303f"}) by (service_id,client)
-        # 吞吐率 sum(ceil(increase(app_client_request{service_id=~"968f6919a1bb4cc988d48fd4ebf6303f",client=~"17216189100"}[1m])/12)) by (service_id,client)
+        # 响应时间语句： avg(app_client_requesttime{client="17216189100",
+        # service_id=~"968f6919a1bb4cc988d48fd4ebf6303f"}) by (service_id,client)
+        # 吞吐率 sum(ceil(increase(app_client_request{service_id=~"968f6919a1bb4cc988d48fd4ebf6303f",
+        # client=~"17216189100"}[1m])/12)) by (service_id,client)
 
         query_service_ids = "|".join(service_id_list)
         query_pod_ips = "|".join(all_pod_ips)
-        response_time = 'avg(app_client_requesttime{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}) by (service_id,client)'
+        response_time = 'avg(app_client_requesttime{service_id=~"' + query_service_ids + \
+            '",client=~"public|' + query_pod_ips + '"}) by (service_id,client)'
         response_time = urlencode({"1": response_time})[2:]
 
-        throughput_rate = 'sum(ceil(increase(app_client_request{service_id=~"' + query_service_ids + '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
+        throughput_rate = 'sum(ceil(increase(app_client_request{service_id=~"' + query_service_ids + \
+            '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
         throughput_rate = urlencode({"1": throughput_rate})[2:]
         return response_time, throughput_rate

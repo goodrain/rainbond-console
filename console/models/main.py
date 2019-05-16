@@ -4,12 +4,16 @@ from datetime import datetime
 
 from django.db import models
 from django.db.models.fields.files import FileField
+from enum import Enum
+from enum import IntEnum
+
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 plugin_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
-user_identity = ((u"管理员", "admin"), )
+user_identity = ((u"管理员", "admin"),)
 
 
 class BaseModel(models.Model):
@@ -29,6 +33,18 @@ class BaseModel(models.Model):
                 value = value.url if value else None
             data[f.name] = value
         return data
+
+
+class ConsoleSysConfig(BaseModel):
+    class Meta:
+        db_table = 'console_sys_config'
+
+    key = models.CharField(max_length=32, help_text=u"key")
+    type = models.CharField(max_length=32, help_text=u"类型")
+    value = models.CharField(max_length=4096, help_text=u"value")
+    desc = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"描述")
+    enable = models.BooleanField(default=True, help_text=u"是否生效")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
 class RainbondCenterApp(BaseModel):
@@ -72,11 +88,7 @@ class RainbondCenterApp(BaseModel):
     install_number = models.IntegerField(default=0, help_text=u'安装次数')
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
-    upgrade_time = models.CharField(
-        max_length=30, default="", help_text=u"升级时间")
-
-    def __unicode__(self):
-        return self.to_dict()
+    upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -274,7 +286,14 @@ class ServiceSourceInfo(BaseModel):
     class Meta:
         db_table = "service_source"
 
-    service_id = models.CharField(max_length=32, help_text=u"服务ID")
+    service = models.OneToOneField(
+        TenantServiceInfo,
+        to_field='service_id',
+        on_delete=models.CASCADE,
+        db_constraint=False,
+        related_name="service_source_info",
+        help_text=u"服务信息",
+    )
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
     user_name = models.CharField(
         max_length=32, null=True, blank=True, help_text=u"用户名")
@@ -456,7 +475,7 @@ class TenantUserRole(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_role'
-        unique_together = (('role_name', 'tenant_id'), )
+        unique_together = (('role_name', 'tenant_id'),)
 
     role_name = models.CharField(max_length=32, help_text=u'角色名称')
     tenant_id = models.IntegerField(null=True, blank=True, help_text=u'团队id')
@@ -471,7 +490,7 @@ class TenantUserPermission(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_permission'
-        unique_together = (('codename', 'per_info'), )
+        unique_together = (('codename', 'per_info'),)
 
     codename = models.CharField(max_length=32, help_text=u'权限名称')
     per_info = models.CharField(max_length=32, help_text=u'权限对应的操作信息')
@@ -728,3 +747,75 @@ class ServiceBuildSource(BaseModel):
         max_length=32, help_text="key to market app, unique identifier")
     version = models.CharField(
         max_length=32, help_text="version to market app")
+
+
+class TenantServiceBackup(BaseModel):
+    class Meta:
+        db_table = "tenant_service_backup"
+
+    region_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    tenant_id = models.CharField(max_length=32)
+    service_id = models.CharField(max_length=32)
+    backup_id = models.CharField(max_length=32, unique=True)
+    backup_data = models.TextField()
+    create_time = models.DateTimeField(
+        auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(
+        auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+
+
+class UpgradeStatus(IntEnum):
+    """升级状态"""
+    NOT = 1  # 未升级
+    UPGRADING = 2  # 升级中
+    UPGRADED = 3  # 已升级
+    ROLLING = 4  # 回滚中
+    ROLLBACK = 5  # 已回滚
+    PARTIAL_UPGRADED = 6  # 部分升级
+    PARTIAL_ROLLBACK = 7  # 部分回滚
+    UPGRADE_FAILED = 8  # 升级失败
+    ROLLBACK_FAILED = 9  # 回滚失败
+
+
+class AppUpgradeRecord(BaseModel):
+    """云市应用升级记录"""
+
+    class Meta:
+        db_table = "app_upgrade_record"
+
+    tenant_id = models.CharField(max_length=33, help_text=u"租户id")
+    group_id = models.IntegerField(help_text=u"应用组id")
+    group_key = models.CharField(max_length=32, help_text=u"应用包")
+    group_name = models.CharField(max_length=64, help_text=u"应用包名")
+    version = models.CharField(max_length=20, default='', help_text=u"版本号")
+    old_version = models.CharField(max_length=20, default='', help_text=u"旧版本号")
+    status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+
+class ServiceUpgradeRecord(BaseModel):
+    """云市服务升级记录"""
+
+    class Meta:
+        db_table = "service_upgrade_record"
+
+    class UpgradeType(Enum):
+        UPGRADE = 'upgrade'
+        ADD = 'add'
+
+    app_upgrade_record = models.ForeignKey(
+        AppUpgradeRecord,
+        on_delete=models.CASCADE,
+        db_constraint=False,
+        related_name="service_upgrade_records",
+        help_text=u"这条服务升级记录所关联的云市场应用升级记录",
+    )
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_cname = models.CharField(max_length=100, help_text=u"服务名")
+    upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text=u"升级类型")
+    event_id = models.CharField(max_length=32)
+    update = models.TextField(help_text=u"升级信息")
+    status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

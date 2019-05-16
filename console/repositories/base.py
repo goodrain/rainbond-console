@@ -14,7 +14,7 @@ class BaseConnection(object):
             for row in cursor.fetchall()
         ]
 
-    def query(self, sql):
+    def query(self, sql, args=None):
         cursor = connections[self.db_alias].cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, args)
         return self._dict_fetch_all(cursor)

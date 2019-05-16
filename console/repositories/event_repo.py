@@ -24,6 +24,9 @@ class ServiceEventRepository(object):
         except ServiceEvent.DoesNotExist:
             return None
 
+    def get_events_by_event_ids(self, event_ids):
+        return ServiceEvent.objects.filter(event_id__in=event_ids)
+
     def get_events_before_specify_time(self, tenant_id, service_id, start_time):
         if start_time:
             return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id,

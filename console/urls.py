@@ -1,106 +1,261 @@
 # -*- coding: utf8 -*-
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from console.captcha.captcha_code import CaptchaView
-
-from console.views.account_fee import EnterpriseRechargeRecordsView, EnterprisePurchaseDetails
-
-from console.views.account_fee import EnterpriseAccountInfoView, EnterpriseTeamFeeView, EnterpriseAllRegionFeeView
-
-from console.views.app_config.app_dependency import AppDependencyView, AppDependencyManageView, AppNotDependencyView
-from console.views.app_config.app_domain import TenantCertificateView, TenantCertificateManageView, ServiceDomainView, \
-    DomainView, SecondLevelDomainView, DomainQueryView, ServiceTcpDomainQueryView, ServiceTcpDomainView, GetPortView, \
-    GetSeniorUrlView, HttpStrategyView, GatewayCustomConfigurationView
-from console.views.app_config.app_env import AppEnvView, AppEnvManageView, AppBuildEnvView
+from console.views import app_upgrade
+from console.views.account_fee import EnterpriseAccountInfoView
+from console.views.account_fee import EnterpriseAllRegionFeeView
+from console.views.account_fee import EnterprisePurchaseDetails
+from console.views.account_fee import EnterpriseRechargeRecordsView
+from console.views.account_fee import EnterpriseTeamFeeView
+from console.views.app_config.app_dependency import AppDependencyManageView
+from console.views.app_config.app_dependency import AppDependencyView
+from console.views.app_config.app_dependency import AppNotDependencyView
+from console.views.app_config.app_domain import DomainQueryView
+from console.views.app_config.app_domain import DomainView
+from console.views.app_config.app_domain import GatewayCustomConfigurationView
+from console.views.app_config.app_domain import GetPortView
+from console.views.app_config.app_domain import GetSeniorUrlView
+from console.views.app_config.app_domain import HttpStrategyView
+from console.views.app_config.app_domain import SecondLevelDomainView
+from console.views.app_config.app_domain import ServiceDomainView
+from console.views.app_config.app_domain import ServiceTcpDomainQueryView
+from console.views.app_config.app_domain import ServiceTcpDomainView
+from console.views.app_config.app_domain import TenantCertificateManageView
+from console.views.app_config.app_domain import TenantCertificateView
+from console.views.app_config.app_env import AppBuildEnvView
+from console.views.app_config.app_env import AppEnvManageView
+from console.views.app_config.app_env import AppEnvView
 from console.views.app_config.app_extend import AppExtendView
-from console.views.app_config.app_label import AppLabelView, AppLabelAvailableView
-from console.views.app_config.app_mnt import AppMntView, AppMntManageView
-from console.views.app_config.app_port import AppPortView, AppPortManageView, AppTcpOuterManageView, TopologicalPortView
+from console.views.app_config.app_label import AppLabelAvailableView
+from console.views.app_config.app_label import AppLabelView
+from console.views.app_config.app_mnt import AppMntManageView
+from console.views.app_config.app_mnt import AppMntView
+from console.views.app_config.app_port import AppPortManageView
+from console.views.app_config.app_port import AppPortView
+from console.views.app_config.app_port import AppTcpOuterManageView
+from console.views.app_config.app_port import TopologicalPortView
 from console.views.app_config.app_probe import AppProbeView
-from console.views.app_config.app_volume import AppVolumeView, AppVolumeManageView
-from console.views.app_create.app_build import AppBuild, ComposeBuildView
-from console.views.app_create.app_check import AppCheck, AppCheckUpdate, GetCheckUUID
-from console.views.app_create.docker_compose import DockerComposeCreateView, ComposeCheckView, ComposeCheckUpdate, \
-    ComposeDeleteView, GetComposeCheckUUID, ComposeServicesView, ComposeContentView
-from console.views.app_create.multi_app import MultiAppCheckView, MultiAppCreateView
+from console.views.app_config.app_volume import AppVolumeManageView
+from console.views.app_config.app_volume import AppVolumeView
+from console.views.app_create.app_build import AppBuild
+from console.views.app_create.app_build import ComposeBuildView
+from console.views.app_create.app_check import AppCheck
+from console.views.app_create.app_check import AppCheckUpdate
+from console.views.app_create.app_check import GetCheckUUID
+from console.views.app_create.docker_compose import ComposeCheckUpdate
+from console.views.app_create.docker_compose import ComposeCheckView
+from console.views.app_create.docker_compose import ComposeContentView
+from console.views.app_create.docker_compose import ComposeDeleteView
+from console.views.app_create.docker_compose import ComposeServicesView
+from console.views.app_create.docker_compose import DockerComposeCreateView
+from console.views.app_create.docker_compose import GetComposeCheckUUID
 from console.views.app_create.docker_run import DockerRunCreateView
-from console.views.app_create.source_code import SourceCodeCreateView, AppCompileEnvView
-from console.views.app_create.source_outer import ThirdPartyServiceCreateView, ThirdPartyServiceApiView, \
-    ThirdPartyUpdateSecretKeyView, ThirdPartyAppPodsView, ThirdPartyHealthzView
-from console.views.app_event import AppEventView, AppEventLogView, AppLogView, AppLogInstanceView, AppHistoryLogView
-from console.views.app_manage import ReStartAppView, StopAppView, StartAppView, DeployAppView, BatchActionView, \
-    RollBackAppView, HorizontalExtendAppView, VerticalExtendAppView, DeleteAppView, ChangeServiceTypeView, \
-    UpgradeAppView, ChangeServiceNameView, ChangeServiceUpgradeView, MarketServiceUpgradeView
-from console.views.app_monitor import AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, \
-    BatchAppMonitorQueryView
-from console.views.app_overview import AppDetailView, AppStatusView, AppPodsView, AppVisitView, AppBriefView, \
-    AppPluginsBriefView, AppGroupView, AppAnalyzePluginView, ImageAppView, BuildSourceinfo, AppGroupVisitView, \
-    AppKeywordView
-from console.views.center_pool.app_export import CenterAppExportView, ExportFileDownLoadView
-from console.views.center_pool.app_import import CenterAppUploadView, CenterAppImportView, CenterAppTarballDirView, \
-    CenterAppImportingAppsView, ImportingRecordView
-from console.views.center_pool.apps import CenterAppListView, \
-    DownloadMarketAppGroupTemplageDetailView, CenterAllMarketAppView, CenterAppManageView, \
-    CenterVersionlMarversionketAppView
-from console.views.center_pool.apps import CenterAppView
-from console.views.center_pool.groupapp_backup import GroupAppsBackupView, TeamGroupAppsBackupView, \
-    GroupAppsBackupStatusView, GroupAppsBackupExportView, GroupAppsBackupImportView, AllTeamGroupAppsBackupView
-from console.views.center_pool.groupapp_migration import GroupAppsMigrateView, GroupAppsView, MigrateRecordView
-from console.views.code_repo import GithubCodeRepoView, GitlabCodeRepoView, ServiceCodeBranch, GithubCallBackView, \
-    GitLabUserRegisterView, CodeBranchView
-from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView, \
-    BindMarketEnterpriseOptimizAccessTokenView
-from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import TenantGroupView, TenantGroupOperationView, TenantGroupCommonOperationView, \
-    GroupStatusView
-from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView, PhpConfigView
-from console.views.message import UserMessageView
-from console.views.plugin.plugin_config import ConfigPluginManageView, ConfigPreviewView
-from console.views.plugin.plugin_create import PluginCreateView, DefaultPluginCreateView
-from console.views.plugin.plugin_info import PluginBaseInfoView, PluginEventLogView, AllPluginVersionInfoView, \
-    PluginVersionInfoView, AllPluginBaseInfoView, PluginUsedServiceView
-from console.views.plugin.plugin_manage import PluginBuildView, CreatePluginVersionView, PluginBuildStatusView
-from console.views.plugin.plugin_market import SyncMarketPluginsView, \
-    SyncMarketPluginTemplatesView, InstallMarketPlugin, InternalMarketPluginsView, \
-    UninstallPluginTemplateView, InstallableInteralPluginsView, MarketPluginsView
-from console.views.plugin.plugin_share import PluginShareRecordView, PluginShareInfoView, \
-    PluginShareEventsView, PluginShareEventView, PluginShareCompletionView
-from console.views.plugin.service_plugin import ServicePluginsView, \
-    ServicePluginInstallView, ServicePluginOperationView, ServicePluginConfigView
-from console.views.protocols import RegionProtocolView
-from console.views.public_areas import TeamOverView, ServiceGroupView, GroupServiceView, AllServiceInfo, \
-    ServiceEventsView, TeamServiceOverViewView, TenantServiceEnvsView, TeamAppSortViewView
-from console.views.region import RegQuyView, RegSimQuyView, RegUnopenView, OpenRegionView, QyeryRegionView, \
-    GetRegionPublicKeyView, PublicRegionListView, RegionResourceDetailView, RegionResPrice, RegionResPurchage
-from console.views.role_prems import PermOptionsView, TeamAddRoleView, TeamDelRoleView, UserUpdatePemView, UserRoleView, \
-    UserModifyPemView, TeamAddUserView, ServicePermissionView, ThreeServicePermOptionsView
-from console.views.service_docker import DockerContainerView
-from console.views.service_share import ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, \
-    ServiceShareEventPost, \
-    ServiceShareCompleteView, ServiceShareRecordView, ServicePluginShareEventPost
-from console.views.service_version import AppVersionsView, AppVersionManageView
-from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
-from console.views.team import TeamNameModView, TeamDelView, TeamInvView, TeamUserDetaislView, AddTeamView, \
-    UserAllTeamView, TeamUserView, UserDelView, UserFuzSerView, TeamUserAddView, TeamExitView, TeamDetailView, \
-    TeamRegionInitView, AllTeamsView, RegisterStatusView, EnterpriseInfoView, UserApplyStatusView, JoinTeamView, \
-    TeamUserCanJoin, AdminAddUserView, TeamUserAdminView, CertificateView, TeamSortDomainQueryView, \
-    TeamSortServiceQueryView
-from console.views.user import CheckSourceView, UserLogoutView, UserAddPemView, UserPemTraView, UserPemView
-from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
-    UserDetailsView
-from console.views.webhook import WebHooksDeploy, GetWebHooksUrl, WebHooksStatus, CustomWebHooksDeploy, UpdateSecretKey, \
-    ImageWebHooksDeploy, ImageWebHooksTrigger
-from console.views.receipt import *
-from console.views.team import ApplicantsView
-from console.views.app_manage import BatchDelete
+from console.views.app_create.multi_app import MultiAppCheckView
+from console.views.app_create.multi_app import MultiAppCreateView
+from console.views.app_create.source_code import AppCompileEnvView
+from console.views.app_create.source_code import SourceCodeCreateView
+from console.views.app_create.source_outer import ThirdPartyAppPodsView
+from console.views.app_create.source_outer import ThirdPartyHealthzView
+from console.views.app_create.source_outer import ThirdPartyServiceApiView
+from console.views.app_create.source_outer import ThirdPartyServiceCreateView
+from console.views.app_create.source_outer import ThirdPartyUpdateSecretKeyView
+from console.views.app_event import AppEventLogView
+from console.views.app_event import AppEventView
+from console.views.app_event import AppHistoryLogView
+from console.views.app_event import AppLogInstanceView
+from console.views.app_event import AppLogView
 from console.views.app_manage import AgainDelete
+from console.views.app_manage import BatchActionView
+from console.views.app_manage import BatchDelete
+from console.views.app_manage import ChangeServiceNameView
+from console.views.app_manage import ChangeServiceTypeView
+from console.views.app_manage import ChangeServiceUpgradeView
+from console.views.app_manage import DeleteAppView
+from console.views.app_manage import DeployAppView
+from console.views.app_manage import HorizontalExtendAppView
+from console.views.app_manage import MarketServiceUpgradeView
+from console.views.app_manage import ReStartAppView
+from console.views.app_manage import RollBackAppView
+from console.views.app_manage import StartAppView
+from console.views.app_manage import StopAppView
+from console.views.app_manage import UpgradeAppView
+from console.views.app_manage import VerticalExtendAppView
+from console.views.app_monitor import AppMonitorQueryRangeView
+from console.views.app_monitor import AppMonitorQueryView
+from console.views.app_monitor import AppResourceQueryView
+from console.views.app_monitor import BatchAppMonitorQueryView
+from console.views.app_overview import AppAnalyzePluginView
+from console.views.app_overview import AppBriefView
+from console.views.app_overview import AppDetailView
+from console.views.app_overview import AppGroupView
+from console.views.app_overview import AppGroupVisitView
+from console.views.app_overview import AppKeywordView
+from console.views.app_overview import AppPluginsBriefView
+from console.views.app_overview import AppPodsView
+from console.views.app_overview import AppStatusView
+from console.views.app_overview import AppVisitView
+from console.views.app_overview import BuildSourceinfo
+from console.views.app_overview import ImageAppView
+from console.views.center_pool.app_export import CenterAppExportView
+from console.views.center_pool.app_export import ExportFileDownLoadView
+from console.views.center_pool.app_import import CenterAppImportingAppsView
+from console.views.center_pool.app_import import CenterAppImportView
+from console.views.center_pool.app_import import CenterAppTarballDirView
+from console.views.center_pool.app_import import CenterAppUploadView
+from console.views.center_pool.app_import import ImportingRecordView
+from console.views.center_pool.apps import CenterAllMarketAppView
+from console.views.center_pool.apps import CenterAppListView
+from console.views.center_pool.apps import CenterAppManageView
+from console.views.center_pool.apps import CenterAppView
+from console.views.center_pool.apps import CenterVersionlMarversionketAppView
+from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
+from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupStatusView
+from console.views.center_pool.groupapp_backup import GroupAppsBackupView
+from console.views.center_pool.groupapp_backup import TeamGroupAppsBackupView
+from console.views.center_pool.groupapp_migration import GroupAppsMigrateView
+from console.views.center_pool.groupapp_migration import GroupAppsView
+from console.views.center_pool.groupapp_migration import MigrateRecordView
+from console.views.code_repo import CodeBranchView
+from console.views.code_repo import GithubCallBackView
+from console.views.code_repo import GithubCodeRepoView
+from console.views.code_repo import GitlabCodeRepoView
+from console.views.code_repo import GitLabUserRegisterView
+from console.views.code_repo import ServiceCodeBranch
+from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
+from console.views.enterprise_active import BindMarketEnterpriseOptimizAccessTokenView
+from console.views.file_upload import ConsoleUploadFileView
+from console.views.group import GroupStatusView
+from console.views.group import TenantGroupCommonOperationView
+from console.views.group import TenantGroupOperationView
+from console.views.group import TenantGroupView
+from console.views.jwt_token_view import JWTTokenView
+from console.views.logos import ConfigInfoView
+from console.views.logos import PhpConfigView
+from console.views.message import UserMessageView
+from console.views.plugin.plugin_config import ConfigPluginManageView
+from console.views.plugin.plugin_config import ConfigPreviewView
+from console.views.plugin.plugin_create import DefaultPluginCreateView
+from console.views.plugin.plugin_create import PluginCreateView
+from console.views.plugin.plugin_info import AllPluginBaseInfoView
+from console.views.plugin.plugin_info import AllPluginVersionInfoView
+from console.views.plugin.plugin_info import PluginBaseInfoView
+from console.views.plugin.plugin_info import PluginEventLogView
+from console.views.plugin.plugin_info import PluginUsedServiceView
+from console.views.plugin.plugin_info import PluginVersionInfoView
+from console.views.plugin.plugin_manage import CreatePluginVersionView
+from console.views.plugin.plugin_manage import PluginBuildStatusView
+from console.views.plugin.plugin_manage import PluginBuildView
+from console.views.plugin.plugin_market import InstallableInteralPluginsView
+from console.views.plugin.plugin_market import InstallMarketPlugin
+from console.views.plugin.plugin_market import InternalMarketPluginsView
+from console.views.plugin.plugin_market import MarketPluginsView
+from console.views.plugin.plugin_market import SyncMarketPluginsView
+from console.views.plugin.plugin_market import SyncMarketPluginTemplatesView
+from console.views.plugin.plugin_market import UninstallPluginTemplateView
+from console.views.plugin.plugin_share import PluginShareCompletionView
+from console.views.plugin.plugin_share import PluginShareEventsView
+from console.views.plugin.plugin_share import PluginShareEventView
+from console.views.plugin.plugin_share import PluginShareInfoView
+from console.views.plugin.plugin_share import PluginShareRecordView
+from console.views.plugin.service_plugin import ServicePluginConfigView
+from console.views.plugin.service_plugin import ServicePluginInstallView
+from console.views.plugin.service_plugin import ServicePluginOperationView
+from console.views.plugin.service_plugin import ServicePluginsView
+from console.views.protocols import RegionProtocolView
+from console.views.public_areas import AllServiceInfo
+from console.views.public_areas import GroupServiceView
+from console.views.public_areas import ServiceEventsView
+from console.views.public_areas import ServiceGroupView
+from console.views.public_areas import TeamAppSortViewView
+from console.views.public_areas import TeamOverView
+from console.views.public_areas import TeamServiceOverViewView
+from console.views.public_areas import TenantServiceEnvsView
+from console.views.receipt import EnterReceiptAPIView
+from console.views.receipt import EnterReceiptConfirmAPIView
+from console.views.receipt import EnterReceiptDetailAPIView
+from console.views.receipt import EnterReceiptOrdersAIPView
+from console.views.region import GetRegionPublicKeyView
+from console.views.region import OpenRegionView
+from console.views.region import PublicRegionListView
+from console.views.region import QyeryRegionView
+from console.views.region import RegionResourceDetailView
+from console.views.region import RegionResPrice
+from console.views.region import RegionResPurchage
+from console.views.region import RegQuyView
+from console.views.region import RegSimQuyView
+from console.views.region import RegUnopenView
+from console.views.role_prems import PermOptionsView
+from console.views.role_prems import ServicePermissionView
+from console.views.role_prems import TeamAddRoleView
+from console.views.role_prems import TeamAddUserView
+from console.views.role_prems import TeamDelRoleView
+from console.views.role_prems import ThreeServicePermOptionsView
+from console.views.role_prems import UserModifyPemView
+from console.views.role_prems import UserRoleView
+from console.views.role_prems import UserUpdatePemView
+from console.views.service_docker import DockerContainerView
+from console.views.service_share import ServicePluginShareEventPost
+from console.views.service_share import ServiceShareCompleteView
+from console.views.service_share import ServiceShareDeleteView
+from console.views.service_share import ServiceShareEventList
+from console.views.service_share import ServiceShareEventPost
+from console.views.service_share import ServiceShareInfoView
+from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ShareRecordView
+from console.views.service_version import AppVersionManageView
+from console.views.service_version import AppVersionsView
+from console.views.services_toplogical import GroupServiceDetView
+from console.views.services_toplogical import TopologicalGraphView
+from console.views.services_toplogical import TopologicalInternetView
 from console.views.task_guidance import BaseGuidance
+from console.views.team import AddTeamView
+from console.views.team import AdminAddUserView
+from console.views.team import AllTeamsView
+from console.views.team import ApplicantsView
+from console.views.team import CertificateView
+from console.views.team import EnterpriseInfoView
+from console.views.team import JoinTeamView
+from console.views.team import RegisterStatusView
+from console.views.team import TeamDelView
+from console.views.team import TeamDetailView
+from console.views.team import TeamExitView
+from console.views.team import TeamInvView
+from console.views.team import TeamNameModView
+from console.views.team import TeamRegionInitView
+from console.views.team import TeamSortDomainQueryView
+from console.views.team import TeamSortServiceQueryView
+from console.views.team import TeamUserAddView
+from console.views.team import TeamUserAdminView
+from console.views.team import TeamUserCanJoin
+from console.views.team import TeamUserDetaislView
+from console.views.team import TeamUserView
+from console.views.team import UserAllTeamView
+from console.views.team import UserApplyStatusView
+from console.views.team import UserDelView
+from console.views.team import UserFuzSerView
+from console.views.user import CheckSourceView
+from console.views.user import UserAddPemView
+from console.views.user import UserLogoutView
+from console.views.user import UserPemTraView
+from console.views.user import UserPemView
+from console.views.user_operation import ChangeLoginPassword
+from console.views.user_operation import PasswordResetBegin
+from console.views.user_operation import SendResetEmail
+from console.views.user_operation import TenantServiceView
+from console.views.user_operation import UserDetailsView
+from console.views.webhook import CustomWebHooksDeploy
+from console.views.webhook import GetWebHooksUrl
+from console.views.webhook import ImageWebHooksDeploy
+from console.views.webhook import ImageWebHooksTrigger
+from console.views.webhook import UpdateSecretKey
+from console.views.webhook import WebHooksDeploy
+from console.views.webhook import WebHooksStatus
 
-
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
     # php环境配置
@@ -158,9 +313,11 @@ urlpatterns = patterns(
     # 团队详情
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
     # 获取团队下域名访问量排序
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$', TeamSortDomainQueryView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
+        TeamSortDomainQueryView.as_view()),
     # 获取团队下服务访问量排序
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$', TeamSortServiceQueryView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$',
+        TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view()),
     # 获取当前租户已开通的数据中心(简表)
@@ -259,9 +416,11 @@ urlpatterns = patterns(
     # 三方服务api注册方式回调地址
     url(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
     # 三方服务api注册方式重置秘钥
-    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$", ThirdPartyUpdateSecretKeyView.as_view()),
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$",
+        ThirdPartyUpdateSecretKeyView.as_view()),
     # 三方服务健康检测
-    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view()),
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$",
+        ThirdPartyHealthzView.as_view()),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view()),
     # docker-compose文件创建
@@ -311,7 +470,8 @@ urlpatterns = patterns(
     # 应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods', AppPodsView.as_view()),
     # 三方应用pod信息
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods', ThirdPartyAppPodsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods',
+        ThirdPartyAppPodsView.as_view()),
     # 应用进入容器页面
     # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker', AppDockerView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view()),
@@ -372,7 +532,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
 
     # 5.1网关自定义参数
-    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$', GatewayCustomConfigurationView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$',
+        GatewayCustomConfigurationView.as_view()),
 
     # 服务操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),
@@ -382,9 +543,11 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/rollback$', RollBackAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view()),
     # 设置服务构建后是否升级属性
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$', ChangeServiceUpgradeView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$',
+        ChangeServiceUpgradeView.as_view()),
     # 查询云市安装的应用是否有（小版本，大版本）更新
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$', MarketServiceUpgradeView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$',
+        MarketServiceUpgradeView.as_view()),
 
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
@@ -411,10 +574,12 @@ urlpatterns = patterns(
 
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view()),
     # 修改服务应用类型标签
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$', ChangeServiceTypeView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',
+        ChangeServiceTypeView.as_view()),
 
     # 修改服务名称
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$', ChangeServiceNameView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$',
+        ChangeServiceNameView.as_view()),
 
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view()),
@@ -429,7 +594,8 @@ urlpatterns = patterns(
     # 服务标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
     # 添加特性获取可用标签
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$', AppLabelAvailableView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$',
+        AppLabelAvailableView.as_view()),
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view()),
     # 获取当前可用全部数据中心
@@ -525,7 +691,8 @@ urlpatterns = patterns(
     # 云市认证
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
     # 新版本优化云市认证
-    url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$',
+        BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
     # 应用导出
@@ -598,7 +765,8 @@ urlpatterns = patterns(
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/get-url', GetWebHooksUrl.as_view()),
 
     # 更新自动部署触发方式
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/trigger', ImageWebHooksTrigger.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/trigger',
+        ImageWebHooksTrigger.as_view()),
     # 自动部署功能状态与操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
@@ -637,9 +805,47 @@ urlpatterns = patterns(
     # 查询指定用户可以加入哪些团队
     url(r"^user/jointeams$", TeamUserCanJoin.as_view()),
     # 修改部署密钥
-    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$", UpdateSecretKey.as_view()),
+    url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$",
+        UpdateSecretKey.as_view()),
     # 修改镜像源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/image', ImageAppView.as_view()),
     # 查询构建源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view())
-)
+]
+
+# 云市应用升级相关接口
+urlpatterns += [
+    # 查询当前组下的云市应用
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps$', app_upgrade.GroupAppView.as_view()),
+    # 查询当前组下某云市应用的更新版本
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-versions$',
+        app_upgrade.AppUpgradeVersion.as_view()
+    ),
+    # 升级记录集合
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records$',
+        app_upgrade.AppUpgradeRecordsView.as_view()
+    ),
+    # 某一条升级记录
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)$',
+        app_upgrade.AppUpgradeRecordView.as_view()
+    ),
+    # 查询某云市应用下服务的更新信息
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info$',
+        app_upgrade.AppUpgradeInfoView.as_view()
+    ),
+    # 创建升级任务
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-tasks$',
+        app_upgrade.AppUpgradeTaskView.as_view()
+    ),
+    # 回滚某一条升级
+    url(
+        r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
+        app_upgrade.AppUpgradeRollbackView.as_view()
+    ),
+
+]

@@ -7,10 +7,11 @@ https://docs.djangoproject.com/en/1.7/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import sys
+
+from corsheaders.defaults import default_headers
 from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
 
 SETTING_DIR = os.path.dirname(__file__)
@@ -62,7 +63,7 @@ if IS_OPEN_API:
                       'django.contrib.messages', 'django.contrib.staticfiles',
                       'crispy_forms', 'rest_framework', 'rest_framework_jwt',
                       'rest_framework.authtoken', 'rest_framework_swagger',
-                      'www', 'api', 'openapi', 'oauth2_provider', 'cadmin',
+                      'www', 'api', 'openapi', 'oauth2_provider',
                       'share', 'backends', 'marketapi', 'corsheaders', 'console')
     OAUTH2_PROVIDER = {
         'SCOPES': {
@@ -76,7 +77,7 @@ else:
                       'django.contrib.sessions', 'django.contrib.messages',
                       'django.contrib.staticfiles', 'crispy_forms',
                       'rest_framework', 'rest_framework.authtoken', 'rest_framework_jwt',
-                      'rest_framework_swagger', 'www', 'api', 'cadmin',
+                      'rest_framework_swagger', 'www', 'api',
                       'share', 'backends', 'marketapi', 'corsheaders', 'console')
 
 MIDDLEWARE_CLASSES = (
@@ -226,8 +227,6 @@ CORS_ALLOW_METHODS = (
     'CONNECT',
     'HEAD'
 )
-
-from corsheaders.defaults import default_headers
 
 CORS_ALLOW_HEADERS = default_headers + (
     'csrftoken',

@@ -4,9 +4,13 @@
 """
 import logging
 
-from console.models.main import RainbondCenterApp, AppExportRecord, AppImportRecord
+from console.models.main import AppExportRecord
+from console.models.main import AppImportRecord
+from console.models.main import RainbondCenterApp
+from console.utils.shortcuts import get_object_or_404
 
 logger = logging.getLogger("default")
+
 
 class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_id(self, id):
@@ -35,6 +39,25 @@ class RainbondCenterAppRepository(object):
         if rcapps:
             return rcapps
         return None
+
+    def list_by_key_time(self, group_key, time):
+        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, update_time__gte=time).all()
+        if rcapps:
+            return rcapps
+        return None
+
+    def get_rainbond_app_qs_by_key(self, group_key):
+        """使用group_key获取一个云市应用的所有版本查询集合"""
+        return RainbondCenterApp.objects.filter(group_key=group_key)
+
+    def get_rainbond_app_by_key_version(self, group_key, version):
+        """使用group_key 和 version 获取一个云市应用"""
+        return get_object_or_404(
+            RainbondCenterApp,
+            msg='rainbond center app not found',
+            group_key=group_key,
+            version=version
+        )
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version,
@@ -99,8 +122,8 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params):
         return AppImportRecord.objects.create(**params)
 
-    def get_importing_record(self,user_name, team_name):
-        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name,status="importing")
+    def get_importing_record(self, user_name, team_name):
+        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name, status="importing")
 
     def get_user_unfinished_import_record(self, team_name, user_name):
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(

@@ -5,16 +5,17 @@
 import json
 import logging
 import multiprocessing
+import os
 import socket
 import ssl
-import os
+
 import certifi
 import urllib3
 from addict import Dict
+from django.conf import settings
 
 from console.repositories.region_repo import region_repo
 from goodrain_web.decorator import method_perf_time
-from django.conf import settings
 
 logger = logging.getLogger('default')
 
@@ -30,6 +31,10 @@ class RegionApiBaseHttpClient(object):
                 "httpcode": res.status,
                 "body": body,
             }
+            self.apitype = apitype
+            self.url = url
+            self.method = method
+            self.body = body
             self.status = res.status
 
         def __str__(self):
@@ -88,7 +93,8 @@ class RegionApiBaseHttpClient(object):
         if wsurl_split_list[0] == "https":
             verify_ssl = True
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
+        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file,
+                               region.key_file, region_name=region_name)
 
         client = self.get_client(config)
         retry_count = 2
