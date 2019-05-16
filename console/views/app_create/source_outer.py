@@ -48,7 +48,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         if endpoints_type == "static":
             errs = self.check_endpoints(endpoints)
             if errs:
-                return Response(general_message(400, "parameter error", "服务地址格式有误"), status=400)
+                return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
 
         try:
             if not service_cname:
