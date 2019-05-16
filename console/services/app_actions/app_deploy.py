@@ -543,16 +543,16 @@ class MarketService(object):
 
     def _create_envs_4_ports(self, port):
         container_port = int(port["container_port"])
-        port_alias = self.service.service_key.upper()[:8]
+        port_alias = self.service.service_alias.upper()
         host_env = {
             "name": u"连接地址",
-            "attr_name": port_alias + "_HOST",
+            "attr_name": port_alias + str(port["container_port"]) + "_HOST",
             "attr_value": "127.0.0.1",
             "is_change": False,
         }
         port_env = {
             "name": u"端口",
-            "attr_name": port_alias + "_PORT",
+            "attr_name": port_alias + str(port["container_port"]) + "_PORT",
             "attr_value": container_port,
             "is_change": False,
         }
@@ -560,7 +560,7 @@ class MarketService(object):
 
     def update_port_data(self, port):
         container_port = int(port["container_port"])
-        port_alias = self.service.service_key.upper()[:8]
+        port_alias = self.service.service_alias.upper()
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
@@ -577,7 +577,7 @@ class MarketService(object):
             port_repo.add_service_port(**port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].append(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port))
         upd = ports.get("upd", [])
         for port in upd:
             self.update_port_data(port)
@@ -599,7 +599,7 @@ class MarketService(object):
             self.update_port_data(port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].append(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port))
         upd = ports.get("upd", [])
         for port in upd:
             self.update_port_data(port)
