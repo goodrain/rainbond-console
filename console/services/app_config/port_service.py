@@ -216,7 +216,8 @@ class AppPortService(object):
                 probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
             except CallApiError as e:
                 logger.exception(e)
-                raise AbortRequest(msg=e.message, status_code=404)
+                if e.status != 404:
+                    raise AbortRequest(msg=e.message, status_code=e.status)
 
     def delete_service_port(self, tenant, service):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
