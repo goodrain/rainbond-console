@@ -53,3 +53,4 @@ CREATE TABLE `tenant_service_backup` (
 -- **2019-05-15 增加唯一索引
 alter table gateway_custom_configuration
     modify rule_id varchar(32) unique not null;
+alter table tenant_service modify `version` varchar(255);

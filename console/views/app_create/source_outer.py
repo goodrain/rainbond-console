@@ -2,27 +2,29 @@
 """
   Created by leon on 19/2/13.
 """
-import os
 import base64
+import logging
+import os
 import pickle
-import json
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException
-from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
-import logging
-from www.utils.return_message import general_message, error_message
-from console.services.app import app_service
-from console.services.group_service import group_service
 from console.repositories.deploy_repo import deploy_repo
-from console.views.app_config.base import AppBaseView
-from www.apiclient.regionapi import RegionInvokeApi
-from console.views.base import AlowAnyApiView
-from www.models.main import Tenants, TenantServiceInfo
+from console.services.app import app_service
 from console.services.app_config import port_service
+from console.services.group_service import group_service
+from console.utils.validation import validate_endpoint_address
+from console.views.app_config.base import AppBaseView
+from console.views.base import AlowAnyApiView
+from console.views.base import RegionTenantHeaderView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.decorator import perm_required
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 
 logger = logging.getLogger("default")
@@ -42,6 +44,11 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         service_cname = request.data.get("service_cname", None)
         endpoints = request.data.get("endpoints", None)
         endpoints_type = request.data.get("endpoints_type", None)
+
+        if endpoints_type == "static":
+            errs = self.check_endpoints(endpoints)
+            if errs:
+                return Response(general_message(400, "parameter error", "服务地址格式有误"), status=400)
 
         try:
             if not service_cname:
@@ -63,10 +70,10 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
             if endpoints_type == "discovery":
                 # 添加username,password信息
-                logger.debug('========dict=========>{0}'.format(type(endpoints)))
-                if endpoints.has_key("username") and endpoints.has_key("password"):
+                if "username" in endpoints and "password" in endpoints:
                     if endpoints["username"] or endpoints["password"]:
-                        app_service.create_service_source_info(self.tenant, new_service, endpoints["username"], endpoints["password"])
+                        app_service.create_service_source_info(self.tenant, new_service,
+                                                               endpoints["username"], endpoints["password"])
 
             bean = new_service.to_dict()
             if endpoints_type == "api":
@@ -88,12 +95,24 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    @staticmethod
+    def check_endpoints(endpoints):
+        if not endpoints:
+            return ["parameter error"]
+        for endpoint in endpoints:
+            # TODO: ipv6
+            address = endpoint.rpartition(":")[0]
+            errs = validate_endpoint_address(address)
+            if errs:
+                return errs
+
 
 # 三方服务中api注册方式回调接口
 class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
     """
+
     def get(self, request, service_id, *args, **kwargs):
         secret_key = request.GET.get("secret_key")
         # 加密
@@ -110,7 +129,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
 
-            res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias)
+            res, body = region_api.get_third_party_service_pods(
+                service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias)
 
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
@@ -157,9 +177,9 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             # 添加
             if not endpoint_list:
                 res, body = region_api.post_third_party_service_endpoints(service_obj.service_region,
-                                                                         tenant_obj.tenant_name,
-                                                                         service_obj.service_alias,
-                                                                         endpoint_dict)
+                                                                          tenant_obj.tenant_name,
+                                                                          service_obj.service_alias,
+                                                                          endpoint_dict)
                 if res.status != 200:
                     return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
                 return Response(general_message(200, "success", "修改成功"))
@@ -181,8 +201,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     bean = dict()
                     bean["ep_id"] = endpoint["ep_id"]
                     bean["is_online"] = is_online
-                    res, body = region_api.put_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias,
-                                                                             bean)
+                    res, body = region_api.put_third_party_service_endpoints(
+                        service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias, bean)
                     if res.status != 200:
                         return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
 
@@ -228,8 +248,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     endpoint_dict = dict()
                     endpoint_dict["ep_id"] = endpoint["ep_id"]
                     res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
-                                                                              tenant_obj.tenant_name,
-                                                                              service_obj.service_alias,
+                                                                                tenant_obj.tenant_name,
+                                                                                service_obj.service_alias,
                                                                                 endpoint_dict)
                     if res.status != 200:
                         return Response(general_message(412, "region error", "数据中心删除失败"), status=412)
@@ -284,7 +304,7 @@ class ThirdPartyAppPodsView(AppBaseView):
         """
         try:
             res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                               self.service.service_alias)
+                                                                self.service.service_alias)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
             if res.status != 200:
@@ -318,7 +338,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             endpoint_dict["ip"] = ip
             endpoint_dict["is_online"] = is_online
             res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                     self.service.service_alias, endpoint_dict)
+                                                                      self.service.service_alias, endpoint_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
@@ -349,7 +369,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id
             res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                         self.service.service_alias, endpoint_dict)
+                                                                        self.service.service_alias, endpoint_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
@@ -424,7 +444,7 @@ class ThirdPartyHealthzView(AppBaseView):
         """
         try:
             res, body = region_api.get_third_party_service_health(self.service.service_region, self.tenant.tenant_name,
-                                                   self.service.service_alias)
+                                                                  self.service.service_alias)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
@@ -471,7 +491,7 @@ class ThirdPartyHealthzView(AppBaseView):
             }
 
             res, body = region_api.put_third_party_service_health(self.service.service_region, self.tenant.tenant_name,
-                                                   self.service.service_alias, detection_dict)
+                                                                  self.service.service_alias, detection_dict)
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 
@@ -484,9 +504,3 @@ class ThirdPartyHealthzView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
-
-
-
-
-
-

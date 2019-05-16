@@ -1,33 +1,45 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
-
+import logging
 from decimal import Decimal
+
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.forms import model_to_dict
 
+from goodrain_web.custom_config import custom_config
 from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
+from www.app_http import AppServiceApi
 from www.db import BaseConnection
-from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
-    TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
-    TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceAttachInfo, ServiceEvent, AppServiceGroup, \
-    PublishedGroupServiceRelation, TenantServicePluginRelation, PluginBuildVersion, TenantRegionResource
-
-from www.models.main import TenantRegionPayModel, ServiceProbe
-from django.conf import settings
-from goodrain_web.custom_config import custom_config
-from www.monitorservice.monitorhook import MonitorHook
-from www.gitlab_http import GitlabApi
 from www.github_http import GitHubApi
+from www.gitlab_http import GitlabApi
+from www.models import AppServiceGroup
+from www.models import PermRelTenant
+from www.models import PluginBuildVersion
+from www.models import PublishedGroupServiceRelation
+from www.models import ServiceAttachInfo
+from www.models import ServiceEvent
+from www.models import TenantRegionInfo
+from www.models import TenantRegionResource
+from www.models import Tenants
+from www.models import TenantServiceAuth
+from www.models import TenantServiceEnvVar
+from www.models import TenantServiceInfo
+from www.models import TenantServiceMountRelation
+from www.models import TenantServicePluginRelation
+from www.models import TenantServiceRelation
+from www.models import TenantServicesPort
+from www.models import TenantServiceVolume
+from www.models import Users
+from www.models.main import ServiceProbe
+from www.models.main import TenantRegionPayModel
+from www.monitorservice.monitorhook import MonitorHook
+from www.region import RegionInfo
+from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 from www.utils.sn import instance
-from www.app_http import AppServiceApi
-
-from www.utils.crypt import make_uuid
-from www.region import RegionInfo
-import logging
 
 logger = logging.getLogger('default')
 
@@ -191,7 +203,7 @@ class BaseTenantService(object):
         data["ports_info"] = []
         data["envs_info"] = []
         data["volumes_info"] = []
-        data["service_label"] = "StatefulServiceType " if newTenantService.extend_method == "state" else "StatelessServiceType"
+        data["service_label"] = "StatefulServiceType" if newTenantService.extend_method == "state" else "StatelessServiceType"
 
         depend_ids = [{
             "dep_order": dep.dep_order,

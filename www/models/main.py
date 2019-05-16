@@ -482,7 +482,7 @@ class TenantServiceInfo(BaseModel):
     service_port = models.IntegerField(help_text=u"服务端口", default=0)
     is_web_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否web服务")
-    version = models.CharField(max_length=20, help_text=u"版本")
+    version = models.CharField(max_length=255, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=100, help_text=u"镜像")
     cmd = models.CharField(
