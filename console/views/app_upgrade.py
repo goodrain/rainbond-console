@@ -247,6 +247,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             for service in data['services']
             if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
+        service_key_dep_key_map, key_service_map = {}, {}
         if add_service_infos:
             app = rainbond_app_repo.get_rainbond_app_by_key_version(
                 group_key=group_key,
@@ -256,12 +257,16 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             template = json.loads(app.app_template)
             template['apps'] = add_service_infos.values()
             app.app_template = json.dumps(template)
+
+            # 查询某一个云市应用下的所有服务
+            services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
                 market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
-                _, events = market_app_service.install_service(
+                _, events, service_key_dep_key_map, key_service_map = market_app_service.install_service_when_upgrade_app(
                     self.tenant, self.response_region, self.user,
-                    group_id, app, True
+                    group_id, app, services, True
                 )
+
             except (ResourceNotEnoughException, AccountOverdueException) as re:
                 logger.exception(re)
                 return MessageResponse(
@@ -301,6 +306,10 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             upgrade_service_infos
         )
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
+
+        # 处理依赖关系
+        if add_service_infos:
+            market_app_service.save_service_deps_when_upgrade_app(self.tenant, service_key_dep_key_map, key_service_map)
 
         return MessageResponse(
             msg="success",

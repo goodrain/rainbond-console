@@ -160,6 +160,118 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
+    def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, services, is_deploy):
+        service_list = []
+        service_key_dep_key_map = {}
+        key_service_map = {}
+        tenant_service_group = None
+        service_probe_map = {}
+        app_plugin_map = {}  # 新装服务对应的安装的插件映射
+        old_new_id_map = {}  # 新旧服务映射关系
+
+        for service in services:
+            service_share_uuid = service.service_source_info.service_share_uuid
+            if service_share_uuid:
+                key_service_map[service_share_uuid] = service
+            else:
+                key_service_map[service.service_key] = service
+
+        try:
+            app_templates = json.loads(market_app.app_template)
+            apps = app_templates["apps"]
+            tenant_service_group = self.__create_tenant_service_group(
+                region, tenant.tenant_id, group_id, market_app.group_key,
+                market_app.version, market_app.group_name)
+
+            status, msg = self.__create_plugin_for_tenant(
+                region, user, tenant, app_templates.get("plugins", []))
+            if status != 200:
+                raise Exception(msg)
+
+            app_map = {}
+            for app in apps:
+                app_map[app.get("service_share_uuid")] = app
+                ts = self.__init_market_app(tenant, region, user, app,
+                                            tenant_service_group.ID)
+                service_source_data = {
+                    "group_key": market_app.group_key,
+                    "version": market_app.version,
+                    "service_share_uuid": app.get("service_share_uuid")
+                    if app.get("service_share_uuid", None) else app.get("service_key")
+                }
+                service_source_repo.update_service_source(ts.tenant_id,
+                                                          ts.service_id,
+                                                          **service_source_data)
+                group_service.add_service_to_group(tenant, region, group_id,
+                                                   ts.service_id)
+                service_list.append(ts)
+                old_new_id_map[app["service_id"]] = ts
+
+                # 先保存env,再保存端口，因为端口需要处理env
+                code, msg = self.__save_env(
+                    tenant, ts, app["service_env_map_list"],
+                    app["service_connect_info_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+                code, msg = self.__save_port(tenant, ts, app["port_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+                code, msg = self.__save_volume(tenant, ts,
+                                               app["service_volume_map_list"])
+                if code != 200:
+                    raise Exception(msg)
+
+                # 保存应用探针信息
+                probe_infos = app.get("probes", None)
+                if probe_infos:
+                    service_probe_map[ts.service_id] = probe_infos
+
+                self.__save_extend_info(ts, app["extend_method_map"])
+                if app.get("service_share_uuid", None):
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[app.get(
+                            "service_share_uuid")] = dep_apps_key
+                    key_service_map[app.get("service_share_uuid")] = ts
+                else:
+                    dep_apps_key = app.get("dep_service_map_list", None)
+                    if dep_apps_key:
+                        service_key_dep_key_map[ts.service_key] = dep_apps_key
+                    key_service_map[ts.service_key] = ts
+                app_plugin_map[ts.service_id] = app.get(
+                    "service_related_plugin_config")
+
+            # 数据中心创建应用
+            new_service_list = self.__create_region_services(
+                tenant, user, service_list, service_probe_map)
+            # 创建应用插件
+            self.__create_service_plugins(region, tenant, service_list,
+                                          app_plugin_map, old_new_id_map)
+
+            # dependent volume
+            self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+
+            events = []
+            if is_deploy:
+                # 部署所有应用
+                events = self.__deploy_services(tenant, user, new_service_list)
+            return tenant_service_group, events, service_key_dep_key_map, key_service_map
+        except Exception as e:
+            logger.exception(e)
+            if tenant_service_group:
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(
+                    tenant_service_group.ID)
+            for service in service_list:
+                try:
+                    app_manage_service.truncate_service(tenant, service)
+                except Exception as le:
+                    logger.exception(le)
+            raise e
+
+    def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map):
+        # 保存依赖关系
+        self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
+
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:
             # dependent volume
