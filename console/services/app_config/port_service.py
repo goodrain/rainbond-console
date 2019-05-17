@@ -19,8 +19,8 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
-from goodrain_web.errors import CallApiError
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.utils.crypt import make_uuid
 
 pros = ProbeService()
@@ -214,7 +214,7 @@ class AppPortService(object):
             probe.is_used = False
             try:
                 probe_service.update_service_probea(tenant=tenant, service=service, data=probe.to_dict())
-            except CallApiError as e:
+            except RegionApiBaseHttpClient.CallApiError as e:
                 logger.exception(e)
                 if e.status != 404:
                     raise AbortRequest(msg=e.message, status_code=e.status)
