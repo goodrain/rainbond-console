@@ -48,5 +48,14 @@ class RbdCenterAppService(object):
             return app["service_key"]
         return ""
 
+    def get_plugins(self, eid, version, service_source):
+        rain_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
+            eid, service_source.group_key, version)
+        if rain_app is None:
+            raise RecordNotFound("Enterprice id: {0}; Group key: {1}; version: {2}; \
+                RainbondCenterApp not found.".format(eid, service_source.group_key, version))
+        apps_template = json.loads(rain_app.app_template)
+        return apps_template.get("plugins", [])
+
 
 rbd_center_app_service = RbdCenterAppService()
