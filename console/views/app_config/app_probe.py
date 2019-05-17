@@ -11,7 +11,7 @@ from console.exception.main import AbortRequest
 from console.serializer import ProbeSerilizer
 from console.services.app_config import probe_service
 from console.views.app_config.base import AppBaseView
-from goodrain_web.errors import CallApiError
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -106,7 +106,7 @@ class AppProbeView(AppBaseView):
 
         try:
             code, msg, probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=data)
-        except CallApiError as e:
+        except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             raise AbortRequest(msg=e.message, status_code=e.status)
         if code != 200:
