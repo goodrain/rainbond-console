@@ -3,6 +3,7 @@
   Created by leon on 19/2/13.
 """
 import base64
+import json
 import logging
 import os
 import pickle
@@ -46,7 +47,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints_type = request.data.get("endpoints_type", None)
 
         if endpoints_type == "static":
-            errs = self.check_endpoints(endpoints)
+            errs = check_endpoints(endpoints)
             if errs:
                 return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
 
@@ -95,16 +96,20 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @staticmethod
-    def check_endpoints(endpoints):
-        if not endpoints:
-            return ["parameter error"]
-        for endpoint in endpoints:
-            # TODO: ipv6
+
+def check_endpoints(endpoints):
+    if not endpoints:
+        return ["parameter error"]
+    for endpoint in endpoints:
+        # TODO: ipv6
+        address = endpoint
+        if ":" in endpoint:
             address = endpoint.rpartition(":")[0]
-            errs = validate_endpoint_address(address)
-            if errs:
-                return errs
+        errs = validate_endpoint_address(address)
+        if errs:
+            logger.error("endpoint: {}; invalid endpoint address: {}"
+                         .format(endpoint, json.dumps(errs)))
+            return errs
 
 
 # 三方服务中api注册方式回调接口
@@ -135,7 +140,11 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
-            endpoint_list = body["list"]
+            endpoint_list = []
+            for item in body["list"]:
+                endpoint = item
+                endpoint["ip"] = item["address"]
+                endpoint_list.append(endpoint)
             bean = {"endpoint_num": len(endpoint_list)}
 
             result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
@@ -153,18 +162,18 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        ip = request.data.get("ip", None)
+        address = request.data.get("ip", None)
         # is_online true为上线，false为下线
         is_online = request.data.get("is_online", True)
         if type(is_online) != bool:
             return Response(general_message(400, "is_online type error", "参数类型错误"), status=400)
-        if not ip:
+        if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             endpoint_dict = dict()
-            endpoint_dict["ip"] = ip
+            endpoint_dict["address"] = address
             endpoint_dict["is_online"] = is_online
             # 根据ip从数据中心查询， 有就put，没有就post
             res, body = region_api.get_third_party_service_pods(service_obj.service_region, tenant_obj.tenant_name,
@@ -183,10 +192,10 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                 if res.status != 200:
                     return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
                 return Response(general_message(200, "success", "修改成功"))
-            ip_list = []
+            addresses = []
             for endpoint in endpoint_list:
-                ip_list.append(endpoint["ip"])
-            if ip not in ip_list:
+                addresses.append(endpoint["address"])
+            if address not in addresses:
                 # 添加
                 res, body = region_api.post_third_party_service_endpoints(service_obj.service_region,
                                                                           tenant_obj.tenant_name,
@@ -197,7 +206,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                 return Response(general_message(200, "success", "修改成功"))
             # 修改
             for endpoint in endpoint_list:
-                if endpoint["ip"] == ip:
+                if endpoint["address"] == address:
                     bean = dict()
                     bean["ep_id"] = endpoint["ep_id"]
                     bean["is_online"] = is_online
@@ -222,8 +231,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        ip = request.data.get("ip", None)
-        if not ip:
+        address = request.data.get("ip", None)
+        if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
@@ -238,13 +247,13 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             endpoint_list = body["list"]
             if not endpoint_list:
                 return Response(general_message(412, "ip is null", "ip不存在"), status=412)
-            ip_list = []
+            addresses = []
             for endpoint in endpoint_list:
-                ip_list.append(endpoint["ip"])
-            if ip not in ip_list:
+                addresses.append(endpoint["address"])
+            if address not in addresses:
                 return Response(general_message(412, "ip is null", "ip不存在"), status=412)
             for endpoint in endpoint_list:
-                if endpoint["ip"] == ip:
+                if endpoint["address"] == address:
                     endpoint_dict = dict()
                     endpoint_dict["ep_id"] = endpoint["ep_id"]
                     res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region,
@@ -310,6 +319,8 @@ class ThirdPartyAppPodsView(AppBaseView):
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
             endpoint_list = body["list"]
+            for endpoint in endpoint_list:
+                endpoint["ip"] = endpoint["address"]
             bean = {"endpoint_num": len(endpoint_list)}
 
             result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
@@ -329,18 +340,23 @@ class ThirdPartyAppPodsView(AppBaseView):
         :param kwargs:
         :return:
         """
-        ip = request.data.get("ip", None)
+        address = request.data.get("ip", None)
         is_online = request.data.get("is_online", True)
-        if not ip:
+        if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
+
+        errs = check_endpoints([address])
+        if errs:
+            return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
+
         try:
             endpoint_dict = dict()
-            endpoint_dict["ip"] = ip
+            endpoint_dict["address"] = address
             endpoint_dict["is_online"] = is_online
-            res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                      self.service.service_alias, endpoint_dict)
-            logger.debug('-------res------->{0}'.format(res))
-            logger.debug('=======body=======>{0}'.format(body))
+            res, body = region_api.post_third_party_service_endpoints(self.response_region,
+                                                                      self.tenant.tenant_name,
+                                                                      self.service.service_alias,
+                                                                      endpoint_dict)
 
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
@@ -348,6 +364,9 @@ class ThirdPartyAppPodsView(AppBaseView):
             return Response(result)
 
         except Exception as e:
+            if e.status == 400:
+                return Response(general_message(400, "region delete error",
+                                                "实例已存在({})".format(address)), status=400)
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
