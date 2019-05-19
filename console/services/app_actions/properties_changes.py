@@ -35,6 +35,8 @@ class PropertiesChanges(object):
         """
         app = rbd_center_app_service.get_version_app(eid, version,
                                                      self.service_source)
+        self.plugins = rbd_center_app_service.get_plugins(eid, version,
+                                                          self.service_source)
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         result = {}
@@ -234,11 +236,15 @@ class PropertiesChanges(object):
         logger.debug("start getting plugin changes; old_plugin_keys: {}; \
             new_plugin_keys: {}".format(json.dumps(old_plugin_keys), json.dumps(new_plugin_keys)))
 
+        plugin_names = {plugin["plugin_key"]: plugin["plugin_alias"] for plugin in self.plugins}
+
         add = []
         delete = []
         for new_plugin in new_plugins:
             if new_plugin["plugin_key"] in old_plugin_keys:
                 continue
+            new_plugin["plugin_alias"] = plugin_names.get(new_plugin["plugin_key"],
+                                                          new_plugin["plugin_key"])
             add.append(new_plugin)
         for old_plugin in old_plugins:
             if old_plugin.origin_share_id in new_plugin_keys:
