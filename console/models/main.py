@@ -811,7 +811,14 @@ class ServiceUpgradeRecord(BaseModel):
         related_name="service_upgrade_records",
         help_text=u"这条服务升级记录所关联的云市场应用升级记录",
     )
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service = models.ForeignKey(
+        TenantServiceInfo,
+        to_field='service_id',
+        on_delete=models.CASCADE,
+        db_constraint=False,
+        related_name="service_upgrade_records",
+        help_text=u"服务所关联的服务升级记录",
+    )
     service_cname = models.CharField(max_length=100, help_text=u"服务名")
     upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text=u"升级类型")
     event_id = models.CharField(max_length=32)

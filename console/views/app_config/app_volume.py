@@ -180,9 +180,13 @@ class AppVolumeManageView(AppBaseView):
             if not volume:
                 return Response(general_message(400, "volume is null", u"存储不存在"), status=400)
             service_config = volume_repo.get_service_config_file(volume_id)
-            if not service_config:
-                return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
-            if new_volume_path == volume.volume_path and new_file_content == service_config.file_content:
+            if volume.volume_type == 'config-file':
+                if not service_config:
+                    return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
+                if new_file_content == service_config.file_content:
+                    return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+
+            if new_volume_path == volume.volume_path:
                 return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
             try:
                 data = {
@@ -196,8 +200,9 @@ class AppVolumeManageView(AppBaseView):
                 if res.status == 200:
                     volume.volume_path = new_volume_path
                     volume.save()
-                    service_config.file_content = new_file_content
-                    service_config.save()
+                    if volume.volume_type == 'config-file':
+                        service_config.file_content = new_file_content
+                        service_config.save()
                     result = general_message(200, "success", u"修改成功")
                     return Response(result, status=result["code"])
                 return Response(general_message(405, "success", u"修改失败"), status=405)
