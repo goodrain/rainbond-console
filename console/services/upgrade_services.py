@@ -197,7 +197,7 @@ class UpgradeService(object):
             service_record = event_service_mapping[event.event_id]
             self._change_service_record_status(event, service_record)
 
-        service_status = set(service_records.values_list('status', flat=True))
+        service_status = set(service_records.values_list('status', flat=True) or [])
         judging_status = {
             # 升级中
             UpgradeStatus.UPGRADING.value: self._judging_status_upgrading,
@@ -324,6 +324,8 @@ class UpgradeService(object):
             status = UpgradeStatus.UPGRADED.value
         elif service_status == {UpgradeStatus.UPGRADE_FAILED.value}:
             status = UpgradeStatus.UPGRADE_FAILED.value
+        elif service_status == {}:
+            status = UpgradeStatus.UPGRADED.value
         return status
 
     @staticmethod
@@ -342,6 +344,8 @@ class UpgradeService(object):
             status = UpgradeStatus.ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK_FAILED.value}:
             status = UpgradeStatus.ROLLBACK_FAILED.value
+        elif service_status == {}:
+            status = UpgradeStatus.ROLLBACK.value
         return status
 
     @staticmethod
