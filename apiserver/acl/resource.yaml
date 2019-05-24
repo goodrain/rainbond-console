@@ -1,0 +1,4 @@
+# 该文件列举在view中定义的资源
+# 在 policy.csv 中配置的资源以该文件为基础
+resources:
+  - service  # 服务资源

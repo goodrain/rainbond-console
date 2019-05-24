@@ -1,3 +1,4 @@
+# 该文件声明允许访问的客户端 token
+
 clients:
-  - abcdefg
-  - xuaoao
+  - default
