@@ -4,6 +4,8 @@ if [ "$1" = "debug" -o "$1" = "bash" ];then
     exec /bin/bash
 elif [ "$1" = "version" ];then
     echo ${RELEASE_DESC}
+elif [ "$1" = "init" ];then
+    python /app/ui/manage.py migrate
 else
     if [ ! -f "/initdata/.inited" ];then
         echo "init db"
