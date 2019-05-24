@@ -1,17 +1,21 @@
 # -*- coding: utf8 -*-
+import sys
+
 from django.conf import settings
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include
+from django.conf.urls import patterns
+from django.conf.urls import url
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.csrf import csrf_exempt
 
 import www.views as views
-from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
+from console.views.account import GoodrainSSONotify
+from www.app_services_view import GitCheckCode
+from www.app_services_view import GitHubWebHook
+from www.app_services_view import GitLabWebHook
 from www.services_view import ServiceGitHub
 from www.views import GrRedirectView
-from www.views.alimns import *
-import sys
-from console.views.account import GoodrainSSONotify
 
 reload(sys)  # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
 sys.setdefaultencoding('utf-8')
@@ -24,6 +28,7 @@ def openapi_urlpatterns():
     if settings.IS_OPEN_API:
         return [
             url(r'^openapi/', include('openapi.urls')),
+            url(r'^api-server/', include('apiserver.urls')),
         ]
     else:
         return []
