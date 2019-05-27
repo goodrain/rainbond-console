@@ -183,11 +183,11 @@ class AppVolumeManageView(AppBaseView):
             if volume.volume_type == 'config-file':
                 if not service_config:
                     return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
-                if new_file_content == service_config.file_content:
+                if new_volume_path == volume.volume_path and new_file_content == service_config.file_content:
                     return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
-
-            if new_volume_path == volume.volume_path:
-                return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+            else:
+                if new_volume_path == volume.volume_path:
+                    return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
             try:
                 data = {
                     "volume_name": volume.volume_name,
