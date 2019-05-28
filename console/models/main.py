@@ -31,7 +31,7 @@ class BaseModel(models.Model):
                 value = value.strftime('%Y-%m-%d %H:%M:%S')
             elif isinstance(f, FileField):
                 value = value.url if value else None
-            data[f.name] = value
+            data[f.attname] = value
         return data
 
 
