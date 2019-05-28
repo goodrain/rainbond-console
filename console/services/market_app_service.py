@@ -819,24 +819,20 @@ class MarketAppService(object):
         app_list = []
         result_list = []
         group_key_list = []
+        if not remote_apps:
+            return total, result_list
         for app in remote_apps:
             if app["group_key"] not in group_key_list:
                 group_key_list.append(app["group_key"])
-        logger.debug('==========0=================0{0}'.format(group_key_list))
         if group_key_list:
             for group_key in group_key_list:
                 app_dict = dict()
                 group_version_list = []
                 for app in remote_apps:
                     if app["group_key"] == group_key:
-                        if app["group_version"] not in group_version_list:
+                        if app["group_version"] and app["group_version"] not in group_version_list:
                             group_version_list.append(app["group_version"])
                 group_version_list.sort(reverse=True)
-                logger.debug(
-                    '----------group_version_list------__>{0}'.format(group_version_list))
-                logger.debug(
-                    '----------group_key------__>{0}'.format(group_key))
-
                 for app in remote_apps:
                     if app["group_version"] == group_version_list[0] and app["group_key"] == group_key:
                         app_dict["group_key"] = group_key
@@ -851,7 +847,6 @@ class MarketAppService(object):
                         app_dict["desc"] = app["desc"]
                         app_dict["update_version"] = app["update_version"]
                         app_list.append(app_dict)
-
         for app in app_list:
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
                                                                           app["group_version_list"][0])
