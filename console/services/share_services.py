@@ -288,7 +288,6 @@ class ShareService(object):
                 if (service.service_key == 'application' or
                         service.service_key == '0000' or
                         service.service_key == 'mysql'):
-
                     data['service_key'] = make_uuid()
                     service.service_key = data['service_key']
                     service.save()
@@ -416,7 +415,7 @@ class ShareService(object):
 
                 if dep_mnt_map.get(service_id):
                     for dep_mnt in dep_mnt_map.get(service_id):
-                        if not all_data_map[dep_mnt.dep_service_id]:
+                        if not all_data_map.get(dep_mnt.dep_service_id):
                             continue
                         service["mnt_relation_list"].append({
                             "service_share_uuid":
