@@ -78,6 +78,7 @@ class ServiceCreateConstants(object):
 class PluginCategoryConstants(object):
     OUTPUT_NET = "net-plugin:down"
     INPUT_NET = "net-plugin:up"
+    OUTPUT_INPUT_NET = "net-plugin:in-and-out"
     INIT_TYPE = "init-plugin"
     PERFORMANCE_ANALYSIS = "analyst-plugin:perf"
     COMMON_TYPE = "general-plugin"

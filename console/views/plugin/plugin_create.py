@@ -47,7 +47,7 @@ class PluginCreateView(RegionTenantHeaderView):
               type: integer
               paramType: form
             - name: category
-              description: 插件类别 net-plugin:down|net-plugin:up|analyst-plugin:perf|init-plugin|general-plugin
+              description: 插件类别 net-plugin:down|net-plugin:up|net-plugin:in-and-out|analyst-plugin:perf|init-plugin|general-plugin
               required: false
               type: string
               paramType: form
@@ -102,6 +102,7 @@ class PluginCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "plugin category is null", "插件类别未指明"), status=400)
             else:
                 if category not in (
+                        PluginCategoryConstants.OUTPUT_INPUT_NET,
                         PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
                         PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
                         PluginCategoryConstants.COMMON_TYPE):

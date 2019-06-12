@@ -131,9 +131,9 @@ class AppPluginService(object):
 
         elif category == "net_manage":
             query_installed_plugin = """{0} AND tp.category in {1} """.format(QUERY_INSTALLED_SQL,
-                                                                              '("net-plugin:down","net-plugin:up")')
+                                                                              '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
             query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(QUERI_UNINSTALLED_SQL,
-                                                                                 '("net-plugin:down","net-plugin:up")')
+                                                                                 '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
         else:
             query_installed_plugin = QUERY_INSTALLED_SQL
             query_uninstalled_plugin = QUERI_UNINSTALLED_SQL
