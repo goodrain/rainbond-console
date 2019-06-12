@@ -3,27 +3,41 @@
   Created on 2018/5/25.
   应用迁移
 """
-from django.db import transaction
 import datetime
-
-from console.repositories.backup_repo import backup_record_repo
-from console.repositories.group import group_repo
-from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import make_uuid
-from console.repositories.migration_repo import migrate_repo
-from www.models.main import TenantServiceInfo, TenantServiceEnvVar, TenantServiceVolume, TenantServicesPort, \
-    TenantServiceEnv, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth, ImageServiceRelation, \
-    TenantServiceRelation, TenantServiceMountRelation, ThirdPartyServiceEndpoints, TenantServiceConfigurationFile
-from console.models.main import ServiceRelPerms, ServiceSourceInfo
-from console.repositories.team_repo import team_repo
-from www.models.label import ServiceLabels
-from console.services.group_service import group_service
-from console.constants import AppMigrateType
 import json
 import logging
-from console.repositories.app_config import volume_repo, domain_repo, tcp_domain
-from console.repositories.region_repo import region_repo
 
+from django.db import transaction
+
+from console.constants import AppMigrateType
+from console.models.main import ServiceRelPerms
+from console.models.main import ServiceSourceInfo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import volume_repo
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.group import group_repo
+from console.repositories.migration_repo import migrate_repo
+from console.repositories.region_repo import region_repo
+from console.repositories.team_repo import team_repo
+from console.services.group_service import group_service
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.label import ServiceLabels
+from www.models.main import ImageServiceRelation
+from www.models.main import ServiceDomain
+from www.models.main import ServiceEvent
+from www.models.main import ServiceProbe
+from www.models.main import TenantServiceAuth
+from www.models.main import TenantServiceConfigurationFile
+from www.models.main import TenantServiceEnv
+from www.models.main import TenantServiceEnvVar
+from www.models.main import TenantServiceInfo
+from www.models.main import TenantServiceMountRelation
+from www.models.main import TenantServiceRelation
+from www.models.main import TenantServicesPort
+from www.models.main import TenantServiceVolume
+from www.models.main import ThirdPartyServiceEndpoints
+from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -47,7 +61,7 @@ class GroupappsMigrateService(object):
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
             if not new_group:
                 new_group = self.__create_new_group_by_group_name(migrate_team.tenant_id, migrate_region,
-                                                    origin_backup_record.group_id)
+                                                                  origin_backup_record.group_id)
         else:
             new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
@@ -91,7 +105,8 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id, restore_id):
+    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type,
+                      event_id, restore_id):
 
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
@@ -124,7 +139,8 @@ class GroupappsMigrateService(object):
             "slug_info": service_slug,
             "image_info": service_image
         }
-        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
+        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id,
+                                                 data)
         if event_id:
             migrate_record = migrate_repo.get_by_event_id(event_id)
             data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,
@@ -186,7 +202,8 @@ class GroupappsMigrateService(object):
             if status == "success":
                 with transaction.atomic():
                     try:
-                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata), migrate_record.group_id)
+                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change,
+                                       json.loads(metadata), migrate_record.group_id)
                     except Exception as e:
                         migrate_record.status = "failed"
                         migrate_record.save()
@@ -210,17 +227,22 @@ class GroupappsMigrateService(object):
         service_relations_list = []
         service_mnt_list = []
         for app in apps:
-            logger.debug('=======111========>{0}'.format(app.has_key('service_config_file')))
+            logger.debug('=======111========>{0}'.format('service_config_file' in app))
             service_base_info = app["service_base"]
 
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
 
-            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
+            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region,
+                                 migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
-            self.__save_volume(ts, app["service_volumes"], app["service_config_file"] if app.has_key('service_config_file') else None)
+            self.__save_volume(
+                ts,
+                app["service_volumes"],
+                app["service_config_file"] if 'service_config_file' in app else None
+            )
             lb_mapping_port = changed_service_map[service_base_info["service_id"]].get("LBPorts", None)
             self.__save_port(migrate_tenant, ts, app["service_ports"], lb_mapping_port)
             self.__save_compile_env(ts, app["service_compile_env"])
@@ -475,6 +497,8 @@ class GroupappsMigrateService(object):
     def __save_service_source(self, tenant, service, service_source):
         if service_source:
             service_source.pop("ID")
+            if "service" in service_source:
+                service_source["service_id"] = service_source.pop("service")
             new_service_source = ServiceSourceInfo(**service_source)
             new_service_source.service_id = service.service_id
             new_service_source.team_id = tenant.tenant_id

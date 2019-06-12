@@ -373,9 +373,8 @@ class DomainService(object):
         domain_info["container_port"] = int(container_port)
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
-        domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
-        domain_info[
-            "domain_heander"] = domain_heander if domain_heander else None
+        domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
+        domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
 
@@ -470,9 +469,8 @@ class DomainService(object):
         domain_info["container_port"] = int(container_port)
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
-        domain_info["domain_cookie"] = domain_cookie if domain_cookie else None
-        domain_info[
-            "domain_heander"] = domain_heander if domain_heander else None
+        domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
+        domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
         rule_extensions_str = ""

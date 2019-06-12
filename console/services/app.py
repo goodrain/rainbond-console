@@ -23,7 +23,6 @@ from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
 from console.repositories.perm_repo import role_repo
-from console.repositories.probe_repo import probe_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
@@ -325,30 +324,6 @@ class AppService(object):
                                         "is_inner_service": False,
                                         "is_outer_service": False}
                         service_port = port_repo.add_service_port(**service_port)
-                        # 添加默认端口后需要默认设置健康检测
-                        if service_port:
-                            tenant_service_ports = port_repo.get_service_ports(tenant.tenant_id, new_service.service_id)
-                            port_list = []
-                            for tenant_service_port in tenant_service_ports:
-                                port_list.append(tenant_service_port.container_port)
-                            if len(port_list) <= 1:
-                                probe = probe_repo.get_probe(new_service.service_id)
-                                if not probe:
-                                    params = {
-                                        "http_header": "",
-                                        "initial_delay_second": 2,
-                                        "is_used": True,
-                                        "mode": "ignore",
-                                        "path": "",
-                                        "period_second": 3,
-                                        "port": int(service_port.container_port),
-                                        "scheme": "tcp",
-                                        "success_threshold": 1,
-                                        "timeout_second": 20
-                                    }
-                                    code, msg, probe = probe_service.add_service_probe(tenant, new_service, params)
-                                    if code != 200:
-                                        logger.debug('------111----->{0}'.format(msg))
 
         # 保存endpoints数据
         service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
@@ -434,12 +409,12 @@ class AppService(object):
         service_dep_relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         # 依赖
         depend_ids = [{
-                          "dep_order": dep.dep_order,
-                          "dep_service_type": dep.dep_service_type,
-                          "depend_service_id": dep.dep_service_id,
-                          "service_id": dep.service_id,
-                          "tenant_id": dep.tenant_id
-                      } for dep in service_dep_relations]
+            "dep_order": dep.dep_order,
+            "dep_service_type": dep.dep_service_type,
+            "depend_service_id": dep.dep_service_id,
+            "service_id": dep.service_id,
+            "tenant_id": dep.tenant_id
+        } for dep in service_dep_relations]
         data["depend_ids"] = depend_ids
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)

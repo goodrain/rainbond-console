@@ -2,11 +2,12 @@
 """
   Created on 18/1/26.
 """
+import copy
+import logging
+
 from console.repositories.probe_repo import probe_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-import logging
-import copy
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -106,6 +107,7 @@ class ProbeService(object):
         # 真·深拷贝
         console_prob = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
+        logger.debug("create status: {}".format(service.create_status))
         if service.create_status == "complete":
             res, body = region_api.add_service_probe(
                 service.service_region, tenant.tenant_name,

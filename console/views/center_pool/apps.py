@@ -73,6 +73,7 @@ class CenterAppListView(RegionTenantHeaderView):
             for app_value in show_apps:
                 app = RainbondCenterApp.objects.get(pk=app_value['id'])
                 group_version_list = RainbondCenterApp.objects.filter(
+                    is_complete=True,
                     group_key=app_value['group_key']
                 ).values_list('version', flat=True) or []
                 yield dict(

@@ -1,25 +1,29 @@
 # -*- coding: utf-8 -*-
 import base64
 import logging
-import pickle
 import os
+import pickle
 import re
-
-from docker_image import reference
 from urlparse import urlparse
 
-from console.models import DeployRelation
-from console.repositories.deploy_repo import deploy_repo
-from console.views.base import AlowAnyApiView
+from docker_image import reference
 from rest_framework.response import Response
-from console.views.app_config.base import AppBaseView
-from www.models.main import Tenants, TenantServiceInfo, Users
-from console.services.app import app_service
-from www.utils.return_message import general_message, error_message
-from console.services.user_services import user_services
-from www.decorator import perm_required
+
 from console.constants import AppConstants
-from console.repositories.app import service_webhooks_repo, service_repo
+from console.models import DeployRelation
+from console.repositories.app import service_repo
+from console.repositories.app import service_webhooks_repo
+from console.repositories.deploy_repo import deploy_repo
+from console.services.app import app_service
+from console.services.user_services import user_services
+from console.views.app_config.base import AppBaseView
+from console.views.base import AlowAnyApiView
+from www.decorator import perm_required
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
+from www.models.main import Users
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -187,9 +191,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(200, "failed", "应用状态不支持")
                     return Response(result, status=200)
             # gitee
-            elif request.META.get("HTTP_X_GITEE_EVENT",
-                                  None) or request.META.get(
-                "HTTP_X_GIT_OSCHINA_EVENT", None):
+            elif request.META.get("HTTP_X_GITEE_EVENT", None) or \
+                    request.META.get("HTTP_X_GIT_OSCHINA_EVENT", None):
                 logger.debug(request.data)
 
                 commits_info = request.data.get("head_commit")
@@ -304,7 +307,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("应用状态异常")
                     result = general_message(200, "failed", "应用状态不支持")
                     return Response(result, status=200)
-            # coding 
+            # coding
             elif request.META.get("HTTP_X_CODING_EVENT", None):
                 coding_event = request.META.get("HTTP_X_CODING_EVENT", None)
                 if coding_event == "ping":
@@ -682,6 +685,9 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)
+
+            repo_ref = reference.Reference.parse(repo_name)
+            _, repo_name = repo_ref.split_hostname()
             ref = reference.Reference.parse(service_obj.image)
             hostname, name = ref.split_hostname()
             if repo_name != name:

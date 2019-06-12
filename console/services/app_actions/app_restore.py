@@ -40,9 +40,9 @@ class AppRestore(object):
                 restoring service source".format(self.service.service_id))
             return
         service_source_repo.delete_service_source(self.tenant.tenant_id, self.service.service_id)
-        service_source["service_id"] = service_source["service"]
         service_source.pop("ID")
-        service_source.pop("service")
+        if "service" in service_source:
+            service_source["service_id"] = service_source.pop("service")
         logger.debug("service_source: {}".format(json.dumps(service_source)))
         service_source_repo.create_service_source(**service_source)
 
