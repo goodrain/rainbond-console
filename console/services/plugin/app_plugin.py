@@ -547,10 +547,11 @@ class PluginService(object):
             if not image:
                 return 400, "镜像地址不能为空", None
         if category not in (
+                PluginCategoryConstants.OUTPUT_INPUT_NET,
                 PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
                 PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
                 PluginCategoryConstants.COMMON_TYPE):
-            return 400, "类别参数错误", None
+            return 400, "插件类别参数不支持", None
         plugin_params = {
             "plugin_id": plugin_id,
             "tenant_id": tenant.tenant_id,
