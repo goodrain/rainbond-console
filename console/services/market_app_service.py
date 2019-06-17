@@ -5,7 +5,6 @@
 import datetime
 import json
 import logging
-
 from django.db.models import Q
 
 from console.constants import AppConstants
@@ -45,6 +44,7 @@ from www.models import ServicePluginConfigVar
 from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.utils.restful_client import market_client
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -70,11 +70,11 @@ class MarketAppService(object):
             tenant_service_group = self.__create_tenant_service_group(
                 region, tenant.tenant_id, group_id, market_app.group_key,
                 market_app.version, market_app.group_name)
-
-            status, msg = self.__create_plugin_for_tenant(
-                region, user, tenant, app_templates.get("plugins", []))
-            if status != 200:
-                raise Exception(msg)
+            plugins = app_templates.get("plugins", [])
+            if plugins:
+                status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
+                if status != 200:
+                    raise Exception(msg)
 
             app_map = {}
             for app in apps:
@@ -794,6 +794,28 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
+    # download app from cloud and return app model
+    # can not save in local db
+    def get_app_from_cloud(self, tenant, group_key, group_version):
+        app_template = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version)
+        if app_template:
+            rainbond_app = RainbondCenterApp(
+                group_key=app_template["group_key"],
+                group_name=app_template["group_name"],
+                version=app_template['group_version'],
+                share_user=0,
+                record_id=0,
+                share_team=tenant.tenant_name,
+                source="import",
+                scope="goodrain",
+                describe=app_template.pop("describe", ""),
+                app_template=json.dumps(app_template),
+                is_complete=True,
+                template_version=app_template.get("template_version", "")
+            )
+            return rainbond_app
+        return None
+
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
             return rainbond_app_repo.get_all_rainbond_apps().filter(
@@ -1301,6 +1323,10 @@ class AppMarketSynchronizeService(object):
             rainbond_app.upgrade_time = v2_template.get("update_version", "")
             rainbond_app.save()
         return rainbond_app
+
+    def get_recommended_app_list(self):
+        api_response = market_client.get_recommended_app_list()
+        logger.debug(api_response)
 
 
 market_app_service = MarketAppService()

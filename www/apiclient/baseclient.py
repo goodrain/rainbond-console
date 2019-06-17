@@ -7,6 +7,7 @@ import socket
 import httplib2
 from addict import Dict
 
+from django.conf import settings
 from goodrain_web.decorator import method_perf_time
 from www.models.main import TenantEnterpriseToken, TenantEnterprise, Tenants
 
@@ -34,7 +35,7 @@ class HttpClient(object):
         pass
 
     def __init__(self, *args, **kwargs):
-        self.timeout = 5
+        self.timeout = 3
         self.apitype = 'Not specified'
 
     def _jsondecode(self, string):
@@ -82,17 +83,15 @@ class HttpClient(object):
                     response, content = client.request(url, method, headers=headers)
                 else:
                     response, content = client.request(url, method, headers=headers, body=body)
-
-                if len(content) > 10000:
-                    record_content = '%s  .....ignore.....' % content[:1000]
-                else:
-                    record_content = content
+                # if len(content) > 10000:
+                #     record_content = '%s  .....ignore.....' % content[:1000]
+                # else:
+                #     record_content = content
 
                 # if body is not None and len(body) > 1000:
                 #     record_body = '%s .....ignore.....' % body[:1000]
                 # else:
                 #     record_body = body
-
                 return response, content
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
@@ -249,13 +248,11 @@ class ClientAuthService(object):
         tenant = Tenants.objects.get(tenant_id=tenant_id)
         if not tenant:
             return None, None, None
-
         token = self.__get_cached_access_token(tenant.enterprise_id, 'market')
         if not token:
             token = self.reflush_access_token(tenant.enterprise_id, 'market')
-
         if not token:
-            return None, None, None
+            return settings.APP_SERVICE_API["url"], tenant.enterprise_id, ""
 
         return token.access_url, token.access_id, token.access_token
 
