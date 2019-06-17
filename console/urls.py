@@ -110,6 +110,7 @@ from console.views.center_pool.apps import CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
+from console.views.center_pool.apps import GetCloudRecommendedAppList
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
@@ -681,6 +682,7 @@ urlpatterns = [
 
     # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
     # 查询云端指定版本app
     url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
     # 下架应用

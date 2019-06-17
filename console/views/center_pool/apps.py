@@ -26,6 +26,7 @@ from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 from www.apiclient.baseclient import HttpClient
+from market_client.rest import ApiException
 
 logger = logging.getLogger('default')
 
@@ -66,7 +67,6 @@ class CenterAppListView(RegionTenantHeaderView):
         apps = market_app_service.get_visiable_apps(
             self.tenant, scope, app_name
         ).values('group_key').annotate(id=Min('ID'))
-        # market_sycn_service.get_recommended_app_list()
         paginator = Paginator(apps, int(page_size))
         show_apps = paginator.page(int(page))
 
@@ -363,3 +363,45 @@ class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class GetCloudRecommendedAppList(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取云端市场推荐应用列表
+        ---
+        parameters:
+            - name: app_name
+              description: 应用名字
+              required: false
+              type: string
+              paramType: query
+            - name: page
+              description: 当前页
+              required: true
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页大小,默认为10
+              required: true
+              type: string
+              paramType: query
+        """
+        app_name = request.GET.get("app_name", None)
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        try:
+            apps = market_sycn_service.get_recommended_app_list(self.tenant, page, page_size, app_name)
+            if apps and apps.list:
+                return MessageResponse(
+                    "success",
+                    msg_show="查询成功",
+                    list=[app.to_dict() for app in apps.list],
+                    total=apps.total,
+                    next_page=int(apps.page) + 1
+                )
+            else:
+                return Response(general_message(200, "no apps", u"查询成功"), status=200)
+        except ApiException as e:
+            logger.exception(e)
+            return Response(general_message(e.status, e.reason, u"云端获取应用列表失败"), status=e.status)

@@ -42,9 +42,10 @@ from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import ServicePluginConfigVar
 from www.models import TenantServiceInfo
+from www.models import TenantEnterprise, TenantEnterpriseToken
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.utils.restful_client import market_client
+from console.utils.restful_client import get_market_client, get_default_market_client
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -1324,9 +1325,20 @@ class AppMarketSynchronizeService(object):
             rainbond_app.save()
         return rainbond_app
 
-    def get_recommended_app_list(self):
-        api_response = market_client.get_recommended_app_list()
-        logger.debug(api_response)
+    def get_recommended_app_list(self, tenant, page, limit, app_name):
+        token = self.__get_enterprise_access_token(tenant.enterprise_id, "market")
+        if token:
+            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+        else:
+            market_client = get_default_market_client()
+        return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
+
+    def __get_enterprise_access_token(self, enterprise_id, access_target):
+        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        try:
+            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
+        except TenantEnterpriseToken.DoesNotExist:
+            return None
 
 
 market_app_service = MarketAppService()
