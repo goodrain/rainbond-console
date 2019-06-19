@@ -719,6 +719,7 @@ class MarketAppService(object):
 
     def check_package_app_resource(self, tenant, region, market_app):
         app_templates = json.loads(market_app.app_template)
+        logger.info(app_templates)
         apps = app_templates["apps"]
         total_memory = 0
         for app in apps:
@@ -810,7 +811,7 @@ class MarketAppService(object):
                 source="import",
                 scope="goodrain",
                 describe=app_template.pop("describe", ""),
-                app_template=json.dumps(app_template),
+                app_template=app_template["template_content"],
                 is_complete=True,
                 template_version=app_template.get("template_version", "")
             )

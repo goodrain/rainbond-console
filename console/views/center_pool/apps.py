@@ -120,6 +120,11 @@ class CenterAppView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
+            - name: install_from_cloud
+              description: install app from cloud
+              required: false
+              type: bool
+              paramType: form
         """
         try:
             group_id = request.data.get("group_id", -1)
@@ -134,7 +139,7 @@ class CenterAppView(RegionTenantHeaderView):
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
             if install_from_cloud:
-                app = market_app_service.get_app_from_cloud(group_key, group_version)
+                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -159,9 +164,9 @@ class CenterAppView(RegionTenantHeaderView):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                return Response(general_message(10407, "no cloud permission", re.message), status=403)
+                return Response(general_message(10407, "no cloud permission", e.message), status=403)
             else:
-                return Response(general_message(500, "call cloud api failure", re.message), status=500) 
+                return Response(general_message(500, "call cloud api failure", e.message), status=500)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
