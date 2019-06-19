@@ -33,8 +33,7 @@ docker-image-py==0.1.4
 pytest-django==3.4.8
 pytest-xdist==1.28.0
 pytest-mock==1.10.4
-rainbond_market_client==0.0.1-dev
-
+rainbond_market_client==0.0.2
 
 
 
