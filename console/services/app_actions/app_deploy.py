@@ -138,7 +138,8 @@ class MarketService(object):
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service
-        if version is None:
+        # If no version is specified, the default version is used.
+        if not version:
             service_source = service_source_repo.get_service_source(
                 tenant.tenant_id, service.service_id)
             version = service_source.version
