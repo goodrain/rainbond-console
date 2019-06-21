@@ -252,6 +252,7 @@ class MarketService(object):
         """
         raise RbdAppNotFound
         raise RecordNotFound
+        raise ErrServiceSourceNotFound
         """
         logger.info("type: market; service id: {}; pre-deployment action.".format(
             self.service.service_id))
