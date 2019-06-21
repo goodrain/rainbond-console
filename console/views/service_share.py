@@ -15,6 +15,7 @@ from console.services.group_service import group_service
 from console.services.share_services import share_service
 from console.services.user_services import user_services
 from console.utils.reqparse import parse_argument
+from console.utils.string_util import check_contain_chinese
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -263,6 +264,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 result = general_message(400, "share info can not be empty", "分享信息不能为空")
                 return Response(result, status=400)
             share_group_info = request.data.get("share_group_info", None)
+            if check_contain_chinese(share_group_info["version"]):
+                return Response(general_message(400, "version can not contain chinese", "版本号不能含有中文"), status=403)
             if share_group_info["scope"] == "goodrain":
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.team.enterprise_id)
                 if not enterprise.is_active:
