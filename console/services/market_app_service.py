@@ -5,15 +5,15 @@
 import datetime
 import json
 import logging
+import socket
+
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.exception.main import AbortRequest
-from console.exception.main import RbdAppNotFound
+from console.exception.main import AbortRequest, RbdAppNotFound
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
-from console.repositories.app_config import extend_repo
-from console.repositories.app_config import volume_repo
+from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import plugin_repo
@@ -22,30 +22,26 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_actions.properties_changes import has_changes
-from console.services.app_actions.properties_changes import PropertiesChanges
-from console.services.app_config import AppMntService
-from console.services.app_config import env_var_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-from console.services.app_config import probe_service
-from console.services.app_config import volume_service
-from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.app_actions.properties_changes import (PropertiesChanges,
+                                                             has_changes)
+from console.services.app_config import (AppMntService, env_var_service,
+                                         label_service, port_service,
+                                         probe_service, volume_service)
+from console.services.app_config.app_relation_service import \
+    AppServiceRelationService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
-from console.services.plugin import app_plugin_service
-from console.services.plugin import plugin_config_service
-from console.services.plugin import plugin_service
-from console.services.plugin import plugin_version_service
+from console.services.plugin import (app_plugin_service, plugin_config_service,
+                                     plugin_service, plugin_version_service)
+from console.utils.restful_client import (get_default_market_client,
+                                          get_market_client)
 from console.utils.timeutil import current_time_str
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import ServicePluginConfigVar
-from www.models import TenantServiceInfo
-from www.models import TenantEnterprise, TenantEnterpriseToken
+from www.models import (ServicePluginConfigVar, TenantEnterprise,
+                        TenantEnterpriseToken, TenantServiceInfo)
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.utils.restful_client import get_market_client, get_default_market_client
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -1327,12 +1323,16 @@ class AppMarketSynchronizeService(object):
         return rainbond_app
 
     def get_recommended_app_list(self, tenant, page, limit, app_name):
-        token = self.__get_enterprise_access_token(tenant.enterprise_id, "market")
-        if token:
-            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
-        else:
-            market_client = get_default_market_client()
-        return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
+        try:
+            token = self.__get_enterprise_access_token(tenant.enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
+        except socket.timeout:
+            logger.warning("request cloud app list timeout")
+            return None
 
     def __get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
