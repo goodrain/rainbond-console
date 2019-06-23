@@ -101,7 +101,7 @@ class AppService(object):
         new_service.tenant_id = tenant.tenant_id
         new_service.service_cname = service_cname
         service_id = make_uuid(tenant.tenant_id)
-        service_alias = "gr" + service_id[-6:]
+        service_alias = self.create_service_alias(service_id)
         # 判断是否超过资源
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
                                                 "source_code_app_create")
@@ -227,6 +227,15 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
+    def create_service_alias(self, service_id):
+        service_alias = "gr" + service_id[-6:]
+        svc = service_repo.get_service_by_service_alias(service_alias)
+        if svc is None:
+            return service_alias
+        service_alias = self.create_service_alias(make_uuid(service_id))
+        return service_alias
+
+
     def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -236,7 +245,7 @@ class AppService(object):
         new_service.service_cname = service_cname
         new_service.service_source = image_type
         service_id = make_uuid(tenant.tenant_id)
-        service_alias = "gr" + service_id[-6:]
+        service_alias = self.create_service_alias(service_id)
         allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
                                                 "image_create_app")
         if not allow_create:
@@ -299,7 +308,7 @@ class AppService(object):
         new_service.tenant_id = tenant.tenant_id
         new_service.service_cname = service_cname
         service_id = make_uuid(tenant.tenant_id)
-        service_alias = "gr" + service_id[-6:]
+        service_alias = self.create_service_alias(service_id)
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk
