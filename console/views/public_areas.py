@@ -1,30 +1,35 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.paginator import EmptyPage
+from django.core.paginator import PageNotAnInteger
+from django.core.paginator import Paginator
+from django.db import connection
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from django.db import connection
 
 from backends.services.exceptions import GroupNotExistError
-from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
+from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
 from console.services.event_services import service_event_dynamic
+from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
-from goodrain_web.tools import JuncheePaginator
-from www.utils.status_translate import get_status_info_map
 from console.views.base import RegionTenantHeaderView
+from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.group_service import group_service
-from console.repositories.region_repo import region_repo
-from console.repositories.app_config import tcp_domain, domain_repo
-from console.repositories.share_repo import share_repo
-from console.repositories.backup_repo import backup_record_repo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
+from www.utils.status_translate import get_status_info_map
 
 event_service = AppEventService()
 
@@ -141,6 +146,7 @@ class TeamOverView(RegionTenantHeaderView):
                             int(source["limit_memory"])) * 100
                     overview_detail["cpu_usage"] = round(cpu_usage, 2)
                     overview_detail["memory_usage"] = round(memory_usage, 2)
+                    overview_detail["eid"] = self.team.enterprise_id
 
                 return Response(
                     general_message(
@@ -149,7 +155,8 @@ class TeamOverView(RegionTenantHeaderView):
                 data = {
                     "user_nums": 1,
                     "team_service_num": 0,
-                    "total_memory": 0
+                    "total_memory": 0,
+                    "eid": self.team.enterprise_id,
                 }
                 result = general_message(
                     200, "success", "团队信息总览获取成功", bean=data)
@@ -564,8 +571,11 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                 attr_name_list = []
                 cursor = connection.cursor()
                 cursor.execute(
-                    "select attr_name from tenant_service_env_var where tenant_id='{0}' and attr_name like '%{1}%' order by attr_name;"
-                    .format(self.team.tenant_id, attr_name))
+                    """
+                    select attr_name from tenant_service_env_var
+                    where tenant_id='{0}' and attr_name like '%{1}%'
+                    order by attr_name;
+                    """.format(self.team.tenant_id, attr_name))
                 service_envs = cursor.fetchall()
                 if len(service_envs) > 0:
                     for service_env in service_envs:
@@ -580,8 +590,11 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                 attr_value_list = []
                 cursor = connection.cursor()
                 cursor.execute(
-                    "select attr_value from tenant_service_env_var where tenant_id='{0}' and attr_value like '%{1}%' order by attr_value;"
-                    .format(self.team.tenant_id, attr_value))
+                    """
+                    select attr_value from tenant_service_env_var
+                    where tenant_id='{0}' and attr_value like '%{1}%'
+                    order by attr_value;
+                    """.format(self.team.tenant_id, attr_value))
                 service_envs = cursor.fetchall()
                 if len(service_envs) > 0:
                     for service_env in service_envs:
