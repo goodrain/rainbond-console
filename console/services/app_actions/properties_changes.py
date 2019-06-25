@@ -12,6 +12,7 @@ from console.repositories.app_config import volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app import app_service
+from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
@@ -32,7 +33,10 @@ class PropertiesChanges(object):
 
         raise: RecordNotFound
         raise: RbdAppNotFound
+        raise: ErrServiceSourceNotFound
         """
+        if self.service_source is None:
+            raise ErrServiceSourceNotFound(self.service.service_id)
         app = rbd_center_app_service.get_version_app(eid, version,
                                                      self.service_source)
         self.plugins = rbd_center_app_service.get_plugins(eid, version,

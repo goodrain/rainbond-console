@@ -23,6 +23,7 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
+from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import has_changes
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppMntService
@@ -961,7 +962,7 @@ class MarketAppService(object):
         for item in rbd_center_apps:
             try:
                 changes = pc.get_property_changes(tenant.enterprise_id, item.version)
-            except RbdAppNotFound as e:
+            except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue
             if not has_changes(changes):
