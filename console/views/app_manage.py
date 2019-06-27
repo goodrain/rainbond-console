@@ -15,7 +15,7 @@ from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from console.services.app_actions.app_deploy import AppDeployService
-from console.services.app_actions.exception import ErrServiceSrouceNotFound
+from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config import deploy_type_service
 from console.services.app_config import volume_service
 from console.services.app_config.env_service import AppEnvVarService
@@ -188,7 +188,7 @@ class DeployAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
-        except ErrServiceSrouceNotFound as e:
+        except ErrServiceSourceNotFound as e:
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
