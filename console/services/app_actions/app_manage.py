@@ -1171,13 +1171,11 @@ class AppManageService(AppManageBase):
         domains = domain_repo.get_service_domains(service.service_id)
         if not domains:
             return False
-        elif len(domains) == 1:
-            for domain in domains:
-                if domain.type == 0:
-                    return False
-                else:
-                    return True
-        return True
+
+        for domain in domains:
+            if domain.type == 1:
+                return True
+        return False
 
     def __is_service_mnt_related(self, tenant, service):
         sms = mnt_repo.get_mount_current_service(
