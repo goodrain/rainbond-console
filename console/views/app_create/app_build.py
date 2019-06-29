@@ -67,7 +67,7 @@ class AppBuild(AppBaseView):
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
                 # 部署应用
-                app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade=True, group_version=None)
+                app_manage_service.deploy(self.tenant, self.service, self.user, group_version=None)
 
                 # 添加应用部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
@@ -152,7 +152,7 @@ class ComposeBuildView(RegionTenantHeaderView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, is_upgrade=True, group_version=None)
+                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None)
                 except Exception as e:
                     logger.exception(e)
                     continue

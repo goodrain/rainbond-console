@@ -173,13 +173,12 @@ class DeployAppView(AppBaseView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            is_upgrade = request.data.get("is_upgrade", True)
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
 
             code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user,
-                                                         is_upgrade, version=group_version)
+                                                         version=group_version)
 
             bean = {}
             if event:

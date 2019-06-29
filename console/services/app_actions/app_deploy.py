@@ -94,13 +94,13 @@ class AppDeployService(object):
             service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
             try:
-                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
+                code, msg, event = app_manage_service.deploy(tenant, service, user,
                                                              group_version=version,
                                                              committer_name=committer_name)
             except ErrVersionAlreadyExists:
                 service.deploy_version = datetime.now().strftime('%Y%m%d%H%M%S')
                 service.save()
-                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
+                code, msg, event = app_manage_service.deploy(tenant, service, user,
                                                              group_version=version,
                                                              committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
@@ -109,13 +109,13 @@ class AppDeployService(object):
             return 200, "", None
         return code, msg, event
 
-    def deploy(self, tenant, service, user, is_upgrade, version, committer_name=None):
+    def deploy(self, tenant, service, user, version, committer_name=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
         self.pre_deploy_action(tenant, service, version)
 
-        return self.execute(tenant, service, user, is_upgrade, version, committer_name)
+        return self.execute(tenant, service, user, version, committer_name)
 
 
 class OtherService(object):
