@@ -100,7 +100,10 @@ class GroupappsMigrateService(object):
     def __create_new_group(self, tenant_id, region, old_group_id):
 
         old_group = group_repo.get_group_by_id(old_group_id)
-        new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+        if old_group:
+            new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+        else:
+            new_group_name = make_uuid()[:8]
 
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
