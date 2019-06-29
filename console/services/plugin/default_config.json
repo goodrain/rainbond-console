@@ -1,133 +1,113 @@
 {
   "downstream_net_plugin": {
-    "plugin_alias": "服务网络治理插件",
-    "desc": "实现智能路由、A/B测试、灰度发布、端口复用等微服务治理功能",
-    "category": "net-plugin:down",
+    "plugin_alias": "网络综合治理插件",
+    "desc": "支持出口网络治理和入口网络治理",
+    "category": "net-plugin:in-and-out",
     "code_repo": "",
     "build_source": "image",
     "image": "goodrain.me/mesh_plugin",
     "config_group": [
       {
-        "service_meta_type": "downstream_port",
+        "config_name": "limit-config",
         "injection": "auto",
-        "config_name": "下游应用配置",
+        "service_meta_type": "upstream_port",
         "options": [
           {
-            "attr_name": "Domains",
-            "attr_type": "string",
-            "attr_default_value": "*",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "访问域名（仅支持一级域名",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "Prefix",
-            "attr_type": "string",
-            "attr_default_value": "/",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "请求路径前缀",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "Headers",
-            "attr_type": "string",
-            "attr_default_value": "",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "请求header信息，多个以；分离",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "Weight",
-            "attr_type": "string",
-            "attr_default_value": "100",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "权重，Domain,Prefix,headers一致时生效",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "MaxConnections",
-            "attr_type": "string",
-            "attr_default_value": "1024",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "http1.1",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "MaxPendingRequests",
-            "attr_type": "string",
-            "attr_default_value": "1024",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "最大等待请求数",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "MaxRequests",
-            "attr_type": "string",
-            "attr_default_value": "1024",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "最大请求数",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "MaxActiveRetries",
-            "attr_type": "string",
-            "attr_default_value": "5",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "最大重试次数",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "IntervalMS",
-            "attr_type": "string",
-            "attr_default_value": "10",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "降级恢复时间",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "ConsecutiveErrors",
-            "attr_type": "string",
-            "attr_default_value": "5",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "连续错误降级阀值",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "BaseEjectionTimeMS",
-            "attr_type": "string",
-            "attr_default_value": "30000",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "降级基准时间",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "MaxEjectionPercent",
-            "attr_type": "string",
-            "attr_default_value": "20",
-            "is_change": true,
-            "attr_alt_value": "",
-            "attr_info": "最大降级节点百分比",
-            "protocol": "http"
-          },
-          {
-            "attr_name": "PROXY",
-            "attr_type": "radio",
+            "attr_info": "是否开启限流",
+            "protocol": "",
             "attr_default_value": "YES",
-            "is_change": false,
+            "attr_name": "OPEN_LIMIT",
             "attr_alt_value": "YES,NO",
-            "attr_info": "代理",
-            "protocol": ""
+            "is_change": true,
+            "attr_type": "radio"
+          },
+          {
+            "attr_info": "对应限流规则的域名",
+            "protocol": "",
+            "attr_default_value": "limit.common",
+            "attr_name": "LIMIT_DOMAIN",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          }
+        ]
+      },
+      {
+        "service_meta_type": "downstream_port",
+        "injection": "auto",
+        "config_name": "outbound",
+        "options": [
+          {
+            "attr_info": "匹配域名",
+            "protocol": "http",
+            "attr_default_value": "",
+            "attr_name": "Domains",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "匹配请求路径前缀",
+            "protocol": "http",
+            "attr_default_value": "",
+            "attr_name": "Prefix",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "匹配请求头（k=v,k2=v2)）",
+            "protocol": "http",
+            "attr_default_value": "",
+            "attr_name": "Headers",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "最大连接数",
+            "protocol": "",
+            "attr_default_value": "1024",
+            "attr_name": "MaxConnections",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "最大并行请求数",
+            "protocol": "http",
+            "attr_default_value": "1024",
+            "attr_name": "MaxRequests",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "最大等待请求数",
+            "protocol": "http",
+            "attr_default_value": "1024",
+            "attr_name": "MaxPendingRequests",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "最大重试次数",
+            "protocol": "http",
+            "attr_default_value": "5",
+            "attr_name": "MaxActiveRetries",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
+          },
+          {
+            "attr_info": "每个连接最大请求数，默认不限制，设为1则禁用keep alive",
+            "protocol": "http",
+            "attr_default_value": "",
+            "attr_name": "MaxRequestsPerConnection",
+            "attr_alt_value": "",
+            "is_change": true,
+            "attr_type": "string"
           }
         ]
       }
