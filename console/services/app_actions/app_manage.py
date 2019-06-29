@@ -454,14 +454,8 @@ class AppManageService(AppManageBase):
             tenant, service, user, self.UPGRADE, committer_name)
         if code != 200:
             return code, msg, event
-
         body = dict()
-
-        event.deploy_version = service.deploy_version
-        event.save()
-
-        body["deploy_version"] = service.deploy_version
-        body["service_name"] = service.service_name
+        body["service_id"] = service.service_id
         body["event_id"] = event.event_id
         try:
             region_api.upgrade_service(
