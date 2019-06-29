@@ -1327,7 +1327,7 @@ class AppMarketSynchronizeService(object):
 
     def get_recommended_app_list(self, tenant, page, limit, app_name):
         try:
-            token = self.__get_enterprise_access_token(tenant.enterprise_id, "market")
+            token = self.get_enterprise_access_token(tenant.enterprise_id, "market")
             if token:
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
@@ -1337,7 +1337,7 @@ class AppMarketSynchronizeService(object):
             logger.warning("request cloud app list timeout")
             return None
 
-    def __get_enterprise_access_token(self, enterprise_id, access_target):
+    def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
         try:
             return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
