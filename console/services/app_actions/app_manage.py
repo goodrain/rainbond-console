@@ -320,13 +320,14 @@ class AppManageService(AppManageBase):
             re = region_api.build_service(service.service_region,
                                           tenant.tenant_name,
                                           service.service_alias, body)
-            if re and re.get("status") != "success":
-                event.message = u"应用构建失败{0}".format(re.get("err_message"))
+            if re and re.get(
+                    "bean") and re.get("bean").get("status") != "success":
+                event.message = u"应用构建失败{0}".format(re.get("err_message", ""))
                 event.final_status = "complete"
                 event.status = "failure"
                 event.event_id = re.get("event_id", "")
                 event.save()
-                return 507, "构建异常", event    
+                return 507, "构建异常", event
         except region_api.CallApiError as e:
             event.message = u"应用构建失败".format(e.message)
             event.final_status = "complete"
