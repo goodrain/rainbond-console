@@ -179,7 +179,6 @@ class AppManageService(AppManageBase):
 
         if service.create_status == "complete":
             body = dict()
-            body["deploy_version"] = service.deploy_version
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
@@ -547,10 +546,6 @@ class AppManageService(AppManageBase):
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
-            if deploy_version == service.deploy_version:
-                event.delete()
-                return 409, u"当前版本与所需回滚版本一致，无需回滚", None
-
             res, data = region_api.get_service_build_version_by_id(
                 service.service_region, tenant.tenant_name,
                 service.service_alias, deploy_version)
@@ -562,15 +557,12 @@ class AppManageService(AppManageBase):
             body = dict()
             body["event_id"] = event.event_id
             body["operator"] = str(user.nick_name)
-            body["deploy_version"] = deploy_version
+            body["upgrade_version"] = deploy_version
+            body["service_id"] = service.service_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.rollback(service.service_region, tenant.tenant_name,
                                     service.service_alias, body)
-                service.deploy_version = deploy_version
-                service.save()
-                event.deploy_version = deploy_version
-                event.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
                 if event:
@@ -714,7 +706,6 @@ class AppManageService(AppManageBase):
             if service.create_status == "complete":
                 service_dict["event_id"] = event.event_id
                 service_dict["service_id"] = service.service_id
-                service_dict["upgrade_version"] = service.deploy_version
 
                 upgrade_infos_list.append(service_dict)
             else:
@@ -734,19 +725,13 @@ class AppManageService(AppManageBase):
                 tenant, service, user, self.DEPLOY)
             if code != 200:
                 continue
-            if not service.deploy_version:
-                service.deploy_version = datetime.datetime.now().strftime(
-                    '%Y%m%d%H%M%S')
-            service.save()
-            event.deploy_version = service.deploy_version
-            event.save()
             events.append(event)
 
             service_dict["event_id"] = event.event_id
             service_dict["service_id"] = service.service_id
-            service_dict["deploy_version"] = service.deploy_version
-
-            service_dict["action"] = 'upgrade'
+            service_dict["action"] = 'deploy'
+            if service.build_upgrade:
+                service_dict["action"] = 'upgrade'
             envs = env_var_repo.get_build_envs(tenant.tenant_id,
                                                service.service_id)
             service_dict["envs"] = envs
@@ -998,7 +983,6 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
-            body["deploy_version"] = service.deploy_version
             body["container_cpu"] = new_cpu
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
@@ -1038,7 +1022,6 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["node_num"] = new_node
-            body["deploy_version"] = service.deploy_version
             body["operator"] = str(user.nick_name)
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
@@ -1177,7 +1160,6 @@ class AppManageService(AppManageBase):
                 "service_id": service.service_id,
                 "tenant_id": tenant.tenant_id,
                 "type": "truncate",
-                "deploy_version": service.deploy_version,
                 "old_deploy_version": "",
                 "user_name": user.nick_name,
                 "start_time": datetime.datetime.now(),

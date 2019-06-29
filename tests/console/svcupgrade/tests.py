@@ -8,7 +8,7 @@ from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
 from console.models.main import RainbondCenterApp
 from console.models.main import ServiceSourceInfo
-from www.models import TenantServiceInfo
+from www.models import TenantServiceInfo, Tenants
 
 
 @pytest.mark.django_db
@@ -19,7 +19,7 @@ def test_record_not_found(mocker):
         service_source.group_key = "dummy group_key"
         mocker.patch("console.repositories.app.service_source_repo.get_service_source",
                      return_value=service_source)
-        properties_changes = PropertiesChanges(TenantServiceInfo())
+        properties_changes = PropertiesChanges(TenantServiceInfo(), Tenants())
         properties_changes.get_property_changes(
             "eid", "version")
 
@@ -41,7 +41,7 @@ def test_rbd_app_not_found(mocker):
                  return_value=service_source)
 
     with pytest.raises(RbdAppNotFound):
-        properties_changes = PropertiesChanges(TenantServiceInfo())
+        properties_changes = PropertiesChanges(TenantServiceInfo(), Tenants())
         properties_changes.get_property_changes("eid", "version")
 
 
@@ -87,7 +87,7 @@ def test_envs_changes():
     service = TenantServiceInfo()
     service.tenant_id = tenant_id
     service.service_id = service_id
-    properties_changes = PropertiesChanges(service)
+    properties_changes = PropertiesChanges(service, Tenants())
     env_changes = properties_changes.env_changes(envs)
     print env_changes
     assert 2 == len(env_changes["add"])

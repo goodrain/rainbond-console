@@ -974,7 +974,7 @@ class MarketAppService(object):
         if not rbd_center_apps:
             return None
 
-        pc = PropertiesChanges(service)
+        pc = PropertiesChanges(service, tenant)
         result = []
         for item in rbd_center_apps:
             try:

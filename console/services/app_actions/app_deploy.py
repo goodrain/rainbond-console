@@ -287,7 +287,7 @@ class MarketService(object):
 
     def set_changes(self):
         # list properties changes
-        pc = PropertiesChanges(self.service)
+        pc = PropertiesChanges(self.service, self.tenant)
         changes = pc.get_property_changes(self.tenant.enterprise_id,
                                           self.version)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(
