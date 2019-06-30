@@ -16,15 +16,17 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from console.services.market_app_service import market_app_service
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
 
 
 class PropertiesChanges(object):
-    def __init__(self, service, tenant):
+    def __init__(self, service, tenant, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
+        self.install_from_cloud = install_from_cloud
         self.service_source = service_source_repo.get_service_source(
             service.tenant_id, service.service_id)
 
@@ -38,8 +40,10 @@ class PropertiesChanges(object):
         """
         if self.service_source is None:
             raise ErrServiceSourceNotFound(self.service.service_id)
-        app = rbd_center_app_service.get_version_app(eid, version,
-                                                     self.service_source)
+        if self.install_from_cloud:
+            app = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key, self.service_source.version)
+        else:
+            app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
         self.plugins = rbd_center_app_service.get_plugins(
             eid, version, self.service_source)
         # when modifying the following properties, you need to

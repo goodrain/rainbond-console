@@ -14,7 +14,7 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-
+from console.services.market_app_service import market_app_service
 from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.team_services import team_services
@@ -39,6 +39,7 @@ from console.views.base import JWTAuthApiView
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.service_services import base_service
+from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -665,16 +666,19 @@ class BuildSourceinfo(AppBaseView):
             bean = {
                 "user_name": "",
                 "password": ""
-            }                                         
+            }                                      
             if service_source:
                 bean["user"] = service_source.user_name
                 bean["password"] = service_source.password
-            
             if self.service.service_source == 'market':
                 if service_source:
-                    # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                     service_source.version)
+                    # get from cloud
+                    if service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info.install_from_cloud:
+                            rain_app = market_app_service.get_app_from_cloud(self.tenant, self.group_key, self.version)
+                    if not rain_app:
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key, service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details
@@ -692,18 +696,9 @@ class BuildSourceinfo(AppBaseView):
             bean["code_version"] = self.service.code_version
             bean["server_type"] = self.service.server_type
             bean["language"] = self.service.language
-            if self.service.service_source == 'market':
-                if service_source:
-                    # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                     service_source.version)
-                    if rain_app:
-                        bean["rain_app_name"] = rain_app.group_name
-                        bean["details"] = rain_app.details
-                        logger.debug("version: {}".format(rain_app.version))
-                        bean["version"] = rain_app.version
-                        bean["group_key"] = rain_app.group_key
             result = general_message(200, "success", "查询成功", bean=bean)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

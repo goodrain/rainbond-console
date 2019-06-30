@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from console.exception.main import AccountOverdueException
 from console.exception.main import CallRegionAPIException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
@@ -627,6 +628,8 @@ class UpgradeAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+        except ServiceHandleException as e:
+            raise e
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)

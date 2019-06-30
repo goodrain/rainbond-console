@@ -33,6 +33,7 @@ from console.services.backup_service import groupapp_backup_service as backup_se
 from console.services.exception import ErrDepServiceNotFound
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from console.services.market_app_service import market_app_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
@@ -140,13 +141,19 @@ class MarketService(object):
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service
+        self.service_source = service_source_repo.get_service_source(
+                tenant.tenant_id, service.service_id)
+        if self.service_source.extend_info:
+            extend_info = json.loads(self.service_source.extend_info)
+            self.install_from_cloud = extend_info.install_from_cloud
+            logger.info("service {0} imstall from cloud", service.service_alias)
+        else:
+            self.install_from_cloud = False
         # If no version is specified, the default version is used.
         if not version:
-            service_source = service_source_repo.get_service_source(
-                tenant.tenant_id, service.service_id)
-            version = service_source.version
+            version = self.service_source.version
         self.version = version
-
+        self.group_key = self.service_source.group_key
         self.changes = {}
         # data that has been successfully changed
         self.changed = {}
@@ -317,8 +324,11 @@ class MarketService(object):
         """
         service_source = service_source_repo.get_service_source(
             self.tenant.tenant_id, self.service.service_id)
-        app = rbd_center_app_service.get_version_app(
-            self.tenant.enterprise_id, self.version, service_source)
+        if self.install_from_cloud:
+            app = market_app_service.get_app_from_cloud(self.tenant, self.group_key, self.version)
+        else:
+            app = rbd_center_app_service.get_version_app(
+                self.tenant.enterprise_id, self.version, service_source)
         self._update_service(app)
         self._update_service_source(app, self.version)
         changes = deepcopy(self.changes)
