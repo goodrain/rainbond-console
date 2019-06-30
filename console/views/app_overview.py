@@ -665,8 +665,19 @@ class BuildSourceinfo(AppBaseView):
                                                                     service_id=self.service.service_id)
             bean = {
                 "user_name": "",
-                "password": ""
-            }                                      
+                "password": "",
+                "service_source": self.service.service_source,
+                "image": self.service.image,
+                "cmd": self.service.cmd,
+                "code_from": self.service.code_from,
+                "version": self.service.version,
+                "docker_cmd": self.service.docker_cmd,
+                "create_time": self.service.create_time,
+                "git_url": self.service.git_url,
+                "code_version": self.service.code_version,
+                "server_type": self.service.server_type,
+                "language": self.service.language,
+            }
             if service_source:
                 bean["user"] = service_source.user_name
                 bean["password"] = service_source.password
@@ -676,7 +687,8 @@ class BuildSourceinfo(AppBaseView):
                     if service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info and extend_info.get("install_from_cloud", False):
-                            rain_app = market_app_service.get_app_from_cloud(self.tenant, self.group_key, self.version)
+                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key, service_source.version)
+                            bean["install_from_cloud"] = True
                     if not rain_app:
                         rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key, service_source.version)
                     if rain_app:
@@ -684,18 +696,8 @@ class BuildSourceinfo(AppBaseView):
                         bean["details"] = rain_app.details
                         logger.debug("app_version: {}".format(rain_app.version))
                         bean["app_version"] = rain_app.version
+                        bean["version"] = rain_app.version
                         bean["group_key"] = rain_app.group_key
-            bean["service_source"] = self.service.service_source
-            bean["image"] = self.service.image
-            bean["cmd"] = self.service.cmd
-            bean["code_from"] = self.service.code_from
-            bean["version"] = self.service.version
-            bean["docker_cmd"] = self.service.docker_cmd
-            bean["create_time"] = self.service.create_time
-            bean["git_url"] = self.service.git_url
-            bean["code_version"] = self.service.code_version
-            bean["server_type"] = self.service.server_type
-            bean["language"] = self.service.language
             result = general_message(200, "success", "查询成功", bean=bean)
         except ServiceHandleException as e:
             raise e

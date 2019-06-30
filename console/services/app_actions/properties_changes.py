@@ -29,6 +29,8 @@ class PropertiesChanges(object):
         self.service_source = service_source_repo.get_service_source(
             service.tenant_id, service.service_id)
 
+    # This method should be passed in to the app model, which is not necessarily derived from the local database
+    # This method should not rely on database resources
     def get_property_changes(self, eid, version):
         """
         get property changes for market service

@@ -294,12 +294,12 @@ class MarketService(object):
 
     def set_changes(self):
         # list properties changes
-        pc = PropertiesChanges(self.service, self.tenant)
-        changes = pc.get_property_changes(self.tenant.enterprise_id,
-                                          self.version)
-        logger.debug("service id: {}; dest version: {}; changes: {}".format(
-            self.service.service_id, self.version, changes))
-        self.changes = changes
+        if not self.install_from_cloud:
+            pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
+            changes = pc.get_property_changes(self.tenant.enterprise_id, self.version)
+            logger.debug("service id: {}; dest version: {}; changes: {}".format(
+                self.service.service_id, self.version, changes))
+            self.changes = changes
 
     def create_backup(self):
         """create_backup
@@ -325,7 +325,7 @@ class MarketService(object):
         service_source = service_source_repo.get_service_source(
             self.tenant.tenant_id, self.service.service_id)
         if self.install_from_cloud:
-            app = market_app_service.get_app_from_cloud(self.tenant, self.group_key, self.version)
+            app = market_app_service.get_service_app_from_cloud(self.tenant, self.group_key, self.version, service_source)
         else:
             app = rbd_center_app_service.get_version_app(
                 self.tenant.enterprise_id, self.version, service_source)

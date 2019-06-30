@@ -821,6 +821,24 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
+    def get_service_app_from_cloud(self, tenant, group_key, group_version, service_source):
+        rain_app = self.get_app_from_cloud(tenant, group_key, group_version)
+        if rain_app:
+            apps_template = json.loads(rain_app.app_template)
+            apps = apps_template.get("apps")
+
+            def func(x):
+                result = x.get("service_share_uuid", None) == service_source.service_share_uuid\
+                    or x.get("service_key", None) == service_source.service_share_uuid
+                return result
+            app = next(iter(filter(lambda x: func(x), apps)), None)
+        if app is None:
+            fmt = "Group key: {0}; version: {1}; service_share_uuid: {2}; Rainbond app not found."
+            raise RbdAppNotFound(fmt.format(service_source.group_key,
+                                            group_version,
+                                            service_source.service_share_uuid))
+        return app
+
     # download app from cloud and return app model
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version):
