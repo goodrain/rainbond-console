@@ -145,7 +145,7 @@ class MarketService(object):
                 tenant.tenant_id, service.service_id)
         if self.service_source.extend_info:
             extend_info = json.loads(self.service_source.extend_info)
-            self.install_from_cloud = extend_info.install_from_cloud
+            self.install_from_cloud = extend_info.get("install_from_cloud", False)
             logger.info("service {0} imstall from cloud", service.service_alias)
         else:
             self.install_from_cloud = False

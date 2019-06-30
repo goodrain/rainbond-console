@@ -1001,18 +1001,29 @@ class MarketAppService(object):
             logger.warn("service id: {}; service source not found".format(
                 service.service_id))
             return None
-        cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-            service_source.group_key, service_source.version)
+        install_from_cloud = False
+        if service_source.extend_info:
+            extend_info = json.loads(service_source.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                install_from_cloud = True
+                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.group_version)
+        if not cur_rbd_app:
+            cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                service_source.group_key, service_source.version)
         if cur_rbd_app is None:
             logger.warn(
                 "group key: {0}; version: {1}; service source not found".
                 format(service_source.group_key, service_source.version))
             return None
-        rbd_center_apps = rainbond_app_repo.list_by_key_time(
-            service_source.group_key, cur_rbd_app.update_time)
-        if not rbd_center_apps:
-            return None
-
+        rbd_center_apps = []
+        if not install_from_cloud:
+            rbd_center_apps = rainbond_app_repo.list_by_key_time(
+                service_source.group_key, cur_rbd_app.update_time)
+            if not rbd_center_apps:
+                return None
+        else:
+            # TODO:get new versions from cloud
+            rbd_center_apps = []
         pc = PropertiesChanges(service, tenant)
         result = []
         for item in rbd_center_apps:
