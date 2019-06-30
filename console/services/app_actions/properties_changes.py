@@ -16,7 +16,6 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
-from console.services.service_services import base_service
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -28,8 +27,6 @@ class PropertiesChanges(object):
         self.tenant = tenant
         self.service_source = service_source_repo.get_service_source(
             service.tenant_id, service.service_id)
-        self.deploy_version = base_service.get_app_deploy_version(
-            service.region, tenant.tenant_name, service.service_alias)
 
     def get_property_changes(self, eid, version):
         """
@@ -117,7 +114,7 @@ class PropertiesChanges(object):
         """
         compare the old and new deploy versions to determine if there is any change
         """
-        # deploy_version will get from region
+        # deploy_version is Build the app version of the source
         is_change = self.service.deploy_version < new
         if not is_change:
             return None

@@ -505,7 +505,7 @@ class TenantServiceInfo(BaseModel):
     host_path = models.CharField(
         max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(
-        max_length=20, null=True, blank=True, help_text=u"部署版本")
+        max_length=20, null=True, blank=True, help_text=u"仅用于云市创建应用表示构建源的部署版版-小版本")
     code_from = models.CharField(
         max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(
