@@ -82,7 +82,7 @@ class MarketAppService(object):
             for app in apps:
                 app_map[app.get("service_share_uuid")] = app
                 ts = self.__init_market_app(tenant, region, user, app,
-                                            tenant_service_group.ID)
+                                            tenant_service_group.ID, install_from_cloud)
                 # Record the application's installation source information
                 service_source_data = {
                     "group_key":
@@ -94,13 +94,6 @@ class MarketAppService(object):
                         "service_share_uuid", None) else
                     app.get("service_key"),
                 }
-                if install_from_cloud:
-                    service_source_data["extend_info"] = json.dumps({
-                        "install_from_cloud":
-                        True,
-                        "market":
-                        "default",
-                    })
                 service_source_repo.update_service_source(
                     ts.tenant_id, ts.service_id, **service_source_data)
                 group_service.add_service_to_group(tenant, region, group_id,
@@ -649,7 +642,7 @@ class MarketAppService(object):
         extend_repo.create_extend_method(**params)
 
     def __init_market_app(self, tenant, region, user, app,
-                          tenant_service_group_id):
+                          tenant_service_group_id, install_from_cloud=False):
         """
         初始化应用市场创建的应用默认数据
         """
@@ -706,7 +699,7 @@ class MarketAppService(object):
         tenant_service.service_source = AppConstants.MARKET
         tenant_service.create_status = "creating"
         tenant_service.tenant_service_group_id = tenant_service_group_id
-        self.__init_service_source(tenant_service, app)
+        self.__init_service_source(tenant_service, app, install_from_cloud)
         # 存储并返回
         tenant_service.save()
         return tenant_service
@@ -720,20 +713,21 @@ class MarketAppService(object):
                     ex_me.max_node = app["extend_method_map"]["max_node"]
                     ex_me.save()
 
-    def __init_service_source(self, ts, app):
-        is_slug = bool(
-            ts.image.startswith('goodrain.me/runner')
-            and app["language"] not in ("dockerfile", "docker"))
-        if is_slug:
-            extend_info = app["service_slug"]
+    def __init_service_source(self, ts, app, install_from_cloud=False):
+        slug = app.get("service_slug", None)
+        extend_info = {}
+        if slug:
+            extend_info = slug
             extend_info["slug_path"] = app.get("share_slug_path", "")
         else:
-            extend_info = app["service_image"]
+            extend_info = app.get("service_image")
         extend_info["source_deploy_version"] = app.get("deploy_version")
         extend_info["source_service_share_uuid"] = app.get(
             "service_share_uuid") if app.get(
                 "service_share_uuid", None) else app.get("service_key", "")
-
+        if install_from_cloud:
+            extend_info["insatll_from_cloud"] = True
+            extend_info["market"] = "default"
         service_source_params = {
             "team_id": ts.tenant_id,
             "service_id": ts.service_id,

@@ -146,7 +146,8 @@ class MarketService(object):
         if self.service_source.extend_info:
             extend_info = json.loads(self.service_source.extend_info)
             self.install_from_cloud = extend_info.get("install_from_cloud", False)
-            logger.info("service {0} imstall from cloud", service.service_alias)
+            if self.install_from_cloud:
+                logger.info("service {0} imstall from cloud".format(service.service_alias))
         else:
             self.install_from_cloud = False
         # If no version is specified, the default version is used.
@@ -284,6 +285,7 @@ class MarketService(object):
                 self.modify_property()
                 self.sync_region_property()
         except RegionApiBaseHttpClient.CallApiError as e:
+            logger.exception(e)
             logger.error(
                 "service id: {}; failed to change properties for market service: {}"
                 .format(self.service.service_id, e))
@@ -300,6 +302,9 @@ class MarketService(object):
             logger.debug("service id: {}; dest version: {}; changes: {}".format(
                 self.service.service_id, self.version, changes))
             self.changes = changes
+        else:
+            # TODO:impl upgrade from cloud
+            logger.info("upgrade from cloud do not support.")
 
     def create_backup(self):
         """create_backup
