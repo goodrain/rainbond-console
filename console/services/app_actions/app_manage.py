@@ -48,7 +48,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
-from console.services.market_app_service import market_app_service
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -305,17 +304,17 @@ class AppManageService(AppManageBase):
                 body["image_info"]["password"] = service_source.password
         if service_source and service_source.extend_info:
             extend_info = json.loads(service_source.extend_info)
-            if service.is_slug():
+            if service.is_slug():  # abandoned
                 body["slug_info"] = extend_info
             else:
                 hub_user = extend_info.get("hub_user", None)
                 hub_password = extend_info.get("hub_password", None)
                 if hub_user or hub_password:
                     if body.get("image_info", None):
-                        body["image_info"]["user"] = service_source.user_name
-                        body["image_info"][
-                            "password"] = service_source.password
-
+                        body["image_info"]["user"] = hub_user
+                        body["image_info"]["password"] = hub_password
+        else:
+            logger.warning("service_source is not exist for service {0}".format(service.service_id))                    
         try:
             re = region_api.build_service(service.service_region,
                                           tenant.tenant_name,
@@ -738,7 +737,7 @@ class AppManageService(AppManageBase):
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind
             service_source = service_source_repo.get_service_source(
-                service.tenant_id, service.service_id)    
+                service.tenant_id, service.service_id)  
             clone_url = service.git_url
 
             # 源码
@@ -768,12 +767,14 @@ class AppManageService(AppManageBase):
             elif service.service_source == "market":
                 try:
                     if service_source:
-                        old_extent_info = json.loads(service_source.extent_info)
+                        old_extent_info = json.loads(service_source.extend_info)
                         rain_app = None
                         # install from cloud
                         install_from_cloud = False
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
+                            # TODO:Skip the subcontract structure to avoid loop introduction
+                            from console.services.market_app_service import market_app_service
                             rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:

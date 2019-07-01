@@ -548,6 +548,7 @@ class MarketAppService(object):
                     region_api.batch_operation_service(
                         region_name, tenant.tenant_name, data)
                 except region_api.CallApiError as e:
+                    logger.debug(data)
                     logger.exception(e)
         except Exception as e:
             logger.exception("batch deploy service error {0}".format(e))
@@ -1018,7 +1019,7 @@ class MarketAppService(object):
             extend_info = json.loads(service_source.extend_info)
             if extend_info and extend_info.get("install_from_cloud", False):
                 install_from_cloud = True
-                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.group_version)
+                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
             cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
                 service_source.group_key, service_source.version)

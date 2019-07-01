@@ -38,7 +38,6 @@ from console.repositories.app import service_repo, service_webhooks_repo
 from console.views.base import JWTAuthApiView
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
-from console.services.service_services import base_service
 from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
@@ -88,7 +87,6 @@ class AppDetailView(AppBaseView):
             bean.update({"service_actions": service_actions})
             event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
             bean.update({"event_websocket_url": event_websocket_url})
-            current_deploy_version = base_service.get_app_deploy_version(self.service.service_region, self.tenant.tenant_name, self.service.service_alias)
             if self.service.service_source == "market":
                 service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
                 if not service_source:
@@ -105,12 +103,10 @@ class AppDetailView(AppBaseView):
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
                         if app["service_key"] == self.service.service_key:
-                            # will get deploy_version from region
-                            if current_deploy_version:
-                                if int(app["deploy_version"]) > int(current_deploy_version.build_version):
-                                    self.service.is_upgrate = True
-                                    self.service.save()
-                                    bean.update({"service": service_model})
+                            if int(app["deploy_version"]) > int(self.service.deploy_version):
+                                self.service.is_upgrate = True
+                                self.service.save()
+                                bean.update({"service": service_model})
                     try:
                         apps_template = json.loads(rain_app.app_template)
                         apps_list = apps_template.get("apps")
