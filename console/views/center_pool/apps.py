@@ -140,7 +140,7 @@ class CenterAppView(RegionTenantHeaderView):
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
             if install_from_cloud:
-                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version)
+                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version, True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:

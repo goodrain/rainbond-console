@@ -836,10 +836,10 @@ class MarketAppService(object):
 
     # download app from cloud and return app model
     # can not save in local db
-    def get_app_from_cloud(self, tenant, group_key, group_version):
+    def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
             app_template = market_api.get_remote_app_templates(
-                tenant.tenant_id, group_key, group_version)
+                tenant.tenant_id, group_key, group_version, install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
                     group_key=app_template["group_key"],
