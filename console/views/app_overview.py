@@ -684,6 +684,7 @@ class BuildSourceinfo(AppBaseView):
             if self.service.service_source == 'market':
                 if service_source:
                     # get from cloud
+                    rain_app = None
                     if service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info and extend_info.get("install_from_cloud", False):

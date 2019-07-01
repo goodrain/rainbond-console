@@ -726,7 +726,7 @@ class MarketAppService(object):
             "service_share_uuid") if app.get(
                 "service_share_uuid", None) else app.get("service_key", "")
         if install_from_cloud:
-            extend_info["insatll_from_cloud"] = True
+            extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
         service_source_params = {
             "team_id": ts.tenant_id,

@@ -356,6 +356,8 @@ class MarketService(object):
         """ get asynchronous action
         must be called after `set_changes`.
         """
+        if self.install_from_cloud:
+            return AsyncAction.BUILD.value
         if self.async_action is not None:
             return self.async_action
         changes = deepcopy(self.changes)
@@ -455,7 +457,9 @@ class MarketService(object):
         else:
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
-
+        if self.install_from_cloud:
+            new_extend_info["install_from_cloud"] = True
+            new_extend_info["market"] = "default"
         data = {
             "extend_info": json.dumps(new_extend_info),
             "version": version,

@@ -48,6 +48,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
+from console.services.market_app_service import market_app_service
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -726,7 +727,6 @@ class AppManageService(AppManageBase):
             if code != 200:
                 continue
             events.append(event)
-
             service_dict["event_id"] = event.event_id
             service_dict["service_id"] = service.service_id
             service_dict["action"] = 'deploy'
@@ -738,7 +738,7 @@ class AppManageService(AppManageBase):
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind
             service_source = service_source_repo.get_service_source(
-                service.tenant_id, service.service_id)
+                service.tenant_id, service.service_id)    
             clone_url = service.git_url
 
             # 源码
@@ -753,209 +753,103 @@ class AppManageService(AppManageBase):
                     if service_source.user_name or service_source.password:
                         source_code["user"] = service_source.user_name
                         source_code["password"] = service_source.password
-                    if service_source.extend_info:
-                        extend_info = json.loads(service_source.extend_info)
-                        if not service.is_slug():
-                            hub_user = extend_info.get("hub_user", None)
-                            hub_password = extend_info.get(
-                                "hub_password", None)
-                            if hub_user or hub_password:
-                                source_code["user"] = hub_user
-                                source_code["password"] = hub_password
             # 镜像
             elif kind == "build_from_image":
                 source_image = dict()
-                service_dict["image_info"] = source_image
                 source_image["image_url"] = service.image
                 source_image["cmd"] = service.cmd
                 if service_source:
                     if service_source.user_name or service_source.password:
                         source_image["user"] = service_source.user_name
                         source_image["password"] = service_source.password
-                    if service_source.extend_info:
-                        extend_info = json.loads(service_source.extend_info)
-                        if not service.is_slug():
-                            hub_user = extend_info.get("hub_user", None)
-                            hub_password = extend_info.get(
-                                "hub_password", None)
-                            if hub_user or hub_password:
-                                source_image["user"] = hub_user
-                                source_image["password"] = hub_password
+                service_dict["image_info"] = source_image
 
             # 云市
             elif service.service_source == "market":
                 try:
                     if service_source:
-                        # 获取内部市场对象
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-                            service_source.group_key, service_source.version)
+                        old_extent_info = json.loads(service_source.extent_info)
+                        rain_app = None
+                        # install from cloud
+                        install_from_cloud = False
+                        if old_extent_info.get("install_from_cloud", False):
+                            install_from_cloud = True
+                            rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
+                        # install from local cloud
+                        else:
+                            rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                                service_source.group_key, service_source.version)
                         if rain_app:
                             # 解析app_template的json数据
                             apps_template = json.loads(rain_app.app_template)
                             apps_list = apps_template.get("apps")
-                            if service_source and service_source.extend_info:
+                            if service_source.extend_info:
                                 extend_info = json.loads(
                                     service_source.extend_info)
+                                template_app = None
                                 for app in apps_list:
                                     if "service_share_uuid" in app:
-                                        if app["service_share_uuid"] == extend_info[
-                                                "source_service_share_uuid"]:
-                                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                                            share_image = app.get(
-                                                "share_image", None)
-                                            share_slug_path = app.get(
-                                                "share_slug_path", None)
-                                            new_extend_info = {}
-                                            if share_image:
-                                                if app.get(
-                                                        "service_image", None):
-                                                    source_image = dict()
-                                                    service_dict[
-                                                        "image_info"] = source_image
-                                                    source_image[
-                                                        "image_url"] = share_image
-                                                    source_image[
-                                                        "user"] = app.get(
-                                                            "service_image"
-                                                        ).get("hub_user")
-                                                    source_image[
-                                                        "password"] = app.get(
-                                                            "service_image"
-                                                        ).get("hub_password")
-                                                    source_image[
-                                                        "cmd"] = service.cmd
-                                                    new_extend_info = app[
-                                                        "service_image"]
-                                            if share_slug_path:
-                                                slug_info = app.get(
-                                                    "service_slug")
-                                                slug_info[
-                                                    "slug_path"] = share_slug_path
-                                                new_extend_info = slug_info
-                                                service_dict[
-                                                    "slug_info"] = new_extend_info
-                                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-                                            service.is_upgrate = False
-                                            service.save()
-                                            new_extend_info[
-                                                "source_deploy_version"] = app.get(
-                                                    "deploy_version")
-                                            new_extend_info["source_service_share_uuid"] \
-                                                = app.get("service_share_uuid") \
-                                                if app.get("service_share_uuid", None) \
-                                                else app.get("service_key", "")
-                                            service_source.extend_info = json.dumps(
-                                                new_extend_info)
-                                            service_source.save()
-
-                                            code, msg = self.__save_env(
-                                                tenant, service,
-                                                app["service_env_map_list"],
-                                                app["service_connect_info_map_list"]
-                                            )
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            code, msg = self.__save_volume(
-                                                tenant, service,
-                                                app["service_volume_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            logger.debug(
-                                                '-------222---->{0}'.format(
-                                                    app["port_map_list"]))
-
-                                            code, msg = self.__save_port(
-                                                tenant, service,
-                                                app["port_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-
-                                            # 保存应用探针信息
-                                            self.__save_extend_info(
-                                                service,
-                                                app["extend_method_map"])
-
+                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                            template_app = app
+                                            break
                                     if "service_share_uuid" not in app and "service_key" in app:
-                                        if app["service_key"] == extend_info[
-                                                "source_service_share_uuid"]:
-                                            # 如果是slug包，获取内部市场最新的数据保存（如果是最新，就获取最新，不是最新就获取之前的）
-                                            share_image = app.get(
-                                                "share_image", None)
-                                            share_slug_path = app.get(
-                                                "share_slug_path", None)
-                                            new_extend_info = {}
-                                            if share_image:
-                                                if app.get(
-                                                        "service_image", None):
-                                                    source_image = dict()
-                                                    service_dict[
-                                                        "image_info"] = source_image
-                                                    source_image[
-                                                        "image_url"] = share_image
-                                                    source_image[
-                                                        "user"] = app.get(
-                                                            "service_image"
-                                                        ).get("hub_user")
-                                                    source_image[
-                                                        "password"] = app.get(
-                                                            "service_image"
-                                                        ).get("hub_password")
-                                                    source_image[
-                                                        "cmd"] = service.cmd
-                                                    new_extend_info = app[
-                                                        "service_image"]
-                                            if share_slug_path:
-                                                slug_info = app.get(
-                                                    "service_slug")
-                                                slug_info[
-                                                    "slug_path"] = share_slug_path
-                                                new_extend_info = slug_info
-                                                service_dict[
-                                                    "slug_info"] = new_extend_info
-                                            # 如果是image，获取内部市场最新镜像版本保存（如果是最新，就获取最新，不是最新就获取之前的， 不会报错）
-                                            service.is_upgrate = False
-                                            service.save()
-                                            new_extend_info[
-                                                "source_deploy_version"] = app.get(
-                                                    "deploy_version")
-                                            new_extend_info["source_service_share_uuid"] \
-                                                = app.get("service_share_uuid") if app.get("service_share_uuid", None) \
-                                                else app.get("service_key", "")
-                                            service_source.extend_info = json.dumps(
-                                                new_extend_info)
-                                            service_source.save()
-
-                                            code, msg = self.__save_env(
-                                                tenant, service,
-                                                app["service_env_map_list"],
-                                                app["service_connect_info_map_list"]
-                                            )
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            code, msg = self.__save_volume(
-                                                tenant, service,
-                                                app["service_volume_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-                                            logger.debug(
-                                                '-------222---->{0}'.format(
-                                                    app["port_map_list"]))
-
-                                            code, msg = self.__save_port(
-                                                tenant, service,
-                                                app["port_map_list"])
-                                            if code != 200:
-                                                raise Exception(msg)
-
-                                            self.__save_extend_info(
-                                                service,
-                                                app["extend_method_map"])
-                            service_source_data = {"version": rain_app.version}
-                            service_source_repo.update_service_source(
-                                tenant.tenant_id, service.service_id,
-                                **service_source_data)
+                                        if app["service_key"] == extend_info["source_service_share_uuid"]: 
+                                            template_app = app
+                                            break
+                                if template_app:
+                                    share_image = template_app.get("share_image", None)
+                                    share_slug_path = template_app.get("share_slug_path", None)
+                                    new_extend_info = {}
+                                    if share_image:
+                                        if template_app.get("service_image", None):
+                                            source_image = dict()
+                                            service_dict["image_info"] = source_image
+                                            source_image["image_url"] = share_image
+                                            source_image["user"] = template_app.get("service_image").get("hub_user")
+                                            source_image["password"] = template_app.get("service_image").get("hub_password")
+                                            source_image["cmd"] = service.cmd
+                                            new_extend_info = template_app["service_image"]
+                                    if share_slug_path:
+                                        slug_info = template_app.get("service_slug")
+                                        slug_info["slug_path"] = share_slug_path
+                                        new_extend_info = slug_info
+                                        service_dict["slug_info"] = new_extend_info
+                                    new_extend_info["source_deploy_version"] = template_app.get("deploy_version")
+                                    new_extend_info["source_service_share_uuid"] \
+                                        = template_app.get("service_share_uuid") \
+                                        if template_app.get("service_share_uuid", None) \
+                                        else template_app.get("service_key", "")
+                                    if install_from_cloud:
+                                        new_extend_info["install_from_cloud"] = True
+                                        new_extend_info["market"] = "default"
+                                    service_source.extend_info = json.dumps(
+                                        new_extend_info)
+                                    service_source.save()
+                                    code, msg = self.__save_env(
+                                        tenant, service,
+                                        app["service_env_map_list"],
+                                        app["service_connect_info_map_list"]
+                                    )
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    code, msg = self.__save_volume(
+                                        tenant, service,
+                                        app["service_volume_map_list"])
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    logger.debug(
+                                        '-------222---->{0}'.format(
+                                            app["port_map_list"]))
+                                    code, msg = self.__save_port(
+                                        tenant, service,
+                                        app["port_map_list"])
+                                    if code != 200:
+                                        raise Exception(msg)
+                                    self.__save_extend_info(
+                                        service,
+                                        app["extend_method_map"])
                 except Exception as e:
-                    logger.exception('===========000============>'.format(e))
+                    logger.exception(e)
                     if service_source:
                         extend_info = json.loads(service_source.extend_info)
                         if service.is_slug():
