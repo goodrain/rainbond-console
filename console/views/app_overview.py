@@ -686,6 +686,7 @@ class BuildSourceinfo(AppBaseView):
                         if extend_info and extend_info.get("install_from_cloud", False):
                             rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key, service_source.version)
                             bean["install_from_cloud"] = True
+                            bean["app_detail_url"] = rain_app.describe
                     if not rain_app:
                         rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key, service_source.version)
                     if rain_app:

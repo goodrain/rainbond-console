@@ -850,7 +850,7 @@ class MarketAppService(object):
                     share_team=tenant.tenant_name,
                     source="import",
                     scope="goodrain",
-                    describe=app_template.pop("describe", ""),
+                    describe=app_template.get("app_detail_url", ""),
                     app_template=app_template["template_content"],
                     is_complete=True,
                     template_version=app_template.get("template_version", ""))
@@ -882,8 +882,11 @@ class MarketAppService(object):
     def get_remote_market_apps(self, tenant, page, page_size, app_name):
         body = market_api.get_service_group_list(tenant.tenant_id, page,
                                                  page_size, app_name)
-        remote_apps = body["data"]['list']
-        total = body["data"]['total']
+        data = body.get("data")
+        if not data:
+            return 0, []
+        remote_apps = data.get("list", None)
+        total = data.get('total', 0)
         # 创造数据格式app_list = [{group_key:xxx, "group_version_list":[]}, {}]
         app_list = []
         result_list = []
@@ -906,17 +909,19 @@ class MarketAppService(object):
                 for app in remote_apps:
                     if app["group_version"] == group_version_list[0] and app[
                             "group_key"] == group_key:
-                        app_dict["group_key"] = group_key
-                        app_dict["group_version_list"] = group_version_list
-                        app_dict["update_version"] = app["update_version"]
-                        app_dict["group_name"] = app["group_name"]
-                        app_dict["pic"] = app["pic"]
-                        app_dict["info"] = app["info"]
-                        app_dict["template_version"] = app.get(
-                            "template_version", "")
-                        app_dict["is_official"] = app["is_official"]
-                        app_dict["desc"] = app["desc"]
-                        app_dict["update_version"] = app["update_version"]
+                        app_dict = {
+                            "group_key": group_key,
+                            "group_version_list": group_version_list,
+                            "update_version": app.get("update_version"),
+                            "group_name": app.get("group_name", ""),
+                            "pic": app.get("pic", ""),
+                            "info": app.get("info", ""),
+                            "template_version": app.get("template_version", ""),
+                            "is_official": app.get("is_official", False),
+                            "desc": app.get("desc", ""),
+                            "app_detail_url": app.get("app_detail_url", ""),
+                            "enterprise": app.get("enterprise")
+                        }
                         app_list.append(app_dict)
         for app in app_list:
             rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
@@ -950,7 +955,9 @@ class MarketAppService(object):
                 "is_official": app["is_official"],
                 "details": app["desc"],
                 "upgrade_time": app["update_version"],
-                "is_upgrade": is_upgrade
+                "is_upgrade": is_upgrade,
+                "app_detail_url": app["app_detail_url"],
+                "enterprise": app.get("enterprise")
             }
             result_list.append(rbapp)
         return total, result_list
