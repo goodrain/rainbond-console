@@ -161,6 +161,16 @@ class AppEnvVarService(object):
     def get_env_by_container_port(self, tenant, service, container_port):
         return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 
+    def patch_env_scope(self, tenant, service, attr_name, scope):
+        env = env_var_repo.get_service_env_or_404_by_attr_name(
+            tenant.tenant_id, service.service_id, attr_name
+        )
+        if service.create_status == "complete":
+            body = {"env_name": attr_name, "env_value": env.attr_value, "scope": scope}
+            region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
+        env_var_repo.change_service_env_scope(env, scope)
+        return env
+
     def update_env_by_attr_name(self, tenant, service, attr_name, name, attr_value):
         attr_name = attr_name.strip()
         attr_value = attr_value.strip()
