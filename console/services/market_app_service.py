@@ -1024,10 +1024,12 @@ class MarketAppService(object):
         install_from_cloud = False
         cur_rbd_app = None
         if service_source.extend_info:
-            extend_info = json.loads(service_source.extend_info)
-            if extend_info and extend_info.get("install_from_cloud", False):
-                install_from_cloud = True
-                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
+            pass
+            # 5.1.5 Direct upgrades from the cloud city are not supported, so the cloud city API is not requested
+            # extend_info = json.loads(service_source.extend_info)
+            # if extend_info and extend_info.get("install_from_cloud", False):
+            #     install_from_cloud = True
+            #     cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
             cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
                 service_source.group_key, service_source.version)
