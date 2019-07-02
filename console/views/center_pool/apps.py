@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
 from console.services.app_import_and_export_service import export_service
@@ -139,7 +140,7 @@ class CenterAppView(RegionTenantHeaderView):
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
             if install_from_cloud:
-                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version)
+                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version, True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -148,7 +149,7 @@ class CenterAppView(RegionTenantHeaderView):
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
             market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
 
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy, install_from_cloud)
             if not install_from_cloud:
                 RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
                     install_number=F("install_number") + 1
@@ -161,12 +162,8 @@ class CenterAppView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
-        except HttpClient.CallApiError as e:
-            logger.exception(e)
-            if e.status == 403:
-                return Response(general_message(10407, "no cloud permission", e.message), status=403)
-            else:
-                return Response(general_message(500, "call cloud api failure", e.message), status=500)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

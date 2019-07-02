@@ -214,6 +214,7 @@ class AppEventService(object):
                     versioninfo["commit"] = commit[1]
                 else:
                     versioninfo["commit"] = info[2]
+                # deprecated
                 if event.deploy_version == service.deploy_version:
                     versioninfo["rollback"] = False
                 else:

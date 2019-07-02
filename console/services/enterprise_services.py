@@ -2,10 +2,13 @@
 import os
 import random
 import string
+import logging
+import re
 
 from console.repositories.enterprise_repo import enterprise_repo
-from www.models.main import *
+from www.models.main import TenantEnterprise, Tenants
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 monitor_hook = MonitorHook()

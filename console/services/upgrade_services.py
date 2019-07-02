@@ -18,6 +18,7 @@ from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.services.app_actions.exception import ErrServiceSourceNotFound
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 
 
@@ -151,9 +152,9 @@ class UpgradeService(object):
         from console.services.app_actions.properties_changes import PropertiesChanges
 
         try:
-            pc = PropertiesChanges(service)
+            pc = PropertiesChanges(service, tenant)
             return pc.get_property_changes(tenant.enterprise_id, version)
-        except RecordNotFound as e:
+        except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
             AbortRequest(msg=str(e))

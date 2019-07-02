@@ -24,7 +24,6 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
@@ -34,6 +33,7 @@ from console.services.backup_service import groupapp_backup_service as backup_se
 from console.services.exception import ErrDepServiceNotFound
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from console.services.market_app_service import market_app_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
@@ -88,34 +88,37 @@ class AppDeployService(object):
     def get_async_action(self):
         return self.impl.get_async_action()
 
-    def execute(self, tenant, service, user, is_upgrade, version, committer_name=None):
+    def execute(self,
+                tenant,
+                service,
+                user,
+                is_upgrade,
+                version,
+                committer_name=None):
         async_action = self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(
             service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            try:
-                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
-                                                             group_version=version,
-                                                             committer_name=committer_name)
-            except ErrVersionAlreadyExists:
-                service.deploy_version = datetime.now().strftime('%Y%m%d%H%M%S')
-                service.save()
-                code, msg, event = app_manage_service.deploy(tenant, service, user, is_upgrade,
-                                                             group_version=version,
-                                                             committer_name=committer_name)
+            code, msg, event = app_manage_service.deploy(
+                tenant,
+                service,
+                user,
+                group_version=version,
+                committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event = app_manage_service.upgrade(tenant, service, user, committer_name)
+            code, msg, event = app_manage_service.upgrade(
+                tenant, service, user, committer_name)
         else:
             return 200, "", None
         return code, msg, event
 
-    def deploy(self, tenant, service, user, is_upgrade, version, committer_name=None):
+    def deploy(self, tenant, service, user, version, committer_name=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
         self.pre_deploy_action(tenant, service, version)
 
-        return self.execute(tenant, service, user, is_upgrade, version, committer_name)
+        return self.execute(tenant, service, user, version, committer_name)
 
 
 class OtherService(object):
@@ -138,12 +141,20 @@ class MarketService(object):
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service
-        if version is None:
-            service_source = service_source_repo.get_service_source(
+        self.service_source = service_source_repo.get_service_source(
                 tenant.tenant_id, service.service_id)
-            version = service_source.version
+        if self.service_source.extend_info:
+            extend_info = json.loads(self.service_source.extend_info)
+            self.install_from_cloud = extend_info.get("install_from_cloud", False)
+            if self.install_from_cloud:
+                logger.info("service {0} imstall from cloud".format(service.service_alias))
+        else:
+            self.install_from_cloud = False
+        # If no version is specified, the default version is used.
+        if not version:
+            version = self.service_source.version
         self.version = version
-
+        self.group_key = self.service_source.group_key
         self.changes = {}
         # data that has been successfully changed
         self.changed = {}
@@ -174,17 +185,22 @@ class MarketService(object):
                 "deploy_version", "app_version", "image", "slug_path", "envs",
                 "connect_infos", "ports", "volumes", "probe"
             ],
-            PropertyType.DEPENDENT.value: ["dep_services", "dep_volumes", "plugins"]
+            PropertyType.DEPENDENT.value:
+            ["dep_services", "dep_volumes", "plugins"]
         }
         keys = m.get(typ3, None)
         if keys is None:
             self.update_funcs = all_update_funcs
             self.sync_funcs = all_sync_funcs
             return
-        self.update_funcs = {key: all_update_funcs[key] for key in keys
-                             if key in all_update_funcs}
-        self.sync_funcs = {key: all_sync_funcs[key] for key in keys
-                           if key in all_sync_funcs}
+        self.update_funcs = {
+            key: all_update_funcs[key]
+            for key in keys if key in all_update_funcs
+        }
+        self.sync_funcs = {
+            key: all_sync_funcs[key]
+            for key in keys if key in all_sync_funcs
+        }
 
     def _create_update_funcs(self):
         return {
@@ -243,20 +259,25 @@ class MarketService(object):
         asynchronous action: build, update or nothing
         """
         async_build = ["deploy_version", "image", "slug_path"]
-        async_update = ["envs", "connect_infos", "ports", "volumes", "probe",
-                        "dep_services", "dep_volumes", "plugins"]
+        async_update = [
+            "envs", "connect_infos", "ports", "volumes", "probe",
+            "dep_services", "dep_volumes", "plugins"
+        ]
         return async_build, async_update
 
     def pre_action(self):
         """
         raise RbdAppNotFound
         raise RecordNotFound
+        raise ErrServiceSourceNotFound
         """
-        logger.info("type: market; service id: {}; pre-deployment action.".format(
-            self.service.service_id))
+        logger.info(
+            "type: market; service id: {}; pre-deployment action.".format(
+                self.service.service_id))
         backup = self.create_backup()
-        logger.info("service id: {}; backup id: {}; backup successfully.".format(
-            self.service.service_id, backup.backup_id))
+        logger.info(
+            "service id: {}; backup id: {}; backup successfully.".format(
+                self.service.service_id, backup.backup_id))
         self.set_changes()
 
         try:
@@ -264,8 +285,10 @@ class MarketService(object):
                 self.modify_property()
                 self.sync_region_property()
         except RegionApiBaseHttpClient.CallApiError as e:
-            logger.error("service id: {}; failed to change properties for market service: {}".
-                         format(self.service.service_id, e))
+            logger.exception(e)
+            logger.error(
+                "service id: {}; failed to change properties for market service: {}"
+                .format(self.service.service_id, e))
             self.restore_backup(backup)
             # when a single service is upgraded, if a restore occurs,
             # there is no need to emit an asynchronous action.
@@ -273,19 +296,22 @@ class MarketService(object):
 
     def set_changes(self):
         # list properties changes
-        pc = PropertiesChanges(self.service)
-        changes = pc.get_property_changes(self.tenant.enterprise_id,
-                                          self.version)
-        logger.debug("service id: {}; dest version: {}; changes: {}".format(
-            self.service.service_id, self.version, changes))
-        self.changes = changes
+        if not self.install_from_cloud:
+            pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
+            changes = pc.get_property_changes(self.tenant.enterprise_id, self.version)
+            logger.debug("service id: {}; dest version: {}; changes: {}".format(
+                self.service.service_id, self.version, changes))
+            self.changes = changes
+        else:
+            # TODO:impl upgrade from cloud
+            logger.info("upgrade from cloud do not support.")
 
     def create_backup(self):
         """create_backup
         Create a pre-service backup to prepare for deployment failure
         """
-        backup_data = backup_service.get_service_details(self.tenant,
-                                                         self.service)
+        backup_data = backup_service.get_service_details(
+            self.tenant, self.service)
         backup = {
             "region_name": self.tenant.region,
             "tenant_id": self.tenant.tenant_id,
@@ -303,9 +329,11 @@ class MarketService(object):
         """
         service_source = service_source_repo.get_service_source(
             self.tenant.tenant_id, self.service.service_id)
-        app = rbd_center_app_service.get_version_app(self.tenant.enterprise_id,
-                                                     self.version,
-                                                     service_source)
+        if self.install_from_cloud:
+            app = market_app_service.get_service_app_from_cloud(self.tenant, self.group_key, self.version, service_source)
+        else:
+            app = rbd_center_app_service.get_version_app(
+                self.tenant.enterprise_id, self.version, service_source)
         self._update_service(app)
         self._update_service_source(app, self.version)
         changes = deepcopy(self.changes)
@@ -328,12 +356,15 @@ class MarketService(object):
         """ get asynchronous action
         must be called after `set_changes`.
         """
+        if self.install_from_cloud:
+            return AsyncAction.BUILD.value
         if self.async_action is not None:
             return self.async_action
         changes = deepcopy(self.changes)
         async_action = AsyncAction.NOTHING.value
         for key in changes:
-            async_action = self._compare_async_action(async_action, self._key_action(key))
+            async_action = self._compare_async_action(async_action,
+                                                      self._key_action(key))
         return async_action
 
     def _key_action(self, key):
@@ -362,8 +393,9 @@ class MarketService(object):
         Restore data in the region based on backup information
         when an error occurs during deployment.
         """
-        logger.info("service id: {}; changed properties: {}; restore service from backup".format(
-            self.service.service_id, json.dumps(self.changed)))
+        logger.info(
+            "service id: {}; changed properties: {}; restore service from backup"
+            .format(self.service.service_id, json.dumps(self.changed)))
         if backup is None:
             # use the latest backup
             backup = service_backup_repo.get_newest_by_sid(
@@ -384,7 +416,8 @@ class MarketService(object):
                 # ignore restore error
                 logger.error("service id: {}; failed to restore {}; {}".format(
                     self.service.service_id, k, e))
-            async_action = self._compare_async_action(async_action, self._key_action(k))
+            async_action = self._compare_async_action(async_action,
+                                                      self._key_action(k))
         self.async_action = async_action
 
     def _update_changed(self):
@@ -424,16 +457,17 @@ class MarketService(object):
         else:
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
-
+        if self.install_from_cloud:
+            new_extend_info["install_from_cloud"] = True
+            new_extend_info["market"] = "default"
         data = {
             "extend_info": json.dumps(new_extend_info),
             "version": version,
         }
         logger.debug("service id: {}; data: {}; update service source.".format(
             self.service.service_id, data))
-        service_source_repo.update_service_source(self.tenant.tenant_id,
-                                                  self.service.service_id,
-                                                  **data)
+        service_source_repo.update_service_source(
+            self.tenant.tenant_id, self.service.service_id, **data)
 
     def _update_deploy_version(self, dv):
         if not dv["is_change"]:
@@ -467,10 +501,11 @@ class MarketService(object):
             try:
                 env_var_service.create_env_var(self.service, container_port,
                                                env["name"], env["attr_name"],
-                                               env["attr_value"], env["is_change"],
-                                               scope)
+                                               env["attr_value"],
+                                               env["is_change"], scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
-                logger.warning("failed to create env: {}; will ignore this env".format(e))
+                logger.warning(
+                    "failed to create env: {}; will ignore this env".format(e))
 
     def _sync_inner_envs(self, envs):
         self._sync_envs(envs, "inner")
@@ -495,10 +530,13 @@ class MarketService(object):
                                            self.service.service_alias, body)
             except region_api.CallApiError as e:
                 if e.status == 400:
-                    logger.warning("env name: {}; failed to create env: {}".format(env["attr_name"], e))
+                    logger.warning(
+                        "env name: {}; failed to create env: {}".format(
+                            env["attr_name"], e))
                     continue
                 res = Dict({"status": e.status})
-                raise region_api.CallApiError(e.apitype, e.url, e.method, res, e.body)
+                raise region_api.CallApiError(e.apitype, e.url, e.method, res,
+                                              e.body)
 
     def _restore_inner_envs(self, backup):
         self._restore_envs(backup, "inner")
@@ -518,11 +556,13 @@ class MarketService(object):
                 continue
             body["envs"].append(self._create_env_body(env, scope))
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/envs", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/envs", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore envs error:
-            logger.error("backup id: {}; failed to restore envs: {}".format(backup.backup_id, e))
+            logger.error("backup id: {}; failed to restore envs: {}".format(
+                backup.backup_id, e))
 
     def _create_env_body(self, env, scope):
         """
@@ -609,10 +649,12 @@ class MarketService(object):
         for port in upd:
             self.update_port_data(port)
         add_body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
-        region_api.add_service_port(self.tenant.region, self.tenant.tenant_name,
+        region_api.add_service_port(self.tenant.region,
+                                    self.tenant.tenant_name,
                                     self.service.service_alias, add_body)
         upd_body = {"port": upd, "enterprise_id": self.tenant.enterprise_id}
-        region_api.update_service_port(self.tenant.region, self.tenant.tenant_name,
+        region_api.update_service_port(self.tenant.region,
+                                       self.tenant.tenant_name,
                                        self.service.service_alias, upd_body)
 
         if envs:
@@ -627,17 +669,20 @@ class MarketService(object):
 
         try:
             body = {"ports": service_ports}
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/ports", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/ports", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore ports error:
-            logger.error("backup id: {}; failed to restore ports: {}".format(backup.backup_id, e))
+            logger.error("backup id: {}; failed to restore ports: {}".format(
+                backup.backup_id, e))
 
     def _update_volumes(self, volumes):
         for volume in volumes.get("add"):
             volume["service_id"] = self.service.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
-                self.tenant.tenant_id, self.service.service_id, volume["volume_path"])
+                self.tenant.tenant_id, self.service.service_id,
+                volume["volume_path"])
             volume["host_path"] = host_path
             file_content = volume.get("file_content", None)
             if file_content is not None:
@@ -660,8 +705,10 @@ class MarketService(object):
             v = volume_repo.get_service_volume_by_name(self.service.service_id,
                                                        volume["volume_name"])
             if not v:
-                logger.warning("service id: {}; volume name: {}; failed to update volume: \
-                    volume not found.".format(self.service.service_id, volume["volume_name"]))
+                logger.warning(
+                    "service id: {}; volume name: {}; failed to update volume: \
+                    volume not found.".format(self.service.service_id,
+                                              volume["volume_name"]))
             cfg = volume_repo.get_service_config_file(v.ID)
             cfg.file_content = file_content
             cfg.save()
@@ -674,14 +721,16 @@ class MarketService(object):
             volume["enterprise_id"] = self.tenant.enterprise_id
             region_api.add_service_volumes(self.service.service_region,
                                            self.tenant.tenant_name,
-                                           self.service.service_alias,
-                                           volume)
+                                           self.service.service_alias, volume)
 
     def _restore_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
         service_config_file = backup_data.get("service_config_file", [])
         service_volumes = backup_data.get("service_volumes", [])
-        cfgfs = {item["volume_id"]: item["file_content"] for item in service_config_file}
+        cfgfs = {
+            item["volume_id"]: item["file_content"]
+            for item in service_config_file
+        }
 
         if not self.auto_restore:
             self.app_restore.volumes(service_volumes, service_config_file)
@@ -691,11 +740,13 @@ class MarketService(object):
             item["file_content"] = cfgfs.get(item["ID"], "")
             body["volumes"].append(item)
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/volumes", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/volumes", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore volumes error:
-            logger.error("backup id: {}; failed to restore volumes: {}".format(backup.backup_id, e))
+            logger.error("backup id: {}; failed to restore volumes: {}".format(
+                backup.backup_id, e))
 
     def _update_probe(self, probe):
         logger.debug("probe: {}".format(probe))
@@ -718,14 +769,12 @@ class MarketService(object):
         if add:
             region_api.add_service_probe(self.tenant.region,
                                          self.tenant.tenant_name,
-                                         self.service.service_alias,
-                                         data)
+                                         self.service.service_alias, data)
         upd = probe.get("upd", None)
         if upd:
             region_api.update_service_probec(self.tenant.region,
                                              self.tenant.tenant_name,
-                                             self.service.service_alias,
-                                             data)
+                                             self.service.service_alias, data)
 
     def _restore_probe(self, backup):
         backup_data = json.loads(backup.backup_data)
@@ -740,19 +789,23 @@ class MarketService(object):
             self.app_restore.probe(probe)
 
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/probe", probe)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/probe", probe)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore probe error:
-            logger.error("backup id: {}; failed to restore probe: {}".format(backup.backup_id, e))
+            logger.error("backup id: {}; failed to restore probe: {}".format(
+                backup.backup_id, e))
 
     def _update_dep_services(self, dep_services):
         def create_dep_service(dep_service_id):
             try:
                 app_relation_service.create_service_relation(
                     self.tenant, self.service, dep_service_id)
-            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
-                logger.warning("failed to create service relation: {}".format(e))
+            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist,
+                    InnerPortNotFound) as e:
+                logger.warning(
+                    "failed to create service relation: {}".format(e))
 
         add = dep_services.get("add", [])
         for dep_service in add:
@@ -767,10 +820,13 @@ class MarketService(object):
                 app_relation_service.check_relation(self.service.tenant_id,
                                                     self.service.service_id,
                                                     dep_service_id)
-            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
-                logger.warning("failed to sync dependent service: {}".format(e))
+            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist,
+                    InnerPortNotFound) as e:
+                logger.warning(
+                    "failed to sync dependent service: {}".format(e))
                 return
-            dep_service = service_repo.get_service_by_service_id(dep_service_id)
+            dep_service = service_repo.get_service_by_service_id(
+                dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id
             body["tenant_id"] = self.tenant.tenant_id
@@ -798,12 +854,14 @@ class MarketService(object):
                 "dep_service_type": item["dep_service_type"],
             })
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/deps", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/deps", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore service relations error:
-            logger.error("backup id: {}; failed to restore service relations: {}".format(
-                backup.backup_id, e))
+            logger.error(
+                "backup id: {}; failed to restore service relations: {}".
+                format(backup.backup_id, e))
 
     def _update_dep_volumes(self, dep_volumes):
         def create_dep_vol(dep_volume):
@@ -813,7 +871,8 @@ class MarketService(object):
                 "path": dep_volume["mnt_dir"]
             }
             try:
-                mnt_service.create_service_volume(self.tenant, self.service, data)
+                mnt_service.create_service_volume(self.tenant, self.service,
+                                                  data)
             except (ErrInvalidVolume, ErrDepVolumeNotFound) as e:
                 logger.warning("failed to create dep volume: {}".format(e))
 
@@ -843,9 +902,9 @@ class MarketService(object):
             if dep_vol.volume_type == "config-file":
                 config_file = volume_repo.get_service_config_file(dep_vol.ID)
                 data["file_content"] = config_file.file_content
-            region_api.add_service_dep_volumes(self.tenant.region,
-                                               self.tenant.tenant_name,
-                                               self.service.service_alias, data)
+            region_api.add_service_dep_volumes(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, data)
 
         add = dep_volumes.get("add", [])
         for dep_vol in add:
@@ -866,28 +925,33 @@ class MarketService(object):
                 "volume_name": dv["mnt_name"]
             })
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/depvols", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/depvols", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore service dependent volumes error:
-            logger.error("backup id: {}; failed to restore service dependent volumes: {}".format(
-                backup.backup_id, e))
+            logger.error(
+                "backup id: {}; failed to restore service dependent volumes: {}"
+                .format(backup.backup_id, e))
 
     def _update_plugins(self, plugins):
-        logger.debug("start updating plugins; plugin datas: {}".format(plugins))
+        logger.debug(
+            "start updating plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         try:
             app_plugin_service.create_plugin_4marketsvc(
-                self.tenant.region, self.tenant, self.service, self.version, add)
+                self.tenant.region, self.tenant, self.service, self.version,
+                add)
         except ErrPluginAlreadyInstalled as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
+            logger.warning("plugin data: {}; failed to create plugin: {}", add,
+                           e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:
-            app_plugin_service.delete_service_plugin_relation(self.service,
-                                                              plugin["plugin_id"])
-            app_plugin_service.delete_service_plugin_config(self.service,
-                                                            plugin["plugin_id"])
+            app_plugin_service.delete_service_plugin_relation(
+                self.service, plugin["plugin_id"])
+            app_plugin_service.delete_service_plugin_config(
+                self.service, plugin["plugin_id"])
 
     def _sync_plugins(self, plugins):
         """
@@ -898,15 +962,15 @@ class MarketService(object):
         for plugin in add:
             data = app_plugin_service.build_plugin_data_4marketsvc(
                 self.tenant, self.service, plugin)
-            region_api.install_service_plugin(
-                self.tenant.region, self.tenant.tenant_name, self.service.service_alias, data)
+            region_api.install_service_plugin(self.tenant.region,
+                                              self.tenant.tenant_name,
+                                              self.service.service_alias, data)
 
         delete = plugins.get("delete", [])
         for plugin in delete:
-            region_api.uninstall_service_plugin(self.tenant.region,
-                                                self.tenant.tenant_name,
-                                                plugin["plugin_id"],
-                                                self.service.service_alias)
+            region_api.uninstall_service_plugin(
+                self.tenant.region, self.tenant.tenant_name,
+                plugin["plugin_id"], self.service.service_alias)
 
     def _restore_plugins(self, backup):
         backup_data = json.loads(backup.backup_data)
@@ -923,12 +987,14 @@ class MarketService(object):
                 "switch": r["plugin_status"],
             })
         try:
-            region_api.restore_properties(self.tenant.region, self.tenant.tenant_name,
-                                          self.service.service_alias, "/app-restore/plugins", body)
+            region_api.restore_properties(
+                self.tenant.region, self.tenant.tenant_name,
+                self.service.service_alias, "/app-restore/plugins", body)
         except RegionApiBaseHttpClient.CallApiError as e:
             # ignore restore service plugins error:
-            logger.error("backup id: {}; failed to restore service plugins: {}".format(
-                backup.backup_id, e))
+            logger.error(
+                "backup id: {}; failed to restore service plugins: {}".format(
+                    backup.backup_id, e))
 
     def _restore_service(self, backup):
         backup_data = json.loads(backup.backup_data)

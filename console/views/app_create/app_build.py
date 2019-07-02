@@ -23,6 +23,7 @@ from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 
@@ -49,6 +50,7 @@ class AppBuild(AppBaseView):
         """
         probe = None
         is_deploy = request.data.get("is_deploy", True)
+        status = 200
         try:
             if self.service.service_source == "third_party":
                 is_deploy = False
@@ -67,30 +69,39 @@ class AppBuild(AppBaseView):
                 # 添加服务有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
                 # 部署应用
-                app_manage_service.deploy(self.tenant, self.service, self.user, is_upgrade=True, group_version=None)
+                app_manage_service.deploy(self.tenant, self.service, self.user, group_version=None)
 
                 # 添加应用部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
             result = general_message(200, "success", "构建成功")
+            return Response(result, status=result["code"])
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                result = general_message(10407, "no cloud permission", e.message)
+                status = e.status
+            else:
+                result = general_message(500, "call cloud api failure", e.message)
+                status = 500
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            # 删除probe
-            # 删除region端数据
-            if probe:
-                probe_service.delete_service_probe(self.tenant, self.service, probe.probe_id)
-            if self.service.service_source != "third_party":
-                event_service.delete_service_events(self.service)
-                port_service.delete_region_port(self.tenant, self.service)
-                volume_service.delete_region_volumes(self.tenant, self.service)
-                env_var_service.delete_region_env(self.tenant, self.service)
-                dependency_service.delete_region_dependency(self.tenant, self.service)
-                app_manage_service.delete_region_service(self.tenant, self.service)
-            self.service.create_status = "checked"
-            self.service.save()
-
-        return Response(result, status=result["code"])
+            status = 500
+        # 删除probe
+        # 删除region端数据
+        if probe:
+            probe_service.delete_service_probe(self.tenant, self.service, probe.probe_id)
+        if self.service.service_source != "third_party":
+            event_service.delete_service_events(self.service)
+            port_service.delete_region_port(self.tenant, self.service)
+            volume_service.delete_region_volumes(self.tenant, self.service)
+            env_var_service.delete_region_env(self.tenant, self.service)
+            dependency_service.delete_region_dependency(self.tenant, self.service)
+            app_manage_service.delete_region_service(self.tenant, self.service)
+        self.service.create_status = "checked"
+        self.service.save()
+        return Response(result, status=status)
 
     def is_need_to_add_default_probe(self):
         if self.service.service_source != "source_code":
@@ -152,7 +163,7 @@ class ComposeBuildView(RegionTenantHeaderView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, is_upgrade=True, group_version=None)
+                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None)
                 except Exception as e:
                     logger.exception(e)
                     continue
