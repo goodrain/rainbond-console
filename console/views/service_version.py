@@ -76,7 +76,7 @@ class AppVersionsView(AppBaseView):
 
             events = event_repo.get_events_before_specify_time(self.tenant.tenant_id, self.service.service_id,
                                                                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
-            version_user_map = {event.deploy_version: event.user_name for event in events}
+            version_user_map = {event.event_id: event.user_name for event in events}
 
             versions_info = build_version_list
             version_list = []
@@ -91,7 +91,7 @@ class AppVersionsView(AppBaseView):
                     "author": info["Author"],
                     "create_time": info["CreatedAt"],
                     "status": info["FinalStatus"],
-                    "build_user": version_user_map.get(info["BuildVersion"], "未知")
+                    "build_user": version_user_map.get(info["EventID"], "未知")
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
