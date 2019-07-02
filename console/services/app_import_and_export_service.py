@@ -2,17 +2,18 @@
 """
   Created on 18/5/15.
 """
+import base64
 import datetime
 import json
 import logging
 import urllib2
-import base64
 
-from console.models.main import RainbondCenterApp
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.appstore.appstore import app_store
+from console.models.main import RainbondCenterApp
 from console.repositories.group import group_repo
-from console.repositories.market_app_repo import app_export_record_repo, app_import_record_repo
+from console.repositories.market_app_repo import app_export_record_repo
+from console.repositories.market_app_repo import app_import_record_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from www.apiclient.baseclient import client_auth_service
@@ -78,7 +79,11 @@ class AppExportService(object):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
-        image_base64_string = self.encode_image(picture_path)
+        try:
+            image_base64_string = self.encode_image(picture_path)
+        except IOError as e:
+            logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
+            image_base64_string = ""
 
         app_template = json.loads(app.app_template)
         app_template["suffix"] = suffix
@@ -200,7 +205,6 @@ class AppExportService(object):
     def get_export_record_status(self, enterprise_id, group_key, version):
         records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, group_key,
                                                                                     version)
-        export_status = "other"
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:
             return "unexported"
@@ -351,7 +355,7 @@ class AppImportService(object):
                                                                         app_template["group_version"])
             if app:
                 # 覆盖原有应用数据
-                app.share_team = tenant_name # 分享团队名暂时为那个团队将应用导入进来的
+                app.share_team = tenant_name  # 分享团队名暂时为那个团队将应用导入进来的
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
                 app.app_template = json.dumps(app_template)
