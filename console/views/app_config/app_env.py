@@ -374,11 +374,7 @@ class AppEnvManageView(AppBaseView):
     def patch(self, request, attr_name, *args, **kwargs):
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
-
-        env = env_var_repo.get_service_env_or_404_by_attr_name(
-            self.tenant.tenant_id, self.service.service_id, attr_name
-        )
-        env_var_repo.change_service_env_scope(env, scope)
+        env = env_var_service.patch_env_scope(self.tenant, self.service, attr_name, scope)
         return MessageResponse(
             msg="success",
             msg_show=u"更新成功",

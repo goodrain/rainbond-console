@@ -31,6 +31,7 @@ CATEGORY_MAP = {
     "common_type": "一般类型",
     "net-plugin:down": "出口网络",
     "net-plugin:up": "入口网络",
+    "net-plugin:in-and-out": "出口入口共治网络",
     "init-plugin": "初始化类型",
     "general-plugin": "一般类型",
 }

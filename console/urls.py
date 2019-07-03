@@ -3,11 +3,6 @@ from django.conf.urls import url
 
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
-from console.views.account_fee import EnterpriseAccountInfoView
-from console.views.account_fee import EnterpriseAllRegionFeeView
-from console.views.account_fee import EnterprisePurchaseDetails
-from console.views.account_fee import EnterpriseRechargeRecordsView
-from console.views.account_fee import EnterpriseTeamFeeView
 from console.views.app_config.app_dependency import AppDependencyManageView
 from console.views.app_config.app_dependency import AppDependencyView
 from console.views.app_config.app_dependency import AppNotDependencyView
@@ -110,6 +105,7 @@ from console.views.center_pool.apps import CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
+from console.views.center_pool.apps import GetCloudRecommendedAppList
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
@@ -180,11 +176,7 @@ from console.views.receipt import EnterReceiptDetailAPIView
 from console.views.receipt import EnterReceiptOrdersAIPView
 from console.views.region import GetRegionPublicKeyView
 from console.views.region import OpenRegionView
-from console.views.region import PublicRegionListView
 from console.views.region import QyeryRegionView
-from console.views.region import RegionResourceDetailView
-from console.views.region import RegionResPrice
-from console.views.region import RegionResPurchage
 from console.views.region import RegQuyView
 from console.views.region import RegSimQuyView
 from console.views.region import RegUnopenView
@@ -374,17 +366,17 @@ urlpatterns = [
     # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),
 
     # 账户与费用相关
-    url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
-    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
-    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
-    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/recharge-records$', EnterpriseRechargeRecordsView.as_view()),
-    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
-    url(r'^enterprise/team/(?P<team_name>[\w\-]+)/purchase-detail$', EnterprisePurchaseDetails.as_view()),
-    # 数据中心相关
-    url(r'^enterprise/regions$', PublicRegionListView.as_view()),
-    url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
-    url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
-    url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/purchase$', RegionResPurchage.as_view()),
+    # url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
+    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
+    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
+    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/recharge-records$', EnterpriseRechargeRecordsView.as_view()),
+    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
+    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/purchase-detail$', EnterprisePurchaseDetails.as_view()),
+    # # 数据中心相关
+    # url(r'^enterprise/regions$', PublicRegionListView.as_view()),
+    # url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
+    # url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
+    # url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/purchase$', RegionResPurchage.as_view()),
 
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
@@ -681,6 +673,7 @@ urlpatterns = [
 
     # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
     # 查询云端指定版本app
     url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
     # 下架应用

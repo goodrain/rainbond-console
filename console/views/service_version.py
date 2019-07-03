@@ -15,7 +15,6 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
 from django.core.paginator import Paginator
-from console.utils.timeutil import time_to_str
 
 
 logger = logging.getLogger("default")
@@ -77,7 +76,7 @@ class AppVersionsView(AppBaseView):
 
             events = event_repo.get_events_before_specify_time(self.tenant.tenant_id, self.service.service_id,
                                                                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
-            version_user_map = {event.deploy_version: event.user_name for event in events}
+            version_user_map = {event.event_id: event.user_name for event in events}
 
             versions_info = build_version_list
             version_list = []
@@ -92,14 +91,15 @@ class AppVersionsView(AppBaseView):
                     "author": info["Author"],
                     "create_time": info["CreatedAt"],
                     "status": info["FinalStatus"],
-                    "build_user": version_user_map.get(info["BuildVersion"], "未知")
+                    "build_user": version_user_map.get(info["EventID"], "未知")
                 })
             res_versions = sorted(version_list,
                                   key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
-                if int(res_version["build_version"]) > int(self.service.deploy_version):
+                # get deploy version from region
+                if int(res_version["build_version"]) > int(run_version):
                     upgrade_or_rollback = 1
-                elif int(res_version["build_version"]) == int(self.service.deploy_version):
+                elif int(res_version["build_version"]) == int(run_version):
                     upgrade_or_rollback = 0
                 else:
                     upgrade_or_rollback = -1
@@ -113,7 +113,7 @@ class AppVersionsView(AppBaseView):
             is_upgrade = False
             if res_versions:
                 latest_version = res_versions[0]["build_version"]
-                if int(latest_version) > int(self.service.deploy_version):
+                if int(latest_version) > int(run_version):
                     is_upgrade = True
             bean = {
                 "is_upgrade": is_upgrade,
@@ -124,6 +124,7 @@ class AppVersionsView(AppBaseView):
             result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(total_num))
             return Response(result, status=result["code"])
         except Exception as e:
+            logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
 

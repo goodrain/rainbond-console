@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
 from console.services.app_import_and_export_service import export_service
@@ -25,6 +26,8 @@ from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from www.apiclient.baseclient import HttpClient
+from market_client.rest import ApiException
 
 logger = logging.getLogger('default')
 
@@ -65,7 +68,6 @@ class CenterAppListView(RegionTenantHeaderView):
         apps = market_app_service.get_visiable_apps(
             self.tenant, scope, app_name
         ).values('group_key').annotate(id=Min('ID'))
-
         paginator = Paginator(apps, int(page_size))
         show_apps = paginator.page(int(page))
 
@@ -119,30 +121,39 @@ class CenterAppView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: form
+            - name: install_from_cloud
+              description: install app from cloud
+              required: false
+              type: bool
+              paramType: form
         """
         try:
             group_id = request.data.get("group_id", -1)
             group_key = request.data.get("group_key", None)
             group_version = request.data.get("group_version", None)
             is_deploy = request.data.get("is_deploy", True)
+            install_from_cloud = request.data.get("install_from_cloud", False)
             if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
                 code, _, _ = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
                 if code != 200:
                     return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
-
-            code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
-
-            if not app:
-                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+            if install_from_cloud:
+                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version, True)
+                if not app:
+                    return Response(general_message(404, "not found", "云端应用不存在"), status=404)
+            else:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
+                if not app:
+                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
             market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
 
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy)
-
-            RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
-                install_number=F("install_number") + 1
-            )
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy, install_from_cloud)
+            if not install_from_cloud:
+                RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
+                    install_number=F("install_number") + 1
+                )
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
@@ -151,6 +162,8 @@ class CenterAppView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -254,6 +267,12 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
                 market_sycn_service.down_market_group_app_detail(self.user, self.tenant, group_key, version,
                                                                  template_version)
             result = general_message(200, "success", "应用同步成功")
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
+            else:
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)           
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -291,16 +310,23 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         app_name = request.GET.get("app_name", None)
+        open_query = request.GET.get("open_query", False)
         try:
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
-            if ent and not ent.is_active:
-                result = general_message(10407, "failed", "用户未跟云市认证")
-                return Response(result, 500)
-
+            if not open_query:
+                ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+                if ent and not ent.is_active:
+                    result = general_message(10407, "failed", "用户未跟云市认证")
+                    return Response(result, 500)
             total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
 
             result = general_message(200, "success", "查询成功", list=apps, total=total,
                                      next_page=int(page) + 1)
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
+            else:
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)                     
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -329,7 +355,55 @@ class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
             total, apps = market_app_service.get_market_version_apps(self.tenant, app_name, group_key, version)
 
             result = general_message(200, "success", "查询成功", list=apps)
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
+            else:
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)                     
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class GetCloudRecommendedAppList(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取云端市场推荐应用列表
+        ---
+        parameters:
+            - name: app_name
+              description: 应用名字
+              required: false
+              type: string
+              paramType: query
+            - name: page
+              description: 当前页
+              required: true
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页大小,默认为10
+              required: true
+              type: string
+              paramType: query
+        """
+        app_name = request.GET.get("app_name", None)
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        try:
+            apps = market_sycn_service.get_recommended_app_list(self.tenant, page, page_size, app_name)
+            if apps and apps.list:
+                return MessageResponse(
+                    "success",
+                    msg_show="查询成功",
+                    list=[app.to_dict() for app in apps.list],
+                    total=apps.total,
+                    next_page=int(apps.page) + 1
+                )
+            else:
+                return Response(general_message(200, "no apps", u"查询成功"), status=200)
+        except ApiException as e:
+            logger.exception(e)
+            return Response(general_message(e.status, e.reason, u"云端获取应用列表失败"), status=e.status)

@@ -152,7 +152,7 @@ class UpgradeService(object):
         from console.services.app_actions.properties_changes import PropertiesChanges
 
         try:
-            pc = PropertiesChanges(service)
+            pc = PropertiesChanges(service, tenant)
             return pc.get_property_changes(tenant.enterprise_id, version)
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))

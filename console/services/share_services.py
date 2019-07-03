@@ -525,7 +525,7 @@ class ShareService(object):
             return 404, "分享的应用不存在", None
         rc_app = rc_apps[0]
         event_type = "share-yb"
-        if rc_app.scope == "goodrain":
+        if rc_app.scope.startswith("goodrain"):
             event_type = "share-ys"
         event = self.create_publish_event(record_event, user.nick_name,
                                           event_type)
@@ -684,18 +684,6 @@ class ShareService(object):
 
     def delete_record(self, record):
         record.delete()
-
-    def upate_app_complete_by_app_id(self, app_id, data):
-        app = share_repo.get_app_by_app_id(app_id=app_id)
-        is_complete = False
-        if app.scope == 'goodrain':
-            app.scope = data["GRYS"]
-            is_complete = True
-        elif app.scope == 'team' or app.scope == 'enterprise':
-            app.scope = data["GRYB"]
-            is_complete = True
-        app.is_complete = is_complete
-        app.save()
 
     def create_service(self, **kwargs):
         return share_repo.create_service(**kwargs)
@@ -937,9 +925,14 @@ class ShareService(object):
         app_market_url = None
         if app:
             # 分享到云市
-            if app.scope == "goodrain":
+            if app.scope.startswith("goodrain"):
+                share_type = "private"
+                info = app.scope.split(":")
+                if len(info) > 1:
+                    share_type = info[1]
                 app_market_url = self.publish_app_to_public_market(
-                    tenant, user.nick_name, app)
+                    tenant, user.nick_name, app, share_type)
+                app.scope = "goodrain"
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
@@ -952,7 +945,7 @@ class ShareService(object):
             app.group_key, app.version)
         return app_market_url
 
-    def publish_app_to_public_market(self, tenant, user_name, app):
+    def publish_app_to_public_market(self, tenant, user_name, app, share_type="private"):
         market_api = MarketOpenAPI()
         data = dict()
         data["tenant_id"] = tenant.tenant_id
@@ -966,6 +959,7 @@ class ShareService(object):
         data["group_share_alias"] = app.group_name
         data["logo"] = app.pic
         data["details"] = app.details
+        data["share_type"] = share_type
         result = market_api.publish_v2_template_group_data(
             tenant.tenant_id, data)
         # 云市url

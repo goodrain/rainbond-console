@@ -14,9 +14,8 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-
+from console.services.market_app_service import market_app_service
 from console.repositories.app import service_source_repo
-from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
@@ -35,11 +34,11 @@ from www.utils.md5Util import md5fun
 from django.conf import settings
 from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
-from console.repositories.app import service_repo, service_webhooks_repo, service_source_repo
+from console.repositories.app import service_repo, service_webhooks_repo
 from console.views.base import JWTAuthApiView
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
-
+from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -104,7 +103,7 @@ class AppDetailView(AppBaseView):
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
                         if app["service_key"] == self.service.service_key:
-                            if app["deploy_version"] > self.service.deploy_version:
+                            if int(app["deploy_version"]) > int(self.service.deploy_version):
                                 self.service.is_upgrate = True
                                 self.service.save()
                                 bean.update({"service": service_model})
@@ -662,46 +661,44 @@ class BuildSourceinfo(AppBaseView):
                                                                     service_id=self.service.service_id)
             bean = {
                 "user_name": "",
-                "password": ""
-            }                                         
+                "password": "",
+                "service_source": self.service.service_source,
+                "image": self.service.image,
+                "cmd": self.service.cmd,
+                "code_from": self.service.code_from,
+                "version": self.service.version,
+                "docker_cmd": self.service.docker_cmd,
+                "create_time": self.service.create_time,
+                "git_url": self.service.git_url,
+                "code_version": self.service.code_version,
+                "server_type": self.service.server_type,
+                "language": self.service.language,
+            }
             if service_source:
                 bean["user"] = service_source.user_name
                 bean["password"] = service_source.password
-            
             if self.service.service_source == 'market':
                 if service_source:
-                    # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                     service_source.version)
+                    # get from cloud
+                    rain_app = None
+                    if service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info and extend_info.get("install_from_cloud", False):
+                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key, service_source.version)
+                            bean["install_from_cloud"] = True
+                            bean["app_detail_url"] = rain_app.describe
+                    if not rain_app:
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key, service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details
                         logger.debug("app_version: {}".format(rain_app.version))
                         bean["app_version"] = rain_app.version
-                        bean["group_key"] = rain_app.group_key
-            bean["service_source"] = self.service.service_source
-            bean["image"] = self.service.image
-            bean["cmd"] = self.service.cmd
-            bean["code_from"] = self.service.code_from
-            bean["version"] = self.service.version
-            bean["docker_cmd"] = self.service.docker_cmd
-            bean["create_time"] = self.service.create_time
-            bean["git_url"] = self.service.git_url
-            bean["code_version"] = self.service.code_version
-            bean["server_type"] = self.service.server_type
-            bean["language"] = self.service.language
-            if self.service.service_source == 'market':
-                if service_source:
-                    # 获取内部市场对象
-                    rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                     service_source.version)
-                    if rain_app:
-                        bean["rain_app_name"] = rain_app.group_name
-                        bean["details"] = rain_app.details
-                        logger.debug("version: {}".format(rain_app.version))
                         bean["version"] = rain_app.version
                         bean["group_key"] = rain_app.group_key
             result = general_message(200, "success", "查询成功", bean=bean)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

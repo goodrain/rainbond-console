@@ -10,12 +10,13 @@ from rest_framework.response import Response
 from console.exception.main import AccountOverdueException
 from console.exception.main import CallRegionAPIException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from console.services.app_actions.app_deploy import AppDeployService
-from console.services.app_actions.exception import ErrServiceSrouceNotFound
+from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config import deploy_type_service
 from console.services.app_config import volume_service
 from console.services.app_config.env_service import AppEnvVarService
@@ -173,13 +174,12 @@ class DeployAppView(AppBaseView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            is_upgrade = request.data.get("is_upgrade", True)
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
 
             code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user,
-                                                         is_upgrade, version=group_version)
+                                                         version=group_version)
 
             bean = {}
             if event:
@@ -188,7 +188,7 @@ class DeployAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
-        except ErrServiceSrouceNotFound as e:
+        except ErrServiceSourceNotFound as e:
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
@@ -628,6 +628,8 @@ class UpgradeAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+        except ServiceHandleException as e:
+            raise e
         except ResourceNotEnoughException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)

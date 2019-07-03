@@ -21,3 +21,4 @@ fuzzyfinder==1.0.0
 django-cors-headers==2.1.0
 pypinyin==0.23.0
 docker-image-py==0.1.4
+rainbond_market_client==0.0.3

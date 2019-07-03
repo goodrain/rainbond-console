@@ -131,9 +131,9 @@ class AppPluginService(object):
 
         elif category == "net_manage":
             query_installed_plugin = """{0} AND tp.category in {1} """.format(QUERY_INSTALLED_SQL,
-                                                                              '("net-plugin:down","net-plugin:up")')
+                                                                              '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
             query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(QUERI_UNINSTALLED_SQL,
-                                                                                 '("net-plugin:down","net-plugin:up")')
+                                                                                 '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
         else:
             query_installed_plugin = QUERY_INSTALLED_SQL
             query_uninstalled_plugin = QUERI_UNINSTALLED_SQL
@@ -547,10 +547,11 @@ class PluginService(object):
             if not image:
                 return 400, "镜像地址不能为空", None
         if category not in (
+                PluginCategoryConstants.OUTPUT_INPUT_NET,
                 PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
                 PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
                 PluginCategoryConstants.COMMON_TYPE):
-            return 400, "类别参数错误", None
+            return 400, "插件类别参数不支持", None
         plugin_params = {
             "plugin_id": plugin_id,
             "tenant_id": tenant.tenant_id,

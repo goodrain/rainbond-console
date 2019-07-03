@@ -9,6 +9,7 @@ from backends.services.configservice import config_service
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.user_repo import user_repo
+from console.services.market_app_service import market_sycn_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
 from www.utils.return_message import error_message
@@ -47,7 +48,7 @@ class ConfigInfoView(AlowAnyApiView):
 
             title = config_service.get_config_by_key("TITLE")
             if not title:
-                config = config_service.add_config("TITLE", "好雨云帮", "string",
+                config = config_service.add_config("TITLE", "Rainbond-企业云应用操作系统，开发、交付云解决方案", "string",
                                                    "云帮title")
                 title = config.value
             data["title"] = title
@@ -87,6 +88,11 @@ class ConfigInfoView(AlowAnyApiView):
             if enterprise:
                 data["eid"] = enterprise.enterprise_id
                 data["enterprise_name"] = enterprise.enterprise_alias
+                market_token = market_sycn_service.get_enterprise_access_token(enterprise.enterprise_id, "market")
+                if market_token:
+                    data["market_url"] = market_token.access_url
+                else:
+                    data["market_url"] = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
             data["version"] = os.getenv("RELEASE_DESC", "public-cloud")
             result = general_message(
                 code,
