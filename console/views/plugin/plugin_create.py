@@ -12,7 +12,8 @@ from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -46,7 +47,8 @@ class PluginCreateView(RegionTenantHeaderView):
               type: integer
               paramType: form
             - name: category
-              description: 插件类别 net-plugin:down|net-plugin:up|net-plugin:in-and-out|analyst-plugin:perf|init-plugin|general-plugin
+              description: 插件类别 net-plugin:down|net-plugin:up|net-plugin:in-and-out|
+              analyst-plugin:perf|init-plugin|general-plugin
               required: false
               type: string
               paramType: form
@@ -204,7 +206,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
         """
         try:
             default_plugins = plugin_service.get_default_plugin(self.response_region, self.tenant)
-            bean = {"downstream_net_plugin": False, "perf_analyze_plugin": False}
+            bean = {"downstream_net_plugin": False, "perf_analyze_plugin": False, "inandout_net_plugin": False}
             for p in default_plugins:
                 bean[p.origin_share_id] = True
 

@@ -130,10 +130,10 @@ class AppPluginService(object):
                                                                                "analyst-plugin:perf")
 
         elif category == "net_manage":
-            query_installed_plugin = """{0} AND tp.category in {1} """.format(QUERY_INSTALLED_SQL,
-                                                                              '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
-            query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(QUERI_UNINSTALLED_SQL,
-                                                                                 '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
+            query_installed_plugin = """{0} AND tp.category in {1} """.format(
+                QUERY_INSTALLED_SQL, '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
+            query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(
+                QUERI_UNINSTALLED_SQL, '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
         else:
             query_installed_plugin = QUERY_INSTALLED_SQL
             query_uninstalled_plugin = QUERI_UNINSTALLED_SQL
@@ -729,7 +729,7 @@ class PluginService(object):
     def get_default_plugin(self, region, tenant):
         # 兼容3.5版本升级
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
-            origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin"])
+            origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"])
         if plugins:
             return plugins
         else:
