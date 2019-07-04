@@ -89,8 +89,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
             result = general_message(200, "success", "创建成功", bean=bean)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

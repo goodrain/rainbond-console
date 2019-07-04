@@ -14,9 +14,8 @@ from console.services.compose_service import compose_service
 from console.services.team_services import team_services
 from console.services.app_actions import app_manage_service
 from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.region_repo import region_repo
-from console.services.enterprise_services import enterprise_services
 from console.repositories.app import service_repo
+from console.exception.main import ResourceNotEnoughException
 
 
 logger = logging.getLogger("default")
@@ -219,7 +218,6 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
         """
         try:
             action = request.data.get("action", None)
-
             group_id = int(kwargs.get("group_id", None))
             services = group_service_relation_repo.get_services_obj_by_group(group_id)
             if not services:
@@ -258,7 +256,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
                 result = general_message(code, "batch manage error", msg)
             else:
                 result = general_message(200, "success", "操作成功")
-
+        except ResourceNotEnoughException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

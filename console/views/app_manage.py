@@ -71,8 +71,7 @@ class StartAppView(AppBaseView):
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
@@ -192,8 +191,7 @@ class DeployAppView(AppBaseView):
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
@@ -247,8 +245,7 @@ class RollBackAppView(AppBaseView):
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
@@ -304,8 +301,7 @@ class VerticalExtendAppView(AppBaseView):
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
@@ -362,8 +358,7 @@ class HorizontalExtendAppView(AppBaseView):
                 return Response(general_message(code, "horizontal upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
@@ -631,8 +626,7 @@ class UpgradeAppView(AppBaseView):
         except ServiceHandleException as e:
             raise e
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)

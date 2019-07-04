@@ -254,8 +254,7 @@ class ComposeCheckView(ComposeGroupBaseView):
             result = general_message(200, "success", "请求成功", bean=compose_check_brief,
                                      list=[s.to_dict() for s in service_list])
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)

@@ -604,43 +604,33 @@ class AppManageService(AppManageBase):
     # 5.1新版批量操作（启动，关闭，构建）
     def batch_operations(self, tenant, user, action, service_ids):
         services = service_repo.get_services_by_service_ids(service_ids)
+        # 获取所有服务信息
+        body = dict()
+        code = 200
+        data = ''
+        if action == "start":
+            code, data = self.start_services_info(body, services, tenant, user)
+        elif action == "stop":
+            code, data = self.stop_services_info(body, services, tenant, user)
+        elif action == "upgrade":
+            code, data = self.upgrade_services_info(
+                body, services, tenant, user)
+        elif action == "deploy":
+            code, data, _ = self.deploy_services_info(
+                body, services, tenant, user)
+        if code != 200:
+            return 415, "服务信息获取失败"
+        # 获取数据中心信息
+        one_service = services[0]
+        region_name = one_service.service_region
         try:
-            # 获取所有服务信息
-            body = dict()
-            code = 200
-            data = ''
-            if action == "start":
-                code, data = self.start_services_info(body, services, tenant,
-                                                      user)
-            elif action == "stop":
-                code, data = self.stop_services_info(body, services, tenant,
-                                                     user)
-            elif action == "upgrade":
-                code, data = self.upgrade_services_info(
-                    body, services, tenant, user)
-            elif action == "deploy":
-                code, data, _ = self.deploy_services_info(
-                    body, services, tenant, user)
-            logger.debug(
-                '-===================---bodybody----------->{0}'.format(
-                    json.dumps(data)))
-            if code != 200:
-                return 415, "服务信息获取失败"
-            # 获取数据中心信息
-            one_service = services[0]
-            region_name = one_service.service_region
-            try:
-                logger.debug('--------12222222222----___>{0}'.format(
-                    json.dumps(data)))
-                region_api.batch_operation_service(region_name,
-                                                   tenant.tenant_name, data)
-                return 200, "操作成功"
-            except region_api.CallApiError as e:
-                logger.exception(e)
-                return 500, "数据中心操作失败"
-        except Exception as e:
+            logger.debug('--------12222222222----___>{0}'.format(
+                json.dumps(data)))
+            region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+            return 200, "操作成功"
+        except region_api.CallApiError as e:
             logger.exception(e)
-            return 500, "系统异常"
+            return 500, "数据中心操作失败"
 
     def start_services_info(self, body, services, tenant, user):
         body["operation"] = "start"

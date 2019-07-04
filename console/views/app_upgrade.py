@@ -269,7 +269,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
                     group_id, new_app, old_app, services, True
                 )
 
-            except (ResourceNotEnoughException, AccountOverdueException) as re:
+            except ResourceNotEnoughException as re:
+                raise re
+            except AccountOverdueException as re:
                 logger.exception(re)
                 return MessageResponse(
                     msg="resource is not enough",

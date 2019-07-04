@@ -23,6 +23,7 @@ from rest_framework_jwt.settings import api_settings
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException, ServiceHandleException
+from console.exception.main import ResourceNotEnoughException
 from console.repositories.enterprise_repo import enterprise_repo
 from www.models import Users, Tenants
 from goodrain_web import errors
@@ -264,6 +265,13 @@ def custom_exception_handler(exc, context):
     """
     if isinstance(exc, ServiceHandleException):
         return exc.response
+    elif isinstance(exc, ResourceNotEnoughException):
+        data = {
+            "code": 10406,
+            "msg": "resource is not enough",
+            "msg_show": exc.message
+        }
+        return Response(data, status=412)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):

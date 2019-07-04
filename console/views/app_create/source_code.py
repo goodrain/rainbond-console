@@ -118,8 +118,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 logger.debug("service.create", msg_show)
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)

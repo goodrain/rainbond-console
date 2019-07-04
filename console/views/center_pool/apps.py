@@ -157,8 +157,7 @@ class CenterAppView(RegionTenantHeaderView):
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
