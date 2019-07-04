@@ -181,7 +181,7 @@ class AppEnvVarService(object):
             return 409, "环境变量不允许被修改", None
         update_params = {"name": name, "attr_value": attr_value}
         if service.create_status == "complete":
-            body = {"env_name": attr_name, "env_value": attr_value}
+            body = {"env_name": attr_name, "env_value": attr_value, "scope": env.scope}
             region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
         env_var_repo.update_env_var(tenant.tenant_id, service.service_id, attr_name, **update_params)
         env.name = name
