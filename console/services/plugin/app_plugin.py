@@ -310,7 +310,6 @@ class AppPluginService(object):
                 if normal_envs:
                     normal_env = normal_envs[0]
                     undefine_options = json.loads(normal_env.attrs)
-
                 for item in items:
                     item_option = {
                         "attr_info": item.attr_info,
@@ -324,14 +323,13 @@ class AppPluginService(object):
                     if undefine_options:
                         item_option["attr_value"] = undefine_options.get(item.attr_name, item.attr_default_value)
                     options.append(item_option)
-
                 undefine_env.update({
                     "service_id": service.service_id,
                     "service_meta_type": config_group.service_meta_type,
                     "injection": config_group.injection,
                     "service_alias": service.service_alias,
                     "config": copy.deepcopy(options),
-
+                    "config_group_name": config_group.config_name,
                 })
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
@@ -358,7 +356,7 @@ class AppPluginService(object):
                         if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                             options.append(item_option)
                     upstream_env_list.append({
-
+                        "config_group_name": config_group.config_name,
                         "service_id": service.service_id,
                         "service_meta_type": config_group.service_meta_type,
                         "injection": config_group.injection,
@@ -367,11 +365,10 @@ class AppPluginService(object):
                         "port": port.container_port,
                         "config": copy.deepcopy(options)
                     })
-
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 for dep_service in dep_services:
-                    ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
+                    ports = port_repo.list_inner_ports(dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
                         downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
                                                                      dest_service_id=dep_service.service_id,
@@ -396,9 +393,8 @@ class AppPluginService(object):
                                                                                    item.attr_default_value)
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 options.append(item_option)
-
                         downstream_env_list.append({
-
+                            "config_group_name": config_group.config_name,
                             "service_id": service.service_id,
                             "service_meta_type": config_group.service_meta_type,
                             "injection": config_group.injection,

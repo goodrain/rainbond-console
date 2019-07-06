@@ -113,7 +113,7 @@ class PluginConfigService(object):
         config_item_repo.delete_config_items_by_id_and_version(plugin_id, build_version)
         config_group_repo.delete_config_group_by_id_and_version(plugin_id, build_version)
 
-    def copy_config_group(self,plugin_id, old_version, new_version):
+    def copy_config_group(self, plugin_id, old_version, new_version):
         config_groups = config_group_repo.get_config_group_by_id_and_version(plugin_id, old_version)
         config_group_copy = []
         for config in config_groups:
@@ -124,8 +124,8 @@ class PluginConfigService(object):
             config_group_copy.append(PluginConfigGroup(**config_dict))
         config_group_repo.bulk_create_plugin_config_group(config_group_copy)
 
-    def copy_group_items(self,plugin_id, old_version, new_version):
-        config_items = config_item_repo.get_config_items_by_id_and_version(plugin_id,old_version)
+    def copy_group_items(self, plugin_id, old_version, new_version):
+        config_items = config_item_repo.get_config_items_by_id_and_version(plugin_id, old_version)
         config_items_copy = []
         for item in config_items:
             item_dict = model_to_dict(item)

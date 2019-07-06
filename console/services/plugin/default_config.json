@@ -10,7 +10,7 @@
       {
         "service_meta_type": "downstream_port",
         "injection": "auto",
-        "config_name": "下游应用配置",
+        "config_name": "出站网络治理配置",
         "options": [
           {
             "attr_name": "Domains",
@@ -36,7 +36,7 @@
             "attr_default_value": "",
             "is_change": true,
             "attr_alt_value": "",
-            "attr_info": "请求header信息，多个以；分离",
+            "attr_info": "请求header信息，多个以;分离",
             "protocol": "http"
           },
           {
@@ -45,7 +45,7 @@
             "attr_default_value": "100",
             "is_change": true,
             "attr_alt_value": "",
-            "attr_info": "权重，Domain,Prefix,headers一致时生效",
+            "attr_info": "权重,当Domain,Prefix,Headers一致时生效",
             "protocol": "http"
           },
           {
@@ -55,7 +55,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "http1.1",
-            "protocol": "http"
+            "protocol": ""
           },
           {
             "attr_name": "MaxPendingRequests",
@@ -170,7 +170,7 @@
       {
         "service_meta_type": "upstream_port",
         "injection": "auto",
-        "config_name": "inbound",
+        "config_name": "入站网络治理配置",
         "options": [
           {
             "attr_name": "OPEN_LIMIT",
@@ -189,13 +189,58 @@
             "attr_alt_value": "",
             "attr_info": "对应限流规则的域名",
             "protocol": ""
+          },
+          {
+            "attr_name": "MaxConnections",
+            "attr_type": "string",
+            "attr_default_value": "1024",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "http1.1",
+            "protocol": ""
+          },
+          {
+            "attr_name": "MaxPendingRequests",
+            "attr_type": "string",
+            "attr_default_value": "1024",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "最大等待请求数",
+            "protocol": "http"
+          },
+          {
+            "attr_name": "MaxRequests",
+            "attr_type": "string",
+            "attr_default_value": "1024",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "最大请求数",
+            "protocol": "http"
+          },
+          {
+            "attr_name": "MaxActiveRetries",
+            "attr_type": "string",
+            "attr_default_value": "5",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "最大重试次数",
+            "protocol": "http"
+          },
+          {
+            "attr_name": "MaxRequestsPerConnection",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "每个连接最大请求数，默认不限制，设为1则禁用keep alive",
+            "protocol": "http"
           }
         ]
       },
       {
         "service_meta_type": "downstream_port",
         "injection": "auto",
-        "config_name": "outbound",
+        "config_name": "出站网络治理配置",
         "options": [
           {
             "attr_name": "Domains",
@@ -240,7 +285,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "http1.1",
-            "protocol": "http"
+            "protocol": ""
           },
           {
             "attr_name": "MaxPendingRequests",
