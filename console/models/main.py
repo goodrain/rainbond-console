@@ -71,7 +71,7 @@ class RainbondCenterApp(BaseModel):
         help_text=u"应用来源(本地创建，好雨云市)")
     version = models.CharField(max_length=20, help_text=u"版本")
     scope = models.CharField(
-        max_length=10, choices=app_scope, help_text=u"可用范围")
+        max_length=50, choices=app_scope, help_text=u"可用范围")
     describe = models.CharField(
         max_length=400, null=True, blank=True, help_text=u"云市应用描述信息")
     app_template = models.TextField(help_text=u"全量应用与插件配置信息")
