@@ -7,6 +7,7 @@ from django.db import transaction
 
 from console.appstore.appstore import app_store
 from console.exception.main import AbortRequest
+from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import RainbondCenterApp
 from console.models.main import ServiceShareRecordEvent
@@ -27,6 +28,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models import make_uuid
 from www.models import ServiceEvent
 from www.models import TenantServiceInfo
+from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 
@@ -946,25 +948,32 @@ class ShareService(object):
         return app_market_url
 
     def publish_app_to_public_market(self, tenant, user_name, app, share_type="private"):
-        market_api = MarketOpenAPI()
-        data = dict()
-        data["tenant_id"] = tenant.tenant_id
-        data["group_key"] = app.group_key
-        data["group_version"] = app.version
-        data["template_version"] = app.template_version
-        data["publish_user"] = user_name
-        data["publish_team"] = tenant.tenant_alias
-        data["update_note"] = app.describe
-        data["group_template"] = app.app_template
-        data["group_share_alias"] = app.group_name
-        data["logo"] = app.pic
-        data["details"] = app.details
-        data["share_type"] = share_type
-        result = market_api.publish_v2_template_group_data(
-            tenant.tenant_id, data)
-        # 云市url
-        app_url = result["app_url"]
-        return app_url
+        try:
+            market_api = MarketOpenAPI()
+            data = dict()
+            data["tenant_id"] = tenant.tenant_id
+            data["group_key"] = app.group_key
+            data["group_version"] = app.version
+            data["template_version"] = app.template_version
+            data["publish_user"] = user_name
+            data["publish_team"] = tenant.tenant_alias
+            data["update_note"] = app.describe
+            data["group_template"] = app.app_template
+            data["group_share_alias"] = app.group_name
+            data["logo"] = app.pic
+            data["details"] = app.details
+            data["share_type"] = share_type
+            result = market_api.publish_v2_template_group_data(
+                tenant.tenant_id, data)
+            # 云市url
+            app_url = result["app_url"]
+            return app_url
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            else:
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
 
 share_service = ShareService()
