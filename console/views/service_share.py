@@ -21,6 +21,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -105,6 +106,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             service_share_record = share_service.create_service_share_record(**fields_dict)
             result = general_message(200, "create success", "创建成功", bean=service_share_record.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -143,6 +146,8 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             share_service.delete_record(share_record)
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -226,6 +231,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             data["share_plugin_list"] = plugins
             result = general_message(200, "query success", "获取成功", bean=data)
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -285,6 +292,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             )
             result = general_message(code, "create share info", msg, bean=bean)
             return Response(result, status=code)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -322,9 +331,10 @@ class ServiceShareEventList(RegionTenantHeaderView):
                 plugin_event_map = plugin_event.to_dict()
                 plugin_event_map["type"] = "plugin"
                 result["event_list"].append(plugin_event_map)
-
             result = general_message(200, "query success", "获取成功", bean=result)
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -349,6 +359,8 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             code, msg, bean = share_service.sync_event(self.user, self.response_region, team_name, events[0])
             result = general_message(code, "sync share event", msg, bean=bean.to_dict())
             return Response(result, status=code)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -374,6 +386,8 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             bean = share_service.get_sync_event_result(self.response_region, team_name, events[0])
             result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -400,7 +414,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                                                                       self.tenant.tenant_name, share_id, events[0])
             result = general_message(code, "sync share event", msg, bean=bean.to_dict())
             return Response(result, status=code)
-
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -428,6 +443,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
             bean = share_service.get_sync_plugin_events(self.response_region, team_name, plugin_events[0])
             result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e    
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -455,6 +472,8 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
             result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(),
                                      app_market_url=app_market_url)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
