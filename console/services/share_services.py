@@ -4,6 +4,7 @@ import json
 import logging
 
 from django.db import transaction
+from django.db.models import Q
 
 from console.appstore.appstore import app_store
 from console.exception.main import AbortRequest
@@ -23,12 +24,12 @@ from console.services.group_service import group_service
 from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.service_services import base_service
+from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models import make_uuid
 from www.models import ServiceEvent
 from www.models import TenantServiceInfo
-from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 
@@ -750,16 +751,17 @@ class ShareService(object):
         # 开启事务
         sid = transaction.savepoint()
         try:
+            group_info = share_info["share_group_info"]
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(
                 record_id=share_record.ID).delete()
-            RainbondCenterApp.objects.filter(
-                record_id=share_record.ID).delete()
+            RainbondCenterApp.objects.filter(Q(record_id=share_record.ID) | Q(
+                group_key=group_info["group_key"], version=group_info["version"],
+                enterprise_id=share_team.enterprise_id)).delete()
             app_templete = {}
             # 处理基本信息
             try:
                 app_templete["template_version"] = "v2"
-                group_info = share_info["share_group_info"]
                 app_templete["group_key"] = group_info["group_key"]
                 app_templete["group_name"] = group_info["group_name"]
                 app_templete["group_version"] = group_info["version"]
@@ -971,9 +973,11 @@ class ShareService(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
 
 
 share_service = ShareService()
