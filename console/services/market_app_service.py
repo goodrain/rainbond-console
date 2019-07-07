@@ -1077,11 +1077,6 @@ class MarketAppService(object):
                 logger.warning(e)
                 continue
             if not has_changes(changes):
-                logger.debug(
-                    "current rbd app: group_key={0}, version={1}, update_time={2}; \
-                dest version: {3}; no changes".format(
-                        service_source.group_key, service_source.version,
-                        cur_rbd_app.update_time, item.version))
                 continue
             # logger.debug("changes: {}".format(json.dumps(changes)))
             result.append(item.version)

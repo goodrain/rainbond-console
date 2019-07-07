@@ -257,9 +257,6 @@ class PropertiesChanges(object):
             self.service.service_id, "")
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
-        logger.debug("start getting plugin changes; old_plugin_keys: {}; \
-            new_plugin_keys: {}".format(
-            json.dumps(old_plugin_keys), json.dumps(new_plugin_keys)))
 
         plugin_names = {
             plugin["plugin_key"]: plugin["plugin_alias"]
