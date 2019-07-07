@@ -1,7 +1,7 @@
 # coding: utf-8
 import json
-
 from datetime import datetime
+
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import UpgradeStatus
@@ -21,7 +21,7 @@ class UpgradeRepo(object):
     ):
         """创建服务升级记录"""
         return ServiceUpgradeRecord.objects.create(
-            create_time=datetime.datetime.now(),
+            create_time=datetime.now(),
             app_upgrade_record=app_upgrade_record,
             service_id=service.service_id,
             service_cname=service.service_cname,
