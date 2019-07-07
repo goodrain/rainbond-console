@@ -268,7 +268,7 @@ class MarketAppService(object):
             # 创建应用插件
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
-                plugins = app_plugin_map[service.serivce_id]
+                plugins = app_plugin_map[service.service_id]
                 self.__create_service_pluginsv2(tenant, service,
                                                 market_app.version, plugins)
 
