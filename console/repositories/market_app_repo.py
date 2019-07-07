@@ -41,7 +41,7 @@ class RainbondCenterAppRepository(object):
         return None
 
     def list_by_key_time(self, group_key, time):
-        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, update_time__gte=time).all()
+        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, update_time__gte=time, is_complete=True).all()
         if rcapps:
             return rcapps
         return None
