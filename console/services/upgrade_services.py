@@ -108,7 +108,7 @@ class UpgradeService(object):
         app = RainbondCenterApp.objects.filter(
             group_key=group_key,
             version__in=versions
-        ).order_by('create_time').first()
+        ).order_by('-create_time').first()
         return app.version if app else ''
 
     def query_the_version_of_the_add_service(self, app_qs, service_keys):

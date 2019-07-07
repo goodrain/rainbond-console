@@ -10,10 +10,14 @@ import socket
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.exception.main import AbortRequest, RbdAppNotFound, ServiceHandleException
+from console.exception.main import AbortRequest
+from console.exception.main import ErrPluginAlreadyInstalled
+from console.exception.main import RbdAppNotFound
+from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
-from console.repositories.app_config import extend_repo, volume_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import plugin_repo
@@ -34,18 +38,22 @@ from console.services.app_config import volume_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
-from console.services.plugin import (app_plugin_service, plugin_config_service,
-                                     plugin_service, plugin_version_service)
-from console.utils.restful_client import (get_default_market_client,
-                                          get_market_client)
+from console.services.plugin import app_plugin_service
+from console.services.plugin import plugin_config_service
+from console.services.plugin import plugin_service
+from console.services.plugin import plugin_version_service
+from console.utils.restful_client import get_default_market_client
+from console.utils.restful_client import get_market_client
 from console.utils.timeutil import current_time_str
+from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import (ServicePluginConfigVar, TenantEnterprise,
-                        TenantEnterpriseToken, TenantServiceInfo)
+from www.models import ServicePluginConfigVar
+from www.models import TenantEnterprise
+from www.models import TenantEnterpriseToken
+from www.models import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -258,8 +266,11 @@ class MarketAppService(object):
             new_service_list = self.__create_region_services(
                 tenant, user, service_list, service_probe_map)
             # 创建应用插件
-            self.__create_service_plugins(region, tenant, service_list,
-                                          app_plugin_map, old_new_id_map)
+            for app in apps:
+                service = old_new_id_map[app["service_id"]]
+                plugins = app_plugin_map[service.serivce_id]
+                self.__create_service_pluginsv2(tenant, service,
+                                                market_app.version, plugins)
 
             events = []
             if is_deploy:
@@ -371,6 +382,13 @@ class MarketAppService(object):
 
         except Exception as e:
             logger.exception(e)
+
+    def __create_service_pluginsv2(self, tenant, service, version, plugins):
+        try:
+            app_plugin_service.create_plugin_4marketsvc(
+                tenant.region, tenant, service, version, plugins)
+        except ErrPluginAlreadyInstalled as e:
+            logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
     def __save_service_config_values(self, service, plugin_id, build_version,
                                      service_plugin_config_vars,
@@ -859,9 +877,11 @@ class MarketAppService(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
