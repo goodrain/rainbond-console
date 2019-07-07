@@ -9,7 +9,10 @@ from console.models.main import UpgradeStatus
 
 class UpgradeRepo(object):
     def get_app_not_upgrade_record(self, **kwargs):
-        return AppUpgradeRecord.objects.get(**kwargs)
+        result = AppUpgradeRecord.objects.filter(**kwargs).order_by("-update_time").first()
+        if result is None:
+            raise AppUpgradeRecord.DoesNotExist
+        return result
 
     def create_app_upgrade_record(self, **kwargs):
         return AppUpgradeRecord.objects.create(**kwargs)
