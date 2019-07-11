@@ -41,7 +41,7 @@ class GroupAppView(RegionTenantHeaderView):
 
         def yield_app_info():
             for group_key in set(service_group_keys):
-                app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key=group_key)
+                app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(self.tenant.enterprise_id, group_key)
                 app = app_qs.first()
                 if not app:
                     continue

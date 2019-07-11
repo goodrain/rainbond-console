@@ -21,6 +21,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models import Tenants
 
 
 class UpgradeService(object):
@@ -46,7 +47,8 @@ class UpgradeService(object):
                     msg_show="该组中没有这个云市应用",
                     status_code=404
                 )
-            app = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key).first()
+            tenant = Tenants.objects.get(tenant_name=self.tenant_name)
+            app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
             if not app:
                 raise AbortRequest(
                     msg="No rainbond app found",
@@ -91,7 +93,7 @@ class UpgradeService(object):
         # 查询新增应用的版本
         service_keys = services.values_list('service_key', flat=True)
         service_keys = set(service_keys) if service_keys else set()
-        app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key=group_key)
+        app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key=group_key)
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
 
         versions |= add_versions
