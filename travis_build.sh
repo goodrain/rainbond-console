@@ -4,10 +4,12 @@ set -xe
 
 image_name="rbd-app-ui"
 
-if [ -z "$TRAVIS_TAG" ]; then
-	VERSION=$TRAVIS_BRANCH-dev
-else
-	VERSION=$TRAVIS_TAG
+if [ -z "$VERSION" ];then
+  if [ -z "$TRAVIS_TAG" ]; then
+	  VERSION=$TRAVIS_BRANCH-dev
+  else
+	  VERSION=$TRAVIS_TAG
+  fi
 fi
 
 buildTime=$(date +%F-%H)
