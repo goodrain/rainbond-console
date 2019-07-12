@@ -6,6 +6,8 @@ image_name="rbd-app-ui"
 
 if [ -z "$TRAVIS_TAG" ]; then
 	VERSION=$TRAVIS_BRANCH-dev
+elif [ $TRAVIS_TAG == "V5.1" ];
+        VERSION=v5.1.5-release
 else
 	VERSION=$TRAVIS_TAG
 fi
