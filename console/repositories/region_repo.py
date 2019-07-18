@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from backends.models import RegionConfig
-from backends.services.exceptions import NoEnableRegionError
 from console.repositories.team_repo import team_repo
-from www.models import TenantRegionInfo
+from www.models.main import TenantRegionInfo
 
 
 class RegionRepo(object):
-
     def get_active_region_by_tenant_name(self, tenant_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=1, is_init=1)
@@ -56,6 +54,9 @@ class RegionRepo(object):
 
     def create_tenant_region(self, **params):
         return TenantRegionInfo.objects.create(**params)
+
+    def create_region(self, region_data):
+        return RegionConfig.objects.create(region_data)
 
     def get_all_regions(self):
         return RegionConfig.objects.all()

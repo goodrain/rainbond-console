@@ -12,7 +12,6 @@ from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 
-
 logger = logging.getLogger('default')
 
 

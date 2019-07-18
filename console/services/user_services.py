@@ -12,7 +12,7 @@ from backends.services.tenantservice import tenant_service as tenantService, Ema
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from www.gitlab_http import GitlabApi
-from www.models import Tenants, Users, PermRelTenant
+from www.models.main import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.app_actions import app_manage_service
@@ -25,7 +25,6 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-
     def get_user_by_user_name(self, user_name):
         user = user_repo.get_user_by_username(user_name=user_name)
         if not user:
@@ -64,16 +63,13 @@ class UserService(object):
         if Users.objects.filter(phone=phone).exists():
             raise PhoneExistError("手机号已存在")
 
-        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request),
-                     rf="backend")
+        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request), rf="backend")
         user.set_password(password)
         user.save()
 
-        PermRelTenant.objects.create(
-            user_id=user.pk, tenant_id=tenant.pk, identity='admin')
+        PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
 
-        codeRepositoriesService.createUser(user, email, password,
-                                           user_name, user_name)
+        codeRepositoriesService.createUser(user, email, password, user_name, user_name)
 
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
@@ -151,13 +147,14 @@ class UserService(object):
             return False
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
-        user = Users.objects.create(nick_name=nick_name,
-                                    password=password,
-                                    email=email,
-                                    sso_user_id="",
-                                    enterprise_id=enterprise_id,
-                                    is_active=False,
-                                    rf=rf)
+        user = Users.objects.create(
+            nick_name=nick_name,
+            password=password,
+            email=email,
+            sso_user_id="",
+            enterprise_id=enterprise_id,
+            is_active=False,
+            rf=rf)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -220,6 +217,12 @@ class UserService(object):
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
+
+    def get_openapi_user_by_token(token):
+        pass
+
+    def get_openapi_token_by_user(user):
+        pass
 
 
 user_services = UserService()

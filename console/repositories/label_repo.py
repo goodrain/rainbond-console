@@ -2,7 +2,7 @@
 """
   Created on 18/1/30.
 """
-from www.models import ServiceLabels, NodeLabels, Labels
+from www.models.label import ServiceLabels, NodeLabels, Labels
 
 
 class ServiceLabelsReporsitory(object):

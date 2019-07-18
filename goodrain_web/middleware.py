@@ -7,7 +7,6 @@ logger = logging.getLogger('default')
 
 
 class ErrorPage(object):
-
     def process_exception(self, request, exception):
         logger.exception("uncaught_exception", exception)
         if request.path.startswith('/api/') or request.path.startswith('/marketapi/') \

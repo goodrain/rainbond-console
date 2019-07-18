@@ -8,27 +8,25 @@ from backends.services.exceptions import *
 from backends.services.httpclient import HttpInvokeApi
 from backends.services.regionservice import region_service
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import Tenants, TenantServiceInfo
+from www.models.main import Tenants, TenantServiceInfo
 from www.models.label import *
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
-STATUS_MAP = {"running": "运行中",
-              "offline": "离线",
-              "online": "在线",
-              "installing": "安装中",
-              "failed": "失败",
-              "unschedulable":"不可调度",
-              }
+STATUS_MAP = {
+    "running": "运行中",
+    "offline": "离线",
+    "online": "在线",
+    "installing": "安装中",
+    "failed": "失败",
+    "unschedulable": "不可调度",
+}
 
 
 class NodeService(object):
     url = "http://test.goodrain.com:6200"
-    default_headers = {
-        'Connection': 'keep-alive',
-        'Content-Type': 'application/json'
-    }
+    default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
     http_client = HttpInvokeApi()
     region_api = RegionInvokeApi()
 
@@ -121,16 +119,17 @@ class NodeService(object):
             tenant_ids.append(info["namespace"])
             service_alias_list.append(info["id"])
         tenants = Tenants.objects.filter(tenant_id__in=tenant_ids).values("tenant_id", "tenant_name")
-        services = TenantServiceInfo.objects.filter(service_alias__in=service_alias_list).values("service_alias",
-                                                                                                 "service_cname")
+        services = TenantServiceInfo.objects.filter(service_alias__in=service_alias_list).values(
+            "service_alias", "service_cname")
         tenant_id_name_map = {tenant["tenant_id"]: tenant["tenant_name"] for tenant in tenants}
         service_alias_name_map = {service["service_alias"]: service["service_cname"] for service in services}
         for info in nonterminatedpods:
             info["tenant_name"] = tenant_id_name_map.get(info["namespace"], "")
             info["service_cname"] = service_alias_name_map.get(info["id"], "")
-        pod_list = sorted(nonterminatedpods, key=lambda pod: (
-            self.format_memory(pod["memoryrequests"]), self.format_memory(pod["cpurequest"])),
-                          reverse=True)
+        pod_list = sorted(
+            nonterminatedpods,
+            key=lambda pod: (self.format_memory(pod["memoryrequests"]), self.format_memory(pod["cpurequest"])),
+            reverse=True)
         return pod_list
 
     def wapper_node_labels(self, labels):
@@ -381,9 +380,7 @@ class NodeService(object):
             if v == "selfdefine":
                 label_id = label_id_map.get(k, None)
                 if label_id:
-                    node_label = NodeLabels(region_id=region_id,
-                                            node_uuid=node_uuid,
-                                            label_id=label_id)
+                    node_label = NodeLabels(region_id=region_id, node_uuid=node_uuid, label_id=label_id)
                     node_labels.append(node_label)
                 labels_map["rainbond_node_lable_{0}".format(k)] = labels_map.pop(k)
                 labels_map["rainbond_node_lable_{0}".format(k)] = "true"

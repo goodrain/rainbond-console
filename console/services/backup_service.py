@@ -56,8 +56,10 @@ class GroupAppBackupService(object):
         """
         services = group_service.get_group_services(group_id)
         service_ids = [s.service_id for s in services]
-        body = region_api.service_status(region, tenant.tenant_name,
-                                         {"service_ids": service_ids, "enterprise_id": tenant.enterprise_id})
+        body = region_api.service_status(region, tenant.tenant_name, {
+            "service_ids": service_ids,
+            "enterprise_id": tenant.enterprise_id
+        })
         status_list = body["list"]
         service_status_map = {status_map["service_id"]: status_map["status"] for status_map in status_list}
         # 处于运行中的有状态
@@ -116,7 +118,10 @@ class GroupAppBackupService(object):
             "backup_size": bean.get("backup_size", 0),
             "user": user.nick_name,
             "total_memory": total_memory,
-            "backup_server_info": json.dumps({"slug_info": service_slug, "image_info": service_image})
+            "backup_server_info": json.dumps({
+                "slug_info": service_slug,
+                "image_info": service_image
+            })
         }
         backup_record = backup_record_repo.create_backup_records(**record_data)
         return 200, "success", backup_record
@@ -184,8 +189,8 @@ class GroupAppBackupService(object):
         service_ids = [sgr.service_id for sgr in service_group_relations]
         services = service_repo.get_services_by_service_ids(service_ids)
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
-        all_data["compose_service_relation"] = [relation.to_dict() for relation in
-                                                compose_service_relation] if compose_service_relation else None
+        all_data["compose_service_relation"] = [relation.to_dict()
+                                                for relation in compose_service_relation] if compose_service_relation else None
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
@@ -212,8 +217,7 @@ class GroupAppBackupService(object):
         service_env_vars = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
         service_compile_env = compile_env_repo.get_service_compile_env(service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(service)
-        image_service_relation = image_service_relation_repo.get_image_service_relation(tenant.tenant_id,
-                                                                                        service.service_id)
+        image_service_relation = image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service.service_id)
         service_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
         service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)

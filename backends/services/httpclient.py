@@ -34,12 +34,12 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def get_node_brief_info(self, node_uuid, body):
-        url = self.base_url + "/v2/nodes/" + node_uuid+"/basic"
+        url = self.base_url + "/v2/nodes/" + node_uuid + "/basic"
         res, body = self._get(url, self.default_headers, body)
         return res, body
 
     def get_node_info(self, node_uuid, body):
-        url = self.base_url + "/v2/nodes/" + node_uuid+"/details"
+        url = self.base_url + "/v2/nodes/" + node_uuid + "/details"
         res, body = self._get(url, self.default_headers, body)
         return res, body
 
@@ -79,12 +79,12 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def node_init_status(self, node_ip, body):
-        url = self.base_url + "/v2/nodes/"+node_ip+"/init/status"
+        url = self.base_url + "/v2/nodes/" + node_ip + "/init/status"
         res, body = self._get(url, self.default_headers, body)
         return res, body
 
     def node_component_init(self, node_ip, body):
-        url = self.base_url + "/v2/nodes/"+node_ip+"/init"
+        url = self.base_url + "/v2/nodes/" + node_ip + "/init"
         res, body = self._put(url, self.default_headers, body, is_init=True)
         return res, body
 
@@ -98,7 +98,7 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body)
         return res, body
 
-    def update_node_labels(self,region, node_uuid, body):
+    def update_node_labels(self, region, node_uuid, body):
         self.update_client(region)
         url = self.base_url + "/v2/nodes/" + node_uuid + "/labels"
         res, body = self._put(url, self.default_headers, region=region.region_name, body=body)
@@ -107,7 +107,7 @@ class HttpInvokeApi(RegionApiBaseHttpClient):
     def get_region_resources(self):
         url = self.base_url + "/v2/nodes/resources"
         res, body = self._get(url, self.default_headers)
-        return res,body
+        return res, body
 
     def get_region_resource(self, region):
         self.update_client(region)

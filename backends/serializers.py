@@ -12,7 +12,11 @@ logger = logging.getLogger("default")
 class UserSerilizer(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ('user_id', 'email', 'nick_name',)
+        fields = (
+            'user_id',
+            'email',
+            'nick_name',
+        )
 
 
 class RegionSerilizer(serializers.ModelSerializer):

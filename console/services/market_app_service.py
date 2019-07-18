@@ -10,10 +10,14 @@ import socket
 from django.db.models import Q
 
 from console.constants import AppConstants
-from console.exception.main import AbortRequest, RbdAppNotFound, ServiceHandleException
+from console.exception.main import AbortRequest
+from console.exception.main import ErrPluginAlreadyInstalled
+from console.exception.main import RbdAppNotFound
+from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.app import service_source_repo
-from console.repositories.app_config import extend_repo, volume_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import plugin_repo
@@ -34,18 +38,22 @@ from console.services.app_config import volume_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
-from console.services.plugin import (app_plugin_service, plugin_config_service,
-                                     plugin_service, plugin_version_service)
-from console.utils.restful_client import (get_default_market_client,
-                                          get_market_client)
+from console.services.plugin import app_plugin_service
+from console.services.plugin import plugin_config_service
+from console.services.plugin import plugin_service
+from console.services.plugin import plugin_version_service
+from console.utils.restful_client import get_default_market_client
+from console.utils.restful_client import get_market_client
 from console.utils.timeutil import current_time_str
+from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import (ServicePluginConfigVar, TenantEnterprise,
-                        TenantEnterpriseToken, TenantServiceInfo)
+from www.models.plugin import ServicePluginConfigVar
+from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterpriseToken
+from www.models.main import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -56,8 +64,7 @@ mnt_service = AppMntService()
 
 
 class MarketAppService(object):
-    def install_service(self, tenant, region, user, group_id, market_app,
-                        is_deploy, install_from_cloud):
+    def install_service(self, tenant, region, user, group_id, market_app, is_deploy, install_from_cloud):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -68,21 +75,18 @@ class MarketAppService(object):
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(
-                region, tenant.tenant_id, group_id, market_app.group_key,
-                market_app.version, market_app.group_name)
+            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.group_key,
+                                                                      market_app.version, market_app.group_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
-                status, msg = self.__create_plugin_for_tenant(
-                    region, user, tenant, plugins)
+                status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
                 if status != 200:
                     raise Exception(msg)
 
             app_map = {}
             for app in apps:
                 app_map[app.get("service_share_uuid")] = app
-                ts = self.__init_market_app(tenant, region, user, app,
-                                            tenant_service_group.ID, install_from_cloud)
+                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID, install_from_cloud)
                 # Record the application's installation source information
                 service_source_data = {
                     "group_key":
@@ -90,28 +94,21 @@ class MarketAppService(object):
                     "version":
                     market_app.version,
                     "service_share_uuid":
-                    app.get("service_share_uuid") if app.get(
-                        "service_share_uuid", None) else
-                    app.get("service_key"),
+                    app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get("service_key"),
                 }
-                service_source_repo.update_service_source(
-                    ts.tenant_id, ts.service_id, **service_source_data)
-                group_service.add_service_to_group(tenant, region, group_id,
-                                                   ts.service_id)
+                service_source_repo.update_service_source(ts.tenant_id, ts.service_id, **service_source_data)
+                group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(
-                    tenant, ts, app["service_env_map_list"],
-                    app["service_connect_info_map_list"])
+                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
                 if code != 200:
                     raise Exception(msg)
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
                 if code != 200:
                     raise Exception(msg)
-                code, msg = self.__save_volume(tenant, ts,
-                                               app["service_volume_map_list"])
+                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
                 if code != 200:
                     raise Exception(msg)
 
@@ -124,27 +121,22 @@ class MarketAppService(object):
                 if app.get("service_share_uuid", None):
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
-                        service_key_dep_key_map[app.get(
-                            "service_share_uuid")] = dep_apps_key
+                        service_key_dep_key_map[app.get("service_share_uuid")] = dep_apps_key
                     key_service_map[app.get("service_share_uuid")] = ts
                 else:
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
                         service_key_dep_key_map[ts.service_key] = dep_apps_key
                     key_service_map[ts.service_key] = ts
-                app_plugin_map[ts.service_id] = app.get(
-                    "service_related_plugin_config")
+                app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
             # 保存依赖关系
-            self.__save_service_deps(tenant, service_key_dep_key_map,
-                                     key_service_map)
+            self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
             # 数据中心创建应用
-            new_service_list = self.__create_region_services(
-                tenant, user, service_list, service_probe_map)
+            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建应用插件
-            self.__create_service_plugins(region, tenant, service_list,
-                                          app_plugin_map, old_new_id_map)
+            self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
 
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
@@ -157,8 +149,7 @@ class MarketAppService(object):
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(
-                    tenant_service_group.ID)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(tenant_service_group.ID)
             for service in service_list:
                 try:
                     app_manage_service.truncate_service(tenant, service)
@@ -166,9 +157,7 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def install_service_when_upgrade_app(self, tenant, region, user, group_id,
-                                         market_app, old_app, services,
-                                         is_deploy):
+    def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services, is_deploy):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -184,53 +173,41 @@ class MarketAppService(object):
             else:
                 key_service_map[service.service_key] = service
 
-        app_map = {
-            app.get('service_share_uuid'): app
-            for app in json.loads(old_app.app_template)["apps"]
-        }
+        app_map = {app.get('service_share_uuid'): app for app in json.loads(old_app.app_template)["apps"]}
 
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(
-                region, tenant.tenant_id, group_id, market_app.group_key,
-                market_app.version, market_app.group_name)
+            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.group_key,
+                                                                      market_app.version, market_app.group_name)
 
-            status, msg = self.__create_plugin_for_tenant(
-                region, user, tenant, app_templates.get("plugins", []))
+            status, msg = self.__create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
                 raise Exception(msg)
 
             for app in apps:
-                ts = self.__init_market_app(tenant, region, user, app,
-                                            tenant_service_group.ID)
+                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 service_source_data = {
                     "group_key":
                     market_app.group_key,
                     "version":
                     market_app.version,
                     "service_share_uuid":
-                    app.get("service_share_uuid") if app.get(
-                        "service_share_uuid", None) else app.get("service_key")
+                    app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get("service_key")
                 }
-                service_source_repo.update_service_source(
-                    ts.tenant_id, ts.service_id, **service_source_data)
-                group_service.add_service_to_group(tenant, region, group_id,
-                                                   ts.service_id)
+                service_source_repo.update_service_source(ts.tenant_id, ts.service_id, **service_source_data)
+                group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(
-                    tenant, ts, app["service_env_map_list"],
-                    app["service_connect_info_map_list"])
+                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
                 if code != 200:
                     raise Exception(msg)
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
                 if code != 200:
                     raise Exception(msg)
-                code, msg = self.__save_volume(tenant, ts,
-                                               app["service_volume_map_list"])
+                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
                 if code != 200:
                     raise Exception(msg)
 
@@ -243,23 +220,22 @@ class MarketAppService(object):
                 if app.get("service_share_uuid", None):
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
-                        service_key_dep_key_map[app.get(
-                            "service_share_uuid")] = dep_apps_key
+                        service_key_dep_key_map[app.get("service_share_uuid")] = dep_apps_key
                     key_service_map[app.get("service_share_uuid")] = ts
                 else:
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
                         service_key_dep_key_map[ts.service_key] = dep_apps_key
                     key_service_map[ts.service_key] = ts
-                app_plugin_map[ts.service_id] = app.get(
-                    "service_related_plugin_config")
+                app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
             # 数据中心创建应用
-            new_service_list = self.__create_region_services(
-                tenant, user, service_list, service_probe_map)
+            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建应用插件
-            self.__create_service_plugins(region, tenant, service_list,
-                                          app_plugin_map, old_new_id_map)
+            for app in apps:
+                service = old_new_id_map[app["service_id"]]
+                plugins = app_plugin_map[service.service_id]
+                self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
 
             events = []
             if is_deploy:
@@ -276,8 +252,7 @@ class MarketAppService(object):
         except Exception as e:
             logger.exception(e)
             if tenant_service_group:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(
-                    tenant_service_group.ID)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(tenant_service_group.ID)
             for service in service_list:
                 try:
                     app_manage_service.truncate_service(tenant, service)
@@ -285,12 +260,9 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def save_service_deps_when_upgrade_app(self, tenant,
-                                           service_key_dep_key_map,
-                                           key_service_map, apps, app_map):
+    def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map, apps, app_map):
         # 保存依赖关系
-        self.__save_service_deps(tenant, service_key_dep_key_map,
-                                 key_service_map)
+        self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
         # dependent volume
         self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
 
@@ -301,35 +273,24 @@ class MarketAppService(object):
             service = key_service_map.get(app.get("service_share_uuid"))
             if dep_mnts:
                 for item in dep_mnts:
-                    dep_service = key_service_map.get(
-                        item["service_share_uuid"])
+                    dep_service = key_service_map.get(item["service_share_uuid"])
                     if not dep_service:
-                        logger.info(
-                            "Service share uuid: {}; dependent service not found"
-                            .format(item["service_share_uuid"]))
+                        logger.info("Service share uuid: {}; dependent service not found".format(item["service_share_uuid"]))
                         continue
                     dep_app = app_map.get(item["service_share_uuid"])
                     if not dep_app:
-                        logger.debug(
-                            "Service share uuid: {}; ; app not found".format(
-                                item["service_share_uuid"]))
+                        logger.debug("Service share uuid: {}; ; app not found".format(item["service_share_uuid"]))
                         continue
                     volume_list = dep_app.get("service_volume_map_list")
                     if volume_list:
                         for volume in volume_list:
                             if volume["volume_name"] == item["mnt_name"]:
-                                dep_volume = volume_repo.get_by_sid_name(
-                                    dep_service.service_id, item["mnt_name"])
-                                code, msg = mnt_service.add_service_mnt_relation(
-                                    tenant, service, item["mnt_dir"],
-                                    dep_volume)
+                                dep_volume = volume_repo.get_by_sid_name(dep_service.service_id, item["mnt_name"])
+                                code, msg = mnt_service.add_service_mnt_relation(tenant, service, item["mnt_dir"], dep_volume)
                                 if code != 200:
-                                    logger.info(
-                                        "fail to mount relative volume: {}".
-                                        format(msg))
+                                    logger.info("fail to mount relative volume: {}".format(msg))
 
-    def __create_service_plugins(self, region, tenant, service_list,
-                                 app_plugin_map, old_new_id_map):
+    def __create_service_plugins(self, region, tenant, service_list, app_plugin_map, old_new_id_map):
         try:
             plugin_version_service.update_plugin_build_status(region, tenant)
 
@@ -338,21 +299,17 @@ class MarketAppService(object):
                 if plugins:
                     for plugin_config in plugins:
                         plugin_key = plugin_config["plugin_key"]
-                        p = plugin_repo.get_plugin_by_origin_share_id(
-                            tenant.tenant_id, plugin_key)
+                        p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
                         plugin_id = p[0].plugin_id
                         service_plugin_config_vars = plugin_config["attr"]
-                        plugin_version = plugin_version_service.get_newest_plugin_version(
-                            plugin_id)
+                        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
                         build_version = plugin_version.build_version
 
-                        self.__save_service_config_values(
-                            service, plugin_id, build_version,
-                            service_plugin_config_vars, old_new_id_map)
+                        self.__save_service_config_values(service, plugin_id, build_version, service_plugin_config_vars,
+                                                          old_new_id_map)
 
                         # 2.从console数据库取数据生成region数据
-                        region_config = app_plugin_service.get_region_config_from_db(
-                            service, plugin_id, build_version)
+                        region_config = app_plugin_service.get_region_config_from_db(service, plugin_id, build_version)
 
                         data = dict()
                         data["plugin_id"] = plugin_id
@@ -360,21 +317,23 @@ class MarketAppService(object):
                         data["version_id"] = build_version
                         data.update(region_config)
                         code, msg, relation = app_plugin_service.create_service_plugin_relation(
-                            service.service_id, plugin_id, build_version, "",
-                            True)
+                            service.service_id, plugin_id, build_version, "", True)
                         if code != 200:
                             raise Exception("msg")
 
-                        region_api.install_service_plugin(
-                            service.service_region, tenant.tenant_name,
-                            service.service_alias, data)
+                        region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          data)
 
         except Exception as e:
             logger.exception(e)
 
-    def __save_service_config_values(self, service, plugin_id, build_version,
-                                     service_plugin_config_vars,
-                                     old_new_id_map):
+    def __create_service_pluginsv2(self, tenant, service, version, plugins):
+        try:
+            app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, plugins)
+        except ErrPluginAlreadyInstalled as e:
+            logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
+
+    def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars, old_new_id_map):
         config_list = []
 
         for config in service_plugin_config_vars:
@@ -400,13 +359,11 @@ class MarketAppService(object):
     def __create_plugin_for_tenant(self, region_name, user, tenant, plugins):
         for plugin in plugins:
             # 对需要安装的插件查看本地是否有安装
-            tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(
-                tenant.tenant_id, plugin["plugin_key"])
+            tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["plugin_key"])
             # 如果本地没有安装，进行安装操作
             if not tenant_plugin:
                 try:
-                    status, msg = self.__install_plugin(
-                        region_name, user, tenant, plugin)
+                    status, msg = self.__install_plugin(region_name, user, tenant, plugin)
                     if status != 200:
                         return status, msg
                 except Exception as e:
@@ -427,9 +384,8 @@ class MarketAppService(object):
                 image_tag = "latest"
 
         status, msg, plugin_base_info = plugin_service.create_tenant_plugin(
-            tenant, user.user_id, region_name, plugin_template["desc"],
-            plugin_template["plugin_alias"], plugin_template["category"],
-            "image", image, plugin_template["code_repo"])
+            tenant, user.user_id, region_name, plugin_template["desc"], plugin_template["plugin_alias"],
+            plugin_template["category"], "image", image, plugin_template["code_repo"])
         if status != 200:
             return status, msg
 
@@ -454,25 +410,21 @@ class MarketAppService(object):
 
         share_config_groups = plugin_template.get('config_groups', [])
 
-        plugin_config_service.create_config_groups(
-            plugin_base_info.plugin_id, build_version, share_config_groups)
+        plugin_config_service.create_config_groups(plugin_base_info.plugin_id, build_version, share_config_groups)
 
         event_id = make_uuid()
         plugin_build_version.event_id = event_id
         plugin_build_version.plugin_version_status = "fixed"
 
-        plugin_service.create_region_plugin(
-            region_name, tenant, plugin_base_info, image_tag=image_tag)
+        plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
 
-        ret = plugin_service.build_plugin(
-            region_name, plugin_base_info, plugin_build_version, user, tenant,
-            event_id, plugin_template.get("plugin_image", None))
+        ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
+                                          plugin_template.get("plugin_image", None))
         plugin_build_version.build_status = ret.get('bean').get('status')
         plugin_build_version.save()
         return 200, "success"
 
-    def __create_tenant_service_group(self, region, tenant_id, group_id,
-                                      group_key, group_version, group_alias):
+    def __create_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,
@@ -488,27 +440,23 @@ class MarketAppService(object):
     def __generator_group_name(self, group_name):
         return '_'.join([group_name, make_uuid()[-4:]])
 
-    def __create_region_services(self, tenant, user, service_list,
-                                 service_probe_map):
+    def __create_region_services(self, tenant, user, service_list, service_probe_map):
         service_prob_id_map = {}
         new_service_list = []
         try:
             for service in service_list:
                 # 数据中心创建应用
-                new_service = app_service.create_region_service(
-                    tenant, service, user.nick_name)
+                new_service = app_service.create_region_service(tenant, service, user.nick_name)
                 # 为服务添加探针
                 probe_data = service_probe_map.get(service.service_id)
                 probe_ids = []
                 if probe_data:
                     for data in probe_data:
-                        code, msg, probe = probe_service.add_service_probe(
-                            tenant, service, data)
+                        code, msg, probe = probe_service.add_service_probe(tenant, service, data)
                         if code == 200:
                             probe_ids.append(probe.probe_id)
                 else:
-                    code, msg, probe = app_service.add_service_default_porbe(
-                        tenant, service)
+                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
                     if probe:
                         probe_ids.append(probe.probe_id)
                 if probe_ids:
@@ -527,26 +475,21 @@ class MarketAppService(object):
                         if probe_ids:
                             for probe_id in probe_ids:
                                 try:
-                                    probe_service.delete_service_probe(
-                                        tenant, service, probe_id)
+                                    probe_service.delete_service_probe(tenant, service, probe_id)
                                 except Exception as le:
-                                    logger.exception(
-                                        "local market install app delete service probe {0}"
-                                        .format(le))
+                                    logger.exception("local market install app delete service probe {0}".format(le))
             raise e
 
     def __deploy_services(self, tenant, user, service_list):
         try:
             body = dict()
-            code, data, events = app_manage_service.deploy_services_info(
-                body, service_list, tenant, user)
+            code, data, events = app_manage_service.deploy_services_info(body, service_list, tenant, user)
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]
                 region_name = one_service.service_region
                 try:
-                    region_api.batch_operation_service(
-                        region_name, tenant.tenant_name, data)
+                    region_api.batch_operation_service(region_name, tenant.tenant_name, data)
                 except region_api.CallApiError as e:
                     logger.debug(data)
                     logger.exception(e)
@@ -555,19 +498,16 @@ class MarketAppService(object):
 
         return events
 
-    def __save_service_deps(self, tenant, service_key_dep_key_map,
-                            key_service_map):
+    def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
         if service_key_dep_key_map:
             for service_key in service_key_dep_key_map.keys():
                 ts = key_service_map[service_key]
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
                     dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(
-                        tenant, ts, dep_service.service_id)
+                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id)
                     if code != 200:
-                        logger.error(
-                            "compose add service error {0}".format(msg))
+                        logger.error("compose add service error {0}".format(msg))
                         return code, msg
         return 200, "success"
 
@@ -575,9 +515,8 @@ class MarketAppService(object):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
-            code, msg, env_data = env_var_service.add_service_env_var(
-                tenant, service, 0, env["name"], env["attr_name"],
-                env["attr_value"], env["is_change"], "inner")
+            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
+                                                                      env["attr_value"], env["is_change"], "inner")
             if code != 200:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
@@ -586,10 +525,9 @@ class MarketAppService(object):
             if container_port == 0:
                 if env["attr_value"] == "**None**":
                     env["attr_value"] = service.service_id[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(
-                    tenant, service, container_port, env["name"],
-                    env["attr_name"], env["attr_value"], env["is_change"],
-                    "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
+                                                                          env["attr_name"], env["attr_value"], env["is_change"],
+                                                                          "outer")
                 if code != 200:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
@@ -599,10 +537,9 @@ class MarketAppService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(
-                tenant, service, int(port["container_port"]), port["protocol"],
-                port["port_alias"], port["is_inner_service"],
-                port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
+                                                                 port["port_alias"], port["is_inner_service"],
+                                                                 port["is_outer_service"])
             if code != 200:
                 logger.error("save market app port error".format(msg))
                 return code, msg
@@ -613,14 +550,12 @@ class MarketAppService(object):
             return 200, "success"
         for volume in volumes:
             if "file_content" in volume.keys():
-                code, msg, volume_data = volume_service.add_service_volume(
-                    tenant, service, volume["volume_path"],
-                    volume["volume_type"], volume["volume_name"],
-                    volume["file_content"])
+                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                           volume["volume_type"], volume["volume_name"],
+                                                                           volume["file_content"])
             else:
-                code, msg, volume_data = volume_service.add_service_volume(
-                    tenant, service, volume["volume_path"],
-                    volume["volume_type"], volume["volume_name"])
+                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                           volume["volume_type"], volume["volume_name"])
             if code != 200:
                 logger.error("save market app volume error".format(msg))
                 return code, msg
@@ -642,8 +577,7 @@ class MarketAppService(object):
         }
         extend_repo.create_extend_method(**params)
 
-    def __init_market_app(self, tenant, region, user, app,
-                          tenant_service_group_id, install_from_cloud=False):
+    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False):
         """
         初始化应用市场创建的应用默认数据
         """
@@ -652,8 +586,7 @@ class MarketAppService(object):
         if share_type:
             is_slug = bool(share_type == "slug")
         else:
-            is_slug = bool(app["image"].startswith('goodrain.me/runner')
-                           and app["language"] not in ("dockerfile", "docker"))
+            is_slug = bool(app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
 
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
@@ -675,8 +608,7 @@ class MarketAppService(object):
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]
         tenant_service.min_memory = app["extend_method_map"]["min_memory"]
-        tenant_service.min_cpu = baseService.calculate_service_cpu(
-            region, tenant_service.min_memory)
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
         tenant_service.inner_port = 0
         tenant_service.version = app["version"]
         if is_slug:
@@ -687,8 +619,7 @@ class MarketAppService(object):
                 tenant_service.namespace = app["service_image"]["namespace"]
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
-        tenant_service.create_time = datetime.datetime.now().strftime(
-            '%Y-%m-%d %H:%M:%S')
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tenant_service.deploy_version = app["deploy_version"]
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
@@ -706,8 +637,7 @@ class MarketAppService(object):
         return tenant_service
 
     def save_max_node_in_extend_method(self, service_key, app):
-        extend_method_obj = share_repo.get_service_extend_method_by_key(
-            service_key)
+        extend_method_obj = share_repo.get_service_extend_method_by_key(service_key)
         if extend_method_obj:
             for ex_me in extend_method_obj:
                 if app["extend_method_map"]["max_node"]:
@@ -723,9 +653,8 @@ class MarketAppService(object):
         else:
             extend_info = app.get("service_image")
         extend_info["source_deploy_version"] = app.get("deploy_version")
-        extend_info["source_service_share_uuid"] = app.get(
-            "service_share_uuid") if app.get(
-                "service_share_uuid", None) else app.get("service_key", "")
+        extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get(
+            "service_share_uuid", None) else app.get("service_key", "")
         if install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
@@ -752,24 +681,18 @@ class MarketAppService(object):
                 min_node = int(extend_method.get("min_node", 1))
                 min_memory = int(extend_method.get("min_memory", 128))
             total_memory += min_node * min_memory
-        allow_create, tips = app_service.verify_source(
-            tenant, region, total_memory, "market_app_create")
+        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "market_app_create")
         if not allow_create:
-            raise AbortRequest(
-                msg="over resource",
-                msg_show=u"应用所需内存大小为{0}，{1}".format(total_memory, tips),
-                status_code=412)
+            raise AbortRequest(msg="over resource", msg_show=u"应用所需内存大小为{0}，{1}".format(total_memory, tips), status_code=412)
 
     def get_visiable_apps(self, tenant, scope, app_name):
 
         if scope == "team":
-            rt_apps = self.get_current_team_shared_apps(
-                tenant.enterprise_id, tenant.tenant_name)
+            rt_apps = self.get_current_team_shared_apps(tenant.enterprise_id, tenant.tenant_name)
         elif scope == "goodrain":
             rt_apps = self.get_public_market_shared_apps(tenant.enterprise_id)
         elif scope == "enterprise":
-            rt_apps = self.get_current_enterprise_shared_apps(
-                tenant.enterprise_id)
+            rt_apps = self.get_current_enterprise_shared_apps(tenant.enterprise_id)
         else:
             rt_apps = self.get_team_visiable_apps(tenant)
         if app_name:
@@ -777,20 +700,17 @@ class MarketAppService(object):
         return rt_apps
 
     def get_current_team_shared_apps(self, enterprise_id, current_team_name):
-        return rainbond_app_repo.get_current_enter_visable_apps(
-            enterprise_id).filter(share_team=current_team_name)
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team=current_team_name)
 
     def get_current_enterprise_shared_apps(self, enterprise_id):
         tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
         # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_current_enter_visable_apps(
-            enterprise_id).filter(share_team__in=tenant_names).exclude(
-                scope="team")
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team__in=tenant_names).exclude(
+            scope="team")
 
     def get_public_market_shared_apps(self, enterprise_id):
-        return rainbond_app_repo.get_current_enter_visable_apps(
-            enterprise_id).filter(scope="goodrain")
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(scope="goodrain")
 
     def get_team_visiable_apps(self, tenant):
         tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
@@ -799,9 +719,8 @@ class MarketAppService(object):
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
-        return rainbond_app_repo.get_current_enter_visable_apps(
-            tenant.enterprise_id).filter(public_apps | enterprise_apps
-                                         | team_apps)
+        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(public_apps | enterprise_apps
+                                                                                             | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
@@ -810,8 +729,7 @@ class MarketAppService(object):
         return 200, app
 
     def get_rain_bond_app_by_key_and_version(self, group_key, group_version):
-        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-            group_key, group_version)
+        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)
         if not app:
             return 404, None
         return 200, app
@@ -826,20 +744,18 @@ class MarketAppService(object):
                 result = x.get("service_share_uuid", None) == service_source.service_share_uuid\
                     or x.get("service_key", None) == service_source.service_share_uuid
                 return result
+
             app = next(iter(filter(lambda x: func(x), apps)), None)
         if app is None:
             fmt = "Group key: {0}; version: {1}; service_share_uuid: {2}; Rainbond app not found."
-            raise RbdAppNotFound(fmt.format(service_source.group_key,
-                                            group_version,
-                                            service_source.service_share_uuid))
+            raise RbdAppNotFound(fmt.format(service_source.group_key, group_version, service_source.service_share_uuid))
         return app
 
     # download app from cloud and return app model
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
-            app_template = market_api.get_remote_app_templates(
-                tenant.tenant_id, group_key, group_version, install=install)
+            app_template = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version, install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
                     group_key=app_template["group_key"],
@@ -861,27 +777,21 @@ class MarketAppService(object):
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)    
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
             return rainbond_app_repo.get_all_rainbond_apps().filter(
-                scope="goodrain",
-                source="market",
-                group_name__icontains=app_name)
+                scope="goodrain", source="market", group_name__icontains=app_name)
         if is_complete:
             if is_complete == "true":
-                return rainbond_app_repo.get_all_rainbond_apps().filter(
-                    scope="goodrain", source="market", is_complete=True)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)
             else:
-                return rainbond_app_repo.get_all_rainbond_apps().filter(
-                    scope="goodrain", source="market", is_complete=False)
-        return rainbond_app_repo.get_all_rainbond_apps().filter(
-            scope="goodrain", source="market")
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=False)
+        return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
     def get_remote_market_apps(self, tenant, page, page_size, app_name):
-        body = market_api.get_service_group_list(tenant.tenant_id, page,
-                                                 page_size, app_name)
+        body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
         data = body.get("data")
         if not data:
             return 0, []
@@ -902,13 +812,11 @@ class MarketAppService(object):
                 group_version_list = []
                 for app in remote_apps:
                     if app["group_key"] == group_key:
-                        if app["group_version"] and app[
-                                "group_version"] not in group_version_list:
+                        if app["group_version"] and app["group_version"] not in group_version_list:
                             group_version_list.append(app["group_version"])
                 group_version_list.sort(reverse=True)
                 for app in remote_apps:
-                    if app["group_version"] == group_version_list[0] and app[
-                            "group_key"] == group_key:
+                    if app["group_version"] == group_version_list[0] and app["group_key"] == group_key:
                         app_dict = {
                             "group_key": group_key,
                             "group_version_list": group_version_list,
@@ -924,9 +832,8 @@ class MarketAppService(object):
                         }
                         app_list.append(app_dict)
         for app in app_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
-                tenant.enterprise_id, app["group_key"],
-                app["group_version_list"][0])
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+                                                                          app["group_version_list"][0])
 
             is_upgrade = 0
             is_complete = False
@@ -963,21 +870,18 @@ class MarketAppService(object):
         return total, result_list
 
     def get_market_version_apps(self, tenant, app_name, group_key, version):
-        body = market_api.get_service_group_list(tenant.tenant_id, 1, 20,
-                                                 app_name)
+        body = market_api.get_service_group_list(tenant.tenant_id, 1, 20, app_name)
         remote_apps = body["data"]['list']
         total = body["data"]['total']
         result_list = []
         app_list = []
         for app in remote_apps:
-            if app["group_key"] == group_key and app[
-                    "group_version"] == version:
+            if app["group_key"] == group_key and app["group_version"] == version:
                 app_list.append(app)
         if len(app_list) > 0:
             for app in app_list:
-                rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
-                    tenant.enterprise_id, app["group_key"],
-                    app["group_version"])
+                rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+                                                                              app["group_version"])
                 is_upgrade = 0
                 is_complete = False
                 if rbc:
@@ -1015,11 +919,9 @@ class MarketAppService(object):
         list the upgradeable versions of the rainbond center app
         corresponding to the tenant and service
         """
-        service_source = service_source_repo.get_service_source(
-            service.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if service_source is None:
-            logger.warn("service id: {}; service source not found".format(
-                service.service_id))
+            logger.warn("service id: {}; service source not found".format(service.service_id))
             return None
         install_from_cloud = False
         cur_rbd_app = None
@@ -1031,17 +933,15 @@ class MarketAppService(object):
             #     install_from_cloud = True
             #     cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
-            cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-                service_source.group_key, service_source.version)
+            cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                service_source.version)
         if cur_rbd_app is None:
-            logger.warn(
-                "group key: {0}; version: {1}; service source not found".
-                format(service_source.group_key, service_source.version))
+            logger.warn("group key: {0}; version: {1}; service source not found".format(service_source.group_key,
+                                                                                        service_source.version))
             return None
         rbd_center_apps = []
         if not install_from_cloud:
-            rbd_center_apps = rainbond_app_repo.list_by_key_time(
-                service_source.group_key, cur_rbd_app.update_time)
+            rbd_center_apps = rainbond_app_repo.list_by_key_time(service_source.group_key, cur_rbd_app.update_time)
             if not rbd_center_apps:
                 return None
         else:
@@ -1051,17 +951,11 @@ class MarketAppService(object):
         result = []
         for item in rbd_center_apps:
             try:
-                changes = pc.get_property_changes(tenant.enterprise_id,
-                                                  item.version)
+                changes = pc.get_property_changes(tenant.enterprise_id, item.version)
             except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue
             if not has_changes(changes):
-                logger.debug(
-                    "current rbd app: group_key={0}, version={1}, update_time={2}; \
-                dest version: {3}; no changes".format(
-                        service_source.group_key, service_source.version,
-                        cur_rbd_app.update_time, item.version))
                 continue
             # logger.debug("changes: {}".format(json.dumps(changes)))
             result.append(item.version)
@@ -1071,16 +965,15 @@ class MarketAppService(object):
 
 class MarketTemplateTranslateService(object):
     # 需要特殊处理的service_key
-    SPECIAL_PROCESS = (
-        "mysql", "postgresql", "6f7edb496760bb1965bdce1135883b29",
-        "2dd630b20396c26dc437fdcf2b98fb63", "eae2d4ba183a8e3c41f2239d1a687ce8",
-        "df98c419c98cc6f1488fc83e13e0244a", "bf22929d36d217b77d27813e6ae1508b",
-        "1fecc863b04c0cd24cee1403ba238f2e", "915cc8a5cd81f28aa7f0daba314204c2",
-        "231c92c7fa4f7c1df76c889c84dcf4e7", "edde97105d55d4301b9cddf15e139981",
-        "d261fa2e90c84131df33644ad0b6e5c5", "7045a899df1369f30e1adce1cbbeb15b",
-        "45081d62105d2f18a487f06dabf9de6a", "efc18a5358b5dabb50fb813f5d46458b",
-        "711657b065fa265c17a8fd265c32ec5b", "eefca5b538fb6cf7d187b738e7fe035e",
-        "88064c83f0e5a6a5c9b73b57dbb0d6ff", "88bd3a92b128445af53923ee2edc975c")
+    SPECIAL_PROCESS = ("mysql", "postgresql", "6f7edb496760bb1965bdce1135883b29", "2dd630b20396c26dc437fdcf2b98fb63",
+                       "eae2d4ba183a8e3c41f2239d1a687ce8", "df98c419c98cc6f1488fc83e13e0244a",
+                       "bf22929d36d217b77d27813e6ae1508b", "1fecc863b04c0cd24cee1403ba238f2e",
+                       "915cc8a5cd81f28aa7f0daba314204c2", "231c92c7fa4f7c1df76c889c84dcf4e7",
+                       "edde97105d55d4301b9cddf15e139981", "d261fa2e90c84131df33644ad0b6e5c5",
+                       "7045a899df1369f30e1adce1cbbeb15b", "45081d62105d2f18a487f06dabf9de6a",
+                       "efc18a5358b5dabb50fb813f5d46458b", "711657b065fa265c17a8fd265c32ec5b",
+                       "eefca5b538fb6cf7d187b738e7fe035e", "88064c83f0e5a6a5c9b73b57dbb0d6ff",
+                       "88bd3a92b128445af53923ee2edc975c")
 
     def v1_to_v2(self, old_templete, region=""):
         """旧版本模板转换为新版本数据"""
@@ -1130,8 +1023,7 @@ class MarketTemplateTranslateService(object):
             service_image["hub_url"] = "hub.goodrain.com"
             service_image["namespace"] = "goodrain"
             # 云市镜像存储
-            new_app["share_image"] = app["image"].replace(
-                "goodrain.me", "hub.goodrain.com/goodrain")
+            new_app["share_image"] = app["image"].replace("goodrain.me", "hub.goodrain.com/goodrain")
         if share_slug_path:
             new_app["share_slug_path"] = share_slug_path
         new_app["service_image"] = service_image
@@ -1143,8 +1035,7 @@ class MarketTemplateTranslateService(object):
         new_app["extend_method"] = app["extend_method"]
         category = app["category"]
         new_app["category"] = category
-        new_app[
-            "service_source"] = "source_code" if category == "appliaction" else "market"
+        new_app["service_source"] = "source_code" if category == "appliaction" else "market"
         new_app["creater"] = app["creater"]
         new_app["tenant_id"] = app.get("tenant_id", "")
         new_app["service_region"] = region
@@ -1160,16 +1051,13 @@ class MarketTemplateTranslateService(object):
         # 端口信息
         service_env_map_list = []
         service_connect_info_map_list = []
-        new_app["port_map_list"] = self.__v1_2_v2_ports(
-            app, service_connect_info_map_list)
+        new_app["port_map_list"] = self.__v1_2_v2_ports(app, service_connect_info_map_list)
         # 持久化信息
         new_app["service_volume_map_list"] = self.__v1_2_v2_volumes(app)
         # 环境变量信息
-        self.__v1_2_v2_envs(app, service_env_map_list,
-                            service_connect_info_map_list)
+        self.__v1_2_v2_envs(app, service_env_map_list, service_connect_info_map_list)
         new_app["service_env_map_list"] = service_env_map_list
-        new_app[
-            "service_connect_info_map_list"] = service_connect_info_map_list
+        new_app["service_connect_info_map_list"] = service_connect_info_map_list
         return new_app
 
     def __v1_2_v2_extends_info(self, app):
@@ -1198,9 +1086,7 @@ class MarketTemplateTranslateService(object):
         dep_service_list = []
         dep_relations = app["dep_relations"]
         if dep_relations:
-            dep_service_list = [{
-                "dep_service_key": dep["dep_service_key"]
-            } for dep in dep_relations]
+            dep_service_list = [{"dep_service_key": dep["dep_service_key"]} for dep in dep_relations]
         return dep_service_list
 
     def __v1_2_v2_ports(self, app, service_connect_info_map_list):
@@ -1210,40 +1096,26 @@ class MarketTemplateTranslateService(object):
             for port in ports:
                 port_alias = port["port_alias"]
                 port_map_list.append({
-                    "is_outer_service":
-                    port["is_outer_service"],
-                    "protocol":
-                    port["protocol"],
-                    "port_alias":
-                    port_alias,
-                    "is_inner_service":
-                    port["is_inner_service"],
-                    "container_port":
-                    port["container_port"]
+                    "is_outer_service": port["is_outer_service"],
+                    "protocol": port["protocol"],
+                    "port_alias": port_alias,
+                    "is_inner_service": port["is_inner_service"],
+                    "container_port": port["container_port"]
                 })
                 if app["is_init_accout"]:
                     temp_alias = "gr" + make_uuid()[-6:]
-                    env_prefix = port_alias.upper() if bool(
-                        port_alias) else temp_alias.upper()
+                    env_prefix = port_alias.upper() if bool(port_alias) else temp_alias.upper()
                     service_connect_info_map_list.append({
-                        "name":
-                        "用户名",
-                        "attr_name":
-                        env_prefix + "_USER",
-                        "is_change":
-                        False,
-                        "attr_value":
-                        "admin"
+                        "name": "用户名",
+                        "attr_name": env_prefix + "_USER",
+                        "is_change": False,
+                        "attr_value": "admin"
                     })
                     service_connect_info_map_list.append({
-                        "name":
-                        "密码",
-                        "attr_name":
-                        env_prefix + "_PASS",
-                        "is_change":
-                        False,
-                        "attr_value":
-                        "**None**"
+                        "name": "密码",
+                        "attr_name": env_prefix + "_PASS",
+                        "is_change": False,
+                        "attr_value": "**None**"
                     })
         return port_map_list
 
@@ -1268,33 +1140,24 @@ class MarketTemplateTranslateService(object):
                 })
         return service_volume_map_list
 
-    def __v1_2_v2_envs(self, app, service_env_map_list,
-                       service_connect_info_map_list):
+    def __v1_2_v2_envs(self, app, service_env_map_list, service_connect_info_map_list):
         envs = app["envs"]
         if envs:
             for env in envs:
 
                 if env["scope"] == "inner":
                     service_env_map_list.append({
-                        "name":
-                        env["name"] if env["name"] else env["attr_name"],
-                        "attr_name":
-                        env["attr_name"],
-                        "is_change":
-                        env["is_change"],
-                        "attr_value":
-                        env["attr_value"]
+                        "name": env["name"] if env["name"] else env["attr_name"],
+                        "attr_name": env["attr_name"],
+                        "is_change": env["is_change"],
+                        "attr_value": env["attr_value"]
                     })
                 else:
                     service_connect_info_map_list.append({
-                        "name":
-                        env["name"] if env["name"] else env["attr_name"],
-                        "attr_name":
-                        env["attr_name"],
-                        "is_change":
-                        env["is_change"],
-                        "attr_value":
-                        env["attr_value"]
+                        "name": env["name"] if env["name"] else env["attr_name"],
+                        "attr_name": env["attr_name"],
+                        "is_change": env["is_change"],
+                        "attr_value": env["attr_value"]
                     })
 
     def __generate_slug_info(self):
@@ -1308,27 +1171,20 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-    def download_app_service_group_from_market(self, user, tenant, group_key,
-                                               group_version):
-        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-            group_key, group_version)
+    def download_app_service_group_from_market(self, user, tenant, group_key, group_version):
+        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)
         if rainbond_app and rainbond_app.is_complete:
             return rainbond_app
         try:
-            rainbond_app = self.down_market_group_app_detail(
-                user, tenant, group_key, group_version, "v2")
+            rainbond_app = self.down_market_group_app_detail(user, tenant, group_key, group_version, "v2")
             return rainbond_app
         except Exception as e:
             logger.exception(e)
-            logger.error(
-                'download app_group[{0}-{1}] from market failed!'.format(
-                    group_key, group_version))
+            logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
             return None
 
-    def down_market_group_app_detail(self, user, tenant, group_key,
-                                     group_version, template_version):
-        data = market_api.get_remote_app_templates(tenant.tenant_id, group_key,
-                                                   group_version)
+    def down_market_group_app_detail(self, user, tenant, group_key, group_version, template_version):
+        data = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version)
         return self.save_market_app_template(user, tenant, data)
 
     def save_market_app_template(self, user, tenant, app_templates):
@@ -1338,9 +1194,8 @@ class AppMarketSynchronizeService(object):
             v2_template = template_transform_service.v1_to_v2(app_templates)
         else:
             v2_template = app_templates
-        rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
-            tenant.enterprise_id, v2_template["group_key"],
-            v2_template["group_version"])
+        rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, v2_template["group_key"],
+                                                                               v2_template["group_version"])
 
         if not rainbond_app:
             if common_services.is_public() and user.is_sys_admin:
@@ -1388,8 +1243,7 @@ class AppMarketSynchronizeService(object):
             rainbond_app.share_user = user_id
             rainbond_app.share_team = v2_template.get("publish_team", "")
             rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
-            rainbond_app.describe = v2_template.get("update_note",
-                                                    rainbond_app.describe)
+            rainbond_app.describe = v2_template.get("update_note", rainbond_app.describe)
             rainbond_app.app_template = v2_template["template_content"]
             rainbond_app.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
@@ -1401,15 +1255,12 @@ class AppMarketSynchronizeService(object):
 
     def get_recommended_app_list(self, tenant, page, limit, app_name):
         try:
-            token = self.get_enterprise_access_token(tenant.enterprise_id,
-                                                     "market")
+            token = self.get_enterprise_access_token(tenant.enterprise_id, "market")
             if token:
-                market_client = get_market_client(
-                    token.access_id, token.access_token, token.access_url)
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            return market_client.get_recommended_app_list(
-                page=page, limit=limit, group_name=app_name)
+            return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
         except socket.timeout:
             logger.warning("request cloud app list timeout")
             return None
@@ -1417,8 +1268,7 @@ class AppMarketSynchronizeService(object):
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
         try:
-            return TenantEnterpriseToken.objects.get(
-                enterprise_id=enter.pk, access_target=access_target)
+            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
         except TenantEnterpriseToken.DoesNotExist:
             return None
 

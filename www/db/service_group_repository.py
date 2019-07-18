@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
+# creater by: barnett
 # -*- coding:utf-8 -*-
 
 import logging
 
-from www.db import BaseConnection
-from www.models import ServiceGroupRelation, ServiceGroup
+from www.db.base import BaseConnection
+from www.models.main import ServiceGroupRelation, ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -11,9 +13,7 @@ logger = logging.getLogger("default")
 class ServiceGroupRepository(object):
     def get_rel_region(self, service_id, tenant_id, region):
         try:
-            return ServiceGroupRelation.objects.get(
-                service_id=service_id, tenant_id=tenant_id, region_name=region
-            )
+            return ServiceGroupRelation.objects.get(service_id=service_id, tenant_id=tenant_id, region_name=region)
         except ServiceGroupRelation.DoesNotExist:
             return None
 
@@ -40,3 +40,6 @@ class ServiceGroupRepository(object):
         """.format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
+
+
+svc_grop_repo = ServiceGroupRepository()

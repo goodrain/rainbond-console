@@ -17,27 +17,23 @@ class MessageService(object):
         announcements = announcement_repo.get_enabled_announcements().exclude(announcement_id__in=noticed_msg_ids)
         msg_list = []
         for announce in announcements:
-            msg_list.append(UserMessage(
-                message_id=make_uuid(),
-                receiver_id=user.user_id,
-                content=announce.content,
-                is_read=False,
-                msg_type=MessageType.ANNOUNCEMENT,
-                announcement_id=announce.announcement_id,
-                title=announce.title,
-                level=announce.level,
-                create_time=announce.create_time
-            ))
+            msg_list.append(
+                UserMessage(
+                    message_id=make_uuid(),
+                    receiver_id=user.user_id,
+                    content=announce.content,
+                    is_read=False,
+                    msg_type=MessageType.ANNOUNCEMENT,
+                    announcement_id=announce.announcement_id,
+                    title=announce.title,
+                    level=announce.level,
+                    create_time=announce.create_time))
         UserMessage.objects.bulk_create(msg_list)
         # 更新已有的公告
         old_announcements = announcement_repo.get_enabled_announcements().filter(announcement_id__in=noticed_msg_ids)
         for announce in old_announcements:
             usermessage_query = msg_repo.get_usermessage_queryset(announce.announcement_id)
-            usermessage_query.update(
-                content=announce.content,
-                title=announce.title,
-                level=announce.level
-            )
+            usermessage_query.update(content=announce.content, title=announce.title, level=announce.level)
         # 删除已经删除的公告
         announcements_id_list = announcement_repo.get_all_announcements_id()
         msg_repo.get_all_usermessage().exclude(announcement_id__in=announcements_id_list).delete()

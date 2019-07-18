@@ -1,49 +1,29 @@
-from django.conf.urls import patterns, url, include
-from django.contrib import admin
-from rest_framework.authtoken import views
+# -*- coding: utf-8 -*-
+# creater by: barnett
+from django.conf.urls import url
+from openapi.views.region_view import ListRegionInfo
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from openapi.auth.permissions import OpenAPIPermissions
+from openapi.auth.authentication import OpenAPIAuthentication
 
-from openapi.views.cloudservices import *
-from openapi.views.domain import *
-from openapi.views.services import *
-from openapi.views.tenants import *
-from openapi.views.token import *
-from openapi.views.users import *
-from openapi.views.wechat import *
-from openapi.views.region import *
-
-urlpatterns = patterns(
-    '',
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api-token-auth', views.obtain_auth_token),
-    url(r'^docs/', include('rest_framework_swagger.urls')),
-    url(r'^oauth2/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-
-    url(r'^oauth2/access_token$', AccessTokenView.as_view()),
-
-    url(r'^v1/register$', TenantServiceView.as_view()),
-
-    url(r'^v1/user/info$', UserInfoView.as_view()),
-    # wechat token
-    url(r'^v1/wechat/token', WechatTokenView.as_view()),
-
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/create$', CreateServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/delete$', DeleteServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/start$', StartServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/stop$', StopServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/status$', StatusServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/domain$', DomainController.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/published', PublishedView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/upgrade', UpgradeView.as_view()),
-
-    # share module for region
-    url(r'^v1/share/region/price$', RegionPriceQueryView.as_view()),
-
-    url(r'^v2/services/(?P<service_name>[\w\-]+)/install$', CloudServiceInstallView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/update$', UpdateServiceView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/restart$', RestartServiceView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/remove$', RemoveServiceView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/detail$', QueryServiceView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/stop$', StopCloudServiceView.as_view()),
-    url(r'^v2/services/(?P<service_id>[\w\-]+)/domain$', CloudServiceDomainView.as_view()),
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Rainbond Open API",
+        default_version='v1',
+        description="Rainbond open api",
+        terms_of_service="https://www.rainbond.com",
+        contact=openapi.Contact(email="barnett@goodrain.com"),
+        license=openapi.License(name="LGPL License"),
+    ),
+    public=False,
+    permission_classes=(OpenAPIPermissions, ),
+    authentication_classes=(OpenAPIAuthentication, ),
 )
+
+urlpatterns = [
+    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    url(r'^v1/regions', ListRegionInfo.as_view())
+]

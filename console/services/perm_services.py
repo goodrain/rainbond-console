@@ -31,7 +31,7 @@ class ServicePermService(object):
         try:
             enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
         except Exception as e:
-            pass
+            logger.exception(e)
         if not perm_tenant:
             perm_info = {
                 "user_id": user.user_id,
@@ -87,18 +87,17 @@ class ServicePermService(object):
             if not user:
                 return 404, "用户{0}不存在".format(user_id), None
 
-            service_perm = service_perm_repo.get_service_perm_by_user_pk_service_pk(service_pk=service.ID,
-                                                                                    user_pk=user_id)
+            service_perm = service_perm_repo.get_service_perm_by_user_pk_service_pk(service_pk=service.ID, user_pk=user_id)
             if service_perm:
                 return 409, "用户{0}已有权限，无需添加".format(user.nick_name), None
 
-        service_perm_repo.add_user_service_perm(user_ids=user_list, service_pk=service.ID,
-                                                perm_ids=perm_list)
+        service_perm_repo.add_user_service_perm(user_ids=user_list, service_pk=service.ID, perm_ids=perm_list)
 
         enterprise = None
         try:
             enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
         except Exception as e:
+            logger.exception(e)
             pass
 
         for user_id in user_list:
@@ -130,8 +129,8 @@ class ServicePermService(object):
         service_perm = service_perm_repo.get_service_perm_by_service_pk_user_pk(service.ID, user_id)
         if not service_perm:
             return 404, u"需要修改的权限不存在", None
-        service_perm_repo.update_service_perm_by_service_id_user_id_perm_list(user_id=user_id, service_id=service.ID,
-                                                                              perm_list=perm_list)
+        service_perm_repo.update_service_perm_by_service_id_user_id_perm_list(
+            user_id=user_id, service_id=service.ID, perm_list=perm_list)
         return 200, u"success", service_perm
 
     def get_user_service_perm_info(self, service):

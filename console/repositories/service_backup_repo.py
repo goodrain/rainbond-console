@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from console.models import TenantServiceBackup
+from console.models.main import TenantServiceBackup
 
 
 class TenantServiceBackupRepository(object):

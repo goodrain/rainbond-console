@@ -17,17 +17,14 @@ class DeployTypeService(object):
 
     def put_service_deploy_type(self, tenant, service, deploy_type):
         label = {
-            "label_key":
-            "service-type",
-            "label_value":
-            "StatelessServiceType"
-            if deploy_type == "stateless" else "StatefulServiceType",
+            "label_key": "service-type",
+            "label_value": "StatelessServiceType" if deploy_type == "stateless" else "StatefulServiceType",
         }
         label_dict = {
             "labels": [label],
         }
-        res, body = region_api.update_service_state_label(
-            service.service_region, tenant.tenant_name, service.service_alias, label_dict)
+        res, body = region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          label_dict)
         if int(res.status) != 200:
             raise CallRegionAPIException(res.status, "update service deploy type failure")
         service.extend_method = deploy_type

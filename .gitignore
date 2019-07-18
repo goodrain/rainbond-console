@@ -137,3 +137,6 @@ venv.bak/
 
 # vscode
 .vscode/
+
+www/static/dists
+static/

@@ -68,10 +68,8 @@ class AppMntView(AppBaseView):
                                                     self.service.service_region)
 
                 services_ids = [s.service_id for s in services]
-                mnt_list, total = mnt_service.get_service_unmnt_details(
-                    self.tenant, self.service,
-                    services_ids, page, page_size, q
-                )
+                mnt_list, total = mnt_service.get_service_unmnt_details(self.tenant, self.service, services_ids, page,
+                                                                        page_size, q)
             else:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
             result = general_message(200, "success", "查询成功", list=mnt_list, total=total)

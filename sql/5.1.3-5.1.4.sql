@@ -1,5 +1,5 @@
 -- **2019-04-28 增加 云市应用升级记录表、云市服务升级记录表
-create table `app_upgrade_record`
+create table if not exists `app_upgrade_record`
 (
     `ID`          int         not null auto_increment,
     `tenant_id`   varchar(33) not null,
@@ -9,8 +9,8 @@ create table `app_upgrade_record`
     `version`     varchar(20) not null,
     `old_version` varchar(20) not null,
     `status`      tinyint     not null,
-    `create_time` timestamp   not null default current_timestamp,
-    `update_time` timestamp   not null default current_timestamp on update current_timestamp(3),
+    `create_time` datetime default null,
+    `update_time` timestamp   not null default current_timestamp on update current_timestamp,
     primary key (`ID`)
 )
     ENGINE = InnoDB
@@ -18,7 +18,7 @@ create table `app_upgrade_record`
     DEFAULT CHARSET = utf8;
 
 
-create table `service_upgrade_record`
+create table if not exists `service_upgrade_record`
 (
     `ID`                       int          not null auto_increment,
     `app_upgrade_record_id`    int          not null,
@@ -28,24 +28,23 @@ create table `service_upgrade_record`
     `event_id`                 varchar(32)  not null,
     `update`                   longtext     not null,
     `status`                   tinyint      not null,
-    `create_time`              timestamp    not null default current_timestamp,
-    `update_time`              timestamp    not null default current_timestamp on update current_timestamp(3),
+    `create_time`              datetime  default null,
+    `update_time`              timestamp    not null default current_timestamp on update current_timestamp,
     primary key (`ID`)
 )
     ENGINE = InnoDB
     AUTO_INCREMENT = 38
     DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `tenant_service_backup`;
-CREATE TABLE `tenant_service_backup` (
+CREATE TABLE if not exists `tenant_service_backup` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `region_name` varchar(32) NOT NULL,
   `tenant_id` varchar(32) NOT NULL,
   `service_id` varchar(32) NOT NULL,
   `backup_id` varchar(32) NOT NULL,
   `backup_data` longtext NOT NULL,
-  `create_time` datetime(6) DEFAULT NULL,
-  `update_time` datetime(6) DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `backup_id` (`backup_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8;
@@ -54,3 +53,5 @@ CREATE TABLE `tenant_service_backup` (
 alter table gateway_custom_configuration
     modify rule_id varchar(32) unique not null;
 alter table tenant_service modify `version` varchar(255);
+
+update console_sys_config set `value`="5.1.4" where `key`="RAINBOND_VERSION";

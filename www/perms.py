@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from console.exception.main import BusinessException
 from console.repositories.perm_repo import role_perm_repo
 from goodrain_web.errors import UrlParseError, PermissionDenied
-from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
+from www.models.main import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from www.utils.return_message import general_message
 from console.models.main import ServiceRelPerms
 from console.services.team_services import team_services
@@ -15,83 +15,46 @@ logger = logging.getLogger('default')
 
 
 class PermActions(object):
-    tenant_access_actions = (
-        ('tenant_access', u"登入团队"),
+    tenant_access_actions = (('tenant_access', u"登入团队"), ('view_service', u"查看应用信息"), ('access_control', u"查看访问控制"),
+                             ('certificate_management', u"访问证书管理"))
 
-        ('view_service', u"查看应用信息"),
-        ('access_control', u"查看访问控制"),
-        ('certificate_management', u"访问证书管理")
-    )
+    tenant_viewer_actions = (('view_plugin', u"查看插件信息"), ) + tenant_access_actions
 
-    tenant_viewer_actions = (
+    tenant_developer_actions = (('manage_group', u"应用组管理"), ('deploy_service', u"部署应用"), ('create_service', u"创建应用"),
+                                ('stop_service', u"关闭应用"), ('start_service', u"启动应用"), ('restart_service', u"重启应用"),
+                                ('rollback_service', u"回滚应用"), ('manage_service_container', u"应用容器管理"),
+                                ('manage_service_extend', u"应用伸缩管理"), ('manage_service_config', u"应用配置管理"),
+                                ('manage_service_plugin', u"应用扩展管理"), ('manage_plugin', u"插件管理"),
+                                ('import_and_export_service', u'应用导入导出'), ('certificate_operation', u'证书管理操作'),
+                                ('control_operation', u'访问控制操作'), ('add_endpoint', u'添加实例'), ('delete_endpoint', u'删除实例'),
+                                ('put_endpoint', u'修改实例上下线'), ('health_detection', u'编辑健康检测'), ('reset_secret_key', u'重置秘钥'),
+                                ('create_three_service', u'创建三方服务')) + tenant_viewer_actions
 
-                                ('view_plugin', u"查看插件信息"),
-                            ) + tenant_access_actions
+    tenant_admin_actions = (('manage_team_member_permissions', u'团队权限设置'), ('tenant_open_region', u'开通数据中心'),
+                            ('delete_service', u"删除应用"), ('share_service', u"应用组分享"), ('share_plugin', u"插件分享"),
+                            ('manage_service_member_perms', u'应用权限设置'),
+                            ('tenant_manage_role', u'自定义角色')) + tenant_developer_actions
 
-    tenant_developer_actions = (
-                                   ('manage_group', u"应用组管理"),
-                                   ('deploy_service', u"部署应用"),
-                                   ('create_service', u"创建应用"),
-                                   ('stop_service', u"关闭应用"),
-                                   ('start_service', u"启动应用"),
-                                   ('restart_service', u"重启应用"),
-                                   ('rollback_service', u"回滚应用"),
-                                   ('manage_service_container', u"应用容器管理"),
-                                   ('manage_service_extend', u"应用伸缩管理"),
-                                   ('manage_service_config', u"应用配置管理"),
-                                   ('manage_service_plugin', u"应用扩展管理"),
-                                   ('manage_plugin', u"插件管理"),
-                                   ('import_and_export_service', u'应用导入导出'),
-                                   ('certificate_operation', u'证书管理操作'),
-                                   ('control_operation', u'访问控制操作'),
-                                   ('add_endpoint', u'添加实例'),
-                                   ('delete_endpoint', u'删除实例'),
-                                   ('put_endpoint', u'修改实例上下线'),
-                                   ('health_detection', u'编辑健康检测'),
-                                   ('reset_secret_key', u'重置秘钥'),
-                                   ('create_three_service', u'创建三方服务')
+    tenant_owner_actions = (('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
+                            ('modify_team_name', u'修改团队名称')) + tenant_admin_actions
 
-                               ) + tenant_viewer_actions
+    tenant_gray_actions = () + tenant_admin_actions
 
-    tenant_admin_actions = (
-                               ('manage_team_member_permissions', u'团队权限设置'),
-                               ('tenant_open_region', u'开通数据中心'),
-                               ('delete_service', u"删除应用"),
-                               ('share_service', u"应用组分享"),
-                               ('share_plugin', u"插件分享"),
-                               ('manage_service_member_perms', u'应用权限设置'),
-                               ('tenant_manage_role', u'自定义角色')
-                           ) + tenant_developer_actions
-
-    tenant_owner_actions = (
-                               ('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
-                               ('modify_team_name', u'修改团队名称')
-                           ) + tenant_admin_actions
-
-    tenant_gray_actions = (
-                          ) + tenant_admin_actions
-
-    service_viewer_actions = (
-        ('view_service', u"查看应用信息"),
-    )
+    service_viewer_actions = (('view_service', u"查看应用信息"), )
 
     service_developer_actions = (
-                                    ('deploy_service', u"部署应用"),
-                                    ('stop_service', u"关闭应用"),
-                                    ('start_service', u"启动应用"),
-                                    ('restart_service', u"重启应用"),
-                                    ('rollback_service', u"回滚应用"),
-                                    ('manage_service_container', u"应用容器管理"),
-                                    ('manage_service_extend', u"应用伸缩管理"),
-                                    ('manage_service_config', u"应用配置管理"),
-                                    ('manage_service_plugin', u"应用扩展管理"),
+        ('deploy_service', u"部署应用"),
+        ('stop_service', u"关闭应用"),
+        ('start_service', u"启动应用"),
+        ('restart_service', u"重启应用"),
+        ('rollback_service', u"回滚应用"),
+        ('manage_service_container', u"应用容器管理"),
+        ('manage_service_extend', u"应用伸缩管理"),
+        ('manage_service_config', u"应用配置管理"),
+        ('manage_service_plugin', u"应用扩展管理"),
+    ) + service_viewer_actions
 
-                                ) + service_viewer_actions
-
-    service_admin_actions = (
-
-                                ('manage_service_member_perms', u'应用权限设置'),
-                            ) + service_developer_actions
+    service_admin_actions = (('manage_service_member_perms', u'应用权限设置'), ) + service_developer_actions
 
     def keys(self, tag):
         if hasattr(self, tag):
@@ -101,7 +64,6 @@ class PermActions(object):
 
 
 class UserActions(dict):
-
     def __init__(self):
         self.tenant_actions = []
         self.service_actions = []
@@ -171,10 +133,8 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenantName)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=user.pk,
-                                                                            tenant_name=tenant.tenant_name)
-            role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.pk,
-                                                                             tenant_name=tenant.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=user.pk, tenant_name=tenant.tenant_name)
+            role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.pk, tenant_name=tenant.tenant_name)
             if not identitys and not role_id_list:
                 raise PermRelTenant.DoesNotExist
 
@@ -191,12 +151,10 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
             if serviceAlias is not None:
                 service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=serviceAlias)
-                user_service_perms_id_list = ServiceRelPerms.objects.filter(user_id=user.pk,
-                                                                            service_id=service.pk).values_list(
-                    "perm_id",
-                    flat=True)
-                perm_codename_list = role_perm_repo.get_perm_list_by_perm_id_list(
-                    perm_id_list=user_service_perms_id_list)
+                user_service_perms_id_list = ServiceRelPerms.objects.filter(
+                    user_id=user.pk, service_id=service.pk).values_list(
+                        "perm_id", flat=True)
+                perm_codename_list = role_perm_repo.get_perm_list_by_perm_id_list(perm_id_list=user_service_perms_id_list)
                 user.actions.set_actions('service', perm_codename_list)
         except Tenants.DoesNotExist:
             raise UrlParseError(404, 'no matching tenantName for {0}'.format(tenantName))
@@ -205,8 +163,7 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
         except PermRelTenant.DoesNotExist:
             tenant = Tenants.objects.filter(tenant_name=tenantName)[0]
             if not user.is_sys_admin and tenantName != "grdemo":
-                raise UrlParseError(403, 'no permissions for user {0} on tenant {1}'.format(user.nick_name,
-                                                                                            tenant.tenant_name))
+                raise UrlParseError(403, 'no permissions for user {0} on tenant {1}'.format(user.nick_name, tenant.tenant_name))
             user.actions.set_actions('tenant', p.keys('tenant_viewer_actions'))
         except PermRelService.DoesNotExist:
             pass
@@ -216,7 +173,6 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
     if perm in user.actions:
         return True
-    raise BusinessException(
-        Response(general_message(403, "you don't have enough permissions", "您无权限执行此操作"), status=403))
+    raise BusinessException(Response(general_message(403, "you don't have enough permissions", "您无权限执行此操作"), status=403))
 
     # raise PermissionDenied("you don't have enough permissions")

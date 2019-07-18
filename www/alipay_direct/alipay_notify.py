@@ -9,6 +9,7 @@ from alipay_md5 import *
 
 import urllib2
 
+
 class AlipayNotify:
     https_verify_url = 'https://mapi.alipay.com/gateway.do?service=notify_verify&'
     http_verify_url = 'http://notify.alipay.com/trade/notify_query.do?'
@@ -23,7 +24,6 @@ class AlipayNotify:
         self.cacert = alipay_config.cacert
         self.transport = alipay_config.transport
 
-
     def verifyNotify(self, post_arr):  # 针对notify_url验证消息是否是支付宝发出的合法消息
         if not post_arr:
             return False
@@ -35,7 +35,6 @@ class AlipayNotify:
         if responseTxt == 'true' and isSgin:
             return True
         return False
-
 
     def verifyReturn(self, get_arr):  # 针对return_url验证消息是否是支付宝发出的合法消息
         if not get_arr:
@@ -49,7 +48,6 @@ class AlipayNotify:
             return True
         return False
 
-
     def getSignVeryfy(self, para_temp, sign):  # 获取返回时的签名验证结果
         para_filter = paraFilter(para_temp)
         para_sort = argSort(para_filter)
@@ -60,8 +58,7 @@ class AlipayNotify:
             isSgin = md5Verify(prestr, sign, self.key)
         return isSgin
 
-
-    def getResponse(self, notify_id):       # 获取远程服务器ATN结果,验证返回URL
+    def getResponse(self, notify_id):  # 获取远程服务器ATN结果,验证返回URL
         transport = self.transport.lower()
         partner = self.partner.strip()
         veryfy_url = ''

@@ -12,6 +12,7 @@ from mns_client import MNSClient
 from mns_request import *
 from mns_exception import *
 
+
 class Subscription:
     def __init__(self, topic_name, subscription_name, mns_client, debug=False):
         self.topic_name = topic_name
@@ -39,11 +40,8 @@ class Subscription:
             :: MNSClientNetworkException    网络异常
             :: MNSServerException           mns处理异常
         """
-        req = SubscribeRequest(self.topic_name,
-                               self.subscription_name,
-                               subscription_meta.endpoint,
-                               subscription_meta.notify_strategy,
-                               subscription_meta.notify_content_format,
+        req = SubscribeRequest(self.topic_name, self.subscription_name, subscription_meta.endpoint,
+                               subscription_meta.notify_strategy, subscription_meta.notify_content_format,
                                subscription_meta.filter_tag)
         req.set_req_info(req_info)
         resp = SubscribeResponse()
@@ -87,9 +85,7 @@ class Subscription:
             :: MNSClientNetworkException    网络异常
             :: MNSServerException           mns处理异常
         """
-        req = SetSubscriptionAttributesRequest(self.topic_name,
-                                               self.subscription_name,
-                                               subscription_meta.endpoint,
+        req = SetSubscriptionAttributesRequest(self.topic_name, self.subscription_name, subscription_meta.endpoint,
                                                subscription_meta.notify_strategy)
         req.set_req_info(req_info)
         resp = SetSubscriptionAttributesResponse()
@@ -129,8 +125,9 @@ class Subscription:
         subscription_meta.create_time = resp.create_time
         subscription_meta.last_modify_time = resp.last_modify_time
 
+
 class SubscriptionMeta:
-    def __init__(self, endpoint = "", notify_strategy = "", notify_content_format = "", filter_tag = ""):
+    def __init__(self, endpoint="", notify_strategy="", notify_content_format="", filter_tag=""):
         """ Subscription属性
             @note: 设置属性
             :: endpoint: 接收端地址, HttpEndpoint, MailEndpoint or QueueEndpoint
@@ -169,20 +166,24 @@ class SubscriptionMeta:
         self.notify_content_format = notify_content_format
 
     def __str__(self):
-        meta_info = {"TopicOwner": self.topic_owner,
-                     "TopicName": self.topic_name,
-                     "SubscriptionName": self.subscription_name,
-                     "Endpoint": self.endpoint,
-                     "FilterTag": self.filter_tag,
-                     "NotifyStrategy": self.notify_strategy,
-                     "NotifyContentFormat": self.notify_content_format,
-                     "CreateTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.create_time)),
-                     "LastModifyTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.last_modify_time))}
-        return "\n".join(["%s: %s" % (k.ljust(30),v) for k,v in meta_info.items()])
+        meta_info = {
+            "TopicOwner": self.topic_owner,
+            "TopicName": self.topic_name,
+            "SubscriptionName": self.subscription_name,
+            "Endpoint": self.endpoint,
+            "FilterTag": self.filter_tag,
+            "NotifyStrategy": self.notify_strategy,
+            "NotifyContentFormat": self.notify_content_format,
+            "CreateTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.create_time)),
+            "LastModifyTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.last_modify_time))
+        }
+        return "\n".join(["%s: %s" % (k.ljust(30), v) for k, v in meta_info.items()])
+
 
 class SubscriptionNotifyStrategy:
     BACKOFF = "BACKOFF_RETRY"
     EXPONENTIAL = "EXPONENTIAL_DECAY_RETRY"
+
 
 class SubscriptionNotifyContentFormat:
     XML = "XML"

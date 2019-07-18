@@ -8,15 +8,14 @@ from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
 from console.repositories.base import BaseConnection
-from www.models import ServiceWebhooks
-from www.models import TenantServiceInfo
-from www.models import TenantServiceInfoDelete
+from www.models.main import ServiceWebhooks
+from www.models.main import TenantServiceInfo
+from www.models.main import TenantServiceInfoDelete
 
 
 class TenantServiceInfoRepository(object):
     def list_by_svc_share_uuids(self, group_id, dep_uuids):
-        uuids = "'{}'".format("','".join(str(uuid)
-                                         for uuid in dep_uuids))
+        uuids = "'{}'".format("','".join(str(uuid) for uuid in dep_uuids))
         conn = BaseConnection()
         sql = """
             SELECT
@@ -32,7 +31,8 @@ class TenantServiceInfoRepository(object):
                 AND b.service_share_uuid IN ( {uuids} )
                 AND a.service_id = c.service_id
                 AND c.group_id = {group_id}
-            """.format(group_id=group_id, uuids=uuids)
+            """.format(
+            group_id=group_id, uuids=uuids)
         result = conn.query(sql)
         return result
 
@@ -67,8 +67,7 @@ class TenantServiceInfoRepository(object):
         return TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
 
     def get_service_by_region_tenant_and_name(self, tenant_id, service_cname, region):
-        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname,
-                                                    service_region=region)
+        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname, service_region=region)
         if services:
             return services[0]
         return None
@@ -113,15 +112,11 @@ class TenantServiceInfoRepository(object):
         service.save()
 
     def update(self, tenant_id, service_id, **params):
-        TenantServiceInfo.objects.filter(
-            tenant_id=tenant_id, service_id=service_id).update(**params)
+        TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id).update(**params)
 
     def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
         """使用service_ids 和 group_key 查找一组云市应用下的服务"""
-        return TenantServiceInfo.objects.filter(
-            service_source_info__group_key=group_key,
-            service_id__in=service_ids
-        )
+        return TenantServiceInfo.objects.filter(service_source_info__group_key=group_key, service_id__in=service_ids)
 
     def del_by_sid(self, sid):
         TenantServiceInfo.objects.filter(service_id=sid).delete()
@@ -200,8 +195,7 @@ class TenantServiceWebhooks(object):
 
     def get_or_create_service_webhook(self, service_id, deployment_way):
         """获取或创建service_webhook"""
-        return self.get_service_webhooks_by_service_id_and_type(
-            service_id, deployment_way) or self.create_service_webhooks(
+        return self.get_service_webhooks_by_service_id_and_type(service_id, deployment_way) or self.create_service_webhooks(
             service_id, deployment_way)
 
 

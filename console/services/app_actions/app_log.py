@@ -24,7 +24,6 @@ logger = logging.getLogger("default")
 
 
 class AppWebSocketService(object):
-
     def get_log_instance_ws(self, request, region):
         sufix_uri = "docker_log"
         ws_url = self.__event_ws(request, region, sufix_uri)
@@ -107,8 +106,7 @@ class AppEventService(object):
         last_event = event_repo.get_last_event(tenant.tenant_id, service.service_id)
         # 提前从数据中心更新event信息
         if last_event:
-            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event],
-                                                    timeout=True)
+            self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event], timeout=True)
         old_deploy_version = ""
         if last_event:
             if last_event.final_status == "":
@@ -191,9 +189,7 @@ class AppEventService(object):
         body = {"event_id": event_id, "level": level, "enterprise_id": tenant.enterprise_id}
         msg_list = []
         try:
-            res, rt_data = region_api.get_event_log(service.service_region, tenant.tenant_name,
-                                                    service.service_alias,
-                                                    body)
+            res, rt_data = region_api.get_event_log(service.service_region, tenant.tenant_name, service.service_alias, body)
             if int(res.status) == 200:
                 msg_list = rt_data["list"]
         except region_api.CallApiError as e:
@@ -273,15 +269,14 @@ class AppLogService(object):
             data["tenant_id"] = tenant.tenant_id
             data['lines'] = lines
             data["enterprise_id"] = tenant.enterprise_id
-            body = region_api.get_service_logs(service.service_region, tenant.tenant_name,
-                                               service.service_alias, data)
+            body = region_api.get_service_logs(service.service_region, tenant.tenant_name, service.service_alias, data)
             log_list = body["list"]
         return 200, "success", log_list
 
     def get_docker_log_instance(self, tenant, service):
         try:
-            re = region_api.get_docker_log_instance(service.service_region, tenant.tenant_name,
-                                                    service.service_alias, tenant.enterprise_id)
+            re = region_api.get_docker_log_instance(service.service_region, tenant.tenant_name, service.service_alias,
+                                                    tenant.enterprise_id)
             bean = re["bean"]
 
             host_id = bean["host_id"]
@@ -292,8 +287,8 @@ class AppLogService(object):
 
     def get_history_log(self, tenant, service):
         try:
-            body = region_api.get_service_log_files(service.service_region, tenant.tenant_name,
-                                                    service.service_alias, tenant.enterprise_id)
+            body = region_api.get_service_log_files(service.service_region, tenant.tenant_name, service.service_alias,
+                                                    tenant.enterprise_id)
             file_list = body["list"]
             return 200, "success", file_list
         except region_api.CallApiError as e:

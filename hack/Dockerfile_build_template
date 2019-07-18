@@ -19,7 +19,6 @@ RUN tar zxf /tmp/source.tgz
 
 RUN rm -fv requirements.txt
 RUN pip install -r requirements_release.txt 
-RUN pip install pyzmq==16.0.2 --install-option --zmq=/usr/local/libzmq
 RUN python manage.py migrate
 RUN /entrypoint.sh console_app.spec
 RUN /entrypoint.sh console_manage.spec

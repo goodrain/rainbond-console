@@ -1,4 +1,3 @@
-
 # -*- coding: utf8 -*-
 """
   Created on 18/8/27.
@@ -28,7 +27,7 @@ class SyncTenantServiceManager(object):
                 services = self.get_limited_services(start_index, NUMBER_OF_SERVICES)
                 if len(list(services)) == 0:
                     logger.debug("- process finished")
-                    print ("- process finished")
+                    print("- process finished")
                     flag = False
 
                 for s in services:
@@ -42,14 +41,15 @@ class SyncTenantServiceManager(object):
             print e
             logger.exception(e)
 
-    def process(self,service):
+    def process(self, service):
         is_service_ungrouped = self.is_service_ungrouped(service)
         if is_service_ungrouped:
-            group = self.get_or_create_default_group(service.tenant_id,service.service_region)
-            self.add_service_to_default_app(group.ID,service)
+            group = self.get_or_create_default_group(service.tenant_id, service.service_region)
+            self.add_service_to_default_app(group.ID, service)
 
     def get_limited_services(self, start_index, number_of_services):
-        query_sql = """ select * from tenant_service WHERE ID > 0 limit {0},{1}""".format(str(start_index), str(number_of_services))
+        query_sql = """ select * from tenant_service WHERE ID > 0 limit {0},{1}""".format(
+            str(start_index), str(number_of_services))
         services = service_repo.get_services_by_raw_sql(query_sql)
         return services
 
@@ -64,14 +64,13 @@ class SyncTenantServiceManager(object):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
         group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
         if not group:
-            group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name='默认应用',
-                                                is_default=True)
+            group = ServiceGroup.objects.create(
+                tenant_id=tenant_id, region_name=region_name, group_name='默认应用', is_default=True)
         return group
 
     def add_service_to_default_app(self, group_id, service):
-        sgr = ServiceGroupRelation.objects.create(service_id=service.service_id, group_id=group_id,
-                                                  tenant_id=service.tenant_id,
-                                                  region_name=service.service_region)
+        sgr = ServiceGroupRelation.objects.create(
+            service_id=service.service_id, group_id=group_id, tenant_id=service.tenant_id, region_name=service.service_region)
         return sgr
 
 

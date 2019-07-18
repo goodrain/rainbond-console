@@ -11,7 +11,7 @@ from backends.serializers import AnnouncementSerilizer
 logger = logging.getLogger("default")
 
 
-class   AllAnnouncementView(BaseAPIView):
+class AllAnnouncementView(BaseAPIView):
     def get(self, request, *args, **kwargs):
         """
         获取所有公告信息
@@ -25,9 +25,7 @@ class   AllAnnouncementView(BaseAPIView):
                 a_dict["create_time"] = a.create_time
                 announce_list.append(a_dict)
 
-            result = generate_result(
-                "0000", "success", "查询成功", list=announce_list
-            )
+            result = generate_result("0000", "success", "查询成功", list=announce_list)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -45,8 +43,7 @@ class   AllAnnouncementView(BaseAPIView):
             serializer = AnnouncementSerilizer(data=data)
             if not serializer.is_valid():
                 logger.error("params error")
-                result = generate_result(
-                    "1003", "params error", "参数错误")
+                result = generate_result("1003", "params error", "参数错误")
                 return Response(result)
             from www.utils.crypt import make_uuid
             announcement_id = make_uuid()
@@ -54,8 +51,7 @@ class   AllAnnouncementView(BaseAPIView):
             params.update({"announcement_id": announcement_id})
 
             Announcement.objects.create(**params)
-            result = generate_result(
-                "0000", "success", "添加成功")
+            result = generate_result("0000", "success", "添加成功")
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

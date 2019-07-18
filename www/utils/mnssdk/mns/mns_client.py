@@ -14,7 +14,7 @@ import base64
 import string
 import platform
 import pkg_info
-from  mns_xml_handler import *
+from mns_xml_handler import *
 from mns_exception import *
 from mns_request import *
 from mns_tool import *
@@ -26,8 +26,9 @@ URISEC_MESSAGE = "messages"
 URISEC_TOPIC = "topics"
 URISEC_SUBSCRIPTION = "subscriptions"
 
+
 class MNSClient:
-    def __init__(self, host, access_id, access_key, version = "2015-06-06", security_token = "", logger=None):
+    def __init__(self, host, access_id, access_key, version="2015-06-06", security_token="", logger=None):
         self.host, self.is_https = self.process_host(host)
         self.access_id = access_id
         self.access_key = access_key
@@ -58,6 +59,7 @@ class MNSClient:
         self.http.conn.close()
 
 #===============================================queue operation===============================================#
+
     def set_account_attributes(self, req, resp):
         #check parameter
         SetAccountAttributesValidator.validate(req)
@@ -91,7 +93,8 @@ class MNSClient:
             account_attr = GetAccountAttrDecoder.decode(resp_inter.data, req_inter.get_req_id())
             resp.logging_bucket = account_attr["LoggingBucket"]
             if self.logger:
-                self.logger.info("GetAccountAttributes RequestId:%s LoggingBucket:%s" % (resp.get_requestid(), resp.logging_bucket))
+                self.logger.info(
+                    "GetAccountAttributes RequestId:%s LoggingBucket:%s" % (resp.get_requestid(), resp.logging_bucket))
 
     def create_queue(self, req, resp):
         #check parameter
@@ -157,10 +160,11 @@ class MNSClient:
         resp.header = resp_inter.header
         self.check_status(req_inter, resp_inter, resp)
         if resp.error_data == "":
-            resp.queueurl_list, resp.next_marker, resp.queuemeta_list = ListQueueDecoder.decode(resp_inter.data, req.with_meta, req_inter.get_req_id())
+            resp.queueurl_list, resp.next_marker, resp.queuemeta_list = ListQueueDecoder.decode(
+                resp_inter.data, req.with_meta, req_inter.get_req_id())
             if self.logger:
                 firstQueueURL = "" if resp.queueurl_list == [] else resp.queueurl_list[0]
-                lastQueueURL = "" if resp.queueurl_list == [] else resp.queueurl_list[len(resp.queueurl_list)-1]
+                lastQueueURL = "" if resp.queueurl_list == [] else resp.queueurl_list[len(resp.queueurl_list) - 1]
                 self.logger.info("ListQueue RequestId:%s Prefix:%s RetNumber:%s Marker:%s QueueCount:%s FirstQueueURL:%s LastQueueURL:%s NextMarker:%s" % \
                     (resp.get_requestid(), req.prefix, req.ret_number, req.marker, \
                     len(resp.queueurl_list), firstQueueURL, lastQueueURL, resp.next_marker))
@@ -221,7 +225,7 @@ class MNSClient:
         SendMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, uri = "/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
+        req_inter = RequestInternal(req.method, uri="/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
         req_inter.data = MessageEncoder.encode(req)
         self.build_header(req, req_inter)
 
@@ -244,7 +248,7 @@ class MNSClient:
         BatchSendMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, uri = "/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
+        req_inter = RequestInternal(req.method, uri="/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
         req_inter.data = MessagesEncoder.encode(req.message_list, req.base64encode)
         self.build_header(req, req_inter)
 
@@ -267,7 +271,7 @@ class MNSClient:
         ReceiveMessageValidator.validate(req)
 
         #make request internal
-        req_url =  "/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE)
+        req_url = "/%s/%s/%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE)
         if req.wait_seconds != -1:
             req_url += "?waitseconds=%s" % req.wait_seconds
         req_inter = RequestInternal(req.method, req_url)
@@ -293,7 +297,7 @@ class MNSClient:
         BatchReceiveMessageValidator.validate(req)
 
         #make request internal
-        req_url =  "/%s/%s/%s?numOfMessages=%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.batch_size)
+        req_url = "/%s/%s/%s?numOfMessages=%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.batch_size)
         if req.wait_seconds != -1:
             req_url += "&waitseconds=%s" % req.wait_seconds
 
@@ -311,7 +315,7 @@ class MNSClient:
             resp.message_list = BatchRecvMessageDecoder.decode(resp_inter.data, req.base64decode, req_inter.get_req_id())
             if self.logger:
                 self.logger.info("BatchReceiveMessage RequestId:%s QueueName:%s WaitSeconds:%s BatchSize:%s MessageCount:%s \
-                    MessagesInfo\n%s" % (resp.get_requestid(), req.queue_name, req.wait_seconds, req.batch_size, len(resp.message_list),\
+                    MessagesInfo\n%s"                                      % (resp.get_requestid(), req.queue_name, req.wait_seconds, req.batch_size, len(resp.message_list),\
                     "\n".join(["MessageId:%s MessageBodyMD5:%s NextVisibilityTime:%s ReceiptHandle:%s EnqueueTime:%s DequeueCount:%s" % \
                                 (msg.message_id, msg.message_body_md5, msg.next_visible_time, msg.receipt_handle, msg.enqueue_time, msg.dequeue_count) for msg in resp.message_list])))
 
@@ -320,8 +324,8 @@ class MNSClient:
         DeleteMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s?ReceiptHandle=%s" %
-                                                (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.receipt_handle))
+        req_inter = RequestInternal(
+            req.method, "/%s/%s/%s?ReceiptHandle=%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.receipt_handle))
         self.build_header(req, req_inter)
 
         #send request
@@ -360,8 +364,7 @@ class MNSClient:
         PeekMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s?peekonly=true" %
-                                                (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
+        req_inter = RequestInternal(req.method, "/%s/%s/%s?peekonly=true" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE))
         self.build_header(req, req_inter)
 
         #send request
@@ -376,7 +379,7 @@ class MNSClient:
             self.make_peekresp(data, resp)
             if self.logger:
                 self.logger.info("PeekMessage RequestId:%s QueueName:%s MessageInfo \
-                    MessageId:%s BodyMD5:%s EnqueueTime:%s DequeueCount:%s" % \
+                    MessageId:%s BodyMD5:%s EnqueueTime:%s DequeueCount:%s"                                                                            % \
                     (resp.get_requestid(), req.queue_name, resp.message_id, resp.message_body_md5,\
                      resp.enqueue_time, resp.dequeue_count))
 
@@ -385,8 +388,9 @@ class MNSClient:
         BatchPeekMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s?peekonly=true&numOfMessages=%s" %
-                                                (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.batch_size))
+        req_inter = RequestInternal(
+            req.method,
+            "/%s/%s/%s?peekonly=true&numOfMessages=%s" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.batch_size))
         self.build_header(req, req_inter)
 
         #send request
@@ -409,8 +413,9 @@ class MNSClient:
         ChangeMsgVisValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s?ReceiptHandle=%s&VisibilityTimeout=%d" %
-                                                (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE, req.receipt_handle, req.visibility_timeout))
+        req_inter = RequestInternal(
+            req.method, "/%s/%s/%s?ReceiptHandle=%s&VisibilityTimeout=%d" % (URISEC_QUEUE, req.queue_name, URISEC_MESSAGE,
+                                                                             req.receipt_handle, req.visibility_timeout))
         self.build_header(req, req_inter)
 
         #send request
@@ -427,8 +432,8 @@ class MNSClient:
                     (resp.get_requestid(), req.queue_name, req.receipt_handle, req.visibility_timeout,\
                      resp.receipt_handle, resp.next_visible_time))
 
-
 #===============================================topic operation===============================================#
+
     def create_topic(self, req, resp):
         #check parameter
         CreateTopicValidator.validate(req)
@@ -493,9 +498,10 @@ class MNSClient:
         resp.header = resp_inter.header
         self.check_status(req_inter, resp_inter, resp)
         if resp.error_data == "":
-            resp.topicurl_list, resp.next_marker, resp.topicmeta_list = ListTopicDecoder.decode(resp_inter.data, req.with_meta, req_inter.get_req_id())
+            resp.topicurl_list, resp.next_marker, resp.topicmeta_list = ListTopicDecoder.decode(
+                resp_inter.data, req.with_meta, req_inter.get_req_id())
             first_topicurl = "" if len(resp.topicurl_list) == 0 else resp.topicurl_list[0]
-            last_topicurl = "" if len(resp.topicurl_list) == 0 else resp.topicurl_list[len(resp.topicurl_list)-1]
+            last_topicurl = "" if len(resp.topicurl_list) == 0 else resp.topicurl_list[len(resp.topicurl_list) - 1]
             if self.logger:
                 self.logger.info("ListTopic RequestId:%s Prefix:%s RetNumber:%s Marker:%s TopicCount:%s FirstTopicURL:%s LastTopicURL:%s NextMarker:%s" % \
                     (resp.get_requestid(), req.prefix, req.ret_number, req.marker,\
@@ -552,7 +558,7 @@ class MNSClient:
         PublishMessageValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, uri = "/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_MESSAGE))
+        req_inter = RequestInternal(req.method, uri="/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_MESSAGE))
         req_inter.data = TopicMessageEncoder.encode(req)
         self.build_header(req, req_inter)
 
@@ -574,7 +580,8 @@ class MNSClient:
         SubscribeValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, uri="/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
+        req_inter = RequestInternal(
+            req.method, uri="/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
         req_inter.data = SubscriptionEncoder.encode(req)
         self.build_header(req, req_inter)
 
@@ -596,7 +603,8 @@ class MNSClient:
         UnsubscribeValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
+        req_inter = RequestInternal(req.method,
+                                    "/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
         self.build_header(req, req_inter)
 
         #send request
@@ -607,7 +615,8 @@ class MNSClient:
         resp.header = resp_inter.header
         self.check_status(req_inter, resp_inter, resp)
         if self.logger:
-            self.logger.info("Unsubscribe RequestId:%s TopicName:%s SubscriptionName:%s" % (resp.get_requestid(), req.topic_name, req.subscription_name))
+            self.logger.info("Unsubscribe RequestId:%s TopicName:%s SubscriptionName:%s" %
+                             (resp.get_requestid(), req.topic_name, req.subscription_name))
 
     def list_subscription_by_topic(self, req, resp):
         #check parameter
@@ -631,12 +640,14 @@ class MNSClient:
         resp.header = resp_inter.header
         self.check_status(req_inter, resp_inter, resp)
         if resp.error_data == "":
-            resp.subscriptionurl_list, resp.next_marker = ListSubscriptionByTopicDecoder.decode(resp_inter.data, req_inter.get_req_id())
+            resp.subscriptionurl_list, resp.next_marker = ListSubscriptionByTopicDecoder.decode(
+                resp_inter.data, req_inter.get_req_id())
             if self.logger:
                 first_suburl = "" if len(resp.subscriptionurl_list) == 0 else resp.subscriptionurl_list[0]
-                last_suburl = "" if len(resp.subscriptionurl_list) == 0 else resp.subscriptionurl_list[len(resp.subscriptionurl_list)-1]
+                last_suburl = "" if len(
+                    resp.subscriptionurl_list) == 0 else resp.subscriptionurl_list[len(resp.subscriptionurl_list) - 1]
                 self.logger.info("ListSubscriptionByTopic RequestId:%s TopicName:%s Prefix:%s RetNumber:%s \
-                    Marker:%s SubscriptionCount:%s FirstSubscriptionURL:%s LastSubscriptionURL:%s" % \
+                    Marker:%s SubscriptionCount:%s FirstSubscriptionURL:%s LastSubscriptionURL:%s"                                                                                                   % \
                     (resp.get_requestid(), req.topic_name, req.prefix, req.ret_number, \
                      req.marker, len(resp.subscriptionurl_list), first_suburl, last_suburl))
 
@@ -645,7 +656,9 @@ class MNSClient:
         SetSubscriptionAttrValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s/%s?metaoverride=true" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
+        req_inter = RequestInternal(
+            req.method,
+            "/%s/%s/%s/%s?metaoverride=true" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
         req_inter.data = SubscriptionEncoder.encode(req, set=True)
         self.build_header(req, req_inter)
 
@@ -665,7 +678,8 @@ class MNSClient:
         GetSubscriptionAttrValidator.validate(req)
 
         #make request internal
-        req_inter = RequestInternal(req.method, "/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
+        req_inter = RequestInternal(req.method,
+                                    "/%s/%s/%s/%s" % (URISEC_TOPIC, req.topic_name, URISEC_SUBSCRIPTION, req.subscription_name))
         self.build_header(req, req_inter)
 
         #send request
@@ -693,6 +707,7 @@ class MNSClient:
 
 ###################################################################################################
 #----------------------internal-------------------------------------------------------------------#
+
     def build_header(self, req, req_inter):
         if req.request_id is not None:
             req_inter.header["x-mns-user-request-id"] = req.request_id
@@ -710,7 +725,7 @@ class MNSClient:
         if self.security_token != "":
             req_inter.header["security-token"] = self.security_token
 
-    def get_signature(self,method,headers,resource):
+    def get_signature(self, method, headers, resource):
         content_md5 = self.get_element('content-md5', headers)
         content_type = self.get_element('content-type', headers)
         date = self.get_element('date', headers)
@@ -722,7 +737,8 @@ class MNSClient:
             for k in x_header_list:
                 if k.startswith('x-mns-'):
                     canonicalized_mns_headers += k + ":" + headers[k] + "\n"
-        string_to_sign = "%s\n%s\n%s\n%s\n%s%s" % (method, content_md5, content_type, date, canonicalized_mns_headers, canonicalized_resource)
+        string_to_sign = "%s\n%s\n%s\n%s\n%s%s" % (method, content_md5, content_type, date, canonicalized_mns_headers,
+                                                   canonicalized_resource)
         #hmac only support str in python2.7
         tmp_key = self.access_key.encode('utf-8') if isinstance(self.access_key, unicode) else self.access_key
         h = hmac.new(tmp_key, string_to_sign, hashlib.sha1)
@@ -772,12 +788,12 @@ class MNSClient:
     def process_host(self, host):
         if host.startswith("http://"):
             if host.endswith("/"):
-                host =  host[:-1]
+                host = host[:-1]
             host = host[len("http://"):]
             return host, False
         elif host.startswith("https://"):
             if host.endswith("/"):
-                host =  host[:-1]
+                host = host[:-1]
             host = host[len("https://"):]
             return host, True
         else:

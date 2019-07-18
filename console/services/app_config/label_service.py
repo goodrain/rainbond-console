@@ -9,7 +9,7 @@ from console.repositories.label_repo import node_label_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import ServiceLabels
+from www.models.label import ServiceLabels
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -23,9 +23,9 @@ class LabelService(object):
         node_label_ids = []
         # 判断标签是否被节点使用
         if region_config:
-            node_label_ids = node_label_repo.get_node_label_by_region(region_config.region_id).exclude(
-                label_id__in=service_label_ids).values_list("label_id",
-                                                            flat=True)
+            node_label_ids = node_label_repo.get_node_label_by_region(
+                region_config.region_id).exclude(label_id__in=service_label_ids).values_list(
+                    "label_id", flat=True)
         used_labels = label_repo.get_labels_by_label_ids(service_label_ids)
         logger.debug('-----------used_labels------->{0}'.format(used_labels))
         unused_labels = []
@@ -35,7 +35,6 @@ class LabelService(object):
         result = {
             "used_labels": [label.to_dict() for label in used_labels],
             "unused_labels": [label.to_dict() for label in unused_labels],
-
         }
         return result
 
@@ -47,11 +46,7 @@ class LabelService(object):
         service_labels = list()
         for label_id in label_ids:
             service_label = ServiceLabels(
-                tenant_id=tenant.tenant_id,
-                service_id=service.service_id,
-                label_id=label_id,
-                region=service.service_region
-            )
+                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id, region=service.service_region)
             service_labels.append(service_label)
 
         if service.create_status == "complete":
@@ -94,8 +89,7 @@ class LabelService(object):
         body["labels"] = label_list
         logger.debug('-------------------->{0}'.format(body))
         try:
-            region_api.deleteServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias,
-                                              body)
+            region_api.deleteServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
             service_label_repo.delete_service_labels(service.service_id, label_id)
         except region_api.CallApiError as e:
             logger.exception(e)
@@ -113,8 +107,5 @@ class LabelService(object):
         label_list = list()
         label_list.append(body)
         label_dict["labels"] = label_list
-        region_api.update_service_state_label(service.service_region,
-                                              tenant.tenant_name,
-                                              service.service_alias,
-                                              label_dict)
+        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, u"success"

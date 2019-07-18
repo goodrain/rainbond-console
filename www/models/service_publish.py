@@ -1,20 +1,14 @@
 # -*- coding: utf8 -*-
-import re
 from django.db import models
-from django.utils.crypto import salted_hmac
-from www.utils.crypt import encrypt_passwd, make_tenant_id
-from django.db.models.fields import DateTimeField
-from .fields import GrOptionsCharField
-from .main import BaseModel, extend_method, app_pay_choices
+from .main import BaseModel
 from www.utils.crypt import make_uuid
 from django.conf import settings
-from datetime import date, datetime
-import json
+from datetime import datetime
 # Create your models here.
 
-
 app_status = (
-    ('show', u'显示'), ("hidden", u'隐藏'),
+    ('show', u'显示'),
+    ("hidden", u'隐藏'),
 )
 
 
@@ -22,9 +16,8 @@ def logo_path(instance, filename):
     suffix = filename.split('.')[-1]
     return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
-    
-class ServiceExtendMethod(BaseModel):
 
+class ServiceExtendMethod(BaseModel):
     class Meta:
         db_table = 'app_service_extend_method'
 

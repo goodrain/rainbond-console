@@ -69,8 +69,7 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
                 logger.exception(e)
                 return Response(general_message(500, "bind access token fail", "企业认证失败"), status=500)
 
-            token_info = client_auth_service.get_market_access_token_by_access_token(market_client_id,
-                                                                                     market_client_token)
+            token_info = client_auth_service.get_market_access_token_by_access_token(market_client_id, market_client_token)
             if token_info and token_info.enterprise_id != enter.ID:
                 return Response(general_message(409, "illegal operation", "非法绑定操作"), status=409)
 
@@ -119,17 +118,16 @@ class BindMarketEnterpriseOptimizAccessTokenView(RegionTenantHeaderView):
             enter = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
             if not enter:
                 return Response(general_message(404, "enterprise not found", "指定的企业未找到"), status=404)
-
             try:
                 market_api = MarketOpenAPI()
                 domain = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
                 market_api.confirm_access_token(domain, market_client_id, market_client_token)
             except Exception as e:
                 logger.exception(e)
+                logger.debug("joint cloud id:{0} token: {1} check token failure".format(market_client_id, market_client_token))
                 return Response(general_message(500, "bind access token fail", "企业认证失败"), status=500)
 
-            token_info = client_auth_service.get_market_access_token_by_access_token(market_client_id,
-                                                                                     market_client_token)
+            token_info = client_auth_service.get_market_access_token_by_access_token(market_client_id, market_client_token)
             if token_info and token_info.enterprise_id != enter.ID:
                 return Response(general_message(409, "illegal operation", "非法绑定操作"), status=409)
 

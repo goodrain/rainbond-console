@@ -7,11 +7,11 @@
 
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 import time
 import socket
 from httplib import HTTPConnection, BadStatusLine, HTTPSConnection
 from mns_exception import *
+
 
 class MNSHTTPConnection(HTTPConnection):
     def __init__(self, host, port=None, strict=None, connection_timeout=60):
@@ -29,8 +29,7 @@ class MNSHTTPConnection(HTTPConnection):
 
     def connect(self):
         msg = "getaddrinfo returns an empty list"
-        for res in socket.getaddrinfo(self.host, self.port, 0,
-                                      socket.SOCK_STREAM):
+        for res in socket.getaddrinfo(self.host, self.port, 0, socket.SOCK_STREAM):
             af, socktype, proto, canonname, sa = res
             try:
                 self.sock = socket.socket(af, socktype, proto)
@@ -49,6 +48,7 @@ class MNSHTTPConnection(HTTPConnection):
         if not self.sock:
             raise socket.error, msg
 
+
 class MNSHTTPSConnection(HTTPSConnection):
     def __init__(self, host, port=None, strict=None):
         HTTPSConnection.__init__(self, host, port, strict=strict)
@@ -62,8 +62,9 @@ class MNSHTTPSConnection(HTTPSConnection):
         self.request_length = 0
         HTTPSConnection.request(self, method, url, body, headers)
 
+
 class MNSHttp:
-    def __init__(self, host, connection_timeout = 60, keep_alive = True, logger=None, is_https=False):
+    def __init__(self, host, connection_timeout=60, keep_alive=True, logger=None, is_https=False):
         if is_https:
             self.conn = MNSHTTPSConnection(host)
         else:
@@ -114,7 +115,7 @@ class MNSHttp:
                 self.conn.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 http_resp = self.conn.getresponse()
             headers = dict(http_resp.getheaders())
-            resp_inter = ResponseInternal(status = http_resp.status, header = headers, data = http_resp.read())
+            resp_inter = ResponseInternal(status=http_resp.status, header=headers, data=http_resp.read())
             self.request_size = self.conn.request_length
             self.response_size = len(resp_inter.data)
             if not self.is_keep_alive():
@@ -122,12 +123,13 @@ class MNSHttp:
             if self.logger:
                 self.logger.debug("GetResponse %s" % resp_inter)
             return resp_inter
-        except Exception,e:
+        except Exception, e:
             self.conn.close()
-            raise MNSClientNetworkException("NetWorkException", str(e), req_inter.get_req_id()) #raise netException
+            raise MNSClientNetworkException("NetWorkException", str(e), req_inter.get_req_id())  #raise netException
+
 
 class RequestInternal:
-    def __init__(self, method = "", uri = "", header = None, data = ""):
+    def __init__(self, method="", uri="", header=None, data=""):
         if header == None:
             header = {}
         self.method = method
@@ -142,8 +144,9 @@ class RequestInternal:
         return "Method: %s\nUri: %s\nHeader: %s\nData: %s\n" % \
                 (self.method, self.uri, "\n".join(["%s: %s" % (k,v) for k,v in self.header.items()]), self.data)
 
+
 class ResponseInternal:
-    def __init__(self, status = 0, header = None, data = ""):
+    def __init__(self, status=0, header=None, data=""):
         if header == None:
             header = {}
         self.status = status

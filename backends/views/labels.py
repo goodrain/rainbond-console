@@ -27,9 +27,7 @@ class AllLabelsView(BaseAPIView):
         try:
             label_alias = request.GET.get("label_alias", None)
             labels = label_service.get_label_usage(label_alias)
-            result = generate_result(
-                "0000", "success", "查询成功", list=labels
-            )
+            result = generate_result("0000", "success", "查询成功", list=labels)
         except LabelNotExistError as e:
             result = generate_result("6001", "label not exist", e.message)
         except Exception as e:
@@ -115,4 +113,3 @@ class QueryLabelView(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
-

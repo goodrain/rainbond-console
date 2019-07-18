@@ -39,38 +39,29 @@ class BaseTaskGuidance:
         return data
 
     def init_base_task(self):
-        data = [
-            {
-                "key": "app_create",
-                "status": False
-            },
-            {
-                "key": "source_code_service_create",
-                "status": False
-            },
-            {
-                "key": "install_mysql_from_market",
-                "status": False
-            },
-            {
-                "key": "service_connect_db",
-                "status": False
-            },
-            {
-                "key": "share_app",
-                "status": False
-            },
-            {
-                "key": "custom_gw_rule",
-                "status": False
-            },
-            {
-                "key": "install_plugin",
-                "status": False
-            },
-            {
-                "key": "image_service_create",
-                "status": False
-            }
-        ]
+        data = [{
+            "key": "app_create",
+            "status": False
+        }, {
+            "key": "source_code_service_create",
+            "status": False
+        }, {
+            "key": "install_mysql_from_market",
+            "status": False
+        }, {
+            "key": "service_connect_db",
+            "status": False
+        }, {
+            "key": "share_app",
+            "status": False
+        }, {
+            "key": "custom_gw_rule",
+            "status": False
+        }, {
+            "key": "install_plugin",
+            "status": False
+        }, {
+            "key": "image_service_create",
+            "status": False
+        }]
         return data

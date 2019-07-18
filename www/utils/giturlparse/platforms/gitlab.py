@@ -13,7 +13,4 @@ class GitLabPlatform(BasePlatform):
         'ssh': r'git@%(domain)s:%(owner)s/%(repo)s.git',
         'git': r'git://%(domain)s/%(owner)s/%(repo)s.git'
     }
-    DEFAULTS = {
-        '_user': 'git'
-    }
-
+    DEFAULTS = {'_user': 'git'}

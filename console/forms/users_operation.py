@@ -3,11 +3,9 @@ import re
 from django import forms
 from django.forms.forms import Form
 
-from www.models import Users
+from www.models.main import Users
 
-SENSITIVE_WORDS = (
-    'root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services'
-)
+SENSITIVE_WORDS = ('root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services')
 
 standard_regex_string = "^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"
 standard_regex_string_extend = "^[a-z0-9][a-z0-9\-]+[a-z0-9]$"
@@ -37,33 +35,22 @@ def password_len(value):
 
 class RegisterForm(Form):
 
-    user_name = forms.CharField(
-        required=True, max_length=24, label="",
-        validators=[is_standard_word, is_sensitive]
-    )
+    user_name = forms.CharField(required=True, max_length=24, label="", validators=[is_standard_word, is_sensitive])
 
-    email = forms.EmailField(
-        required=True, max_length=32, label=""
-    )
+    email = forms.EmailField(required=True, max_length=32, label="")
 
-    password = forms.CharField(
-        required=True, label='',
-        widget=forms.PasswordInput,
-        validators=[password_len]
-    )
+    password = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
 
-    password_repeat = forms.CharField(
-        required=True, label='',
-        widget=forms.PasswordInput,
-        validators=[password_len]
-    )
+    password_repeat = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
 
     captcha_code = forms.CharField(
-        required=True, label='',
+        required=True,
+        label='',
     )
 
     real_captcha_code = forms.CharField(
-        required=False, label='',
+        required=False,
+        label='',
     )
 
     error_messages = {
@@ -92,21 +79,14 @@ class RegisterForm(Form):
 
         try:
             Users.objects.get(nick_name=nick_name)
-            raise forms.ValidationError(
-                self.error_messages['nick_name_used'],
-                code='nick_name_used'
-            )
+            raise forms.ValidationError(self.error_messages['nick_name_used'], code='nick_name_used')
         except Users.DoesNotExist:
             pass
 
         # 校验邮箱,为空不做校验
         try:
             Users.objects.get(email=email)
-            raise forms.ValidationError(
-                self.error_messages['email_used'],
-                code='email_used',
-                params={'email': email}
-            )
+            raise forms.ValidationError(self.error_messages['email_used'], code='email_used', params={'email': email})
         except Users.DoesNotExist:
             pass
 
@@ -117,10 +97,7 @@ class RegisterForm(Form):
             )
 
         if real_captcha_code is None or captcha_code is None or real_captcha_code.lower() != captcha_code.lower():
-            raise forms.ValidationError(
-                self.error_messages['captcha_code_error'],
-                code='captcha_code_error'
-            )
+            raise forms.ValidationError(self.error_messages['captcha_code_error'], code='captcha_code_error')
 
         # 判断是否邀请注册,邀请注册不校验租户
         # if invite_tag is None or invite_tag == "":

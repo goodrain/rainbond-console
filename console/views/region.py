@@ -4,7 +4,7 @@ import logging
 
 from rest_framework.response import Response
 
-from backends.services.resultservice import *
+from backends.services.resultservice import generate_result
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
@@ -113,8 +113,8 @@ class OpenRegionView(JWTAuthApiView):
                 return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
             is_admin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
             if not is_admin:
-                return Response(general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"),
-                                status=403)
+                return Response(
+                    general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
             code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
             if code != 200:
                 return Response(general_message(code, "open region error", msg), status=code)
@@ -152,8 +152,8 @@ class OpenRegionView(JWTAuthApiView):
                 return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
             is_admin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
             if not is_admin:
-                return Response(general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"),
-                                status=403)
+                return Response(
+                    general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
             region_list = region_names.split(",")
             for region_name in region_list:
                 code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
@@ -221,15 +221,11 @@ class PublicRegionListView(JWTAuthApiView):
             team_name = request.GET.get("team_name", None)
             if not team_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-            )
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
-            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id,
-                                                                            tenant_name=team_name)
-
-            if "owner" not in perm_list and "admin" not in perm_list and "owner" not in role_name_list and "admin" not in role_name_list:
+            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            perm = "owner" not in perm_list and "admin" not in perm_list
+            if perm and "owner" not in role_name_list and "admin" not in role_name_list:
                 code = 400
                 result = general_message(code, "no identity", "您不是owner或admin，没有权限做此操作")
                 return Response(result, status=code)
@@ -238,8 +234,7 @@ class PublicRegionListView(JWTAuthApiView):
             res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
             if res["status"] == 200:
                 code = 200
-                result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功",
-                                         list=data)
+                result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功", list=data)
             else:
                 code = 400
                 result = general_message(code, msg="query the data center failed", msg_show="公有云数据中心获取失败")
@@ -281,8 +276,7 @@ class RegionResourceDetailView(JWTAuthApiView):
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
             res, data = market_api.get_enterprise_regions_resource(
-                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id, region=region
-            )
+                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id, region=region)
             if isinstance(data, list):
                 result = general_message(200, "success", "查询成功", list=data)
             elif isinstance(data, dict):
@@ -299,25 +293,21 @@ class RegionResPrice(JWTAuthApiView):
 
         team_name = request.data.get('team_name')
 
-        team = team_services.get_tenant_by_tenant_name(
-            tenant_name=team_name, exception=True
-        )
+        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
         if not team:
-            return Response(
-                general_message(404, "team not found", "指定团队不存在"), status=404
-            )
+            return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
         try:
             memory = int(request.data.get('memory', 0))
             disk = int(request.data.get('disk', 0))
             rent_time = request.data.get('rent_time')
 
-            ret, msg, status = market_api.get_region_res_price(
-                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time
-            )
+            ret, msg, status = market_api.get_region_res_price(region_name, team.tenant_id, team.enterprise_id, memory, disk,
+                                                               rent_time)
 
             return Response(status=status, data=general_message(status, msg, msg, ret))
         except Exception as e:
+            logger.exception(e)
             data = general_message(500, "cal fee error", "无法计算费用")
             return Response(status=500, data=data)
 
@@ -328,22 +318,17 @@ class RegionResPurchage(JWTAuthApiView):
 
         team_name = request.data.get('team_name')
 
-        team = team_services.get_tenant_by_tenant_name(
-            tenant_name=team_name, exception=True
-        )
+        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
         if not team:
-            return Response(
-                general_message(404, "team not found", "指定团队不存在"), status=404
-            )
+            return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
         try:
             memory = int(request.data.get('memory', 0))
             disk = int(request.data.get('disk', 0))
             rent_time = request.data.get('rent_time')
 
-            ret, msg, status = market_api.buy_region_res(
-                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time
-            )
+            ret, msg, status = market_api.buy_region_res(region_name, team.tenant_id, team.enterprise_id, memory, disk,
+                                                         rent_time)
             if status == 10408:
                 return Response(status=412, data=general_message(status, msg, msg, ret))
             return Response(status=status, data=general_message(status, msg, msg, ret))

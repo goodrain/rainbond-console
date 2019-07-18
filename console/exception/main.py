@@ -33,10 +33,7 @@ class CallRegionAPIException(Exception):
     def __init__(self, code, message):
         self.code = code
         self.message = message
-        super(CallRegionAPIException, self).__init__(
-            "Region api return code {0},error message {1}".format(
-                code, message)
-        )
+        super(CallRegionAPIException, self).__init__("Region api return code {0},error message {1}".format(code, message))
 
 
 class ServiceHandleException(Exception):
@@ -55,12 +52,7 @@ class ServiceHandleException(Exception):
 
     @property
     def response(self):
-        return MessageResponse(
-            self.msg,
-            msg_show=self.msg_show,
-            status_code=self.status_code,
-            error_code=self.error_code
-        )
+        return MessageResponse(self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code)
 
 
 class AbortRequest(ServiceHandleException):
@@ -89,8 +81,7 @@ class InvalidEnvName(Exception):
 
 class EnvAlreadyExist(Exception):
     def __init__(self, env_name=None):
-        msg = "env name: {}; already exist.".format(
-            env_name) if env_name else "env already exist"
+        msg = "env name: {}; already exist.".format(env_name) if env_name else "env already exist"
         super(EnvAlreadyExist, self).__init__(msg)
 
 
@@ -112,8 +103,7 @@ class ErrInvalidVolume(Exception):
 
 class ErrDepVolumeNotFound(Exception):
     def __init__(self, dep_service_id, dep_vol_name):
-        msg = "dep service id: {}; volume name: {}; dep volume not found".format(
-            dep_service_id, dep_vol_name)
+        msg = "dep service id: {}; volume name: {}; dep volume not found".format(dep_service_id, dep_vol_name)
         super(ErrDepVolumeNotFound, self).__init__(msg)
 
 

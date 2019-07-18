@@ -1,16 +1,16 @@
-from addict import Dict
+# -*- coding: utf-8 -*-
+# creater by: barnett
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from oauth2_provider.ext.rest_framework import TokenHasScope
-from oauth2_provider.ext.rest_framework.authentication import OAuth2Authentication
+from openapi.auth.authentication import OpenAPIAuthentication
+from openapi.auth.permissions import OpenAPIPermissions
+from rest_framework import generics
 
 
-class BaseAPIView(APIView):
+class BaseOpenAPIView(APIView):
+    authentication_classes = [OpenAPIAuthentication]
+    permission_classes = [OpenAPIPermissions]
 
-    authentication_classes = [OAuth2Authentication]
-    permission_classes = [IsAuthenticated, TokenHasScope]
-    required_scopes = ['groups']
 
-    def __init__(self, *args, **kwargs):
-        APIView.__init__(self, *args, **kwargs)
-        self.report = Dict({"ok": True})
+class ListAPIView(generics.ListAPIView):
+    authentication_classes = [OpenAPIAuthentication]
+    permission_classes = [OpenAPIPermissions]

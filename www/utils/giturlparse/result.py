@@ -1,6 +1,5 @@
 # Imports
-from .platforms import PLATFORMS, PLATFORMS_MAP
-
+from .platforms import PLATFORMS_MAP
 
 # Possible values to extract from a Git Url
 REQUIRED_ATTRIBUTES = (
@@ -10,7 +9,6 @@ REQUIRED_ATTRIBUTES = (
 
 
 class GitUrlParsed(object):
-
     def __init__(self, parsed_info):
         self._parsed = parsed_info
 
@@ -19,10 +17,7 @@ class GitUrlParsed(object):
             setattr(self, k, v)
 
     def _valid_attrs(self):
-        return all([
-            getattr(self, attr, None)
-            for attr in REQUIRED_ATTRIBUTES
-        ])
+        return all([getattr(self, attr, None) for attr in REQUIRED_ATTRIBUTES])
 
     @property
     def valid(self):
@@ -91,10 +86,7 @@ class GitUrlParsed(object):
     # All supported Urls for a repo
     @property
     def urls(self):
-        return dict(
-            (protocol, self.format(protocol))
-            for protocol in self._platform_obj.PROTOCOLS
-        )
+        return dict((protocol, self.format(protocol)) for protocol in self._platform_obj.PROTOCOLS)
 
     ##
     # Platforms

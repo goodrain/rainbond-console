@@ -95,9 +95,8 @@ class TenantService(object):
         ]
         """
         tenant_services = TenantServiceInfo.objects.all().values("tenant_id", "service_region").annotate(
-            cpu=Sum("min_cpu"), memory=Sum(F('min_node') * F('min_memory'))).filter(
-            service_region__in=enable_regions).order_by(
-            "-memory")
+            cpu=Sum("min_cpu"),
+            memory=Sum(F('min_node') * F('min_memory'))).filter(service_region__in=enable_regions).order_by("-memory")
 
         total = len(tenant_services)
         rt_services = tenant_services[start:end]
@@ -112,14 +111,12 @@ class TenantService(object):
         allow_num = LICENSE.get_authorization_tenant_number()
         if tenants_num >= allow_num:
             raise TenantOverFlowError("租户数已超最大配额")
-        if Tenants.objects.filter(
-                tenant_name=tenant_name).exists():
+        if Tenants.objects.filter(tenant_name=tenant_name).exists():
             raise TenantExistError("租户{}已存在".format(tenant_name))
         expired_day = 7
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
-        expire_time = datetime.datetime.now() + datetime.timedelta(
-            days=expired_day)
+        expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
         # 计算此团队需要初始化的数据中心
         prepare_init_regions = []
         if regions:
@@ -142,25 +139,29 @@ class TenantService(object):
         else:
             pay_type = 'free'
             pay_level = 'company'
-        tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type=pay_type, pay_level=pay_level,
-                                        creater=creater, region=default_region.region_name,
-                                        expired_time=expire_time, tenant_alias=tenant_alias,
-                                        enterprise_id=enterprise.enterprise_id)
+        tenant = Tenants.objects.create(
+            tenant_name=tenant_name,
+            pay_type=pay_type,
+            pay_level=pay_level,
+            creater=creater,
+            region=default_region.region_name,
+            expired_time=expire_time,
+            tenant_alias=tenant_alias,
+            enterprise_id=enterprise.enterprise_id)
         logger.info('create tenant:{}'.format(tenant.to_dict()))
-        PermRelTenant.objects.create(user_id=creater, tenant_id=tenant.pk, identity='admin',
-                                     enterprise_id=enterprise.pk)
+        PermRelTenant.objects.create(user_id=creater, tenant_id=tenant.pk, identity='admin', enterprise_id=enterprise.pk)
         if regions:
             for r in regions:
-                TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
-                                                region_name=r,
-                                                enterprise_id=enterprise.enterprise_id,
-                                                is_active=True,
-                                                is_init=False,
-                                                region_tenant_id=tenant.tenant_id,
-                                                region_tenant_name=tenant.tenant_name,
-                                                region_scope='public')
+                TenantRegionInfo.objects.create(
+                    tenant_id=tenant.tenant_id,
+                    region_name=r,
+                    enterprise_id=enterprise.enterprise_id,
+                    is_active=True,
+                    is_init=False,
+                    region_tenant_id=tenant.tenant_id,
+                    region_tenant_name=tenant.tenant_name,
+                    region_scope='public')
 
-        # tenant = enterprise_svc.create_and_init_tenant(creater, tenant_name, regions, user.enterprise_id)
         return tenant
 
     def add_user_to_tenant(self, tenant, user, identity, enterprise):

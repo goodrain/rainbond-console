@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 
-
 import logging
 
 from rest_framework.response import Response
@@ -11,7 +10,6 @@ from backends.services.nodeservice import node_service
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
 from backends.services.labelservice import label_service
-
 
 logger = logging.getLogger("default")
 
@@ -25,9 +23,7 @@ class NodesView(BaseAPIView):
         """
         try:
             status, nodes_info = node_service.get_nodes(region_id, cluster_id)
-            result = generate_result(
-                "0000", "success", "查询成功", list=nodes_info
-            )
+            result = generate_result("0000", "success", "查询成功", list=nodes_info)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -74,8 +70,7 @@ class NodeInfoView(BaseAPIView):
             if code != 200 and code != 201:
                 result = generate_result("3002", res.get("msg"), res.get("msgcn"))
             else:
-                result = generate_result(
-                    "0000", "success", "查询成功", bean=res.get("bean", None))
+                result = generate_result("0000", "success", "查询成功", bean=res.get("bean", None))
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -93,17 +88,14 @@ class NodeInfoView(BaseAPIView):
             serializer = NodeUpdateSerilizer(data=data)
             if not serializer.is_valid():
                 logger.error("params error")
-                result = generate_result(
-                    "1003", "params error", "参数错误")
+                result = generate_result("1003", "params error", "参数错误")
                 return Response(result)
 
             code, res = node_service.update_node_info(region_id, cluster_id, node_uuid, **serializer.data)
             if code != 200 and code != 201:
-                result = generate_result(
-                    str(code), res.get("msg"), res.get("msgcn"))
+                result = generate_result(str(code), res.get("msg"), res.get("msgcn"))
             else:
-                result = generate_result(
-                    "0000", "success", "修改成功")
+                result = generate_result("0000", "success", "修改成功")
 
         except Exception as e:
             logger.exception(e)
@@ -120,8 +112,7 @@ class NodeInfoView(BaseAPIView):
             if code != 200 and code != 201:
                 result = generate_result("3002", res.get("msg"), res.get("msgcn"))
             else:
-                result = generate_result(
-                    "0000", "success", "删除成功", bean=res.get("bean", None))
+                result = generate_result("0000", "success", "删除成功", bean=res.get("bean", None))
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -140,8 +131,7 @@ class NodeBriefInfoView(BaseAPIView):
             if code != 200 and code != 201:
                 result = generate_result("3002", res.get("msg"), res.get("msgcn"))
             else:
-                result = generate_result(
-                    "0000", "success", "查询成功", bean=res.get("bean", None))
+                result = generate_result("0000", "success", "查询成功", bean=res.get("bean", None))
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -172,7 +162,7 @@ class AllNodesView(BaseAPIView):
             nodes = node_service.get_all_region_nodes()
             start = int(page_size) * (int(page) - 1)
             end = int(page_size) * int(page)
-            rt_nodes = nodes[start: end]
+            rt_nodes = nodes[start:end]
             code = "0000"
             msg = "success"
             msg_show = "查询成功"
@@ -203,8 +193,7 @@ class NodeOperateView(BaseAPIView):
                 result = generate_result("3002", res.get("msg"), res.get("msgcn"))
             else:
 
-                result = generate_result(
-                    "0000", "success", "操作成功", bean=res.get("bean", None))
+                result = generate_result("0000", "success", "操作成功", bean=res.get("bean", None))
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -222,9 +211,7 @@ class RegionNodesView(BaseAPIView):
             for cluster in cluster_list:
                 code, node = node_service.get_nodes(region_id, cluster.ID)
                 all_nodes[0:0] = node
-            result = generate_result(
-                "0000", "success", "查询成功", list=all_nodes
-            )
+            result = generate_result("0000", "success", "查询成功", list=all_nodes)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()
@@ -409,8 +396,8 @@ class RegionNodesView(BaseAPIView):
 
 
 class NodeLabelsView(BaseAPIView):
-
     """节点标签"""
+
     def get(self, request, region_id, node_uuid, *args, **kwargs):
         """获取节点标签"""
         try:
@@ -455,8 +442,7 @@ class NodeLabelsView(BaseAPIView):
             logger.debug("===========> labels {0}".format(labels))
             node_service.update_node_labels(region_id, node_uuid, labels)
 
-            result = generate_result(
-                "0000", "success", "节点标签更新成功")
+            result = generate_result("0000", "success", "节点标签更新成功")
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

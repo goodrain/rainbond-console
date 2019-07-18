@@ -52,7 +52,6 @@ class TenantsView(BaseAPIView):
 
 
 class TenantRegionResourceView(BaseAPIView):
-
     def post(self, request, *args, **kwargs):
         """
         获取团队资源使用
@@ -94,9 +93,9 @@ class TenantRegionResourceView(BaseAPIView):
             msg_show = "查询成功"
             result = generate_result(code, msg, msg_show, list=list, total=total, page_size=page_size)
         except ParamsError as e:
-            result = generate_result("1001","param error",e.message)
+            result = generate_result("1001", "param error", e.message)
         except TenantNotExistError as e:
-            result = generate_result("5001","tenant not exist",e.message)
+            result = generate_result("5001", "tenant not exist", e.message)
         except Exception as e:
             logger.exception(e)
             result = generate_error_result()

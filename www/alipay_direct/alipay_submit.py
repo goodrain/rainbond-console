@@ -4,6 +4,7 @@ from alipay_config import *
 from alipay_core import *
 from alipay_md5 import *
 
+
 class AlipaySubmit:
     # 支付宝网关地址（新）
     alipay_gateway_new = 'https://mapi.alipay.com/gateway.do?'

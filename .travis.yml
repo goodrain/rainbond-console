@@ -1,4 +1,9 @@
 sudo: required
+language: python
+python:
+- 2.7
+install:
+- pip install flake8
 
 services:
   - docker
@@ -7,4 +12,5 @@ git:
   depth: 1
 
 script:
+- flake8 --exclude env,static,www/alipay_direct,www/utils/mnssdk,backends --extend-ignore=W605 --max-line-length 129 ./
 - ./travis_build.sh

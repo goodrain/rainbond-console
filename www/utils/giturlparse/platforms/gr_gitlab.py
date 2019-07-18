@@ -15,7 +15,5 @@ class GrGitLabPlatform(BasePlatform):
         'ssh': r'git@%(domain)s:%(owner)s/%(repo)s.git',
         'git': r'git://%(domain)s/%(owner)s/%(repo)s.git'
     }
-    DOMAINS = ('code.goodrain.com',)
-    DEFAULTS = {
-        '_user': 'git'
-    }
+    DOMAINS = ('code.goodrain.com', )
+    DEFAULTS = {'_user': 'git'}

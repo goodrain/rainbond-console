@@ -20,7 +20,6 @@ logger = logging.getLogger("default")
 
 
 class AppRestore(object):
-
     def __init__(self, tenant, service):
         self.tenant = tenant
         self.service = service

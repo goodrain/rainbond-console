@@ -8,8 +8,6 @@ from django.db import connection
 from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.repositories.app_config import env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
@@ -63,8 +61,9 @@ class AppEnvView(AppBaseView):
                     # 获取总数
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' and attr_name like '%{2}%';".format(
-                            self.service.tenant_id, self.service.service_id, env_name))
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and \
+                            service_id='{1}' and scope='inner' and attr_name like '%{2}%';"
+                        .format(self.service.tenant_id, self.service.service_id, env_name))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -76,15 +75,19 @@ class AppEnvView(AppBaseView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
-                            self.service.tenant_id, self.service.service_id, env_name, start, end))
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, \
+                            attr_value, is_change, scope, create_time from tenant_service_env_var \
+                                where tenant_id='{0}' and service_id='{1}' and scope='inner' and \
+                                    attr_name like '%{2}%' order by attr_name LIMIT {3},{4};"
+                        .format(self.service.tenant_id, self.service.service_id, env_name, start, end))
                     env_tuples = cursor.fetchall()
                 else:
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner';".format(
-                            self.service.tenant_id, self.service.service_id))
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                             and scope='inner';"
+                        .format(self.service.tenant_id, self.service.service_id))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -96,8 +99,10 @@ class AppEnvView(AppBaseView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
-                            self.service.tenant_id, self.service.service_id, start, end))
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value,\
+                             is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' \
+                                 and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};"
+                        .format(self.service.tenant_id, self.service.service_id, start, end))
                     env_tuples = cursor.fetchall()
                 if len(env_tuples) > 0:
                     for env_tuple in env_tuples:
@@ -120,8 +125,9 @@ class AppEnvView(AppBaseView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' and attr_name like '%{2}%';".format(
-                            self.service.tenant_id, self.service.service_id, env_name))
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                             and scope='outer' and attr_name like '%{2}%';"
+                        .format(self.service.tenant_id, self.service.service_id, env_name))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -133,16 +139,18 @@ class AppEnvView(AppBaseView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
-                            self.service.tenant_id, self.service.service_id, env_name, start, end
-                        ))
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, \
+                            scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                                 and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};"
+                        .format(self.service.tenant_id, self.service.service_id, env_name, start, end))
                     env_tuples = cursor.fetchall()
                 else:
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer';".format(
-                            self.service.tenant_id, self.service.service_id))
+                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' \
+                            and scope='outer';"
+                        .format(self.service.tenant_id, self.service.service_id))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -154,9 +162,10 @@ class AppEnvView(AppBaseView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' and scope='outer' order by attr_name LIMIT {2},{3};".format(
-                            self.service.tenant_id, self.service.service_id, start, end
-                        ))
+                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change,\
+                             scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                                  and scope='outer' order by attr_name LIMIT {2},{3};"
+                        .format(self.service.tenant_id, self.service.service_id, start, end))
                     env_tuples = cursor.fetchall()
                 if len(env_tuples) > 0:
                     for env_tuple in env_tuples:
@@ -234,8 +243,8 @@ class AppEnvView(AppBaseView):
                 return Response(general_message(400, "params error", "参数异常"), status=400)
             if scope not in ("inner", "outer"):
                 return Response(general_message(400, "params error", "scope范围只能是inner或outer"), status=400)
-            code, msg, data = env_var_service.add_service_env_var(self.tenant, self.service, 0, name, attr_name,
-                                                                  attr_value, is_change, scope)
+            code, msg, data = env_var_service.add_service_env_var(self.tenant, self.service, 0, name, attr_name, attr_value,
+                                                                  is_change, scope)
             if code != 200:
                 result = general_message(code, "add env error", msg)
                 return Response(result, status=code)
@@ -359,8 +368,7 @@ class AppEnvManageView(AppBaseView):
             name = request.data.get("name", None)
             attr_value = request.data.get("attr_value", None)
 
-            code, msg, env = env_var_service.update_env_by_attr_name(self.tenant, self.service, attr_name, name,
-                                                                     attr_value)
+            code, msg, env = env_var_service.update_env_by_attr_name(self.tenant, self.service, attr_name, name, attr_value)
             if code != 200:
                 return Response(general_message(code, "update value error", msg))
             result = general_message(200, "success", u"查询成功", bean=model_to_dict(env))
@@ -375,11 +383,7 @@ class AppEnvManageView(AppBaseView):
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
         env = env_var_service.patch_env_scope(self.tenant, self.service, attr_name, scope)
-        return MessageResponse(
-            msg="success",
-            msg_show=u"更新成功",
-            bean=env.to_dict()
-        )
+        return MessageResponse(msg="success", msg_show=u"更新成功", bean=env.to_dict())
 
 
 class AppBuildEnvView(AppBaseView):
@@ -447,8 +451,8 @@ class AppBuildEnvView(AppBaseView):
                 attr_name = key
                 attr_value = value
                 is_change = True
-                code, msg, data = env_var_service.add_service_build_env_var(self.tenant, self.service, 0, name,
-                                                                            attr_name, attr_value, is_change)
+                code, msg, data = env_var_service.add_service_build_env_var(self.tenant, self.service, 0, name, attr_name,
+                                                                            attr_value, is_change)
                 if code != 200:
                     continue
 

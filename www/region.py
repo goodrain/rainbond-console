@@ -4,6 +4,8 @@ from www.utils import sn
 from www.utils.conf_tool import regionConfig
 import logging
 logger = logging.getLogger("default")
+
+
 class RegionInfo(object):
 
     # region_list = settings.REGIONS
@@ -32,7 +34,7 @@ class RegionInfo(object):
                 choices.append((item['name'], item['label']))
 
         return choices
-    
+
     @classmethod
     def valid_regions(cls):
         choices = []

@@ -16,7 +16,11 @@ import logging.handlers
 from mns_exception import *
 
 METHODS = ["PUT", "POST", "GET", "DELETE"]
-PERMISSION_ACTIONS = ["setqueueattributes", "getqueueattributes", "sendmessage", "receivemessage", "deletemessage", "peekmessage", "changevisibility"]
+PERMISSION_ACTIONS = [
+    "setqueueattributes", "getqueueattributes", "sendmessage", "receivemessage", "deletemessage", "peekmessage",
+    "changevisibility"
+]
+
 
 class MNSLogger:
     @staticmethod
@@ -27,8 +31,10 @@ class MNSLogger:
             log_file = os.path.join(os.path.split(os.path.realpath(__file__))[0], "mns_python_sdk.log")
         logger = logging.getLogger(log_name)
         if logger.handlers == []:
-            fileHandler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10*1024*1024)
-            formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] [%(filename)s:%(lineno)d] [%(thread)d] %(message)s', '%Y-%m-%d %H:%M:%S')
+            fileHandler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024)
+            formatter = logging.Formatter(
+                '[%(asctime)s] [%(name)s] [%(levelname)s] [%(filename)s:%(lineno)d] [%(thread)d] %(message)s',
+                '%Y-%m-%d %H:%M:%S')
             fileHandler.setFormatter(formatter)
             logger.addHandler(fileHandler)
         MNSLogger.validate_loglevel(log_level)
@@ -42,6 +48,7 @@ class MNSLogger:
             raise MNSClientParameterException("LogLevelInvalid", "Bad value: '%s', expect levels: '%s'." % \
                 (log_level, ','.join([str(item) for item in log_levels])))
 
+
 class ValidatorBase:
     @staticmethod
     def validate(req):
@@ -51,17 +58,23 @@ class ValidatorBase:
     def type_validate(item, valid_type, param_name=None, req_id=None):
         if not (type(item) is valid_type):
             if param_name is None:
-                raise MNSClientParameterException("TypeInvalid", "Bad type: '%s', '%s' expect type '%s'." % (type(item), item, valid_type), req_id)
+                raise MNSClientParameterException(
+                    "TypeInvalid", "Bad type: '%s', '%s' expect type '%s'." % (type(item), item, valid_type), req_id)
             else:
-                raise MNSClientParameterException("TypeInvalid", "Param '%s' in bad type: '%s', '%s' expect type '%s'." % (param_name, type(item), item, valid_type), req_id)
+                raise MNSClientParameterException(
+                    "TypeInvalid",
+                    "Param '%s' in bad type: '%s', '%s' expect type '%s'." % (param_name, type(item), item, valid_type), req_id)
 
     @staticmethod
     def is_str(item, param_name=None, req_id=None):
         if not isinstance(item, basestring):
             if param_name is None:
-                raise MNSClientParameterException("TypeInvalid", "Bad type: '%s', '%s' expect basestring." % (type(item), item), req_id)
+                raise MNSClientParameterException("TypeInvalid", "Bad type: '%s', '%s' expect basestring." % (type(item), item),
+                                                  req_id)
             else:
-                raise MNSClientParameterException("TypeInvalid", "Param '%s' in bad type: '%s', '%s' expect basestring." % (param_name, type(item), item), req_id)
+                raise MNSClientParameterException(
+                    "TypeInvalid", "Param '%s' in bad type: '%s', '%s' expect basestring." % (param_name, type(item), item),
+                    req_id)
 
     @staticmethod
     def marker_validate(req):
@@ -70,8 +83,9 @@ class ValidatorBase:
     @staticmethod
     def retnumber_validate(req):
         ValidatorBase.type_validate(req.ret_number, types.IntType, req_id=req.request_id)
-        if (req.ret_number != -1 and req.ret_number <= 0 ):
-            raise MNSClientParameterException("HeaderInvalid", "Bad value: '%s', x-mns-number should larger than 0." % req.ret_number, req.request_id)
+        if (req.ret_number != -1 and req.ret_number <= 0):
+            raise MNSClientParameterException(
+                "HeaderInvalid", "Bad value: '%s', x-mns-number should larger than 0." % req.ret_number, req.request_id)
 
     @staticmethod
     def name_validate(name, nameType, req_id=None):
@@ -80,7 +94,8 @@ class ValidatorBase:
 
         #length
         if len(name) < 1:
-            raise MNSClientParameterException("QueueNameInvalid", "Bad value: '%s', the length of %s should larger than 1." % (name, nameType), req_id)
+            raise MNSClientParameterException(
+                "QueueNameInvalid", "Bad value: '%s', the length of %s should larger than 1." % (name, nameType), req_id)
 
     @staticmethod
     def list_condition_validate(req):
@@ -90,12 +105,14 @@ class ValidatorBase:
         ValidatorBase.marker_validate(req)
         ValidatorBase.retnumber_validate(req)
 
+
 class SetAccountAttributesValidator(ValidatorBase):
     @staticmethod
     def validate(req):
         #type
         if req.logging_bucket is not None:
             ValidatorBase.is_str(req.logging_bucket, req_id=req.request_id)
+
 
 class QueueValidator(ValidatorBase):
     @staticmethod
@@ -109,17 +126,30 @@ class QueueValidator(ValidatorBase):
 
         #value
         if req.visibility_timeout != -1 and req.visibility_timeout <= 0:
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%d', visibility timeout should larger than 0." % req.visibility_timeout, req.request_id)
+            raise MNSClientParameterException(
+                "QueueAttrInvalid", "Bad value: '%d', visibility timeout should larger than 0." % req.visibility_timeout,
+                req.request_id)
         if req.maximum_message_size != -1 and req.maximum_message_size <= 0:
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%d', maximum message size should larger than 0." % req.maximum_message_size, req.request_id)
+            raise MNSClientParameterException(
+                "QueueAttrInvalid", "Bad value: '%d', maximum message size should larger than 0." % req.maximum_message_size,
+                req.request_id)
         if req.message_retention_period != -1 and req.message_retention_period <= 0:
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%d', message retention period should larger than 0." % req.message_retention_period, req.request_id)
+            raise MNSClientParameterException(
+                "QueueAttrInvalid",
+                "Bad value: '%d', message retention period should larger than 0." % req.message_retention_period,
+                req.request_id)
         if req.delay_seconds != -1 and req.delay_seconds < 0:
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%d', delay seconds should larger than 0." % req.delay_seconds, req.request_id)
+            raise MNSClientParameterException(
+                "QueueAttrInvalid", "Bad value: '%d', delay seconds should larger than 0." % req.delay_seconds, req.request_id)
         if req.polling_wait_seconds != -1 and req.polling_wait_seconds < 0:
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%d', polling wait seconds should larger than 0." % req.polling_wait_seconds, req.request_id)
+            raise MNSClientParameterException(
+                "QueueAttrInvalid", "Bad value: '%d', polling wait seconds should larger than 0." % req.polling_wait_seconds,
+                req.request_id)
         if req.logging_enabled != None and str(req.logging_enabled).lower() not in ("true", "false"):
-            raise MNSClientParameterException("QueueAttrInvalid", "Bad value: '%s', logging enabled should be True/False." % req.logging_enabled, req.request_id)
+            raise MNSClientParameterException("QueueAttrInvalid",
+                                              "Bad value: '%s', logging enabled should be True/False." % req.logging_enabled,
+                                              req.request_id)
+
 
 class MessageValidator(ValidatorBase):
     @staticmethod
@@ -134,10 +164,12 @@ class MessageValidator(ValidatorBase):
             raise MNSClientParameterException("MessageBodyInvalid", "Bad value: '', message body should not be ''.", req_id)
 
         if req.delay_seconds != -1 and req.delay_seconds < 0:
-            raise MNSClientParameterException("DelaySecondsInvalid", "Bad value: '%d', delay_seconds should larger than 0." % req.delay_seconds, req_id)
+            raise MNSClientParameterException(
+                "DelaySecondsInvalid", "Bad value: '%d', delay_seconds should larger than 0." % req.delay_seconds, req_id)
 
         if req.priority != -1 and req.priority < 0:
-            raise MNSClientParameterException("PriorityInvalid", "Bad value: '%d', priority should larger than 0." % req.priority, req_id)
+            raise MNSClientParameterException("PriorityInvalid",
+                                              "Bad value: '%d', priority should larger than 0." % req.priority, req_id)
 
     @staticmethod
     def receiphandle_validate(receipt_handle, req_id):
@@ -147,12 +179,14 @@ class MessageValidator(ValidatorBase):
     @staticmethod
     def waitseconds_validate(wait_seconds, req_id):
         if wait_seconds != -1 and wait_seconds < 0:
-            raise MNSClientParameterException("WaitSecondsInvalid", "Bad value: '%d', wait_seconds should larger than 0." % wait_seconds, req_id)
+            raise MNSClientParameterException("WaitSecondsInvalid",
+                                              "Bad value: '%d', wait_seconds should larger than 0." % wait_seconds, req_id)
 
     @staticmethod
     def batchsize_validate(batch_size, req_id):
         if batch_size != -1 and batch_size < 0:
-            raise MNSClientParameterException("BatchSizeInvalid", "Bad value: '%d', batch_size should larger than 0." % batch_size, req_id)
+            raise MNSClientParameterException("BatchSizeInvalid",
+                                              "Bad value: '%d', batch_size should larger than 0." % batch_size, req_id)
 
     @staticmethod
     def publishmessage_attr_validate(req):
@@ -165,9 +199,12 @@ class MessageValidator(ValidatorBase):
 
         #value
         if req.message_body == "":
-            raise MNSClientParameterException("MessageBodyInvalid", "Bad value: '', message body should not be ''.", req.request_id)
+            raise MNSClientParameterException("MessageBodyInvalid", "Bad value: '', message body should not be ''.",
+                                              req.request_id)
         if len(req.message_tag) > 16:
-            raise MNSClientParameterException("MessageTagInvalid", "The length of message tag should be between 1 and 16.", req.request_id)
+            raise MNSClientParameterException("MessageTagInvalid", "The length of message tag should be between 1 and 16.",
+                                              req.request_id)
+
 
 class CreateQueueValidator(QueueValidator):
     @staticmethod
@@ -176,17 +213,20 @@ class CreateQueueValidator(QueueValidator):
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         QueueValidator.queue_validate(req)
 
+
 class DeleteQueueValidator(QueueValidator):
     @staticmethod
     def validate(req):
         QueueValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
 
+
 class ListQueueValidator(QueueValidator):
     @staticmethod
     def validate(req):
         QueueValidator.validate(req)
         QueueValidator.list_condition_validate(req)
+
 
 class SetQueueAttrValidator(QueueValidator):
     @staticmethod
@@ -195,11 +235,13 @@ class SetQueueAttrValidator(QueueValidator):
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         QueueValidator.queue_validate(req)
 
+
 class GetQueueAttrValidator(QueueValidator):
     @staticmethod
     def validate(req):
         QueueValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
+
 
 class SendMessageValidator(MessageValidator):
     @staticmethod
@@ -207,6 +249,7 @@ class SendMessageValidator(MessageValidator):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         MessageValidator.sendmessage_attr_validate(req, req.request_id)
+
 
 class BatchSendMessageValidator(MessageValidator):
     @staticmethod
@@ -216,12 +259,14 @@ class BatchSendMessageValidator(MessageValidator):
         for entry in req.message_list:
             MessageValidator.sendmessage_attr_validate(entry, req.request_id)
 
+
 class ReceiveMessageValidator(MessageValidator):
     @staticmethod
     def validate(req):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         MessageValidator.waitseconds_validate(req.wait_seconds, req.request_id)
+
 
 class BatchReceiveMessageValidator(MessageValidator):
     @staticmethod
@@ -231,12 +276,14 @@ class BatchReceiveMessageValidator(MessageValidator):
         MessageValidator.batchsize_validate(req.batch_size, req.request_id)
         MessageValidator.waitseconds_validate(req.wait_seconds, req.request_id)
 
+
 class DeleteMessageValidator(MessageValidator):
     @staticmethod
     def validate(req):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         MessageValidator.receiphandle_validate(req.receipt_handle, req.request_id)
+
 
 class BatchDeleteMessageValidator(MessageValidator):
     @staticmethod
@@ -246,11 +293,13 @@ class BatchDeleteMessageValidator(MessageValidator):
         for receipt_handle in req.receipt_handle_list:
             MessageValidator.receiphandle_validate(receipt_handle, req.request_id)
 
+
 class PeekMessageValidator(MessageValidator):
     @staticmethod
     def validate(req):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
+
 
 class BatchPeekMessageValidator(MessageValidator):
     @staticmethod
@@ -259,14 +308,18 @@ class BatchPeekMessageValidator(MessageValidator):
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         MessageValidator.batchsize_validate(req.batch_size, req.request_id)
 
+
 class ChangeMsgVisValidator(MessageValidator):
     @staticmethod
     def validate(req):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.queue_name, "queue_name", req.request_id)
         MessageValidator.receiphandle_validate(req.receipt_handle, req.request_id)
-        if (req.visibility_timeout < 0 or req.visibility_timeout > 43200 ):
-            raise MNSClientParameterException("VisibilityTimeoutInvalid", "Bad value: '%d', visibility timeout should between 0 and 43200." % req.visibility_timeout, req.request_id)
+        if (req.visibility_timeout < 0 or req.visibility_timeout > 43200):
+            raise MNSClientParameterException(
+                "VisibilityTimeoutInvalid",
+                "Bad value: '%d', visibility timeout should between 0 and 43200." % req.visibility_timeout, req.request_id)
+
 
 class TopicValidator(ValidatorBase):
     @staticmethod
@@ -276,9 +329,14 @@ class TopicValidator(ValidatorBase):
 
         #value
         if req.maximum_message_size != -1 and req.maximum_message_size <= 0:
-            raise MNSClientParameterException("TopicAttrInvalid", "Bad value: '%s', maximum message size should larger than 0." % req.maximum_message_size, req.request_id)
+            raise MNSClientParameterException(
+                "TopicAttrInvalid", "Bad value: '%s', maximum message size should larger than 0." % req.maximum_message_size,
+                req.request_id)
         if req.logging_enabled != None and str(req.logging_enabled).lower() not in ("true", "false"):
-            raise MNSClientParameterException("TopicAttrInvalid", "Bad value: '%s', logging enabled should be True/False." % req.logging_enabled, req.request_id)
+            raise MNSClientParameterException("TopicAttrInvalid",
+                                              "Bad value: '%s', logging enabled should be True/False." % req.logging_enabled,
+                                              req.request_id)
+
 
 class CreateTopicValidator(TopicValidator):
     @staticmethod
@@ -287,17 +345,20 @@ class CreateTopicValidator(TopicValidator):
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
         TopicValidator.topic_validate(req)
 
+
 class DeleteTopicValidator(TopicValidator):
     @staticmethod
     def validate(req):
         TopicValidator.validate(req)
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
 
+
 class ListTopicValidator(TopicValidator):
     @staticmethod
     def validate(req):
         TopicValidator.validate(req)
         TopicValidator.list_condition_validate(req)
+
 
 class SetTopicAttrValidator(TopicValidator):
     @staticmethod
@@ -306,11 +367,13 @@ class SetTopicAttrValidator(TopicValidator):
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
         TopicValidator.topic_validate(req)
 
+
 class GetTopicAttrValidator(TopicValidator):
     @staticmethod
     def validate(req):
         TopicValidator.validate(req)
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
+
 
 class PublishMessageValidator(MessageValidator):
     @staticmethod
@@ -318,6 +381,7 @@ class PublishMessageValidator(MessageValidator):
         MessageValidator.validate(req)
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
         MessageValidator.publishmessage_attr_validate(req)
+
 
 class SubscriptionValidator(TopicValidator):
     @staticmethod
@@ -330,7 +394,9 @@ class SubscriptionValidator(TopicValidator):
     @staticmethod
     def filter_tag_validate(filter_tag, req_id):
         if len(filter_tag) > 16:
-            raise MNSClientParameterException("FilterTagInvalid", "Bad value: '%s', The length of filter tag should be between 1 and 16." % (filter_tag))
+            raise MNSClientParameterException(
+                "FilterTagInvalid", "Bad value: '%s', The length of filter tag should be between 1 and 16." % (filter_tag))
+
 
 class SubscribeValidator(SubscriptionValidator):
     @staticmethod
@@ -341,6 +407,7 @@ class SubscribeValidator(SubscriptionValidator):
         SubscriptionValidator.subscription_validate(req)
         SubscriptionValidator.filter_tag_validate(req.filter_tag, req.request_id)
 
+
 class UnsubscribeValidator(SubscriptionValidator):
     @staticmethod
     def validate(req):
@@ -348,11 +415,13 @@ class UnsubscribeValidator(SubscriptionValidator):
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
         ValidatorBase.name_validate(req.subscription_name, "subscription_name", req.request_id)
 
+
 class ListSubscriptionByTopicValidator(SubscriptionValidator):
     @staticmethod
     def validate(req):
         SubscriptionValidator.validate(req)
         SubscriptionValidator.list_condition_validate(req)
+
 
 class SetSubscriptionAttrValidator(SubscriptionValidator):
     @staticmethod
@@ -361,6 +430,7 @@ class SetSubscriptionAttrValidator(SubscriptionValidator):
         ValidatorBase.name_validate(req.topic_name, "topic_name", req.request_id)
         ValidatorBase.name_validate(req.subscription_name, "subscription_name", req.request_id)
         SubscriptionValidator.subscription_validate(req)
+
 
 class GetSubscriptionAttrValidator(SubscriptionValidator):
     @staticmethod

@@ -106,8 +106,7 @@ class AppResourceQueryView(AppBaseView):
         """
         try:
             data = {"service_ids": [self.service.service_id]}
-            body = region_api.get_service_resources(self.tenant.tenant_name, self.service.service_region,
-                                                    data)
+            body = region_api.get_service_resources(self.tenant.tenant_name, self.service.service_region, data)
             bean = body["bean"]
             result = bean.get(self.service.service_id)
             resource = dict()
@@ -213,8 +212,10 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                             else:
                                 continue
 
-                            result_bean["data"] = {"response_time": float(r["value"][1]),
-                                                   "throughput_rate": float(t["value"][1])}
+                            result_bean["data"] = {
+                                "response_time": float(r["value"][1]),
+                                "throughput_rate": float(t["value"][1])
+                            }
                             result_list.append(result_bean)
 
             except region_api.CallApiError as e:
