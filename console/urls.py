@@ -839,6 +839,5 @@ urlpatterns += [
     url(
         r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
         app_upgrade.AppUpgradeRollbackView.as_view()
-    ),
-
+    )
 ]

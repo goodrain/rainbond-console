@@ -10,7 +10,7 @@ from console.repositories.team_repo import team_repo
 from console.services.app_actions.app_log import AppEventService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 from www.models.main import ServiceEvent
 
 logger = logging.getLogger("default")

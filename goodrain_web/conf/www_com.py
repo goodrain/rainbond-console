@@ -41,7 +41,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ),
     'EXCEPTION_HANDLER': 'console.views.base.custom_exception_handler',
-    'PAGE_SIZE': 10
 }
 
 DATABASES = {

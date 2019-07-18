@@ -9,7 +9,7 @@ from django.db.models import Q
 
 from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 from www.models import GatewayCustomConfiguration
 from www.models import ImageServiceRelation
 from www.models import ServiceAttachInfo

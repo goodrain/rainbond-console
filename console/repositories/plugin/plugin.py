@@ -3,7 +3,7 @@
   Created on 18/1/29.
 """
 from www.models import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 
 
 class TenantPluginRepository(object):

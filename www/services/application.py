@@ -8,7 +8,6 @@ from console.repositories.group import group_repo, tenant_service_group_repo
 from console.services.market_app_service import template_transform_service
 from www.models import *
 from www.models import TenantServiceInfo
-from www.monitorservice.monitorhook import MonitorHook
 from www.utils.status_translate import get_status_info_map
 from www.apiclient.marketclient import MarketOpenAPI
 from django.forms.models import model_to_dict
@@ -26,7 +25,6 @@ from console.services.app_actions import app_manage_service
 
 logger = logging.getLogger('default')
 baseService = BaseTenantService()
-monitorhook = MonitorHook()
 region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()
 app_relation_service = AppServiceRelationService()
@@ -118,9 +116,6 @@ class ApplicationService(object):
                     json.dumps({"event_ids": deleteEventID}))
 
             ServiceEvent.objects.filter(service_id=service.service_id).delete()
-
-            monitorhook.serviceMonitor(self.nick_name, service, 'app_delete',
-                                       True)
         except Exception as e:
             logger.error("back service delete error!")
             logger.exception(e)

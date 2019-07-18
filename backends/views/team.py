@@ -20,7 +20,6 @@ from console.services.region_services import region_services as console_region_s
 from django.db import transaction
 from console.services.team_services import team_services
 from console.repositories.user_repo import user_repo
-from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
 from console.repositories.region_repo import region_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
@@ -30,7 +29,6 @@ from console.utils.timeutil import time_to_str
 
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
-regionClient = RegionServiceApi()
 
 
 class AllTeamView(BaseAPIView):

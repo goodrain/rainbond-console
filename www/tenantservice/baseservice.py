@@ -2,23 +2,18 @@
 import datetime
 import json
 import logging
-from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.forms import model_to_dict
 
 from goodrain_web.custom_config import custom_config
-from share.manager.region_provier import RegionProviderManager
 from www.apiclient.regionapi import RegionInvokeApi
-from www.app_http import AppServiceApi
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 from www.github_http import GitHubApi
 from www.gitlab_http import GitlabApi
-from www.models import AppServiceGroup
 from www.models import PermRelTenant
 from www.models import PluginBuildVersion
-from www.models import PublishedGroupServiceRelation
 from www.models import ServiceAttachInfo
 from www.models import ServiceEvent
 from www.models import TenantRegionInfo
@@ -35,19 +30,14 @@ from www.models import TenantServiceVolume
 from www.models import Users
 from www.models.main import ServiceProbe
 from www.models.main import TenantRegionPayModel
-from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
-from www.utils.sn import instance
 
 logger = logging.getLogger('default')
 
-monitorhook = MonitorHook()
 gitClient = GitlabApi()
 gitHubClient = GitHubApi()
-appClient = AppServiceApi()
-rpmManager = RegionProviderManager()
 region_api = RegionInvokeApi()
 
 
@@ -342,7 +332,6 @@ class BaseTenantService(object):
 
     def create_service_env(self, tenant, service_id, region):
         tenantServiceEnvList = TenantServiceEnvVar.objects.filter(service_id=service_id)
-        data = {}
         for tenantServiceEnv in tenantServiceEnvList:
             service = TenantServiceInfo.objects.get(service_id=service_id)
             attr = {"tenant_id": tenant.tenant_id, "name": tenantServiceEnv.attr_name,
@@ -474,7 +463,6 @@ class BaseTenantService(object):
 
     def create_service_volume(self, service, volume_path):
         category = service.category
-        region = service.service_region
         service_id = service.service_id
         host_path, volume_id = self.add_volume_list(service, volume_path)
         if volume_id is None:
@@ -701,75 +689,6 @@ class BaseTenantService(object):
             logger.exception(e)
             return None
 
-    # 下载服务组模板逻辑
-    def download_group_info(self, group_key, group_version, action=None):
-        num = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version).count()
-        if num == 0:
-            dep_code = 500
-            for num in range(0, 3):
-                dep_code, group_info = self.download_remote_group(group_key, group_version)
-                if dep_code in (500, 501,):
-                    logger.error("download group failed! try again! num:{0} ".format(num))
-                    continue
-                else:
-                    break
-            if dep_code in (500, 501,):
-                return 500, None, "download group {0}:{1} failed!".format(group_key, group_version)
-        else:
-            group_list = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version)
-            group_info = list(group_list)[0]
-        return 200, group_info, "success"
-
-    # 云市下载服务数据
-    def download_remote_group(self, group_key, group_version):
-        """获取远程服务信息"""
-        all_data = {
-            'group_key': group_key,
-            'group_version': group_version,
-            'cloud_assistant': instance.cloud_assistant,
-        }
-
-        data = json.dumps(all_data)
-        logger.debug("post group json data={}".format(data))
-        res, resp = appClient.getGroupData(body=data)
-        if res.status == 200:
-            json_data = json.loads(resp.data)
-            group_data = json_data.get("group", None)
-            if not group_data:
-                logger.error("no group data!")
-                return 500, None
-            # 模板信息
-            group_info = None
-            try:
-                group_info = AppServiceGroup.objects.get(group_share_id=group_key, group_version=group_version)
-            except Exception:
-                pass
-            if not group_info:
-                group_info = AppServiceGroup()
-            group_info.tenant_id = group_data.get("publisher_tenant_id")
-            group_info.group_share_alias = group_data.get("group_name")
-            group_info.group_share_id = group_data.get("group_key")
-            group_info.group_id = "0"
-            group_info.service_ids = ""
-            group_info.group_version = group_data.get("group_version")
-            group_info.desc = group_data.get("info")
-            group_info.save()
-
-            PublishedGroupServiceRelation.objects.filter(group_pk=group_info.ID).delete()
-            relation_list = json_data.get("relation_list", None)
-            if relation_list:
-                pgsrs = []
-                for rl in relation_list:
-                    service_key = rl.get("service_key")
-                    version = rl.get("version")
-                    pgsr = PublishedGroupServiceRelation(group_pk=group_info.ID, service_id="", service_key=service_key,
-                                                         version=version)
-                    pgsrs.append(pgsr)
-                PublishedGroupServiceRelation.objects.bulk_create(pgsrs)
-            return 200, group_info
-        else:
-            return 501, None
-
     # 获取服务类型
     def get_service_kind(self, service):
         # 自定义镜像
@@ -863,6 +782,7 @@ class ServicePluginResource(object):
                     service_plugin_map[tpr.service_id] = p["min_memory"]
         return service_plugin_map
 
+
 class TenantUsedResource(object):
     def __init__(self):
         self.feerule = settings.REGION_RULE
@@ -878,7 +798,6 @@ class TenantUsedResource(object):
                                                                  is_active=True,
                                                                  is_init=True)
 
-        running_data = {}
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
             if tenant_region.region_name in RegionInfo.valid_regions():
@@ -894,7 +813,7 @@ class TenantUsedResource(object):
         if tenant.pay_type == "company":
             cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             dsn = BaseConnection()
-            query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net  from tenant_region_pay_model where tenant_id='" + \
+            query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net from tenant_region_pay_model where tenant_id='" + \
                         tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
             sqlobjs = dsn.query(query_sql)
             if sqlobjs is not None and len(sqlobjs) > 0:
@@ -1044,7 +963,6 @@ class CodeRepositoriesService(object):
                 if user.git_user_id > 0:
                     project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
                     logger.debug(project_id)
-                    monitorhook.gitProjectMonitor(user.nick_name, service, 'create_git_project', project_id)
                     ts = TenantServiceInfo.objects.get(service_id=service.service_id)
                     if project_id > 0:
                         gitClient.addProjectMember(project_id, user.git_user_id, 'master')
@@ -1144,7 +1062,6 @@ class CodeRepositoriesService(object):
                     user.git_user_id = git_user_id
                     user.save()
                     logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-                monitorhook.gitUserMonitor(user, git_user_id)
 
     def modifyUser(self, user, password):
         if custom_config.GITLAB_SERVICE_API:
@@ -1192,25 +1109,6 @@ class CodeRepositoriesService(object):
         return ""
 
 
-class AppCreateService(object):
-    def get_estimate_service_fee(self, service_attach_info, region_name):
-        """根据附加信息获取服务的预估价格"""
-        total_price = 0.00
-        regionBo = rpmManager.get_work_region_by_name(region_name)
-        pre_paid_memory_price = float(regionBo.memory_package_price)
-        pre_paid_disk_price = float(regionBo.disk_package_price)
-        if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024.0 * pre_paid_memory_price
-        if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024.0 * pre_paid_disk_price
-        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
-        if service_attach_info.pre_paid_period >= 12:
-            total_price *= 0.9
-        if service_attach_info.pre_paid_period >= 24:
-            total_price *= 0.8
-        return round(Decimal(total_price), 2)
-
-
 class ServiceAttachInfoManage(object):
     def is_during_monthly_payment(self, service_attach_info):
         flag = False
@@ -1225,36 +1123,6 @@ class ServiceAttachInfoManage(object):
             flag = True
 
         return flag
-
-    def create_service_attach_info(self, service, memory, disk, memory_pay_method="postpaid",
-                                   disk_pay_method="postpaid",
-                                   pre_paid_period=0,
-                                   ):
-        appCreateService = AppCreateService()
-        sai = ServiceAttachInfo()
-        sai.tenant_id = service.tenant_id
-        sai.service_id = service.service_id
-        sai.memory_pay_method = memory_pay_method
-        sai.disk_pay_method = disk_pay_method
-        if not memory:
-            sai.min_memory = service.min_memory * service.min_node
-        else:
-            sai.min_memory = memory
-        # node 去掉了,默认都是1
-        sai.min_node = 1
-        sai.disk = disk
-        sai.pre_paid_period = pre_paid_period
-        create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
-        endTime = startTime + relativedelta(months=int(pre_paid_period))
-
-        sai.buy_start_time = startTime
-        sai.buy_end_time = endTime
-        sai.create_time = create_time
-        sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, service.service_region)
-        sai.region = service.service_region
-        sai.save()
-        return sai
 
     def update_attach_info_by_tenant(self, tenant, service):
         attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id, service_id=service.service_id)

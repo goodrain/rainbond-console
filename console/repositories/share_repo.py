@@ -3,7 +3,7 @@ from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondC
 from www.models import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, TenantServicePluginRelation, TenantServicePluginAttr, ServiceInfo, \
     TenantServiceExtendMethod, ServiceProbe,ServicePluginConfigVar
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 
 
 class ShareRepo(object):

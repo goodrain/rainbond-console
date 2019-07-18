@@ -2,7 +2,7 @@
 import logging
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")

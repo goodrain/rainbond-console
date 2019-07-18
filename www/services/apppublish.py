@@ -5,11 +5,9 @@ import logging
 from www.apiclient.marketclient import MarketOpenAPI
 from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceExtendMethod, PublishedGroupServiceRelation, ServiceGroupRelation
-from www.monitorservice.monitorhook import MonitorHook
 
 
 logger = logging.getLogger('default')
-monitorhook = MonitorHook()
 
 
 class PublishAppService(object):

@@ -6,7 +6,6 @@ import time
 
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
-
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
 from console.services.enterprise_services import enterprise_services
@@ -15,7 +14,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView
 from www import perms
-from www.forms.account import PasswordResetForm
+from django import forms
 from www.models import Users, SuperAdminUser
 from www.perms import PermActions, UserActions
 from www.utils.crypt import AuthCode
@@ -28,6 +27,44 @@ jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
+
+
+def password_len(value):
+    if len(value) < 8:
+        raise forms.ValidationError(u"密码长度至少为8位")
+
+
+class PasswordResetForm(forms.Form):
+    password = forms.CharField(
+        required=True, label='',
+        widget=forms.PasswordInput,
+        validators=[password_len]
+    )
+    password_repeat = forms.CharField(
+        required=True, label='',
+        widget=forms.PasswordInput,
+        validators=[password_len]
+    )
+
+    error_messages = {
+        'password_repeat': u"两次输入的密码不一致",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(PasswordResetForm, self).__init__(*args, **kwargs)
+        self.helper.form_tag = False
+        self.helper.help_text_inline = True
+        self.helper.error_text_inline = True
+
+    def clean(self):
+        password = self.cleaned_data.get('password')
+        password_repeat = self.cleaned_data.get('password_repeat')
+
+        if password_repeat != password:
+            raise forms.ValidationError(
+                self.error_messages['password_repeat'],
+                code='password_repeat',
+            )
 
 
 class TenantServiceView(BaseApiView):

@@ -221,5 +221,11 @@ class UserService(object):
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
 
+    def get_openapi_user_by_token(token):
+        pass
+
+    def get_openapi_token_by_user(user):
+        pass
+
 
 user_services = UserService()

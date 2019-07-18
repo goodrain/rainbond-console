@@ -2,7 +2,7 @@
 """
   Created on 18/1/9.
 """
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 from www.gitlab_http import GitlabApi
 from www.tenantservice.baseservice import CodeRepositoriesService
 import json

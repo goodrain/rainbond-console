@@ -10,7 +10,6 @@ from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAt
     TenantRegionInfo
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantRegionResource, TenantServiceStatics, \
     ServiceAttachInfo
-from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import TenantAccountService, ServiceAttachInfoManage
 
 from www.apiclient.regionapi import RegionInvokeApi
@@ -18,7 +17,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 logger = logging.getLogger('default')
 tenantAccountService = TenantAccountService()
 region_api = RegionInvokeApi()
-monitorhook = MonitorHook()
 attach_manager = ServiceAttachInfoManage()
 
 
@@ -260,7 +258,6 @@ class TenantService(object):
     def init_for_region(self, region, tenant_name, tenant_id, user):
         tenant = Tenants.objects.get(tenant_id=tenant_id)
         is_init_success = self.init_region_tenant(tenant, region)
-        monitorhook.tenantMonitor(tenant, user, "init_tenant", is_init_success)
         return is_init_success
 
     def get_tenant_by_service(self, service):

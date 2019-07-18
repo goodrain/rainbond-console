@@ -3,18 +3,16 @@
 import datetime as dt
 import random
 import string
-
+import logging
 from django.core.mail import send_mail
 
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import *
-from www.monitorservice.monitorhook import MonitorHook
 from www.utils import sn
 from www.utils.conf_tool import regionConfig
 from www.utils.license import LICENSE
 
 logger = logging.getLogger('default')
-monitor_hook = MonitorHook()
 
 notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com', 'tianyy@goodrain.com']
 

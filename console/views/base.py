@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.authentication import (get_authorization_header)
-from rest_framework.compat import set_rollback
+from rest_framework.views import set_rollback
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response

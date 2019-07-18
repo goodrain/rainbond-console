@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.conf import settings
-
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.enterprise_repo import enterprise_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.marketclient import MarketOpenAPI
 from console.repositories.group import group_repo
-from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -183,7 +179,7 @@ class RegionService(object):
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
 
-        group_repo.get_or_create_default_group(tenant.tenant_id,region_name)
+        group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
 
         return 200, u"success", tenant_region
 
@@ -214,7 +210,7 @@ class RegionService(object):
             logger.exception(e)
             return False
 
-    def get_region_access_info(self,team_name, region_name):
+    def get_region_access_info(self, team_name, region_name):
         """获取一个团队在指定数据中心的身份认证信息"""
         url, token = client_auth_service.get_region_access_token_by_tenant(
             team_name, region_name)
@@ -234,11 +230,24 @@ class RegionService(object):
                                                                                    region_name__in=region_names)
         return team_opened_regions
 
-    def get_regions_by_enterprise_id(self,enterprise_id):
+    def get_regions_by_enterprise_id(self, enterprise_id):
         teams = team_repo.get_team_by_enterprise_id(enterprise_id)
         team_ids = [t.tenant_id for t in teams]
         region_names = region_repo.get_regions_by_tenant_ids(team_ids)
         return region_repo.get_region_by_region_names(region_names)
+
+    def add_region(self, region_data):
+        region = region_repo.get_region_by_region_name(region_data["region_name"])
+        if region:
+            raise RegionExistException("数据中心{0}已存在".format(region_data["region_name"]))
+        return region_repo.create_region(region_data)
+
+
+class RegionExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 400
+        self.service_code = 10400
 
 
 region_services = RegionService()

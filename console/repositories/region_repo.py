@@ -57,6 +57,9 @@ class RegionRepo(object):
     def create_tenant_region(self, **params):
         return TenantRegionInfo.objects.create(**params)
 
+    def create_region(self, region_data):
+        return RegionConfig.objects.create(region_data)
+
     def get_all_regions(self):
         return RegionConfig.objects.all()
 

@@ -12,7 +12,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView
 from www.apiclient.baseclient import HttpClient
-from www.auth import login, authenticate, logout
+from console.services.auth import login, authenticate, logout
 from www.models import AnonymousUser
 from www.services import user_svc
 from www.utils.return_message import general_message, error_message

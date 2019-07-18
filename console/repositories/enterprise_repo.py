@@ -49,8 +49,8 @@ class TenantEnterpriseUserPermRepo(object):
     def create_enterprise_user_perm(self, user_id, enterprise_id, identity):
         return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
 
-    def get_user_enterprise_perm(self, user_id,enterprise_id):
-        return EnterpriseUserPerm.objects.filter(user_id=user_id,enterprise_id=enterprise_id)
+    def get_user_enterprise_perm(self, user_id, enterprise_id):
+        return EnterpriseUserPerm.objects.filter(user_id=user_id, enterprise_id=enterprise_id)
 
     def get_backend_enterprise_admin_by_user_id(self, user_id):
         """

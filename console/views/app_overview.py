@@ -32,7 +32,6 @@ from console.services.compose_service import compose_service
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
 from django.conf import settings
-from marketapi.services import MarketServiceAPIManager
 from console.constants import AppConstants, PluginCategoryConstants
 from console.repositories.app import service_repo, service_webhooks_repo
 from console.views.base import JWTAuthApiView
@@ -42,7 +41,6 @@ from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
-market_api = MarketServiceAPIManager()
 
 
 class AppDetailView(AppBaseView):

@@ -42,6 +42,7 @@ class AnonymousUser(object):
     id = None
     pk = None
     username = ''
+    is_active = False
 
     def __init__(self):
         pass

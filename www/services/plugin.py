@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 
 from www.models import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems, \
     TenantServicePluginRelation, TenantServicePluginAttr, ConstKey, TenantServiceRelation, \

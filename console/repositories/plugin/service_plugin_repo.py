@@ -2,7 +2,7 @@
 """
   Created on 18/1/29.
 """
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 from www.models import ServicePluginConfigVar
 from www.models import TenantServicePluginAttr
 from www.models import TenantServicePluginRelation

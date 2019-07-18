@@ -2,9 +2,7 @@
 import logging
 import abc  # Python's built-in abstract class library
 
-from www.db import svc_grop_repo as svc_group_repo
-
-from console.services.team_services import team_services
+from www.db.service_group_repository import svc_grop_repo as svc_group_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app_config import dep_relation_repo, domain_repo as http_rule_repo
 from console.repositories.share_repo import share_repo

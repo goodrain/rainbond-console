@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url, include
 
 from backends.views.account import AccountCreateView, TenantEnterpriseView, \
     AuthAccessTokenView, EnterpriseFuzzyQueryView, EnterpriseInitView
@@ -14,16 +14,8 @@ from backends.views.users import *
 from backends.views.team import *
 from backends.views.labels import *
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    # url(r'^api-token-auth', views.obtain_auth_token),
-    # url(r'^api-token-auth/', 'rest_framework_jwt.views.obtain_jwt_token'),
-    # url(r'^api-token-auth/', ObtainJSONWebToken.as_view(serializer_class=CustomJWTSerializer)),
-
-    url(r'^docs/', include('rest_framework_swagger.urls')),
-    # url(r'^oauth2/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-
     url(r'^v1/tenants/query', TenantsView.as_view()),
     url(r'^v1/users$', AllUserView.as_view()),
     url(r'^v1/users/query$', UserFuzSerView.as_view()),
@@ -114,5 +106,5 @@ urlpatterns = patterns(
     # 操作汇总
     url(r'^v1/events$', ServiceOperateView.as_view()),
     url(r'^v1/events/detail$', ServiceOperationDetailView.as_view()),
-)
+]
 

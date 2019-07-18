@@ -15,7 +15,6 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import AlowAnyApiView
 from www.apiclient.baseclient import client_auth_service
-from www.monitorservice.monitorhook import MonitorHook
 from www.services.sso import GoodRainSSOApi
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import AuthCode
@@ -23,8 +22,6 @@ from www.utils.crypt import AuthCode
 logger = logging.getLogger('default')
 
 codeRepositoriesService = CodeRepositoriesService()
-
-monitor_hook = MonitorHook()
 
 
 class GoodrainSSONotify(AlowAnyApiView):
