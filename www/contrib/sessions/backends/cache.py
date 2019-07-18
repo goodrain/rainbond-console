@@ -5,7 +5,6 @@ logger = logging.getLogger('default')
 
 
 class SessionStore(BaseSessionStore):
-
     def load(self):
         try:
             logger.debug('session', 'start load key {}'.format(self.cache_key))

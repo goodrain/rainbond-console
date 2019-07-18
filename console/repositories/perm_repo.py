@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from www.models import PermRelTenant, PermRelService
+from www.models.main import PermRelTenant, PermRelService
 from django.db import transaction
 from django.db.models import Q
 from console.models.main import TenantUserRole, TenantUserPermission, TenantUserRolePermission, PermGroup, \
     ServiceRelPerms
 from console.repositories.team_repo import team_repo
-from www.models import Tenants
+from www.models.main import Tenants
 
 import logging
 logger = logging.getLogger('default')
@@ -206,21 +206,17 @@ class RoleRepo(object):
             TenantUserRole.objects.get(tenant_id=tenant_pk, ID=role_id, is_default=False).delete()
             TenantUserRolePermission.objects.filter(role_id=role_id).delete()
 
-    def update_role_by_team_name_role_name_perm_list(self, tenant_pk,
-                                                     role_id,
-                                                     new_role_name,
-                                                     perm_id_list):
+    def update_role_by_team_name_role_name_perm_list(self, tenant_pk, role_id, new_role_name, perm_id_list):
         """更新一个自定义角色的权限"""
         with transaction.atomic():
-            role_obj = TenantUserRole.objects.filter(ID=role_id, tenant_id=tenant_pk,
-                                                     is_default=False).update(role_name=new_role_name)
+            role_obj = TenantUserRole.objects.filter(
+                ID=role_id, tenant_id=tenant_pk, is_default=False).update(role_name=new_role_name)
             TenantUserRolePermission.objects.filter(role_id=role_id).delete()
             for perm_id in perm_id_list:
                 TenantUserRolePermission.objects.create(role_id=role_id, per_id=perm_id)
         if role_obj:
 
-            return TenantUserRole.objects.get(ID=role_id, role_name=new_role_name, tenant_id=tenant_pk,
-                                              is_default=False)
+            return TenantUserRole.objects.get(ID=role_id, role_name=new_role_name, tenant_id=tenant_pk, is_default=False)
         else:
             return None
 
@@ -229,14 +225,12 @@ class RoleRepo(object):
         with transaction.atomic():
             PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id).delete()
             for role_id in role_id_list:
-                PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id,
-                                             role_id=role_id)
+                PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id, role_id=role_id)
 
     def add_user_role_in_tenant_by_user_id_tenant_id_role_id(self, user_id, tenant_id, role_id_list, enterprise_id):
         """修改一个用户在一个团队中的角色"""
         for role_id in role_id_list:
-            PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id,
-                                             role_id=role_id)
+            PermRelTenant.objects.create(user_id=user_id, tenant_id=tenant_id, enterprise_id=enterprise_id, role_id=role_id)
 
 
 class RolePermRepo(object):
@@ -256,9 +250,7 @@ class RolePermRepo(object):
             options_dict = dict()
             perm_options_query = TenantUserPermission.objects.filter(is_select=True, group=group.pk)
             for obj in perm_options_query:
-                perm_list.append(
-                    {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
-                )
+                perm_list.append({"id": obj.pk, "codename": obj.codename, "info": obj.per_info})
             options_dict["group_name"] = group.group_name
             options_dict["perms_info"] = perm_list
             options_list.append(options_dict)
@@ -267,9 +259,7 @@ class RolePermRepo(object):
         outher_perm_list = []
 
         for obj in outher_perm_options_query:
-            outher_perm_list.append(
-                {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
-            )
+            outher_perm_list.append({"id": obj.pk, "codename": obj.codename, "info": obj.per_info})
         outher_options_dict["group_name"] = "其他"
         outher_options_dict["perms_info"] = outher_perm_list
         options_list.append(outher_options_dict)
@@ -290,11 +280,10 @@ class RolePermRepo(object):
             for obj in perm_options_query:
                 logger.debug('------------------>{0}'.format(group.pk))
                 logger.debug('--------0000000---------->{0}'.format(obj.codename))
-                if group.pk == 2 and obj.codename not in ("manage_group", "view_service", "delete_service", "share_service", "manage_service_config", "manage_service_member_perms"):
+                if group.pk == 2 and obj.codename not in ("manage_group", "view_service", "delete_service", "share_service",
+                                                          "manage_service_config", "manage_service_member_perms"):
                     continue
-                perm_list.append(
-                    {"id": obj.pk, "codename": obj.codename, "info": obj.per_info}
-                )
+                perm_list.append({"id": obj.pk, "codename": obj.codename, "info": obj.per_info})
             options_dict["group_name"] = group.group_name
             options_dict["perms_info"] = perm_list
             options_list.append(options_dict)
@@ -327,8 +316,7 @@ class RolePermRepo(object):
 
             owner_exists = TenantUserRole.objects.filter(is_default=True, role_name="owner", tenant_id=None).exists()
             admin_exists = TenantUserRole.objects.filter(is_default=True, role_name="admin", tenant_id=None).exists()
-            developer_exists = TenantUserRole.objects.filter(is_default=True, role_name="developer",
-                                                             tenant_id=None).exists()
+            developer_exists = TenantUserRole.objects.filter(is_default=True, role_name="developer", tenant_id=None).exists()
             if owner_exists or admin_exists or developer_exists:
                 return "已经初始化过了"
             # 初始化角色数据
@@ -390,172 +378,148 @@ class RolePermRepo(object):
             gateway_group = group_dict.get("网关相关")
             three_service_group = group_dict.get("三方服务相关")
 
-            obj = TenantUserPermission.objects.create(codename="tenant_access", per_info="登入团队", is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="tenant_access", per_info="登入团队", is_select=True, group=team_group)
             perms_dict["tenant_access"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_team_member_permissions", per_info="团队权限设置",
-                                                      is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_team_member_permissions", per_info="团队权限设置", is_select=True, group=team_group)
             perms_dict["manage_team_member_permissions"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="tenant_open_region", per_info="开通数据中心", is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="tenant_open_region", per_info="开通数据中心", is_select=True, group=team_group)
             perms_dict["tenant_open_region"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_group", per_info="应用组管理", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_group", per_info="应用组管理", is_select=True, group=service_group)
             perms_dict["manage_group"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="view_service", per_info="查看应用信息", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="view_service", per_info="查看应用信息", is_select=True, group=service_group)
             perms_dict["view_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="deploy_service", per_info="部署应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="deploy_service", per_info="部署应用", is_select=True, group=service_group)
             perms_dict["deploy_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="create_service", per_info="创建应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="create_service", per_info="创建应用", is_select=True, group=service_group)
             perms_dict["create_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="delete_service", per_info="删除应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="delete_service", per_info="删除应用", is_select=True, group=service_group)
             perms_dict["delete_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="share_service", per_info="应用组分享", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="share_service", per_info="应用组分享", is_select=True, group=service_group)
             perms_dict["share_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="stop_service", per_info="关闭应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="stop_service", per_info="关闭应用", is_select=True, group=service_group)
             perms_dict["stop_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="start_service", per_info="启动应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="start_service", per_info="启动应用", is_select=True, group=service_group)
             perms_dict["start_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="restart_service", per_info="重启应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="restart_service", per_info="重启应用", is_select=True, group=service_group)
             perms_dict["restart_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="rollback_service", per_info="回滚应用", is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="rollback_service", per_info="回滚应用", is_select=True, group=service_group)
             perms_dict["rollback_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_service_container", per_info="应用容器管理",
-                                                      is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_service_container", per_info="应用容器管理", is_select=True, group=service_group)
             perms_dict["manage_service_container"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_service_extend", per_info="应用伸缩管理",
-                                                      is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_service_extend", per_info="应用伸缩管理", is_select=True, group=service_group)
             perms_dict["manage_service_extend"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_service_config", per_info="应用配置管理",
-                                                      is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_service_config", per_info="应用配置管理", is_select=True, group=service_group)
             perms_dict["manage_service_config"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_service_plugin", per_info="应用扩展管理",
-                                                      is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_service_plugin", per_info="应用扩展管理", is_select=True, group=service_group)
             perms_dict["manage_service_plugin"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_service_member_perms", per_info="应用权限设置",
-                                                      is_select=True,
-                                                      group=service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_service_member_perms", per_info="应用权限设置", is_select=True, group=service_group)
             perms_dict["manage_service_member_perms"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="view_plugin", per_info="查看插件信息",
-                                                      is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="view_plugin", per_info="查看插件信息", is_select=True, group=team_group)
             perms_dict["view_plugin"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="manage_plugin", per_info="插件管理",
-                                                      is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="manage_plugin", per_info="插件管理", is_select=True, group=team_group)
             perms_dict["manage_plugin"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="share_plugin", per_info="插件分享",
-                                                      is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="share_plugin", per_info="插件分享", is_select=True, group=team_group)
             perms_dict["share_plugin"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="drop_tenant", per_info="删除团队",
-                                                      is_select=False,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="drop_tenant", per_info="删除团队", is_select=False, group=team_group)
             perms_dict["drop_tenant"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="transfer_ownership", per_info="移交所有权",
-                                                      is_select=False,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="transfer_ownership", per_info="移交所有权", is_select=False, group=team_group)
             perms_dict["transfer_ownership"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="modify_team_name", per_info="修改团队名称",
-                                                      is_select=False,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="modify_team_name", per_info="修改团队名称", is_select=False, group=team_group)
             perms_dict["modify_team_name"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="tenant_manage_role", per_info="自定义角色",
-                                                      is_select=False,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="tenant_manage_role", per_info="自定义角色", is_select=False, group=team_group)
             perms_dict["tenant_manage_role"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="import_and_export_service", per_info="应用导入导出",
-                                                      is_select=True,
-                                                      group=team_group)
+            obj = TenantUserPermission.objects.create(
+                codename="import_and_export_service", per_info="应用导入导出", is_select=True, group=team_group)
             perms_dict["import_and_export_service"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="access_control", per_info="查看访问控制",
-                                                      is_select=True,
-                                                      group=gateway_group)
+            obj = TenantUserPermission.objects.create(
+                codename="access_control", per_info="查看访问控制", is_select=True, group=gateway_group)
             perms_dict["access_control"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="certificate_management", per_info="访问证书管理",
-                                                      is_select=True,
-                                                      group=gateway_group)
+            obj = TenantUserPermission.objects.create(
+                codename="certificate_management", per_info="访问证书管理", is_select=True, group=gateway_group)
             perms_dict["certificate_management"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="control_operation", per_info="访问控制操作",
-                                                      is_select=True,
-                                                      group=gateway_group)
+            obj = TenantUserPermission.objects.create(
+                codename="control_operation", per_info="访问控制操作", is_select=True, group=gateway_group)
             perms_dict["control_operation"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="certificate_operation", per_info="证书管理操作",
-                                                      is_select=True,
-                                                      group=gateway_group)
+            obj = TenantUserPermission.objects.create(
+                codename="certificate_operation", per_info="证书管理操作", is_select=True, group=gateway_group)
             perms_dict["certificate_operation"] = obj.pk
             # 5.1新增
-            obj = TenantUserPermission.objects.create(codename="add_endpoint", per_info="添加实例",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="add_endpoint", per_info="添加实例", is_select=True, group=three_service_group)
             perms_dict["add_endpoint"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="delete_endpoint", per_info="删除实例",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="delete_endpoint", per_info="删除实例", is_select=True, group=three_service_group)
             perms_dict["delete_endpoint"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="put_endpoint", per_info="修改实例上下线",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="put_endpoint", per_info="修改实例上下线", is_select=True, group=three_service_group)
             perms_dict["put_endpoint"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="health_detection", per_info="编辑健康检测",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="health_detection", per_info="编辑健康检测", is_select=True, group=three_service_group)
             perms_dict["health_detection"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="reset_secret_key", per_info="重置秘钥",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="reset_secret_key", per_info="重置秘钥", is_select=True, group=three_service_group)
             perms_dict["reset_secret_key"] = obj.pk
 
-            obj = TenantUserPermission.objects.create(codename="create_three_service", per_info="创建三方服务",
-                                                      is_select=True,
-                                                      group=three_service_group)
+            obj = TenantUserPermission.objects.create(
+                codename="create_three_service", per_info="创建三方服务", is_select=True, group=three_service_group)
             perms_dict["create_three_service"] = obj.pk
             # 初始化角色与权限对应关系
             owner_id = role_dict.get("owner")
@@ -564,8 +528,7 @@ class RolePermRepo(object):
             viewer_id = role_dict.get("viewer")
             # owner
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("tenant_access"))
-            TenantUserRolePermission.objects.create(role_id=owner_id,
-                                                    per_id=perms_dict.get("manage_team_member_permissions"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_team_member_permissions"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("tenant_open_region"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_group"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("view_service"))
@@ -581,16 +544,14 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_service_extend"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_service_config"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_service_plugin"))
-            TenantUserRolePermission.objects.create(role_id=owner_id,
-                                                    per_id=perms_dict.get("manage_service_member_perms"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_service_member_perms"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("view_plugin"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("manage_plugin"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("drop_tenant"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("transfer_ownership"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("modify_team_name"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("tenant_manage_role"))
-            TenantUserRolePermission.objects.create(role_id=owner_id,
-                                                    per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("import_and_export_service"))
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("share_plugin"))
             # 新添加
             TenantUserRolePermission.objects.create(role_id=owner_id, per_id=perms_dict.get("access_control"))
@@ -607,8 +568,7 @@ class RolePermRepo(object):
 
             # admin
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_access"))
-            TenantUserRolePermission.objects.create(role_id=admin_id,
-                                                    per_id=perms_dict.get("manage_team_member_permissions"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_team_member_permissions"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_open_region"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_group"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("view_service"))
@@ -624,13 +584,11 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_service_extend"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_service_config"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_service_plugin"))
-            TenantUserRolePermission.objects.create(role_id=admin_id,
-                                                    per_id=perms_dict.get("manage_service_member_perms"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_service_member_perms"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("view_plugin"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("manage_plugin"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("tenant_manage_role"))
-            TenantUserRolePermission.objects.create(role_id=admin_id,
-                                                    per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("import_and_export_service"))
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("share_plugin"))
             # 新添加
             TenantUserRolePermission.objects.create(role_id=admin_id, per_id=perms_dict.get("access_control"))
@@ -655,18 +613,13 @@ class RolePermRepo(object):
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("start_service"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("restart_service"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("rollback_service"))
-            TenantUserRolePermission.objects.create(role_id=developer_id,
-                                                    per_id=perms_dict.get("manage_service_container"))
-            TenantUserRolePermission.objects.create(role_id=developer_id,
-                                                    per_id=perms_dict.get("manage_service_extend"))
-            TenantUserRolePermission.objects.create(role_id=developer_id,
-                                                    per_id=perms_dict.get("manage_service_config"))
-            TenantUserRolePermission.objects.create(role_id=developer_id,
-                                                    per_id=perms_dict.get("manage_service_plugin"))
+            TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_service_container"))
+            TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_service_extend"))
+            TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_service_config"))
+            TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_service_plugin"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("view_plugin"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("manage_plugin"))
-            TenantUserRolePermission.objects.create(role_id=developer_id,
-                                                    per_id=perms_dict.get("import_and_export_service"))
+            TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("import_and_export_service"))
             # 新添加
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("access_control"))
             TenantUserRolePermission.objects.create(role_id=developer_id, per_id=perms_dict.get("certificate_management"))

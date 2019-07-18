@@ -3,8 +3,8 @@ import logging
 
 from console.repositories.base import BaseConnection
 from console.services.service_services import base_service
-from www.models import ServiceEvent
-from www.models import TenantServiceInfo
+from www.models.main import ServiceEvent
+from www.models.main import TenantServiceInfo
 from www.utils.status_translate import get_status_info_map
 
 logger = logging.getLogger("default")
@@ -69,22 +69,14 @@ class ServiceRepo(object):
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_team_service_num_by_team_id(self, team_id, region_name):
-        return TenantServiceInfo.objects.filter(
-            tenant_id=team_id, service_region=region_name).count()
+        return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
 
-    def get_group_service_by_group_id(self, group_id, region_name, team_id,
-                                      team_name, enterprise_id):
-        group_services_list = base_service.get_group_services_list(
-            team_id=team_id, region_name=region_name, group_id=group_id)
+    def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id):
+        group_services_list = base_service.get_group_services_list(team_id=team_id, region_name=region_name, group_id=group_id)
         if group_services_list:
-            service_ids = [
-                service.service_id for service in group_services_list
-            ]
+            service_ids = [service.service_id for service in group_services_list]
             status_list = base_service.status_multi_service(
-                region=region_name,
-                tenant_name=team_name,
-                service_ids=service_ids,
-                enterprise_id=enterprise_id)
+                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:
@@ -92,20 +84,17 @@ class ServiceRepo(object):
                 statuscn_cache[status["service_id"]] = status["status_cn"]
             result = []
             for service in group_services_list:
-                service_obj = TenantServiceInfo.objects.filter(
-                    service_id=service["service_id"]).first()
+                service_obj = TenantServiceInfo.objects.filter(service_id=service["service_id"]).first()
                 if service_obj:
                     service["service_source"] = service_obj.service_source
-                service["status_cn"] = statuscn_cache.get(
-                    service["service_id"], "未知")
+                service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
                 if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
-                    service["status"] = status_cache.get(
-                        service["service_id"], "unknow")
+                    service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])
@@ -115,17 +104,12 @@ class ServiceRepo(object):
         else:
             return []
 
-    def get_no_group_service_status_by_group_id(self, team_name, team_id,
-                                                region_name, enterprise_id):
-        no_services = base_service.get_no_group_services_list(
-            team_id=team_id, region_name=region_name)
+    def get_no_group_service_status_by_group_id(self, team_name, team_id, region_name, enterprise_id):
+        no_services = base_service.get_no_group_services_list(team_id=team_id, region_name=region_name)
         if no_services:
             service_ids = [service.service_id for service in no_services]
             status_list = base_service.status_multi_service(
-                region=region_name,
-                tenant_name=team_name,
-                service_ids=service_ids,
-                enterprise_id=enterprise_id)
+                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:
@@ -135,16 +119,14 @@ class ServiceRepo(object):
             for service in no_services:
                 if service["group_name"] is None:
                     service["group_name"] = "未分组"
-                service["status_cn"] = statuscn_cache.get(
-                    service["service_id"], "未知")
+                service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
                 status = status_cache.get(service["service_id"], "unknow")
 
                 if status == "unknow" and service["create_status"] != "complete":
                     service["status"] = "creating"
                     service["status_cn"] = "创建中"
                 else:
-                    service["status"] = status_cache.get(
-                        service["service_id"], "unknow")
+                    service["status"] = status_cache.get(service["service_id"], "unknow")
                 if service["status"] == "closed" or service["status"] == "undeploy":
                     service["min_memory"] = 0
                 status_map = get_status_info_map(service["status"])

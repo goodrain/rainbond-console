@@ -84,19 +84,16 @@ class AppManageBase(object):
 
     def isExpired(self, tenant, service):
         if service.expired_time is not None:
-            if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now(
-            ):
+            if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
                 if self.MODULES["Owned_Fee"]:
                     return True
         else:
             # 将原有免费用户的服务设置为7天后
-            service.expired_time = datetime.datetime.now(
-            ) + datetime.timedelta(days=7)
+            service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
         return False
 
     def is_over_resource(self, tenant, service):
-        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(
-            tenant)
+        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(tenant)
         if tenant.pay_type == "free":
             # 免费用户使用上限
             new_add_memory = service.min_node * service.min_memory
@@ -108,9 +105,8 @@ class AppManageBase(object):
         """查询当前应用占用的内存"""
         memory = 0
         try:
-            body = region_api.check_service_status(
-                cur_service.service_region, tenant.tenant_name,
-                cur_service.service_alias, tenant.enterprise_id)
+            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias,
+                                                   tenant.enterprise_id)
             status = body["bean"]["cur_status"]
             # 占用内存的状态
             occupy_memory_status = (
@@ -123,8 +119,7 @@ class AppManageBase(object):
             pass
         return memory
 
-    def is_operate_over_resource(self, tenant, service, new_add_memory,
-                                 is_check_status):
+    def is_operate_over_resource(self, tenant, service, new_add_memory, is_check_status):
         """
 
         :param tenant: 租户
@@ -138,28 +133,21 @@ class AppManageBase(object):
                 new_add_memory = new_add_memory + \
                                  self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
-                tm = tenantUsedResource.calculate_real_used_resource(
-                    tenant) + new_add_memory
+                tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
                 if tm > tenant.limit_memory:
                     return True
 
         return False
 
-    def check_resource(self,
-                       tenant,
-                       service,
-                       new_add_memory=0,
-                       is_check_status=False):
+    def check_resource(self, tenant, service, new_add_memory=0, is_check_status=False):
         # if self.isOwnedMoney(tenant):
         #     return 400, u"余额不足请及时充值"
         if self.isExpired(tenant, service):
             return 400, u"该应用试用已到期"
         # if self.is_over_resource(tenant, service):
-        if self.is_operate_over_resource(tenant, service, new_add_memory,
-                                         is_check_status):
-            return 400, u"资源已达上限，您最多使用{0}G内存".format(
-                tenant.limit_memory / 1024)
+        if self.is_operate_over_resource(tenant, service, new_add_memory, is_check_status):
+            return 400, u"资源已达上限，您最多使用{0}G内存".format(tenant.limit_memory / 1024)
         return 200, "pass"
 
 
@@ -167,13 +155,11 @@ class AppManageService(AppManageBase):
     def start(self, tenant, service, user):
         from console.services.app import app_service
         new_add_memory = service.min_memory * service.min_node
-        allow_start, tips = app_service.verify_source(
-            tenant, service.service_region, new_add_memory, "start_app")
+        allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
         if not allow_start:
             return 412, "资源不足，无法启动应用", None
 
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.START)
+        code, msg, event = event_service.create_event(tenant, service, user, self.START)
         if code != 200:
             return code, msg, event
 
@@ -183,9 +169,7 @@ class AppManageService(AppManageBase):
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.start_service(service.service_region,
-                                         tenant.tenant_name,
-                                         service.service_alias, body)
+                region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -200,8 +184,7 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def stop(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.STOP)
+        code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
         if code != 200:
             return code, msg, event
 
@@ -211,9 +194,7 @@ class AppManageService(AppManageBase):
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.stop_service(service.service_region,
-                                        tenant.tenant_name,
-                                        service.service_alias, body)
+                region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -229,8 +210,7 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def restart(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.RESTART)
+        code, msg, event = event_service.create_event(tenant, service, user, self.RESTART)
         if code != 200:
             return code, msg, event
 
@@ -240,9 +220,7 @@ class AppManageService(AppManageBase):
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.restart_service(service.service_region,
-                                           tenant.tenant_name,
-                                           service.service_alias, body)
+                region_api.restart_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} retart app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -257,13 +235,10 @@ class AppManageService(AppManageBase):
 
         return 200, u"操作成功", event
 
-    def deploy(self, tenant, service, user, group_version,
-               committer_name=None):
-        code, msg, event = event_service.create_event(
-            tenant, service, user, self.DEPLOY, committer_name, "")
+    def deploy(self, tenant, service, user, group_version, committer_name=None):
+        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name, "")
         if code != 200:
-            logger.error("code: {}; msg: {}; event: {}".format(
-                code, msg, event))
+            logger.error("code: {}; msg: {}; event: {}".format(code, msg, event))
             return code, msg, event
 
         body = dict()
@@ -271,8 +246,7 @@ class AppManageService(AppManageBase):
         body["action"] = "deploy"
         if service.build_upgrade:
             body["action"] = "upgrade"
-        body["envs"] = env_var_repo.get_build_envs(tenant.tenant_id,
-                                                   service.service_id)
+        body["envs"] = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
         kind = self.__get_service_kind(service)
         body["kind"] = kind
         body["operator"] = str(user.nick_name)
@@ -292,10 +266,8 @@ class AppManageService(AppManageBase):
                 "image_url": service.image,
                 "cmd": service.cmd,
             }
-        service_source = service_source_repo.get_service_source(
-            service.tenant_id, service.service_id)
-        if service_source and (service_source.user_name
-                               or service_source.password):
+        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        if service_source and (service_source.user_name or service_source.password):
             if body.get("code_info", None):
                 body["code_info"]["user"] = service_source.user_name
                 body["code_info"]["password"] = service_source.password
@@ -314,13 +286,10 @@ class AppManageService(AppManageBase):
                         body["image_info"]["user"] = hub_user
                         body["image_info"]["password"] = hub_password
         else:
-            logger.warning("service_source is not exist for service {0}".format(service.service_id))                    
+            logger.warning("service_source is not exist for service {0}".format(service.service_id))
         try:
-            re = region_api.build_service(service.service_region,
-                                          tenant.tenant_name,
-                                          service.service_alias, body)
-            if re and re.get(
-                    "bean") and re.get("bean").get("status") != "success":
+            re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+            if re and re.get("bean") and re.get("bean").get("status") != "success":
                 event.message = u"应用构建失败{0}".format(re.get("err_message", ""))
                 event.final_status = "complete"
                 event.status = "failure"
@@ -342,20 +311,17 @@ class AppManageService(AppManageBase):
         return 200, "操作成功", event
 
     def __delete_envs(self, tenant, service):
-        service_envs = env_var_repo.get_service_env(tenant.tenant_id,
-                                                    service.service_id)
+        service_envs = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
         if service_envs:
             for env in service_envs:
-                env_var_service.delete_env_by_attr_name(
-                    tenant, service, env.attr_name)
+                env_var_service.delete_env_by_attr_name(tenant, service, env.attr_name)
         return 200, "success"
 
     def __delete_volume(self, tenant, service):
         service_volumes = volume_repo.get_service_volumes(service.service_id)
         if service_volumes:
             for volume in service_volumes:
-                code, msg, volume = volume_service.delete_service_volume_by_id(
-                    tenant, service, int(volume.ID))
+                code, msg, volume = volume_service.delete_service_volume_by_id(tenant, service, int(volume.ID))
                 if code != 200:
                     return 400, msg
         return 200, "success"
@@ -380,8 +346,7 @@ class AppManageService(AppManageBase):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            service_volume = volume_repo.get_service_volume_by_name(
-                service.service_id, volume["volume_name"])
+            service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
             if service_volume:
                 continue
             file_content = volume.get("file_content", None)
@@ -402,10 +367,7 @@ class AppManageService(AppManageBase):
             return 200, "success"
         for env in inner_envs:
             exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id,
-                service_id=service.service_id,
-                attr_name=env["attr_name"],
-                scope="inner")
+                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="inner")
             if exist:
                 continue
             code, msg, env_data = env_var_service. \
@@ -416,10 +378,7 @@ class AppManageService(AppManageBase):
                 return code, msg
         for env in outer_envs:
             exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id,
-                service_id=service.service_id,
-                attr_name=env["attr_name"],
-                scope="outer")
+                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="outer")
             if exist:
                 continue
             container_port = env.get("container_port", 0)
@@ -440,11 +399,8 @@ class AppManageService(AppManageBase):
             return 200, "success"
         for port in ports:
             mapping_port = int(port["container_port"])
-            env_prefix = port["port_alias"].upper() if bool(
-                port["port_alias"]) else service.service_key.upper()
-            service_port = port_repo.get_service_port_by_port(
-                tenant.tenant_id, service.service_id,
-                int(port["container_port"]))
+            env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
+            service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
                     code, msg, data = env_var_service.add_service_env_var(
@@ -471,27 +427,23 @@ class AppManageService(AppManageBase):
                         return code, msg
                 continue
 
-            code, msg, port_data = port_service.add_service_port(
-                tenant, service, int(port["container_port"]), port["protocol"],
-                port["port_alias"], port["is_inner_service"],
-                port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
+                                                                 port["port_alias"], port["is_inner_service"],
+                                                                 port["is_outer_service"])
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None):
-        code, msg, event = event_service.create_event(
-            tenant, service, user, self.UPGRADE, committer_name)
+        code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)
         if code != 200:
             return code, msg, event
         body = dict()
         body["service_id"] = service.service_id
         body["event_id"] = event.event_id
         try:
-            region_api.upgrade_service(service.service_region,
-                                       tenant.tenant_name,
-                                       service.service_alias, body)
+            region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
             logger.exception(e)
             if event:
@@ -535,20 +487,16 @@ class AppManageService(AppManageBase):
                     kind = "build_from_image"
             return kind
 
-    def roll_back(self, tenant, service, user, deploy_version,
-                  upgrade_or_rollback):
+    def roll_back(self, tenant, service, user, deploy_version, upgrade_or_rollback):
         if int(upgrade_or_rollback) == 1:
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.UPGRADE)
+            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
         else:
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.ROLLBACK)
+            code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
-            res, data = region_api.get_service_build_version_by_id(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, deploy_version)
+            res, data = region_api.get_service_build_version_by_id(service.service_region, tenant.tenant_name,
+                                                                   service.service_alias, deploy_version)
             is_version_exist = data['bean']['status']
             if not is_version_exist:
                 event.delete()
@@ -561,8 +509,7 @@ class AppManageService(AppManageBase):
             body["service_id"] = service.service_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.rollback(service.service_region, tenant.tenant_name,
-                                    service.service_alias, body)
+                region_api.rollback(service.service_region, tenant.tenant_name, service.service_alias, body)
             except region_api.CallApiError as e:
                 logger.exception(e)
                 if event:
@@ -613,19 +560,16 @@ class AppManageService(AppManageBase):
         elif action == "stop":
             code, data = self.stop_services_info(body, services, tenant, user)
         elif action == "upgrade":
-            code, data = self.upgrade_services_info(
-                body, services, tenant, user)
+            code, data = self.upgrade_services_info(body, services, tenant, user)
         elif action == "deploy":
-            code, data, _ = self.deploy_services_info(
-                body, services, tenant, user)
+            code, data, _ = self.deploy_services_info(body, services, tenant, user)
         if code != 200:
             return 415, "服务信息获取失败"
         # 获取数据中心信息
         one_service = services[0]
         region_name = one_service.service_region
         try:
-            logger.debug('--------12222222222----___>{0}'.format(
-                json.dumps(data)))
+            logger.debug('--------12222222222----___>{0}'.format(json.dumps(data)))
             region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             return 200, "操作成功"
         except region_api.CallApiError as e:
@@ -642,12 +586,10 @@ class AppManageService(AppManageBase):
                 continue
             service_dict = dict()
             new_add_memory = service.min_memory * service.min_node
-            allow_start, tips = app_service.verify_source(
-                tenant, service.service_region, new_add_memory, "start_app")
+            allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
             if not allow_start:
                 continue
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.START)
+            code, msg, event = event_service.create_event(tenant, service, user, self.START)
             if code != 200:
                 continue
 
@@ -657,8 +599,7 @@ class AppManageService(AppManageBase):
 
                 start_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建",
-                                                   "failure")
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -669,8 +610,7 @@ class AppManageService(AppManageBase):
         body["stop_infos"] = stop_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.STOP)
+            code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
             if code != 200:
                 continue
             if service.create_status == "complete":
@@ -678,8 +618,7 @@ class AppManageService(AppManageBase):
                 service_dict["service_id"] = service.service_id
                 stop_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建",
-                                                   "failure")
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -689,8 +628,7 @@ class AppManageService(AppManageBase):
         body["upgrade_infos"] = upgrade_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.UPGRADE)
+            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
             if code != 200:
                 continue
             if service.create_status == "complete":
@@ -699,8 +637,7 @@ class AppManageService(AppManageBase):
 
                 upgrade_infos_list.append(service_dict)
             else:
-                event = event_service.update_event(event, "应用未在数据中心创建",
-                                                   "failure")
+                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
                 continue
         return 200, body
 
@@ -711,8 +648,7 @@ class AppManageService(AppManageBase):
         events = []
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(
-                tenant, service, user, self.DEPLOY)
+            code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
             if code != 200:
                 continue
             events.append(event)
@@ -721,13 +657,11 @@ class AppManageService(AppManageBase):
             service_dict["action"] = 'deploy'
             if service.build_upgrade:
                 service_dict["action"] = 'upgrade'
-            envs = env_var_repo.get_build_envs(tenant.tenant_id,
-                                               service.service_id)
+            envs = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
             service_dict["envs"] = envs
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind
-            service_source = service_source_repo.get_service_source(
-                service.tenant_id, service.service_id)  
+            service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
             clone_url = service.git_url
 
             # 源码
@@ -765,7 +699,8 @@ class AppManageService(AppManageBase):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
                             from console.services.market_app_service import market_app_service
-                            rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
+                            rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
+                                                                             service_source.version)
                         # install from local cloud
                         else:
                             rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
@@ -775,8 +710,7 @@ class AppManageService(AppManageBase):
                             apps_template = json.loads(rain_app.app_template)
                             apps_list = apps_template.get("apps")
                             if service_source.extend_info:
-                                extend_info = json.loads(
-                                    service_source.extend_info)
+                                extend_info = json.loads(service_source.extend_info)
                                 template_app = None
                                 for app in apps_list:
                                     if "service_share_uuid" in app:
@@ -784,7 +718,7 @@ class AppManageService(AppManageBase):
                                             template_app = app
                                             break
                                     if "service_share_uuid" not in app and "service_key" in app:
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]: 
+                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
                                             template_app = app
                                             break
                                 if template_app:
@@ -813,32 +747,20 @@ class AppManageService(AppManageBase):
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
-                                    service_source.extend_info = json.dumps(
-                                        new_extend_info)
+                                    service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
-                                    code, msg = self.__save_env(
-                                        tenant, service,
-                                        app["service_env_map_list"],
-                                        app["service_connect_info_map_list"]
-                                    )
+                                    code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
+                                                                app["service_connect_info_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
-                                    code, msg = self.__save_volume(
-                                        tenant, service,
-                                        app["service_volume_map_list"])
+                                    code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
-                                    logger.debug(
-                                        '-------222---->{0}'.format(
-                                            app["port_map_list"]))
-                                    code, msg = self.__save_port(
-                                        tenant, service,
-                                        app["port_map_list"])
+                                    logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+                                    code, msg = self.__save_port(tenant, service, app["port_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
-                                    self.__save_extend_info(
-                                        service,
-                                        app["extend_method_map"])
+                                    self.__save_extend_info(service, app["extend_method_map"])
                 except Exception as e:
                     logger.exception(e)
                     if service_source:
@@ -859,12 +781,10 @@ class AppManageService(AppManageBase):
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
 
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.VERTICAL_UPGRADE)
+        code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
             return code, msg, event
-        new_cpu = baseService.calculate_service_cpu(service.service_region,
-                                                    new_memory)
+        new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
@@ -873,9 +793,7 @@ class AppManageService(AppManageBase):
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.vertical_upgrade(service.service_region,
-                                            tenant.tenant_name,
-                                            service.service_alias, body)
+                region_api.vertical_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
                 service.min_cpu = new_cpu
                 service.min_memory = new_memory
                 service.save()
@@ -900,8 +818,7 @@ class AppManageService(AppManageBase):
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级", None
 
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.HORIZONTAL_UPGRADE)
+        code, msg, event = event_service.create_event(tenant, service, user, self.HORIZONTAL_UPGRADE)
         if code != 200:
             return code, msg, event
         if service.create_status == "complete":
@@ -911,9 +828,7 @@ class AppManageService(AppManageBase):
             body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.horizontal_upgrade(service.service_region,
-                                              tenant.tenant_name,
-                                              service.service_alias, body)
+                region_api.horizontal_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
                 service.min_node = new_node
                 service.save()
             except region_api.CallApiError as e:
@@ -930,13 +845,11 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功", event
 
     def delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.DELETE)
+        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         # 判断服务是否是运行状态
-        if self.__is_service_running(
-                tenant, service) and service.service_source != "third_party":
+        if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"应用可能处于运行状态,请先关闭应用"
             event = event_service.update_event(event, msg, "failure")
             return 409, msg, event
@@ -948,19 +861,16 @@ class AppManageService(AppManageBase):
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除",
-                                               "failure")
+            event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除", "failure")
             return 412, "当前应用被{0}挂载, 不可删除".format(msg), event
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
-            event = event_service.update_event(event, "当前应用已绑定域名,请先解绑",
-                                               "failure")
+            event = event_service.update_event(event, "当前应用已绑定域名,请先解绑", "failure")
             return 412, "请先解绑应用绑定的域名", event
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
-            event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件",
-                                               "failure")
+            event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件", "failure")
             return 412, "请先卸载应用安装的插件", event
 
         if not is_force:
@@ -991,9 +901,7 @@ class AppManageService(AppManageBase):
         """彻底删除应用"""
 
         try:
-            region_api.delete_service(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, tenant.enterprise_id)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1007,31 +915,26 @@ class AppManageService(AppManageBase):
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
-        dep_relation_repo.delete_service_relation(tenant.tenant_id,
-                                                  service.service_id)
+        dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
-        group_service_relation_repo.delete_relation_by_service_id(
-            service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(service.service_id)
         service_attach_repo.delete_service_attach(service.service_id)
         create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
-        service_source_repo.delete_service_source(tenant.tenant_id,
-                                                  service.service_id)
+        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(
-                service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(
-                    service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
@@ -1066,29 +969,24 @@ class AppManageService(AppManageBase):
 
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(
-                service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(
-                    service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
 
         service.delete()
         return trash_service
 
     def move_service_relation_info_recycle_bin(self, tenant, service):
         # 1.如果服务依赖其他服务，将服务对应的关系放入回收站
-        relations = dep_relation_repo.get_service_dependencies(
-            tenant.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         if relations:
             for r in relations:
                 r_data = r.to_dict()
                 r_data.pop("ID")
-                relation_recycle_bin_repo.create_trash_service_relation(
-                    **r_data)
+                relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
         # 如果服务关系回收站有被此服务依赖的服务，将信息及其对应的数据中心的依赖关系删除
-        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(
-            service.service_id)
+        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
             for recycle_relation in recycle_relations:
                 task = dict()
@@ -1097,9 +995,8 @@ class AppManageService(AppManageBase):
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant.enterprise_id
                 try:
-                    region_api.delete_service_dependency(
-                        service.service_region, tenant.tenant_name,
-                        service.service_alias, task)
+                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
+                                                         task)
                 except Exception as e:
                     logger.exception(e)
                 recycle_relation.delete()
@@ -1115,25 +1012,19 @@ class AppManageService(AppManageBase):
         return False
 
     def __is_service_mnt_related(self, tenant, service):
-        sms = mnt_repo.get_mount_current_service(tenant.tenant_id,
-                                                 service.service_id)
+        sms = mnt_repo.get_mount_current_service(tenant.tenant_id, service.service_id)
         if sms:
             sids = [sm.service_id for sm in sms]
-            services = service_repo.get_services_by_service_ids(
-                sids).values_list(
-                    "service_cname", flat=True)
+            services = service_repo.get_services_by_service_ids(sids).values_list("service_cname", flat=True)
             mnt_service_names = ",".join(list(services))
             return True, mnt_service_names
         return False, ""
 
     def __is_service_related(self, tenant, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(
-            tenant.tenant_id, service.service_id)
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
-            services = service_repo.get_services_by_service_ids(
-                sids).values_list(
-                    "service_cname", flat=True)
+            services = service_repo.get_services_by_service_ids(sids).values_list("service_cname", flat=True)
             if not services:
                 return False, ""
             dep_service_names = ",".join(list(services))
@@ -1144,12 +1035,10 @@ class AppManageService(AppManageBase):
         try:
             if service.create_status != "complete":
                 return False
-            status_info = region_api.check_service_status(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, tenant.enterprise_id)
+            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure",
-                          "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -1157,19 +1046,15 @@ class AppManageService(AppManageBase):
         return False
 
     def __is_service_has_plugins(self, service):
-        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
-            service.service_id)
+        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         if service_plugin_relations:
             return True
         return False
 
     def delete_region_service(self, tenant, service):
         try:
-            logger.debug("delete service {0} for team {1}".format(
-                service.service_cname, tenant.tenant_name))
-            region_api.delete_service(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, tenant.enterprise_id)
+            logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
             return 200, "success"
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -1180,22 +1065,18 @@ class AppManageService(AppManageBase):
     # 变更应用分组
     def move(self, service, move_group_id):
         # 先删除分组应用关系表中该应用数据
-        group_service_relation_repo.delete_relation_by_service_id(
-            service_id=service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
         # 再新建该应用新的关联数据
-        group_service_relation_repo.add_service_group_relation(
-            move_group_id, service.service_id, service.tenant_id,
-            service.service_region)
+        group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
+                                                               service.service_region)
 
     # 批量删除应用
     def batch_delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.DELETE)
+        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         # 判断服务是否是运行状态
-        if self.__is_service_running(
-                tenant, service) and service.service_source != "third_party":
+        if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = "当前应用处于运行状态,请先关闭应用"
             event = event_service.update_event(event, msg, "failure")
             code = 409
@@ -1250,8 +1131,7 @@ class AppManageService(AppManageBase):
                 return code, msg, event
 
     def delete_again(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user,
-                                                      self.DELETE)
+        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
         if code != 200:
             return code, msg, event
         if not is_force:
@@ -1281,9 +1161,7 @@ class AppManageService(AppManageBase):
         """二次删除应用"""
 
         try:
-            region_api.delete_service(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, tenant.enterprise_id)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1297,20 +1175,17 @@ class AppManageService(AppManageBase):
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
-        dep_relation_repo.delete_service_relation(tenant.tenant_id,
-                                                  service.service_id)
+        dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
-        group_service_relation_repo.delete_relation_by_service_id(
-            service.service_id)
+        group_service_relation_repo.delete_relation_by_service_id(service.service_id)
         service_attach_repo.delete_service_attach(service.service_id)
         create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
-        service_source_repo.delete_service_source(tenant.tenant_id,
-                                                  service.service_id)
+        service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
@@ -1318,11 +1193,9 @@ class AppManageService(AppManageBase):
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
         # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(
-                service.tenant_service_group_id).count()
+            count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(
-                    service.tenant_service_group_id)
+                tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"

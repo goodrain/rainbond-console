@@ -21,7 +21,7 @@ import base64
 def get_utf8_value(value):
     try:
         return value.encode('utf-8')
-    except:
+    except Exception:
         return str(value)
 
 

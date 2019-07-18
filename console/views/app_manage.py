@@ -177,8 +177,7 @@ class DeployAppView(AppBaseView):
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
 
-            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user,
-                                                         version=group_version)
+            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
 
             bean = {}
             if event:
@@ -235,8 +234,8 @@ class RollBackAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
-            code, msg, event = app_manage_service.roll_back(
-                self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
+            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version,
+                                                            upgrade_or_rollback)
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -291,8 +290,7 @@ class VerticalExtendAppView(AppBaseView):
                                                            "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
-            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user,
-                                                                   int(new_memory))
+            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -348,8 +346,7 @@ class HorizontalExtendAppView(AppBaseView):
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
 
-            code, msg, event = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user,
-                                                                     int(new_node))
+            code, msg, event = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             bean = {}
             if event:
                 bean = event.to_dict()
@@ -402,8 +399,8 @@ class BatchActionView(RegionTenantHeaderView):
             move_group_id = request.data.get("move_group_id", None)
             if action not in ("stop", "start", "restart", "move"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=self.user.user_id, tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
 
             if action == "stop":
@@ -497,8 +494,8 @@ class BatchDelete(RegionTenantHeaderView):
         """
         try:
             service_ids = request.data.get("service_ids", None)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=self.user.user_id, tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
             if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
@@ -542,8 +539,8 @@ class AgainDelete(RegionTenantHeaderView):
         """
         try:
             service_id = request.data.get("service_id", None)
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=self.user.user_id, tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
             if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
@@ -590,9 +587,7 @@ class ChangeServiceTypeView(AppBaseView):
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
                 return Response(
-                    general_message(
-                        400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"),
-                    status=400)
+                    general_message(400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"), status=400)
             deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
@@ -653,9 +648,7 @@ class ChangeServiceNameView(AppBaseView):
                 return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
             extend_method = self.service.extend_method
             if extend_method == "stateless":
-                return Response(
-                    general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"),
-                    status=400)
+                return Response(general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"), status=400)
             self.service.service_name = service_name
             self.service.save()
             result = general_message(200, "success", "操作成功")
@@ -694,16 +687,13 @@ class MarketServiceUpgradeView(AppBaseView):
     @perm_required('deploy_service')
     def get(self, request, *args, **kwargs):
         if self.service.service_source != "market":
-            return Response(general_message(
-                400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"),
-                status=400)
+            return Response(
+                general_message(400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"), status=400)
 
         # 判断服务状态，未部署的服务不提供升级数据
         try:
-            body = region_api.check_service_status(self.service.service_region,
-                                                   self.tenant.tenant_name,
-                                                   self.service.service_alias,
-                                                   self.tenant.enterprise_id)
+            body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
+                                                   self.service.service_alias, self.tenant.enterprise_id)
             status = body["bean"]["cur_status"]
         except Exception as e:
             logger.exception(e)

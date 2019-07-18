@@ -19,8 +19,7 @@ class BaseTaskStatusStrategy(object):
 
     @abc.abstractmethod
     def confirm_status(self, tenants):
-        raise NotImplementedError(
-            "Doesn't provide a reprØesentation for BaseTaskStatus.")
+        raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
 
 
 class DefaultStrategy(BaseTaskStatusStrategy):
@@ -82,6 +81,7 @@ class InstallPluginStrategy(BaseTaskStatusStrategy):
 
     def confirm_status(self, eid):
         return app_plugin_relation_repo.check_plugins_by_eid(eid)
+
 
 class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""

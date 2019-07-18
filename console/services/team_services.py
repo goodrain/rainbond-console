@@ -20,7 +20,6 @@ logger = logging.getLogger("default")
 
 
 class TeamService(object):
-
     def get_tenant_by_tenant_name(self, tenant_name, exception=True):
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
 
@@ -48,8 +47,8 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             user = request.user
-            user_perms = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
-                                                                             tenant_name=tenant.tenant_name)
+            user_perms = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=user.user_id, tenant_name=tenant.tenant_name)
             user_ids = [int(r) for r in list(set(user_ids))]
             exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id__in=user_ids).all()
             remove_ids = list()
@@ -61,9 +60,9 @@ class TeamService(object):
                 for user_id in user_ids:
                     if user_id not in exist:
                         for identity in identitys:
-                            new_user_list.append(PermRelTenant(
-                                user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID
-                            ))
+                            new_user_list.append(
+                                PermRelTenant(
+                                    user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID))
             if new_user_list:
                 try:
                     PermRelTenant.objects.bulk_create(new_user_list)
@@ -163,32 +162,26 @@ class TeamService(object):
         team_obj = team_services.get_tenant(tenant_name=tenant_name)
         default_role_id_list = TenantUserRole.objects.filter(Q(is_default=True) & ~Q(role_name="owner")).values_list(
             "pk", flat=True)
-        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk",
-                                                                                                               flat=True)
+        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk", flat=True)
         return list(default_role_id_list) + list(team_role_id_list)
 
     def add_role_by_team_name_perm_list(self, role_name, tenant_name, perm_id_list):
         """添加一个角色"""
         tenant = self.get_tenant(tenant_name=tenant_name)
-        role_obj = role_repo.add_role_by_tenant_pk_perm_list(role_name=role_name, tenant_pk=tenant.pk,
-                                                             perm_id_list=perm_id_list)
+        role_obj = role_repo.add_role_by_tenant_pk_perm_list(
+            role_name=role_name, tenant_pk=tenant.pk, perm_id_list=perm_id_list)
         return role_obj
 
     def del_role_by_team_name_role_name_role_id(self, role_id, tenant_name):
         """删除一个角色"""
         tenant = self.get_tenant(tenant_name=tenant_name)
-        role_repo.del_role_by_team_pk_role_name_role_id(tenant_pk=tenant.pk,
-                                                        role_id=role_id)
+        role_repo.del_role_by_team_pk_role_name_role_id(tenant_pk=tenant.pk, role_id=role_id)
 
-    def update_role_by_team_name_role_name_perm_list(self, tenant_name, role_id, new_role_name,
-                                                     perm_id_list):
+    def update_role_by_team_name_role_name_perm_list(self, tenant_name, role_id, new_role_name, perm_id_list):
         """更新一个角色的权限"""
         tenant = self.get_tenant(tenant_name=tenant_name)
         role_obj = role_repo.update_role_by_team_name_role_name_perm_list(
-            tenant_pk=tenant.pk,
-            new_role_name=new_role_name,
-            role_id=role_id,
-            perm_id_list=perm_id_list)
+            tenant_pk=tenant.pk, new_role_name=new_role_name, role_id=role_id, perm_id_list=perm_id_list)
         return role_obj
 
     def get_tenant_role_by_tenant_name(self, tenant_name):
@@ -200,22 +193,17 @@ class TeamService(object):
         """修改用户在团队中的角色"""
         tenant = self.get_tenant(tenant_name=tenant_name)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(user_id=user_id,
-                                                                                      tenant_id=tenant.pk,
-                                                                                      enterprise_id=enterprise.pk,
-                                                                                      role_id_list=role_id_list)
+        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(
+            user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
         return user_role
 
     def create_tenant_role(self, user_id, tenant_name, role_id_list):
         """修改用户在团队中的角色"""
         tenant = self.get_tenant(tenant_name=tenant_name)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        user_role = role_repo.add_user_role_in_tenant_by_user_id_tenant_id_role_id(user_id=user_id,
-                                                                                      tenant_id=tenant.pk,
-                                                                                      enterprise_id=enterprise.pk,
-                                                                                      role_id_list=role_id_list)
+        user_role = role_repo.add_user_role_in_tenant_by_user_id_tenant_id_role_id(
+            user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
         return user_role
-
 
     def add_user_role_to_team(self, request, tenant, user_ids, role_ids):
         """在团队中添加一个用户并给用户分配一个角色"""
@@ -225,9 +213,12 @@ class TeamService(object):
             try:
                 for user_id in user_ids:
                     for role_id in role_ids:
-                        PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk,
-                                                               enterprise_id=enterprise.pk, role_id=role_id,
-                                                               defaults={"role_id": role_id})
+                        PermRelTenant.objects.update_or_create(
+                            user_id=user_id,
+                            tenant_id=tenant.pk,
+                            enterprise_id=enterprise.pk,
+                            role_id=role_id,
+                            defaults={"role_id": role_id})
 
             except Exception as e:
                 logging.exception(e)
@@ -240,8 +231,8 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             try:
-              PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, identity="viewer",
-                                                               enterprise_id=enterprise.pk)
+                PermRelTenant.objects.update_or_create(
+                    user_id=user_id, tenant_id=tenant.pk, identity="viewer", enterprise_id=enterprise.pk)
             except Exception as e:
                 logging.exception(e)
                 raise Exception("创建失败:%s" % e.message)
@@ -286,10 +277,13 @@ class TeamService(object):
             tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
             team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID).delete()
             team_repo.get_user_perms_in_permtenant(user_id=other_user_id, tenant_id=tenant.ID).delete()
-            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID, "identity": "viewer",
-                             "enterprise_id": enterprise.ID}
-            other_perm_info = {"user_id": other_user_id, "tenant_id": tenant.ID, "identity": "owner",
-                               "enterprise_id": enterprise.ID}
+            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID, "identity": "viewer", "enterprise_id": enterprise.ID}
+            other_perm_info = {
+                "user_id": other_user_id,
+                "tenant_id": tenant.ID,
+                "identity": "owner",
+                "enterprise_id": enterprise.ID
+            }
             perm_services.add_user_tenant_perm(own_perm_info)
             perm_services.add_user_tenant_perm(other_perm_info)
             transaction.savepoint_commit(s_id)
@@ -305,9 +299,8 @@ class TeamService(object):
         team_repo.delete_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         new_perm_list = list()
         for identity in new_identitys:
-            new_perm_list.append(PermRelTenant(
-                user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID
-            ))
+            new_perm_list.append(
+                PermRelTenant(user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID))
         if new_perm_list:
             try:
                 PermRelTenant.objects.bulk_create(new_perm_list)
@@ -376,4 +369,3 @@ class TeamService(object):
 
 
 team_services = TeamService()
-

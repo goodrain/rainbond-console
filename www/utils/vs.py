@@ -2,7 +2,6 @@ from distutils.version import LooseVersion
 
 
 class AppVersion(LooseVersion):
-
     def __add__(self, value):
         last_v = self.version[-1]
         last_v += int(value)

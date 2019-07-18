@@ -1,6 +1,7 @@
 # Imports
 import re
 
+
 class BasePlatform(object):
     FORMATS = {
         'ssh': r"%(_user)s@%(host)s:%(repo)s.git",
@@ -22,10 +23,7 @@ class BasePlatform(object):
 
     def __init__(self):
         # Precompile PATTERNS
-        self.COMPILED_PATTERNS = dict(
-            (proto, re.compile(regex))
-            for proto, regex in self.PATTERNS.items()
-        )
+        self.COMPILED_PATTERNS = dict((proto, re.compile(regex)) for proto, regex in self.PATTERNS.items())
 
         # Supported protocols
         self.PROTOCOLS = self.PATTERNS.keys()

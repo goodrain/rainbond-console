@@ -14,7 +14,7 @@ class RainbondVersion(object):
     median_version = 5
 
     def __str__(self):
-        return "{0}.{1}.{2}".format(self.max_version, self. median_version, self.min_version)
+        return "{0}.{1}.{2}".format(self.max_version, self.median_version, self.min_version)
 
     def __init__(self, version_str):
         info = version_str.split(".")
@@ -26,16 +26,18 @@ class RainbondVersion(object):
             raise Exception("Illegal version")
 
     def next_min_version(self):
-        return "{0}.{1}.{2}".format(self.max_version, self. median_version, self.min_version+1)
+        return "{0}.{1}.{2}".format(self.max_version, self.median_version, self.min_version + 1)
 
     def next_median_version(self):
-        return "{0}.{1}.{2}".format(self.max_version, self. median_version+1, 0)
+        return "{0}.{1}.{2}".format(self.max_version, self.median_version + 1, 0)
 
     def next_max_version(self):
-        return "{0}.{1}.{2}".format(self.max_version+1, 0, 0)
+        return "{0}.{1}.{2}".format(self.max_version + 1, 0, 0)
 
     def equal(self, new_version):
-        return self.max_version == new_version.max_version and self.median_version == new_version.median_version and self.min_version == new_version.min_version
+        return self.max_version == new_version.max_version and \
+            self.median_version == new_version.median_version and \
+            self.min_version == new_version.min_version
 
 
 def create_db_client():

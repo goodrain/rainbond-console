@@ -15,7 +15,7 @@ from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
-from www.models import ServiceGroup
+from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -78,8 +78,7 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, u"组不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
-                                                                       region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
 
     def get_group_by_id(self, tenant, region, group_id):
@@ -104,8 +103,7 @@ class GroupService(object):
             msg_show=u"组不存在",
             tenant_id=tenant.tenant_id,
             region_name=response_region,
-            pk=group_id
-        )
+            pk=group_id)
 
     def get_services_group_name(self, service_ids):
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
@@ -119,19 +117,21 @@ class GroupService(object):
             gsr.group_id = group_id
             gsr.save()
         else:
-            params = {"service_id": service.service_id, "group_id": group_id, "tenant_id": tenant.tenant_id,
-                      "region_name": service.service_region}
+            params = {
+                "service_id": service.service_id,
+                "group_id": group_id,
+                "tenant_id": tenant.tenant_id,
+                "region_name": service.service_region
+            }
             group_service_relation_repo.create_service_group_relation(**params)
         return 200, "success"
 
     def get_groups_and_services(self, tenant, region):
         groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region)
-        services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values("service_id",
-                                                                                            "service_cname",
-                                                                                            "service_alias")
+        services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
+            "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
-            [g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in service_group_map.iteritems():

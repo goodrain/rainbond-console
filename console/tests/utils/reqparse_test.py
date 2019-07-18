@@ -76,70 +76,55 @@ class ParseArgumentTestCase(TestCase):
 
     def test_parse_argument_return_int_must(self):
         """测试获取必填参数"""
-        value = parse_argument(
-            self.request,
-            'a',
-            value_type=int,
-            required=True,
-            error="缺少必填参数"
-        )
+        value = parse_argument(self.request, 'a', value_type=int, required=True, error="缺少必填参数")
         self.assertEqual(value, 1)
 
     def test_parse_argument_return_list_must(self):
         """测试获取 list 必填参数"""
-        value = parse_argument(
-            self.request,
-            'c',
-            value_type=list,
-            required=True,
-            error="缺少必填参数"
-        )
+        value = parse_argument(self.request, 'c', value_type=list, required=True, error="缺少必填参数")
         self.assertEqual(isinstance(value, list), True)
         self.assertEqual(value, ['django', 'test'])
 
     def test_not_parse_argument_return_list_must(self):
         """测试获取不到 list 必填参数"""
         try:
-            parse_argument(
-                self.request,
-                'not_list',
-                value_type=list,
-                required=True,
-                error="缺少必填参数"
-            )
+            parse_argument(self.request, 'not_list', value_type=list, required=True, error="缺少必填参数")
         except AbortRequest as e:
             self.assertEqual(isinstance(e, AbortRequest), True)
 
     def test_not_parse_argument_return_int_must(self):
         """测试获取不到必填参数"""
         try:
-            parse_argument(
-                self.request,
-                'not_int',
-                value_type=int,
-                required=True,
-                error="缺少必填参数"
-            )
+            parse_argument(self.request, 'not_int', value_type=int, required=True, error="缺少必填参数")
         except AbortRequest as e:
             self.assertEqual(isinstance(e, AbortRequest), True)
 
     def test_parse_args(self):
         """测试解析多个参数"""
         args_conf = (
-            {'key': 'a', 'value_type': int},
-            {'key': 'b', 'value_type': str},
-            {'key': 'c', 'value_type': list},
-            {'key': 'not_list', 'value_type': list},
+            {
+                'key': 'a',
+                'value_type': int
+            },
+            {
+                'key': 'b',
+                'value_type': str
+            },
+            {
+                'key': 'c',
+                'value_type': list
+            },
+            {
+                'key': 'not_list',
+                'value_type': list
+            },
         )
         args = parse_args(self.request, args_conf)
-        self.assertEqual(
-            args,
-            {
-                'a': 1,
-                'b': 'hello',
-                'c': ['django', 'test'],
-            }
-        )
+        self.assertEqual(args, {
+            'a': 1,
+            'b': 'hello',
+            'c': ['django', 'test'],
+        })
 
 
 class ParseDateTestCase(TestCase):
@@ -170,16 +155,22 @@ class ParseDateTestCase(TestCase):
     def test_parse_data(self):
         """测试解析data"""
         data_conf = (
-            {'key': 'a', 'required': True},
-            {'key': 'b', 'required': True},
-            {'key': 'c', 'default': [1, 2]},
+            {
+                'key': 'a',
+                'required': True
+            },
+            {
+                'key': 'b',
+                'required': True
+            },
+            {
+                'key': 'c',
+                'default': [1, 2]
+            },
         )
         data = parse_date(self.request, data_conf)
-        self.assertEqual(
-            data,
-            {
-                'a': 1,
-                'b': 'hello',
-                'c': [1, 2],
-            }
-        )
+        self.assertEqual(data, {
+            'a': 1,
+            'b': 'hello',
+            'c': [1, 2],
+        })

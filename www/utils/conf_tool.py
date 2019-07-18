@@ -3,14 +3,12 @@
 from goodrain_web.custom_config import custom_config as custom_settings
 from django.conf import settings
 import logging
-import  os
 from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger('default')
 
 
 class RegionConfig(object):
-
     def regions(cls):
         configs = custom_settings.configs()
         # api_conf = custom_settings.REGION_SERVICE_API
@@ -18,8 +16,7 @@ class RegionConfig(object):
         # 自定义配置不存在时访问settings文件
         if not api_conf:
             regions = region_repo.get_all_regions()
-            region_list = [{"name": r.region_name, "label": r.region_alias, "enable": bool(r.status == "1")} for r in
-                           regions]
+            region_list = [{"name": r.region_name, "label": r.region_alias, "enable": bool(r.status == "1")} for r in regions]
             return region_list
         else:
             region_list = []
@@ -45,7 +42,7 @@ class RegionConfig(object):
                 region_map["url"] = region["url"]
 
                 region_map["apitype"] = "region service"
-                region_map["token"] = region.get("token",settings.REGION_TOKEN)
+                region_map["token"] = region.get("token", settings.REGION_TOKEN)
                 region_service_api_list.append(region_map)
             return region_service_api_list
 

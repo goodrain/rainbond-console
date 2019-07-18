@@ -8,7 +8,7 @@ from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
 from console.models.main import RainbondCenterApp
 from console.models.main import ServiceSourceInfo
-from www.models import TenantServiceInfo, Tenants
+from www.models.main import TenantServiceInfo, Tenants
 
 
 @pytest.mark.django_db
@@ -17,11 +17,9 @@ def test_record_not_found(mocker):
         from console.services.app_actions.properties_changes import PropertiesChanges
         service_source = ServiceSourceInfo()
         service_source.group_key = "dummy group_key"
-        mocker.patch("console.repositories.app.service_source_repo.get_service_source",
-                     return_value=service_source)
+        mocker.patch("console.repositories.app.service_source_repo.get_service_source", return_value=service_source)
         properties_changes = PropertiesChanges(TenantServiceInfo(), Tenants())
-        properties_changes.get_property_changes(
-            "eid", "version")
+        properties_changes.get_property_changes("eid", "version")
 
 
 @pytest.mark.django_db
@@ -32,13 +30,12 @@ def test_rbd_app_not_found(mocker):
         app_template = json.load(json_file)
         rain_app = RainbondCenterApp()
         rain_app.app_template = json.dumps(app_template)
-    mocker.patch("console.repositories.market_app_repo.rainbond_app_repo.get_enterpirse_app_by_key_and_version",
-                 return_value=rain_app)
+    mocker.patch(
+        "console.repositories.market_app_repo.rainbond_app_repo.get_enterpirse_app_by_key_and_version", return_value=rain_app)
 
     service_source = ServiceSourceInfo()
     service_source.group_key = "dummy group_key"
-    mocker.patch("console.repositories.app.service_source_repo.get_service_source",
-                 return_value=service_source)
+    mocker.patch("console.repositories.app.service_source_repo.get_service_source", return_value=service_source)
 
     with pytest.raises(RbdAppNotFound):
         properties_changes = PropertiesChanges(TenantServiceInfo(), Tenants())
@@ -91,7 +88,5 @@ def test_envs_changes():
     env_changes = properties_changes.env_changes(envs)
     print env_changes
     assert 2 == len(env_changes["add"])
-    assert next(iter(
-        filter(lambda x: x["attr_name"] == "DESTINATION", env_changes["add"])), None)
-    assert next(iter(filter(
-        lambda x: x["attr_name"] == "TRACEALLEXCEPTIONS", env_changes["add"])), None)
+    assert next(iter(filter(lambda x: x["attr_name"] == "DESTINATION", env_changes["add"])), None)
+    assert next(iter(filter(lambda x: x["attr_name"] == "TRACEALLEXCEPTIONS", env_changes["add"])), None)

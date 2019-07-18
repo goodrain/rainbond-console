@@ -1,4 +1,4 @@
-import json
+
 from django.conf import settings
 
 from goodrain_web.base import BaseHttpClient
@@ -9,7 +9,6 @@ logger = logging.getLogger('default')
 
 
 class UCloudApi(BaseHttpClient):
-
     def __init__(self, token, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/x-www-form-urlencoded'}

@@ -35,8 +35,7 @@ class ComposeGroupBaseView(RegionTenantHeaderView):
         if group:
             self.group = group
         else:
-            raise BusinessException(
-                Response(general_message(404, "group not found", "组ID{0}不存在".format(group_id)), status=404))
+            raise BusinessException(Response(general_message(404, "group not found", "组ID{0}不存在".format(group_id)), status=404))
         self.initial_header_info(request)
 
     def initial_header_info(self, request):
@@ -118,8 +117,8 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             code, msg, group_info = group_service.add_group(self.tenant, self.response_region, group_name)
             if code != 200:
                 return Response(general_message(code, "create group error", msg), status=code)
-            code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region,
-                                                                            group_info.ID, yaml_content, hub_user, hub_pass)
+            code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region, group_info.ID,
+                                                                            yaml_content, hub_user, hub_pass)
             if code != 200:
                 return Response(general_message(code, "create group compose error", msg), status=code)
             bean = dict()
@@ -131,7 +130,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             if group_info:
                 group_info.delete()
             if group_compose:
-                group_compose.delete()    
+                group_compose.delete()
             logger.exception(e)
             result = error_message()
         return Response(result, status=result["code"])
@@ -235,8 +234,7 @@ class ComposeCheckView(ComposeGroupBaseView):
 
             logger.debug("start save compose info ! {0}".format(group_compose.create_status))
             save_code, save_msg, service_list = compose_service.save_compose_services(self.tenant, self.user,
-                                                                                      self.response_region,
-                                                                                      group_compose, data)
+                                                                                      self.response_region, group_compose, data)
             if save_code != 200:
                 data["check_status"] = "failure"
                 save_error = {
@@ -251,8 +249,7 @@ class ComposeCheckView(ComposeGroupBaseView):
             else:
                 transaction.savepoint_commit(sid)
             compose_check_brief = compose_service.wrap_compose_check_info(data)
-            result = general_message(200, "success", "请求成功", bean=compose_check_brief,
-                                     list=[s.to_dict() for s in service_list])
+            result = general_message(200, "success", "请求成功", bean=compose_check_brief, list=[s.to_dict() for s in service_list])
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:

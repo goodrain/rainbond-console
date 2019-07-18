@@ -13,7 +13,6 @@ from backends.services.userservice import user_service
 from backends.views.base import BaseAPIView
 from console.views.base import AlowAnyApiView
 from www.apiclient.baseclient import client_auth_service
-from www.services import enterprise_svc
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User as TokenAuthUser
 from console.services.user_services import user_services
@@ -28,7 +27,7 @@ logger = logging.getLogger("default")
 class AccountCreateView(BaseAPIView):
     def post(self, request, *args, **kwargs):
         """
-        管理后台初始化云帮账户
+        管理后台初始化云帮账户（deprecated）
 
         ---
         parameters:
@@ -64,10 +63,8 @@ class AccountCreateView(BaseAPIView):
             enterprise = enterprise_service.create_enterprise(eid, name, name, "", is_active)
             # 创建用户
             logger.debug("create tenant user")
-            user = user_service.create_user(username, password, email or '', phone or '', enterprise.enterprise_id,
-                                            "backend")
+            user = user_service.create_user(username, password, email or '', phone or '', enterprise.enterprise_id, "backend")
             logger.debug("create tenant and init tenant")
-            enterprise_svc.create_and_init_tenant(user_id=user.user_id, enterprise_id=user.enterprise_id)
             user.is_active = True
             user.save()
             result = generate_result("0000", "success", "初始化成功")
@@ -142,8 +139,11 @@ class EnterpriseFuzzyQueryView(BaseAPIView):
             if enterprise_name:
                 enters = enterprise_service.fuzzy_query_enterprise_by_enterprise_name(enterprise_name)
 
-            rt_enterprises = [{"enterprise_id": enter.enterprise_id, "enterprise_name": enter.enterprise_name,
-                               "enterprise_alias": enter.enterprise_alias} for enter in enters]
+            rt_enterprises = [{
+                "enterprise_id": enter.enterprise_id,
+                "enterprise_name": enter.enterprise_name,
+                "enterprise_alias": enter.enterprise_alias
+            } for enter in enters]
             result = generate_result("0000", "success", "查询成功", list=rt_enterprises)
         except Exception as e:
             logger.exception(e)
@@ -186,24 +186,25 @@ class AuthAccessTokenView(AlowAnyApiView):
             enterprise_alias = request.data.get("enterprise_alias", None)
             # 校验参数
             if not enterprise_alias:
-                return Response(generate_result(
-                    "1003", "params error", "参数错误"))
+                return Response(generate_result("1003", "params error", "参数错误"))
             # 查询企业信息
 
             enterprise = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
             logger.debug('----------type----------->{0}'.format(type(enterprise)))
 
             if not enterprise:
-                return Response(generate_result(
-                    "1005", "enterprise already exists", "当前企业在控制台不存在"))
+                return Response(generate_result("1005", "enterprise already exists", "当前企业在控制台不存在"))
             # 获取企业第一个用户（即企业管理员）
             users = user_repo.get_enterprise_users(enterprise.enterprise_id).order_by("user_id")
             if not users:
-                return Response(generate_result(
-                    "1007", "is not enterprise admin", "无企业管理员"))
+                return Response(generate_result("1007", "is not enterprise admin", "无企业管理员"))
             admin_user = users[0]
             token = auth_service.create_token_auth_user(admin_user.nick_name, admin_user.password)
-            bean = {"console_access_token": token.key, "enterprise_info": enterprise.to_dict(), "user_info": admin_user.to_dict()}
+            bean = {
+                "console_access_token": token.key,
+                "enterprise_info": enterprise.to_dict(),
+                "user_info": admin_user.to_dict()
+            }
 
             result = generate_result("0000", "success", "信息获取成功", bean=bean)
 

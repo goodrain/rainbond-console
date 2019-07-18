@@ -3,10 +3,9 @@ import json
 import logging
 
 from www.apiclient.marketclient import MarketOpenAPI
-from www.models import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
-    TenantServiceEnvVar, TenantServiceVolume, ServiceExtendMethod, PublishedGroupServiceRelation, ServiceGroupRelation
-
-
+from www.models.main import TenantServicesPort, TenantServiceRelation, TenantServiceInfo, \
+    TenantServiceEnvVar, TenantServiceVolume, ServiceGroupRelation
+from www.models.service_publish import ServiceExtendMethod, PublishedGroupServiceRelation
 logger = logging.getLogger('default')
 
 
@@ -89,9 +88,9 @@ class PublishAppService(object):
 
     def add_app_extend_info(self, service, service_key, app_version):
 
-        logger.debug("group.publish",
-                     u'group.share.service. now add group shared service extend method for service {0} ok'.format(
-                         service.service_id))
+        logger.debug(
+            "group.publish",
+            u'group.share.service. now add group shared service extend method for service {0} ok'.format(service.service_id))
         count = ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
             extend_method = ServiceExtendMethod(
@@ -109,24 +108,19 @@ class PublishAppService(object):
             ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version) \
                 .update(min_node=service.min_node, min_memory=service.min_memory)
 
-
     def get_app_service_extend_method(self, service_key, app_version):
-        return ServiceExtendMethod.objects.filter(service_key=service_key,
-                                                  app_version=app_version)
+        return ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version)
 
     def update_or_create_group_service_relation(self, app_service_map, app_service_group):
         for s_id, app in app_service_map.items():
-            pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,
-                                                                     service_id=s_id)
+            pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID, service_id=s_id)
             if not pgsr_list:
-                PublishedGroupServiceRelation.objects.create(group_pk=app_service_group.ID, service_id=s_id,
-                                                             service_key=app.service_key,
-                                                             version=app.app_version)
+                PublishedGroupServiceRelation.objects.create(
+                    group_pk=app_service_group.ID, service_id=s_id, service_key=app.service_key, version=app.app_version)
             else:
-                PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,
-                                                             service_id=s_id).update(
-                    service_key=app.service_key,
-                    version=app.app_version)
+                PublishedGroupServiceRelation.objects.filter(
+                    group_pk=app_service_group.ID, service_id=s_id).update(
+                        service_key=app.service_key, version=app.app_version)
 
     def delete_group_service_relation_by_group_pk(self, group_pk):
         PublishedGroupServiceRelation.objects.filter(group_pk=group_pk).delete()
@@ -142,8 +136,7 @@ class PublishAppService(object):
         """
         获取租户指定的组下的所有服务
         """
-        svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id,
-                                                            region_name=region)
+        svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id, region_name=region)
         if not svc_relations:
             return list()
 

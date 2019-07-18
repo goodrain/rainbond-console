@@ -5,7 +5,7 @@
 import logging
 
 from www.db.base import BaseConnection
-from www.models import ServiceGroupRelation, ServiceGroup
+from www.models.main import ServiceGroupRelation, ServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -13,9 +13,7 @@ logger = logging.getLogger("default")
 class ServiceGroupRepository(object):
     def get_rel_region(self, service_id, tenant_id, region):
         try:
-            return ServiceGroupRelation.objects.get(
-                service_id=service_id, tenant_id=tenant_id, region_name=region
-            )
+            return ServiceGroupRelation.objects.get(service_id=service_id, tenant_id=tenant_id, region_name=region)
         except ServiceGroupRelation.DoesNotExist:
             return None
 

@@ -21,7 +21,7 @@ e_s = AppEventService()
 class ServiceEventDynamic(object):
     def get_team_current_region_service_events(self, region, team, page, page_size):
         dsn = BaseConnection()
-        start = (int(page)-1) * int(page_size)
+        start = (int(page) - 1) * int(page_size)
         end = page_size
 
         query_sql = """
@@ -32,7 +32,8 @@ class ServiceEventDynamic(object):
           and s.service_region = "{region_name}"
         ORDER BY start_time DESC
         LIMIT {start},{end}
-        """.format(team_id=team.tenant_id, region_name=region, start=start, end=end)
+        """.format(
+            team_id=team.tenant_id, region_name=region, start=start, end=end)
 
         events = dsn.query(query_sql)
         events_ids = []

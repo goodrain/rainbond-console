@@ -5,11 +5,10 @@ import datetime as dt
 
 from django.conf import settings
 
-from www.models import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, \
+from www.models.main import TenantServiceInfo, TenantServicesPort, Tenants, ServiceAttachInfo, ServiceConsume, \
     ServiceFeeBill, \
     TenantRegionInfo
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantRegionResource, TenantServiceStatics, \
-    ServiceAttachInfo
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantRegionResource
 from www.tenantservice.baseservice import TenantAccountService, ServiceAttachInfoManage
 
 from www.apiclient.regionapi import RegionInvokeApi
@@ -48,8 +47,7 @@ class TenantService(object):
         """
         获取租户指定的组下的所有服务
         """
-        svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id,
-                                                            region_name=region)
+        svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id, region_name=region)
         if not svc_relations:
             return list()
 
@@ -63,8 +61,8 @@ class TenantService(object):
             return None
 
     def get_access_url(self, tenant, service):
-        tenant_ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id,
-                                                         is_outer_service=1)
+        tenant_ports = TenantServicesPort.objects.filter(
+            tenant_id=tenant.tenant_id, service_id=service.service_id, is_outer_service=1)
         if not tenant_ports:
             return ''
 
@@ -73,11 +71,8 @@ class TenantService(object):
         wild_domain = settings.WILD_DOMAINS[service.service_region]
         wild_domain_port = settings.WILD_PORTS[service.service_region]
 
-        access_url = 'http://{0}.{1}.{2}{3}:{4}'.format(tenant_port.container_port,
-                                                        service.service_alias,
-                                                        tenant.tenant_name,
-                                                        wild_domain,
-                                                        wild_domain_port)
+        access_url = 'http://{0}.{1}.{2}{3}:{4}'.format(tenant_port.container_port, service.service_alias, tenant.tenant_name,
+                                                        wild_domain, wild_domain_port)
         return access_url
 
     def __get_tenant_service_pay_status(self, tenant, service, service_current_status):
@@ -89,8 +84,7 @@ class TenantService(object):
 
         now = datetime.datetime.now()
         try:
-            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id,
-                                                                service_id=service.service_id)
+            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id, service_id=service.service_id)
         except ServiceAttachInfo.DoesNotExist:
             return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
 
@@ -99,16 +93,15 @@ class TenantService(object):
         memory_pay_method = service_attach_info.memory_pay_method
         disk_pay_method = service_attach_info.disk_pay_method
 
-        service_consume_list = ServiceConsume.objects.filter(tenant_id=tenant.tenant_id,
-                                                             service_id=service.service_id).order_by("-ID")
+        service_consume_list = ServiceConsume.objects.filter(
+            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
         last_hour_cost = None
         if service_consume_list:
             last_hour_cost = service_consume_list[0]
             rt_money = last_hour_cost.pay_money
 
-        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=service.service_id,
-                                                                tenant_id=tenant.tenant_id,
-                                                                pay_status="unpayed")
+        service_unpay_bill_list = ServiceFeeBill.objects.filter(
+            service_id=service.service_id, tenant_id=tenant.tenant_id, pay_status="unpayed")
         buy_start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
         diff_minutes = int((buy_start_time - now).total_seconds() / 60)
         if service_current_status == "running":
@@ -116,8 +109,7 @@ class TenantService(object):
                 if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
                     if service_unpay_bill_list:
                         rt_status = "wait_for_pay"
-                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str,
-                                                        service_unpay_bill_list[0].prepaid_money)
+                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str, service_unpay_bill_list[0].prepaid_money)
                         need_pay_money = service_unpay_bill_list[0].prepaid_money
                         start_time_str = buy_start_time_str
                     else:
@@ -150,8 +142,7 @@ class TenantService(object):
     def get_tenant_service_status(self, tenant, service):
         result = {}
         if tenantAccountService.isOwnedMoney(tenant, service.service_region):
-            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id,
-                                                                service_id=service.service_id)
+            service_attach_info = ServiceAttachInfo.objects.get(tenant_id=tenant.tenant_id, service_id=service.service_id)
             is_prepaid = attach_manager.is_during_monthly_payment(service_attach_info)
             if not is_prepaid:
                 result["totalMemory"] = 0
@@ -216,10 +207,8 @@ class TenantService(object):
             tenant_region.save()
         if not tenant_region.is_init:
             api = RegionInvokeApi()
-            logger.debug(
-                "create tenant {0} with tenant_id {1} on region {2}".format(tenant.tenant_name,
-                                                                            tenant.tenant_id,
-                                                                            region))
+            logger.debug("create tenant {0} with tenant_id {1} on region {2}".format(tenant.tenant_name, tenant.tenant_id,
+                                                                                     region))
             logger.info("start invoking api to init region tenant !")
             try:
                 res, body = api.create_tenant(region, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
@@ -269,17 +258,25 @@ class TenantService(object):
     def limit_region_resource(self, tenant, region, res=None):
         """
         设置团队的资源使用上限
-        :param tenant: 
-        :param region: 
-        :param res: 
-        :return: 
         """
         if not res:
             expire_time = dt.datetime.now() + dt.timedelta(days=7)
             res = {
-                'memory': {'limit': 4096, 'stock': 0, 'expire_date': expire_time},
-                'disk': {'limit': 1024, 'stock': 0, 'expire_date': expire_time},
-                'net': {'limit': 1024, 'stock': 1024, 'expire_date': expire_time}
+                'memory': {
+                    'limit': 4096,
+                    'stock': 0,
+                    'expire_date': expire_time
+                },
+                'disk': {
+                    'limit': 1024,
+                    'stock': 0,
+                    'expire_date': expire_time
+                },
+                'net': {
+                    'limit': 1024,
+                    'stock': 1024,
+                    'expire_date': expire_time
+                }
             }
 
         logger.debug('config res limit ===>')
@@ -294,15 +291,13 @@ class TenantService(object):
 
         tenant_region_res.memory_limit = int(res['memory']['limit'])
         if res['memory']['expire_date']:
-            tenant_region_res.memory_expire_date = datetime.datetime.strptime(res['memory']['expire_date'],
-                                                                              "%Y-%m-%d %H:%M:%S")
+            tenant_region_res.memory_expire_date = datetime.datetime.strptime(res['memory']['expire_date'], "%Y-%m-%d %H:%M:%S")
         else:
             logger.error('bad_memory_expire_date: null')
 
         tenant_region_res.disk_limit = int(res['disk']['limit'])
         if res['disk']['expire_date']:
-            tenant_region_res.disk_expire_date = datetime.datetime.strptime(res['disk']['expire_date'],
-                                                                            "%Y-%m-%d %H:%M:%S")
+            tenant_region_res.disk_expire_date = datetime.datetime.strptime(res['disk']['expire_date'], "%Y-%m-%d %H:%M:%S")
         else:
             logger.error('bad_disk_expire_date: null')
 
@@ -368,9 +363,8 @@ class TenantService(object):
         limit_net = 0
 
         now_time = datetime.datetime.now()
-        attch_info_list = ServiceAttachInfo.objects.filter(tenant_id=tenant.tenant_id, region=region,
-                                                           buy_start_time__lt=now_time,
-                                                           buy_end_time__gt=now_time)
+        attch_info_list = ServiceAttachInfo.objects.filter(
+            tenant_id=tenant.tenant_id, region=region, buy_start_time__lt=now_time, buy_end_time__gt=now_time)
         for attch_info in attch_info_list:
             if attch_info.disk_pay_method == 'prepaid':
                 limit_disk += attch_info.disk

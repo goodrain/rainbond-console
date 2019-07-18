@@ -2,7 +2,7 @@
 """
   Created on 18/1/29.
 """
-from www.models import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems
+from www.models.plugin import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems
 from www.db.base import BaseConnection
 
 
@@ -24,22 +24,19 @@ class TenantPluginRepository(object):
         return TenantPlugin.objects.filter(plugin_id__in=plugin_ids)
 
     def get_plugin_buildversion(self, plugin_id, version):
-        build_verison = PluginBuildVersion.objects.filter(
-            plugin_id=plugin_id, build_version=version)
+        build_verison = PluginBuildVersion.objects.filter(plugin_id=plugin_id, build_version=version)
         if build_verison:
             return build_verison[0]
         return None
 
     def get_plugin_config_groups(self, plugin_id, version):
-        config_groups = PluginConfigGroup.objects.filter(
-            plugin_id=plugin_id, build_version=version)
+        config_groups = PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=version)
         if config_groups:
             return config_groups
         return []
 
     def get_plugin_config_items(self, plugin_id, version):
-        config_items = PluginConfigItems.objects.filter(
-            plugin_id=plugin_id, build_version=version)
+        config_items = PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=version)
         if config_items:
             return config_items
         return []
@@ -54,7 +51,8 @@ class TenantPluginRepository(object):
             ids = ids[:-1]
         dsn = BaseConnection()
         query_sql = '''
-            select t.*,p.build_version from tenant_plugin t,plugin_build_version p,tenant_service_plugin_relation r where r.service_id in({service_ids}) and t.plugin_id=r.plugin_id and p.build_version=r.build_version
+            select t.*,p.build_version from tenant_plugin t,plugin_build_version p,tenant_service_plugin_relation r \
+            where r.service_id in({service_ids}) and t.plugin_id=r.plugin_id and p.build_version=r.build_version
             '''.format(service_ids=ids)
         plugins = dsn.query(query_sql)
         return plugins

@@ -10,11 +10,11 @@ from django.db.models import Q
 from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
-from console.models import AppUpgradeRecord
-from console.models import RainbondCenterApp
-from console.models import ServiceSourceInfo
-from console.models import ServiceUpgradeRecord
-from console.models import UpgradeStatus
+from console.models.main import AppUpgradeRecord
+from console.models.main import RainbondCenterApp
+from console.models.main import ServiceSourceInfo
+from console.models.main import ServiceUpgradeRecord
+from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -33,30 +33,16 @@ class UpgradeService(object):
             "create_time": datetime.now(),
         }
         try:
-            app_record = upgrade_repo.get_app_not_upgrade_record(
-                status__lt=UpgradeStatus.UPGRADED.value,
-                **recode_kwargs
-            )
+            app_record = upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
         except AppUpgradeRecord.DoesNotExist:
             from console.services.group_service import group_service
             service_group_keys = group_service.get_group_service_sources(group_id).values_list('group_key', flat=True)
             if group_key not in set(service_group_keys or []):
-                raise AbortRequest(
-                    msg="the rainbond app is not in the group",
-                    msg_show="该组中没有这个云市应用",
-                    status_code=404
-                )
+                raise AbortRequest(msg="the rainbond app is not in the group", msg_show="该组中没有这个云市应用", status_code=404)
             app = rainbond_app_repo.get_rainbond_app_qs_by_key(group_key).first()
             if not app:
-                raise AbortRequest(
-                    msg="No rainbond app found",
-                    msg_show="没有找到此云市应用",
-                    status_code=404
-                )
-            app_record = upgrade_repo.create_app_upgrade_record(
-                group_name=app.group_name,
-                **recode_kwargs
-            )
+                raise AbortRequest(msg="No rainbond app found", msg_show="没有找到此云市应用", status_code=404)
+            app_record = upgrade_repo.create_app_upgrade_record(group_name=app.group_name, **recode_kwargs)
         return app_record
 
     def get_app_not_upgrade_record(self, tenant_id, group_id, group_key):
@@ -67,10 +53,7 @@ class UpgradeService(object):
             "group_key": group_key,
         }
         try:
-            return upgrade_repo.get_app_not_upgrade_record(
-                status__lt=UpgradeStatus.UPGRADED.value,
-                **recode_kwargs
-            )
+            return upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
         except AppUpgradeRecord.DoesNotExist:
             return AppUpgradeRecord()
 
@@ -103,12 +86,10 @@ class UpgradeService(object):
         versions = ServiceSourceInfo.objects.filter(
             group_key=group_key,
             service_id__in=service_ids,
-        ).values_list('version', flat=True) or []
+        ).values_list(
+            'version', flat=True) or []
 
-        app = RainbondCenterApp.objects.filter(
-            group_key=group_key,
-            version__in=versions
-        ).order_by('-create_time').first()
+        app = RainbondCenterApp.objects.filter(group_key=group_key, version__in=versions).order_by('-create_time').first()
         return app.version if app else ''
 
     def query_the_version_of_the_add_service(self, app_qs, service_keys):
@@ -117,10 +98,7 @@ class UpgradeService(object):
         :type service_keys: set
         :rtype: set
         """
-        version_app_template_mapping = {
-            app.version: self.parse_app_template(app.app_template)
-            for app in app_qs
-        }
+        version_app_template_mapping = {app.version: self.parse_app_template(app.app_template) for app in app_qs}
         return {
             version
             for version, parse_app_template in version_app_template_mapping.items()
@@ -135,18 +113,12 @@ class UpgradeService(object):
         :rtype: dict
         """
         new_service_keys = set(parse_app_template.keys()) - set(service_keys)
-        return {
-            key: parse_app_template[key]
-            for key in new_service_keys
-        }
+        return {key: parse_app_template[key] for key in new_service_keys}
 
     @staticmethod
     def parse_app_template(app_template):
         """解析app_template， 返回service_key与service_info映射"""
-        return {
-            app['service_key']: app
-            for app in json.loads(app_template)['apps']
-        }
+        return {app['service_key']: app for app in json.loads(app_template)['apps']}
 
     @staticmethod
     def get_service_changes(service, tenant, version):
@@ -189,8 +161,7 @@ class UpgradeService(object):
 
         event_service_mapping = {
             record.event_id: record
-            for record in service_records
-            if record.status in synchronization_type and record.event_id
+            for record in service_records if record.status in synchronization_type and record.event_id
         }
         events = event_repo.get_events_by_event_ids(event_service_mapping.keys())
         # 去数据中心同步事件
@@ -215,20 +186,15 @@ class UpgradeService(object):
     @staticmethod
     def create_add_service_record(app_record, events, add_service_infos):
         """创建新增服务升级记录"""
-        service_id_event_mapping = {
-            event.service_id: event
-            for event in events
-        }
-        services = service_repo.get_services_by_service_ids_and_group_key(
-            app_record.group_key,
-            service_id_event_mapping.keys()
-        )
+        service_id_event_mapping = {event.service_id: event for event in events}
+        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_id_event_mapping.keys())
         for service in services:
             upgrade_repo.create_service_upgrade_record(
-                app_record, service, service_id_event_mapping[service.service_id],
+                app_record,
+                service,
+                service_id_event_mapping[service.service_id],
                 add_service_infos[service.service_key],
-                upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value
-            )
+                upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
 
     @staticmethod
     def market_service_and_create_backup(tenant, service, version):
@@ -267,21 +233,11 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(
-                tenant,
-                market_service.service,
-                user,
-                True,
-                app_record.version
-            )
+            code, msg, event = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
 
-            upgrade_repo.create_service_upgrade_record(
-                app_record,
-                market_service.service,
-                event,
-                service_infos[market_service.service.service_id],
-                self._get_sync_upgrade_status(code, event)
-            )
+            upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event,
+                                                       service_infos[market_service.service.service_id],
+                                                       self._get_sync_upgrade_status(code, event))
 
     @staticmethod
     def _get_sync_upgrade_status(code, event):
@@ -338,9 +294,9 @@ class UpgradeService(object):
         if UpgradeStatus.ROLLING.value in service_status:
             return
         elif len(service_status) > 1 and service_status <= {
-            UpgradeStatus.ROLLBACK_FAILED.value,
-            UpgradeStatus.ROLLBACK.value,
-            UpgradeStatus.UPGRADED.value,
+                UpgradeStatus.ROLLBACK_FAILED.value,
+                UpgradeStatus.ROLLBACK.value,
+                UpgradeStatus.UPGRADED.value,
         }:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
@@ -368,18 +324,9 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(
-                tenant,
-                market_service.service,
-                user,
-                True,
-                app_record.version
-            )
+            code, msg, event = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
             service_record = service_records.get(service_id=market_service.service.service_id)
-            upgrade_repo.change_service_record_status(
-                service_record,
-                self._get_sync_rolling_status(code, event)
-            )
+            upgrade_repo.change_service_record_status(service_record, self._get_sync_rolling_status(code, event))
             # 改变event id
             if code == 200:
                 service_record.event_id = event.event_id if event else ''
@@ -402,23 +349,19 @@ class UpgradeService(object):
         :type : AppUpgradeRecord
         """
         return dict(
-            service_record=[
-                {
-                    "status": service_record.status,
-                    "update_time": service_record.update_time,
-                    "event_id": service_record.event_id,
-                    "update": json.loads(service_record.update),
-                    "app_upgrade_record": service_record.app_upgrade_record_id,
-                    "service_cname": service_record.service_cname,
-                    "create_time": service_record.create_time,
-                    "service_id": service_record.service_id,
-                    "upgrade_type": service_record.upgrade_type,
-                    "ID": service_record.ID
-                }
-                for service_record in app_record.service_upgrade_records.all()
-            ],
-            **app_record.to_dict()
-        )
+            service_record=[{
+                "status": service_record.status,
+                "update_time": service_record.update_time,
+                "event_id": service_record.event_id,
+                "update": json.loads(service_record.update),
+                "app_upgrade_record": service_record.app_upgrade_record_id,
+                "service_cname": service_record.service_cname,
+                "create_time": service_record.create_time,
+                "service_id": service_record.service_id,
+                "upgrade_type": service_record.upgrade_type,
+                "ID": service_record.ID
+            } for service_record in app_record.service_upgrade_records.all()],
+            **app_record.to_dict())
 
 
 upgrade_service = UpgradeService()

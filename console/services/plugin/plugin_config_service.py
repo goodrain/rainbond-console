@@ -5,7 +5,7 @@
 from console.repositories.plugin import config_group_repo, config_item_repo
 from django.forms import model_to_dict
 from console.constants import PluginMetaType
-from www.models import PluginConfigItems, PluginConfigGroup
+from www.models.plugin import PluginConfigItems, PluginConfigGroup
 
 
 class PluginConfigService(object):
@@ -14,8 +14,7 @@ class PluginConfigService(object):
         config_group = []
         for conf in config_groups:
             config_dict = model_to_dict(conf)
-            items = config_item_repo.get_config_items_by_unique_key(conf.plugin_id, conf.build_version,
-                                                                    conf.service_meta_type)
+            items = config_item_repo.get_config_items_by_unique_key(conf.plugin_id, conf.build_version, conf.service_meta_type)
             options = [model_to_dict(item) for item in items]
             config_dict["options"] = options
             config_group.append(config_dict)
@@ -62,8 +61,7 @@ class PluginConfigService(object):
                 attr_default_value=option.get("attr_default_value", None),
                 is_change=option.get("is_change", False),
                 attr_info=option.get("attr_info", ""),
-                protocol=option.get("protocol", "")
-            )
+                protocol=option.get("protocol", ""))
             config_items_list.append(config_item)
 
         config_item_repo.bulk_create_items(config_items_list)
@@ -79,8 +77,7 @@ class PluginConfigService(object):
                     build_version=build_version,
                     config_name=config["config_name"],
                     service_meta_type=config["service_meta_type"],
-                    injection=config["injection"]
-                )
+                    injection=config["injection"])
                 plugin_config_meta_list.append(plugin_config_meta)
 
                 for option in options:
@@ -94,8 +91,7 @@ class PluginConfigService(object):
                         attr_default_value=option.get("attr_default_value", None),
                         is_change=option.get("is_change", False),
                         attr_info=option.get("attr_info", ""),
-                        protocol=option.get("protocol", "")
-                    )
+                        protocol=option.get("protocol", ""))
                     config_items_list.append(config_item)
 
         config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)

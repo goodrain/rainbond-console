@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from console.appstore.appstore import app_store
-from console.models import RainbondCenterPlugin, PluginShareRecordEvent
+from console.models.main import RainbondCenterPlugin, PluginShareRecordEvent
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
@@ -17,7 +17,8 @@ from console.services.common_services import common_services
 from console.services.plugin import plugin_version_service, plugin_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import make_uuid, TenantPlugin, PluginConfigGroup, PluginConfigItems
+from www.models.plugin import TenantPlugin, PluginConfigGroup, PluginConfigItems
+from www.models.main import make_uuid
 from www.services import plugin_svc
 
 market_api = MarketOpenAPI()
@@ -26,8 +27,16 @@ logger = logging.getLogger('default')
 
 
 class MarketPluginService(object):
-    def get_paged_plugins(self, plugin_name="", is_complete=None, scope="", source="",
-                          tenant=None, page=1, limit=10, order_by="", category=""):
+    def get_paged_plugins(self,
+                          plugin_name="",
+                          is_complete=None,
+                          scope="",
+                          source="",
+                          tenant=None,
+                          page=1,
+                          limit=10,
+                          order_by="",
+                          category=""):
         q = Q(enterprise_id__in=[tenant.enterprise_id, "public"])
 
         if source:
@@ -83,9 +92,7 @@ class MarketPluginService(object):
     def sync_market_plugins(self, tenant, user, page, limit, plugin_name=''):
         market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
-        plugins = RainbondCenterPlugin.objects.filter(
-            enterprise_id__in=["public", tenant.enterprise_id]
-        )
+        plugins = RainbondCenterPlugin.objects.filter(enterprise_id__in=["public", tenant.enterprise_id])
 
         for p in market_plugins:
             if plugins.filter(plugin_key=p.get('plugin_key'), version=p.get('version')).exists():
@@ -96,16 +103,15 @@ class MarketPluginService(object):
         return market_plugins, total
 
     def sync_market_plugin_templates(self, user, tenant, plugin_data):
-        plugin_template = market_api.get_plugin_templates(
-            tenant.tenant_id, plugin_data.get('plugin_key'), plugin_data.get('version')
-        )
+        plugin_template = market_api.get_plugin_templates(tenant.tenant_id, plugin_data.get('plugin_key'),
+                                                          plugin_data.get('version'))
         market_plugin = plugin_template.get('plugin')
         if not market_plugin:
             return True
         rcps = RainbondCenterPlugin.objects.filter(
-            plugin_key=market_plugin.get('plugin_key'), version=market_plugin.get('major_version'),
-            enterprise_id__in=[tenant.enterprise_id, "public"]
-        )
+            plugin_key=market_plugin.get('plugin_key'),
+            version=market_plugin.get('major_version'),
+            enterprise_id__in=[tenant.enterprise_id, "public"])
 
         rcp = None
         if rcps:
@@ -153,8 +159,7 @@ class MarketPluginService(object):
                 enterprise_id=enterprise_id,
                 plugin_template=market_plugin.get("template").get('template_content'),
                 is_complete=True,
-                details=market_plugin.get("desc", "")
-            )
+                details=market_plugin.get("desc", ""))
             rcp.save()
             return True
 
@@ -180,8 +185,7 @@ class MarketPluginService(object):
 
             plugin_id = plugin_info.get("plugin_id")
 
-            plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
-                region_name, tenant, plugin_id)
+            plugin_version = plugin_svc.get_tenant_plugin_newest_versions(region_name, tenant, plugin_id)
 
             if not plugin_version or plugin_version[0].build_status != "build_success":
                 return 400, "插件未构建", None
@@ -207,9 +211,7 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_image_connection_info(
-                plugin_info["scope"], tenant_name
-            )
+            plugin_info["plugin_image"] = app_store.get_image_connection_info(plugin_info["scope"], tenant_name)
             if not plugin_info["plugin_image"]:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -221,12 +223,10 @@ class MarketPluginService(object):
                 team_id=tenant_id,
                 plugin_id=plugin_info['plugin_id'],
                 plugin_name=plugin_info['plugin_name'],
-                event_status='not_start'
-            )
+                event_status='not_start')
             event.save()
 
-            RainbondCenterPlugin.objects.filter(
-                version=plugin_info["version"], plugin_id=share_record.group_id).delete()
+            RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()
 
             plugin_info["source"] = "local"
             plugin_info["record_id"] = share_record.ID
@@ -248,8 +248,7 @@ class MarketPluginService(object):
                 desc=plugin_info.get("desc"),
                 enterprise_id=tenant.enterprise_id,
                 plugin_template=json.dumps(plugin_template),
-                category=plugin_info.get('category')
-            )
+                category=plugin_info.get('category'))
 
             plugin.save()
 
@@ -306,9 +305,8 @@ class MarketPluginService(object):
         return result["plugin_url"]
 
     def get_sync_event_result(self, region_name, tenant_name, record_event):
-        res, body = region_api.share_plugin_result(
-            region_name, tenant_name, record_event.plugin_id, record_event.region_share_id
-        )
+        res, body = region_api.share_plugin_result(region_name, tenant_name, record_event.plugin_id,
+                                                   record_event.region_share_id)
         ret = body.get('bean')
         if ret and ret.get('status'):
             record_event.event_status = ret.get("status")
@@ -320,18 +318,11 @@ class MarketPluginService(object):
         rcps = RainbondCenterPlugin.objects.filter(record_id=record_event.record_id)
         if not rcps:
             return 404, "分享的插件不存在", None
-
         rcp = rcps[0]
-        event_type = "share-yb"
-        if rcp.scope == "goodrain":
-            event_type = "share-ys"
-
         event_id = make_uuid()
         record_event.event_id = event_id
-
         plugin_template = json.loads(rcp.plugin_template)
         share_plugin = plugin_template.get("share_plugin_info")
-
         body = {
             "plugin_id": rcp.plugin_id,
             "plugin_version": rcp.build_version,
@@ -341,7 +332,6 @@ class MarketPluginService(object):
             "share_scope": rcp.scope,
             "image_info": share_plugin.get("plugin_image") if share_plugin else "",
         }
-
         sid = transaction.savepoint()
         try:
             res, body = region_api.share_plugin(region_name, tenant_name, rcp.plugin_id, body)
@@ -349,7 +339,6 @@ class MarketPluginService(object):
             if not data:
                 transaction.savepoint_rollback(sid)
                 return 400, "数据中心分享错误", None
-
             record_event.region_share_id = data.get("share_id", None)
             record_event.event_id = data.get("event_id", None)
             record_event.event_status = "start"
@@ -358,10 +347,8 @@ class MarketPluginService(object):
             image_name = data.get("image_name", None)
             if image_name:
                 plugin_template["share_image"] = image_name
-
             rcp.plugin_template = json.dumps(plugin_template)
             rcp.save()
-
             transaction.savepoint_commit(sid)
             return 200, "数据中心分享开始", record_event
         except Exception as e:
@@ -390,16 +377,8 @@ class MarketPluginService(object):
                     image_tag = "latest"
 
             status, msg, plugin_base_info = plugin_service.create_tenant_plugin(
-                tenant,
-                user.user_id,
-                region_name,
-                share_plugin_info.get("desc"),
-                plugin_template["plugin_name"],
-                plugin_template["category"],
-                "image",
-                image,
-                plugin_template["code_repo"]
-            )
+                tenant, user.user_id, region_name, share_plugin_info.get("desc"), plugin_template["plugin_name"],
+                plugin_template["category"], "image", image, plugin_template["code_repo"])
 
             if status != 200:
                 return status, msg
@@ -412,9 +391,15 @@ class MarketPluginService(object):
             min_memory = build_version.get('min_memory')
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region_name, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id,
-                "", "unbuild", min_memory, image_tag=image_tag, code_version=""
-            )
+                region_name,
+                plugin_base_info.plugin_id,
+                tenant.tenant_id,
+                user.user_id,
+                "",
+                "unbuild",
+                min_memory,
+                image_tag=image_tag,
+                code_version="")
 
             config_groups, config_items = [], []
             share_config_groups = share_plugin_info.get('config_groups', [])
@@ -425,8 +410,7 @@ class MarketPluginService(object):
                     build_version=plugin_build_version.build_version,
                     config_name=group.get("config_name"),
                     service_meta_type=group.get("service_meta_type"),
-                    injection=group.get("injection")
-                )
+                    injection=group.get("injection"))
                 config_groups.append(plugin_config_group)
 
                 share_config_items = group.get('config_items', [])
@@ -441,8 +425,7 @@ class MarketPluginService(object):
                         attr_default_value=item.get("attr_default_value", None),
                         is_change=item.get("is_change", False),
                         attr_info=item.get("attr_info", ""),
-                        protocol=item.get("protocol", "")
-                    )
+                        protocol=item.get("protocol", ""))
                     config_items.append(plugin_config_item)
 
             PluginConfigGroup.objects.bulk_create(config_groups)
@@ -454,9 +437,8 @@ class MarketPluginService(object):
 
             plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
 
-            ret = plugin_service.build_plugin(
-                region_name, plugin_base_info, plugin_build_version, user, tenant, event_id
-                , share_plugin_info.get("plugin_image", None))
+            ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
+                                              share_plugin_info.get("plugin_image", None))
             plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
 

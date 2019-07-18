@@ -16,7 +16,6 @@ from console.repositories.label_repo import label_repo, node_label_repo, service
 from www.utils.crypt import make_uuid
 from www.models.label import Labels
 
-
 logger = logging.getLogger("default")
 
 
@@ -164,8 +163,8 @@ class AppLabelAvailableView(AppBaseView):
                             if label_name not in label_name_list:
                                 label_id = make_uuid("labels")
                                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                                label = Labels(label_id=label_id, label_name=label_name, label_alias=label_name,
-                                               create_time=create_time)
+                                label = Labels(
+                                    label_id=label_id, label_name=label_name, label_alias=label_name, create_time=create_time)
                                 label.save()
                             labels_name_list.append(label_name)
 
@@ -176,9 +175,9 @@ class AppLabelAvailableView(AppBaseView):
             # 去除该服务已绑定的标签
             service_labels = service_label_repo.get_service_labels(self.service.service_id)
             if service_labels:
-                service_labels_id_list = [label.label_id for label in service_labels]
+                service_labels_id_list = [l.label_id for l in service_labels]
                 label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
-                service_labels_name_list = [label.label_name for label in label_obj_list]
+                service_labels_name_list = [l.label_name for l in label_obj_list]
                 for service_labels_name in service_labels_name_list:
                     if service_labels_name in labels_name_list:
                         labels_name_list.remove(service_labels_name)
@@ -194,5 +193,3 @@ class AppLabelAvailableView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-

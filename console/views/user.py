@@ -7,13 +7,13 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from backends.services.exceptions import SameIdentityError, UserNotExistError
-from console.repositories.user_repo import user_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView
 from www.apiclient.baseclient import HttpClient
-from console.services.auth import login, authenticate, logout
-from www.models import AnonymousUser
+from console.services.auth import login, logout
+from django.contrib.auth import authenticate
+from www.models.main import AnonymousUser
 from www.services import user_svc
 from www.utils.return_message import general_message, error_message
 
@@ -27,7 +27,6 @@ class CheckSourceView(AlowAnyApiView):
         ---
 
         """
-        user = request.user
         try:
             # if isinstance(user, AnonymousUser):
             if settings.MODULES.get('SSO_LOGIN'):
@@ -55,7 +54,7 @@ class CheckSourceView(AlowAnyApiView):
 
 
 class UserLoginView(BaseApiView):
-    allowed_methods = ('POST',)
+    allowed_methods = ('POST', )
 
     @never_cache
     def post(self, request):
@@ -94,10 +93,7 @@ class UserLoginView(BaseApiView):
                 u = authenticate(username=user_name, password=raw_passwd)
                 http_client = HttpClient()
                 url = "http://" + request.get_host() + '/console/api-token-auth'
-                default_headers = {
-                    'Connection': 'keep-alive',
-                    'Content-Type': 'application/json'
-                }
+                default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
                 data = {"nick_name": user_name, "password": raw_passwd}
                 res, body = http_client._post(url, default_headers, json.dumps(data))
                 if res.get("status", 400) != 200:
@@ -118,7 +114,6 @@ class UserLoginView(BaseApiView):
 
 
 class UserLogoutView(JWTAuthApiView):
-
     def get(self, request, *args, **kwargs):
         """
         用户登出
@@ -165,14 +160,8 @@ class UserPemTraView(JWTAuthApiView):
               paramType: body
         """
         try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-            )
-            role_list = team_services.get_user_perm_role_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-            )
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            role_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
             no_auth = "owner" not in perm_list and "owner" not in role_list
 
@@ -186,9 +175,8 @@ class UserPemTraView(JWTAuthApiView):
                     code = 400
                     result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
                 else:
-                    code, msg = team_services.change_tenant_admin(user_id=request.user.user_id,
-                                                                  other_user_id=other_user.user_id,
-                                                                  tenant_name=team_name)
+                    code, msg = team_services.change_tenant_admin(
+                        user_id=request.user.user_id, other_user_id=other_user.user_id, tenant_name=team_name)
                     if code == 200:
                         result = general_message(code, "identity modify success", msg)
                     else:
@@ -208,12 +196,19 @@ class UserPemView(JWTAuthApiView):
 
         """
         try:
-            perm_info = [
-                {"key": "admin", "name": u"管理员"},
-                {"key": "developer", "name": u"开发者"},
-                {"key": "viewer", "name": u"观察者"},
-                {"key": "access", "name": u"访问者"}
-            ]
+            perm_info = [{
+                "key": "admin",
+                "name": u"管理员"
+            }, {
+                "key": "developer",
+                "name": u"开发者"
+            }, {
+                "key": "viewer",
+                "name": u"观察者"
+            }, {
+                "key": "access",
+                "name": u"访问者"
+            }]
             result = general_message(200, "get permissions success", "获取权限成功", list=perm_info)
             return Response(result, status=200)
         except Exception as e:
@@ -245,11 +240,7 @@ class UserAddPemView(JWTAuthApiView):
               paramType: body
         """
         try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-            )
-            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
             no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
             if no_auth:
                 code = 400
@@ -263,8 +254,8 @@ class UserAddPemView(JWTAuthApiView):
                     if other_user.user_id == request.user.user_id:
                         result = general_message(400, "failed", "您不能修改自己的权限！")
                         return Response(result, status=400)
-                    team_services.change_tenant_identity(user_id=other_user.user_id, tenant_name=team_name,
-                                                         new_identitys=new_identitys)
+                    team_services.change_tenant_identity(
+                        user_id=other_user.user_id, tenant_name=team_name, new_identitys=new_identitys)
                     result = general_message(code, "identity modify success", "{}权限修改成功".format(user_name))
                 else:
                     result = general_message(400, "identity failed", "修改权限时，权限不能为空")

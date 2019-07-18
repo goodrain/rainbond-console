@@ -89,7 +89,6 @@ urlpatterns = [
     url(r'^v1/announcement$', AllAnnouncementView.as_view()),
     url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
     # 管理后台初始化云帮
-
     url(r'^v1/account/create$', AccountCreateView.as_view()),
     url(r'^v1/account/auth-user-token$', AuthAccessTokenView.as_view()),
     # 管理后台添加(删除)企业管理员
@@ -107,4 +106,3 @@ urlpatterns = [
     url(r'^v1/events$', ServiceOperateView.as_view()),
     url(r'^v1/events/detail$', ServiceOperationDetailView.as_view()),
 ]
-

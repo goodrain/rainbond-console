@@ -3,12 +3,7 @@
 
 def general_message(code, msg, msg_show, bean=None, list=None, *args, **kwargs):
     """生成响应信息"""
-    return {
-        "code": code,
-        "msg": msg,
-        "msg_show": msg_show,
-        "data": dict(bean=bean or {}, list=list or [], **kwargs)
-    }
+    return {"code": code, "msg": msg, "msg_show": msg_show, "data": dict(bean=bean or {}, list=list or [], **kwargs)}
 
 
 def error_message(en_msg=None):

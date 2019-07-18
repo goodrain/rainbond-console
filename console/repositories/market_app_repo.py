@@ -52,16 +52,11 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        return get_object_or_404(
-            RainbondCenterApp,
-            msg='rainbond center app not found',
-            group_key=group_key,
-            version=version
-        )
+        return get_object_or_404(RainbondCenterApp, msg='rainbond center app not found', group_key=group_key, version=version)
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version,
-                                                  enterprise_id__in=["public", enterprise_id])
+        rcapps = RainbondCenterApp.objects.filter(
+            group_key=group_key, version=group_version, enterprise_id__in=["public", enterprise_id])
         if rcapps:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -69,9 +64,7 @@ class RainbondCenterAppRepository(object):
                 return rcapp[0]
             else:
                 return rcapps[0]
-        logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id,
-                                                                                 group_key,
-                                                                                 group_version))
+        logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
     def bulk_create_rainbond_apps(self, rainbond_apps):
@@ -89,8 +82,8 @@ class AppExportRepository(object):
         return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
 
     def get_enter_export_record_by_unique_key(self, enterprise_id, group_key, version, export_format):
-        app_records = AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format,
-                                                     enterprise_id__in=[enterprise_id, "public"])
+        app_records = AppExportRecord.objects.filter(
+            group_key=group_key, version=version, format=export_format, enterprise_id__in=[enterprise_id, "public"])
         if app_records:
             current_enter_records = app_records.filter(enterprise_id=enterprise_id)
             if current_enter_records:
@@ -108,8 +101,7 @@ class AppExportRepository(object):
         return AppExportRecord.objects.filter(group_key=group_key, version=version)
 
     def get_enter_export_record_by_key_and_version(self, enterprise_id, group_key, version):
-        return AppExportRecord.objects.filter(group_key=group_key, version=version,
-                                              enterprise_id__in=["public", enterprise_id])
+        return AppExportRecord.objects.filter(group_key=group_key, version=version, enterprise_id__in=["public", enterprise_id])
 
 
 class AppImportRepository(object):
@@ -126,8 +118,8 @@ class AppImportRepository(object):
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name, status="importing")
 
     def get_user_unfinished_import_record(self, team_name, user_name):
-        return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name).exclude(
-            status__in=["success", "failed"])
+        return AppImportRecord.objects.filter(
+            user_name=user_name, team_name=team_name).exclude(status__in=["success", "failed"])
 
 
 rainbond_app_repo = RainbondCenterAppRepository()

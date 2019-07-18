@@ -37,15 +37,13 @@ class RegionService(object):
                 raise TenantNotExistError("租户{}不存在".format(tenant_name))
             if region_id:
                 region = RegionConfig.objects.get(region_id=region_id)
-                tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id,
-                                                                     region_name=region.region_name)
+                tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name=region.region_name)
                 if not tenant_region_list:
                     raise ParamsError("租户{0}在数据中心{1}没有记录".format(tenant_name, region.region_alias))
             else:
                 all_regions = self.get_all_regions(True)
                 regions = [region.region_name for region in all_regions]
-                tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id,
-                                                                     region_name__in=regions)
+                tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name__in=regions)
 
             for tenant_region in tenant_region_list:
                 try:
@@ -57,7 +55,7 @@ class RegionService(object):
                 try:
                     tenant_services = TenantServiceInfo.objects.all().values("tenant_id").annotate(
                         memory=Sum(F('min_node') * F('min_memory')), cpu=Sum("min_cpu")).get(
-                        service_region=tenant_region.region_name, tenant_id=tenant_region.tenant_id)
+                            service_region=tenant_region.region_name, tenant_id=tenant_region.tenant_id)
                 except TenantServiceInfo.DoesNotExist as e:
                     pass
 
@@ -123,12 +121,13 @@ class RegionService(object):
         if RegionClusterInfo.objects.filter(cluster_name=cluster_name).exists():
             raise ClusterExistError("集群名{}已存在".format(cluster_name))
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        cluster_info = RegionClusterInfo.objects.create(region_id=region_id,
-                                                        cluster_id=cluster_id,
-                                                        cluster_name=cluster_name,
-                                                        cluster_alias=cluster_alias,
-                                                        enable=enable,
-                                                        create_time=create_time)
+        cluster_info = RegionClusterInfo.objects.create(
+            region_id=region_id,
+            cluster_id=cluster_id,
+            cluster_name=cluster_name,
+            cluster_alias=cluster_alias,
+            enable=enable,
+            create_time=create_time)
         return cluster_info
 
     def update_region_cluster(self, cluster_id, cluster_name, cluster_alias, enable):
@@ -140,8 +139,8 @@ class RegionService(object):
         cluster_config.enable = enable
         cluster_config.save()
 
-    def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain,
-                                      tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file):
+    def add_region(self, region_id, region_name, region_alias, url, token, wsurl, httpdomain, tcpdomain, desc, scope,
+                   ssl_ca_cert, cert_file, key_file):
 
         if not wsurl:
             return False, "数据中心websocket地址不能为空", None
@@ -158,21 +157,22 @@ class RegionService(object):
             return False, "数据中心别名{}在云帮已存在".format(region_alias), None
 
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        region_config = RegionConfig(region_id=region_id,
-                                     region_name=region_name,
-                                     region_alias=region_alias,
-                                     wsurl=wsurl,
-                                     httpdomain=httpdomain,
-                                     tcpdomain=tcpdomain,
-                                     desc=desc,
-                                     scope=scope,
-                                     url=url,
-                                     create_time=create_time,
-                                     status='2',
-                                     token=token,
-                                     ssl_ca_cert=ssl_ca_cert,
-                                     cert_file=cert_file,
-                                     key_file=key_file)
+        region_config = RegionConfig(
+            region_id=region_id,
+            region_name=region_name,
+            region_alias=region_alias,
+            wsurl=wsurl,
+            httpdomain=httpdomain,
+            tcpdomain=tcpdomain,
+            desc=desc,
+            scope=scope,
+            url=url,
+            create_time=create_time,
+            status='2',
+            token=token,
+            ssl_ca_cert=ssl_ca_cert,
+            cert_file=cert_file,
+            key_file=key_file)
         region_config.save()
         try:
             res, body = region_api.get_api_version(url, token, region_name)
@@ -185,7 +185,7 @@ class RegionService(object):
             RegionConfig.objects.filter(region_name=region_name).delete()
             return False, "该数据中心云帮{0}异常".format(region_name), None
 
-        return True, "数据中心添加成功",region_config
+        return True, "数据中心添加成功", region_config
 
     def update_region(self, region_id, **kwargs):
 
@@ -211,8 +211,7 @@ class RegionService(object):
             kwargs.pop("region_name")
         region_alias = kwargs.get("region_alias", None)
         if region_alias:
-            if RegionConfig.objects.filter(region_alias=region_alias).exclude(
-                    region_id=region_config.region_id).exists():
+            if RegionConfig.objects.filter(region_alias=region_alias).exclude(region_id=region_config.region_id).exists():
                 return False, u"数据中心别名{0}在云帮已存在".format(region_alias)
 
         for k, v in kwargs.items():
@@ -401,8 +400,8 @@ class RegionService(object):
         if not RegionConfig.objects.filter(region_id=region_id).exists():
             raise RegionNotExistError("数据中心不存在")
         region_config = RegionConfig.objects.get(region_id=region_id)
-        res, body = region_api.get_app_abnormal(region_config.url, region_config.token, region_config.region_name,
-                                                start_stamp, end_stamp)
+        res, body = region_api.get_app_abnormal(region_config.url, region_config.token, region_config.region_name, start_stamp,
+                                                end_stamp)
         if res["status"] >= 400:
             raise RegionAccessError("数据中心查询出错")
         app_list = body["list"]

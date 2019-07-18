@@ -1,10 +1,9 @@
 # -*- coding: utf8 -*-
-from www.models import Users, WeChatUser
+from www.models.main import Users
 from django.db.models import Q
 
 
 class ModelBackend(object):
-
     def authenticate(self, username=None, password=None, **kwargs):
         if username is None or password is None:
             return None
@@ -24,7 +23,6 @@ class ModelBackend(object):
 
 
 class PartnerModelBackend(ModelBackend):
-
     def authenticate(self, username=None, source=None, **kwargs):
         if username is None or source is None:
             return None
@@ -42,6 +40,7 @@ class PartnerModelBackend(ModelBackend):
 
 class WeChatModelBackend(ModelBackend):
     """微信用户登录拦截"""
+
     def authenticate(self, union_id=None, **kwargs):
         # user登录失败,微信登录
         if union_id is None or union_id == "":
@@ -54,6 +53,7 @@ class WeChatModelBackend(ModelBackend):
 
 class GoodRainSSOModelBackend(ModelBackend):
     """SSO用户登陆认证"""
+
     def authenticate(self, user_id=None, sso_user_id=None, **kwargs):
         if not sso_user_id or not user_id:
             return None

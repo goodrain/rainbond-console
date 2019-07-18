@@ -18,7 +18,6 @@ REGION_BUILD_STATUS_MAP = {
     "complete": "build_success",
     "building": "building",
     "timeout": "time_out",
-
 }
 
 
@@ -29,9 +28,18 @@ class PluginBuildVersionService(object):
             min_cpu *= 2
         return min_cpu
 
-    def create_build_version(self, region, plugin_id, tenant_id, user_id, update_info,
+    def create_build_version(self,
+                             region,
+                             plugin_id,
+                             tenant_id,
+                             user_id,
+                             update_info,
                              build_status,
-                             min_memory, build_cmd="", image_tag="latest", code_version="master", build_version=None):
+                             min_memory,
+                             build_cmd="",
+                             image_tag="latest",
+                             code_version="master",
+                             build_version=None):
         """创建插件版本信息"""
         min_cpu = self.calculate_cpu(region, int(min_memory))
         if not build_version:
@@ -82,8 +90,8 @@ class PluginBuildVersionService(object):
     def update_plugin_build_status(self, region, tenant):
         logger.debug("start thread to update build status")
 
-        pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(tenant.tenant_id, region).filter(
-            build_status__in=["building", "timeout", "time_out"])
+        pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(
+            tenant.tenant_id, region).filter(build_status__in=["building", "timeout", "time_out"])
         for pbv in pbvs:
             status = self.get_region_plugin_build_status(region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)
             pbv.build_status = status

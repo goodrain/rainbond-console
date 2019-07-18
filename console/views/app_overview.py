@@ -108,13 +108,12 @@ class AppDetailView(AppBaseView):
                     try:
                         apps_template = json.loads(rain_app.app_template)
                         apps_list = apps_template.get("apps")
-                        service_source = service_source_repo.get_service_source(self.service.tenant_id,
-                                                                                self.service.service_id)
+                        service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
                         if service_source and service_source.extend_info:
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
                                 for app in apps_list:
-                                    if app.has_key("service_share_uuid"):
+                                    if "service_share_uuid" in app:
                                         if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
                                             new_version = int(app["deploy_version"])
                                             old_version = int(extend_info["source_deploy_version"])
@@ -123,7 +122,7 @@ class AppDetailView(AppBaseView):
                                                 self.service.save()
                                                 service_model["is_upgrade"] = True
                                                 bean.update({"service": service_model})
-                                    elif not app.has_key("service_share_uuid") and app.has_key("service_key"):
+                                    elif "service_share_uuid" not in app and "service_key" in app:
                                         if app["service_key"] == extend_info["source_service_share_uuid"]:
                                             new_version = int(app["deploy_version"])
                                             old_version = int(extend_info["source_deploy_version"])
@@ -295,8 +294,7 @@ class AppPodsView(AppBaseView):
         """
 
         try:
-            data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                               self.service.service_alias,
+            data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                                self.tenant.enterprise_id)
             rt_list = []
             if data["list"]:
@@ -411,7 +409,6 @@ class AppVisitView(AppBaseView):
 
 
 class AppGroupVisitView(JWTAuthApiView):
-
     def get(self, request, team_name, *args, **kwargs):
         """
         获取应用访问信息
@@ -486,7 +483,7 @@ class AppPluginsBriefView(AppBaseView):
 
 class AppDockerView(AppBaseView):
     # 指明为模板render
-    renderer_classes = (TemplateHTMLRenderer,)
+    renderer_classes = (TemplateHTMLRenderer, )
 
     @never_cache
     @perm_required('view_service')
@@ -520,14 +517,11 @@ class AppDockerView(AppBaseView):
                 bean["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 main_url = region_services.get_region_wsurl(self.service.service_region)
                 if main_url == "auto":
-                    bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(settings.DOCKER_WSS_URL["type"],
-                                                                                      settings.DOCKER_WSS_URL[
-                                                                                          self.service.service_region],
-                                                                                      t_docker_h_id)
+                    bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
+                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
                 else:
                     bean["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
-                response = Response(general_message(200, "success", "信息获取成功"), status=200,
-                                    template_name="www/console.html")
+                response = Response(general_message(200, "success", "信息获取成功"), status=200, template_name="www/console.html")
         except Exception as e:
             logger.exception(e)
 
@@ -535,7 +529,6 @@ class AppDockerView(AppBaseView):
 
 
 class AppGroupView(AppBaseView):
-
     @never_cache
     @perm_required('manage_group')
     def put(self, request, *args, **kwargs):
@@ -614,7 +607,6 @@ class AppAnalyzePluginView(AppBaseView):
 
 
 class ImageAppView(AppBaseView):
-
     @never_cache
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
@@ -646,7 +638,6 @@ class ImageAppView(AppBaseView):
 
 
 class BuildSourceinfo(AppBaseView):
-
     @never_cache
     @perm_required('manage_service_config')
     def get(self, request, *args, **kwargs):
@@ -655,8 +646,8 @@ class BuildSourceinfo(AppBaseView):
         ---
         """
         try:
-            service_source = service_source_repo.get_service_source(team_id=self.service.tenant_id,
-                                                                    service_id=self.service.service_id)
+            service_source = service_source_repo.get_service_source(
+                team_id=self.service.tenant_id, service_id=self.service.service_id)
             bean = {
                 "user_name": "",
                 "password": "",
@@ -682,11 +673,13 @@ class BuildSourceinfo(AppBaseView):
                     if service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info and extend_info.get("install_from_cloud", False):
-                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key, service_source.version)
+                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key,
+                                                                             service_source.version)
                             bean["install_from_cloud"] = True
                             bean["app_detail_url"] = rain_app.describe
                     if not rain_app:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key, service_source.version)
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
+                                                                                         service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details
@@ -723,8 +716,8 @@ class BuildSourceinfo(AppBaseView):
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
 
-            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
-                                                                         service_id=self.service.service_id)
+            service_source_user = service_source_repo.get_service_source(
+                team_id=self.service.tenant_id, service_id=self.service.service_id)
 
             if not service_source_user:
                 service_source_info = {
@@ -783,8 +776,8 @@ class AppKeywordView(AppBaseView):
             is_pass, msg = app_service.check_service_cname(self.tenant, keyword, self.service.service_region)
             if not is_pass:
                 return Response(general_message(400, "param error", msg), status=400)
-            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(self.service.service_id,
-                                                                                                "code_webhooks")
+            service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
+                self.service.service_id, "code_webhooks")
             if not service_webhook:
                 return Response(general_message(412, "keyword is null", "服务自动部署属性不存在"), status=412)
             service_webhook.deploy_keyword = keyword
@@ -794,4 +787,3 @@ class AppKeywordView(AppBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-

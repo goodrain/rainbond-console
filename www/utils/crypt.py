@@ -29,7 +29,6 @@ def make_uuid(key=None):
 
 
 class AuthCode(object):
-
     @classmethod
     def encode(cls, string, key, expiry=0):
         """

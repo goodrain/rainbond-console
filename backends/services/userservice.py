@@ -7,7 +7,7 @@ from backends.services.exceptions import UserExistError, TenantNotExistError, Us
 from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
     PasswordTooShortError
 from www.gitlab_http import GitlabApi
-from www.models import Tenants, Users, PermRelTenant
+from www.models.main import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
 from fuzzyfinder.main import fuzzyfinder
 from console.services.user_services import user_services as console_user_service
@@ -18,7 +18,6 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-
     def check_params(self, user_name, email, password, re_password):
         is_pass, msg = self.__check_user_name(user_name)
         if not is_pass:
@@ -74,8 +73,7 @@ class UserService(object):
             enterprise_id=enterprise.enterprise_id,
             is_active=False,
             rf=rf,
-            client_ip=client_ip
-        )
+            client_ip=client_ip)
         user.set_password(raw_password)
         return user
 
@@ -158,7 +156,9 @@ class UserService(object):
         # if query_condition:
         #     query = query | Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)
 
-        users = Users.objects.filter(Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)).order_by("-create_time")
+        users = Users.objects.filter(
+            Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition)
+            | Q(email__contains=query_condition)).order_by("-create_time")
         return users
 
     def get_user_by_user_id(self, user_id):

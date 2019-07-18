@@ -44,7 +44,6 @@ logger = logging.getLogger("default")
 
 
 class GroupappsMigrateService(object):
-
     def __get_restore_type(self, current_tenant, current_region, migrate_team, migrate_region):
         """获取恢复的类型"""
         if current_region != migrate_region:
@@ -108,16 +107,15 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type,
-                      event_id, restore_id):
+    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id,
+                      restore_id):
 
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
             return 404, "无备份记录", None
 
         if migrate_type == "recover":
-            is_all_services_closed = self.__check_group_service_status(current_region, current_team,
-                                                                       backup_record.group_id)
+            is_all_services_closed = self.__check_group_service_status(current_region, current_team, backup_record.group_id)
             if not is_all_services_closed:
                 return 409, "恢复备份请确保当前组下的应用全部关闭", None
 
@@ -125,9 +123,8 @@ class GroupappsMigrateService(object):
         logger.debug('-----------232------------>{0}'.format(backup_record.group_id))
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
-        new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team,
-                                                                 current_region, migrate_team,
-                                                                 migrate_region, migrate_type)
+        new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team, current_region,
+                                                                 migrate_team, migrate_region, migrate_type)
         if not new_backup_record:
             new_backup_record = backup_record
 
@@ -142,8 +139,7 @@ class GroupappsMigrateService(object):
             "slug_info": service_slug,
             "image_info": service_image
         }
-        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id,
-                                                 data)
+        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
         if event_id:
             migrate_record = migrate_repo.get_by_event_id(event_id)
             data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,
@@ -168,7 +164,6 @@ class GroupappsMigrateService(object):
                 "original_group_id": backup_record.group_id,
                 "original_group_uuid": backup_record.group_uuid,
                 "migrate_type": migrate_type
-
             }
             migrate_record = migrate_repo.create_migrate_record(**params)
         return 200, "操作成功，开始迁移", migrate_record
@@ -178,8 +173,10 @@ class GroupappsMigrateService(object):
         service_ids = [s.service_id for s in services]
         if not service_ids:
             return True
-        body = region_api.service_status(region, tenant.tenant_name,
-                                         {"service_ids": service_ids, "enterprise_id": tenant.enterprise_id})
+        body = region_api.service_status(region, tenant.tenant_name, {
+            "service_ids": service_ids,
+            "enterprise_id": tenant.enterprise_id
+        })
         status_list = body["list"]
         for status in status_list:
             if status["status"] not in ("closed", "undeploy"):
@@ -205,16 +202,16 @@ class GroupappsMigrateService(object):
             if status == "success":
                 with transaction.atomic():
                     try:
-                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change,
-                                       json.loads(metadata), migrate_record.group_id)
+                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata),
+                                       migrate_record.group_id)
                     except Exception as e:
                         migrate_record.status = "failed"
                         migrate_record.save()
                         raise e
                     if migrate_record.migrate_type == "recover":
                         # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
-                        backup_record_repo.get_record_by_group_id(migrate_record.original_group_id).update(
-                            group_id=migrate_record.group_id)
+                        backup_record_repo.get_record_by_group_id(
+                            migrate_record.original_group_id).update(group_id=migrate_record.group_id)
                         self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
             migrate_record.status = status
             migrate_record.save()
@@ -236,16 +233,11 @@ class GroupappsMigrateService(object):
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
 
-            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region,
-                                 migrate_tenant)
+            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
-            self.__save_volume(
-                ts,
-                app["service_volumes"],
-                app["service_config_file"] if 'service_config_file' in app else None
-            )
+            self.__save_volume(ts, app["service_volumes"], app["service_config_file"] if 'service_config_file' in app else None)
             lb_mapping_port = changed_service_map[service_base_info["service_id"]].get("LBPorts", None)
             self.__save_port(migrate_tenant, ts, app["service_ports"], lb_mapping_port)
             self.__save_compile_env(ts, app["service_compile_env"])
@@ -352,8 +344,8 @@ class GroupappsMigrateService(object):
             for port in port_list:
                 if port.is_outer_service:
                     if port.protocol == "http":
-                        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                                           port.container_port)
+                        service_domains = domain_repo.get_service_domain_by_container_port(
+                            service.service_id, port.container_port)
                         # 在domain表中保存数据
                         if service_domains:
                             for service_domain in service_domains:
@@ -373,8 +365,8 @@ class GroupappsMigrateService(object):
                             service_alias = service.service_cname
                             region_id = region.region_id
                             domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
-                                                               container_port, protocol, http_rule_id, tenant_id,
-                                                               service_alias, region_id)
+                                                               container_port, protocol, http_rule_id, tenant_id, service_alias,
+                                                               region_id)
                             # 给数据中心发请求添加默认域名
                             data = dict()
                             data["domain"] = domain_name
@@ -393,8 +385,7 @@ class GroupappsMigrateService(object):
 
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
-                            service.service_id,
-                            port.container_port)
+                            service.service_id, port.container_port)
                         if service_tcp_domains:
                             for service_tcp_domain in service_tcp_domains:
                                 # 改变tcpdomain表中状态

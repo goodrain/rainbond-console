@@ -5,13 +5,13 @@ import re
 from rest_framework.response import Response
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.decorators.cache import never_cache
-from backends.services.exceptions import *
-from backends.services.resultservice import *
+from backends.services.exceptions import UserNotExistError, ParamsError
+from backends.services.resultservice import generate_result
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.views.base import JWTAuthApiView, AlowAnyApiView
+from console.views.base import JWTAuthApiView
 from www.decorator import perm_required
-from www.models import Tenants
+from www.models.main import Tenants
 from console.repositories.perm_repo import role_repo, role_perm_repo
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message, error_message
@@ -118,8 +118,8 @@ class TeamAddRoleView(JWTAuthApiView):
                     result = general_message(400, "failed", "权限列表中有权限不可选")
                     return Response(result, status=400)
 
-            role_obj = team_services.add_role_by_team_name_perm_list(role_name=role_name, tenant_name=team_name,
-                                                                     perm_id_list=premission_id_list)
+            role_obj = team_services.add_role_by_team_name_perm_list(
+                role_name=role_name, tenant_name=team_name, perm_id_list=premission_id_list)
             if role_obj:
                 code = 200
                 role_info = {"role_id": role_obj.pk, "role_name": role_obj.role_name, "is_default": role_obj.is_default}
@@ -178,8 +178,7 @@ class TeamDelRoleView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "failed", "不可删除系统默认角色")
                 return Response(result, status=code)
-            if not role_repo.team_role_is_exist_by_role_name_team_id(tenant_name=team_name,
-                                                                     role_id=role_id):
+            if not role_repo.team_role_is_exist_by_role_name_team_id(tenant_name=team_name, role_id=role_id):
                 code = 400
                 result = general_message(code, "failed", "该角色不存在")
                 return Response(result, status=code)
@@ -190,8 +189,7 @@ class TeamDelRoleView(JWTAuthApiView):
                 return Response(result, status=code)
 
             try:
-                team_services.del_role_by_team_name_role_name_role_id(tenant_name=team_name,
-                                                                      role_id=role_id)
+                team_services.del_role_by_team_name_role_name_role_id(tenant_name=team_name, role_id=role_id)
                 code = 200
                 result = general_message(code, "success", "删除角色成功")
 
@@ -279,8 +277,7 @@ class UserUpdatePemView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "failed", "角色名称不能与系统默认相同")
                 return Response(result, status=code)
-            if not role_repo.team_role_is_exist_by_role_name_team_id(tenant_name=team_name,
-                                                                     role_id=role_id):
+            if not role_repo.team_role_is_exist_by_role_name_team_id(tenant_name=team_name, role_id=role_id):
                 code = 400
                 result = general_message(code, "failed", "原角色不存在")
                 return Response(result, status=code)
@@ -293,14 +290,10 @@ class UserUpdatePemView(JWTAuthApiView):
 
             try:
                 role_obj = team_services.update_role_by_team_name_role_name_perm_list(
-                    new_role_name=new_role_name,
-                    role_id=role_id,
-                    tenant_name=team_name,
-                    perm_id_list=perm_id_list)
+                    new_role_name=new_role_name, role_id=role_id, tenant_name=team_name, perm_id_list=perm_id_list)
                 if role_obj:
                     code = 200
-                    role_info = {"role_id": role_obj.pk, "role_name": role_obj.role_name,
-                                 "is_default": role_obj.is_default}
+                    role_info = {"role_id": role_obj.pk, "role_name": role_obj.role_name, "is_default": role_obj.is_default}
                     result = general_message(code, "success", "更新角色权限成功", bean=role_info)
                 else:
                     code = 400
@@ -373,8 +366,15 @@ class UserRoleView(JWTAuthApiView):
             except EmptyPage:
                 page = paginator.num_pages
                 role_list = paginator.page(paginator.num_pages).object_list
-            result = general_message(200, "get permissions success", "获取权限成功", list=role_list, total=paginator.count,
-                                     num_pages=paginator.num_pages, current_page=page, page_size=page_size)
+            result = general_message(
+                200,
+                "get permissions success",
+                "获取权限成功",
+                list=role_list,
+                total=paginator.count,
+                num_pages=paginator.num_pages,
+                current_page=page,
+                page_size=page_size)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -406,14 +406,11 @@ class UserModifyPemView(JWTAuthApiView):
               paramType: body
         """
         try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id,
-                tenant_name=team_name
-            )
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
             no_auth = ("owner" not in perm_list) and (
-                    "admin" not in perm_list) and "manage_team_member_permissions" not in perm_tuple
+                "admin" not in perm_list) and "manage_team_member_permissions" not in perm_tuple
 
             if no_auth:
                 code = 400
@@ -441,17 +438,17 @@ class UserModifyPemView(JWTAuthApiView):
                             result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                             return Response(result, status=code)
 
-                    identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=other_user.user_id,
-                                                                                        tenant_name=team_name)
+                    identity_list = team_services.get_user_perm_identitys_in_permtenant(
+                        user_id=other_user.user_id, tenant_name=team_name)
 
-                    role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=other_user.user_id,
-                                                                                    tenant_name=team_name)
+                    role_name_list = team_services.get_user_perm_role_in_permtenant(
+                        user_id=other_user.user_id, tenant_name=team_name)
                     if "owner" in identity_list or "owner" in role_name_list:
                         result = general_message(400, "failed", "您不能修改创建者的权限！")
                         return Response(result, status=400)
 
-                    team_services.change_tenant_role(user_id=other_user.user_id, tenant_name=team_name,
-                                                     role_id_list=role_id_list)
+                    team_services.change_tenant_role(
+                        user_id=other_user.user_id, tenant_name=team_name, role_id_list=role_id_list)
                     result = general_message(code, "identity modify success", "{}角色修改成功".format(other_user.nick_name))
                 else:
                     result = general_message(400, "identity failed", "修改角色时，角色不能为空")
@@ -489,15 +486,12 @@ class TeamAddUserView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        perm_list = team_services.get_user_perm_identitys_in_permtenant(
-            user_id=request.user.user_id,
-            tenant_name=team_name
-        )
+        perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
         # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
         role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
         no_auth = ("owner" not in perm_list) and (
-                "admin" not in perm_list) and "manage_team_member_permissions" not in role_perm_tuple
+            "admin" not in perm_list) and "manage_team_member_permissions" not in role_perm_tuple
 
         if no_auth:
             code = 400
@@ -628,8 +622,7 @@ class ServicePermissionView(AppBaseView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            code, msg, service_perm = app_perm_service.add_user_service_perm(self.user, user_list, self.tenant,
-                                                                             self.service,
+            code, msg, service_perm = app_perm_service.add_user_service_perm(self.user, user_list, self.tenant, self.service,
                                                                              perm_list)
             if code != 200:
                 return Response(general_message(code, "add service perm error", msg), status=400)
@@ -683,9 +676,7 @@ class ServicePermissionView(AppBaseView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            code, msg, service_perm = app_perm_service.update_user_service_perm(self.user, user_id,
-                                                                                self.service,
-                                                                                perm_list)
+            code, msg, service_perm = app_perm_service.update_user_service_perm(self.user, user_id, self.service, perm_list)
             if code != 200:
                 return Response(general_message(code, "update service perm error", msg), status=400)
             result = general_message(code, "success", "修改成功")
@@ -730,8 +721,7 @@ class ServicePermissionView(AppBaseView):
                 code = 400
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
-            code, msg = app_perm_service.delete_user_service_perm(self.user, user_id,
-                                                                  self.service)
+            code, msg = app_perm_service.delete_user_service_perm(self.user, user_id, self.service)
             if code != 200:
                 return Response(general_message(code, "delete service perm error", msg), status=400)
             result = general_message(code, "success", "删除应用成员成功")

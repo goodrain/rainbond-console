@@ -22,7 +22,6 @@ logger = logging.getLogger('default')
 
 class RegionApiBaseHttpClient(object):
     class CallApiError(Exception):
-
         def __init__(self, apitype, url, method, res, body, describe=None):
             self.message = {
                 "apitype": apitype,
@@ -93,19 +92,16 @@ class RegionApiBaseHttpClient(object):
         if wsurl_split_list[0] == "https":
             verify_ssl = True
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file,
-                               region.key_file, region_name=region_name)
+        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
         retry_count = 2
         while retry_count:
             try:
                 if body is None:
-                    response = client.request(
-                        url=url, method=method, headers=headers)
+                    response = client.request(url=url, method=method, headers=headers)
                 else:
-                    response = client.request(
-                        url=url, method=method, headers=headers, body=body)
+                    response = client.request(url=url, method=method, headers=headers, body=body)
 
                 # if len(content) > 10000:
                 #     record_content = '%s  .....ignore.....' % content[:1000]
@@ -119,24 +115,20 @@ class RegionApiBaseHttpClient(object):
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
-                raise self.CallApiError(
-                    self.apitype, url, method,
-                    Dict({
-                        "status": 101
-                    }), {"type": "request time out",
-                         "error": str(e)})
+                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
+                    "type": "request time out",
+                    "error": str(e)
+                })
             except socket.error, e:
                 retry_count -= 1
                 if retry_count:
                     logger.error("client_error", "retry request: %s" % url)
                 else:
                     logger.exception('client_error', e)
-                    raise self.ApiSocketError(
-                        self.apitype, url, method,
-                        Dict({
-                            "status": 101
-                        }), {"type": "connect error",
-                             "error": str(e)})
+                    raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {
+                        "type": "connect error",
+                        "error": str(e)
+                    })
 
     def get_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
 
@@ -154,8 +146,7 @@ class RegionApiBaseHttpClient(object):
 
         addition_pool_args = {}
         if configuration.assert_hostname is not None:
-            addition_pool_args[
-                'assert_hostname'] = configuration.assert_hostname
+            addition_pool_args['assert_hostname'] = configuration.assert_hostname
 
         if maxsize is None:
             if configuration.connection_pool_maxsize is not None:
@@ -243,12 +234,7 @@ def check_file_path(path, name, body):
 
 
 class Configuration():
-    def __init__(self,
-                 verify_ssl=True,
-                 ssl_ca_cert=None,
-                 cert_file=None,
-                 key_file=None,
-                 assert_hostname=None,
+    def __init__(self, verify_ssl=True, ssl_ca_cert=None, cert_file=None, key_file=None, assert_hostname=None,
                  region_name=None):
         """
         Constructor

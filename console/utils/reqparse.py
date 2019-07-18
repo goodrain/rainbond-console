@@ -43,8 +43,7 @@ def parse_args(request, argument_tuple):
     """
     return {
         argument['key']: parse_argument(request, **argument)
-        for argument in argument_tuple
-        if parse_argument(request, **argument) is not None
+        for argument in argument_tuple if parse_argument(request, **argument) is not None
     }
 
 
@@ -68,8 +67,7 @@ def parse_date(request, argument_tuple):
 
     return {
         argument['key']: parse_item(request, **argument)
-        for argument in argument_tuple
-        if parse_item(request, **argument) is not None
+        for argument in argument_tuple if parse_item(request, **argument) is not None
     }
 
 

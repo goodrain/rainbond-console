@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.middleware.csrf import rotate_token
-from django.contrib.auth import load_backend, get_backends, authenticate
+from django.contrib.auth import load_backend
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.crypto import constant_time_compare
 from rest_framework_jwt.settings import api_settings
@@ -30,9 +30,8 @@ def login(request, user):
         session_auth_hash = user.get_session_auth_hash()
 
     if SESSION_KEY in request.session:
-        if request.session[SESSION_KEY] != user.pk or (
-                session_auth_hash and
-                request.session.get(HASH_SESSION_KEY) != session_auth_hash):
+        if request.session[SESSION_KEY] != user.pk or (session_auth_hash
+                                                       and request.session.get(HASH_SESSION_KEY) != session_auth_hash):
             # To avoid reusing another user's session, create a new, empty
             # session if the existing session corresponds to a different
             # authenticated user.
@@ -61,9 +60,8 @@ def jwtlogin(request, user):
         session_auth_hash = user.get_session_auth_hash()
 
     if SESSION_KEY in request.session:
-        if request.session[SESSION_KEY] != user.pk or (
-                session_auth_hash and
-                request.session.get(HASH_SESSION_KEY) != session_auth_hash):
+        if request.session[SESSION_KEY] != user.pk or (session_auth_hash
+                                                       and request.session.get(HASH_SESSION_KEY) != session_auth_hash):
             # To avoid reusing another user's session, create a new, empty
             # session if the existing session corresponds to a different
             # authenticated user.
@@ -78,12 +76,8 @@ def jwtlogin(request, user):
     rotate_token(request)
     response_data = jwt_response_payload_handler(rotate_token, user, request)
     if api_settings.JWT_AUTH_COOKIE:
-        expiration = (datetime.utcnow() +
-                      api_settings.JWT_EXPIRATION_DELTA)
-        response_data.set_cookie(api_settings.JWT_AUTH_COOKIE,
-                                 rotate_token,
-                                 expires=expiration,
-                                 httponly=True)
+        expiration = (datetime.utcnow() + api_settings.JWT_EXPIRATION_DELTA)
+        response_data.set_cookie(api_settings.JWT_AUTH_COOKIE, rotate_token, expires=expiration, httponly=True)
 
 
 def logout(request):
@@ -108,7 +102,7 @@ def logout(request):
         request.session[LANGUAGE_SESSION_KEY] = language
 
     if hasattr(request, 'user'):
-        from www.models import AnonymousUser
+        from www.models.main import AnonymousUser
         request.user = AnonymousUser()
 
 
@@ -117,7 +111,7 @@ def get_user(request):
     Returns the user model instance associated with the given request session.
     If no user is retrieved an instance of `AnonymousUser` is returned.
     """
-    from www.models import AnonymousUser
+    from www.models.main import AnonymousUser
     user = None
     try:
         user_id = request.session[SESSION_KEY]
@@ -129,16 +123,12 @@ def get_user(request):
             backend = load_backend(backend_path)
             user = backend.get_user(user_id)
             # Verify the session
-            if ('django.contrib.auth.middleware.SessionAuthenticationMiddleware'
-                    in settings.MIDDLEWARE_CLASSES and hasattr(user, 'get_session_auth_hash')):
+            if ('django.contrib.auth.middleware.SessionAuthenticationMiddleware' in settings.MIDDLEWARE_CLASSES
+                    and hasattr(user, 'get_session_auth_hash')):
                 session_hash = request.session.get(HASH_SESSION_KEY)
-                session_hash_verified = session_hash and constant_time_compare(
-                    session_hash,
-                    user.get_session_auth_hash()
-                )
+                session_hash_verified = session_hash and constant_time_compare(session_hash, user.get_session_auth_hash())
                 if not session_hash_verified:
                     request.session.flush()
                     user = None
 
     return user or AnonymousUser()
-

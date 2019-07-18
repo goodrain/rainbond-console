@@ -8,17 +8,17 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.authentication import OpenAPIAuthentication
 
 schema_view = get_schema_view(
-   openapi.Info(
-      title="Rainbond Open API",
-      default_version='v1',
-      description="Rainbond open api",
-      terms_of_service="https://www.rainbond.com",
-      contact=openapi.Contact(email="barnett@goodrain.com"),
-      license=openapi.License(name="LGPL License"),
-   ),
-   public=False,
-   permission_classes=(OpenAPIPermissions,),
-   authentication_classes=(OpenAPIAuthentication,),
+    openapi.Info(
+        title="Rainbond Open API",
+        default_version='v1',
+        description="Rainbond open api",
+        terms_of_service="https://www.rainbond.com",
+        contact=openapi.Contact(email="barnett@goodrain.com"),
+        license=openapi.License(name="LGPL License"),
+    ),
+    public=False,
+    permission_classes=(OpenAPIPermissions, ),
+    authentication_classes=(OpenAPIAuthentication, ),
 )
 
 urlpatterns = [

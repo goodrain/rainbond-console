@@ -17,7 +17,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.app import service_repo
 from console.exception.main import ResourceNotEnoughException
 
-
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
@@ -190,7 +189,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
 class TenantGroupCommonOperationView(RegionTenantHeaderView):
-
     @perm_required('stop_service')
     @perm_required('start_service')
     @perm_required('restart_service')
@@ -234,21 +232,21 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
                         service_ids.remove(service_id)
 
             # 校验权限
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id,
-                                                                            tenant_name=self.tenant_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=self.user.user_id, tenant_name=self.tenant_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-
+            common_perm = "owner" not in identitys and "admin" not in identitys and "developer" not in identitys
             if action == "stop":
-                if "stop_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "stop_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
             if action == "start":
-                if "start_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "start_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
             if action == "upgrade":
-                if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "restart_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有更新应用权限"), status=400)
             if action == "deploy":
-                if "deploy_service" not in perm_tuple and "owner" not in identitys and "admin" not in identitys and "developer" not in identitys:
+                if "deploy_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
                 # 批量操作
             code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
@@ -277,10 +275,9 @@ class GroupStatusView(RegionTenantHeaderView):
             result = general_message(400, "not service", "当前组内无应用，无法操作")
             return Response(result)
         service_id_list = [x.service_id for x in services]
-        service_status_list = region_api.service_status(self.response_region, self.tenant_name,
-                                                        {"service_ids": service_id_list,
-                                                         "enterprise_id": self.user.enterprise_id})
+        service_status_list = region_api.service_status(self.response_region, self.tenant_name, {
+            "service_ids": service_id_list,
+            "enterprise_id": self.user.enterprise_id
+        })
         result = general_message(200, "success", "查询成功", list=service_status_list)
         return Response(result)
-
-

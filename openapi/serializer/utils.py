@@ -10,4 +10,4 @@ urlregex = re.compile(
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$',
     re.IGNORECASE)
-ipregex = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', re.IGNORECASE)
+ipregex = re.compile(r'((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}', re.IGNORECASE)

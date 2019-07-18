@@ -17,11 +17,13 @@ class UpgradeRepo(object):
     def create_app_upgrade_record(self, **kwargs):
         return AppUpgradeRecord.objects.create(**kwargs)
 
-    def create_service_upgrade_record(
-            self, app_upgrade_record, service, event, update,
-            status=UpgradeStatus.UPGRADING.value,
-            upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value
-    ):
+    def create_service_upgrade_record(self,
+                                      app_upgrade_record,
+                                      service,
+                                      event,
+                                      update,
+                                      status=UpgradeStatus.UPGRADING.value,
+                                      upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value):
         """创建服务升级记录"""
         return ServiceUpgradeRecord.objects.create(
             create_time=datetime.now(),

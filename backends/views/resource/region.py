@@ -17,7 +17,6 @@ logger = logging.getLogger("default")
 
 
 class RegionView(BaseAPIView):
-
     def get(self, request, *args, **kwargs):
         """
         同步数据中心信息
@@ -108,9 +107,9 @@ class RegionView(BaseAPIView):
             cert_file = request.data.get("cert_file", None)
             key_file = request.data.get("key_file", None)
             region_id = make_uuid()
-            is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token,
-                                                                     wsurl, httpdomain,
-                                                                     tcpdomain, desc, scope, ssl_ca_cert, cert_file, key_file)
+            is_success, msg, region_info = region_service.add_region(region_id, region_name, region_alias, url, token, wsurl,
+                                                                     httpdomain, tcpdomain, desc, scope, ssl_ca_cert, cert_file,
+                                                                     key_file)
             if not is_success:
                 result = generate_result("2001", "add console region error", msg)
             else:
@@ -122,7 +121,6 @@ class RegionView(BaseAPIView):
 
 
 class RegionDetailView(BaseAPIView):
-
     def put(self, request, region_id, *args, **kwargs):
         """
         修改数据中心
@@ -153,7 +151,7 @@ class RegionDetailView(BaseAPIView):
             result = generate_error_result()
         return Response(result)
 
-    def delete(self,request,region_id,*args,**kwargs):
+    def delete(self, request, region_id, *args, **kwargs):
         """
         删除数据中心
         ---
@@ -194,7 +192,7 @@ class RegionStatusView(BaseAPIView):
             action = request.data.get("action", None)
             if not action:
                 raise ParamsError("参数错误")
-            if action not in ("online","offline","maintain", "cancel_maintain"):
+            if action not in ("online", "offline", "maintain", "cancel_maintain"):
                 raise ParamsError("参数错误")
             msg_show = "操作成功"
             if action == "online":
@@ -245,4 +243,3 @@ class RegionAppAbnormal(BaseAPIView):
             logger.exception(e)
             result = generate_error_result()
         return Response(result)
-

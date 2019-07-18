@@ -45,8 +45,8 @@ dependency_service = AppServiceRelationService()
 
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
-        plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id).filter(
-            plugin_status=True)
+        plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+            service.service_id).filter(plugin_status=True)
         plugin_ids = [p.plugin_id for p in plugins]
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_ids)
         return base_plugins
@@ -126,8 +126,7 @@ class AppPluginService(object):
         if category == "analysis":
             query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
 
-            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL,
-                                                                               "analyst-plugin:perf")
+            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
 
         elif category == "net_manage":
             query_installed_plugin = """{0} AND tp.category in {1} """.format(
@@ -163,18 +162,18 @@ class AppPluginService(object):
 
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
                 attrs_map = {item.attr_name: item.attr_default_value for item in items}
-                service_plugin_var.append(ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=config_group.service_meta_type,
-                    injection=config_group.injection,
-                    dest_service_id="",
-                    dest_service_alias="",
-                    container_port=0,
-                    attrs=json.dumps(attrs_map),
-                    protocol=""
-                ))
+                service_plugin_var.append(
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config_group.service_meta_type,
+                        injection=config_group.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
@@ -184,17 +183,18 @@ class AppPluginService(object):
                     for item in items:
                         if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                             attrs_map[item.attr_name] = item.attr_default_value
-                    service_plugin_var.append(ServicePluginConfigVar(
-                        service_id=service.service_id,
-                        plugin_id=plugin_id,
-                        build_version=build_version,
-                        service_meta_type=config_group.service_meta_type,
-                        injection=config_group.injection,
-                        dest_service_id="",
-                        dest_service_alias="",
-                        container_port=port.container_port,
-                        attrs=json.dumps(attrs_map),
-                        protocol=port.protocol))
+                    service_plugin_var.append(
+                        ServicePluginConfigVar(
+                            service_id=service.service_id,
+                            plugin_id=plugin_id,
+                            build_version=build_version,
+                            service_meta_type=config_group.service_meta_type,
+                            injection=config_group.injection,
+                            dest_service_id="",
+                            dest_service_alias="",
+                            container_port=port.container_port,
+                            attrs=json.dumps(attrs_map),
+                            protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
@@ -209,18 +209,18 @@ class AppPluginService(object):
                         for item in items:
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 attrs_map[item.attr_name] = item.attr_default_value
-                        service_plugin_var.append(ServicePluginConfigVar(
-                            service_id=service.service_id,
-                            plugin_id=plugin_id,
-                            build_version=build_version,
-                            service_meta_type=config_group.service_meta_type,
-                            injection=config_group.injection,
-                            dest_service_id=dep_service.service_id,
-                            dest_service_alias=dep_service.service_alias,
-                            container_port=port.container_port,
-                            attrs=json.dumps(attrs_map),
-                            protocol=port.protocol
-                        ))
+                        service_plugin_var.append(
+                            ServicePluginConfigVar(
+                                service_id=service.service_id,
+                                plugin_id=plugin_id,
+                                build_version=build_version,
+                                service_meta_type=config_group.service_meta_type,
+                                injection=config_group.injection,
+                                dest_service_id=dep_service.service_id,
+                                dest_service_alias=dep_service.service_alias,
+                                container_port=port.container_port,
+                                attrs=json.dumps(attrs_map),
+                                protocol=port.protocol))
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
         return 200, "success"
@@ -334,8 +334,8 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 for port in ports:
-                    upstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
-                                                               container_port=port.container_port)
+                    upstream_envs = service_plugin_vars.filter(
+                        service_meta_type=PluginMetaType.UPSTREAM_PORT, container_port=port.container_port)
                     upstream_options = None
                     if upstream_envs:
                         upstream_env = upstream_envs[0]
@@ -370,9 +370,10 @@ class AppPluginService(object):
                 for dep_service in dep_services:
                     ports = port_repo.list_inner_ports(dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
-                                                                     dest_service_id=dep_service.service_id,
-                                                                     container_port=port.container_port)
+                        downstream_envs = service_plugin_vars.filter(
+                            service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
+                            dest_service_id=dep_service.service_id,
+                            container_port=port.container_port)
                         downstream_options = None
                         if downstream_envs:
                             downstream_env = downstream_envs[0]
@@ -389,8 +390,7 @@ class AppPluginService(object):
                                 "is_change": item.is_change
                             }
                             if downstream_options:
-                                item_option["attr_value"] = downstream_options.get(item.attr_name,
-                                                                                   item.attr_default_value)
+                                item_option["attr_value"] = downstream_options.get(item.attr_name, item.attr_default_value)
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 options.append(item_option)
                         downstream_env_list.append({
@@ -418,46 +418,48 @@ class AppPluginService(object):
         undefine_env = config_bean.undefine_env
         if undefine_env:
             attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
-            service_plugin_var.append(ServicePluginConfigVar(
-                service_id=service.service_id,
-                plugin_id=plugin_id,
-                build_version=build_version,
-                service_meta_type=undefine_env.service_meta_type,
-                injection=undefine_env.injection,
-                dest_service_id="",
-                dest_service_alias="",
-                container_port=0,
-                attrs=json.dumps(attrs_map),
-                protocol=""
-            ))
+            service_plugin_var.append(
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=undefine_env.service_meta_type,
+                    injection=undefine_env.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=0,
+                    attrs=json.dumps(attrs_map),
+                    protocol=""))
         upstream_config_list = config_bean.upstream_env
         for upstream_config in upstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}
-            service_plugin_var.append(ServicePluginConfigVar(
-                service_id=service.service_id,
-                plugin_id=plugin_id,
-                build_version=build_version,
-                service_meta_type=upstream_config.service_meta_type,
-                injection=upstream_config.injection,
-                dest_service_id="",
-                dest_service_alias="",
-                container_port=upstream_config.port,
-                attrs=json.dumps(attrs_map),
-                protocol=upstream_config.protocol))
+            service_plugin_var.append(
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=upstream_config.service_meta_type,
+                    injection=upstream_config.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=upstream_config.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=upstream_config.protocol))
         dowstream_config_list = config_bean.downstream_env
         for dowstream_config in dowstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in dowstream_config.config}
-            service_plugin_var.append(ServicePluginConfigVar(
-                service_id=service.service_id,
-                plugin_id=plugin_id,
-                build_version=build_version,
-                service_meta_type=dowstream_config.service_meta_type,
-                injection=dowstream_config.injection,
-                dest_service_id=dowstream_config.dest_service_id,
-                dest_service_alias=dowstream_config.dest_service_alias,
-                container_port=dowstream_config.port,
-                attrs=json.dumps(attrs_map),
-                protocol=dowstream_config.protocol))
+            service_plugin_var.append(
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=dowstream_config.service_meta_type,
+                    injection=dowstream_config.injection,
+                    dest_service_id=dowstream_config.dest_service_id,
+                    dest_service_alias=dowstream_config.dest_service_alias,
+                    container_port=dowstream_config.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=dowstream_config.protocol))
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
@@ -470,24 +472,22 @@ class AppPluginService(object):
             data = self.build_plugin_data_4marketsvc(tenant, service, plugin)
 
             service_plugin_config_vars = plugin["attr"]
-            self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"],
-                                              data["version_id"], service_plugin_config_vars)
+            self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
+                                              service_plugin_config_vars)
 
-            code, msg, _ = self.create_service_plugin_relation(
-                service.service_id, data["plugin_id"], data["version_id"], "", True)
+            code, msg, _ = self.create_service_plugin_relation(service.service_id, data["plugin_id"], data["version_id"], "",
+                                                               True)
             if code == 409:
                 raise ErrPluginAlreadyInstalled(msg)
 
     def build_plugin_data_4marketsvc(self, tenant, service, plugin):
         plugin_key = plugin["plugin_key"]
-        p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id,
-                                                      plugin_key)
+        p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
         plugin_id = p[0].plugin_id
         plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
         build_version = plugin_version.build_version
 
-        region_config = self.get_region_config_from_db(service, plugin_id,
-                                                       build_version)
+        region_config = self.get_region_config_from_db(service, plugin_id, build_version)
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = True
@@ -495,16 +495,14 @@ class AppPluginService(object):
         data.update(region_config)
         return data
 
-    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id,
-                                     build_version, service_plugin_config_vars):
-        service_source = service_source_repo.get_service_source(tenant.tenant_id,
-                                                                service.service_id)
+    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
+        service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         config_list = []
         for config in service_plugin_config_vars:
             dest_service_id, dest_service_alias = "", ""
             if config["service_meta_type"] == "downstream_port":
-                service_key = rbd_center_app_service.get_service_key_by_service_id(
-                    tenant, service_source, version, config["dest_service_id"])
+                service_key = rbd_center_app_service.get_service_key_by_service_id(tenant, service_source, version,
+                                                                                   config["dest_service_id"])
                 dest_service = app_service.get_service_by_service_key(service, service_key)
                 dest_service_id = dest_service.service_id
                 dest_service_alias = dest_service.service_alias
@@ -520,8 +518,7 @@ class AppPluginService(object):
                     dest_service_alias=dest_service_alias,
                     container_port=config["container_port"],
                     attrs=config["attrs"],
-                    protocol=config["protocol"])
-            )
+                    protocol=config["protocol"]))
 
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
@@ -533,8 +530,7 @@ class PluginService(object):
     def get_plugin_by_plugin_id(self, tenant, plugin_id):
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
-    def create_tenant_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image,
-                             code_repo):
+    def create_tenant_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
         plugin_id = make_uuid()
         if build_source == "dockerfile":
             if not code_repo:
@@ -542,11 +538,9 @@ class PluginService(object):
         if build_source == "image":
             if not image:
                 return 400, "镜像地址不能为空", None
-        if category not in (
-                PluginCategoryConstants.OUTPUT_INPUT_NET,
-                PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
-                PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
-                PluginCategoryConstants.COMMON_TYPE):
+        if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
+                            PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
+                            PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
             return 400, "插件类别参数不支持", None
         plugin_params = {
             "plugin_id": plugin_id,
@@ -630,20 +624,16 @@ class PluginService(object):
                 raise Exception("no config was found")
 
             needed_plugin_config = all_default_config[plugin_type]
-            code, msg, plugin_base_info = self.create_tenant_plugin(tenant, user.user_id, region,
-                                                                    needed_plugin_config["desc"],
-                                                                    needed_plugin_config["plugin_alias"],
-                                                                    needed_plugin_config["category"],
-                                                                    needed_plugin_config["build_source"],
-                                                                    needed_plugin_config["image"],
-                                                                    needed_plugin_config["code_repo"])
+            code, msg, plugin_base_info = self.create_tenant_plugin(
+                tenant, user.user_id, region, needed_plugin_config["desc"], needed_plugin_config["plugin_alias"],
+                needed_plugin_config["category"], needed_plugin_config["build_source"], needed_plugin_config["image"],
+                needed_plugin_config["code_repo"])
             plugin_base_info.origin = "local_market"
             plugin_base_info.origin_share_id = plugin_type
             plugin_base_info.save()
 
-            plugin_build_version = plugin_version_service.create_build_version(region, plugin_base_info.plugin_id,
-                                                                               tenant.tenant_id,
-                                                                               user.user_id, "", "unbuild", 64)
+            plugin_build_version = plugin_version_service.create_build_version(
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -656,8 +646,7 @@ class PluginService(object):
                         build_version=plugin_build_version.build_version,
                         config_name=config["config_name"],
                         service_meta_type=config["service_meta_type"],
-                        injection=config["injection"]
-                    )
+                        injection=config["injection"])
                     plugin_config_meta_list.append(plugin_config_meta)
 
                     for option in options:
@@ -671,8 +660,7 @@ class PluginService(object):
                             attr_default_value=option.get("attr_default_value", None),
                             is_change=option.get("is_change", False),
                             attr_info=option.get("attr_info", ""),
-                            protocol=option.get("protocol", "")
-                        )
+                            protocol=option.get("protocol", ""))
                         config_items_list.append(config_item)
 
                 config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)
@@ -684,8 +672,7 @@ class PluginService(object):
 
                 self.create_region_plugin(region, tenant, plugin_base_info)
 
-                self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant,
-                                  event_id)
+                self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
                 plugin_build_version.build_status = "build_success"
                 plugin_build_version.save()
         except Exception as e:
@@ -724,8 +711,9 @@ class PluginService(object):
 
     def get_default_plugin(self, region, tenant):
         # 兼容3.5版本升级
-        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
-            origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"])
+        plugins = plugin_repo.get_tenant_plugins(
+            tenant.tenant_id,
+            region).filter(origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"])
         if plugins:
             return plugins
         else:

@@ -82,7 +82,10 @@ class CenterAppExportView(RegionTenantHeaderView):
             export_format = request.data.get("format", None)
             if not group_key or not group_version:
                 return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
-            if not export_format or export_format not in ("rainbond-app", "docker-compose",):
+            if not export_format or export_format not in (
+                    "rainbond-app",
+                    "docker-compose",
+            ):
                 return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
             new_export_record_list = []
             for version in group_version:
@@ -137,7 +140,10 @@ class ExportFileDownLoadView(AlowAnyApiView):
             export_format = request.GET.get("format", None)
             if not app_id:
                 return Response(general_message(400, "app id is null", "请指明需要下载的应用"), status=400)
-            if not export_format or export_format not in ("rainbond-app", "docker-compose",):
+            if not export_format or export_format not in (
+                    "rainbond-app",
+                    "docker-compose",
+            ):
                 return Response(general_message(400, "export format is illegal", "请指明下载的格式"), status=400)
 
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)

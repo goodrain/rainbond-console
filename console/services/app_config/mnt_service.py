@@ -28,11 +28,7 @@ class AppMntService(object):
 
     def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
 
-        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(
-            tenant.tenant_id,
-            service.service_id,
-            volume_types
-        )
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id, volume_types)
         total = len(all_mnt_relations)
         mnt_paginator = JuncheePaginator(all_mnt_relations, int(page_size))
         mnt_relations = mnt_paginator.page(page)
@@ -65,8 +61,7 @@ class AppMntService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
         # 已挂载的服务路径
-        dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name',
-                                                                                                    flat=True)
+        dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name', flat=True)
         # 当前未被挂载的共享路径
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
             .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
@@ -133,14 +128,12 @@ class AppMntService(object):
             logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))
             raise ErrInvalidVolume(msg)
 
-        dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"],
-                                                            dep_vol["volume_name"])
+        dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"], dep_vol["volume_name"])
         if not dep_volume:
             raise ErrDepVolumeNotFound(dep_vol["service_id"], dep_vol["volume_name"])
 
         source_path = dep_vol['path'].strip()
-        return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
-                                                 dep_volume.service_id,
+        return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                  dep_volume.volume_name, source_path)
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
@@ -163,17 +156,14 @@ class AppMntService(object):
                     "file_content": config_file.file_content,
                     "enterprise_id": tenant.enterprise_id
                 }
-            res, body = region_api.add_service_dep_volumes(
-                service.service_region, tenant.tenant_name, service.service_alias, data
-            )
+            res, body = region_api.add_service_dep_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+                                                           data)
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
 
-        mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id,
-                                                         dep_volume.service_id,
+        mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                          dep_volume.volume_name, source_path)
-        logger.debug(
-            "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
-                                                               mnt_relation.mnt_dir))
+        logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
+                                                                        mnt_relation.mnt_dir))
         return 200, "success"
 
     def delete_service_mnt_relation(self, tenant, service, dep_vol_id):
@@ -186,9 +176,8 @@ class AppMntService(object):
                     "volume_name": dep_volume.volume_name,
                     "enterprise_id": tenant.tenant_name
                 }
-                res, body = region_api.delete_service_dep_volumes(
-                    service.service_region, tenant.tenant_name, service.service_alias, data
-                )
+                res, body = region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name,
+                                                                  service.service_alias, data)
                 logger.debug("delete service mnt info res:{0}, body {1}".format(res, body))
             mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
 

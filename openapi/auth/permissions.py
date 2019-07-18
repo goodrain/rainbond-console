@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-from www.models import AnonymousUser
+from www.models.main import AnonymousUser
 from rest_framework.permissions import BasePermission
 from openapi.services.api_user_service import apiUserService
 logger = logging.getLogger("default")
 
 
 class OpenAPIPermissions(BasePermission):
-
     def has_perms(self, user, perms):
         if isinstance(user, AnonymousUser):
             return False

@@ -9,7 +9,10 @@ data_type = (
     (u"无", "un_define"),
 )
 injection_method = ((u"自主发现", 'auto'), (u"环境变量", "env"))
-plugin_status = ((u"启用", "active"), (u"停用", "deactivate"),)
+plugin_status = (
+    (u"启用", "active"),
+    (u"停用", "deactivate"),
+)
 
 
 class TenantPlugin(BaseModel):
@@ -30,8 +33,8 @@ class TenantPlugin(BaseModel):
     image = models.CharField(max_length=256, null=True, blank=True, help_text=u"镜像地址")
     code_repo = models.CharField(max_length=256, null=True, blank=True, help_text=u"docker构建代码仓库地址")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    origin = models.CharField(max_length=12, default="source_code", null=False, blank=False,
-                              help_text=u"插件来源 source_code|market|local_market")
+    origin = models.CharField(
+        max_length=12, default="source_code", null=False, blank=False, help_text=u"插件来源 source_code|market|local_market")
     origin_share_id = models.CharField(max_length=32, default="new_create", help_text=u"分享的插件的id,自己创建为new_create")
 
 

@@ -109,9 +109,8 @@ class ProbeService(object):
         prob_data["enterprise_id"] = tenant.enterprise_id
         logger.debug("create status: {}".format(service.create_status))
         if service.create_status == "complete":
-            res, body = region_api.add_service_probe(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, prob_data)
+            res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name, service.service_alias,
+                                                     prob_data)
             logger.debug("add probe action status {0}".format(res.status))
         new_probe = probe_repo.add_service_probe(**console_prob)
         return 200, "success", new_probe
@@ -128,8 +127,7 @@ class ProbeService(object):
         if len(probes) > 1:
             for index in range(len(probes)):
                 if index > 0:
-                    self.delete_service_probe(tenant, service,
-                                              probes[index].probe_id)
+                    self.delete_service_probe(tenant, service, probes[index].probe_id)
         if not probe:
             return 404, u"应用未设置探针，无法进行修改操作", None
         is_used = data.get("is_used", None)
@@ -156,18 +154,13 @@ class ProbeService(object):
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
-            res, body = region_api.update_service_probec(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, prob_data)
+            res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
+                                                         prob_data)
             logger.debug("update probe action status {0}".format(res.status))
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
-        probe_repo.update_service_probeb(
-            service_id=service.service_id,
-            probe_id=probe.probe_id,
-            **console_probe)
-        new_probe = probe_repo.get_probe_by_probe_id(service.service_id,
-                                                     probe.probe_id)
+        probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
+        new_probe = probe_repo.get_probe_by_probe_id(service.service_id, probe.probe_id)
         return 200, "success", new_probe
 
     def delete_service_probe(self, tenant, service, probe_id):
@@ -175,8 +168,6 @@ class ProbeService(object):
         if not probe:
             return 404, u"未找到探针"
         body = {"probe_id": probe_id}
-        region_api.delete_service_probe(service.service_region,
-                                        tenant.tenant_name,
-                                        service.service_alias, body)
+        region_api.delete_service_probe(service.service_region, tenant.tenant_name, service.service_alias, body)
         probe.delete()
         return 200, u"success"

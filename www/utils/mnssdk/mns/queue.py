@@ -12,8 +12,9 @@ from mns_client import MNSClient
 from mns_request import *
 from mns_exception import *
 
+
 class Queue:
-    def __init__(self, queue_name, mns_client, debug=False): 
+    def __init__(self, queue_name, mns_client, debug=False):
         self.queue_name = queue_name
         self.mns_client = mns_client
         self.set_encoding(True)
@@ -29,7 +30,7 @@ class Queue:
             @param encoding: 是否对消息体进行base64编码
         """
         self.encoding = encoding
-        
+
     def create(self, queue_meta, req_info=None):
         """ 创建队列
 
@@ -47,7 +48,9 @@ class Queue:
             :: MNSClientNetworkException    网络异常
             :: MNSServerException           mns处理异常
         """
-        req = CreateQueueRequest(self.queue_name, queue_meta.visibility_timeout, queue_meta.maximum_message_size, queue_meta.message_retention_period, queue_meta.delay_seconds, queue_meta.polling_wait_seconds, queue_meta.logging_enabled)
+        req = CreateQueueRequest(self.queue_name, queue_meta.visibility_timeout, queue_meta.maximum_message_size,
+                                 queue_meta.message_retention_period, queue_meta.delay_seconds, queue_meta.polling_wait_seconds,
+                                 queue_meta.logging_enabled)
         req.set_req_info(req_info)
         resp = CreateQueueResponse()
         self.mns_client.create_queue(req, resp)
@@ -90,12 +93,14 @@ class Queue:
             :: MNSClientNetworkException    网络异常
             :: MNSServerException           mns处理异常
         """
-        req = SetQueueAttributesRequest(self.queue_name, queue_meta.visibility_timeout, queue_meta.maximum_message_size, queue_meta.message_retention_period, queue_meta.delay_seconds, queue_meta.polling_wait_seconds, queue_meta.logging_enabled)
+        req = SetQueueAttributesRequest(self.queue_name, queue_meta.visibility_timeout, queue_meta.maximum_message_size,
+                                        queue_meta.message_retention_period, queue_meta.delay_seconds,
+                                        queue_meta.polling_wait_seconds, queue_meta.logging_enabled)
         req.set_req_info(req_info)
         resp = SetQueueAttributesResponse()
         self.mns_client.set_queue_attributes(req, resp)
         self.debuginfo(resp)
-    
+
     def delete(self, req_info=None):
         """ 删除队列
 
@@ -207,7 +212,7 @@ class Queue:
         self.debuginfo(resp)
         return self.__batchpeek_resp2msg__(resp)
 
-    def receive_message(self, wait_seconds = -1, req_info=None):
+    def receive_message(self, wait_seconds=-1, req_info=None):
         """ 消费消息
 
             @type wait_seconds: int
@@ -230,8 +235,8 @@ class Queue:
         self.mns_client.receive_message(req, resp)
         self.debuginfo(resp)
         return self.__recv_resp2msg__(resp)
-   
-    def batch_receive_message(self, batch_size, wait_seconds = -1, req_info=None):
+
+    def batch_receive_message(self, batch_size, wait_seconds=-1, req_info=None):
         """ 批量消费消息
 
             @type batch_size: int
@@ -331,7 +336,7 @@ class Queue:
             print "===================DEBUG INFO==================="
             print "RequestId: %s" % resp.header["x-mns-request-id"]
             print "================================================"
-    
+
     def __resp2meta__(self, queue_meta, resp):
         queue_meta.visibility_timeout = resp.visibility_timeout
         queue_meta.maximum_message_size = resp.maximum_message_size
@@ -352,7 +357,7 @@ class Queue:
         msg.message_id = resp.message_id
         msg.message_body_md5 = resp.message_body_md5
         return msg
-        
+
     def __batchsend_resp2msg__(self, resp):
         msg_list = []
         for entry in resp.message_list:
@@ -370,20 +375,20 @@ class Queue:
         msg.message_body = resp.message_body
         msg.priority = resp.priority
         return msg
-       
+
     def __batchpeek_resp2msg__(self, resp):
         msg_list = []
         for entry in resp.message_list:
             msg = Message()
             msg.message_id = entry.message_id
             msg.message_body_md5 = entry.message_body_md5
-            msg.dequeue_count = entry.dequeue_count 
-            msg.enqueue_time = entry.enqueue_time 
+            msg.dequeue_count = entry.dequeue_count
+            msg.enqueue_time = entry.enqueue_time
             msg.first_dequeue_time = entry.first_dequeue_time
             msg.message_body = entry.message_body
             msg.priority = entry.priority
             msg_list.append(msg)
-        return msg_list            
+        return msg_list
 
     def __recv_resp2msg__(self, resp):
         msg = self.__peek_resp2msg__(resp)
@@ -405,7 +410,7 @@ class Queue:
             msg.next_visible_time = entry.next_visible_time
             msg.receipt_handle = entry.receipt_handle
             msg_list.append(msg)
-        return msg_list            
+        return msg_list
 
     def __changevis_resp2msg__(self, resp):
         msg = Message()
@@ -413,13 +418,21 @@ class Queue:
         msg.next_visible_time = resp.next_visible_time
         return msg
 
+
 class QueueMeta:
     DEFAULT_VISIBILITY_TIMEOUT = 30
     DEFAULT_MAXIMUM_MESSAGE_SIZE = 2048
     DEFAULT_MESSAGE_RETENTION_PERIOD = 86400
     DEFAULT_DELAY_SECONDS = 0
     DEFAULT_POLLING_WAIT_SECONDS = 0
-    def __init__(self, vis_timeout = None, max_msg_size = None, msg_ttl = None, delay_sec = None, polling_wait_sec = None, logging_enabled = None):
+
+    def __init__(self,
+                 vis_timeout=None,
+                 max_msg_size=None,
+                 msg_ttl=None,
+                 delay_sec=None,
+                 polling_wait_sec=None,
+                 logging_enabled=None):
         """ 队列属性
             @note: 设置属性
             :: visibility_timeout: message被receive后，持续不可消费的时间, 单位：秒
@@ -456,7 +469,7 @@ class QueueMeta:
 
     def set_maximum_message_size(self, maximum_message_size):
         self.maximum_message_size = maximum_message_size
-    
+
     def set_message_retention_period(self, message_retention_period):
         self.message_retention_period = message_retention_period
 
@@ -470,22 +483,25 @@ class QueueMeta:
         self.logging_enabled = logging_enabled
 
     def __str__(self):
-        meta_info = {"VisibilityTimeout" : self.visibility_timeout,
-                     "MaximumMessageSize" : self.maximum_message_size,
-                     "MessageRetentionPeriod" : self.message_retention_period,
-                     "DelaySeconds" : self.delay_seconds,
-                     "PollingWaitSeconds" : self.polling_wait_seconds,
-                     "ActiveMessages" : self.active_messages,
-                     "InactiveMessages" : self.inactive_messages,
-                     "DelayMessages" : self.delay_messages,
-                     "CreateTime" : time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.create_time)),
-                     "LastModifyTime" : time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.last_modify_time)),
-                     "QueueName" : self.queue_name,
-                     "LoggingEnabled" : self.logging_enabled}
-        return "\n".join(["%s: %s"%(k.ljust(30),v) for k,v in meta_info.items()])
+        meta_info = {
+            "VisibilityTimeout": self.visibility_timeout,
+            "MaximumMessageSize": self.maximum_message_size,
+            "MessageRetentionPeriod": self.message_retention_period,
+            "DelaySeconds": self.delay_seconds,
+            "PollingWaitSeconds": self.polling_wait_seconds,
+            "ActiveMessages": self.active_messages,
+            "InactiveMessages": self.inactive_messages,
+            "DelayMessages": self.delay_messages,
+            "CreateTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.create_time)),
+            "LastModifyTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.last_modify_time)),
+            "QueueName": self.queue_name,
+            "LoggingEnabled": self.logging_enabled
+        }
+        return "\n".join(["%s: %s" % (k.ljust(30), v) for k, v in meta_info.items()])
+
 
 class Message:
-    def __init__(self, message_body = None, delay_seconds = None, priority = None):
+    def __init__(self, message_body=None, delay_seconds=None, priority=None):
         """ 消息属性
 
             @note: send_message 指定属性
@@ -532,4 +548,3 @@ class Message:
 
     def set_priority(self, priority):
         self.priority = priority
-

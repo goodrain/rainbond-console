@@ -11,11 +11,7 @@ def AjaxErrResponseJson(message, messagecn, code):
     return JsonResponse(result, status=200)
 
 
-def AjaxSuccessResponseJson(bean=None,
-                            list_data=None,
-                            pageNumber=0,
-                            pageSize=0,
-                            total=0):
+def AjaxSuccessResponseJson(bean=None, list_data=None, pageNumber=0, pageSize=0, total=0):
     result = {}
     result["code"] = 200
     result["body"] = {}
@@ -27,11 +23,7 @@ def AjaxSuccessResponseJson(bean=None,
     return JsonResponse(result, status=200)
 
 
-def APISuccessResponseJson(bean=None,
-                           list_data=None,
-                           pageNumber=0,
-                           pageSize=0,
-                           total=0):
+def APISuccessResponseJson(bean=None, list_data=None, pageNumber=0, pageSize=0, total=0):
     result = {}
     result["code"] = 200
     result["body"] = {}

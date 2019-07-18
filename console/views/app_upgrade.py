@@ -11,9 +11,9 @@ from enum import Enum
 from console.exception.main import AbortRequest
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
-from console.models import AppUpgradeRecord
-from console.models import ServiceUpgradeRecord
-from console.models import UpgradeStatus
+from console.models.main import AppUpgradeRecord
+from console.models.main import ServiceUpgradeRecord
+from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -46,17 +46,11 @@ class GroupAppView(RegionTenantHeaderView):
                 if not app:
                     continue
                 upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
-                not_upgrade_record = upgrade_service.get_app_not_upgrade_record(
-                    self.tenant.tenant_id,
-                    group_id,
-                    group_key
-                )
+                not_upgrade_record = upgrade_service.get_app_not_upgrade_record(self.tenant.tenant_id, group_id, group_key)
                 services = group_service.get_rainbond_services(int(group_id), group_key)
                 yield {
-                    'current_version': upgrade_service.get_old_version(
-                        group_key,
-                        services.values_list('service_id', flat=True)
-                    ),
+                    'current_version': upgrade_service.get_old_version(group_key, services.values_list('service_id',
+                                                                                                       flat=True)),
                     'can_upgrade': bool(upgrade_versions),
                     'upgrade_versions': list(upgrade_versions),
                     'not_upgrade_record_id': not_upgrade_record.ID,
@@ -81,8 +75,8 @@ class GroupAppView(RegionTenantHeaderView):
 class AppUpgradeVersion(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取某云市应用的可升级版本"""
-        group_key = parse_argument(request, 'group_key', value_type=str, required=True,
-                                   error='group_key is a required parameter')
+        group_key = parse_argument(
+            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
         versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
@@ -96,10 +90,22 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         page_size = parse_argument(request, 'page_size', value_type=int, default=10)
 
         rq_args = (
-            {'key': 'group_key', 'value_type': str},
-            {'key': 'status__in', 'value_type': list},
-            {'key': 'status__gt', 'value_type': int},
-            {'key': 'status__lt', 'value_type': int},
+            {
+                'key': 'group_key',
+                'value_type': str
+            },
+            {
+                'key': 'status__in',
+                'value_type': list
+            },
+            {
+                'key': 'status__gt',
+                'value_type': int
+            },
+            {
+                'key': 'status__lt',
+                'value_type': int
+            },
         )
 
         qs_args = parse_args(request, rq_args)
@@ -127,14 +133,8 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 
         return MessageResponse(
             msg="success",
-            bean={
-                "total": paginator.count
-            },
-            list=[
-                upgrade_service.serialized_upgrade_record(record)
-                for record in records
-            ]
-        )
+            bean={"total": paginator.count},
+            list=[upgrade_service.serialized_upgrade_record(record) for record in records])
 
     def post(self, request, group_id, *args, **kwargs):
         """新增升级订单"""
@@ -159,16 +159,12 @@ class AppUpgradeRecordView(RegionTenantHeaderView):
             msg="Upgrade record not found",
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            pk=int(record_id)
-        )
+            pk=int(record_id))
 
         # 同步升级记录状态
         upgrade_service.synchronous_upgrade_status(self.tenant, record)
 
-        return MessageResponse(
-            msg="success",
-            bean=upgrade_service.serialized_upgrade_record(record)
-        )
+        return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(record))
 
 
 class UpgradeType(Enum):
@@ -179,54 +175,60 @@ class UpgradeType(Enum):
 class AppUpgradeInfoView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取升级信息"""
-        group_key = parse_argument(request, 'group_key', value_type=str, required=True,
-                                   error='group_key is a required parameter')
-        version = parse_argument(request, 'version', value_type=str, required=True,
-                                 error='version is a required parameter')
+        group_key = parse_argument(
+            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
+        version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
 
         # 查询某一个云市应用下的所有服务
         services = group_service.get_rainbond_services(int(group_id), group_key)
 
-        upgrade_info = [
-            {
-                'service': {
-                    'service_id': service.service_id,
-                    'service_cname': service.service_cname,
-                    'service_key': service.service_key,
-                    'type': UpgradeType.UPGRADE.value
-                },
-                'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
-            }
-            for service in services
-        ]
+        upgrade_info = [{
+            'service': {
+                'service_id': service.service_id,
+                'service_cname': service.service_cname,
+                'service_key': service.service_key,
+                'type': UpgradeType.UPGRADE.value
+            },
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
+        } for service in services]
 
-        add_info = [
-            {
-                'service': {
-                    'service_id': '',
-                    'service_cname': service_info['service_cname'],
-                    'service_key': service_info['service_key'],
-                    'type': UpgradeType.ADD.value
-                },
-                'upgrade_info': service_info,
-            }
-            for service_info in upgrade_service.get_add_services(services, group_key, version)
-        ]
+        add_info = [{
+            'service': {
+                'service_id': '',
+                'service_cname': service_info['service_cname'],
+                'service_key': service_info['service_key'],
+                'type': UpgradeType.ADD.value
+            },
+            'upgrade_info': service_info,
+        } for service_info in upgrade_service.get_add_services(services, group_key, version)]
 
-        return MessageResponse(
-            msg="success",
-            list=upgrade_info + add_info
-        )
+        return MessageResponse(msg="success", list=upgrade_info + add_info)
 
 
 class AppUpgradeTaskView(RegionTenantHeaderView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (
-            {'key': 'upgrade_record_id', 'required': True, 'error': 'upgrade_record_id is a required parameter'},
-            {'key': 'group_key', 'required': True, 'error': 'group_key is a required parameter'},
-            {'key': 'version', 'required': True, 'error': 'version is a required parameter'},
-            {'key': 'services', 'required': True, 'error': 'services is a required parameter'},
+            {
+                'key': 'upgrade_record_id',
+                'required': True,
+                'error': 'upgrade_record_id is a required parameter'
+            },
+            {
+                'key': 'group_key',
+                'required': True,
+                'error': 'group_key is a required parameter'
+            },
+            {
+                'key': 'version',
+                'required': True,
+                'error': 'version is a required parameter'
+            },
+            {
+                'key': 'services',
+                'required': True,
+                'error': 'services is a required parameter'
+            },
         )
         data = parse_date(request, rq_args)
         group_key = data['group_key']
@@ -245,15 +247,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         # 处理新增的服务
         add_service_infos = {
             service['service']['service_key']: service['upgrade_info']
-            for service in data['services']
-            if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
+            for service in data['services'] if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
         install_info = {}
         if add_service_infos:
-            old_app = rainbond_app_repo.get_rainbond_app_by_key_version(
-                group_key=group_key,
-                version=version
-            )
+            old_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=group_key, version=version)
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.app_template)
@@ -264,21 +262,14 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
                 market_app_service.check_package_app_resource(self.tenant, self.response_region, new_app)
-                install_info = market_app_service.install_service_when_upgrade_app(
-                    self.tenant, self.response_region, self.user,
-                    group_id, new_app, old_app, services, True
-                )
+                install_info = market_app_service.install_service_when_upgrade_app(self.tenant, self.response_region, self.user,
+                                                                                   group_id, new_app, old_app, services, True)
 
             except ResourceNotEnoughException as re:
                 raise re
             except AccountOverdueException as re:
                 logger.exception(re)
-                return MessageResponse(
-                    msg="resource is not enough",
-                    msg_show=re.message,
-                    status_code=412,
-                    error_code=10406
-                )
+                return MessageResponse(msg="resource is not enough", msg_show=re.message, status_code=412, error_code=10406)
             upgrade_service.create_add_service_record(app_record, install_info['events'], add_service_infos)
 
         # 处理需要升级的服务
@@ -292,23 +283,14 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         app_record.old_version = upgrade_service.get_old_version(group_key, upgrade_service_infos.keys())
         app_record.save()
 
-        services = service_repo.get_services_by_service_ids_and_group_key(
-            data['group_key'], upgrade_service_infos.keys()
-        )
+        services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], upgrade_service_infos.keys())
 
         market_services = [
-            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version)
-            for service in services
+            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version) for service in services
         ]
 
         upgrade_service.upgrade_database(market_services)
-        upgrade_service.send_upgrade_request(
-            market_services,
-            self.tenant,
-            self.user,
-            app_record,
-            upgrade_service_infos
-        )
+        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos)
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
         # 处理依赖关系
@@ -321,10 +303,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
                 install_info['app_map'],
             )
 
-        return MessageResponse(
-            msg="success",
-            bean=upgrade_service.serialized_upgrade_record(app_record)
-        )
+        return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))
 
 
 class AppUpgradeRollbackView(RegionTenantHeaderView):
@@ -336,49 +315,27 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         app_record = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
             group_id=int(group_id),
-            status__in=(
-                UpgradeStatus.UPGRADED.value,
-                UpgradeStatus.ROLLBACK.value,
-                UpgradeStatus.PARTIAL_UPGRADED.value,
-                UpgradeStatus.PARTIAL_ROLLBACK.value,
-                UpgradeStatus.UPGRADE_FAILED.value,
-                UpgradeStatus.ROLLBACK_FAILED.value
-            )
-        ).order_by('-create_time').first()
+            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+                        UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.UPGRADE_FAILED.value,
+                        UpgradeStatus.ROLLBACK_FAILED.value)).order_by('-create_time').first()
 
         if not app_record or app_record.ID != int(record_id):
             raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
 
         service_records = app_record.service_upgrade_records.filter(
-            status__in=(
-                UpgradeStatus.UPGRADED.value,
-                UpgradeStatus.ROLLBACK.value,
-                UpgradeStatus.UPGRADE_FAILED.value,
-                UpgradeStatus.ROLLBACK_FAILED.value
-            ),
+            status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.UPGRADE_FAILED.value,
+                        UpgradeStatus.ROLLBACK_FAILED.value),
             upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
-            service_id__in=service_ids
-        )
+            service_id__in=service_ids)
         services = service_repo.get_services_by_service_ids_and_group_key(
             app_record.group_key,
-            service_records.values_list('service_id', flat=True) or []
-        )
+            service_records.values_list('service_id', flat=True) or [])
 
         market_services = [
-            upgrade_service.market_service_and_restore_backup(self.tenant, service, app_record.version)
-            for service in services
+            upgrade_service.market_service_and_restore_backup(self.tenant, service, app_record.version) for service in services
         ]
-        upgrade_service.send_rolling_request(
-            market_services,
-            self.tenant,
-            self.user,
-            app_record,
-            service_records
-        )
+        upgrade_service.send_rolling_request(market_services, self.tenant, self.user, app_record, service_records)
 
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.ROLLING.value)
 
-        return MessageResponse(
-            msg="success",
-            bean=upgrade_service.serialized_upgrade_record(app_record)
-        )
+        return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))

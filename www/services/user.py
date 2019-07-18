@@ -5,6 +5,7 @@ import string
 from www.models.main import Tenants, PermRelTenant, Users, TenantEnterprise, TenantRegionInfo
 from django.db.models import Q
 
+
 class UserService(object):
     def get_user_by_id(self, user_id):
         try:
@@ -40,12 +41,11 @@ class UserService(object):
 
         return tenants
 
-
     def delete_tenant(self, user_id):
         """
         清理云帮用户信息
-        :param user_id: 
-        :return: 
+        :param user_id:
+        :return:
         """
         user = Users.objects.get(user_id=user_id)
         tenants = Tenants.objects.filter(creater=user.user_id)
@@ -69,8 +69,7 @@ class UserService(object):
     def check_nick_name(self, nick_name):
         """
         判断用户是否在本地存在, 如果存在则拼接随机名字
-        :param nick_name: 待注册的名字 
-        :return: 
+        :param nick_name: 待注册的名字
         """
 
         while Users.objects.filter(nick_name=nick_name).exists():
@@ -82,14 +81,14 @@ class UserService(object):
         """
         通过云市sso的用户信息来生成本地用户信息
         :param sso_user:
-        :return: 
         """
-        user = Users.objects.create(nick_name=self.check_nick_name(sso_user.username),
-                                    password=sso_user.get('pwd'),
-                                    email=sso_user.get('email', ''),
-                                    phone=sso_user.get('mobile', ''),
-                                    sso_user_id=sso_user.get('uid', ''),
-                                    sso_user_token=sso_user.get('sso_user_token', ''),
-                                    is_active=False,
-                                    rf='sso')
+        user = Users.objects.create(
+            nick_name=self.check_nick_name(sso_user.username),
+            password=sso_user.get('pwd'),
+            email=sso_user.get('email', ''),
+            phone=sso_user.get('mobile', ''),
+            sso_user_id=sso_user.get('uid', ''),
+            sso_user_token=sso_user.get('sso_user_token', ''),
+            is_active=False,
+            rf='sso')
         return user

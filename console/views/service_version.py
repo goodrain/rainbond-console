@@ -16,7 +16,6 @@ from www.utils.return_message import general_message, error_message
 from console.repositories.event_repo import event_repo
 from django.core.paginator import Paginator
 
-
 logger = logging.getLogger("default")
 
 region_api = RegionInvokeApi()
@@ -93,8 +92,7 @@ class AppVersionsView(AppBaseView):
                     "status": info["FinalStatus"],
                     "build_user": version_user_map.get(info["EventID"], "未知")
                 })
-            res_versions = sorted(version_list,
-                                  key=lambda version: version["build_version"], reverse=True)
+            res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
                 # get deploy version from region
                 if int(res_version["build_version"]) > int(run_version):
@@ -158,8 +156,8 @@ class AppVersionManageView(AppBaseView):
         try:
             if not version_id:
                 return Response(general_message(400, "attr_name not specify", u"请指定需要删除的具体版本"))
-            region_api.delete_service_build_version(self.response_region, self.tenant.tenant_name,
-                                                    self.service.service_alias, version_id)
+            region_api.delete_service_build_version(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                    version_id)
             # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
             result = general_message(200, "success", u"删除成功")
         except Exception as e:

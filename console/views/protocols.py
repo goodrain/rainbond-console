@@ -12,7 +12,6 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")

@@ -30,7 +30,7 @@ class ConsoleUploadFileView(RegionTenantHeaderView):
         """
         try:
             if not request.FILES or not request.FILES.get('file'):
-                return Response(general_message(400, "param error", "请指定需要上传的文件"),status=400)
+                return Response(general_message(400, "param error", "请指定需要上传的文件"), status=400)
             upload_file = request.FILES.get('file')
             if upload_file.size > 1048576 * 2:
                 return Response(general_message(400, "file is too large", "图片大小不能超过2M"), status=400)

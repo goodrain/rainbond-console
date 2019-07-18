@@ -48,8 +48,7 @@ class ServicePluginsView(AppBaseView):
             category = request.GET.get("category", "")
             if category:
                 if category not in ("analysis", "net_manage"):
-                    return Response(general_message(400, "param can only be analysis or net_manage", "参数错误"),
-                                    status=400)
+                    return Response(general_message(400, "param can only be analysis or net_manage", "参数错误"), status=400)
             installed_plugins, not_install_plugins = app_plugin_service.get_plugins_by_service_id(
                 self.service.service_region, self.tenant.tenant_id, self.service.service_id, category)
             bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
@@ -98,8 +97,7 @@ class ServicePluginInstallView(AppBaseView):
                 build_version = plugin_version.build_version
             logger.debug("start install plugin ! plugin_id {0}  build_version {1}".format(plugin_id, build_version))
             # 1.生成console数据，存储
-            code, msg = app_plugin_service.save_default_plugin_config(self.tenant, self.service, plugin_id,
-                                                                      build_version)
+            code, msg = app_plugin_service.save_default_plugin_config(self.tenant, self.service, plugin_id, build_version)
             if code != 200:
                 return Response(general_message(code, "install plugin fail", msg), status=code)
             # 2.从console数据库取数据生成region数据
@@ -111,21 +109,18 @@ class ServicePluginInstallView(AppBaseView):
             data["version_id"] = build_version
             data.update(region_config)
             code, msg, relation = app_plugin_service.create_service_plugin_relation(self.service.service_id, plugin_id,
-                                                                                    build_version, "",
-                                                                                    True)
+                                                                                    build_version, "", True)
             if code != 200:
                 return Response(general_message(code, "install plugin fail", msg), status=code)
-            region_api.install_service_plugin(self.response_region, self.tenant.tenant_name, self.service.service_alias,
-                                              data)
+            region_api.install_service_plugin(self.response_region, self.tenant.tenant_name, self.service.service_alias, data)
 
             result = general_message(200, "success", "安装成功")
         except Exception as e:
             logger.exception(e)
             app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
             app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
-            if e.message.has_key("body"):
-
-                if e.message["body"].has_key("msg"):
+            if "body" in e.message:
+                if "msg" in e.message["body"]:
                     if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
                         result = general_message(409, "install plugin fail", "网络类插件不能重复安装")
             else:
@@ -208,7 +203,7 @@ class ServicePluginOperationView(AppBaseView):
                 return Response(general_message(404, "params error", "未找到关联插件的构建版本"), status=404)
             else:
                 build_version = service_plugin_relation.build_version
-            pbv = plugin_version_service.get_by_id_and_version(plugin_id,build_version)
+            pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
             # 更新内存和cpu
             min_memory = request.data.get("min_memory", pbv.min_memory)
             min_cpu = common_services.calculate_cpu(self.service.service_region, min_memory)
@@ -220,8 +215,8 @@ class ServicePluginOperationView(AppBaseView):
             data["plugin_memory"] = min_memory
             data["plugin_cpu"] = min_cpu
             # 更新数据中心数据参数
-            region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name,
-                                                      self.service.service_alias, data)
+            region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                      data)
             # 更新本地数据
             app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active)
             pbv.min_memory = min_memory
@@ -267,8 +262,7 @@ class ServicePluginConfigView(AppBaseView):
             logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         try:
-            result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id,
-                                                                       build_version)
+            result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
             if pbv:
                 result_bean["build_info"] = pbv.update_info
@@ -325,8 +319,8 @@ class ServicePluginConfigView(AppBaseView):
             app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
             # 更新数据中心配置
             region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, pbv.build_version)
-            region_api.update_service_plugin_config(self.response_region, self.tenant.tenant_name,
-                                                    self.service.service_alias, plugin_id, region_config)
+            region_api.update_service_plugin_config(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                    plugin_id, region_config)
             # 提交操作
             transaction.savepoint_commit(sid)
             result = general_message(200, "success", "配置更新成功")

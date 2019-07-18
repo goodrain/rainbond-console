@@ -48,7 +48,7 @@ class ConfigPluginManageView(PluginBaseView):
             main_url = region_services.get_region_wsurl(self.response_region)
             data["web_socket_url"] = "{0}/event_log".format(main_url)
 
-            result = general_message(200, "success", "查询成功", bean=data,list=config_groups)
+            result = general_message(200, "success", "查询成功", bean=data, list=config_groups)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -90,9 +90,8 @@ class ConfigPluginManageView(PluginBaseView):
             config_name = config.get("config_name")
             config_group_pk = config.get("ID")
 
-            config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
-                                                                   self.plugin_version.build_version).exclude(
-                pk=config_group_pk)
+            config_groups = plugin_config_service.get_config_group(
+                self.plugin_version.plugin_id, self.plugin_version.build_version).exclude(pk=config_group_pk)
             is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
 
             if not is_pass:
@@ -154,8 +153,8 @@ class ConfigPluginManageView(PluginBaseView):
             if not is_pass:
                 return Response(general_message(400, "param error", msg), status=400)
             create_data = [config]
-            plugin_config_service.create_config_groups(self.plugin_version.plugin_id,
-                                                       self.plugin_version.build_version, create_data)
+            plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
+                                                       create_data)
 
             result = general_message(200, "success", "添加成功")
 
@@ -250,9 +249,8 @@ class ConfigPreviewView(PluginBaseView):
             base_services = []
             base_normal = {}
             for config_group in config_groups:
-                config_items = plugin_config_service.get_config_items(self.plugin_version.plugin_id,
-                                                                      self.plugin_version.build_version,
-                                                                      config_group.service_meta_type)
+                config_items = plugin_config_service.get_config_items(
+                    self.plugin_version.plugin_id, self.plugin_version.build_version, config_group.service_meta_type)
                 items = []
                 for item in config_items:
                     item_map = {}
@@ -274,7 +272,6 @@ class ConfigPreviewView(PluginBaseView):
                         base_service["service_alias"] = wordpress_alias
                         base_service["service_id"] = wp_id
                         base_service["port"] = port
-                        #base_service["protocol"] = "stream"
                         base_service["protocol"] = "mysql"
                         base_service["options"] = items
                         base_service["depend_service_alias"] = mysql_alias
@@ -283,8 +280,7 @@ class ConfigPreviewView(PluginBaseView):
                 if config_group.service_meta_type == PluginMetaType.UNDEFINE:
                     base_normal["options"] = items
 
-            bean = {"base_ports": base_ports, "base_services": base_services,
-                    "base_normal": base_normal.get("options", None)}
+            bean = {"base_ports": base_ports, "base_services": base_services, "base_normal": base_normal.get("options", None)}
 
             result = general_message(200, "success", "查询成功", bean=bean, list=all_config_group)
         except Exception as e:

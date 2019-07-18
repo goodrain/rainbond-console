@@ -22,30 +22,19 @@ class RegionService(object):
         region_name_list = list()
         if regions:
             for region in regions:
-                region_desc = region_repo.get_region_desc_by_region_name(
-                    region_name=region.region_name)
+                region_desc = region_repo.get_region_desc_by_region_name(region_name=region.region_name)
                 if region_desc:
                     region_name_list.append({
-                        "region_id":
-                        region.ID,
-                        "region_name":
-                        region.region_name,
-                        "service_status":
-                        region.service_status,
-                        "is_active":
-                        region.is_active,
-                        "is_init":
-                        region.is_init,
-                        "region_scope":
-                        region.region_scope,
-                        "region_alisa":
-                        team_repo.get_region_alias(region.region_name),
-                        "region.region_tenant_id":
-                        region.region_tenant_id,
-                        "create_time":
-                        region.create_time,
-                        "desc":
-                        region_desc
+                        "region_id": region.ID,
+                        "region_name": region.region_name,
+                        "service_status": region.service_status,
+                        "is_active": region.is_active,
+                        "is_init": region.is_init,
+                        "region_scope": region.region_scope,
+                        "region_alisa": team_repo.get_region_alias(region.region_name),
+                        "region.region_tenant_id": region.region_tenant_id,
+                        "create_time": region.create_time,
+                        "desc": region_desc
                     })
             return region_name_list
         else:
@@ -78,11 +67,8 @@ class RegionService(object):
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
-        opened_regions_name = [
-            team_region.region_name for team_region in team_opened_regions
-        ]
-        unopen_regions = usable_regions.exclude(
-            region_name__in=opened_regions_name)
+        opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
+        unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
     def get_open_regions(self):
@@ -91,8 +77,7 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,
-                                                        tenant.tenant_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
@@ -131,8 +116,7 @@ class RegionService(object):
         tenant = team_repo.get_team_by_team_name(team_name)
         if not tenant:
             return 404, u"需要开通的团队{0}不存在".format(team_name), None
-        region_config = region_repo.get_region_by_region_name(
-            region_name)
+        region_config = region_repo.get_region_by_region_name(region_name)
         if not region_config:
             return 404, u"需要开通的数据中心{0}不存在".format(region_name), None
         if region_config.scope == "public":
@@ -142,23 +126,15 @@ class RegionService(object):
             if not is_pass:
                 return 500, u"数据中心访问token获取异常", None
 
-        tenant_region = region_repo.get_team_region_by_tenant_and_region(
-            tenant.tenant_id, region_name)
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
         if not tenant_region:
-            tenant_region_info = {
-                "tenant_id": tenant.tenant_id,
-                "region_name": region_name,
-                "is_active": False
-            }
+            tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
 
         if not tenant_region.is_init:
 
-            res, body = region_api.create_tenant(
-                region_name, tenant.tenant_name, tenant.tenant_id,
-                tenant.enterprise_id)
-            logger.debug("============create region tenant : res, {0}, body {1}".
-                         format(res, body))
+            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
+            logger.debug("============create region tenant : res, {0}, body {1}".format(res, body))
             if res["status"] != 200:
                 return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
@@ -188,10 +164,8 @@ class RegionService(object):
         is_pass = True
         try:
             res, data = market_api.get_region_access_token(tenant_id, enterprise_id, region_name)
-            is_success = client_auth_service.save_region_access_token(data["eid"], region_name, region_url,
-                                                                      data['token'],
-                                                                      data['key'],
-                                                                      data['crt'])
+            is_success = client_auth_service.save_region_access_token(data["eid"], region_name, region_url, data['token'],
+                                                                      data['key'], data['crt'])
             if not is_success:
                 logger.error("save region access token error")
                 is_pass = False
@@ -205,15 +179,14 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id,
-                                                                                   region_name, user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
+                                                                                   user_name)))
             logger.exception(e)
             return False
 
     def get_region_access_info(self, team_name, region_name):
         """获取一个团队在指定数据中心的身份认证信息"""
-        url, token = client_auth_service.get_region_access_token_by_tenant(
-            team_name, region_name)
+        url, token = client_auth_service.get_region_access_token_by_tenant(team_name, region_name)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         region_info = region_repo.get_region_by_region_name(region_name)
         url = region_info.url
@@ -226,8 +199,7 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True,
-                                                                                   region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):

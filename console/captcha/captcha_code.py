@@ -28,8 +28,8 @@ current_path = settings.BASE_DIR
 
 NON_DIGITS_RX = re.compile('[^\d]')
 
-class CaptchaView(BaseApiView):
 
+class CaptchaView(BaseApiView):
     def getsize(self, font, text):
         if hasattr(font, 'getoffset'):
             return [x + y for x, y in zip(font.getsize(text), font.getoffset(text))]
@@ -57,7 +57,7 @@ class CaptchaView(BaseApiView):
 
         try:
             PIL_VERSION = int(NON_DIGITS_RX.sub('', Image.VERSION))
-        except:
+        except Exception:
             PIL_VERSION = 116
         xpos = 2
 

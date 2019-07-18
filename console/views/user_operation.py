@@ -15,7 +15,7 @@ from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView
 from www import perms
 from django import forms
-from www.models import Users, SuperAdminUser
+from www.models.main import Users, SuperAdminUser
 from www.perms import PermActions, UserActions
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
@@ -35,16 +35,8 @@ def password_len(value):
 
 
 class PasswordResetForm(forms.Form):
-    password = forms.CharField(
-        required=True, label='',
-        widget=forms.PasswordInput,
-        validators=[password_len]
-    )
-    password_repeat = forms.CharField(
-        required=True, label='',
-        widget=forms.PasswordInput,
-        validators=[password_len]
-    )
+    password = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
+    password_repeat = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
 
     error_messages = {
         'password_repeat': u"两次输入的密码不一致",
@@ -68,7 +60,7 @@ class PasswordResetForm(forms.Form):
 
 
 class TenantServiceView(BaseApiView):
-    allowed_methods = ('POST',)
+    allowed_methods = ('POST', )
 
     def post(self, request, *args, **kwargs):
         """
@@ -120,10 +112,7 @@ class TenantServiceView(BaseApiView):
             import copy
             querydict = copy.copy(request.data)
             captcha_code = request.session.get("captcha_code")
-            querydict.update({
-                u'real_captcha_code':
-                    captcha_code
-            })
+            querydict.update({u'real_captcha_code': captcha_code})
             client_ip = request.META.get("REMOTE_ADDR", None)
             register_form = RegisterForm(querydict)
 
@@ -155,14 +144,12 @@ class TenantServiceView(BaseApiView):
                 register_type = request.data.get("register_type", None)
                 value = request.data.get("value", None)
                 if register_type == "invitation":
-                    perm = perms_repo.add_user_tenant_perm(
-                        perm_info={
-                            "user_id": user.user_id,
-                            "tenant_id": value,
-                            "identity": "viewer",
-                            "enterprise_id": enterprise.ID
-                        }
-                    )
+                    perm = perms_repo.add_user_tenant_perm(perm_info={
+                        "user_id": user.user_id,
+                        "tenant_id": value,
+                        "identity": "viewer",
+                        "enterprise_id": enterprise.ID
+                    })
                     if not perm:
                         result = general_message(400, "invited failed", "团队关联失败，注册失败")
                         return Response(result, status=400)
@@ -178,9 +165,7 @@ class TenantServiceView(BaseApiView):
                 response = Response(result, status=200)
                 return response
             else:
-                error = {
-                    "error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")
-                }
+                error = {"error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")}
                 result = general_message(400, "failed", "{}".format(error["error"]))
                 return Response(result, status=400)
         except Exception as e:
@@ -206,7 +191,8 @@ class SendResetEmail(BaseApiView):
         try:
             if email:
                 if len(email) > 5:
-                    if re.match("^.+\\@(\\[?)[a-zA-Z0-9\\-\\.]+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(\\]?)$", email) != None:
+                    rerule = "^.+\\@(\\[?)[a-zA-Z0-9\\-\\.]+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(\\]?)$"
+                    if re.match(rerule, email):
                         if Users.objects.filter(email=email).exists():
                             # TODO 生成 url 并发送一封邮件
                             domain = self.request.META.get('HTTP_HOST')
@@ -217,9 +203,7 @@ class SendResetEmail(BaseApiView):
                             try:
                                 send_reset_pass_mail(email, content)
                             except Exception, e:
-                                logger.error(
-                                    "account.passwdreset",
-                                    "send email to {0} failed".format(email))
+                                logger.error("account.passwdreset", "send email to {0} failed".format(email))
                                 logger.exception("account.passwdreset", e)
                             result = general_message(code, "success", "邮件发送成功")
                         else:
@@ -262,9 +246,7 @@ class PasswordResetBegin(BaseApiView):
             email, old_timestamp = AuthCode.decode(tag, 'password').split(',')
             timestamp = int(time.time())
             if (timestamp - int(old_timestamp)) > 3600:
-                logger.info("account.passwdreset",
-                            "link expired, email: {0}, link_timestamp: {1}".format(
-                                email, old_timestamp))
+                logger.info("account.passwdreset", "link expired, email: {0}, link_timestamp: {1}".format(email, old_timestamp))
                 result = general_message(400, "failed", "链接已失效")
                 return Response(result, status=400)
             user = Users.objects.get(email=email)
@@ -276,9 +258,7 @@ class PasswordResetBegin(BaseApiView):
                 result = general_message(200, "success", "修改密码成功")
                 return Response(result, status=200)
             else:
-                error = {
-                    "error": list(json.loads(form.errors.as_json()).values())[0][0].get("message", "参数错误")
-                }
+                error = {"error": list(json.loads(form.errors.as_json()).values())[0][0].get("message", "参数错误")}
                 result = general_message(400, "failed", "参数错误,{}".format(error["error"]))
                 return Response(result, status=400)
         except Exception as e:
@@ -362,8 +342,7 @@ class UserDetailsView(JWTAuthApiView):
             tenant_list = list()
             for tenant in tenants:
                 tenant_info = dict()
-                team_region_list = region_services.get_region_list_by_team_name(request=request,
-                                                                                team_name=tenant.tenant_name)
+                team_region_list = region_services.get_region_list_by_team_name(request=request, team_name=tenant.tenant_name)
                 tenant_info["team_id"] = tenant.ID
                 tenant_info["team_name"] = tenant.tenant_name
                 tenant_info["team_alias"] = tenant.tenant_alias
@@ -372,10 +351,10 @@ class UserDetailsView(JWTAuthApiView):
                 tenant_info["region"] = team_region_list
                 tenant_info["creater"] = tenant.creater
                 tenant_info["create_time"] = tenant.create_time
-                perms_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user.user_id,
-                                                                                 tenant_name=tenant.tenant_name)
-                perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id,
-                                                                                       tenant_name=tenant.tenant_name)
+                perms_list = team_services.get_user_perm_identitys_in_permtenant(
+                    user_id=user.user_id, tenant_name=tenant.tenant_name)
+                perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(
+                    user_id=user.user_id, tenant_name=tenant.tenant_name)
 
                 perms_tuple = ()
 

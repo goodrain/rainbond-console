@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-from django.conf import settings
 
 from goodrain_web.base import BaseHttpClient
 from goodrain_web.custom_config import custom_config
@@ -109,11 +108,10 @@ class GitlabApi(BaseHttpClient):
                 logger.debug(git_user_id)
             except Exception as e:
                 logger.exception(e)
-                logger.info("account.gituser",
-                            "create gitlab user for {0} failed, reason: got uid 0".format(e))
+                logger.info("account.gituser", "create gitlab user for {0} failed, reason: got uid 0".format(e))
         return git_user_id
 
-    def deleteUser(self,git_user_id):
+    def deleteUser(self, git_user_id):
         self._reload()
         try:
             private_token = self.get_private_token()
@@ -153,7 +151,6 @@ class GitlabApi(BaseHttpClient):
 
     def create_gitlab_project(self, appname):
         self._reload()
-        project_id = 0
         project = {}
         project["name"] = appname
         project["issues_enabled"] = True
@@ -180,7 +177,7 @@ class GitlabApi(BaseHttpClient):
             return 200, "success", data
         except Exception as e:
             logger.exception(e)
-            return 500, "创建失败," ,None
+            return 500, "创建失败,", None
 
     def createProjectForUser(self, appname, user_id):
         self._reload()
@@ -332,7 +329,7 @@ class GitlabApi(BaseHttpClient):
             private_token = self.get_private_token()
             logger.debug(private_token)
             # %2F 表示斜杠(/)
-            suffix = namespace + "/"+project_name
+            suffix = namespace + "/" + project_name
             suffix = urlencode({"1": suffix})[2:]
             url = self.url + PREFIX + "/projects/" + suffix
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}

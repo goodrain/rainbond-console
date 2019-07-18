@@ -102,11 +102,9 @@ class PluginCreateView(RegionTenantHeaderView):
             if not category:
                 return Response(general_message(400, "plugin category is null", "插件类别未指明"), status=400)
             else:
-                if category not in (
-                        PluginCategoryConstants.OUTPUT_INPUT_NET,
-                        PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
-                        PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
-                        PluginCategoryConstants.COMMON_TYPE):
+                if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
+                                    PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
+                                    PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
                     return Response(general_message(400, "plugin category is wrong", "插件类别参数错误，详情请参数API说明"), status=400)
             if not desc:
                 return Response(general_message(400, "plugin desc is null", "请填写插件描述"), status=400)
@@ -121,18 +119,16 @@ class PluginCreateView(RegionTenantHeaderView):
                     image = image_and_tag[0]
                     image_tag = "latest"
             # 创建基本信息
-            code, msg, tenant_plugin = plugin_service.create_tenant_plugin(self.tenant, self.user.user_id,
-                                                                           self.response_region, desc, plugin_alias,
-                                                                           category, build_source, image, code_repo)
+            code, msg, tenant_plugin = plugin_service.create_tenant_plugin(self.tenant, self.user.user_id, self.response_region,
+                                                                           desc, plugin_alias, category, build_source, image,
+                                                                           code_repo)
             if code != 200:
                 return Response(general_message(code, "create plugin error", msg), status=code)
 
             # 创建插件版本信息
-            plugin_build_version = plugin_version_service.create_build_version(self.response_region,
-                                                                               tenant_plugin.plugin_id,
-                                                                               self.tenant.tenant_id, self.user.user_id,
-                                                                               "", "unbuild", min_memory, build_cmd,
-                                                                               image_tag, code_version)
+            plugin_build_version = plugin_version_service.create_build_version(
+                self.response_region, tenant_plugin.plugin_id, self.tenant.tenant_id, self.user.user_id, "", "unbuild",
+                min_memory, build_cmd, image_tag, code_version)
             # 数据中心创建插件
             code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
             if code != 200:

@@ -11,7 +11,7 @@ from www.decorator import perm_required
 import logging
 from www.utils.return_message import general_message, error_message
 from console.services.app import app_service
-from console.services.app_config import port_service, compile_env_service
+from console.services.app_config import compile_env_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
 import json
@@ -100,11 +100,9 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             # 创建源码应用
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
-            code, msg_show, new_service = app_service.create_source_code_app(self.response_region, self.tenant,
-                                                                             self.user, service_code_from,
-                                                                             service_cname, service_code_clone_url,
-                                                                             service_code_id,
-                                                                             service_code_version, server_type)
+            code, msg_show, new_service = app_service.create_source_code_app(
+                self.response_region, self.tenant, self.user, service_code_from, service_cname, service_code_clone_url,
+                service_code_id, service_code_version, server_type)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息
@@ -157,8 +155,7 @@ class AppCompileEnvView(AppBaseView):
                 user_dependency = {}
                 if compile_env.user_dependency:
                     user_dependency = json.loads(compile_env.user_dependency)
-                    selected_dependency = [key.replace("ext-", "") for key in
-                                           user_dependency.get("dependencies", {}).keys()]
+                    selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies", {}).keys()]
                 bean["check_dependency"] = check_dependency
                 bean["user_dependency"] = user_dependency
                 bean["service_id"] = compile_env.service_id
@@ -220,9 +217,7 @@ class AppCompileEnvView(AppBaseView):
                 checkJson["dependencies"] = d
             else:
                 checkJson["dependencies"] = {}
-            update_params = {
-                "user_dependency": json.dumps(checkJson)
-            }
+            update_params = {"user_dependency": json.dumps(checkJson)}
             compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
             bean = dict()
             if compile_env:

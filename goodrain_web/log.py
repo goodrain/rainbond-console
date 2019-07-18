@@ -10,9 +10,7 @@ HOSTNAME = socket.gethostname()
 
 
 class MyLogRecord(logging.LogRecord):
-
-    def __init__(self, name, level, pathname, lineno,
-                 msg, args, exc_info, func=None):
+    def __init__(self, name, level, pathname, lineno, msg, args, exc_info, func=None):
         if args and '%' not in msg:
             arg = args[0]
 
@@ -27,15 +25,13 @@ class MyLogRecord(logging.LogRecord):
             finally:
                 args = []
 
-        super(MyLogRecord, self).__init__(name, level, pathname, lineno,
-                                          msg, args, exc_info, func=func)
+        super(MyLogRecord, self).__init__(name, level, pathname, lineno, msg, args, exc_info, func=func)
 
 
 logging.LogRecord = MyLogRecord
 
 
 class ZmqHandler(PUBHandler):
-
     def __init__(self, address, root_topic):
         logging.Handler.__init__(self)
 

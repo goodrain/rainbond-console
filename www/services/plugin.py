@@ -3,9 +3,12 @@
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
 
-from www.models import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems, \
-    TenantServicePluginRelation, TenantServicePluginAttr, ConstKey, TenantServiceRelation, \
-    TenantServiceInfo, TenantServicesPort, Users, HasNoDownStreamService, TenantPluginShareInfo
+from www.models.main import TenantServiceRelation, \
+    TenantServiceInfo, TenantServicesPort, Users
+from www.models.plugin import TenantPlugin, PluginBuildVersion, PluginConfigGroup
+from www.models.plugin import PluginConfigItems, TenantServicePluginRelation
+from www.models.plugin import ConstKey, TenantServicePluginAttr, HasNoDownStreamService
+from www.models.plugin import TenantPluginShareInfo
 import logging
 from www.utils.crypt import make_uuid
 import datetime
@@ -14,13 +17,7 @@ from django.forms import model_to_dict
 
 logger = logging.getLogger('default')
 
-BUILD_STATUS_MAP = {
-    "building": "构建中",
-    "build_fail": "构建失败",
-    "build_success": "构建成功",
-    "unbuild": "未构建",
-    "time_out": "构建超时"
-}
+BUILD_STATUS_MAP = {"building": "构建中", "build_fail": "构建失败", "build_success": "构建成功", "unbuild": "未构建", "time_out": "构建超时"}
 
 CATEGORY_MAP = {
     "output_net": "出口网络",
@@ -36,7 +33,6 @@ CATEGORY_MAP = {
     "general-plugin": "一般类型",
 }
 CATEGORY_REGION_MAP = {
-
     "output_net": "net-plugin:down",
     "input_net": "net-plugin:up",
     "performance_analysis": "analyst-plugin:perf",
@@ -49,7 +45,6 @@ REGION_BUILD_STATUS_MAP = {
     "complete": "build_success",
     "building": "building",
     "timeout": "time_out",
-
 }
 
 # 插件构建完成状态
@@ -74,8 +69,7 @@ class PluginService(object):
                                    SELECT max(id) from plugin_build_version WHERE
                                     tenant_id="{0}" and region="{1}" GROUP BY plugin_id
                                 ) and
-                                  plugin_build_version.tenant_id="{2}";""".format(tenant.tenant_id, region,
-                                                                                  tenant.tenant_id)
+                                  plugin_build_version.tenant_id="{2}";""".format(tenant.tenant_id, region, tenant.tenant_id)
 
         data = self.dsn.query(query_sql)
         for d in data:
@@ -114,7 +108,7 @@ class PluginService(object):
         else:
             return {}
 
-    def get_tenant_plugin_by_origin_key(self,region, tenant, origin_share_id):
+    def get_tenant_plugin_by_origin_key(self, region, tenant, origin_share_id):
         """
         根据origin key 获取plugin
         @param tenant:
@@ -135,8 +129,8 @@ class PluginService(object):
         :param plugin_id: 插件id
         :return: 指定插件的所有版本信息
         """
-        plugin_build_version = PluginBuildVersion.objects.filter(region=region, tenant_id=tenant.tenant_id,
-                                                                 plugin_id=plugin_id).order_by("-ID")
+        plugin_build_version = PluginBuildVersion.objects.filter(
+            region=region, tenant_id=tenant.tenant_id, plugin_id=plugin_id).order_by("-ID")
         return plugin_build_version
 
     def get_tenant_plugin_newest_versions(self, region_name, tenant, plugin_id):
@@ -146,9 +140,8 @@ class PluginService(object):
         :param plugin_id: 插件id
         :return: 指定插件的所有版本信息
         """
-        plugin_build_version = PluginBuildVersion.objects.filter(region=region_name, tenant_id=tenant.tenant_id,
-                                                                 plugin_id=plugin_id,
-                                                                 build_status="build_success").order_by("-ID")
+        plugin_build_version = PluginBuildVersion.objects.filter(
+            region=region_name, tenant_id=tenant.tenant_id, plugin_id=plugin_id, build_status="build_success").order_by("-ID")
         return plugin_build_version
 
     def get_tenant_service_plugin_relation(self, service_id):
@@ -176,18 +169,13 @@ class PluginService(object):
         @return:
         """
         return TenantServicePluginRelation.objects.create(
-            service_id=service_id,
-            build_version=build_version,
-            plugin_id=plugin_id
-
-        )
+            service_id=service_id, build_version=build_version, plugin_id=plugin_id)
 
     def del_service_plugin_relation_and_attrs(self, service_id, plugin_id):
         # delete service plugin attrs
         TenantServicePluginAttr.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
         # delete service plugin relation
-        TenantServicePluginRelation.objects.filter(service_id=service_id,
-                                                   plugin_id=plugin_id).delete()
+        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
         return
 
     def del_service_plugin_attrs(self, service_id, plugin_id):
@@ -196,8 +184,7 @@ class PluginService(object):
         return
 
     def update_service_plugin_relation(self, service_id, plugin_id, build_version, switch):
-        oldRelation = TenantServicePluginRelation.objects.get(service_id=service_id,
-                                                              plugin_id=plugin_id)
+        oldRelation = TenantServicePluginRelation.objects.get(service_id=service_id, plugin_id=plugin_id)
         oldRelation.build_version = build_version
         oldRelation.plugin_status = switch
         oldRelation.save()
@@ -212,9 +199,8 @@ class PluginService(object):
         return PluginBuildVersion.objects.get(plugin_id=plugin_id, build_version=build_version)
 
     def get_env_attr_by_service_meta_type(self, plugin_id, build_version, service_meta_type):
-        return PluginConfigItems.objects.filter(plugin_id=plugin_id,
-                                                build_version=build_version,
-                                                service_meta_type=service_meta_type)
+        return PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type)
 
     def InsertSqlInDownStreamMeta(self, downStreamList, plugin_id, service_id):
         store_list = []
@@ -236,8 +222,7 @@ class PluginService(object):
                     attr_alt_value=cf.get("attr_alt_value"),
                     protocol=stream.get("protocol"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.filter(
             service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.DOWNSTREAM_PORT).delete()
@@ -263,8 +248,7 @@ class PluginService(object):
                     attr_alt_value=cf.get("attr_alt_value"),
                     protocol=stream.get("protocol"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
@@ -286,8 +270,7 @@ class PluginService(object):
                     attr_alt_value=cf.get("attr_alt_value"),
                     protocol=stream.get("protocol"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.filter(
             service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UPSTREAM_PORT).delete()
@@ -311,8 +294,7 @@ class PluginService(object):
                     attr_alt_value=cf.get("attr_alt_value"),
                     protocol=stream.get("protocol"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
@@ -333,8 +315,7 @@ class PluginService(object):
                     attr_default_value=cf.get("attr_default_value"),
                     attr_alt_value=cf.get("attr_alt_value"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.filter(
             service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UNDEFINE).delete()
@@ -357,8 +338,7 @@ class PluginService(object):
                     attr_default_value=cf.get("attr_default_value"),
                     attr_alt_value=cf.get("attr_alt_value"),
                     attr_info=cf.get("attr_info"),
-                    is_change=cf.get("is_change")
-                )
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
@@ -392,10 +372,7 @@ class PluginService(object):
                         config["attr_value"] = attr.attr_value
         elif metaType == ConstKey.UNDEFINE:
             attrList = TenantServicePluginAttr.objects.filter(
-                service_id=service_id,
-                plugin_id=plugin_id,
-                service_meta_type=metaType,
-                injection=pubDict.get("injection"))
+                service_id=service_id, plugin_id=plugin_id, service_meta_type=metaType, injection=pubDict.get("injection"))
             if len(attrList) == 0:
                 return configList
             for config in configList:
@@ -404,8 +381,7 @@ class PluginService(object):
                         config["attr_value"] = attr.attr_value
         return configList
 
-    def getMetaBaseInfo(self, tenant_id, service_id, service_alias, plugin_id, build_version, meta_info, configList,
-                        tag):
+    def getMetaBaseInfo(self, tenant_id, service_id, service_alias, plugin_id, build_version, meta_info, configList, tag):
         if meta_info.service_meta_type == ConstKey.DOWNSTREAM_PORT:
             relations = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
             if len(relations) == 0:
@@ -414,8 +390,7 @@ class PluginService(object):
             downStreamList = []
             for relation in relations:
                 dest_service_id = relation.dep_service_id
-                dest_service = TenantServiceInfo.objects.get(tenant_id=tenant_id,
-                                                             service_id=dest_service_id)
+                dest_service = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_id=dest_service_id)
                 dest_service_alias = dest_service.service_alias
                 dest_service_cname = dest_service.service_cname
                 ports = TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=dest_service_id)
@@ -432,8 +407,9 @@ class PluginService(object):
                     destServiceDict["dest_service_alias"] = dest_service_alias
                     destServiceDict["dest_service_id"] = dest_service_id
                     destServiceDict["dest_service_cname"] = dest_service_cname
-                    destServiceDict["config"] = copy.deepcopy(self.getServicePluginAttrByAttrName(
-                        service_id, plugin_id, ConstKey.DOWNSTREAM_PORT, destServiceDict, configList))
+                    destServiceDict["config"] = copy.deepcopy(
+                        self.getServicePluginAttrByAttrName(service_id, plugin_id, ConstKey.DOWNSTREAM_PORT, destServiceDict,
+                                                            configList))
                     downStreamList.append(destServiceDict)
             if tag == "post":
                 self.InsertSqlInDownStreamMeta(downStreamList, plugin_id, service_id)
@@ -452,8 +428,8 @@ class PluginService(object):
                 serviceDict["protocol"] = port.protocol
                 serviceDict["service_alias"] = service_alias
                 serviceDict["service_id"] = service_id
-                serviceDict["config"] = copy.deepcopy(self.getServicePluginAttrByAttrName(
-                    service_id, plugin_id, ConstKey.UPSTREAM_PORT, serviceDict, configList))
+                serviceDict["config"] = copy.deepcopy(
+                    self.getServicePluginAttrByAttrName(service_id, plugin_id, ConstKey.UPSTREAM_PORT, serviceDict, configList))
                 upStreamList.append(serviceDict)
             if tag == "post":
                 self.InsertSqlInUpStreamMeta(upStreamList, plugin_id, service_id)
@@ -466,8 +442,8 @@ class PluginService(object):
             DDict["injection"] = meta_info.injection
             DDict["service_alias"] = service_alias
             DDict["service_id"] = service_id
-            DDict["config"] = copy.deepcopy(self.getServicePluginAttrByAttrName(
-                service_id, plugin_id, ConstKey.UNDEFINE, DDict, configList))
+            DDict["config"] = copy.deepcopy(
+                self.getServicePluginAttrByAttrName(service_id, plugin_id, ConstKey.UNDEFINE, DDict, configList))
             envList.append(DDict)
             if tag == "post":
                 self.InsertSqlInENVMeta(envList, plugin_id, service_id)
@@ -493,25 +469,37 @@ class PluginService(object):
         :return: 指定插件的和版本的构建信息
         """
         if not build_version:
-            plugin_build_versions = PluginBuildVersion.objects.filter(tenant_id=tenant.tenant_id,
-                                                                      plugin_id=plugin_id).order_by("-ID")
+            plugin_build_versions = PluginBuildVersion.objects.filter(
+                tenant_id=tenant.tenant_id, plugin_id=plugin_id).order_by("-ID")
         else:
-            plugin_build_versions = PluginBuildVersion.objects.filter(tenant_id=tenant.tenant_id, plugin_id=plugin_id,
-                                                                      build_version=build_version).order_by("-ID")
+            plugin_build_versions = PluginBuildVersion.objects.filter(
+                tenant_id=tenant.tenant_id, plugin_id=plugin_id, build_version=build_version).order_by("-ID")
         if plugin_build_versions:
             return plugin_build_versions[0]
         return None
 
-    def init_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, build_status, image,
-                    code_repo, min_memory, build_cmd="", image_tag="", code_version=""):
+    def init_plugin(self,
+                    tenant,
+                    user_id,
+                    region,
+                    desc,
+                    plugin_alias,
+                    category,
+                    build_source,
+                    build_status,
+                    image,
+                    code_repo,
+                    min_memory,
+                    build_cmd="",
+                    image_tag="",
+                    code_version=""):
         """初始化插件信息"""
-        plugin = self.create_plugin(tenant, user_id, region, desc, plugin_alias, category, build_source, image,
-                                    code_repo)
+        plugin = self.create_plugin(tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo)
         build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         min_cpu = self.calculate_cpu(region, min_memory)
         plugin_build_version = self.create_plugin_build_version(region, plugin.plugin_id, tenant.tenant_id, user_id, "",
-                                                                build_version, "unbuild", min_memory, min_cpu,
-                                                                build_cmd, image_tag, code_version)
+                                                                build_version, "unbuild", min_memory, min_cpu, build_cmd,
+                                                                image_tag, code_version)
         return plugin_build_version.plugin_id, plugin_build_version.build_version
 
     def create_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
@@ -529,8 +517,7 @@ class PluginService(object):
             category=category,
             build_source=build_source,
             image=image,
-            code_repo=code_repo
-        )
+            code_repo=code_repo)
         return tenant_plugin
 
     def sortList(self, pList):
@@ -564,8 +551,8 @@ class PluginService(object):
         base_ports = []
         normal_envs = []
         auto_envs = {}
-        logger.debug("plugin.relation",
-                     "service_id: {0}, plugin_id:{1}, service_alias:{2}".format(service_id, service_alias, plugin_id))
+        logger.debug("plugin.relation", "service_id: {0}, plugin_id:{1}, service_alias:{2}".format(
+            service_id, service_alias, plugin_id))
         downStream_attrsList = TenantServicePluginAttr.objects.filter(
             service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.DOWNSTREAM_PORT)
         upstream_attrsList = TenantServicePluginAttr.objects.filter(
@@ -574,8 +561,9 @@ class PluginService(object):
             service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UNDEFINE)
 
         # 处理downstram
-        service_port_items = self.sortList(downStream_attrsList.values(
-            "container_port", "dest_service_alias", "dest_service_id", "service_meta_type", "protocol"))
+        service_port_items = self.sortList(
+            downStream_attrsList.values("container_port", "dest_service_alias", "dest_service_id", "service_meta_type",
+                                        "protocol"))
         logger.debug("plugin.relation", "service port items is {}".format(service_port_items))
         if len(service_port_items) > 0:
             for service_port in service_port_items:
@@ -649,12 +637,11 @@ class PluginService(object):
         self.UpdateSqlInENVMeta(envstream_list, plugin_id, service_id)
 
     def updateTenantServicePluginAttr(self, request):
-        logger.debug("plugin.relation", "old attr is " + request.get("config_group[service_alias]", "") + ";"
-                     + request.get("config_group[dest_service_alias]", "") + ";"
-                     + request.get("plugin_id", None) + ";"
-                     + request.get("config_group[service_meta_type]", None) + ";"
-                     + str(request.get("config_group[port]", 0)) + ";"
-                     + request.get("config_group[config][attr_name]", None))
+        logger.debug(
+            "plugin.relation", "old attr is " + request.get("config_group[service_alias]", "") + ";" +
+            request.get("config_group[dest_service_alias]", "") + ";" + request.get("plugin_id", None) + ";" + request.get(
+                "config_group[service_meta_type]", None) + ";" + str(request.get("config_group[port]", 0)) + ";" + request.get(
+                    "config_group[config][attr_name]", None))
         oldAttr = TenantServicePluginAttr.objects.get(
             service_alias=request.get("config_group[service_alias]", ""),
             dest_service_alias=request.get("config_group[dest_service_alias]", ""),
@@ -667,9 +654,19 @@ class PluginService(object):
             oldAttr.attr_value = request.get("config_group[config][attr_default_value]", None)
         oldAttr.save()
 
-    def create_plugin_build_version(self, region, plugin_id, tenant_id, user_id, update_info, build_version,
+    def create_plugin_build_version(self,
+                                    region,
+                                    plugin_id,
+                                    tenant_id,
+                                    user_id,
+                                    update_info,
+                                    build_version,
                                     build_status,
-                                    min_memory, min_cpu, build_cmd="", image_tag="latest", code_version="master"):
+                                    min_memory,
+                                    min_cpu,
+                                    build_cmd="",
+                                    image_tag="latest",
+                                    code_version="master"):
         """创建插件版本信息"""
         plugin_build_version = PluginBuildVersion.objects.create(
             plugin_id=plugin_id,
@@ -683,8 +680,7 @@ class PluginService(object):
             min_cpu=min_cpu,
             build_cmd=build_cmd,
             image_tag=image_tag,
-            code_version=code_version
-        )
+            code_version=code_version)
         return plugin_build_version
 
     def calculate_cpu(self, region, memory):
@@ -736,8 +732,7 @@ class PluginService(object):
                     build_version=build_version,
                     config_name=config["config_name"],
                     service_meta_type=config["service_meta_type"],
-                    injection=config["injection"]
-                )
+                    injection=config["injection"])
                 plugin_config_meta_list.append(plugin_config_meta)
 
                 for option in options:
@@ -750,8 +745,7 @@ class PluginService(object):
                         attr_type=option.get("attr_type", "string"),
                         attr_default_value=option.get("attr_default_value", None),
                         is_change=option.get("is_change", False),
-                        attr_info=option.get("attr_info", "")
-                    )
+                        attr_info=option.get("attr_info", ""))
                     config_items_list.append(config_item)
         self.bulk_create_plugin_config_group(plugin_config_meta_list)
         self.bulk_create_plugin_config_items(config_items_list)
@@ -774,16 +768,14 @@ class PluginService(object):
 
     def get_plugin_config(self, tenant, plugin_id, build_version):
         """获取插件信息"""
-        build_version_info = self.get_tenant_plugin_version_by_plugin_id_and_version(tenant, plugin_id,
-                                                                                     build_version)
+        build_version_info = self.get_tenant_plugin_version_by_plugin_id_and_version(tenant, plugin_id, build_version)
         data = {}
         data.update(model_to_dict(build_version_info))
         config_group = []
         config_groups = self.get_config_group_by_unique_key(plugin_id, build_version)
         for conf in config_groups:
             config_dict = model_to_dict(conf)
-            items = self.get_config_items_by_id_metadata_and_version(conf.plugin_id, conf.build_version,
-                                                                     conf.service_meta_type)
+            items = self.get_config_items_by_id_metadata_and_version(conf.plugin_id, conf.build_version, conf.service_meta_type)
             options = [model_to_dict(item) for item in items]
             config_dict["options"] = options
             config_group.append(config_dict)
@@ -797,8 +789,8 @@ class PluginService(object):
         return PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version)
 
     def get_config_items_by_id_metadata_and_version(self, plugin_id, build_version, service_meta_type):
-        return PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                                service_meta_type=service_meta_type)
+        return PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type)
 
     def delete_config_group_by_group_id_and_version(self, plugin_id, build_version):
         PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=build_version).delete()
@@ -960,10 +952,10 @@ class PluginService(object):
         return PluginConfigGroup.objects.get(pk=pk)
 
     def delete_config_group_by_meta_type(self, plugin_id, build_version, service_meta_type):
-        PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
-        PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
+        PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
+        PluginConfigGroup.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
 
     def update_config_group_by_pk(self, pk, config_name, service_meta_type, injection):
         pcg = PluginConfigGroup.objects.get(pk=pk)
@@ -973,8 +965,8 @@ class PluginService(object):
         pcg.save()
 
     def delete_config_items_by_meta_type(self, plugin_id, build_version, service_meta_type):
-        PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
+        PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
 
     def create_config_items(self, plugin_id, build_version, service_meta_type, *options):
         config_items_list = []
@@ -988,8 +980,7 @@ class PluginService(object):
                 attr_type=option.get("attr_type", "string"),
                 attr_default_value=option.get("attr_default_value", None),
                 is_change=option.get("is_change", False),
-                attr_info=option.get("attr_info", "")
-            )
+                attr_info=option.get("attr_info", ""))
             config_items_list.append(config_item)
 
         self.bulk_create_plugin_config_items(config_items_list)

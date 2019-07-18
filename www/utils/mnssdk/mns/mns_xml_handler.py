@@ -16,10 +16,12 @@ from mns_request import *
 from xml.etree import ElementTree
 try:
     import json
-except ImportError,e:
+except ImportError, e:
     import simplejson as json
 
 XMLNS = "http://mns.aliyuncs.com/doc/v1/"
+
+
 class EncoderBase:
     @staticmethod
     def insert_if_valid(item_name, item_value, invalid_value, data_dic):
@@ -49,10 +51,10 @@ class EncoderBase:
         rootNode.attributes["xmlns"] = XMLNS
         doc.appendChild(rootNode)
         if data_dic:
-            for k,v in data_dic.items():
+            for k, v in data_dic.items():
                 keyNode = doc.createElement(k)
                 if type(v) is types.DictType:
-                    for subkey,subv in v.items():
+                    for subkey, subv in v.items():
                         subNode = doc.createElement(subkey)
                         subNode.appendChild(doc.createTextNode(subv))
                         keyNode.appendChild(subNode)
@@ -78,7 +80,7 @@ class EncoderBase:
                     nullNode = doc.createTextNode("")
                     secNode.appendChild(nullNode)
                     continue
-                for k,v in subData.items():
+                for k, v in subData.items():
                     keyNode = doc.createElement(k)
                     secNode.appendChild(keyNode)
                     keyNode.appendChild(doc.createTextNode(v))
@@ -87,6 +89,7 @@ class EncoderBase:
             rootNode.appendChild(nullNode)
         return doc.toxml("utf-8")
 
+
 class SetAccountAttrEncoder(EncoderBase):
     @staticmethod
     def encode(data):
@@ -94,9 +97,10 @@ class SetAccountAttrEncoder(EncoderBase):
         EncoderBase.insert_if_valid("LoggingBucket", data.logging_bucket, None, account_attr)
         return EncoderBase.dic_to_xml("Account", account_attr)
 
+
 class QueueEncoder(EncoderBase):
     @staticmethod
-    def encode(data, has_slice = True):
+    def encode(data, has_slice=True):
         queue = {}
         EncoderBase.insert_if_valid("VisibilityTimeout", str(data.visibility_timeout), "-1", queue)
         EncoderBase.insert_if_valid("MaximumMessageSize", str(data.maximum_message_size), "-1", queue)
@@ -111,6 +115,7 @@ class QueueEncoder(EncoderBase):
             logging_enabled = "False"
         EncoderBase.insert_if_valid("LoggingEnabled", logging_enabled, "None", queue)
         return EncoderBase.dic_to_xml("Queue", queue)
+
 
 class MessageEncoder(EncoderBase):
     @staticmethod
@@ -127,6 +132,7 @@ class MessageEncoder(EncoderBase):
         EncoderBase.insert_if_valid("DelaySeconds", str(data.delay_seconds), "-1", message)
         EncoderBase.insert_if_valid("Priority", str(data.priority), "-1", message)
         return EncoderBase.dic_to_xml("Message", message)
+
 
 class MessagesEncoder:
     @staticmethod
@@ -147,6 +153,7 @@ class MessagesEncoder:
             msglist.append(item)
         return EncoderBase.listofdic_to_xml("Messages", "Message", msglist)
 
+
 class TopicMessageEncoder:
     @staticmethod
     def encode(req):
@@ -164,10 +171,12 @@ class TopicMessageEncoder:
             message["MessageAttributes"] = msg_attr
         return EncoderBase.dic_to_xml("Message", message)
 
+
 class ReceiptHandlesEncoder:
     @staticmethod
     def encode(receipt_handle_list):
         return EncoderBase.list_to_xml("ReceiptHandles", "ReceiptHandle", receipt_handle_list)
+
 
 class TopicEncoder(EncoderBase):
     @staticmethod
@@ -182,6 +191,7 @@ class TopicEncoder(EncoderBase):
         EncoderBase.insert_if_valid("LoggingEnabled", logging_enabled, "None", topic)
         return EncoderBase.dic_to_xml("Topic", topic)
 
+
 class SubscriptionEncoder(EncoderBase):
     @staticmethod
     def encode(data, set=False):
@@ -192,6 +202,7 @@ class SubscriptionEncoder(EncoderBase):
             EncoderBase.insert_if_valid("FilterTag", data.filter_tag, "", subscription)
             EncoderBase.insert_if_valid("NotifyContentFormat", data.notify_content_format, "", subscription)
         return EncoderBase.dic_to_xml("Subscription", subscription)
+
 
 #-------------------------------------------------decode-----------------------------------------------------#
 class DecoderBase:
@@ -220,7 +231,7 @@ class DecoderBase:
                         data_dic[node.nodeName] = node.firstChild.data
                     else:
                         data_dic[node.nodeName] = ""
-        except MNSClientNetworkException,e:
+        except MNSClientNetworkException, e:
             raise MNSClientNetworkException(e.type, e.message, req_id)
 
     @staticmethod
@@ -235,8 +246,9 @@ class DecoderBase:
                     if property.nodeName != "#text" and property.childNodes != []:
                         data_dic[property.nodeName] = property.firstChild.data
                 data_listofdic.append(data_dic)
-        except MNSClientNetworkException,e:
+        except MNSClientNetworkException, e:
             raise MNSClientNetworkException(e.type, e.message, req_id)
+
 
 class ListQueueDecoder(DecoderBase):
     @staticmethod
@@ -254,13 +266,13 @@ class ListQueueDecoder(DecoderBase):
                     for node in queue:
                         nodename = node.tag[len(namespace):]
                         nodevalue = node.text.strip()
-                        if nodename == "QueueURL" and len(nodevalue) > 0 :
+                        if nodename == "QueueURL" and len(nodevalue) > 0:
                             queueurl_list.append(nodevalue)
                         if len(nodevalue) > 0:
                             queuemeta[nodename] = nodevalue
                     if with_meta:
                         queuemeta_list.append(queuemeta)
-                marker =  root.getiterator(namespace + "NextMarker")
+                marker = root.getiterator(namespace + "NextMarker")
                 if len(marker) == 1:
                     next_marker = marker[0].text.strip()
             except Exception, e:
@@ -268,6 +280,7 @@ class ListQueueDecoder(DecoderBase):
         else:
             raise MNSClientNetworkException("RespDataDamaged", "Xml data is \"\"!", req_id)
         return queueurl_list, str(next_marker), queuemeta_list
+
 
 class GetAccountAttrDecoder(DecoderBase):
     @staticmethod
@@ -280,16 +293,22 @@ class GetAccountAttrDecoder(DecoderBase):
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic
 
+
 class GetQueueAttrDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, req_id=None):
         data_dic = {}
         DecoderBase.xml_to_dic("Queue", xml_data, data_dic, req_id)
-        key_list = ["ActiveMessages", "CreateTime", "DelayMessages", "DelaySeconds", "InactiveMessages", "LastModifyTime", "MaximumMessageSize", "MessageRetentionPeriod", "QueueName", "VisibilityTimeout", "PollingWaitSeconds", "LoggingEnabled"]
+        key_list = [
+            "ActiveMessages", "CreateTime", "DelayMessages", "DelaySeconds", "InactiveMessages", "LastModifyTime",
+            "MaximumMessageSize", "MessageRetentionPeriod", "QueueName", "VisibilityTimeout", "PollingWaitSeconds",
+            "LoggingEnabled"
+        ]
         for key in key_list:
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic
+
 
 class SendMessageDecoder(DecoderBase):
     @staticmethod
@@ -301,6 +320,7 @@ class SendMessageDecoder(DecoderBase):
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic["MessageId"], data_dic["MessageBodyMD5"]
+
 
 class BatchSendMessageDecoder(DecoderBase):
     @staticmethod
@@ -322,7 +342,7 @@ class BatchSendMessageDecoder(DecoderBase):
     def decodeError(xml_data, req_id=None):
         try:
             return ErrorDecoder.decodeError(xml_data, req_id)
-        except Exception,e:
+        except Exception, e:
             pass
 
         data_listofdic = []
@@ -343,12 +363,16 @@ class BatchSendMessageDecoder(DecoderBase):
                 errMsg = data_dic["ErrorMessage"]
         return errType, errMsg, None, None, data_listofdic
 
+
 class RecvMessageDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, base64decode, req_id=None):
         data_dic = {}
         DecoderBase.xml_to_dic("Message", xml_data, data_dic, req_id)
-        key_list = ["DequeueCount", "EnqueueTime", "FirstDequeueTime", "MessageBody", "MessageId", "MessageBodyMD5", "NextVisibleTime", "ReceiptHandle", "Priority"]
+        key_list = [
+            "DequeueCount", "EnqueueTime", "FirstDequeueTime", "MessageBody", "MessageId", "MessageBodyMD5", "NextVisibleTime",
+            "ReceiptHandle", "Priority"
+        ]
         for key in key_list:
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
@@ -356,6 +380,7 @@ class RecvMessageDecoder(DecoderBase):
             decode_str = base64.b64decode(data_dic["MessageBody"])
             data_dic["MessageBody"] = decode_str
         return data_dic
+
 
 class BatchRecvMessageDecoder(DecoderBase):
     @staticmethod
@@ -383,6 +408,7 @@ class BatchRecvMessageDecoder(DecoderBase):
             raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return message_list
 
+
 class PeekMessageDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, base64decode, req_id=None):
@@ -396,6 +422,7 @@ class PeekMessageDecoder(DecoderBase):
             decode_str = base64.b64decode(data_dic["MessageBody"])
             data_dic["MessageBody"] = decode_str
         return data_dic
+
 
 class BatchPeekMessageDecoder(DecoderBase):
     @staticmethod
@@ -421,12 +448,13 @@ class BatchPeekMessageDecoder(DecoderBase):
             raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return message_list
 
+
 class BatchDeleteMessageDecoder(DecoderBase):
     @staticmethod
     def decodeError(xml_data, req_id=None):
         try:
             return ErrorDecoder.decodeError(xml_data, req_id)
-        except Exception,e:
+        except Exception, e:
             pass
 
         data_listofdic = []
@@ -442,6 +470,7 @@ class BatchDeleteMessageDecoder(DecoderBase):
                     raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_listofdic[0]["ErrorCode"], data_listofdic[0]["ErrorMessage"], None, None, data_listofdic
 
+
 class ChangeMsgVisDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, req_id=None):
@@ -452,6 +481,7 @@ class ChangeMsgVisDecoder(DecoderBase):
             return data_dic["ReceiptHandle"], data_dic["NextVisibleTime"]
         else:
             raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
+
 
 class ListTopicDecoder(DecoderBase):
     @staticmethod
@@ -484,16 +514,21 @@ class ListTopicDecoder(DecoderBase):
             raise MNSClientNetworkException("RespDataDamaged", "Xml data is \"\"!", req_id)
         return topicurl_list, str(next_marker), topicmeta_list
 
+
 class GetTopicAttrDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, req_id=None):
         data_dic = {}
         DecoderBase.xml_to_dic("Topic", xml_data, data_dic, req_id)
-        key_list = ["MessageCount", "CreateTime", "LastModifyTime", "MaximumMessageSize", "MessageRetentionPeriod", "TopicName", "LoggingEnabled"]
+        key_list = [
+            "MessageCount", "CreateTime", "LastModifyTime", "MaximumMessageSize", "MessageRetentionPeriod", "TopicName",
+            "LoggingEnabled"
+        ]
         for key in key_list:
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic
+
 
 class PublishMessageDecoder(DecoderBase):
     @staticmethod
@@ -505,6 +540,7 @@ class PublishMessageDecoder(DecoderBase):
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic["MessageId"], data_dic["MessageBodyMD5"]
+
 
 class ListSubscriptionByTopicDecoder(DecoderBase):
     @staticmethod
@@ -531,16 +567,21 @@ class ListSubscriptionByTopicDecoder(DecoderBase):
             raise MNSClientNetworkException("RespDataDamaged", "Xml data is \"\"!", req_id)
         return subscriptionurl_list, str(next_marker)
 
+
 class GetSubscriptionAttrDecoder(DecoderBase):
     @staticmethod
     def decode(xml_data, req_id=None):
         data_dic = {}
         DecoderBase.xml_to_dic("Subscription", xml_data, data_dic, req_id)
-        key_list = ["TopicOwner", "TopicName", "SubscriptionName", "Endpoint", "NotifyStrategy", "NotifyContentFormat", "CreateTime", "LastModifyTime"]
+        key_list = [
+            "TopicOwner", "TopicName", "SubscriptionName", "Endpoint", "NotifyStrategy", "NotifyContentFormat", "CreateTime",
+            "LastModifyTime"
+        ]
         for key in key_list:
             if key not in data_dic.keys():
                 raise MNSClientNetworkException("RespDataDamaged", xml_data, req_id)
         return data_dic
+
 
 class ErrorDecoder(DecoderBase):
     @staticmethod

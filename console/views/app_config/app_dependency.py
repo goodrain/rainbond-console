@@ -59,11 +59,15 @@ class AppDependencyView(AppBaseView):
                 if tenant_service_ports:
                     for port in tenant_service_ports:
                         ports_list.append(port.container_port)
-                dep_service_info = {"service_cname": dep.service_cname, "service_id": dep.service_id,
-                                    "service_type": dep.service_type, "service_alias": dep.service_alias,
-                                    "group_name": service_group_map[dep.service_id]["group_name"],
-                                    "group_id": service_group_map[dep.service_id]["group_id"],
-                                    "ports_list": ports_list}
+                dep_service_info = {
+                    "service_cname": dep.service_cname,
+                    "service_id": dep.service_id,
+                    "service_type": dep.service_type,
+                    "service_alias": dep.service_alias,
+                    "group_name": service_group_map[dep.service_id]["group_name"],
+                    "group_id": service_group_map[dep.service_id]["group_id"],
+                    "ports_list": ports_list
+                }
                 dep_list.append(dep_service_info)
             rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
 
@@ -110,7 +114,8 @@ class AppDependencyView(AppBaseView):
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
         try:
-            code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner, container_port)
+            code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
+                                                                        container_port)
             if code == 201:
                 result = general_message(code, "add dependency error", msg, list=data, bean={"is_inner": False})
                 return Response(result, status=code)
@@ -212,10 +217,14 @@ class AppNotDependencyView(AppBaseView):
             service_group_map = group_service.get_services_group_name(service_ids)
             un_dep_list = []
             for un_dep in un_dependencies:
-                dep_service_info = {"service_cname": un_dep.service_cname, "service_id": un_dep.service_id,
-                                    "service_type": un_dep.service_type, "service_alias": un_dep.service_alias,
-                                    "group_name": service_group_map[un_dep.service_id]["group_name"],
-                                    "group_id": service_group_map[un_dep.service_id]["group_id"]}
+                dep_service_info = {
+                    "service_cname": un_dep.service_cname,
+                    "service_id": un_dep.service_id,
+                    "service_type": un_dep.service_type,
+                    "service_alias": un_dep.service_alias,
+                    "group_name": service_group_map[un_dep.service_id]["group_name"],
+                    "group_id": service_group_map[un_dep.service_id]["group_id"]
+                }
 
                 if search_key is not None and condition:
                     if condition == "group_name":
@@ -228,7 +237,8 @@ class AppNotDependencyView(AppBaseView):
                         result = general_message(400, "error", u"condition参数错误")
                         return Response(result, status=400)
                 elif search_key is not None and not condition:
-                    if search_key.lower() in service_group_map[un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
+                    if search_key.lower() in service_group_map[
+                            un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
                         un_dep_list.append(dep_service_info)
                 elif search_key is None and not condition:
                     un_dep_list.append(dep_service_info)
@@ -270,8 +280,7 @@ class AppDependencyManageView(AppBaseView):
         if not dep_service_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖服务"))
         try:
-            code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service,
-                                                                                 dep_service_id)
+            code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id)
             if code != 200:
                 return Response(general_message(code, "delete dependency error", msg))
 

@@ -136,10 +136,9 @@ class AppPortView(AppBaseView):
             if not protocol:
                 return Response(general_message(400, "params error", u"缺少协议参数"), status=400)
             if not port_alias:
-                port_alias = self.service.service_alias.upper().replace("-", "_")+str(port)
+                port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
             code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
-                                                                 is_inner_service,
-                                                                 is_outer_service)
+                                                                 is_inner_service, is_outer_service)
             if code != 200:
                 return Response(general_message(code, "add port error", msg), status=code)
 
@@ -269,8 +268,8 @@ class AppPortManageView(AppBaseView):
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
         try:
-            code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
-                                                       protocol, port_alias)
+            code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
+                                                       action, protocol, port_alias)
             if code != 200:
                 return Response(general_message(code, "change port fail", msg), status=code)
             result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
@@ -357,8 +356,8 @@ class AppTcpOuterManageView(AppBaseView):
                 return Response(general_message(400, "params error", u"缺少需要修改的负载均衡端口参数"), status=400)
             if not mapping_service_id:
                 return Response(general_message(400, "params error", u"缺少端口对应的服务ID"), status=400)
-            code, msg = port_service.change_lb_mapping_port(self.tenant, self.service, container_port,
-                                                            lb_mapping_port, mapping_service_id)
+            code, msg = port_service.change_lb_mapping_port(self.tenant, self.service, container_port, lb_mapping_port,
+                                                            mapping_service_id)
             if code != 200:
                 return Response(general_message(code, "error", msg), status=code)
 
@@ -387,8 +386,9 @@ class TopologicalPortView(AppBaseView):
             # 开启对外端口
             if open_outer:
                 tenant_service_port = port_service.get_service_port_by_port(self.service, int(container_port))
-                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), "open_outer",
-                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
+                                                           "open_outer", tenant_service_port.protocol,
+                                                           tenant_service_port.port_alias)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
                 return Response(general_message(200, "open outer success", u"开启成功"), status=200)
@@ -404,29 +404,26 @@ class TopologicalPortView(AppBaseView):
                 return Response(general_message(200, "close outer success", u"关闭对外端口成功"), status=200)
 
             # 校验要依赖的服务是否开启了对外端口
-            open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id).filter(
-                is_outer_service=True)
+            open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id,
+                                                              self.service.service_id).filter(is_outer_service=True)
             if not open_outer_services:
                 service_ports = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
                 port_list = [service_port.container_port for service_port in service_ports]
                 if len(port_list) == 1:
                     # 一个端口直接开启
                     tenant_service_port = port_service.get_service_port_by_port(self.service, int(port_list[0]))
-                    code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
-                                                               int(port_list[0]), "open_outer",
-                                                               tenant_service_port.protocol,
-                                                               tenant_service_port.port_alias)
+                    code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(
+                        port_list[0]), "open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
                     return Response(general_message(200, "open outer success", u"开启成功"), status=200)
                 else:
                     # 多个端口需要用户选择后开启
-                    return Response(general_message(201, "the service does not open an external port", u"该服务未开启对外端口",
-                                                    list=port_list), status=201)
+                    return Response(
+                        general_message(201, "the service does not open an external port", u"该服务未开启对外端口", list=port_list),
+                        status=201)
             else:
-                return Response(
-                    general_message(202, "the service has an external port open", u"该服务已开启对外端口"),
-                    status=200)
+                return Response(general_message(202, "the service has an external port open", u"该服务已开启对外端口"), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

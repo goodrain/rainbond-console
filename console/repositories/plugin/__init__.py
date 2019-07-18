@@ -2,7 +2,7 @@
 """
   Created on 18/1/29.
 """
-from .service_plugin_repo import AppPluginRelationRepo,ServicePluginAttrRepository,ServicePluginConfigVarRepository
+from .service_plugin_repo import AppPluginRelationRepo, ServicePluginAttrRepository, ServicePluginConfigVarRepository
 from .plugin import TenantPluginRepository
 from .plugin_version import PluginVersionRepository
 from .plugin_config import PluginConfigGroupRepository, PluginConfigItemsRepository

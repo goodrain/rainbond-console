@@ -18,7 +18,6 @@ class LogConstants(object):
     INFO = "info"
     DEBUG = "debug"
     ERROR = "error"
-
     """应用日志类型常量"""
     SERVICE = "service"
     COMPILE = "compile"
@@ -108,7 +107,7 @@ class AppMigrateType(object):
 
 
 class StorageUnit(object):
-    ONE_MB=1048576
+    ONE_MB = 1048576
 
 
 class DomainType(object):
