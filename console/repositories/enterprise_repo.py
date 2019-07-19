@@ -72,6 +72,9 @@ class TenantEnterpriseUserPermRepo(object):
         """
         EnterpriseUserPerm.objects.filter(user_id=user_id).delete()
 
+    def get_by_token(self, token):
+        return EnterpriseUserPerm.objects.filter(token=token).first()
+
 
 enterprise_repo = TenantEnterpriseRepo()
 enterprise_user_perm_repo = TenantEnterpriseUserPermRepo()

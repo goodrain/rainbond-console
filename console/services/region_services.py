@@ -17,6 +17,12 @@ class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
 
+    def get_region_by_region_id(self, region_id):
+        return region_repo.get_region_by_region_id(region_id=region_id)
+
+    def get_region_by_region_name(self, region_name):
+        return region_repo.get_region_by_region_name(region_name=region_name)
+
     def get_region_name_list_by_team_name(self, team_name):
         regions = region_repo.get_region_by_tenant_name(tenant_name=team_name)
         region_name_list = list()
@@ -214,12 +220,49 @@ class RegionService(object):
             raise RegionExistException("数据中心{0}已存在".format(region_data["region_name"]))
         return region_repo.create_region(region_data)
 
+    def update_region(self, region_data):
+        region_id = region_data.get("region_id")
+        region = self.get_region_by_region_id(region_id)
+        if not region:
+            raise RegionNotExistException("数据中心{0}不存在".format(region_id))
+        # Update fields that can be updated
+        if "region_alias" in region_data:
+            region.region_alias = region_data["region_alias"]
+        if "url" in region_data:
+            region.url = region_data["url"]
+        if "wsurl" in region_data:
+            region.wsurl = region_data["wsurl"]
+        if "httpdomain" in region_data:
+            region.httpdomain = region_data["httpdomain"]
+        if "tcpdomain" in region_data:
+            region.tcpdomain = region_data["tcpdomain"]
+        if "status" in region_data:
+            region.status = region_data["status"]
+        if "desc" in region_data:
+            region.desc = region_data["desc"]
+        if "scope" in region_data:
+            region.scope = region_data["scope"]
+        if "ssl_ca_cert" in region_data:
+            region.ssl_ca_cert = region_data["ssl_ca_cert"]
+        if "cert_file" in region_data:
+            region.cert_file = region_data["cert_file"]
+        if "key_file" in region_data:
+            region.key_file = region_data["key_file"]
+        return region_repo.update_region(region)
+
 
 class RegionExistException(Exception):
     def __init__(self, message, *args, **kwargs):
         self.message = message
         self.http_code = 400
         self.service_code = 10400
+
+
+class RegionNotExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 404
+        self.service_code = 10404
 
 
 region_services = RegionService()

@@ -23,7 +23,6 @@ class OpenAPIPermissions(BasePermission):
         '''
         check permission
         '''
-        logger.debug("in has_permission")
         if not request.user:
             return False
         view_perms = ["common"]

@@ -1,0 +1,1 @@
+alter table enterprise_user_perm add token varchar(32) unique default null;

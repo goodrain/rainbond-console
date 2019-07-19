@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-
+import binascii
+import os
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
@@ -190,6 +191,28 @@ class UserService(object):
         else:
             return True
 
+    def get_user_in_enterprise_perm(self, user, enterprise_id):
+        return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
+
+    def get_administrator_user_by_token(self, token):
+        perm = enterprise_user_perm_repo.get_by_token(token)
+        if not perm:
+            return None
+        return self.get_user_by_user_id(perm.user_id)
+
+    def get_administrator_user_token(self, user):
+        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not permList:
+            return None
+        perm = permList[0]
+        if not perm.token:
+            perm.token = self.generate_key()
+            perm.save()
+        return perm.token
+
+    def generate_key(self):
+        return binascii.hexlify(os.urandom(20)).decode()
+
     def get_user_by_email(self, email):
         return user_repo.get_user_by_email(email)
 
@@ -217,12 +240,6 @@ class UserService(object):
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
-
-    def get_openapi_user_by_token(token):
-        pass
-
-    def get_openapi_token_by_user(user):
-        pass
 
 
 user_services = UserService()

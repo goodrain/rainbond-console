@@ -20,5 +20,4 @@ class OpenAPIAuthentication(authentication.TokenAuthentication):
         except Exception as e:
             logger.exception(e)
             raise exceptions.AuthenticationFailed('No such user')
-        logger.debug("api user {}".format(user.nick_name))
         return (user, None)

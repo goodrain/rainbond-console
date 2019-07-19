@@ -19,6 +19,12 @@ class RegionRepo(object):
             return regions
         return None
 
+    def get_region_by_region_id(self, region_id):
+        regions = TenantRegionInfo.objects.filter(region_id=region_id)
+        if regions and len(regions) > 0:
+            return regions[0]
+        return None
+
     def get_region_desc_by_region_name(self, region_name):
         regions = RegionConfig.objects.filter(region_name=region_name)
         if regions:
@@ -56,7 +62,13 @@ class RegionRepo(object):
         return TenantRegionInfo.objects.create(**params)
 
     def create_region(self, region_data):
-        return RegionConfig.objects.create(region_data)
+        region_config = RegionConfig(**region_data)
+        region_config.save()
+        return region_config
+
+    def update_region(self, region):
+        region.save()
+        return region
 
     def get_all_regions(self):
         return RegionConfig.objects.all()

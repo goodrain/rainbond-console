@@ -2,7 +2,6 @@
 # creater by: barnett
 
 from www.models.main import Users
-from rest_framework.authtoken.models import Token
 from console.services.user_services import user_services
 
 
@@ -15,20 +14,26 @@ class APIUserService(object):
     def get_token(self, user):
         if not isinstance(user, Users):
             raise ErrorUser("user is not rainbond user")
-        token, created = Token.objects.get_or_create(user=user)
-        return token.key
+        return user_services.get_administrator_user_token(user)
 
     def get_user_by_token(self, token):
-        tokenmodel = Token.objects.filter(key=token)
-        if tokenmodel and len(tokenmodel) > 0:
-            user_id = tokenmodel[0].user_id
-            return user_services.get_user_by_user_id(user_id)
+        return user_services.get_administrator_user_by_token(token)
+
+    def login_api_user(self, username, password):
+        user = user_services.get_user_by_username(username)
+        if not user:
+            return None
+        if not user.check_password(password):
+            return None
+        if user_services.is_user_admin_in_current_enterprise(user, user.enterprise_id):
+            return self.get_token(user)
         return None
 
     def get_permissions_by_user(self, user, enterprise_id):
         if not isinstance(user, Users):
             raise ErrorUser("user is not rainbond user")
         # TODO:impl rbac
+        # TODO: get perm list by user_services.get_user_in_enterprise_perm
         if user_services.is_user_admin_in_current_enterprise(user, enterprise_id):
             return ["all"]
         return None

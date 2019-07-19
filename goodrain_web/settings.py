@@ -15,6 +15,7 @@ import sys
 
 from corsheaders.defaults import default_headers
 
+
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Create log directory
@@ -30,13 +31,6 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
 DEBUG = False
-
-conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
-
-if os.path.exists(conf_file):
-    execfile(conf_file)
-else:
-    raise Exception("config file not found: {}".format(conf_file))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -197,3 +191,19 @@ CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW'
 
 CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN',
                                         'X_REGION_NAME', 'X_TEAM_NAME')
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   }
+}
+
+conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
+
+if os.path.exists(conf_file):
+    execfile(conf_file)
+else:
+    raise Exception("config file not found: {}".format(conf_file))
