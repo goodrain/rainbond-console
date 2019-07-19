@@ -19,10 +19,7 @@ class ListRegionInfo(ListAPIView):
     view_perms = ["regions"]
 
     @swagger_auto_schema(
-        responses={200: RegionInfoSerializer(many=True)},
-        tags=['openapi-region'],
-        operation_description="获取全部数据中心列表"
-    )
+        responses={200: RegionInfoSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
     def get(self, request):
         queryset = region_services.get_all_regions()
         serializer = RegionInfoSerializer(queryset, many=True)
@@ -73,7 +70,6 @@ class ListRegionInfo(ListAPIView):
 
 
 class RegionInfo(BaseOpenAPIView):
-
     @swagger_auto_schema(
         operation_description="获取指定数据中心数据",
         responses={200: RegionInfoSerializer()},

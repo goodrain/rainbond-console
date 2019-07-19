@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 
-
 from OpenSSL import crypto
 import time
 import datetime

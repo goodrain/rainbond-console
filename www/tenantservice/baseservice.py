@@ -868,8 +868,8 @@ class TenantUsedResource(object):
             cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             dsn = BaseConnection()
             query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net \
-                 from tenant_region_pay_model where tenant_id='" + \
-                        tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
+                 from tenant_region_pay_model where tenant_id='"\
+                        + tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
             sqlobjs = dsn.query(query_sql)
             if sqlobjs is not None and len(sqlobjs) > 0:
                 for sqlobj in sqlobjs:

@@ -9,10 +9,8 @@ class RegionInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = RegionConfig
         fields = [
-            "region_name", "region_alias", "url",
-            "token", "wsurl", "httpdomain", "tcpdomain",
-            "scope", "ssl_ca_cert", "cert_file", "key_file", "status",
-            "desc"
+            "region_name", "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert",
+            "cert_file", "key_file", "status", "desc"
         ]
 
     def validate_url(self, url):

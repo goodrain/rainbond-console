@@ -1,5 +1,3 @@
-
-
 DEBUG = True
 
 TEMPLATE_DEBUG = False
@@ -17,7 +15,6 @@ EMAIL_HOST_PASSWORD = 'xxxx'
 EMAIL_USE_SSL = True
 
 DISCOURSE_SECRET_KEY = 'xxxxx'
-
 
 REGION_TOKEN = ""
 

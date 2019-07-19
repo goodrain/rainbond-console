@@ -28,8 +28,7 @@ class TokenInfoView(APIView):
             },
         ),
         tags=['openapi-auth'],
-        operation_description="企业管理员账号密码获取API-Token"
-    )
+        operation_description="企业管理员账号密码获取API-Token")
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)

@@ -79,7 +79,6 @@ class ListTeamInfo(ListAPIView):
 
 
 class TeamInfo(BaseOpenAPIView):
-
     @swagger_auto_schema(
         query_serializer=TeamInfoSerializer,
         responses={200: TeamInfoSerializer()},

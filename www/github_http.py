@@ -1,4 +1,3 @@
-
 from goodrain_web.base import BaseHttpClient
 
 import json

@@ -227,7 +227,6 @@ class APPPluginInstallView(AppBaseView):
 
 
 class APPPluginOpenView(AppBaseView):
-
     @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """

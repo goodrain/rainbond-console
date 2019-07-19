@@ -2,7 +2,6 @@
 import os
 import datetime
 
-
 debug = os.environ.get('DEBUG')
 if debug:
     DEBUG = (debug.lower() == "true")

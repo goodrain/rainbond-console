@@ -15,7 +15,6 @@ import sys
 
 from corsheaders.defaults import default_headers
 
-
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Create log directory
@@ -191,15 +190,7 @@ CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW'
 
 CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN',
                                         'X_REGION_NAME', 'X_TEAM_NAME')
-SWAGGER_SETTINGS = {
-   'SECURITY_DEFINITIONS': {
-      'Bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header'
-      }
-   }
-}
+SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}}}
 
 conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
 

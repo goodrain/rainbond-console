@@ -34,8 +34,7 @@ class AppPluginService(object):
                                 WHERE service_id="{0}") AND
                                 tp.tenant_id="{1}" AND
                                 tp.region="{2}" AND
-                                pbv.build_status="{3}" """.format(
-            service_id, tenant_id, region, "build_success")
+                                pbv.build_status="{3}" """.format(service_id, tenant_id, region, "build_success")
 
         if category == "analysis":
             query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")

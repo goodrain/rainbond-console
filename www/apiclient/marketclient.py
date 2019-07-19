@@ -34,8 +34,7 @@ class MarketOpenAPI(HttpClient):
     def get_service_group_detail(self, tenant_id, group_key, group_version, template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url = url + "/openapi/console/v1/enter-market/apps/templates?\
-            group_key={0}&group_version={1}&template_version={2}".format(
-            group_key, group_version, template_version)
+            group_key={0}&group_version={1}&template_version={2}".format(group_key, group_version, template_version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 

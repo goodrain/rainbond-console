@@ -18,7 +18,6 @@ gitClient = GitlabApi()
 
 
 class GitCodeService(object):
-
     def get_gitlab_repo(self, tenant):
         sql_repos = team_gitlab_repo.get_team_gitlab_by_team_id(tenant.tenant_id)
         arr = []

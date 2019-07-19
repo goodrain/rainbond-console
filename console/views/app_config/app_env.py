@@ -60,10 +60,9 @@ class AppEnvView(AppBaseView):
                 if env_name:
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and \
-                            service_id='{1}' and scope='inner' and attr_name like '%{2}%';"
-                        .format(self.service.tenant_id, self.service.service_id, env_name))
+                    cursor.execute("select count(*) from tenant_service_env_var where tenant_id='{0}' and \
+                            service_id='{1}' and scope='inner' and attr_name like '%{2}%';".format(
+                        self.service.tenant_id, self.service.service_id, env_name))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -74,20 +73,17 @@ class AppEnvView(AppBaseView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, \
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, \
                             attr_value, is_change, scope, create_time from tenant_service_env_var \
                                 where tenant_id='{0}' and service_id='{1}' and scope='inner' and \
-                                    attr_name like '%{2}%' order by attr_name LIMIT {3},{4};"
-                        .format(self.service.tenant_id, self.service.service_id, env_name, start, end))
+                                    attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                        self.service.tenant_id, self.service.service_id, env_name, start, end))
                     env_tuples = cursor.fetchall()
                 else:
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                             and scope='inner';"
-                        .format(self.service.tenant_id, self.service.service_id))
+                    cursor.execute("select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                             and scope='inner';".format(self.service.tenant_id, self.service.service_id))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -98,11 +94,10 @@ class AppEnvView(AppBaseView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value,\
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value,\
                              is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' \
-                                 and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};"
-                        .format(self.service.tenant_id, self.service.service_id, start, end))
+                                 and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
+                        self.service.tenant_id, self.service.service_id, start, end))
                     env_tuples = cursor.fetchall()
                 if len(env_tuples) > 0:
                     for env_tuple in env_tuples:
@@ -124,10 +119,9 @@ class AppEnvView(AppBaseView):
                 if env_name:
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                             and scope='outer' and attr_name like '%{2}%';"
-                        .format(self.service.tenant_id, self.service.service_id, env_name))
+                    cursor.execute("select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                             and scope='outer' and attr_name like '%{2}%';".format(self.service.tenant_id,
+                                                                                   self.service.service_id, env_name))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -138,19 +132,16 @@ class AppEnvView(AppBaseView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, \
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, \
                             scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                                 and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};"
-                        .format(self.service.tenant_id, self.service.service_id, env_name, start, end))
+                                 and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                        self.service.tenant_id, self.service.service_id, env_name, start, end))
                     env_tuples = cursor.fetchall()
                 else:
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' \
-                            and scope='outer';"
-                        .format(self.service.tenant_id, self.service.service_id))
+                    cursor.execute("select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}' \
+                            and scope='outer';".format(self.service.tenant_id, self.service.service_id))
                     env_count = cursor.fetchall()
 
                     total = env_count[0][0]
@@ -161,11 +152,10 @@ class AppEnvView(AppBaseView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change,\
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change,\
                              scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                                  and scope='outer' order by attr_name LIMIT {2},{3};"
-                        .format(self.service.tenant_id, self.service.service_id, start, end))
+                                  and scope='outer' order by attr_name LIMIT {2},{3};".format(
+                        self.service.tenant_id, self.service.service_id, start, end))
                     env_tuples = cursor.fetchall()
                 if len(env_tuples) > 0:
                     for env_tuple in env_tuples:

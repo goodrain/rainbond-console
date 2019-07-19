@@ -1294,8 +1294,7 @@ class TeamSortDomainQueryView(JWTAuthApiView):
                 return Response(result, status=400)
             if repo == "1":
                 sufix = "?query=sort_desc(sum(%20ceil(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))\
-                    %20by%20(host))".format(
-                    team.tenant_id)
+                    %20by%20(host))".format(team.tenant_id)
                 res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
                 total = len(body["data"]["result"])
                 domains = body["data"]["result"]
