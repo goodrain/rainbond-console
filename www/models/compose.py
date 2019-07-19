@@ -1,16 +1,12 @@
 # -*- coding: utf8 -*-
-import re
 from django.db import models
-from django.utils.crypto import salted_hmac
-from www.utils.crypt import encrypt_passwd, make_tenant_id
-from django.db.models.fields import DateTimeField
-from datetime import datetime
 from main import BaseModel
 
 
 class DockerService(BaseModel):
     class Meta:
         db_table = 'docker_service'
+
     compose_id = models.IntegerField(help_text=u"DockerComposeYaml的ID")
     command = models.CharField(max_length=100, null=True, blank=True, help_text=u"替换默认的command")
 
@@ -56,6 +52,7 @@ class DockerService(BaseModel):
 
 class DockerComposeYaml(BaseModel):
     """ 服务发布表格 """
+
     class Meta:
         db_table = 'docker_compose_yaml'
 

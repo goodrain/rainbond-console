@@ -2,7 +2,6 @@
 """
   Created on 18/1/9.
 """
-from www.db import BaseConnection
 from www.gitlab_http import GitlabApi
 from www.tenantservice.baseservice import CodeRepositoriesService
 import json
@@ -19,24 +18,6 @@ gitClient = GitlabApi()
 
 
 class GitCodeService(object):
-    # def get_gitlab_repo(self, tenant):
-    #     tenant_id = tenant.tenant_id
-    #     dsn = BaseConnection()
-    #     query_sql = '''
-    #                     select distinct git_url, git_project_id from tenant_service s where s.tenant_id = "{tenant_id}" and code_from="gitlab_new" and git_project_id>0
-    #                 '''.format(tenant_id=tenant_id)
-    #     sqlobjList = dsn.query(query_sql)
-    #     arr = []
-    #     if sqlobjList is not None:
-    #         for sqlobj in sqlobjList:
-    #             d = {}
-    #             d["code_repos"] = sqlobj.git_url
-    #             d["code_user"] = sqlobj.git_url.split(":")[1].split("/")[0]
-    #             d["code_project_name"] = sqlobj.git_url.split(":")[1].split("/")[1].split(".")[0]
-    #             d["code_id"] = sqlobj.git_project_id
-    #             arr.append(d)
-    #     return 200, "success", arr
-
     def get_gitlab_repo(self, tenant):
         sql_repos = team_gitlab_repo.get_team_gitlab_by_team_id(tenant.tenant_id)
         arr = []
@@ -111,8 +92,8 @@ class GitCodeService(object):
                 if parsed_git_url.host:
                     if parsed_git_url.host.endswith('github.com'):
                         code_type = "github"
-            code, msg, branchs = self.get_code_branch(user, code_type, service.git_url, service.git_project_id,
-                                                      current_branch=service.code_version)
+            code, msg, branchs = self.get_code_branch(
+                user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs
@@ -157,14 +138,13 @@ class GitCodeService(object):
         return False
 
     def create_gitlab_project(self, tenant, user, project_name):
-
         """gitlab创建项目"""
         project_id = 0
         rt_data = {}
         import re
         r = re.compile(u'^[a-zA-Z0-9_\\-]+$')
         if not r.match(project_name.decode("utf-8")):
-            return 400, u"项目名称只支持英文下划线和中划线",None
+            return 400, u"项目名称只支持英文下划线和中划线", None
         namespace = settings.GITLAB_ADMIN_NAME
         is_project_exist = self.is_gitlab_project_exist(namespace, tenant, project_name)
         if is_project_exist:

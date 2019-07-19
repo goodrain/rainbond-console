@@ -17,7 +17,6 @@ logger = logging.getLogger("default")
 
 
 class ServiceOperateView(BaseAPIView):
-
     def get(self, request, *args, **kwargs):
         """
         获取用户操作信息
@@ -65,10 +64,14 @@ class ServiceOperateView(BaseAPIView):
             result_list = []
             for e in show_events:
                 bean = e.to_dict()
-                bean.update({"service_cname": e.service_cname, "service_alias": e.service_alias,
-                             "service_region": e.service_region, "team_name": e.team_name})
+                bean.update({
+                    "service_cname": e.service_cname,
+                    "service_alias": e.service_alias,
+                    "service_region": e.service_region,
+                    "team_name": e.team_name
+                })
                 result_list.append(bean)
-            result = generate_result("0000", "query success", "查询成功", list=result_list,total=total)
+            result = generate_result("0000", "query success", "查询成功", list=result_list, total=total)
 
         except Exception as e:
             logger.exception(e)

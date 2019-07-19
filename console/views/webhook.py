@@ -10,7 +10,7 @@ from docker_image import reference
 from rest_framework.response import Response
 
 from console.constants import AppConstants
-from console.models import DeployRelation
+from console.models.main import DeployRelation
 from console.repositories.app import service_repo
 from console.repositories.app import service_webhooks_repo
 from console.repositories.deploy_repo import deploy_repo
@@ -93,15 +93,12 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
-                code, msg, msg_show = self._check_warehouse(
-                    service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
                 if code != 200:
-                    return Response(
-                        general_message(200, msg, msg_show), status=200)
+                    return Response(general_message(200, msg, msg_show), status=200)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(
-                    tenant_obj, service_obj)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
 
@@ -109,10 +106,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
-                        tenant_obj=tenant_obj,
-                        service_obj=service_obj,
-                        user=user_obj,
-                        committer_name=committer_name)
+                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态不支持")
@@ -167,25 +161,19 @@ class WebHooksDeploy(AlowAnyApiView):
                 git_http_url = repository.get("git_http_url")
                 gitlab_ssh_url = repository.get("git_ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(
-                    service_obj.git_url, git_http_url, gitlab_ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, git_http_url, gitlab_ssh_url)
                 if code != 200:
-                    return Response(
-                        general_message(200, msg, msg_show), status=200)
+                    return Response(general_message(200, msg, msg_show), status=200)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(
-                    tenant_obj, service_obj)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 user = Users.objects.get(user_id=service_obj.creater)
                 committer_name = commits_info[-1].get("author").get("name")
                 logger.debug("status", status_map)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
-                        tenant_obj=tenant_obj,
-                        service_obj=service_obj,
-                        user=user,
-                        committer_name=committer_name)
+                        tenant_obj=tenant_obj, service_obj=service_obj, user=user, committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(200, "failed", "应用状态不支持")
@@ -225,15 +213,12 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(
-                    service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
                 if code != 200:
-                    return Response(
-                        general_message(200, msg, msg_show), status=200)
+                    return Response(general_message(200, msg, msg_show), status=200)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(
-                    tenant_obj, service_obj)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
 
@@ -241,10 +226,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
-                        tenant_obj=tenant_obj,
-                        service_obj=service_obj,
-                        user=user_obj,
-                        committer_name=committer_name)
+                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(200, "failed", "应用状态不支持")
@@ -283,15 +265,12 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(
-                    service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
                 if code != 200:
-                    return Response(
-                        general_message(200, msg, msg_show), status=200)
+                    return Response(general_message(200, msg, msg_show), status=200)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(
-                    tenant_obj, service_obj)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
 
@@ -299,10 +278,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info[0].get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
-                        tenant_obj=tenant_obj,
-                        service_obj=service_obj,
-                        user=user_obj,
-                        committer_name=committer_name)
+                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(200, "failed", "应用状态不支持")
@@ -350,15 +326,12 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
-                code, msg, msg_show = self._check_warehouse(
-                    service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
                 if code != 200:
-                    return Response(
-                        general_message(200, msg, msg_show), status=200)
+                    return Response(general_message(200, msg, msg_show), status=200)
 
                 # 获取应用状态
-                status_map = app_service.get_service_status(
-                    tenant_obj, service_obj)
+                status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
 
@@ -366,10 +339,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
-                        tenant_obj=tenant_obj,
-                        service_obj=service_obj,
-                        user=user_obj,
-                        committer_name=committer_name)
+                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
                     logger.debug("应用状态异常")
                     result = general_message(400, "failed", "应用状态不支持")
@@ -414,7 +384,6 @@ class WebHooksDeploy(AlowAnyApiView):
 
 
 class GetWebHooksUrl(AppBaseView):
-
     def get(self, request, *args, **kwargs):
         """
         判断该应用是否有webhooks自动部署功能，有则返回URL
@@ -422,16 +391,13 @@ class GetWebHooksUrl(AppBaseView):
         try:
             deployment_way = request.GET.get("deployment_way", None)
             if not deployment_way:
-                result = general_message(400, "Parameter cannot be empty",
-                                         "缺少参数")
+                result = general_message(400, "Parameter cannot be empty", "缺少参数")
                 return Response(result, status=400)
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
-            service_obj = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_alias=service_alias)[0]
+            service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             if service_obj.service_source == AppConstants.MARKET:
-                result = general_message(
-                    200, "failed", "该应用不符合要求", bean={"display": False})
+                result = general_message(200, "failed", "该应用不符合要求", bean={"display": False})
                 return Response(result, status=200)
             if service_obj.service_source == AppConstants.SOURCE_CODE:
                 support_type = 1
@@ -442,16 +408,13 @@ class GetWebHooksUrl(AppBaseView):
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
 
-            service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id,
-                                                                                  deployment_way)
+            service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id, deployment_way)
 
             # api处发自动部署
             if deployment_way == "api_webhooks":
                 # 生成秘钥
-                deploy = deploy_repo.get_deploy_relation_by_service_id(
-                    service_id=service_id)
-                secret_key = pickle.loads(
-                    base64.b64decode(deploy)).get("secret_key")
+                deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
+                secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
                 url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
                 result = general_message(
                     200,
@@ -505,10 +468,7 @@ class ImageWebHooksTrigger(AppBaseView):
     def put(self, request, *args, **kwargs):
         """镜像更新自动部署触发条件"""
         try:
-            service_webhook = service_webhooks_repo.get_or_create_service_webhook(
-                self.service.service_id,
-                "image_webhooks"
-            )
+            service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id, "image_webhooks")
             trigger = request.data.get("trigger")
             if trigger:
                 service_webhook.trigger = trigger
@@ -522,14 +482,13 @@ class ImageWebHooksTrigger(AppBaseView):
                 "success",
                 "自动部署触发条件更新成功",
                 bean={
-                    "url": "http://{host}/console/image/webhooks/{service_id}".format(
-                        host=os.environ.get('DEFAULT_DOMAIN', request.get_host()),
-                        service_id=self.service.service_id
-                    ),
-                    "trigger": service_webhook.trigger
+                    "url":
+                    "http://{host}/console/image/webhooks/{service_id}".format(
+                        host=os.environ.get('DEFAULT_DOMAIN', request.get_host()), service_id=self.service.service_id),
+                    "trigger":
+                    service_webhook.trigger
                 }),
-            status=200
-        )
+            status=200)
 
 
 class WebHooksStatus(AppBaseView):
@@ -560,8 +519,7 @@ class WebHooksStatus(AppBaseView):
             action = request.data.get("action", None)
             deployment_way = request.data.get("deployment_way", None)
             if not action or not deployment_way:
-                result = general_message(400, "Parameter cannot be empty",
-                                         "缺少参数")
+                result = general_message(400, "Parameter cannot be empty", "缺少参数")
                 return Response(result, status=400)
             if action != "open" and action != "close":
                 result = general_message(400, "action error", "操作类型不存在")
@@ -569,8 +527,7 @@ class WebHooksStatus(AppBaseView):
             service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
                 self.service.service_id, deployment_way)
             if not service_webhook:
-                service_webhook = service_webhooks_repo.create_service_webhooks(
-                    self.service.service_id, deployment_way)
+                service_webhook = service_webhooks_repo.create_service_webhooks(self.service.service_id, deployment_way)
             if action == "open":
                 service_webhook.state = True
                 service_webhook.save()
@@ -594,10 +551,8 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         import base64
         secret_key = request.data.get("secret_key")
         # 加密
-        deploy_key = deploy_repo.get_secret_key_by_service_id(
-            service_id=service_id)
-        deploy_key_decode = pickle.loads(
-            base64.b64decode(deploy_key)).get("secret_key")
+        deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
+        deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
@@ -610,10 +565,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         logger.debug(status)
         if status == "running" or status == "abnormal":
             return user_services.deploy_service(
-                tenant_obj=tenant_obj,
-                service_obj=service_obj,
-                user=user_obj,
-                committer_name=user_name)
+                tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=user_name)
         else:
             logger.debug("应用状态异常")
             result = general_message(400, "failed", "应用状态不支持")
@@ -634,10 +586,8 @@ class UpdateSecretKey(AppBaseView):
                 return Response(result, status=code)
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
-            service_obj = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_alias=service_alias)[0]
-            deploy_obj = DeployRelation.objects.filter(
-                service_id=service_obj.service_id)
+            service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
+            deploy_obj = DeployRelation.objects.filter(service_id=service_obj.service_id)
             pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
             if deploy_obj:
                 deploy_obj.update(secret_key=pwd)
@@ -708,18 +658,14 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=400)
 
             # 获取应用状态
-            status_map = app_service.get_service_status(
-                tenant_obj, service_obj)
+            status_map = app_service.get_service_status(tenant_obj, service_obj)
             status = status_map.get("status", None)
             user_obj = Users.objects.get(user_id=service_obj.creater)
             committer_name = pusher
             if status != "undeploy" and status != "closed" \
                     and status != "closed":
                 return user_services.deploy_service(
-                    tenant_obj=tenant_obj,
-                    service_obj=service_obj,
-                    user=user_obj,
-                    committer_name=committer_name)
+                    tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
             else:
                 result = general_message(400, "failed", "应用状态处于关闭中，不支持自动构建")
                 return Response(result, status=400)

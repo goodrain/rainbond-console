@@ -2,9 +2,7 @@
 import logging
 import abc  # Python's built-in abstract class library
 
-from www.db import svc_grop_repo as svc_group_repo
-
-from console.services.team_services import team_services
+from www.db.service_group_repository import svc_grop_repo as svc_group_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app_config import dep_relation_repo, domain_repo as http_rule_repo
 from console.repositories.share_repo import share_repo
@@ -21,8 +19,7 @@ class BaseTaskStatusStrategy(object):
 
     @abc.abstractmethod
     def confirm_status(self, tenants):
-        raise NotImplementedError(
-            "Doesn't provide a reprØesentation for BaseTaskStatus.")
+        raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
 
 
 class DefaultStrategy(BaseTaskStatusStrategy):
@@ -84,6 +81,7 @@ class InstallPluginStrategy(BaseTaskStatusStrategy):
 
     def confirm_status(self, eid):
         return app_plugin_relation_repo.check_plugins_by_eid(eid)
+
 
 class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""

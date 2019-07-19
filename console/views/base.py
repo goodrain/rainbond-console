@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.authentication import (get_authorization_header)
-from rest_framework.compat import set_rollback
+from rest_framework.views import set_rollback
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -23,8 +23,9 @@ from rest_framework_jwt.settings import api_settings
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException, ServiceHandleException
+from console.exception.main import ResourceNotEnoughException
 from console.repositories.enterprise_repo import enterprise_repo
-from www.models import Users, Tenants
+from www.models.main import Users, Tenants
 from goodrain_web import errors
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
@@ -146,7 +147,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
 
 class BaseApiView(APIView):
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny, )
 
     def __init__(self, *args, **kwargs):
         super(BaseApiView, self).__init__(*args, **kwargs)
@@ -157,7 +158,7 @@ class AlowAnyApiView(APIView):
     """
     该API不需要通过任何认证
     """
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny, )
     authentication_classes = ()
 
     def __init__(self, *args, **kwargs):
@@ -170,8 +171,8 @@ class AlowAnyApiView(APIView):
 
 
 class JWTAuthApiView(APIView):
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (JSONWebTokenAuthentication,)
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (JSONWebTokenAuthentication, )
 
     def __init__(self, *args, **kwargs):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
@@ -212,8 +213,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
             # self.tenant_name = self.request.COOKIES.get('team', None)
 
         if not self.response_region:
-            self.response_region = self.request.COOKIES.get(
-                'region_name', None)
+            self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team', None)
 
@@ -264,6 +264,9 @@ def custom_exception_handler(exc, context):
     """
     if isinstance(exc, ServiceHandleException):
         return exc.response
+    elif isinstance(exc, ResourceNotEnoughException):
+        data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}
+        return Response(data, status=412)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
@@ -278,18 +281,10 @@ def custom_exception_handler(exc, context):
 
         set_rollback()
         # 处理数据为标准返回格式
-        data.update({
-            "code": exc.status_code,
-            "msg": "{0}".format(exc.detail),
-            "msg_show": "{0}".format(exc.detail)
-        })
+        data.update({"code": exc.status_code, "msg": "{0}".format(exc.detail), "msg_show": "{0}".format(exc.detail)})
         return Response(data, status=exc.status_code, headers=headers)
     elif isinstance(exc, AuthenticationInfoHasExpiredError):
-        data = {
-            "code": 10405,
-            "msg": "Signature has expired.",
-            "msg_show": "身份认证信息失败，请登录"
-        }
+        data = {"code": 10405, "msg": "Signature has expired.", "msg_show": "身份认证信息失败，请登录"}
         return Response(data, status=403)
     elif isinstance(exc, Http404):
         msg = trans('Not found.')
@@ -328,17 +323,8 @@ def custom_exception_handler(exc, context):
         return exc.get_response()
     elif isinstance(exc, ImportError):
         # 处理数据为标准返回格式
-        data = {
-            "code": status.HTTP_400_BAD_REQUEST,
-            "msg": exc.message,
-            "msg_show": "{0}".format("请求参数不全")
-        }
+        data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("请求参数不全")}
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({
-            "code": 10401,
-            "msg": exc.message,
-            "msg_show": "服务端异常"
-        },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -6,4 +6,4 @@ try:
     print "start exec file [console/syncservice/plugin_delete_script.py]"
     execfile("console/syncservice/plugin_delete_script.py")
 except Exception as e:
-    print e
+    print(e)

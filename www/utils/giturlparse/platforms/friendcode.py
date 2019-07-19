@@ -3,7 +3,7 @@ from .base import BasePlatform
 
 
 class FriendCodePlatform(BasePlatform):
-    DOMAINS = ('friendco.de',)
+    DOMAINS = ('friendco.de', )
     PATTERNS = {
         'https': r'https://(?P<domain>.+)/(?P<owner>.+)@user/(?P<repo>.+).git',
     }

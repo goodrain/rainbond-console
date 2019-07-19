@@ -33,8 +33,8 @@ class MarketOpenAPI(HttpClient):
 
     def get_service_group_detail(self, tenant_id, group_key, group_version, template_version="v1"):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/apps/templates?group_key={0}&group_version={1}&template_version={2}".format(
-            group_key, group_version, template_version)
+        url = url + "/openapi/console/v1/enter-market/apps/templates?\
+            group_key={0}&group_version={1}&template_version={2}".format(group_key, group_version, template_version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
@@ -67,8 +67,8 @@ class MarketOpenAPI(HttpClient):
 
     def get_enterprise_team_fee(self, region, enterprise_id, team_id, date):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(team_id)
-        url = url + "/openapi/console/v1/enterprises/" + enterprise_id \
-              + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
+        url = url + "/openapi/console/v1/enterprises/{0}/bills?date={1}&tid={2}&region={3}\
+            ".format(enterprise_id, date, team_id, region)
         # url = "http://5000.grcd3008.goodrain.ali-hz.goodrain.net:10080" + "/openapi/v1/enterprises/" + enterprise_id \
         #       + "/bills?date={0}&tid={1}&region={2}".format(date, team_id, region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
@@ -77,8 +77,7 @@ class MarketOpenAPI(HttpClient):
 
     def get_enterprise_region_fee(self, region, enterprise_id, team_id, date):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(team_id)
-        url = url + "/openapi/console/v1/enterprises/" + enterprise_id \
-              + "/bills?date={0}&region={1}".format(date, region)
+        url = url + "/openapi/console/v1/enterprises/{0}/bills?date={1}&region={2}".format(enterprise_id, date, region)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return res, body
 
@@ -88,14 +87,8 @@ class MarketOpenAPI(HttpClient):
                 client_auth_service.get_market_access_token_by_tenant(tenant_id)
 
             url = url + "/openapi/console/v1/enterprises/{0}/regions/{1}/fee".format(enterprise_id, region_name)
-            data = {
-                'memory': memory,
-                'disk': disk,
-                'rent_time': rent_time
-            }
-            res, body = self._post(
-                url, self.__auth_header(market_client_id, market_client_token), json.dumps(data)
-            )
+            data = {'memory': memory, 'disk': disk, 'rent_time': rent_time}
+            res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
             return self._unpack(body), '', res.status
         except self.ApiSocketError as e:
             logger.exception(e)
@@ -108,14 +101,8 @@ class MarketOpenAPI(HttpClient):
                 client_auth_service.get_market_access_token_by_tenant(tenant_id)
 
             url = url + "/openapi/console/v1/enterprises/{0}/regions/{1}/purchase".format(enterprise_id, region_name)
-            data = {
-                'memory': memory,
-                'disk': disk,
-                'rent_time': rent_time
-            }
-            res, body = self._post(
-                url, self.__auth_header(market_client_id, market_client_token), json.dumps(data)
-            )
+            data = {'memory': memory, 'disk': disk, 'rent_time': rent_time}
+            res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
             return self._unpack(body), '', res.status
         except self.ApiSocketError as e:
             logger.exception(e)
@@ -149,8 +136,7 @@ class MarketOpenAPI(HttpClient):
         return res, data
 
     def __auth_header(self, market_client_id, market_client_token):
-        self.default_headers.update({"X_ENTERPRISE_ID": market_client_id,
-                                     "X_ENTERPRISE_TOKEN": market_client_token})
+        self.default_headers.update({"X_ENTERPRISE_ID": market_client_id, "X_ENTERPRISE_TOKEN": market_client_token})
         return self.default_headers
 
     def publish_v2_template_group_data(self, tenant_id, data):
@@ -181,18 +167,14 @@ class MarketOpenAPI(HttpClient):
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region, user_name):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enterprises/{0}/resources/one-click".format(enterprise_id)
-        data = {
-            "region": region,
-            "user_name": user_name
-        }
+        data = {"region": region, "user_name": user_name}
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
         return self._unpack(body)
 
     def get_enterprise_recharge_records(self, tenant_id, enterprise_id, start_time, end_time, page, page_size):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enterprises/{eid}/orders?type={type}&page={page}&limit={page_size}".format(
-            eid=enterprise_id, type="recharge", page=page,
-            page_size=page_size)
+            eid=enterprise_id, type="recharge", page=page, page_size=page_size)
         if start_time and end_time:
             url += "&start={start_time}&end={end_time}".format(start_time=start_time, end_time=end_time)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
@@ -209,8 +191,7 @@ class MarketOpenAPI(HttpClient):
     def get_plugin_templates(self, tenant_id, plugin_key, version):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
 
-        url = url + "/openapi/console/v1/enter-market/plugins/{0}?version={1}".format(
-            plugin_key, version)
+        url = url + "/openapi/console/v1/enter-market/plugins/{0}?version={1}".format(plugin_key, version)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 

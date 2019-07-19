@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from console.models import Applicants
+from console.models.main import Applicants
 
 
 class ApplyRepo(object):
-
     def get_applicants(self, team_name):
         return Applicants.objects.filter(team_name=team_name)
 

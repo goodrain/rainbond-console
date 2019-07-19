@@ -27,7 +27,7 @@ class GoodRainSSOApi(BaseHttpClient):
         for k, v in kw.items():
             try:
                 qv = v.encode('utf-8') if isinstance(v, unicode) else str(v)
-            except:
+            except Exception:
                 qv = v
             args.append('%s=%s' % (k, qv))
         return '&'.join(args)

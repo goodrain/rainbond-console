@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from www.models import TenantEnterprise, Tenants
+from www.models.main import TenantEnterprise
 from console.models.main import EnterpriseUserPerm
 
 logger = logging.getLogger("default")
 
 
 class TenantEnterpriseRepo(object):
-
     def get_enterprise_by_enterprise_name(self, enterprise_name):
         enterprise = TenantEnterprise.objects.filter(enterprise_name=enterprise_name)
         if not enterprise:
@@ -37,7 +36,7 @@ class TenantEnterpriseRepo(object):
     def create_enterprise(self, **params):
         return TenantEnterprise.objects.create(**params)
 
-    def get_enterprises_by_enterprise_ids(self,eids):
+    def get_enterprises_by_enterprise_ids(self, eids):
         return TenantEnterprise.objects.filter(enterprise_id__in=eids)
 
     def get_by_enterprise_alias(self, enterprise_alias):
@@ -45,12 +44,11 @@ class TenantEnterpriseRepo(object):
 
 
 class TenantEnterpriseUserPermRepo(object):
-
     def create_enterprise_user_perm(self, user_id, enterprise_id, identity):
         return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
 
-    def get_user_enterprise_perm(self, user_id,enterprise_id):
-        return EnterpriseUserPerm.objects.filter(user_id=user_id,enterprise_id=enterprise_id)
+    def get_user_enterprise_perm(self, user_id, enterprise_id):
+        return EnterpriseUserPerm.objects.filter(user_id=user_id, enterprise_id=enterprise_id)
 
     def get_backend_enterprise_admin_by_user_id(self, user_id):
         """
@@ -73,6 +71,9 @@ class TenantEnterpriseUserPermRepo(object):
         :return:
         """
         EnterpriseUserPerm.objects.filter(user_id=user_id).delete()
+
+    def get_by_token(self, token):
+        return EnterpriseUserPerm.objects.filter(token=token).first()
 
 
 enterprise_repo = TenantEnterpriseRepo()

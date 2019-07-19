@@ -28,15 +28,14 @@ from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
-from www.models import ServiceConsume
-from www.models import TenantServiceInfo
+from www.models.main import ServiceConsume
+from www.models.main import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.tenantservice.baseservice import ServicePluginResource
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -91,8 +90,7 @@ class AppService(object):
         return tenant_service
 
     def create_source_code_app(self, region, tenant, user, service_code_from, service_cname, service_code_clone_url,
-                               service_code_id,
-                               service_code_version, server_type):
+                               service_code_id, service_code_version, server_type):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -112,8 +110,7 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = server_type
         new_service.save()
-        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
-                                           service_code_id,
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version)
         if code != 200:
             return code, msg, new_service
@@ -150,11 +147,7 @@ class AppService(object):
 
     def verify_source(self, tenant, region, new_add_memory, reason=""):
         """判断资源"""
-        data = {
-            "quantity": new_add_memory,
-            "reason": reason,
-            "eid": tenant.enterprise_id
-        }
+        data = {"quantity": new_add_memory, "reason": reason, "eid": tenant.enterprise_id}
         if new_add_memory == 0:
             return True, "success"
         # is_public = settings.MODULES.get('SSO_LOGIN')
@@ -234,7 +227,6 @@ class AppService(object):
             return service_alias
         service_alias = self.create_service_alias(make_uuid(service_id))
         return service_alias
-
 
     def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
@@ -327,17 +319,26 @@ class AppService(object):
                     port = int(port_re[0])
                     if port:
                         port_alias = new_service.service_alias.upper().replace("-", "_") + str(port)
-                        service_port = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
-                                        "container_port": port, "mapping_port": port,
-                                        "protocol": 'tcp', "port_alias": port_alias,
-                                        "is_inner_service": False,
-                                        "is_outer_service": False}
+                        service_port = {
+                            "tenant_id": tenant.tenant_id,
+                            "service_id": new_service.service_id,
+                            "container_port": port,
+                            "mapping_port": port,
+                            "protocol": 'tcp',
+                            "port_alias": port_alias,
+                            "is_inner_service": False,
+                            "is_outer_service": False
+                        }
                         service_port = port_repo.add_service_port(**service_port)
 
         # 保存endpoints数据
-        service_endpoints = {"tenant_id": tenant.tenant_id, "service_id": new_service.service_id,
-                             "service_cname": new_service.service_cname, "endpoints_info": json.dumps(endpoints),
-                             "endpoints_type": endpoints_type}
+        service_endpoints = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": new_service.service_id,
+            "service_cname": new_service.service_cname,
+            "endpoints_info": json.dumps(endpoints),
+            "endpoints_type": endpoints_type
+        }
         logger.debug('------service_endpoints------------->{0}'.format(service_endpoints))
         service_endpoints_repo.add_service_endpoints(service_endpoints)
 
@@ -353,14 +354,14 @@ class AppService(object):
             perm = perms_repo.get_user_tenant_perm(tenant_pk, user_pk)
             if not perm:
                 if tenant_pk == 5073:
-                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
-                        'service_alias')
+                    services = TenantServiceInfo.objects.filter(
+                        tenant_id=tenant_id, service_region=region).order_by('service_alias')
 
             else:
                 role_name = role_repo.get_role_name_by_role_id(perm.role_id)
                 if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
-                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by(
-                        'service_alias')
+                    services = TenantServiceInfo.objects.filter(
+                        tenant_id=tenant_id, service_region=region).order_by('service_alias')
                 else:
                     dsn = BaseConnection()
                     add_sql = ''
@@ -376,8 +377,8 @@ class AppService(object):
                             AND sp.service_id = s.ID
                             AND s.service_region = "{region}" { add_sql }
                         ORDER BY
-                            s.service_alias'''.format(tenant_id=tenant_id, user_id=user_pk,
-                                                      region=region, add_sql=add_sql)
+                            s.service_alias'''.format(
+                        tenant_id=tenant_id, user_id=user_pk, region=region, add_sql=add_sql)
                     services = dsn.query(query_sql)
 
         return services
@@ -385,8 +386,8 @@ class AppService(object):
     def get_service_status(self, tenant, service):
         """获取应用状态"""
         try:
-            body = region_api.check_service_status(service.service_region, tenant.tenant_name,
-                                                   service.service_alias, tenant.enterprise_id)
+            body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
+                                                   tenant.enterprise_id)
 
             bean = body["bean"]
             status = bean["cur_status"]
@@ -400,8 +401,7 @@ class AppService(object):
         disk = 0
 
         service_consume = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id
-        ).order_by("-ID")
+            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
         if service_consume:
             disk = service_consume[0].disk
 
@@ -427,8 +427,8 @@ class AppService(object):
         data["depend_ids"] = depend_ids
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
-        ports_info = ports.values(
-            'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
+                                  'is_outer_service')
 
         for port_info in ports_info:
             port_info["is_inner_service"] = False
@@ -442,8 +442,8 @@ class AppService(object):
         if envs_info:
             data["envs_info"] = list(envs_info)
         # 持久化目录
-        volume_info = volume_repo.get_service_volumes(service.service_id).values(
-            'ID', 'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
+        volume_info = volume_repo.get_service_volumes(service.service_id).values('ID', 'service_id', 'category', 'volume_name',
+                                                                                 'volume_path', 'volume_type')
         if volume_info:
             logger.debug('--------volume_info----->{0}'.format(volume_info))
             for volume in volume_info:
@@ -454,14 +454,15 @@ class AppService(object):
             logger.debug('--------volume_info22222----->{0}'.format(volume_info))
             data["volumes_info"] = list(volume_info)
 
-        logger.debug(
-            tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        logger.debug(tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         # 挂载信息
         mnt_info = mnt_repo.get_service_mnts(service.tenant_id, service.service_id)
         if mnt_info:
-            data["dep_volumes_info"] = [
-                {"dep_service_id": mnt.dep_service_id, "volume_path": mnt.mnt_dir, "volume_name": mnt.mnt_name}
-                for mnt in mnt_info]
+            data["dep_volumes_info"] = [{
+                "dep_service_id": mnt.dep_service_id,
+                "volume_path": mnt.mnt_dir,
+                "volume_name": mnt.mnt_name
+            } for mnt in mnt_info]
 
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
@@ -504,8 +505,7 @@ class AppService(object):
         data["volumes_info"] = []
         data["enterprise_id"] = tenant.enterprise_id
         data["service_name"] = service.service_name
-        data[
-            "service_label"] = "StatefulServiceType" if service.extend_method == "state" else "StatelessServiceType"
+        data["service_label"] = "StatefulServiceType" if service.extend_method == "state" else "StatelessServiceType"
         return data
 
     def __handle_service_ports(self, tenant, service, ports):
@@ -513,15 +513,13 @@ class AppService(object):
         try:
             for port in ports:
                 if port.is_outer_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region,
-                                                               port.container_port, "open_outer",
-                                                               port.protocol, port.port_alias)
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port,
+                                                               "open_outer", port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
                 if port.is_inner_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region,
-                                                               port.container_port, "open_inner",
-                                                               port.protocol, port.port_alias)
+                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port,
+                                                               "open_inner", port.protocol, port.port_alias)
                     if code != 200:
                         logger.error("create service manage port error : {0}".format(msg))
         except Exception as e:
@@ -610,8 +608,8 @@ class AppService(object):
         data = self.__init_third_party_data(tenant, service, user_name)
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
-        ports_info = ports.values(
-            'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
+                                  'is_outer_service')
 
         for port_info in ports_info:
             port_info["is_inner_service"] = False

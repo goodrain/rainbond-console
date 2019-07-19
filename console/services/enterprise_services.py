@@ -7,11 +7,9 @@ import re
 
 from console.repositories.enterprise_repo import enterprise_repo
 from www.models.main import TenantEnterprise, Tenants
-from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
-monitor_hook = MonitorHook()
 
 notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com']
 

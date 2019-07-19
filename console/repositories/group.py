@@ -5,7 +5,7 @@
 
 import logging
 
-from www.models import ServiceGroup, ServiceGroupRelation, TenantServiceGroup
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceGroup
 
 logger = logging.getLogger("default")
 
@@ -15,7 +15,8 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
 
     def add_group(self, tenant_id, region_name, group_name, is_default=False):
-        group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name=group_name, is_default=is_default)
+        group = ServiceGroup.objects.create(
+            tenant_id=tenant_id, region_name=region_name, group_name=group_name, is_default=is_default)
         return group
 
     def get_group_by_unique_key(self, tenant_id, region_name, group_name):
@@ -51,15 +52,15 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
     def get_default_by_service(self, service):
-        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.region_name,
-                                           is_default=True).first()
+        return ServiceGroup.objects.filter(
+            tenant_id=service.tenant_id, region_name=service.region_name, is_default=True).first()
 
     def get_or_create_default_group(self, tenant_id, region_name):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
         group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
         if not group:
-            group = ServiceGroup.objects.create(tenant_id=tenant_id, region_name=region_name, group_name='默认应用',
-                                                is_default=True)
+            group = ServiceGroup.objects.create(
+                tenant_id=tenant_id, region_name=region_name, group_name='默认应用', is_default=True)
         return group
 
 
@@ -71,8 +72,8 @@ class GroupServiceRelationRepository(object):
         ServiceGroupRelation.objects.filter(service_id=service_id).delete()
 
     def add_service_group_relation(self, group_id, service_id, tenant_id, region_name):
-        sgr = ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id, tenant_id=tenant_id,
-                                                  region_name=region_name)
+        sgr = ServiceGroupRelation.objects.create(
+            service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
         return sgr
 
     def get_group_by_service_id(self, service_id):
@@ -105,7 +106,7 @@ class GroupServiceRelationRepository(object):
     def create_service_group_relation(self, **params):
         return ServiceGroupRelation.objects.create(**params)
 
-    def get_service_group_relation_by_groups(self,group_ids):
+    def get_service_group_relation_by_groups(self, group_ids):
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids)
 
     def get_services_by_group(self, group_id):
@@ -117,7 +118,7 @@ class GroupServiceRelationRepository(object):
     def get_services_obj_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).all()
 
-    def update_service_relation(self,group_id, default_group_id):
+    def update_service_relation(self, group_id, default_group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).update(group_id=default_group_id)
 
 

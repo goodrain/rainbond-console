@@ -15,8 +15,7 @@ logger = logging.getLogger("default")
 class PluginManage(object):
     def delete_user_installed_market_plugins(self):
 
-        tps = TenantPlugin.objects.filter(origin="local_market",
-                                          image="goodrain.me/envoy_discover_service_20180117184912")
+        tps = TenantPlugin.objects.filter(origin="local_market", image="goodrain.me/envoy_discover_service_20180117184912")
         print tps.count()
         for tp in tps:
             tsprs = TenantServicePluginRelation.objects.filter(plugin_id=tp.plugin_id)
@@ -36,13 +35,11 @@ class PluginManage(object):
                             if e.status != 404:
                                 continue
 
-                        TenantServicePluginRelation.objects.filter(service_id=service.service_id,
-                                                                   plugin_id=tp.plugin_id).delete()
+                        TenantServicePluginRelation.objects.filter(
+                            service_id=service.service_id, plugin_id=tp.plugin_id).delete()
 
-                        ServicePluginConfigVar.objects.filter(service_id=service.service_id,
-                                                              plugin_id=tp.plugin_id).delete()
-                        TenantServicePluginAttr.objects.filter(service_id=service.service_id,
-                                                               plugin_id=tp.plugin_id).delete()
+                        ServicePluginConfigVar.objects.filter(service_id=service.service_id, plugin_id=tp.plugin_id).delete()
+                        TenantServicePluginAttr.objects.filter(service_id=service.service_id, plugin_id=tp.plugin_id).delete()
 
                     except Exception as e:
                         print e
@@ -61,8 +58,8 @@ class PluginManage(object):
             except Exception as e:
                 print e
 
-
         print "finished !"
         logger.debug("finished !")
+
 
 plugin_manage = PluginManage()

@@ -4,9 +4,8 @@ import logging
 from django.db.models import Q
 
 from backends.models import RegionConfig
-from backends.services.exceptions import TenantNotExistError, UserNotExistError
-from www.models import PermRelTenant, Users, Tenants, TenantRegionInfo, ServiceGroupRelation
-from console.models.main import TeamGitlabInfo, Applicants
+from www.models.main import PermRelTenant, Users, Tenants
+from console.models.main import TeamGitlabInfo
 
 logger = logging.getLogger("default")
 
@@ -47,7 +46,8 @@ class TeamRepo(object):
 
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant_id):
-        admins = PermRelTenant.objects.filter(Q(tenant_id=tenant_id, role_id__in=[1, 2]) | Q(tenant_id=tenant_id, identity__in=['admin', 'owner'])).all()
+        admins = PermRelTenant.objects.filter(
+            Q(tenant_id=tenant_id, role_id__in=[1, 2]) | Q(tenant_id=tenant_id, identity__in=['admin', 'owner'])).all()
         if not admins:
             return None
         return admins
@@ -59,7 +59,9 @@ class TeamRepo(object):
         :param tenant_id: 团队id  int
         :return: 获取一个用户在一个团队中的所有身份列表
         """
-        tenant_perms_list = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id).values_list("identity",flat=True)
+        tenant_perms_list = PermRelTenant.objects.filter(
+            user_id=user_id, tenant_id=tenant_id).values_list(
+                "identity", flat=True)
         if not tenant_perms_list:
             return None
         return tenant_perms_list
@@ -119,6 +121,7 @@ class TeamRepo(object):
 
     def get_team_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
+
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):

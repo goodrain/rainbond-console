@@ -14,7 +14,6 @@ configKey = "SYS_C_F_K"
 
 
 class ConfigCenter(object):
-
     def __init__(self):
         self.configs()
 

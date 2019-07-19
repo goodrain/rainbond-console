@@ -11,8 +11,7 @@ logger = logging.getLogger("default")
 
 class ServiceProbeRepository(object):
     def get_probe_by_mode(self, service_id, mode):
-        probe = ServiceProbe.objects.filter(
-            mode=mode, service_id=service_id)
+        probe = ServiceProbe.objects.filter(mode=mode, service_id=service_id)
         if probe:
             return probe[0]
         return None
@@ -43,8 +42,7 @@ class ServiceProbeRepository(object):
         return ServiceProbe.objects.filter(service_id=service_id)
 
     def update_or_create(self, service_id, defaults):
-        obj, _ = ServiceProbe.objects.update_or_create(service_id=service_id,
-                                                       defaults=defaults)
+        obj, _ = ServiceProbe.objects.update_or_create(service_id=service_id, defaults=defaults)
         return obj
 
 

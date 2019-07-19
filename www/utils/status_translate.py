@@ -28,7 +28,7 @@ def status_map():
     # region
     status_map["stoping"] = {
         "status_cn": "关闭中",
-        "disabledAction": ['deploy', 'restart', 'stop', 'visit', 'manage_container','reboot'],
+        "disabledAction": ['deploy', 'restart', 'stop', 'visit', 'manage_container', 'reboot'],
         "activeAction": [],
     }
     # region
@@ -89,13 +89,13 @@ def status_map():
     # region
     status_map["upgrade"] = {
         "status_cn": "升级中",
-        "disabledAction": [ 'manage_container'],
-        "activeAction": ['stop','visit', 'deploy', 'restart', 'reboot'],
+        "disabledAction": ['manage_container'],
+        "activeAction": ['stop', 'visit', 'deploy', 'restart', 'reboot'],
     }
     # region
     status_map["stopping"] = {
         "status_cn": "关闭中",
-        "disabledAction": ['deploy', 'restart', 'stop', 'visit', 'manage_container','reboot'],
+        "disabledAction": ['deploy', 'restart', 'stop', 'visit', 'manage_container', 'reboot'],
         "activeAction": [],
     }
     # region

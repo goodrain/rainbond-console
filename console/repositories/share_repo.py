@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin
-from www.models import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
-    TenantServiceEnvVar, TenantServiceVolume, TenantServicePluginRelation, TenantServicePluginAttr, ServiceInfo, \
-    TenantServiceExtendMethod, ServiceProbe,ServicePluginConfigVar
-from www.db import BaseConnection
+from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
+    TenantServiceEnvVar, TenantServiceVolume, ServiceInfo, \
+    TenantServiceExtendMethod, ServiceProbe
+from www.models.plugin import ServicePluginConfigVar, TenantServicePluginRelation, TenantServicePluginAttr
+from www.db.base import BaseConnection
 
 
 class ShareRepo(object):
@@ -15,8 +16,7 @@ class ShareRepo(object):
         return TenantServiceInfo.objects.filter(service_id__in=svc_ids).exclude(service_source="third_party")
 
     def get_rainbond_cent_app_by_tenant_service_group_id(self, group_id):
-        rainbond_cent_app = RainbondCenterApp.objects.filter(
-            tenant_service_group_id=group_id).order_by("-create_time").first()
+        rainbond_cent_app = RainbondCenterApp.objects.filter(tenant_service_group_id=group_id).order_by("-create_time").first()
         return rainbond_cent_app
 
     def get_port_list_by_service_ids(self, service_ids):
@@ -182,13 +182,13 @@ class ShareRepo(object):
         conn = BaseConnection()
         sql = """
             SELECT
-                a.team_name 
+                a.team_name
             FROM
                 service_share_record a,
-                tenant_info b 
+                tenant_info b
             WHERE
-                a.team_name = b.tenant_name 
-                AND b.enterprise_id = "{eid}" 
+                a.team_name = b.tenant_name
+                AND b.enterprise_id = "{eid}"
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False

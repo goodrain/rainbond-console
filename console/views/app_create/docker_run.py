@@ -67,9 +67,8 @@ class DockerRunCreateView(RegionTenantHeaderView):
             if not docker_cmd:
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
-            code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant,
-                                                                            self.user, service_cname, docker_cmd,
-                                                                            image_type)
+            code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
+                                                                            service_cname, docker_cmd, image_type)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 
@@ -83,8 +82,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
                 logger.debug("service.create", msg_show)
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)

@@ -2,17 +2,18 @@
 """
   Created on 18/5/15.
 """
+import base64
 import datetime
 import json
 import logging
 import urllib2
-import base64
 
-from console.models.main import RainbondCenterApp
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.appstore.appstore import app_store
+from console.models.main import RainbondCenterApp
 from console.repositories.group import group_repo
-from console.repositories.market_app_repo import app_export_record_repo, app_import_record_repo
+from console.repositories.market_app_repo import app_export_record_repo
+from console.repositories.market_app_repo import app_import_record_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from www.apiclient.baseclient import client_auth_service
@@ -50,15 +51,19 @@ class AppExportService(object):
 
     def export_current_app(self, team, export_format, app):
         event_id = make_uuid()
-        data = {"event_id": event_id, "group_key": app.group_key, "version": app.version, "format": export_format,
-                "group_metadata": self.__get_group_metata(app)}
+        data = {
+            "event_id": event_id,
+            "group_key": app.group_key,
+            "version": app.version,
+            "format": export_format,
+            "group_metadata": self.__get_group_metata(app)
+        }
         region = self.get_app_share_region(app)
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
         region_api.export_app(region, team.tenant_name, data)
         export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.enterprise_id, app.group_key,
-                                                                                     app.version,
-                                                                                     export_format)
+                                                                                     app.version, export_format)
         if export_record:
             logger.debug("update export record !")
             export_record.event_id = event_id
@@ -78,7 +83,11 @@ class AppExportService(object):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
-        image_base64_string = self.encode_image(picture_path)
+        try:
+            image_base64_string = self.encode_image(picture_path)
+        except IOError as e:
+            logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
+            image_base64_string = ""
 
         app_template = json.loads(app.app_template)
         app_template["suffix"] = suffix
@@ -127,9 +136,8 @@ class AppExportService(object):
             return None
 
     def get_export_status(self, team, app):
-        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(team.enterprise_id,
-                                                                                               app.group_key,
-                                                                                               app.version)
+        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
+            team.enterprise_id, app.group_key, app.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -155,17 +163,21 @@ class AppExportService(object):
 
                 if export_record.format == "rainbond-app":
                     rainbond_app_init_data.update({
-                        "is_export_before": True,
-                        "status": export_record.status,
-                        "file_path": self._wrapper_director_download_url(region,
-                                                                         export_record.file_path.replace("/v2", ""))
+                        "is_export_before":
+                        True,
+                        "status":
+                        export_record.status,
+                        "file_path":
+                        self._wrapper_director_download_url(region, export_record.file_path.replace("/v2", ""))
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
-                        "is_export_before": True,
-                        "status": export_record.status,
-                        "file_path": self._wrapper_director_download_url(region,
-                                                                         export_record.file_path.replace("/v2", ""))
+                        "is_export_before":
+                        True,
+                        "status":
+                        export_record.status,
+                        "file_path":
+                        self._wrapper_director_download_url(region, export_record.file_path.replace("/v2", ""))
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
@@ -194,13 +206,10 @@ class AppExportService(object):
             #     return "http://" + region.tcpdomain + ":6060" + raw_url
 
     def get_export_record(self, export_format, app):
-        return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-                                                                      export_format)
+        return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
 
     def get_export_record_status(self, enterprise_id, group_key, version):
-        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, group_key,
-                                                                                    version)
-        export_status = "other"
+        records = app_export_record_repo.get_enter_export_record_by_key_and_version(enterprise_id, group_key, version)
         # 有一个成功即成功，全部失败为失败，全部为导出中则显示导出中
         if not records:
             return "unexported"
@@ -217,14 +226,12 @@ class AppExportService(object):
             return "exporting"
 
     def get_file_down_req(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version,
-                                                                               export_format)
+        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
         region = self.get_app_share_region(app)
 
         download_url = self.__get_down_url(region, export_record.file_path)
         file_name = export_record.file_path.split("/")[-1]
-        url, token = client_auth_service.get_region_access_token_by_tenant(
-            tenant_name, region)
+        url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         if not token:
             region_info = region_repo.get_region_by_region_name(region)
             if region_info:
@@ -247,12 +254,7 @@ class AppImportService(object):
 
         service_slug = app_store.get_slug_connection_info(scope, tenant.tenant_name)
         service_image = app_store.get_image_connection_info(scope, tenant.tenant_name)
-        data = {
-            "service_slug": service_slug,
-            "service_image": service_image,
-            "event_id": event_id,
-            "apps": file_names
-        }
+        data = {"service_slug": service_slug, "service_image": service_image, "event_id": event_id, "apps": file_names}
         logger.debug("params {0}".format(json.dumps(data)))
         res, body = region_api.import_app(region, tenant.tenant_name, data)
         logger.debug("response body {0}".format(body))
@@ -329,8 +331,14 @@ class AppImportService(object):
         event_id = make_uuid()
         res, body = region_api.create_import_file_dir(region, tenant.tenant_name, event_id)
         path = body["bean"]["path"]
-        import_record_params = {"event_id": event_id, "status": "created_dir", "source_dir": path,
-                                "team_name": tenant.tenant_name, "region": region, "user_name": user.nick_name}
+        import_record_params = {
+            "event_id": event_id,
+            "status": "created_dir",
+            "source_dir": path,
+            "team_name": tenant.tenant_name,
+            "region": region,
+            "user_name": user.nick_name
+        }
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
@@ -351,7 +359,7 @@ class AppImportService(object):
                                                                         app_template["group_version"])
             if app:
                 # 覆盖原有应用数据
-                app.share_team = tenant_name # 分享团队名暂时为那个团队将应用导入进来的
+                app.share_team = tenant_name  # 分享团队名暂时为那个团队将应用导入进来的
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
                 app.app_template = json.dumps(app_template)
@@ -381,8 +389,7 @@ class AppImportService(object):
                 pic=pic_url,
                 app_template=json.dumps(app_template),
                 is_complete=True,
-                template_version=app_template.get("template_version", "")
-            )
+                template_version=app_template.get("template_version", ""))
             rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
@@ -413,8 +420,14 @@ class AppImportService(object):
 
     def create_app_import_record(self, team_name, user_name, region):
         event_id = make_uuid()
-        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
-                                "user_name": user_name, "source_dir": "/grdata/app/import/{0}".format(event_id)}
+        import_record_params = {
+            "event_id": event_id,
+            "status": "uploading",
+            "team_name": team_name,
+            "region": region,
+            "user_name": user_name,
+            "source_dir": "/grdata/app/import/{0}".format(event_id)
+        }
         return app_import_record_repo.create_app_import_record(**import_record_params)
 
     def get_upload_url(self, region, event_id):

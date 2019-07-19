@@ -7,7 +7,6 @@ from .assembla import AssemblaPlatform
 from .gitlab import GitLabPlatform
 from .gr_gitlab import GrGitLabPlatform
 
-
 # Supported platforms
 PLATFORMS = (
     # name -> Platform object

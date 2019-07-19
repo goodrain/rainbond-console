@@ -2,9 +2,11 @@
 import logging
 
 from console.models.main import ConsoleSysConfig
+from console.exception.main import ServiceHandleException
 from console.repositories.team_repo import team_repo
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
+from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger('default')
 market_api = MarketOpenAPI()
@@ -13,18 +15,6 @@ market_api = MarketOpenAPI()
 class AppStore(object):
     def __init__(self):
         pass
-
-    def judge_service_type(self, scope, team_name, service):
-        image = service.get("image", None)
-        if image == "goodrain.me/runner":
-            is_slug = True
-            if is_slug:
-                return is_slug, self.get_slug_connection_info(scope=scope)
-            else:
-                return is_slug, self.get_image_connection_info(scope=scope, team_name=team_name, service=service)
-        else:
-            is_slug = False
-            return is_slug, self.get_image_connection_info(scope=scope, team_name=team_name, service=service)
 
     def get_image_connection_info(self, scope, team_name):
         """
@@ -38,7 +28,7 @@ class AppStore(object):
             team = team_repo.get_team_by_team_name(team_name)
             if not team:
                 return {}
-            if scope == "goodrain":
+            if scope.startswith("goodrain"):
                 info = market_api.get_share_hub_info(team.tenant_id, "image")
                 return info["image_repo"]
             else:
@@ -59,10 +49,17 @@ class AppStore(object):
                     "is_trust": is_trust
                 }
                 return image_info
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            else:
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}
 
+    # deprecated
     def get_slug_connection_info(self, scope, team_name):
         """
         :param scope: enterprise(企业) team(团队) goodrain(好雨云市)
@@ -95,6 +92,12 @@ class AppStore(object):
                     "ftp_password": ftp_password
                 }
                 return slug_info
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            else:
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}

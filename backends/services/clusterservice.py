@@ -38,11 +38,8 @@ class ClusterService(object):
         return cluster_list
 
     def add_cluster(self, region_id, cluster_id, cluster_name, cluster_alias, enable):
-        cluster_info = RegionClusterInfo.objects.create(region_id=region_id,
-                                                        cluster_id=cluster_id,
-                                                        cluster_name=cluster_name,
-                                                        cluster_alias=cluster_alias,
-                                                        enable=enable)
+        cluster_info = RegionClusterInfo.objects.create(
+            region_id=region_id, cluster_id=cluster_id, cluster_name=cluster_name, cluster_alias=cluster_alias, enable=enable)
         return cluster_info
 
 

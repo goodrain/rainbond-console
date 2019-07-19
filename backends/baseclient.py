@@ -5,16 +5,13 @@ import socket
 
 from addict import Dict
 from goodrain_web.decorator import method_perf_time
-from services.exceptions import ApiInvokeError
 
 import logging
 logger = logging.getLogger('default')
 
 
 class BaseHttpClient(object):
-
     class CallApiError(Exception):
-
         def __init__(self, apitype, url, method, res, body, describe=None):
             self.message = {
                 "apitype": apitype,
@@ -82,19 +79,26 @@ class BaseHttpClient(object):
                     record_body = body
 
                 logger.debug(
-                    'request', '''{0} "{1}" body={2} response: {3} \nand content is {4}'''.format(method, url, record_body, response, record_content))
+                    'request', '''{0} "{1}" body={2} response: {3} \nand content is {4}'''.format(
+                        method, url, record_body, response, record_content))
                 return response, content
             except socket.timeout, e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
-                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {"type": "backends request time out", "error": str(e)})
+                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
+                    "type": "backends request time out",
+                    "error": str(e)
+                })
             except socket.error, e:
                 retry_count -= 1
                 if retry_count:
                     logger.error("client_error", "retry request: %s" % url)
                 else:
                     logger.exception('client_error', e)
-                    raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {"type": "connect error", "error": str(e)})
+                    raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {
+                        "type": "connect error",
+                        "error": str(e)
+                    })
 
     def _get(self, url, headers, body=None, *args, **kwargs):
         if body is not None:

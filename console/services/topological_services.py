@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
-
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import ServiceGroupRelation, TenantServiceRelation, TenantServiceInfo, TenantServicesPort, ServiceDomain
+from www.models.main import ServiceGroupRelation, TenantServiceRelation, TenantServiceInfo, TenantServicesPort, ServiceDomain
 from console.services.region_services import region_services
 
 region_api = RegionInvokeApi()
@@ -11,7 +10,6 @@ logger = logging.getLogger("default")
 
 
 class TopologicalService(object):
-
     def get_group_topological_graph(self, group_id, region, team_name, enterprise_id):
         topological_info = dict()
         service_group_relation_list = ServiceGroupRelation.objects.filter(group_id=group_id)
@@ -30,9 +28,10 @@ class TopologicalService(object):
         # 批量查询服务状态
         if len(service_list) > 0:
             try:
-                service_status_list = region_api.service_status(region, team_name,
-                                                                {"service_ids": all_service_id_list,
-                                                                 "enterprise_id": enterprise_id})
+                service_status_list = region_api.service_status(region, team_name, {
+                    "service_ids": all_service_id_list,
+                    "enterprise_id": enterprise_id
+                })
                 service_status_list = service_status_list["list"]
                 service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
             except Exception as e:
@@ -138,11 +137,7 @@ class TopologicalService(object):
                 elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
                     httpdomain = region_services.get_region_httpdomain(service.service_region)
-                    outer_service = {
-                        "domain": "{0}.{1}.{2}".format(service.service_alias, team_name,
-                                                       httpdomain),
-                        "port": ""
-                    }
+                    outer_service = {"domain": "{0}.{1}.{2}".format(service.service_alias, team_name, httpdomain), "port": ""}
                 # 外部url
                 if outer_service['port'] == '-1':
                     port_info['outer_url'] = 'query error!'
@@ -175,14 +170,18 @@ class TopologicalService(object):
         result["port_list"] = port_map
         # pod节点信息
         try:
-            status_data = region_api.check_service_status(region=region_name, tenant_name=team_name,
-                                                          service_alias=service.service_alias,
-                                                          enterprise_id=team.enterprise_id)
+            status_data = region_api.check_service_status(
+                region=region_name,
+                tenant_name=team_name,
+                service_alias=service.service_alias,
+                enterprise_id=team.enterprise_id)
             region_data = status_data["bean"]
 
-            pod_list = region_api.get_service_pods(region=region_name, tenant_name=team_name,
-                                                   service_alias=service.service_alias,
-                                                   enterprise_id=team.enterprise_id)
+            pod_list = region_api.get_service_pods(
+                region=region_name,
+                tenant_name=team_name,
+                service_alias=service.service_alias,
+                enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
         except Exception as e:
             logger.exception(e)
@@ -225,8 +224,7 @@ class TopologicalService(object):
 
     def get_internet_topological_graph(self, group_id, team_name):
         result = dict()
-        service_id_list = ServiceGroupRelation.objects.filter(group_id=group_id).values_list("service_id",
-                                                                                             flat=True)
+        service_id_list = ServiceGroupRelation.objects.filter(group_id=group_id).values_list("service_id", flat=True)
         service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list)
         outer_http_service_list = []
         for service in service_list:
@@ -253,8 +251,7 @@ class TopologicalService(object):
                 if port.is_outer_service:
                     if port.protocol != 'http' and port.protocol != "https":
                         cur_region = service_region.replace("-1", "")
-                        domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias,
-                                                                      team_name, cur_region)
+                        domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias, team_name, cur_region)
                         tcpdomain = region_services.get_region_tcpdomain(service_region)
                         if tcpdomain:
                             domain = tcpdomain
@@ -268,26 +265,20 @@ class TopologicalService(object):
                         exist_service_domain = True
                         httpdomain = region_services.get_region_httpdomain(service_region)
                         outer_service = {
-                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, team_name,
-                                                          httpdomain),
-                            "port":""
+                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, team_name, httpdomain),
+                            "port": ""
                         }
                     else:
-                        outer_service = {
-                            "domain": 'error',
-                            "port": '-1'
-                        }
+                        outer_service = {"domain": 'error', "port": '-1'}
                     # 外部url
                     if outer_service['port'] == '-1':
                         port_info['outer_url'] = 'query error!'
                     else:
                         if port.protocol == "http" or port.protocol == "https":
-                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port,
-                                                                          outer_service['domain'],
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
                                                                           outer_service['port'])
                         else:
-                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'],
-                                                                      outer_service['port'])
+                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
                 # 自定义域名
                 if exist_service_domain:
                     if len(service_domain_list) > 0:

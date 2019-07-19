@@ -18,7 +18,6 @@ logger = logging.getLogger('default')
 
 
 class ImportingRecordView(RegionTenantHeaderView):
-
     @never_cache
     @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
@@ -37,15 +36,9 @@ class ImportingRecordView(RegionTenantHeaderView):
         if unfinished_records:
             r = unfinished_records[0]
         else:
-            r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name,
-                                                        self.response_region)
+            r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name, self.response_region)
         upload_url = import_service.get_upload_url(self.response_region, r.event_id)
-        data = {
-            "status": r.status,
-            "source_dir": r.source_dir,
-            "event_id": r.event_id,
-            "upload_url": upload_url
-        }
+        data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
 
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
@@ -75,7 +68,7 @@ class CenterAppUploadView(RegionTenantHeaderView):
             if not request.FILES or not upload_file:
                 return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             file_name = upload_file.name
-            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name,self.user.nick_name,
+            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name, self.user.nick_name,
                                                                                    self.response_region, upload_file)
             if code != 200:
                 return Response(general_message(code, "upload file faild", msg), status=code)
@@ -217,7 +210,7 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
         try:
             event_id = request.GET.get("event_id", None)
             if not event_id:
-                return Response(general_message(400, "event id is null","请指明需要查询的event id"), status=400)
+                return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
 
             apps = import_service.get_import_app_dir(self.tenant, self.response_region, event_id)
             result = general_message(200, "success", "查询成功", list=apps)
@@ -239,7 +232,7 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
               paramType: path
         """
         try:
-            import_record = import_service.create_import_app_dir(self.tenant,self.user, self.response_region)
+            import_record = import_service.create_import_app_dir(self.tenant, self.user, self.response_region)
 
             result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         except Exception as e:

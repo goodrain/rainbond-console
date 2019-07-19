@@ -9,13 +9,12 @@ from backends.services.tenantservice import tenant_service
 from backends.services.userservice import user_service
 from base import BaseAPIView
 from goodrain_web.tools import JuncheePaginator
-from www.models import Tenants
+from www.models.main import Tenants
 from console.services.team_services import team_services as console_team_service
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.utils.timeutil import time_to_str
 from django.db.models import Q
 from console.services.user_services import user_services
-
 
 logger = logging.getLogger("default")
 
@@ -50,9 +49,7 @@ class TenantUserView(BaseAPIView):
                 result_map["tenants"] = tenant_list
                 list.append(result_map)
 
-            result = generate_result(
-                "0000", "success", "查询成功", list=list
-            )
+            result = generate_result("0000", "success", "查询成功", list=list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
             result = generate_result("1001", "tenant not exist", "租户{}不存在".format(tenant_name))
@@ -131,7 +128,6 @@ class TenantUserView(BaseAPIView):
 
 
 class UserView(BaseAPIView):
-
     def delete(self, request, tenant_name, user_id, *args, **kwargs):
         """
         删除用户
@@ -156,8 +152,7 @@ class UserView(BaseAPIView):
                 tenant_alias_list = []
                 for tenant in tenants:
                     tenant_alias_list.append(tenant.tenant_alias)
-                return Response(
-                    generate_result("1112", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
+                return Response(generate_result("1112", "delete error", "当前用户是团队的拥有者,请先移交团队管理权或删除团队", list=tenant_alias_list))
             # 企业管理员不可删
             user = user_service.get_user_by_user_id(user_id)
             if user_services.is_user_admin_in_current_enterprise(user, user.enterprise_id):
@@ -197,9 +192,7 @@ class UserView(BaseAPIView):
                 result = generate_result("1006", "no password", "密码不能为空")
             else:
                 user_service.update_user_password(user_id, new_password)
-                result = generate_result(
-                    "0000", "success", "密码修改成功"
-                )
+                result = generate_result("0000", "success", "密码修改成功")
         except PasswordTooShortError as e:
             result = generate_result("1007", "password too short", "{}".format(e.message))
         except Exception as e:
@@ -263,9 +256,7 @@ class AllUserView(BaseAPIView):
                     result_map["enterprise_alias"] = "暂无企业信息"
                 list.append(result_map)
 
-            result = generate_result(
-                "0000", "success", "查询成功", list=list, total=user_paginator.count
-            )
+            result = generate_result("0000", "success", "查询成功", list=list, total=user_paginator.count)
 
         except Exception as e:
             logger.debug(e)
@@ -329,27 +320,21 @@ class UserFuzSerView(BaseAPIView):
             query_key = request.GET.get("query_key", None)
             if query_key:
                 q_obj = Q(nick_name__icontains=query_key) | Q(email__icontains=query_key)
-                users = user_services.get_user_by_filter(args=(q_obj,))
-                user_list = [
-                    {
-                        "nick_name": user_info.nick_name,
-                        "email": user_info.email,
-                        "user_id": user_info.user_id
-                    }
-                    for user_info in users
-                ]
+                users = user_services.get_user_by_filter(args=(q_obj, ))
+                user_list = [{
+                    "nick_name": user_info.nick_name,
+                    "email": user_info.email,
+                    "user_id": user_info.user_id
+                } for user_info in users]
                 result = generate_result("0000", "query user success", "查询用户成功", list=user_list)
                 return Response(result)
             else:
                 users = user_service.get_all_users()
-                user_list = [
-                    {
-                        "nick_name": user_info.nick_name,
-                        "email": user_info.email,
-                        "user_id": user_info.user_id
-                    }
-                    for user_info in users
-                ]
+                user_list = [{
+                    "nick_name": user_info.nick_name,
+                    "email": user_info.email,
+                    "user_id": user_info.user_id
+                } for user_info in users]
                 result = generate_result("0000", "query user success", "查询用户成功", list=user_list)
                 return Response(result)
         except Exception as e:

@@ -11,7 +11,6 @@ from rest_framework.views import APIView
 from console.services.enterprise_services import enterprise_services
 from console.repositories.enterprise_repo import enterprise_repo
 
-
 logger = logging.getLogger("default")
 
 
@@ -756,7 +755,7 @@ class FtpConfigView(BaseAPIView):
             namespace = request.data.get("namespace", None)
             ftp_username = request.data.get("ftp_username", None)
             ftp_password = request.data.get("ftp_password", None)
-            config_service.update_ftp_config(ftp_host, ftp_port, namespace,ftp_username, ftp_password)
+            config_service.update_ftp_config(ftp_host, ftp_port, namespace, ftp_username, ftp_password)
             code = "0000"
             msg = "success"
             msg_show = "ftp配置修改成功"
@@ -800,4 +799,3 @@ class EnterpriseInfoView(BaseAPIView):
             result = generate_error_result()
             logger.exception(e)
         return Response(result)
-

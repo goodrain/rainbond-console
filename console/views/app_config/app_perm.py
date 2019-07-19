@@ -78,8 +78,7 @@ class ServicePermView(AppBaseView):
             user_id = request.data.get("user_id", None)
             if not identity or not user_id:
                 return Response(general_message(400, "params error", "参数异常"), status=400)
-            code, msg, service_perm = app_perm_service.add_service_perm(self.user, user_id, self.tenant, self.service,
-                                                                        identity)
+            code, msg, service_perm = app_perm_service.add_service_perm(self.user, user_id, self.tenant, self.service, identity)
             if code != 200:
                 return Response(general_message(code, "add service perm error", msg), status=400)
             result = general_message(code, "success", "操作成功", bean=service_perm.to_dict())
@@ -123,9 +122,7 @@ class ServicePermView(AppBaseView):
             user_id = request.data.get("user_id", None)
             if not identity or not user_id:
                 return Response(general_message(400, "params error", "参数异常"), status=400)
-            code, msg, service_perm = app_perm_service.update_service_perm(self.user, user_id,
-                                                                           self.service,
-                                                                           identity)
+            code, msg, service_perm = app_perm_service.update_service_perm(self.user, user_id, self.service, identity)
             if code != 200:
                 return Response(general_message(code, "update service perm error", msg), status=400)
             result = general_message(code, "success", "修改成功", bean=service_perm.to_dict())
@@ -163,8 +160,7 @@ class ServicePermView(AppBaseView):
             user_id = request.data.get("user_id", None)
             if not user_id:
                 return Response(general_message(400, "params error", "参数异常"), status=400)
-            code, msg = app_perm_service.delete_service_perm(self.user, user_id,
-                                                             self.service)
+            code, msg = app_perm_service.delete_service_perm(self.user, user_id, self.service)
             if code != 200:
                 return Response(general_message(code, "delete service perm error", msg), status=400)
             result = general_message(code, "success", "操作成功")
@@ -221,9 +217,13 @@ class ServicePermView(AppBaseView):
                 if code != 200:
                     return Response(general_message(code, "add service perm error", msg), status=400)
 
-                service_perm_list.append(
-                    {"ID": service_perm.pk, "user_id": service_perm.user_id, "service_id": service_perm.service_id,
-                     "identity": service_perm.identity, "role_id": service_perm.role_id})
+                service_perm_list.append({
+                    "ID": service_perm.pk,
+                    "user_id": service_perm.user_id,
+                    "service_id": service_perm.service_id,
+                    "identity": service_perm.identity,
+                    "role_id": service_perm.role_id
+                })
             result = general_message(200, "success", "操作成功", list=service_perm_list)
         except Exception as e:
             print(e)

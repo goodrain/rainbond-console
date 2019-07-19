@@ -55,8 +55,14 @@ class AppPortService(object):
     #         return True
     #     return False
 
-    def add_service_port(self, tenant, service, container_port=0, protocol='', port_alias='',
-                         is_inner_service=False, is_outer_service=False):
+    def add_service_port(self,
+                         tenant,
+                         service,
+                         container_port=0,
+                         protocol='',
+                         port_alias='',
+                         is_inner_service=False,
+                         is_outer_service=False):
         # 三方服务暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
@@ -79,27 +85,31 @@ class AppPortService(object):
             if not port_alias:
                 return 400, u"端口别名不能为空", None
 
-            code, msg, data = env_var_service.add_service_env_var(tenant, service, container_port, u"连接地址",
-                                                                  env_prefix + "_HOST", "127.0.0.1", False,
-                                                                  scope="outer")
+            code, msg, data = env_var_service.add_service_env_var(
+                tenant, service, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
             if code != 200:
                 return code, msg, None
-            code, msg, data = env_var_service.add_service_env_var(tenant, service, container_port, u"端口",
-                                                                  env_prefix + "_PORT", mapping_port, False,
-                                                                  scope="outer")
+            code, msg, data = env_var_service.add_service_env_var(
+                tenant, service, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if code != 200:
                 return code, msg, None
 
-        service_port = {"tenant_id": tenant.tenant_id, "service_id": service.service_id,
-                        "container_port": container_port, "mapping_port": container_port,
-                        "protocol": protocol, "port_alias": port_alias,
-                        "is_inner_service": bool(is_inner_service),
-                        "is_outer_service": bool(is_outer_service)}
+        service_port = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id,
+            "container_port": container_port,
+            "mapping_port": container_port,
+            "protocol": protocol,
+            "port_alias": port_alias,
+            "is_inner_service": bool(is_inner_service),
+            "is_outer_service": bool(is_outer_service)
+        }
 
         if service.create_status == "complete":
-            region_api.add_service_port(service.service_region, tenant.tenant_name,
-                                        service.service_alias,
-                                        {"port": [service_port], "enterprise_id": tenant.enterprise_id})
+            region_api.add_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
+                "port": [service_port],
+                "enterprise_id": tenant.enterprise_id
+            })
 
         new_port = port_repo.add_service_port(**service_port)
         # 三方服务在添加端口是添加一条默认的健康检测数据
@@ -169,8 +179,8 @@ class AppPortService(object):
                         port = int(info[1])
                         domain = str(info[0])
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}.{3}".format(port_info.container_port, service.service_alias,
-                                                       tenant.tenant_name, domain),
+                    "domain": "{0}.{1}.{2}.{3}".format(port_info.container_port, service.service_alias, tenant.tenant_name,
+                                                       domain),
                     "port": port
                 }
         return data
@@ -191,8 +201,8 @@ class AppPortService(object):
             return 409, u"请关闭外部服务", None
         if service.create_status == "complete":
             # 删除数据中心端口
-            region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                           container_port, tenant.enterprise_id)
+            region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,
+                                           tenant.enterprise_id)
 
         # 删除端口时禁用相关服务
         self.disable_service_when_delete_port(tenant, service, container_port)
@@ -234,9 +244,8 @@ class AppPortService(object):
                     logger.exception(e)
 
     def __check_params(self, action, protocol, port_alias, service_id):
-        standard_actions = (
-            "open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
-            "change_port_alias")
+        standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
+                            "change_port_alias")
         if not action:
             return 400, u"操作类型不能为空"
         if action not in standard_actions:
@@ -288,8 +297,7 @@ class AppPortService(object):
         #         return 412, u"非http协议端口只能对外开放一个"
 
         if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             # 在domain表中保存数据
             if service_domains:
                 for service_domain in service_domains:
@@ -308,9 +316,8 @@ class AppPortService(object):
                 tenant_id = tenant.tenant_id
                 service_alias = service.service_cname
                 region_id = region.region_id
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port,
-                                                   protocol, http_rule_id, tenant_id,
-                                                   service_alias, region_id)
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
+                                                   http_rule_id, tenant_id, service_alias, region_id)
                 # 给数据中心发请求添加默认域名
                 data = dict()
                 data["domain"] = domain_name
@@ -328,8 +335,8 @@ class AppPortService(object):
                     return 412, u"数据中心添加策略失败"
 
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                            deal_port.container_port)
+            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+                service.service_id, deal_port.container_port)
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     # 改变tcpdomain表中状态
@@ -351,9 +358,8 @@ class AppPortService(object):
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
                 region_id = region.region_id
-                tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
-                                                      container_port, protocol, service_alias, tcp_rule_id,
-                                                      tenant_id, region_id)
+                tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
+                                                      protocol, service_alias, tcp_rule_id, tenant_id, region_id)
                 # 默认ip不需要传给数据中心
                 # ip = end_point.split(":")[0]
                 port = end_point.split(":")[1]
@@ -374,10 +380,11 @@ class AppPortService(object):
 
         deal_port.is_outer_service = True
         if service.create_status == "complete":
-            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
-                                                service.service_alias,
-                                                deal_port.container_port,
-                                                {"operation": "open", "enterprise_id": tenant.enterprise_id})
+            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
+                                                deal_port.container_port, {
+                                                    "operation": "open",
+                                                    "enterprise_id": tenant.enterprise_id
+                                                })
             logger.debug("open outer port body {}".format(body))
             lb_mapping_port = body["bean"]["port"]
 
@@ -389,10 +396,11 @@ class AppPortService(object):
     def __only_open_outer(self, tenant, service, region, deal_port):
         deal_port.is_outer_service = True
         if service.create_status == "complete":
-            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name,
-                                                service.service_alias,
-                                                deal_port.container_port,
-                                                {"operation": "open", "enterprise_id": tenant.enterprise_id})
+            body = region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
+                                                deal_port.container_port, {
+                                                    "operation": "open",
+                                                    "enterprise_id": tenant.enterprise_id
+                                                })
             logger.debug("open outer port body {}".format(body))
             lb_mapping_port = body["bean"]["port"]
 
@@ -420,21 +428,22 @@ class AppPortService(object):
         deal_port.is_outer_service = False
         if service.create_status == "complete":
             region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                         deal_port.container_port,
-                                         {"operation": "close", "enterprise_id": tenant.enterprise_id})
+                                         deal_port.container_port, {
+                                             "operation": "close",
+                                             "enterprise_id": tenant.enterprise_id
+                                         })
 
         deal_port.save()
         # 改变httpdomain表中端口状态
         if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             if service_domains:
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id,
-                                                                                            deal_port.container_port)
+            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+                service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
@@ -453,21 +462,21 @@ class AppPortService(object):
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
         # 添加环境变量
-        code, msg, data = env_var_service.add_service_env_var(tenant, service, deal_port.container_port, u"连接地址",
-                                                              env_prefix + "_HOST", "127.0.0.1", False,
-                                                              scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(
+            tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
         if code != 200:
             return code, msg
-        code, msg, data = env_var_service.add_service_env_var(tenant, service, deal_port.container_port, u"端口",
-                                                              env_prefix + "_PORT", mapping_port, False,
-                                                              scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(
+            tenant, service, deal_port.container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
         if code != 200:
             return code, msg
 
         if service.create_status == "complete":
             body = region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                                deal_port.container_port,
-                                                {"operation": "open", "enterprise_id": tenant.enterprise_id})
+                                                deal_port.container_port, {
+                                                    "operation": "open",
+                                                    "enterprise_id": tenant.enterprise_id
+                                                })
             logger.debug("open inner port {0}".format(body))
 
         deal_port.save()
@@ -477,8 +486,10 @@ class AppPortService(object):
         deal_port.is_inner_service = False
         if service.create_status == "complete":
             region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                         deal_port.container_port,
-                                         {"operation": "close", "enterprise_id": tenant.enterprise_id})
+                                         deal_port.container_port, {
+                                             "operation": "close",
+                                             "enterprise_id": tenant.enterprise_id
+                                         })
         deal_port.save()
         return 200, "success"
 
@@ -491,12 +502,20 @@ class AppPortService(object):
                 return 400, u"请关闭外部访问"
 
         if service.create_status == "complete":
-            body = {"container_port": deal_port.container_port, "is_inner_service": deal_port.is_inner_service,
-                    "is_outer_service": deal_port.is_outer_service, "mapping_port": deal_port.mapping_port,
-                    "port_alias": deal_port.port_alias, "protocol": protocol,
-                    "tenant_id": tenant.tenant_id, "service_id": service.service_id}
-            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                           {"port": [body], "enterprise_id": tenant.enterprise_id})
+            body = {
+                "container_port": deal_port.container_port,
+                "is_inner_service": deal_port.is_inner_service,
+                "is_outer_service": deal_port.is_outer_service,
+                "mapping_port": deal_port.mapping_port,
+                "port_alias": deal_port.port_alias,
+                "protocol": protocol,
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id
+            }
+            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
+                "port": [body],
+                "enterprise_id": tenant.enterprise_id
+            })
         deal_port.save()
 
         return 200, "success"
@@ -510,27 +529,37 @@ class AppPortService(object):
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
             env.attr_name = new_attr_name
             if service.create_status == "complete":
-                region_api.delete_service_env(service.service_region,
-                                              tenant.tenant_name,
-                                              service.service_alias,
-                                              {"env_name": old_env_attr_name,
-                                               "enterprise_id": tenant.enterprise_id})
+                region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
+                    "env_name": old_env_attr_name,
+                    "enterprise_id": tenant.enterprise_id
+                })
                 # step 2 添加新的
-                add_env = {"container_port": env.container_port, "env_name": env.attr_name,
-                           "env_value": env.attr_value, "is_change": env.is_change, "name": env.name,
-                           "scope": env.scope, "enterprise_id": tenant.enterprise_id}
-                region_api.add_service_env(service.service_region,
-                                           tenant.tenant_name,
-                                           service.service_alias,
-                                           add_env)
+                add_env = {
+                    "container_port": env.container_port,
+                    "env_name": env.attr_name,
+                    "env_value": env.attr_value,
+                    "is_change": env.is_change,
+                    "name": env.name,
+                    "scope": env.scope,
+                    "enterprise_id": tenant.enterprise_id
+                }
+                region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, add_env)
             env.save()
-        body = {"container_port": deal_port.container_port, "is_inner_service": deal_port.is_inner_service,
-                "is_outer_service": deal_port.is_outer_service, "mapping_port": deal_port.mapping_port,
-                "port_alias": new_port_alias, "protocol": deal_port.protocol,
-                "tenant_id": tenant.tenant_id, "service_id": service.service_id}
+        body = {
+            "container_port": deal_port.container_port,
+            "is_inner_service": deal_port.is_inner_service,
+            "is_outer_service": deal_port.is_outer_service,
+            "mapping_port": deal_port.mapping_port,
+            "port_alias": new_port_alias,
+            "protocol": deal_port.protocol,
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id
+        }
         if service.create_status == "complete":
-            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                           {"port": [body], "enterprise_id": tenant.enterprise_id})
+            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
+                "port": [body],
+                "enterprise_id": tenant.enterprise_id
+            })
         deal_port.save()
         return 200, "success"
 
@@ -566,8 +595,7 @@ class AppPortService(object):
             if not port.is_outer_service and (not port.is_inner_service):
                 unopened_port.append(port)
         access_type, data = self.__handle_port_info(tenant, service, unopened_port, http_outer_port, http_inner_port,
-                                                    stream_outer_port,
-                                                    stream_inner_port)
+                                                    stream_outer_port, stream_inner_port)
         return access_type, data
 
     def __handle_port_info(self, tenant, service, unopened_port, http_outer_port, http_inner_port, stream_outer_port,
@@ -627,8 +655,8 @@ class AppPortService(object):
     def __get_stream_outer_url(self, tenant, service, port):
         region = region_repo.get_region_by_region_name(service.service_region)
         if region:
-            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id,
-                                                                  service.service_id, port.container_port)
+            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id, service.service_id,
+                                                                  port.container_port)
 
             if service_tcp_domain:
                 return service_tcp_domain.end_point
@@ -695,8 +723,8 @@ class AppPortService(object):
 
     def get_team_region_usable_tcp_ports(self, tenant, service):
         services = service_repo.get_service_by_region_and_tenant(service.service_region, tenant.tenant_id)
-        current_service_tcp_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id).filter(
-            is_outer_service=True).exclude(protocol__in=("http", "https"))
+        current_service_tcp_ports = port_repo.get_service_ports(
+            tenant.tenant_id, service.service_id).filter(is_outer_service=True).exclude(protocol__in=("http", "https"))
         lb_mapping_ports = [p.lb_mapping_port for p in current_service_tcp_ports]
         service_ids = [s.service_id for s in services]
         res = port_repo.get_tcp_outer_opend_ports(service_ids).exclude(lb_mapping_port__in=lb_mapping_ports)
@@ -704,9 +732,8 @@ class AppPortService(object):
 
     def change_lb_mapping_port(self, tenant, service, container_port, new_lb_mapping_port, mapping_service_id):
         data = {"change_port": new_lb_mapping_port}
-        body = region_api.change_service_lb_mapping_port(service.service_region, tenant.tenant_name,
-                                                         service.service_alias,
-                                                         container_port, data)
+        region_api.change_service_lb_mapping_port(service.service_region, tenant.tenant_name, service.service_alias,
+                                                  container_port, data)
 
         current_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         exchange_port_info = port_repo.get_service_port_by_lb_mapping_port(mapping_service_id, new_lb_mapping_port)

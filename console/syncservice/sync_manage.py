@@ -7,7 +7,7 @@ import logging
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
 from console.repositories.app_config import image_service_relation_repo
-from www.models import ServiceCreateStep
+from www.models.main import ServiceCreateStep
 
 logger = logging.getLogger("default")
 
@@ -30,7 +30,7 @@ class SyncTenantServiceManager(object):
                 services = self.get_limited_services(start_index, NUMBER_OF_SERVICES)
                 if len(list(services)) == 0:
                     logger.debug("- process finished")
-                    print ("- process finished")
+                    print("- process finished")
                     flag = False
 
                 for s in services:
@@ -62,7 +62,7 @@ class SyncTenantServiceManager(object):
                 # 存储team_gitlab_info
                 try:
                     repo_name = service.git_url.rsplit("/")[-1]
-                except Exception as e:
+                except Exception:
                     repo_name = service.git_url
                 params = {
                     "team_id": service.tenant_id,
@@ -76,11 +76,10 @@ class SyncTenantServiceManager(object):
             isr = image_service_relation_repo.get_image_service_relation(service.tenant_id, service.service_id)
             if isr:
                 service.docker_cmd = isr.image_url
-        # 只处理源码的状态        
+        # 只处理源码的状态
         if service.service_source == AppConstants.SOURCE_CODE:
             # 创建状态
-            if ServiceCreateStep.objects.filter(service_id=service.service_id,
-                                                tenant_id=service.tenant_id).count() > 0:
+            if ServiceCreateStep.objects.filter(service_id=service.service_id, tenant_id=service.tenant_id).count() > 0:
                 service.create_status = "checking"
             else:
                 service.create_status = "complete"
@@ -89,7 +88,8 @@ class SyncTenantServiceManager(object):
         service.save()
 
     def get_limited_services(self, start_index, number_of_services):
-        query_sql = """ select * from tenant_service WHERE ID > 31182 limit {0},{1}""".format(str(start_index), str(number_of_services))
+        query_sql = """ select * from tenant_service WHERE ID > 31182 limit {0},{1}""".format(
+            str(start_index), str(number_of_services))
         services = service_repo.get_services_by_raw_sql(query_sql)
         return services
 

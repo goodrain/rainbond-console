@@ -10,13 +10,11 @@ from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.topological_services import topological_service
-from console.views.app_config.base import AppBaseView
-from console.views.base import RegionTenantHeaderView, JWTAuthApiView
+from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message, error_message
 from console.services.team_services import team_services
 from rest_framework.exceptions import NotFound
-from console.services.app import service_repo
 
 event_service = AppEventService()
 
@@ -91,8 +89,8 @@ class TopologicalGraphView(ToplogicalBaseView):
             code = 200
             if group_id == "-1":
                 code = 200
-                no_service_list = service_repo.get_no_group_service_status_by_group_id(team_name=self.team_name,
-                                                                                       region_name=self.response_region)
+                no_service_list = service_repo.get_no_group_service_status_by_group_id(
+                    team_name=self.team_name, region_name=self.response_region)
                 result = general_message(200, "query success", "应用组查询成功", list=no_service_list)
             else:
                 if group_id is None or not group_id.isdigit():
@@ -105,10 +103,11 @@ class TopologicalGraphView(ToplogicalBaseView):
                     code = 202
                     result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={})
                     return Response(result, status=200)
-                topological_info = topological_service.get_group_topological_graph(group_id=group_id,
-                                                                                   region=self.response_region,
-                                                                                   team_name=self.team_name,
-                                                                                   enterprise_id=self.team.enterprise_id)
+                topological_info = topological_service.get_group_topological_graph(
+                    group_id=group_id,
+                    region=self.response_region,
+                    team_name=self.team_name,
+                    enterprise_id=self.team.enterprise_id)
                 result = general_message(code, "Obtain topology success.", "获取拓扑图成功", bean=topological_info)
             return Response(result, status=code)
         except Exception as e:
@@ -137,11 +136,12 @@ class GroupServiceDetView(ToplogicalBaseView):
         try:
             if not self.service:
                 return Response(general_message(400, "service not found", "参数错误"), status=400)
-            result = topological_service.get_group_topological_graph_details(team=self.team,
-                                                                             team_id=self.team.tenant_id,
-                                                                             team_name=self.team_name,
-                                                                             service=self.service,
-                                                                             region_name=self.service.service_region)
+            result = topological_service.get_group_topological_graph_details(
+                team=self.team,
+                team_id=self.team.tenant_id,
+                team_name=self.team_name,
+                service=self.service,
+                region_name=self.service.service_region)
             result = general_message(200, "success", "成功", bean=result)
             return Response(result, status=200)
         except Exception as e:
@@ -171,8 +171,8 @@ class TopologicalInternetView(ToplogicalBaseView):
         try:
             if group_id == "-1":
                 code = 200
-                no_service_list = service_repo.get_no_group_service_status_by_group_id(team_name=self.team_name,
-                                                                                       region_name=self.response_region)
+                no_service_list = service_repo.get_no_group_service_status_by_group_id(
+                    team_name=self.team_name, region_name=self.response_region)
                 result = general_message(200, "query success", "应用组获取成功", list=no_service_list)
             else:
                 code = 200
@@ -184,7 +184,11 @@ class TopologicalInternetView(ToplogicalBaseView):
                 group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
                 if group_count == 0:
                     code = 202
-                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={"json_svg": {}, "json_data": {}})
+                    result = general_message(
+                        code, "group is not yours!", "当前组已删除或您无权限查看!", bean={
+                            "json_svg": {},
+                            "json_data": {}
+                        })
                     return Response(result, status=200)
                 else:
                     data = topological_service.get_internet_topological_graph(group_id=group_id, team_name=team_name)

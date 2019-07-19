@@ -1,8 +1,8 @@
 from gunicorn.app.wsgiapp import WSGIApplication
 from goodrain_web.wsgi import application
 
-class GunicornWSGI(WSGIApplication):
 
+class GunicornWSGI(WSGIApplication):
     def init(self, parser, opts, args):
         args = ['goodrain_web.wsgi']
         super(GunicornWSGI, self).init(parser, opts, args)
@@ -14,4 +14,3 @@ class GunicornWSGI(WSGIApplication):
 
 if __name__ == '__main__':
     GunicornWSGI("%(prog)s [OPTIONS] [APP_MODULE]").run()
-

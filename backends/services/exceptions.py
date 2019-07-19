@@ -177,20 +177,24 @@ class RegionAddError(BaseException):
     数据中心添加异常
     """
 
+
 class ExterpriseNotExistError(BaseException):
     """
     企业不存在
     """
+
 
 class UserNotExistTenantError(BaseException):
     """
     该用户不存在该组
     """
 
+
 class TenantIdentityNotExistError(BaseException):
     """
     没有这个权限
     """
+
 
 class SameIdentityError(BaseException):
     """

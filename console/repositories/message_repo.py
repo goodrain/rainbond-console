@@ -32,5 +32,6 @@ class MessageRepository(object):
     def get_all_usermessage(self):
         return UserMessage.objects.exclude(announcement_id__isnull=True)
 
+
 announcement_repo = AnnouncementRepository()
 msg_repo = MessageRepository()

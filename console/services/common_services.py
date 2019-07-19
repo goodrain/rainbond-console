@@ -2,10 +2,9 @@
 import logging
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models import TenantRegionInfo
+from www.models.main import TenantRegionInfo
 from www.region import RegionInfo
 from django.conf import settings
-
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -30,7 +29,7 @@ class CommonServices(object):
                     disk = int(resource["disk"])
                 totalMemory += memory
                 totalDisk += disk
-        return totalMemory,totalDisk
+        return totalMemory, totalDisk
 
     def get_current_region_used_resource(self, tenant, region_name):
         data = {"tenant_name": [tenant.tenant_name]}

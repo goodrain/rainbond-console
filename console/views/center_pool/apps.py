@@ -65,9 +65,7 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
 
-        apps = market_app_service.get_visiable_apps(
-            self.tenant, scope, app_name
-        ).values('group_key').annotate(id=Min('ID'))
+        apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).values('group_key').annotate(id=Min('ID'))
         paginator = Paginator(apps, int(page_size))
         show_apps = paginator.page(int(page))
 
@@ -75,27 +73,17 @@ class CenterAppListView(RegionTenantHeaderView):
             for app_value in show_apps:
                 app = RainbondCenterApp.objects.get(pk=app_value['id'])
                 group_version_list = RainbondCenterApp.objects.filter(
-                    is_complete=True,
-                    group_key=app_value['group_key']
-                ).values_list('version', flat=True) or []
+                    is_complete=True, group_key=app_value['group_key']).values_list(
+                        'version', flat=True) or []
                 yield dict(
                     group_version_list=group_version_list,
                     min_memory=group_service.get_service_group_memory(app.app_template),
-                    export_status=export_service.get_export_record_status(
-                        self.tenant.enterprise_id,
-                        app.group_key,
-                        group_version_list[0]
-                    ) or '',
-                    **app.to_dict()
-                )
+                    export_status=export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
+                                                                          group_version_list[0]) or '',
+                    **app.to_dict())
 
         return MessageResponse(
-            "success",
-            msg_show="查询成功",
-            list=[app for app in yield_apps()],
-            total=paginator.count,
-            next_page=int(page) + 1
-        )
+            "success", msg_show="查询成功", list=[app for app in yield_apps()], total=paginator.count, next_page=int(page) + 1)
 
 
 class CenterAppView(RegionTenantHeaderView):
@@ -149,16 +137,15 @@ class CenterAppView(RegionTenantHeaderView):
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
             market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
 
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy, install_from_cloud)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy,
+                                               install_from_cloud)
             if not install_from_cloud:
-                RainbondCenterApp.objects.filter(group_key=group_key, version=group_version).update(
-                    install_number=F("install_number") + 1
-                )
+                RainbondCenterApp.objects.filter(
+                    group_key=group_key, version=group_version).update(install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
+            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
@@ -191,8 +178,7 @@ class CenterAppManageView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                                    status=403)
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
             group_key = request.data.get("group_key", None)
             group_version_list = request.data.get("group_version_list", [])
             action = request.data.get("action", None)
@@ -210,8 +196,8 @@ class CenterAppManageView(RegionTenantHeaderView):
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
                 if app.enterprise_id == "public":
                     if not self.user.is_sys_admin:
-                        return Response(general_message(403, "only system admin can manage public app", "非平台管理员无权操作"),
-                                        status=403)
+                        return Response(
+                            general_message(403, "only system admin can manage public app", "非平台管理员无权操作"), status=403)
 
                 if action == "online":
                     app.is_complete = True
@@ -256,23 +242,21 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
 
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                                    status=403)
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
 
             for version in group_version:
-                market_sycn_service.down_market_group_app_detail(self.user, self.tenant, group_key, version,
-                                                                 template_version)
+                market_sycn_service.down_market_group_app_detail(self.user, self.tenant, group_key, version, template_version)
             result = general_message(200, "success", "应用同步成功")
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
                 return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
             else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)           
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -319,14 +303,13 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
                     return Response(result, 500)
             total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
 
-            result = general_message(200, "success", "查询成功", list=apps, total=total,
-                                     next_page=int(page) + 1)
+            result = general_message(200, "success", "查询成功", list=apps, total=total, next_page=int(page) + 1)
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
                 return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
             else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)                     
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -360,7 +343,7 @@ class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
             if e.status == 403:
                 return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
             else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)                     
+                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -400,8 +383,7 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
                     msg_show="查询成功",
                     list=[app.to_dict() for app in apps.list],
                     total=apps.total,
-                    next_page=int(apps.page) + 1
-                )
+                    next_page=int(apps.page) + 1)
             else:
                 return Response(general_message(200, "no apps", u"查询成功"), status=200)
         except ApiException as e:

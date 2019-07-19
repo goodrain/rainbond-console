@@ -1,5 +1,3 @@
-from django.conf import settings
-
 from goodrain_web.base import BaseHttpClient
 
 import json
@@ -14,23 +12,22 @@ GIT_HUB_SECRET = "goodrain"
 
 
 class GitHubApi(BaseHttpClient):
-
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
         self.base_url = 'https://api.github.com'
-    
+
     def _reload(self):
         github_service_info = custom_config.GITHUB_SERVICE_API
         for k, v in github_service_info.items():
             setattr(self, k, v)
-            
+
     def _encode_params(self, kw):
         args = []
         for k, v in kw.items():
             try:
                 qv = v.encode('utf-8') if isinstance(v, unicode) else str(v)
-            except:
+            except Exception:
                 qv = v
             args.append('%s=%s' % (k, qv))
         return '&'.join(args)
@@ -123,7 +120,7 @@ class GitHubApi(BaseHttpClient):
         try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/commits?access_token=" + token
             http = httplib2.Http()
-            response, content = http.request(url, 'GET', headers=headers)
+            response, content = http.request(url, 'GET')
             t1 = json.loads(content)
             result = len(t1)
         except Exception as e:

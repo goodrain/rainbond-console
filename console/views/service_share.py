@@ -21,6 +21,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -80,18 +81,14 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 return Response(result, status=200)
             # 判断是否满足分享条件
             data = share_service.check_service_source(
-                team=self.team,
-                team_name=team_name,
-                group_id=group_id,
-                region_name=self.response_region)
+                team=self.team, team_name=team_name, group_id=group_id, region_name=self.response_region)
             if data and data["code"] == 400:
                 return Response(data, status=data["code"])
             # 判断是否有未完成订单
             share_record = share_service.get_service_share_record_by_group_id(group_id)
             if share_record:
                 if not share_record.is_success and share_record.step < 3:
-                    result = general_message(20021, "share record not complete", "之前有分享流程未完成",
-                                             bean=share_record.to_dict())
+                    result = general_message(20021, "share record not complete", "之前有分享流程未完成", bean=share_record.to_dict())
                     return Response(result, status=200)
             fields_dict = {
                 "group_share_id": make_uuid(),
@@ -105,6 +102,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             service_share_record = share_service.create_service_share_record(**fields_dict)
             result = general_message(200, "create success", "创建成功", bean=service_share_record.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -143,6 +142,8 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             share_service.delete_record(share_record)
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -201,9 +202,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                     result = general_message(400, e.message, "用户不存在")
                     return Response(result, status=400)
                 code, msg, group = group_service.get_group_by_id(
-                    tenant=self.team,
-                    region=self.response_region,
-                    group_id=share_record.group_id)
+                    tenant=self.team, region=self.response_region, group_id=share_record.group_id)
                 if code == 200:
                     share_group_info["group_key"] = make_uuid()
                     share_group_info["group_name"] = group.get("group_name")
@@ -219,13 +218,14 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 else:
                     result = general_message(code=code, msg="failed", msg_show=msg)
                     return Response(result, status=code)
-            service_info_list = share_service.query_share_service_info(
-                team=self.team, group_id=share_record.group_id)
+            service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id)
             data["share_service_list"] = service_info_list
             plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
             data["share_plugin_list"] = plugins
             result = general_message(200, "query success", "获取成功", bean=data)
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -281,10 +281,11 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 share_team=self.team,
                 share_user=request.user,
                 share_info=request.data,
-                use_force=use_force
-            )
+                use_force=use_force)
             result = general_message(code, "create share info", msg, bean=bean)
             return Response(result, status=code)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -322,9 +323,10 @@ class ServiceShareEventList(RegionTenantHeaderView):
                 plugin_event_map = plugin_event.to_dict()
                 plugin_event_map["type"] = "plugin"
                 result["event_list"].append(plugin_event_map)
-
             result = general_message(200, "query success", "获取成功", bean=result)
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -349,6 +351,8 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             code, msg, bean = share_service.sync_event(self.user, self.response_region, team_name, events[0])
             result = general_message(code, "sync share event", msg, bean=bean.to_dict())
             return Response(result, status=code)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -374,6 +378,8 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             bean = share_service.get_sync_event_result(self.response_region, team_name, events[0])
             result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -396,11 +402,12 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            code, msg, bean = share_service.sync_service_plugin_event(self.user, self.response_region,
-                                                                      self.tenant.tenant_name, share_id, events[0])
+            code, msg, bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name,
+                                                                      share_id, events[0])
             result = general_message(code, "sync share event", msg, bean=bean.to_dict())
             return Response(result, status=code)
-
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -428,6 +435,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
             bean = share_service.get_sync_plugin_events(self.response_region, team_name, plugin_events[0])
             result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
             return Response(result, status=200)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -447,14 +456,15 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(
-                Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "应用或插件同步未全部完成")
                 return Response(result, status=415)
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
-            result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(),
-                                     app_market_url=app_market_url)
+            result = general_message(
+                200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
+        except ServiceHandleException as e:
+            raise e
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -481,9 +491,9 @@ class ShareRecordView(RegionTenantHeaderView):
         share_record = share_repo.get_service_share_record_by_groupid(group_id=group_id)
         if share_record:
             if share_record.step == 2:
-                result = general_message(200, "the current application does not confirm sharing", "当前应用未确认分享",
-                                         bean=share_record.to_dict())
+                result = general_message(
+                    200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
                 return Response(result, status=200)
-        result = general_message(200, "the current application is not Shared or Shared", "当前应用未分享或已分享",
-                                 bean=share_record.to_dict())
+        result = general_message(
+            200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())
         return Response(result, status=200)

@@ -10,7 +10,6 @@ from console.views.base import JWTAuthApiView
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.return_message import general_message, error_message
 from console.services.enterprise_services import enterprise_services
-from console.services.region_services import region_services
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -40,14 +39,11 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             try:
-                res, data = market_api.get_enterprise_account_info(
-                    tenant_id=team.tenant_id, enterprise_id=team.enterprise_id
-                )
+                res, data = market_api.get_enterprise_account_info(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
                 result = general_message(200, "success", "查询成功", bean=data)
             except Exception as e:
                 logger.exception(e)
-                result = general_message(
-                    400, "corporate account information failed", "企业账户信息获取失败")
+                result = general_message(400, "corporate account information failed", "企业账户信息获取失败")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -82,9 +78,8 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
 
             try:
-                res, dict_body = market_api.get_enterprise_team_fee(region=region,
-                                                                    enterprise_id=team.enterprise_id,
-                                                                    team_id=team.tenant_id, date=date)
+                res, dict_body = market_api.get_enterprise_team_fee(
+                    region=region, enterprise_id=team.enterprise_id, team_id=team.tenant_id, date=date)
                 data_body = dict_body['data']
                 if 'data' not in dict_body:
                     return Response(general_message(400, "{0}".format(data_body), "查询异常"), status=400)
@@ -144,10 +139,10 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
 
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(team.enterprise_id)
             res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
-                                                                   end_time,
-                                                                   page, page_size)
+                                                                   end_time, page, page_size)
 
-            result = general_message(200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
+            result = general_message(
+                200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
 
         except Exception as e:
             logger.exception(e)
@@ -178,9 +173,8 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             total_list = []
             for region in regions:
                 try:
-                    res, dict_body = market_api.get_enterprise_region_fee(region=region.region_name,
-                                                                          enterprise_id=team.enterprise_id,
-                                                                          team_id=team.tenant_id, date=date)
+                    res, dict_body = market_api.get_enterprise_region_fee(
+                        region=region.region_name, enterprise_id=team.enterprise_id, team_id=team.tenant_id, date=date)
 
                     rt_list = dict_body["data"]["list"]
                     enter_total = {}
@@ -255,12 +249,13 @@ class EnterprisePurchaseDetails(JWTAuthApiView):
             total = 0
             result_list = []
             try:
-                res, dict_body = market_api.get_enterprise_purchase_detail(team.tenant_id,team.enterprise_id, start,end, page, page_size)
+                res, dict_body = market_api.get_enterprise_purchase_detail(team.tenant_id, team.enterprise_id, start, end, page,
+                                                                           page_size)
                 result_list = dict_body["data"]["list"]
                 total = dict_body["data"]["total"]
             except Exception as ex:
                 logger.exception(ex)
-            result = general_message(200, "success", "查询成功", list=result_list,total=total)
+            result = general_message(200, "success", "查询成功", list=result_list, total=total)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

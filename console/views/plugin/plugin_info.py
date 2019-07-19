@@ -13,7 +13,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 import logging
-from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service,app_plugin_service
+from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
 import threading
 from console.repositories.plugin import app_plugin_relation_repo, plugin_version_repo
 
@@ -79,7 +79,6 @@ class PluginBaseInfoView(PluginBaseView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
 
 
 class PluginEventLogView(PluginBaseView):
@@ -158,13 +157,13 @@ class AllPluginVersionInfoView(PluginBaseView):
             paginator = JuncheePaginator(pbvs, int(page_size))
             show_pbvs = paginator.page(int(page))
 
-            update_status_thread = threading.Thread(target=plugin_version_service.update_plugin_build_status,
-                                                    args=(self.response_region, self.tenant))
+            update_status_thread = threading.Thread(
+                target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
             update_status_thread.start()
 
             data = [pbv.to_dict() for pbv in show_pbvs]
-            result = general_message(200, "success", "查询成功", list=data, total=paginator.count, current_page=int(page),
-                                     next_page=int(page) + 1)
+            result = general_message(
+                200, "success", "查询成功", list=data, total=paginator.count, current_page=int(page), next_page=int(page) + 1)
 
         except Exception as e:
             logger.exception(e)
@@ -200,8 +199,8 @@ class PluginVersionInfoView(PluginBaseView):
             base_info = self.plugin
             data = base_info.to_dict()
             data.update(self.plugin_version.to_dict())
-            update_status_thread = threading.Thread(target=plugin_version_service.update_plugin_build_status,
-                                                    args=(self.response_region, self.tenant))
+            update_status_thread = threading.Thread(
+                target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
             update_status_thread.start()
             result = general_message(200, "success", "查询成功", bean=data)
         except Exception as e:
@@ -281,7 +280,7 @@ class PluginVersionInfoView(PluginBaseView):
             self.plugin_version.min_memory = min_memory
             self.plugin_version.min_cpu = min_cpu
 
-            plugin_service.update_region_plugin_info(self.response_region, self.team, self.plugin,self.plugin_version)
+            plugin_service.update_region_plugin_info(self.response_region, self.team, self.plugin, self.plugin_version)
             # 保存基本信息
             self.plugin.save()
             # 保存版本信息
@@ -318,22 +317,19 @@ class PluginVersionInfoView(PluginBaseView):
         try:
 
             app_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_unique_key(
-                self.plugin_version.plugin_id,
-                self.plugin_version.build_version)
+                self.plugin_version.plugin_id, self.plugin_version.build_version)
             if app_plugin_relations:
                 return Response(general_message(409, "plugin is being using", "插件已被使用，无法删除"), status=409)
             count_of_version = plugin_version_repo.get_plugin_versions(self.plugin_version.plugin_id).count()
             if count_of_version == 1:
                 return Response(general_message(409, "at least keep one version", "至少保留一个插件版本"), status=409)
             # 数据中心端删除
-            region_api.delete_plugin_version(self.response_region, self.tenant.tenant_name,
-                                             self.plugin_version.plugin_id,
+            region_api.delete_plugin_version(self.response_region, self.tenant.tenant_name, self.plugin_version.plugin_id,
                                              self.plugin_version.build_version)
             plugin_version_service.delete_build_version_by_id_and_version(self.plugin_version.plugin_id,
                                                                           self.plugin_version.build_version)
 
-            plugin_config_service.delete_plugin_version_config(self.plugin_version.plugin_id,
-                                                               self.plugin_version.build_version)
+            plugin_config_service.delete_plugin_version_config(self.plugin_version.plugin_id, self.plugin_version.build_version)
             result = general_message(200, "success", "删除成功")
 
         except Exception as e:
@@ -398,8 +394,8 @@ class PluginUsedServiceView(PluginBaseView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
-            data,total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
-                                                               page_size)
+            data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
+                                                                      page_size)
 
             result = general_message(200, "success", "查询成功", list=data, total=total)
         except Exception as e:

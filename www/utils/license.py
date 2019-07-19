@@ -1,11 +1,9 @@
 # -*- coding: utf8 -*-
 from Crypto.Cipher import AES
-from Crypto import Random
 import base64
 import json
 from django.conf import settings
-import types
-from www.models import ConsoleConfig
+from www.models.main import ConsoleConfig
 import datetime
 import logging
 logger = logging.getLogger('default')
@@ -42,10 +40,7 @@ class LicenseUtil(object):
             lic = license_config[0]
             self.license_data = lic.value
         else:
-            ConsoleConfig(
-                key="license",
-                value=self.license_data,
-                update_time=datetime.datetime.now()).save()
+            ConsoleConfig(key="license", value=self.license_data, update_time=datetime.datetime.now()).save()
         info = decrypt(self.key, self.license_data, block_segments=True)
         self.license_info = json.loads(info)
         self.update_time = datetime.datetime.now()
@@ -70,8 +65,7 @@ class LicenseUtil(object):
     def is_expired(self):
         self.__check_time()
         end_time = self.license_info["end_time"]
-        end_time_date = datetime.datetime.strptime(end_time,
-                                                   "%Y-%m-%d %H:%M:%S")
+        end_time_date = datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
         # 已过期
         if end_time_date < datetime.datetime.now():
             return True

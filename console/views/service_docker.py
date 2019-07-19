@@ -19,7 +19,6 @@ logger = logging.getLogger("default")
 
 
 class DockerContainerView(View):
-
     @never_cache
     def get(self, request, *args, **kwargs):
 
@@ -31,15 +30,14 @@ class DockerContainerView(View):
         else:
             raise http.Http404
 
-        service = service_repo.get_service_by_tenant_and_alias(self.tenant.tenant_id,self.serviceAlias)
+        service = service_repo.get_service_by_tenant_and_alias(self.tenant.tenant_id, self.serviceAlias)
         if service:
             self.service = service
         else:
             raise http.Http404
 
         context = dict()
-        response = redirect(
-            get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
+        response = redirect(get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
         try:
             docker_c_id = request.COOKIES.get('docker_c_id', '')
             docker_h_id = request.COOKIES.get('docker_h_id', '')
@@ -54,10 +52,7 @@ class DockerContainerView(View):
                 main_url = region_services.get_region_wsurl(self.service.service_region)
                 if main_url == "auto":
                     context["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                        settings.DOCKER_WSS_URL["type"],
-                        settings.DOCKER_WSS_URL[
-                            self.service.service_region],
-                        t_docker_h_id)
+                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
                 else:
                     context["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
 

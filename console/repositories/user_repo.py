@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from backends.services.exceptions import UserNotExistError
-from www.models import Users
+from www.models.main import Users
 
 
 class UserRepo(object):
-
     def get_user_by_user_id(self, user_id):
         u = Users.objects.filter(user_id=user_id)
         if not u:

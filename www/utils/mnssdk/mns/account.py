@@ -14,8 +14,9 @@ from topic import Topic
 from subscription import Subscription
 from mns_tool import MNSLogger
 
+
 class Account:
-    def __init__(self, host, access_id, access_key, security_token = "", debug=False, logger = None):
+    def __init__(self, host, access_id, access_key, security_token="", debug=False, logger=None):
         """
             @type host: string
             @param host: 访问的url，例如：http://$accountid.mns.cn-hangzhou.aliyuncs.com
@@ -37,7 +38,7 @@ class Account:
         self.security_token = security_token
         self.debug = debug
         self.logger = logger
-        self.mns_client = MNSClient(host, access_id, access_key, security_token = security_token, logger=self.logger)
+        self.mns_client = MNSClient(host, access_id, access_key, security_token=security_token, logger=self.logger)
 
     def set_debug(self, debug):
         self.debug = debug
@@ -168,7 +169,7 @@ class Account:
         """
         return self.mns_client
 
-    def list_queue(self, prefix = "", ret_number = -1, marker = "", req_info=None):
+    def list_queue(self, prefix="", ret_number=-1, marker="", req_info=None):
         """ 列出Account的队列
 
             @type prefix: string
@@ -198,7 +199,7 @@ class Account:
         self.debuginfo(resp)
         return resp.queueurl_list, resp.next_marker
 
-    def list_topic(self, prefix = "", ret_number = -1, marker = "", req_info=None):
+    def list_topic(self, prefix="", ret_number=-1, marker="", req_info=None):
         """ 列出Account的主题
 
             @type prefix: string
@@ -237,8 +238,9 @@ class Account:
     def __resp2meta__(self, account_meta, resp):
         account_meta.logging_bucket = resp.logging_bucket
 
+
 class AccountMeta:
-    def __init__(self, logging_bucket = None):
+    def __init__(self, logging_bucket=None):
         """ Account属性
             @note: 可设置属性
             :: logging_bucket: 保存用户操作MNS日志的bucket name
@@ -246,5 +248,5 @@ class AccountMeta:
         self.logging_bucket = logging_bucket
 
     def __str__(self):
-        meta_info = {"LoggingBucket" : self.logging_bucket}
-        return "\n".join(["%s: %s" % (k.ljust(30),v) for k,v in meta_info.items()])
+        meta_info = {"LoggingBucket": self.logging_bucket}
+        return "\n".join(["%s: %s" % (k.ljust(30), v) for k, v in meta_info.items()])

@@ -13,14 +13,13 @@ from backends.services.userservice import user_service
 from backends.services.regionservice import region_service
 from console.services.team_services import team_services as console_team_service
 from base import BaseAPIView
-from www.models import Tenants, PermRelTenant
+from www.models.main import Tenants, PermRelTenant
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services as console_perm_service
 from console.services.region_services import region_services as console_region_service
 from django.db import transaction
 from console.services.team_services import team_services
 from console.repositories.user_repo import user_repo
-from www.service_http import RegionServiceApi
 from backends.services.httpclient import HttpInvokeApi
 from console.repositories.region_repo import region_repo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
@@ -30,7 +29,6 @@ from console.utils.timeutil import time_to_str
 
 logger = logging.getLogger("default")
 http_client = HttpInvokeApi()
-regionClient = RegionServiceApi()
 
 
 class AllTeamView(BaseAPIView):
@@ -74,12 +72,11 @@ class AllTeamView(BaseAPIView):
             if enterprise_alias:
                 enter = enterprise_services.get_enterprise_by_enterprise_alias(enterprise_alias)
                 if not enter:
-                    return Response(
-                        generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
+                    return Response(generate_result("0404", "enterprise is not found", "企业{0}不存在".format(enterprise_alias)))
             list1 = []
             tenants_num = Tenants.objects.count()
-            start = (page-1)*10
-            remaining_num = tenants_num - (page-1)*10
+            start = (page - 1) * 10
+            remaining_num = tenants_num - (page - 1) * 10
             end = 10
             if remaining_num < page_size:
                 end = remaining_num
@@ -87,14 +84,14 @@ class AllTeamView(BaseAPIView):
             if tenant_alias:
                 cursor = connection.cursor()
                 cursor.execute(
-                    "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id and t.tenant_alias LIKE '%{0}%' group by tenant_id order by num desc LIMIT {1},{2};".format(
-                        tenant_alias, start, end))
+                    "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id and t.tenant_alias LIKE '%{0}%' group by tenant_id order by num desc LIMIT {1},{2};"
+                    .format(tenant_alias, start, end))
                 tenant_tuples = cursor.fetchall()
             else:
                 cursor = connection.cursor()
                 cursor.execute(
-                    "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id group by tenant_id order by num desc LIMIT {0},{1};".format(
-                        start, end))
+                    "select t.tenant_name, t.tenant_alias,t.region,t.limit_memory,t.enterprise_id, t.tenant_id,u.nick_name as creater,count(s.ID) as num from tenant_info t LEFT JOIN tenant_service s on t.tenant_id=s.tenant_id,user_info u where t.creater=u.user_id group by tenant_id order by num desc LIMIT {0},{1};"
+                    .format(start, end))
                 tenant_tuples = cursor.fetchall()
             try:
                 # 查询所有团队有哪些数据中心
@@ -133,7 +130,8 @@ class AllTeamView(BaseAPIView):
                         # 获取数据中心下每个团队的使用资源和运行的应用数量
                         time2 = datetime.datetime.now()
                         logger.debug('```````````222222``````````````````{0}'.format(time2))
-                        res, body = http_client.get_tenant_limit_memory(region_obj, json.dumps({"tenant_name": tenant_name_list}))
+                        res, body = http_client.get_tenant_limit_memory(region_obj,
+                                                                        json.dumps({"tenant_name": tenant_name_list}))
                         logger.debug("======111===={0}".format(body["list"]))
                         if int(res.status) >= 400:
                             continue
@@ -201,9 +199,7 @@ class AllTeamView(BaseAPIView):
             # 需要license控制，现在没有，默认为一百万
             allow_num = 1000000
             bean = {"tenants_num": tenants_num, "allow_num": allow_num}
-            result = generate_result(
-                "0000", "success", "查询成功", bean=bean, list=list1, total=tenants_num
-            )
+            result = generate_result("0000", "success", "查询成功", bean=bean, list=list1, total=tenants_num)
             return Response(result)
         except Exception as e:
             result = generate_result("1111", "4.faild", "{0}".format(e.message))
@@ -260,12 +256,7 @@ class AllTeamView(BaseAPIView):
             sid = transaction.savepoint()
             code, msg, team = console_team_service.create_team(user, enter, regions, tenant_name)
             # 创建用户在团队的权限
-            perm_info = {
-                "user_id": user.user_id,
-                "tenant_id": team.ID,
-                "identity": "owner",
-                "enterprise_id": enter.pk
-            }
+            perm_info = {"user_id": user.user_id, "tenant_id": team.ID, "identity": "owner", "enterprise_id": enter.pk}
             console_perm_service.add_user_tenant_perm(perm_info)
 
             for r in regions:
@@ -278,8 +269,12 @@ class AllTeamView(BaseAPIView):
 
             transaction.savepoint_commit(sid)
 
-            bean = {"tenant_name": team.tenant_name, "tenant_id": team.tenant_id, "tenant_alias": team.tenant_alias,
-                    "user_num": 1}
+            bean = {
+                "tenant_name": team.tenant_name,
+                "tenant_id": team.tenant_id,
+                "tenant_alias": team.tenant_alias,
+                "user_num": 1
+            }
             result = generate_result("0000", "success", "租户添加成功", bean=bean)
         except TenantOverFlowError as e:
             result = generate_result("7001", "tenant over flow", "{}".format(e.message))
@@ -352,8 +347,13 @@ class TeamView(BaseAPIView):
             user = user_service.get_user_by_user_id(create_id)
             user_list = tenant_service.get_users_by_tenantID(tenant.ID)
             user_num = len(user_list)
-            rt_list = [{"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_num": user_num,
-                        "tenant_alias": tenant.tenant_alias, "creater": user.nick_name}]
+            rt_list = [{
+                "tenant_id": tenant.tenant_id,
+                "tenant_name": tenant.tenant_name,
+                "user_num": user_num,
+                "tenant_alias": tenant.tenant_alias,
+                "creater": user.nick_name
+            }]
             result = generate_result("0000", "success", "查询成功", list=rt_list)
         except Tenants.DoesNotExist as e:
             logger.exception(e)
@@ -386,14 +386,19 @@ class TeamUserView(BaseAPIView):
             tenant = tenant_service.get_tenant(tenant_name)
             perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.pk)
             if not perm_tenants:
-                result = generate_result("1010", "tenant user not exist",
-                                         "租户{0}下不存在用户{1}".format(tenant_name, user_name))
+                result = generate_result("1010", "tenant user not exist", "租户{0}下不存在用户{1}".format(tenant_name, user_name))
             else:
                 code = "0000"
                 msg = "success"
                 list = []
-                res = {"tenant_id": tenant.tenant_id, "tenant_name": tenant.tenant_name, "user_id": user.user_id,
-                       "nick_name": user.nick_name, "email": user.email, "phone": user.phone}
+                res = {
+                    "tenant_id": tenant.tenant_id,
+                    "tenant_name": tenant.tenant_name,
+                    "user_id": user.user_id,
+                    "nick_name": user.nick_name,
+                    "email": user.email,
+                    "phone": user.phone
+                }
                 list.append(res)
                 result = generate_result(code, msg, "查询成功", list=list)
         except UserNotExistError as e:
@@ -459,7 +464,6 @@ class AddTeamUserView(BaseAPIView):
 
 
 class TeamUsableRegionView(BaseAPIView):
-
     def get(self, request, tenant_name, *args, **kwargs):
         """
         获取团队可用的数据中心
@@ -500,8 +504,7 @@ class TenantSortView(BaseAPIView):
         if enterprise_id:
             enter = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
             if not enter:
-                return Response(
-                    generate_result("0404", "enterprise is not found", "企业不存在"))
+                return Response(generate_result("0404", "enterprise is not found", "企业不存在"))
             try:
                 tenant_list = tenant_service.get_all_tenant()
                 if not tenant_list:
@@ -514,7 +517,8 @@ class TenantSortView(BaseAPIView):
                 sort_list = []
                 cursor = connection.cursor()
                 cursor.execute(
-                    "select t.tenant_alias,t.tenant_id, count(s.ID) as num from tenant_info as t left join tenant_service as s on t.tenant_id=s.tenant_id group by tenant_id order by num desc limit 0,5;")
+                    "select t.tenant_alias,t.tenant_id, count(s.ID) as num from tenant_info as t left join tenant_service as s on t.tenant_id=s.tenant_id group by tenant_id order by num desc limit 0,5;"
+                )
                 tenant_tuples = cursor.fetchall()
                 for tenant_tuple in tenant_tuples:
                     tenant_alias_list = list()
@@ -542,12 +546,10 @@ class AddEnterAdminView(BaseAPIView):
             enterprise_alias = request.data.get("enterprise_alias", None)
             # 校验参数
             if not username or not enterprise_id or not enterprise_alias:
-                return Response(generate_result(
-                    "1003", "params error", "参数错误"))
+                return Response(generate_result("1003", "params error", "参数错误"))
             user_obj = user_repo.get_user_by_user_name(username)
             if not user_obj:
-                return Response(generate_result(
-                    "1004", "user already exists", "用户在控制台不存在"))
+                return Response(generate_result("1004", "user already exists", "用户在控制台不存在"))
             # 查询企业信息
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
 
@@ -577,8 +579,7 @@ class AddEnterAdminView(BaseAPIView):
                 return Response(generate_result("1003", "params error", "参数错误"))
             user_perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
             if not user_perm:
-                return Response(generate_result("1006", "The current user is not an enterprise administrator",
-                                                "当前用户不是企业管理员"))
+                return Response(generate_result("1006", "The current user is not an enterprise administrator", "当前用户不是企业管理员"))
             # 最后一个企业管理员无法删除
             admin_count = EnterpriseUserPerm.objects.count()
             logger.debug('-----------count------->{0}'.format(admin_count))
@@ -619,7 +620,8 @@ class EnterpriseAdminView(BaseAPIView):
 
             cursor = connection.cursor()
             cursor.execute(
-                "select user_id from enterprise_user_perm where enterprise_id='{0}' order by user_id desc LIMIT {1},{2};".format(enterprise_id, start, end))
+                "select user_id from enterprise_user_perm where enterprise_id='{0}' order by user_id desc LIMIT {1},{2};".
+                format(enterprise_id, start, end))
             admin_tuples = cursor.fetchall()
             logger.debug('---------admin-------------->{0}'.format(admin_tuples))
             for admin in admin_tuples:

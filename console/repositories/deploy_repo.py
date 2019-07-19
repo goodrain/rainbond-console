@@ -4,7 +4,7 @@ import pickle
 import random
 import string
 
-from console.models import DeployRelation
+from console.models.main import DeployRelation
 
 
 class DeployRepo(object):

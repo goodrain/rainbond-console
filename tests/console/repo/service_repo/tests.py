@@ -2,8 +2,8 @@
 import pytest
 
 from console.models.main import ServiceSourceInfo
-from www.models import ServiceGroupRelation
-from www.models import TenantServiceInfo
+from www.models.main import ServiceGroupRelation
+from www.models.main import TenantServiceInfo
 
 
 @pytest.mark.django_db
@@ -30,8 +30,7 @@ def test_list_by_svc_share_uuids():
     group_relation.save()
 
     from console.repositories.app import service_repo
-    result = service_repo.list_by_svc_share_uuids(
-        group_id, ["2669c2cec6bc7bf5aab29a0ea2703d66"])
+    result = service_repo.list_by_svc_share_uuids(group_id, ["2669c2cec6bc7bf5aab29a0ea2703d66"])
     service = result[0]
     assert service.get("service_id") == service_id
     assert service.get("service_cname") == service_cname

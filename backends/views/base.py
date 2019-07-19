@@ -91,8 +91,8 @@ class CustomTokenAuthentication(TokenAuthentication):
 
 class BaseAPIView(APIView):
 
-    authentication_classes = (CustomTokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = (CustomTokenAuthentication, )
+    permission_classes = (IsAuthenticated, )
 
     def __init__(self, *args, **kwargs):
         APIView.__init__(self, *args, **kwargs)

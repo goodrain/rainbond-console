@@ -2,7 +2,7 @@
 import logging
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db import BaseConnection
+from www.db.base import BaseConnection
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -31,7 +31,8 @@ class BaseService(object):
                 AND t.service_region = "{region_name}"
             ORDER BY
                 t.update_time DESC;
-        '''.format(team_id=team_id, region_name=region_name)
+        '''.format(
+            team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -59,7 +60,8 @@ class BaseService(object):
                 AND r.group_id = "{group_id}"
             ORDER BY
                 t.update_time DESC;
-        '''.format(team_id=team_id, region_name=region_name, group_id=group_id)
+        '''.format(
+            team_id=team_id, region_name=region_name, group_id=group_id)
         services = dsn.query(query_sql)
         return services
 
@@ -87,7 +89,8 @@ class BaseService(object):
                 AND r.group_id IS NULL
             ORDER BY
                 t.update_time DESC;
-        '''.format(team_id=team_id, region_name=region_name)
+        '''.format(
+            team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -120,14 +123,14 @@ class BaseService(object):
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
                 t.{fields} {order};
-        '''.format(team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
+        '''.format(
+            team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
         services = dsn.query(query_sql)
         return services
 
     def status_multi_service(self, region, tenant_name, service_ids, enterprise_id):
         try:
-            body = region_api.service_status(region, tenant_name,
-                                             {"service_ids": service_ids, "enterprise_id": enterprise_id})
+            body = region_api.service_status(region, tenant_name, {"service_ids": service_ids, "enterprise_id": enterprise_id})
             return body["list"]
         except Exception as e:
             logger.exception(e)

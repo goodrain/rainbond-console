@@ -1,7 +1,9 @@
-#_*_ encoding:utf8 _*_
+# -*- coding: utf-8 -*-
+# creater by: barnett
+
 from OpenSSL import crypto
-import time,datetime
-import os
+import time
+import datetime
 
 
 def analyze_cert(content):
@@ -10,17 +12,16 @@ def analyze_cert(content):
 
     cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
     subject = cert.get_subject()
-    has_expired = cert.has_expired()#是否过期
-
+    has_expired = cert.has_expired()  # 是否过期
 
     # 得到证书的域名
     issued_to = subject.CN
 
-    end_data = cert.get_notAfter()#过期时间
-    issuer = cert.get_issuer()#颁发者
+    end_data = cert.get_notAfter()  # 过期时间
+    issuer = cert.get_issuer()  # 颁发者
 
     # 得到证书颁发机构
-    issued_by = issuer.CN     #颁发机构
+    issued_by = issuer.CN  # 颁发机构
     data["issued_to"] = issued_to
     # data["issuer"] = issuer
     data["has_expired"] = has_expired
@@ -42,9 +43,8 @@ def cert_is_effective(content):
         has_expired = cert.has_expired()  # 是否过期
         if not has_expired:
             return True
-    except Exception as e:
+    except Exception:
         return False
-
 
     return True
 
@@ -60,4 +60,3 @@ def utc2local(utc_st):
     local_st = utc_st + offset
     print local_st
     return str(local_st)
-

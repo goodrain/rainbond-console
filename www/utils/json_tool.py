@@ -11,7 +11,7 @@ def json_dump(obj, indent=None):
     """
     try:
         jstr = jsmod.dumps(obj, separators=(',', ':'), indent=indent)
-    except:
+    except Exception:
         jstr = None
     return jstr
 
@@ -25,6 +25,6 @@ def json_load(json):
     """
     try:
         obj = jsmod.loads(json)
-    except:
+    except Exception:
         obj = None
     return obj

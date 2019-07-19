@@ -4,7 +4,7 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 
-from console.models import PluginShareRecordEvent
+from console.models.main import PluginShareRecordEvent
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.services.market_plugin_service import market_plugin_service
@@ -32,8 +32,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
         share_record = share_repo.get_service_share_record_by_groupid(plugin_id)
         if share_record:
             if not share_record.is_success and share_record.step < 3:
-                result = general_message(
-                    20021, "share record not complete", "分享流程未完成", bean=share_record.to_dict())
+                result = general_message(20021, "share record not complete", "分享流程未完成", bean=share_record.to_dict())
                 return Response(result, status=200)
 
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
@@ -74,9 +73,8 @@ class PluginShareRecordView(RegionTenantHeaderView):
                     result = general_message(20021, "share not complete", "有分享流程未完成", bean=share_record.to_dict())
                     return Response(result, status=200)
 
-            status, msg, msg_show = market_plugin_service.check_plugin_share_condition(
-                self.team, plugin_id, self.response_region
-            )
+            status, msg, msg_show = market_plugin_service.check_plugin_share_condition(self.team, plugin_id,
+                                                                                       self.response_region)
             if status != 200:
                 return Response(general_message(status, msg, msg_show), status=status)
 
@@ -154,8 +152,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 share_plugin_info["share_team"] = team_name
                 share_plugin_info["is_shared"] = False
 
-                plugin_version = plugin_svc.get_tenant_plugin_newest_versions(
-                    self.response_region, self.tenant, plugin_id)
+                plugin_version = plugin_svc.get_tenant_plugin_newest_versions(self.response_region, self.tenant, plugin_id)
 
                 share_plugin_info["build_version"] = plugin_version[0].build_version
 
@@ -163,9 +160,8 @@ class PluginShareInfoView(RegionTenantHeaderView):
                 for group in plugin_repo.get_plugin_config_groups(plugin_id, plugin_version[0].build_version):
                     group_map = group.to_dict()
 
-                    items = plugin_svc.get_config_items_by_id_metadata_and_version(
-                        group.plugin_id, group.build_version, group.service_meta_type
-                    )
+                    items = plugin_svc.get_config_items_by_id_metadata_and_version(group.plugin_id, group.build_version,
+                                                                                   group.service_meta_type)
 
                     config_items = []
                     for item in items:
@@ -215,8 +211,8 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
             share_info = request.data
 
-            status, msg, plugin = market_plugin_service.create_plugin_share_info(
-                share_record, share_info, self.user.user_id, self.team, self.response_region)
+            status, msg, plugin = market_plugin_service.create_plugin_share_info(share_record, share_info, self.user.user_id,
+                                                                                 self.team, self.response_region)
 
             result = general_message(status, "create share info", msg, bean=plugin)
             return Response(result, status=status)
@@ -378,9 +374,8 @@ class PluginShareEventView(RegionTenantHeaderView):
             try:
                 event = PluginShareRecordEvent.objects.get(record_id=share_id, ID=event_id)
 
-                status, msg, data = market_plugin_service.sync_event(
-                    self.user.nick_name, self.response_region, team_name, event
-                )
+                status, msg, data = market_plugin_service.sync_event(self.user.nick_name, self.response_region, team_name,
+                                                                     event)
 
                 if status != 200:
                     result = general_message(status, "sync share event failed", msg)
@@ -429,12 +424,9 @@ class PluginShareCompletionView(RegionTenantHeaderView):
                 result = general_message(415, "share complete can not do", "插件同步未完成")
                 return Response(result, status=415)
 
-            app_market_url = market_plugin_service.plugin_share_completion(
-                self.tenant, share_record, self.user.nick_name
-            )
+            app_market_url = market_plugin_service.plugin_share_completion(self.tenant, share_record, self.user.nick_name)
             result = general_message(
-                200, "share complete", "插件分享完成", bean=share_record.to_dict(), app_market_url=app_market_url
-            )
+                200, "share complete", "插件分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

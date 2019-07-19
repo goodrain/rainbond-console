@@ -4,11 +4,9 @@ import datetime
 from console.repositories.apply_repo import apply_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from www.utils.return_message import general_message
 
 
 class ApplyService(object):
-
     def create_applicants(self, user_id, team_name):
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
         if not applicant:

@@ -15,12 +15,10 @@ import os
 from console.services.region_services import region_services
 from console.repositories.market_app_repo import app_import_record_repo
 
-
 logger = logging.getLogger("default")
 
 
 class FileUploadService(object):
-
     def upload_file(self, upload_file, suffix):
         is_upload_to_oss = self.is_upload_to_oss()
         if is_upload_to_oss:
@@ -34,8 +32,7 @@ class FileUploadService(object):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/files/upload"
         files = {'file': upload_file}
-        headers = {"X_ENTERPRISE_ID": market_client_id,
-                   "X_ENTERPRISE_TOKEN": market_client_token}
+        headers = {"X_ENTERPRISE_ID": market_client_id, "X_ENTERPRISE_TOKEN": market_client_token}
         resp = requests.post(url, files=files, headers=headers, verify=False)
         result = Dict(json.loads(resp.content))
         return result.data.bean.path
@@ -66,8 +63,7 @@ class FileUploadService(object):
         oss_conf = self.__get_oss_config()
 
         auth = oss2.Auth(oss_conf["OSS_ACCESS_KEY"], oss_conf["OSS_ACCESS_KEY_SECRET"])
-        bucket = oss2.Bucket(
-            auth, oss_conf["OSS_ENDPOINT"], oss_conf["OSS_BUCKET"], is_cname=True)
+        bucket = oss2.Bucket(auth, oss_conf["OSS_ENDPOINT"], oss_conf["OSS_BUCKET"], is_cname=True)
         return bucket
 
     def is_upload_to_oss(self):
@@ -82,8 +78,7 @@ class FileUploadService(object):
         except Exception as e:
             logger.exception(e)
 
-        filename = '{0}/uploads/{1}.{2}'.format(settings.MEDIA_ROOT,
-                                                make_uuid(), suffix)
+        filename = '{0}/uploads/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
         with open(filename, 'wb+') as destination:
             for chunk in upload_file.chunks():
                 destination.write(chunk)
@@ -95,8 +90,13 @@ class FileUploadService(object):
         logger.debug("request header : {0}".format(headers))
         files = {'appTarFile': upload_file}
         event_id = make_uuid()
-        import_record_params = {"event_id": event_id, "status": "uploading", "team_name": team_name, "region": region,
-                                "user_name": user_name}
+        import_record_params = {
+            "event_id": event_id,
+            "status": "uploading",
+            "team_name": team_name,
+            "region": region,
+            "user_name": user_name
+        }
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
 
         data = {"eventId": event_id}

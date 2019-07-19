@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+from datetime import datetime
 
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
@@ -8,18 +9,24 @@ from console.models.main import UpgradeStatus
 
 class UpgradeRepo(object):
     def get_app_not_upgrade_record(self, **kwargs):
-        return AppUpgradeRecord.objects.get(**kwargs)
+        result = AppUpgradeRecord.objects.filter(**kwargs).order_by("-update_time").first()
+        if result is None:
+            raise AppUpgradeRecord.DoesNotExist
+        return result
 
     def create_app_upgrade_record(self, **kwargs):
         return AppUpgradeRecord.objects.create(**kwargs)
 
-    def create_service_upgrade_record(
-            self, app_upgrade_record, service, event, update,
-            status=UpgradeStatus.UPGRADING.value,
-            upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value
-    ):
+    def create_service_upgrade_record(self,
+                                      app_upgrade_record,
+                                      service,
+                                      event,
+                                      update,
+                                      status=UpgradeStatus.UPGRADING.value,
+                                      upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value):
         """创建服务升级记录"""
         return ServiceUpgradeRecord.objects.create(
+            create_time=datetime.now(),
             app_upgrade_record=app_upgrade_record,
             service_id=service.service_id,
             service_cname=service.service_cname,

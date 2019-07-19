@@ -54,8 +54,7 @@ class AppEventView(AppBaseView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 6)
             start_time = request.GET.get("start_time", None)
-            events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size),
-                                                               start_time)
+            events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
 
             result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
         except Exception as e:
@@ -218,10 +217,7 @@ class AppHistoryLogView(AppBaseView):
             for f in file_list:
                 file_name = f[22:]
                 file_url = log_domain_url + f
-                file_urls.append({
-                    "file_name": file_name,
-                    "file_url": file_url
-                })
+                file_urls.append({"file_name": file_name, "file_url": file_url})
 
             result = general_message(200, "success", "查询成功", list=file_urls)
         except Exception as e:

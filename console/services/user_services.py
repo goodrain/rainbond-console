@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-
+import binascii
+import os
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
@@ -12,7 +13,7 @@ from backends.services.tenantservice import tenant_service as tenantService, Ema
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from www.gitlab_http import GitlabApi
-from www.models import Tenants, Users, PermRelTenant
+from www.models.main import Tenants, Users, PermRelTenant
 from www.tenantservice.baseservice import CodeRepositoriesService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.app_actions import app_manage_service
@@ -25,7 +26,6 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-
     def get_user_by_user_name(self, user_name):
         user = user_repo.get_user_by_username(user_name=user_name)
         if not user:
@@ -64,16 +64,13 @@ class UserService(object):
         if Users.objects.filter(phone=phone).exists():
             raise PhoneExistError("手机号已存在")
 
-        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request),
-                     rf="backend")
+        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request), rf="backend")
         user.set_password(password)
         user.save()
 
-        PermRelTenant.objects.create(
-            user_id=user.pk, tenant_id=tenant.pk, identity='admin')
+        PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
 
-        codeRepositoriesService.createUser(user, email, password,
-                                           user_name, user_name)
+        codeRepositoriesService.createUser(user, email, password, user_name, user_name)
 
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
@@ -151,13 +148,14 @@ class UserService(object):
             return False
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
-        user = Users.objects.create(nick_name=nick_name,
-                                    password=password,
-                                    email=email,
-                                    sso_user_id="",
-                                    enterprise_id=enterprise_id,
-                                    is_active=False,
-                                    rf=rf)
+        user = Users.objects.create(
+            nick_name=nick_name,
+            password=password,
+            email=email,
+            sso_user_id="",
+            enterprise_id=enterprise_id,
+            is_active=False,
+            rf=rf)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -192,6 +190,28 @@ class UserService(object):
                     return False
         else:
             return True
+
+    def get_user_in_enterprise_perm(self, user, enterprise_id):
+        return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
+
+    def get_administrator_user_by_token(self, token):
+        perm = enterprise_user_perm_repo.get_by_token(token)
+        if not perm:
+            return None
+        return self.get_user_by_user_id(perm.user_id)
+
+    def get_administrator_user_token(self, user):
+        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not permList:
+            return None
+        perm = permList[0]
+        if not perm.token:
+            perm.token = self.generate_key()
+            perm.save()
+        return perm.token
+
+    def generate_key(self):
+        return binascii.hexlify(os.urandom(20)).decode()
 
     def get_user_by_email(self, email):
         return user_repo.get_user_by_email(email)

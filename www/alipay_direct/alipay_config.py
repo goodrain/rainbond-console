@@ -1,5 +1,6 @@
 #coding=utf-8
 
+
 class Alipay_Config:
     def __init__(self):
         self.seller_email = 'liufan@goodrain.com'

@@ -1,28 +1,28 @@
 # -*- coding: utf8 -*-
 import logging
 
-from www.models import TenantEnterprise
-from django.db.models import F, Q, Sum
+from www.models.main import TenantEnterprise
+from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 
 logger = logging.getLogger("default")
 
 
 class EnterpriseService(object):
-
     def is_enterprise_exist(self, enterprise_name):
         try:
-            enterprise = TenantEnterprise.objects.get(enterprise_alias=enterprise_name)
+            TenantEnterprise.objects.get(enterprise_alias=enterprise_name)
             return True
-        except TenantEnterprise.DoesNotExist as e:
+        except TenantEnterprise.DoesNotExist:
             return False
 
     def create_enterprise(self, eid, enterprise_name, enterprise_alias, token, is_active=False):
-        enterprise = TenantEnterprise.objects.create(enterprise_id=eid,
-                                                     enterprise_name=enterprise_name,
-                                                     enterprise_alias=enterprise_alias,
-                                                     enterprise_token=token,
-                                                     is_active=is_active)
+        enterprise = TenantEnterprise.objects.create(
+            enterprise_id=eid,
+            enterprise_name=enterprise_name,
+            enterprise_alias=enterprise_alias,
+            enterprise_token=token,
+            is_active=is_active)
         return enterprise
 
     def fuzzy_query_enterprise_by_enterprise_alias(self, enterprise_alias):

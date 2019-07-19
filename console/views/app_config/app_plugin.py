@@ -6,12 +6,12 @@ from www.decorator import perm_required
 from www.apiclient.regionapi import RegionInvokeApi
 from console.views.app_config.base import AppBaseView
 from console.services.app_config.plugin_service import app_plugin_service
-from console.services.plugin import plugin_service, plugin_version_service
+from console.services.plugin import plugin_version_service
 from www.utils.return_message import general_message, error_message
 import logging
 from rest_framework.response import Response
 from www.services import plugin_svc
-from www.models import ConstKey, HasNoDownStreamService
+from www.models.plugin import HasNoDownStreamService
 import json
 
 region_api = RegionInvokeApi()
@@ -46,8 +46,7 @@ class APPPluginsView(AppBaseView):
             category = request.GET.get("category", "")
             if category:
                 if category not in ("analysis", "net_manage"):
-                    return Response(general_message(400, "param can only be analysis or net_manage", "参数错误"),
-                                    status=400)
+                    return Response(general_message(400, "param can only be analysis or net_manage", "参数错误"), status=400)
             installed_plugins, not_install_plugins = app_plugin_service.get_plugins_by_service_id(
                 self.service.service_region, self.tenant.tenant_id, self.service.service_id, category)
             bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
@@ -81,9 +80,8 @@ class APPPluginInstallView(AppBaseView):
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
             logger.debug("plugin.relation", "configList is {}".format(configList))
-            pieceList = plugin_svc.getMetaBaseInfo(
-                self.tenant.tenant_id, self.service.service_id, self.service.service_alias, plugin_id, build_version,
-                meta_info, configList, tag)
+            pieceList = plugin_svc.getMetaBaseInfo(self.tenant.tenant_id, self.service.service_id, self.service.service_alias,
+                                                   plugin_id, build_version, meta_info, configList, tag)
             logger.debug("plugin.relation", "pieceList is {}".format(pieceList))
             attrsList.extend(pieceList)
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
@@ -121,7 +119,7 @@ class APPPluginInstallView(AppBaseView):
 
         try:
             if not plugin_id:
-                return Response(general_message(400, "params error","参数错误"),status=400)
+                return Response(general_message(400, "params error", "参数错误"), status=400)
             if not build_version:
                 plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
                 build_version = plugin_version.build_version
@@ -137,8 +135,8 @@ class APPPluginInstallView(AppBaseView):
             body_relation["version_id"] = build_version
             # 1)发送关联请求
             try:
-                res, resultBody = region_api.pluginServiceRelation(
-                    self.service.service_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
+                res, resultBody = region_api.pluginServiceRelation(self.service.service_region, self.tenant.tenant_name,
+                                                                   self.service.service_alias, body_relation)
                 if res.status == 200:
                     plugin_svc.add_service_plugin_relation(
                         service_id=self.service.service_id, plugin_id=plugin_id, build_version=build_version)
@@ -171,8 +169,8 @@ class APPPluginInstallView(AppBaseView):
         except HasNoDownStreamService as e:
             try:
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
-                region_api.delPluginServiceRelation(
-                    self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+                region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name, plugin_id,
+                                                    self.service.service_alias)
             except Exception, e:
                 pass
             result = general_message(400, "havs no downstream services", u'缺少关联应用，不能使用该类型插件')
@@ -181,8 +179,8 @@ class APPPluginInstallView(AppBaseView):
         except Exception, e:
             try:
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
-                region_api.delPluginServiceRelation(
-                    self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+                region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name, plugin_id,
+                                                    self.service.service_alias)
             except Exception, e:
                 logger.exception(e)
                 pass
@@ -210,12 +208,12 @@ class APPPluginInstallView(AppBaseView):
               description: 插件ID
               required: true
               type: string
-              paramType: path  
+              paramType: path
         """
         try:
             plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
-            res, resultBody = region_api.delPluginServiceRelation(
-                self.service.service_region, self.tenant.tenant_name, plugin_id, self.service.service_alias)
+            res, resultBody = region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name,
+                                                                  plugin_id, self.service.service_alias)
             if res.status == 200:
                 result = general_message(200, "success", "插件删除成功")
                 return Response(result, status=200)
@@ -229,54 +227,6 @@ class APPPluginInstallView(AppBaseView):
 
 
 class APPPluginOpenView(AppBaseView):
-    # @perm_required('manage_service')
-    # def post(self, request, plugin_id, *args, **kwargs):
-    #     """
-    #     应用启用插件
-    #     ---
-    #     parameters:
-    #         - name: tenantName
-    #           description: 租户名
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #         - name: serviceAlias
-    #           description: 服务别名
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #         - name: plugin_id
-    #           description: 插件ID
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #     """
-    #     pass
-    #
-    # @perm_required('manage_service')
-    # def delete(self, request, plugin_id, *args, **kwargs):
-    #     """
-    #     应用停用插件
-    #     ---
-    #     parameters:
-    #         - name: tenantName
-    #           description: 租户名
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #         - name: serviceAlias
-    #           description: 服务别名
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #         - name: plugin_id
-    #           description: 插件ID
-    #           required: true
-    #           type: string
-    #           paramType: path
-    #     """
-    #     pass
-
     @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
@@ -319,8 +269,8 @@ class APPPluginOpenView(AppBaseView):
             body_relation["switch"] = switch
             body_relation["version_id"] = build_version
             logger.debug("plugin.relation", "is_switch body is {}".format(body_relation))
-            res, resultBody = region_api.updatePluginServiceRelation(
-                self.service.service_region, self.tenant.tenant_name, self.service.service_alias, body_relation)
+            res, resultBody = region_api.updatePluginServiceRelation(self.service.service_region, self.tenant.tenant_name,
+                                                                     self.service.service_alias, body_relation)
             if res.status == 200:
                 plugin_svc.update_service_plugin_relation(self.service.service_id, plugin_id, build_version, switch)
                 return Response(general_message(200, "success", "操作成功"), status=200)
@@ -356,9 +306,8 @@ class APPPluginConfigView(AppBaseView):
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
             logger.debug("plugin.relation", "configList is {}".format(configList))
-            pieceList = plugin_svc.getMetaBaseInfo(
-                self.tenant.tenant_id, self.service.service_id, self.service.service_alias, plugin_id, build_version,
-                meta_info, configList, tag)
+            pieceList = plugin_svc.getMetaBaseInfo(self.tenant.tenant_id, self.service.service_id, self.service.service_alias,
+                                                   plugin_id, build_version, meta_info, configList, tag)
             logger.debug("plugin.relation", "pieceList is {}".format(pieceList))
             attrsList.extend(pieceList)
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
@@ -398,8 +347,7 @@ class APPPluginConfigView(AppBaseView):
         result = {}
         try:
             result["config_group"] = self.useDefaultAttr(plugin_id, build_version, "get")
-            build_relations = plugin_svc.get_tenant_service_plugin_relation_by_plugin(self.service.service_id,
-                                                                                      plugin_id)
+            build_relations = plugin_svc.get_tenant_service_plugin_relation_by_plugin(self.service.service_id, plugin_id)
             version_info = plugin_svc.getPluginMetaType(plugin_id, build_version)
             bl = {}
             bl["create_time"] = build_relations[0].create_time
@@ -413,7 +361,7 @@ class APPPluginConfigView(AppBaseView):
             return Response(result, status=200)
         except HasNoDownStreamService as e:
             logger.error("service has no dependence services operation suspend")
-            return Response(general_message(409, "service has no dependence", "应用没有依赖其他应用，配置无效"),status=409)
+            return Response(general_message(409, "service has no dependence", "应用没有依赖其他应用，配置无效"), status=409)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -469,8 +417,7 @@ class APPPluginConfigView(AppBaseView):
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
             res, resultBody = region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name,
-                                                       self.service.service_alias,
-                                                       plugin_id, body)
+                                                       self.service.service_alias, plugin_id, body)
             result = general_message(200, "config error", "配置成功")
             return Response(result, result["code"])
         except Exception as e:

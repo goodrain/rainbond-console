@@ -62,11 +62,8 @@ class ConfigService(object):
     def add_config(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            config = ConsoleSysConfig.objects.create(key=key,
-                                                     type=type,
-                                                     value=default_value,
-                                                     desc=desc,
-                                                     create_time=create_time)
+            config = ConsoleSysConfig.objects.create(
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
             custom_settings.reload()
             return config
         else:
@@ -75,11 +72,8 @@ class ConfigService(object):
     def add_config_without_reload(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            config = ConsoleSysConfig.objects.create(key=key,
-                                                     type=type,
-                                                     value=default_value,
-                                                     desc=desc,
-                                                     create_time=create_time)
+            config = ConsoleSysConfig.objects.create(
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))
@@ -199,7 +193,14 @@ class ConfigService(object):
             gitlab_dict["enable"] = False
         return gitlab_dict
 
-    def add_gitlab_config(self, url, admin_user, admin_password, admin_email, hook_url='', ):
+    def add_gitlab_config(
+            self,
+            url,
+            admin_user,
+            admin_password,
+            admin_email,
+            hook_url='',
+    ):
         value_map = {}
         value_map["url"] = url
         value_map["apitype"] = "gitlab service"
@@ -211,7 +212,14 @@ class ConfigService(object):
         value = json.dumps(value_map)
         self.add_config("GITLAB_SERVICE_API", value, "json", "github配置")
 
-    def update_gitlab_config(self, url, admin_user, admin_password, admin_email, hook_url='', ):
+    def update_gitlab_config(
+            self,
+            url,
+            admin_user,
+            admin_password,
+            admin_email,
+            hook_url='',
+    ):
         value_map = {}
         value_map["url"] = url
         value_map["apitype"] = "gitlab service"
@@ -293,7 +301,10 @@ class ConfigService(object):
         self.update_config("APPSTORE_SLUG_PATH", value)
 
     def manage_code_conf(self, action, type):
-        if action not in ("open", "close",):
+        if action not in (
+                "open",
+                "close",
+        ):
             raise ParamsError("操作参数错误")
         if type not in ("github", "gitlab", "ftpconf", "hubconf"):
             raise ParamsError("操作参数错误")
@@ -320,12 +331,7 @@ class ConfigService(object):
     def get_regist_status(self):
         is_regist = self.get_config_by_key("REGISTER_STATUS")
         if not is_regist:
-            config = self.add_config(
-                key="REGISTER_STATUS",
-                default_value="yes",
-                type="string",
-                desc="开启/关闭注册"
-            )
+            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
             return config.value
         else:
             return is_regist
