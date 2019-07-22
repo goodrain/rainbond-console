@@ -20,6 +20,7 @@ class TokenInfoView(APIView):
             status.HTTP_400_BAD_REQUEST: FailSerializer(),
         },
         request_body=openapi.Schema(
+            title="AuthRequest",
             type=openapi.TYPE_OBJECT,
             required=['username', 'password'],
             properties={
@@ -33,11 +34,11 @@ class TokenInfoView(APIView):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
         if not username or not password:
-            return Response({"detail": "用户名或密码不能为空"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": "用户名或密码不能为空"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             token = apiUserService.login_api_user(username, password)
             if token:
                 return Response({"token": token}, status=status.HTTP_200_OK)
-            return Response({"detail": "用户名或密码错误或用户不是管理员用户"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": "用户名或密码错误或用户不是管理员用户"}, status=status.HTTP_400_BAD_REQUEST)
         except UserNotExistError as e:
-            return Response({"detail": e.message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
