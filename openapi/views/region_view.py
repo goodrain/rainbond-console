@@ -28,6 +28,7 @@ class ListRegionInfo(ListAPIView):
     @swagger_auto_schema(
         operation_description="添加数据中心",
         request_body=openapi.Schema(
+            title="AddRegionRequest",
             type=openapi.TYPE_OBJECT,
             required=['region_name', 'region_alias', 'url', 'wsurl', 'httpdomain', 'tcpdomain'],
             properties={
@@ -83,6 +84,7 @@ class RegionInfo(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新指定数据中心元数据",
         request_body=openapi.Schema(
+            title="UpdateRegionRequest",
             type=openapi.TYPE_OBJECT,
             properties={
                 'region_alias': openapi.Schema(type=openapi.TYPE_STRING),

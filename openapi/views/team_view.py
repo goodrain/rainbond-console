@@ -34,6 +34,7 @@ class ListTeamInfo(ListAPIView):
     @swagger_auto_schema(
         operation_description="add team",
         request_body=openapi.Schema(
+            title="AddTeamRequest",
             type=openapi.TYPE_OBJECT,
             required=['team_name'],
             properties={
