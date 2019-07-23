@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import random
-import string
-import logging
 import re
+import string
 
 from console.repositories.enterprise_repo import enterprise_repo
-from www.models.main import TenantEnterprise, Tenants
+from www.models.main import TenantEnterprise
+from www.models.main import Tenants
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
@@ -130,6 +131,9 @@ class EnterpriseServices(object):
 
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
+
+    def list_all(self):
+        return enterprise_repo.list_all()
 
 
 enterprise_services = EnterpriseServices()

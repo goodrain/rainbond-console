@@ -10,7 +10,8 @@
               console/views/app_manage.py|
               console/services/app_config/port_service.py|
               console/services/app.py|
-              www/tenantservice/baseservice.py
+              www/tenantservice/baseservice.py|
+              goodrain_web/test_settings.py
           )$
     - id: check-docstring-first
     - id: debug-statements

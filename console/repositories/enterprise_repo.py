@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from www.models.main import TenantEnterprise
 from console.models.main import EnterpriseUserPerm
+from www.models.main import TenantEnterprise
 
 logger = logging.getLogger("default")
 
@@ -41,6 +41,9 @@ class TenantEnterpriseRepo(object):
 
     def get_by_enterprise_alias(self, enterprise_alias):
         return TenantEnterprise.objects.filter(enterprise_alias=enterprise_alias).first()
+
+    def list_all(self):
+        return TenantEnterprise.objects.all()
 
 
 class TenantEnterpriseUserPermRepo(object):
