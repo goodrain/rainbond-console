@@ -9,6 +9,7 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
 from openapi.views.base_config_view import BaseConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
+from openapi.views.enterprise_view import EntUserInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
@@ -46,6 +47,7 @@ urlpatterns = [
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
     url(r'^v1/enterprise$', EnterpriseInfoView.as_view(), name="ent_info"),
+    url(r'^v1/enterprise/admins$', EntUserInfoView.as_view(), name="list_ent_admins"),
     # url(r'^v1/announcement$', ListAnnouncementView.as_view()),
     # url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
