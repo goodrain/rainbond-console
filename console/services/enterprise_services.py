@@ -135,5 +135,13 @@ class EnterpriseServices(object):
     def list_all(self):
         return enterprise_repo.list_all()
 
+    def update(self, ent):
+        data = {}
+        if ent.get("alias", "") != "":
+            data["enterprise_alias"] = ent["alias"]
+        if ent.get("name", "") != "":
+            data["enterprise_name"] = ent["name"]
+        enterprise_repo.update(ent["eid"], **data)
+
 
 enterprise_services = EnterpriseServices()

@@ -45,6 +45,9 @@ class TenantEnterpriseRepo(object):
     def list_all(self):
         return TenantEnterprise.objects.all()
 
+    def update(self, eid, **data):
+        TenantEnterprise.objects.filter(enterprise_id=eid).update(**data)
+
 
 class TenantEnterpriseUserPermRepo(object):
     def create_enterprise_user_perm(self, user_id, enterprise_id, identity):

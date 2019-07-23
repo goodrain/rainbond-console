@@ -7,6 +7,7 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
+from openapi.views.enterprise_view import EnterpriseInfo
 from openapi.views.enterprise_view import ListEnterpriseInfo
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
@@ -42,7 +43,8 @@ urlpatterns = [
     # url(r'^v1/administrators$', ListAdministratorInfo.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', UserAdministrator.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
-    url(r'^v1/enterprises$', ListEnterpriseInfo.as_view(), name="list_ent_info")
+    url(r'^v1/enterprises$', ListEnterpriseInfo.as_view(), name="list_ent_info"),
+    url(r'^v1/enterprise$', EnterpriseInfo.as_view(), name="ent_info")
     # url(r'^v1/announcement$', ListAnnouncementView.as_view()),
     # url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
