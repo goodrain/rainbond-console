@@ -7,8 +7,9 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
-from openapi.views.enterprise_view import EnterpriseInfo
-from openapi.views.enterprise_view import ListEnterpriseInfo
+from openapi.views.base_config_view import BaseConfigView
+from openapi.views.enterprise_view import EnterpriseInfoView
+from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
 from openapi.views.team_view import ListTeamInfo
@@ -43,12 +44,13 @@ urlpatterns = [
     # url(r'^v1/administrators$', ListAdministratorInfo.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', UserAdministrator.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
-    url(r'^v1/enterprises$', ListEnterpriseInfo.as_view(), name="list_ent_info"),
-    url(r'^v1/enterprise$', EnterpriseInfo.as_view(), name="ent_info")
+    url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
+    url(r'^v1/enterprise$', EnterpriseInfoView.as_view(), name="ent_info"),
     # url(r'^v1/announcement$', ListAnnouncementView.as_view()),
     # url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
     # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
-    # url(r'^v1/configs/base', BaseConfigView.as_view()),
+    url(r'^v1/configs/base', BaseConfigView.as_view()),
+    # url(r'^v1/configs/feature', FeatureConfigView.as_view()),
     # url(r'^v1/configs/feature', FeatureConfigView.as_view()),
 ]

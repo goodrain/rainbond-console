@@ -16,7 +16,7 @@ from openapi.views.base import ListAPIView
 logger = logging.getLogger("default")
 
 
-class ListEnterpriseInfo(ListAPIView):
+class ListEnterpriseInfoView(ListAPIView):
     view_perms = ["enterprises"]
     get_script_prefix()
 
@@ -30,7 +30,7 @@ class ListEnterpriseInfo(ListAPIView):
         return Response(serializer.data)
 
 
-class EnterpriseInfo(BaseOpenAPIView):
+class EnterpriseInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         query_serializer=UpdEntReqSerializer,
         responses={200: None},

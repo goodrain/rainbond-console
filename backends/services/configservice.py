@@ -59,6 +59,9 @@ class ConfigService(object):
         else:
             return None
 
+    def get_by_key(self, key):
+        return ConsoleSysConfig.objects.filter(key=key).first()
+
     def add_config(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -81,6 +84,20 @@ class ConfigService(object):
     def update_config(self, key, value):
         ConsoleSysConfig.objects.filter(key=key).update(value=value)
         # 更新配置
+        custom_settings.reload()
+
+    def update(self, cfg):
+        data = {}
+        if cfg["type"] != "":
+            data["type"] = cfg.get("type", "")
+        if cfg["value"] != "":
+            data["value"] = cfg.get("value", "")
+        if cfg["desc"] != "":
+            data["desc"] = cfg.get("desc", "")
+        if cfg["enable"] != "":
+            data["enable"] = cfg.get("enable", "")
+
+        ConsoleSysConfig.objects.filter(key=cfg.get("key", "")).update(**data)
         custom_settings.reload()
 
     def get_safety_config(self):
