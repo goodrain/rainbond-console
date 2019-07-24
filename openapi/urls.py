@@ -18,6 +18,7 @@ from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import TeamInfo
+from openapi.views.user_view import ListUsersView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -43,7 +44,7 @@ urlpatterns = [
     url(r'^v1/teams', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_name>[\w\-]+)$', TeamInfo.as_view()),
     # url(r'^v1/teams/(?P<team_name>[\w\-]+)/users$', ListTeamUserInfo.as_view()),
-    # url(r'^v1/users$', ListUserInfo.as_view()),
+    url(r'^v1/users$', ListUsersView.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfo.as_view()),
     # url(r'^v1/administrators$', ListAdministratorInfo.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', UserAdministrator.as_view()),

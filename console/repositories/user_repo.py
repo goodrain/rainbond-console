@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from django.db.models import Q
+
 from backends.services.exceptions import UserNotExistError
 from www.models.main import Users
 
@@ -62,6 +64,14 @@ class UserRepo(object):
             return u[0].nick_name
         else:
             return None
+
+    def list_users(self, item=""):
+        """
+        Support search by username, email, phone number
+        """
+        return Users.objects.filter(Q(nick_name__contains=item)
+                                    | Q(email__contains=item)
+                                    | Q(phone__contains=item)).all().order_by("-create_time")
 
 
 user_repo = UserRepo()

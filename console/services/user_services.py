@@ -1,23 +1,30 @@
 # -*- coding: utf-8 -*-
-import logging
 import binascii
+import logging
 import os
+
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from backends.services.exceptions import AccountNotExistError
-from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
-from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
-    PasswordTooShortError
+from backends.services.exceptions import TenantNotExistError
+from backends.services.exceptions import UserExistError
+from backends.services.exceptions import UserNotExistError
+from backends.services.tenantservice import EmailExistError
+from backends.services.tenantservice import PasswordTooShortError
+from backends.services.tenantservice import PhoneExistError
+from backends.services.tenantservice import tenant_service as tenantService
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from www.gitlab_http import GitlabApi
-from www.models.main import Tenants, Users, PermRelTenant
-from www.tenantservice.baseservice import CodeRepositoriesService
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
+from www.gitlab_http import GitlabApi
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import Users
+from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -240,6 +247,26 @@ class UserService(object):
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
+
+    def list_users(self, page, size, item=""):
+        from django.core.paginator import Paginator
+        uall = user_repo.list_users(item)
+        paginator = Paginator(uall, size)
+        upp = paginator.page(page)
+        users = []
+        for user in upp:
+            users.append({
+                "user_id": user.user_id,
+                "email": user.email,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "origion": user.origion,
+                "create_time": user.create_time,
+                "client_ip": user.client_ip,
+                "enterprise_id": user.enterprise_id,
+            })
+        return users, uall.count()
 
 
 user_services = UserService()
