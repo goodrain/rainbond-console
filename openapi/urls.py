@@ -46,7 +46,7 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_name>[\w\-]+)$', TeamInfo.as_view()),
     # url(r'^v1/teams/(?P<team_name>[\w\-]+)/users$', ListTeamUserInfo.as_view()),
     url(r'^v1/users$', ListUsersView.as_view()),
-    url(r'^v1/user$', UserInfoView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
     # url(r'^v1/administrators$', ListAdministratorInfo.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', UserAdministrator.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),

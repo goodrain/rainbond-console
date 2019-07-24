@@ -3,6 +3,16 @@
 from rest_framework import serializers
 
 
+class CreateUserSerializer(serializers.Serializer):
+    nick_name = serializers.CharField(max_length=24, required=True, help_text=u"用户昵称")
+    password = serializers.CharField(max_length=16, required=True, min_length=8, help_text=u"用户昵称")
+    enterprise_id = serializers.CharField(max_length=32, required=True, help_text=u"enterprise_id")
+    email = serializers.EmailField(max_length=35, required=False, help_text=u"邮件地址")
+    phone = serializers.CharField(max_length=11, required=False, help_text=u"手机号码")
+    is_active = serializers.BooleanField(required=False, default=True, help_text=u"激活状态")
+    origion = serializers.CharField(required=False, max_length=12, help_text=u"用户来源")
+
+
 class UserInfoSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     email = serializers.EmailField(max_length=35, help_text=u"邮件地址")
@@ -15,7 +25,7 @@ class UserInfoSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"enterprise_id")
 
 
-class ListUsersSerializer(serializers.Serializer):
+class ListUsersRespView(serializers.Serializer):
     users = UserInfoSerializer(many=True)
     total = serializers.IntegerField()
 

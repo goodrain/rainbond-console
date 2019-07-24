@@ -2,18 +2,19 @@
 import binascii
 import logging
 import os
+from datetime import datetime
 
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from backends.services.exceptions import AccountNotExistError
+from backends.services.exceptions import EmailExistError
+from backends.services.exceptions import PasswordTooShortError
+from backends.services.exceptions import PhoneExistError
 from backends.services.exceptions import TenantNotExistError
 from backends.services.exceptions import UserExistError
 from backends.services.exceptions import UserNotExistError
-from backends.services.tenantservice import EmailExistError
-from backends.services.tenantservice import PasswordTooShortError
-from backends.services.tenantservice import PhoneExistError
 from backends.services.tenantservice import tenant_service as tenantService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
@@ -25,6 +26,7 @@ from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import Users
 from www.tenantservice.baseservice import CodeRepositoriesService
+from www.utils.crypt import encrypt_passwd
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -153,6 +155,49 @@ class UserService(object):
             return True
         except UserNotExistError:
             return False
+
+    def create(self, data):
+        # check nick name
+        try:
+            user_repo.get_by_username(data["nick_name"])
+            raise UserExistError("{} already exists.".format(data["nick_name"]))
+        except Users.DoesNotExist:
+            pass
+        if data.get("email", ""):
+            user = user_repo.get_user_by_email(data["email"])
+            if user is not None:
+                raise EmailExistError("{} already exists.".format(data["email"]))
+        if data.get("phone", ""):
+            user = user_repo.get_user_by_phone(data["phone"])
+            if user is not None:
+                raise PhoneExistError("{} already exists.".format(data["phone"]))
+
+        user = {
+            "nick_name": data["nick_name"],
+            "password": encrypt_passwd(data["password"]),
+            "email": data.get("email", ""),
+            "phone": data.get("phone", ""),
+            "enterprise_id": data["eid"],
+            "is_active": data.get("is_active", False),
+            "create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+        Users.objects.create(**user)
+
+    def update(self, req):
+        data = req.data
+
+        d = {}
+        if data.get("email", None) is not None:
+            d["email"] = data["email"]
+        if data.get("phone", None) is not None:
+            d["phone"] = data["phone"]
+        if data.get("is_active", None) is not None:
+            d["is_active"] = data["is_active"]
+        if data.get("password", None) is not None:
+            d["password"] = encrypt_passwd(data["passowrd"])
+
+        Users.objects.filter(nick_name=data["nick_name"]).update(**d)
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
         user = Users.objects.create(

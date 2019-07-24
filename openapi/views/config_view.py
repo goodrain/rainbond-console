@@ -20,6 +20,7 @@ class BaseConfigView(BaseOpenAPIView):
         tags=['openapi-config'],
     )
     def get(self, request):
+        # TODO: 定义各种结构
         key = request.GET.get("key")
         queryset = config_service.get_by_key(key)
         serializer = ConfigSerializer(queryset)
