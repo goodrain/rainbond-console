@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 
-class BaseCfgSerializer(serializers.Serializer):
+class ConfigSerializer(serializers.Serializer):
     key = serializers.CharField(max_length=32)
     type = serializers.CharField(max_length=32)
     value = serializers.CharField(max_length=4096)
