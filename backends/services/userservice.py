@@ -1,16 +1,19 @@
 # -*- coding: utf8 -*-
 import logging
+import re
 
 from django.db.models import Q
-import re
-from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
-from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
-    PasswordTooShortError
-from www.gitlab_http import GitlabApi
-from www.models.main import Tenants, Users, PermRelTenant
-from www.tenantservice.baseservice import CodeRepositoriesService
 from fuzzyfinder.main import fuzzyfinder
+
+from backends.services.exceptions import TenantNotExistError
+from backends.services.exceptions import UserNotExistError
+from backends.services.tenantservice import PasswordTooShortError
 from console.services.user_services import user_services as console_user_service
+from www.gitlab_http import GitlabApi
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import Users
+from www.tenantservice.baseservice import CodeRepositoriesService
 
 logger = logging.getLogger("default")
 codeRepositoriesService = CodeRepositoriesService()
@@ -53,16 +56,6 @@ class UserService(object):
         if not r.match(email):
             return False, "邮箱地址不合法"
         return True, "success"
-
-    # def __check_phone(self, phone):
-    #     if not phone:
-    #         return False, "手机号不能为空"
-    #     if console_user_service.get_user_by_phone(phone):
-    #         return False, "手机号{0}已存在".format(phone)
-    #     r = re.compile(r'^1[35678]\d{9}$|^147\d{8}$')
-    #     if not r.match(phone):
-    #         return False, "请填写正确的手机号"
-    #     return True, "success"
 
     def create_user(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
         user = Users.objects.create(
@@ -152,10 +145,6 @@ class UserService(object):
             return False
 
     def get_by_username_or_phone_or_email(self, query_condition):
-        # query = Q()
-        # if query_condition:
-        #     query = query | Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition) | Q(email__contains=query_condition)
-
         users = Users.objects.filter(
             Q(nick_name__contains=query_condition) | Q(phone__contains=query_condition)
             | Q(email__contains=query_condition)).order_by("-create_time")
