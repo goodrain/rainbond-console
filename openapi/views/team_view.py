@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-from console.services.team_services import team_services
-from console.services.enterprise_services import enterprise_services
-from console.services.region_services import region_services
-from openapi.views.base import ListAPIView
-from openapi.views.base import BaseOpenAPIView
-from rest_framework import status
-from rest_framework import serializers
-from rest_framework.response import Response
+
+from django.urls import get_script_prefix
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import serializers
+from rest_framework import status
+from rest_framework.response import Response
+
+from console.services.enterprise_services import enterprise_services
+from console.services.region_services import region_services
+from console.services.team_services import team_services
 from openapi.serializer.team_serializer import TeamInfoSerializer
-from django.urls import get_script_prefix
+from openapi.views.base import BaseOpenAPIView
+from openapi.views.base import ListAPIView
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
 
 logger = logging.getLogger("default")
 
@@ -91,10 +95,40 @@ class TeamInfo(BaseOpenAPIView):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        query_serializer=TeamInfoSerializer,
-        responses={200: TeamInfoSerializer()},
-        tags=['openapi-team'],
+        operation_description="删除团队",
+        request_body=openapi.Schema(
+            title="DeleteTeamRequest",
+            type=openapi.TYPE_OBJECT,
+            required=['team_name'],
+            properties={
+                'team_name': openapi.Schema(type=openapi.TYPE_STRING, description="团队名称"),
+            },
+        ),
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_404_NOT_FOUND: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None
+        },
+        tags=['openapi-user'],
     )
-    def put(self, request):
-        # todo
-        pass
+    def delete(self, req, *args, **kwargs):
+        tenant_name = req.data.get("tenant_name", None)
+        if not tenant_name:
+            raise serializers.ValidationError("参数缺失'tenant_name'")
+
+        try:
+            service_count = team_services.get_team_service_count_by_team_name(team_name=tenant_name)
+            if service_count >= 1:
+                raise serializers.ValidationError("当前团队内有应用,不可以删除")
+
+            res = team_services.delete_tenant(tenant_name=tenant_name)
+            if not res:
+                return Response(None, status.HTTP_200_OK)
+            else:
+                return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Tenants.DoesNotExist as e:
+            logger.exception("failed to delete tenant: {}".format(e.message))
+            return Response(None, status=status.HTTP_404_NOT_FOUND)
+        except PermRelTenant as e:
+            logger.exception("failed to delete tenant: {}".format(e.message))
+            return Response(None, status=status.HTTP_404_NOT_FOUND)

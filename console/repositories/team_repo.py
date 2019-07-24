@@ -4,8 +4,10 @@ import logging
 from django.db.models import Q
 
 from backends.models import RegionConfig
-from www.models.main import PermRelTenant, Users, Tenants
 from console.models.main import TeamGitlabInfo
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import Users
 
 logger = logging.getLogger("default")
 
@@ -67,6 +69,7 @@ class TeamRepo(object):
         return tenant_perms_list
 
     def delete_tenant(self, tenant_name):
+        # TODO: use transaction
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
         row = Tenants.objects.filter(ID=tenant.ID).delete()
