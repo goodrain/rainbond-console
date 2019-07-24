@@ -7,6 +7,8 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
+from openapi.views.announcement_view import AnnouncementView
+from openapi.views.announcement_view import ListAnnouncementView
 from openapi.views.config_view import BaseConfigView
 from openapi.views.config_view import FeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
@@ -49,8 +51,8 @@ urlpatterns = [
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
     url(r'^v1/enterprise$', EnterpriseInfoView.as_view(), name="ent_info"),
     url(r'^v1/enterprise/admins$', EntUserInfoView.as_view(), name="list_ent_admins"),
-    # url(r'^v1/announcement$', ListAnnouncementView.as_view()),
-    # url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
+    url(r'^v1/announcements$', ListAnnouncementView.as_view()),
+    url(r'^v1/announcement$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
     # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
     url(r'^v1/configs/base', BaseConfigView.as_view()),
