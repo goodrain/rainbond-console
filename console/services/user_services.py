@@ -9,12 +9,12 @@ from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from backends.services.exceptions import AccountNotExistError
+from backends.services.exceptions import EmailExistError
+from backends.services.exceptions import PasswordTooShortError
+from backends.services.exceptions import PhoneExistError
 from backends.services.exceptions import TenantNotExistError
 from backends.services.exceptions import UserExistError
 from backends.services.exceptions import UserNotExistError
-from backends.services.tenantservice import EmailExistError
-from backends.services.tenantservice import PasswordTooShortError
-from backends.services.tenantservice import PhoneExistError
 from backends.services.tenantservice import tenant_service as tenantService
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
@@ -27,7 +27,6 @@ from www.models.main import Tenants
 from www.models.main import Users
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import encrypt_passwd
-from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -157,20 +156,32 @@ class UserService(object):
         except UserNotExistError:
             return False
 
-    def create(self, req):
-        data = req.data
+    def create(self, data):
         tenant_id = data.get("tenant_id")
         tenant = tenantService.get_by_tenant_id(tenant_id)
 
+        # check nick name
+        try:
+            user_repo.get_by_username(data["nick_name"])
+            raise UserExistError("{} already exists.".format(data["nick_name"]))
+        except Users.DoesNotExist:
+            pass
+        if data.get("email", ""):
+            user = user_repo.get_user_by_email(data["email"])
+            if user is not None:
+                raise EmailExistError("{} already exists.".format(data["email"]))
+        if data.get("phone", ""):
+            user = user_repo.get_user_by_phone(data["phone"])
+            if user is not None:
+                raise PhoneExistError("{} already exists.".format(data["phone"]))
+
         user = {
-            "user_id": make_uuid(),
             "nick_name": data["nick_name"],
-            "password": encrypt_passwd(data["passowrd"]),
+            "password": encrypt_passwd(data["password"]),
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "enterprise_id": tenant.enterprise_id,
             "is_active": data.get("is_active", False),
-            "client_ip": self.get_client_ip(req),
             "create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
 
