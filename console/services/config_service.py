@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 
-from console.repositories.config_repo import ConfigRepository
+from console.repositories.config_repo import cfg_repo
 
 
 class ConfigService(object):
@@ -11,7 +11,6 @@ class ConfigService(object):
         self.feature_cfg_keys = ["GITHUB_SERVICE_API", "GITLAB_SERVICE_API"]
 
     def list_by_keys(self, keys):
-        cfg_repo = ConfigRepository()
         cfgs = cfg_repo.list_by_keys(keys)
         res = {}
         for item in cfgs:
@@ -21,6 +20,14 @@ class ConfigService(object):
                 value = item.value
             res[item.key] = value
         return res
+
+    def update(self, data):
+        for k, v in data.iteritems():
+            if isinstance(v, list):
+                value = json.dumps(v)
+                cfg_repo.update_by_key(k, str(value))
+            else:
+                cfg_repo.update_by_key(k, v)
 
 
 config_service = ConfigService()

@@ -57,6 +57,6 @@ urlpatterns = [
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
     # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
-    url(r'^v1/configs/base', BaseConfigView.as_view()),
-    url(r'^v1/configs/feature', FeatureConfigView.as_view()),
+    url(r'^v1/configs/base$', BaseConfigView.as_view()),
+    url(r'^v1/configs/feature$', FeatureConfigView.as_view()),
 ]

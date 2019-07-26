@@ -2,6 +2,7 @@
 # creater by: barnett
 import logging
 
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 from console.services.config_service import config_service
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
 from openapi.serializer.config_serializers import FeatureConfigRespSerializer
+from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
 from openapi.views.base import BaseOpenAPIView
 
 logger = logging.getLogger("default")
@@ -25,7 +27,16 @@ class BaseConfigView(BaseOpenAPIView):
         serializer = BaseConfigRespSerializer(queryset)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="更新基础配置",
+        request_body=UpdateBaseConfigReqSerializer(),
+        responses={200: None},
+        tags=['openapi-config'],
+    )
+    @transaction.atomic
     def put(self, request):
+        serializer = UpdateBaseConfigReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         config_service.update(request.data)
         return Response(None, status=status.HTTP_200_OK)
 
