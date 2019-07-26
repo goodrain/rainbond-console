@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 class UserInfoSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
-    email = serializers.EmailField(required=False, max_length=35, help_text=u"邮件地址")
+    email = serializers.CharField(required=False, max_length=35, help_text=u"邮件地址")
     nick_name = serializers.CharField(required=False, max_length=24, help_text=u"用户昵称")
     phone = serializers.CharField(required=False, max_length=11, help_text=u"手机号码")
     is_active = serializers.BooleanField(required=False, help_text=u"激活状态")

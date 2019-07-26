@@ -84,8 +84,10 @@ class UserService(object):
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
         git_user_id = user.git_user_id
-
-        PermRelTenant.objects.filter(user_id=user.pk).delete()
+        try:
+            PermRelTenant.objects.filter(user_id=user.pk).delete()
+        except PermRelTenant.DoesNotExist:
+            pass
         gitClient.deleteUser(git_user_id)
         user.delete()
 
@@ -196,6 +198,9 @@ class UserService(object):
             d["password"] = encrypt_passwd(data["passowrd"])
 
         Users.objects.filter(user_id=user_id).update(**d)
+
+    def delete(self, user_id):
+        Users.objects.filter(user_id=user_id).delete()
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
         user = Users.objects.create(

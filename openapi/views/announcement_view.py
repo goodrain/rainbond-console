@@ -8,8 +8,9 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.services.announcement_service import announcement_service
-from openapi.serializer.announcement_serializer import AnnouncementRespSerilizer
+from openapi.serializer.announcement_serializer import CreateAncmReqSerilizer
 from openapi.serializer.announcement_serializer import ListAnnouncementRespSerializer
+from openapi.serializer.announcement_serializer import UpdateAncmReqSerilizer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 
@@ -34,68 +35,36 @@ class ListAnnouncementView(ListAPIView):
                                                      "announcements": ancm})
         return Response(serializer.data)
 
-
-class AnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="添加站内信",
-        request_body=openapi.Schema(
-            title="new announcement",
-            type=openapi.TYPE_OBJECT,
-            required=['content', 'type', 'active', 'title', 'level'],
-            properties={
-                'content': openapi.Schema(type=openapi.TYPE_STRING,  description="通知内容"),
-                'type': openapi.Schema(type=openapi.TYPE_STRING,  description="通知类型"),
-                'active': openapi.Schema(type=openapi.TYPE_STRING,  description="是否开启"),
-                'title': openapi.Schema(type=openapi.TYPE_STRING,  description="标题"),
-                'level': openapi.Schema(type=openapi.TYPE_STRING,  description="等级"),
-                'a_tag': openapi.Schema(type=openapi.TYPE_STRING, description="A标签文字"),
-                'a_tag_url': openapi.Schema(type=openapi.TYPE_STRING, description="A标签跳转地址"),
-            },
-        ),
-        responses={200: AnnouncementRespSerilizer(many=True)},
+        request_body=CreateAncmReqSerilizer(),
+        responses={status.HTTP_201_CREATED: None},
         tags=['openapi-announcement'],
     )
     def post(self, request, **kwargs):
         announcement_service.create(request.data)
         return Response(None, status.HTTP_201_CREATED)
 
+
+class AnnouncementView(BaseOpenAPIView):
+
     @swagger_auto_schema(
         operation_description="更新站内信",
-        request_body=openapi.Schema(
-            title="update announcement",
-            type=openapi.TYPE_OBJECT,
-            required=['aid'],
-            properties={
-                'aid': openapi.Schema(type=openapi.TYPE_STRING, description="唯一标识"),
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description="通知内容"),
-                'a_tag': openapi.Schema(type=openapi.TYPE_STRING, description="A标签文字"),
-                'a_tag_url': openapi.Schema(type=openapi.TYPE_STRING, description="A标签跳转地址"),
-                'type': openapi.Schema(type=openapi.TYPE_STRING, description="通知类型"),
-                'active': openapi.Schema(type=openapi.TYPE_STRING, description="是否开启"),
-                'title': openapi.Schema(type=openapi.TYPE_STRING, description="标题"),
-                'level': openapi.Schema(type=openapi.TYPE_STRING, description="等级"),
-            },
-        ),
-        responses={200: AnnouncementRespSerilizer(many=True)},
+        request_body=UpdateAncmReqSerilizer(),
+        responses={200: None},
         tags=['openapi-announcement'],
     )
-    def put(self, request, *args, **kwargs):
-        announcement_service.update(request.data)
+    def put(self, req, aid, *args, **kwargs):
+        serializer = UpdateAncmReqSerilizer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+        announcement_service.update(aid, req.data)
         return Response(None, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="删除站内信",
-        request_body=openapi.Schema(
-            title="delete announcement",
-            type=openapi.TYPE_OBJECT,
-            required=['aid'],
-            properties={
-                'aid': openapi.Schema(type=openapi.TYPE_STRING, description="唯一标识"),
-            },
-        ),
         responses={200: None},
         tags=['openapi-announcement'],
     )
-    def delete(self, request, *args, **kwargs):
-        announcement_service.delete(request.data["aid"])
+    def delete(self, request, aid, *args, **kwargs):
+        announcement_service.delete(aid)
         return Response(None, status.HTTP_200_OK)

@@ -48,12 +48,11 @@ class ListUsersView(ListAPIView):
 
     @swagger_auto_schema(
         operation_description="添加普通用户",
-        query_serializer=CreateUserSerializer,
+        request_body=CreateUserSerializer,
         responses={
             status.HTTP_201_CREATED: None,
             status.HTTP_404_NOT_FOUND: None,
         },
-        security=[],
         tags=['openapi-user'],
     )
     def post(self, req, *args, **kwargs):
@@ -94,19 +93,18 @@ class UserInfoView(BaseOpenAPIView):
     )
     def delete(self, req, user_id, *args, **kwargs):
         try:
-            user_services.delete_user(req.GET.get("user_id"))
+            user_services.delete_user(user_id)
             return Response()
         except Users.DoesNotExist:
             return Response(None, status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="更新用户信息",
-        query_serializer=UpdateUserSerializer,
+        request_body=UpdateUserSerializer,
         responses={
             status.HTTP_200_OK: None,
             status.HTTP_404_NOT_FOUND: None,
         },
-        security=[],
         tags=['openapi-user'],
     )
     def put(self, req, user_id, *args, **kwargs):

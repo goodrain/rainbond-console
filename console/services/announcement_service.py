@@ -23,6 +23,7 @@ class AnnouncementService(object):
                 "active": anno.active,
                 "create_time": anno.create_time,
                 "title": anno.title,
+                "level": anno.level,
             })
         return ancm, aall.count()
 
@@ -32,7 +33,7 @@ class AnnouncementService(object):
         repo = AnnouncementRepository()
         repo.create(**ancm)
 
-    def update(self, ancm):
+    def update(self, aid, ancm):
         data = {}
         if ancm.get("content", None) is not None:
             data["content"] = ancm.get("content", "")
@@ -52,7 +53,7 @@ class AnnouncementService(object):
             data["level"] = ancm.get("level", "")
 
         repo = AnnouncementRepository()
-        repo.update(ancm["aid"], **data)
+        repo.update(aid, **data)
 
     def delete(self, aid):
         repo = AnnouncementRepository()
