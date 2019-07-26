@@ -184,9 +184,7 @@ class UserService(object):
 
         Users.objects.create(**user)
 
-    def update(self, req):
-        data = req.data
-
+    def update(self, user_id, data):
         d = {}
         if data.get("email", None) is not None:
             d["email"] = data["email"]
@@ -197,7 +195,7 @@ class UserService(object):
         if data.get("password", None) is not None:
             d["password"] = encrypt_passwd(data["passowrd"])
 
-        Users.objects.filter(nick_name=data["nick_name"]).update(**d)
+        Users.objects.filter(user_id=user_id).update(**d)
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
         user = Users.objects.create(

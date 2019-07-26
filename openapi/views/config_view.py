@@ -6,8 +6,9 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.services.configservice import config_service
-from openapi.serializer.config_serializers import ConfigSerializer
+from console.services.config_service import config_service
+from openapi.serializer.config_serializers import BaseConfigRespSerializer
+from openapi.serializer.config_serializers import FeatureConfigRespSerializer
 from openapi.views.base import BaseOpenAPIView
 
 logger = logging.getLogger("default")
@@ -16,14 +17,12 @@ logger = logging.getLogger("default")
 class BaseConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取基础配置",
-        responses={200: ConfigSerializer()},
+        responses={200: BaseConfigRespSerializer()},
         tags=['openapi-config'],
     )
     def get(self, request):
-        # TODO: 定义各种结构
-        key = request.GET.get("key")
-        queryset = config_service.get_by_key(key)
-        serializer = ConfigSerializer(queryset)
+        queryset = config_service.list_by_keys(config_service.base_cfg_keys)
+        serializer = BaseConfigRespSerializer(queryset)
         return Response(serializer.data)
 
     def put(self, request):
@@ -34,13 +33,12 @@ class BaseConfigView(BaseOpenAPIView):
 class FeatureConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取特性配置",
-        responses={200: ConfigSerializer()},
+        responses={200: FeatureConfigRespSerializer()},
         tags=['openapi-config'],
     )
     def get(self, request):
-        key = request.GET.get("key")
-        queryset = config_service.get_by_key(key)
-        serializer = ConfigSerializer(queryset)
+        queryset = config_service.list_by_keys(config_service.feature_cfg_keys)
+        serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
 
     def put(self, request):

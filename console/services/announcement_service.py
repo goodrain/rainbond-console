@@ -1,11 +1,30 @@
 # -*- coding: utf8 -*-
 from datetime import datetime
 
+from backends.models.main import Announcement
 from console.repositories.announcement_repo import AnnouncementRepository
 from www.utils.crypt import make_uuid
 
 
 class AnnouncementService(object):
+    def list(self, page, size):
+        from django.core.paginator import Paginator
+        aall = Announcement.objects.all().order_by('-create_time')
+        paginator = Paginator(aall, size)
+        upp = paginator.page(page)
+        ancm = []
+        for anno in upp:
+            ancm.append({
+                "announcement_id": anno.announcement_id,
+                "content": anno.content,
+                "a_tag": anno.a_tag,
+                "a_tag_url": anno.a_tag_url,
+                "type": anno.type,
+                "active": anno.active,
+                "create_time": anno.create_time,
+                "title": anno.title,
+            })
+        return ancm, aall.count()
 
     def create(self, ancm):
         ancm.update({"announcement_id": make_uuid()})
@@ -38,3 +57,6 @@ class AnnouncementService(object):
     def delete(self, aid):
         repo = AnnouncementRepository()
         repo.delete(aid)
+
+
+announcement_service = AnnouncementService()

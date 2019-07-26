@@ -12,3 +12,8 @@ class AnnouncementRespSerilizer(serializers.Serializer):
     active = serializers.BooleanField(required=False, help_text=u"通知是否启用")
     title = serializers.CharField(max_length=64, help_text=u"通知标题")
     level = serializers.CharField(max_length=32, help_text=u"通知的等级")
+
+
+class ListAnnouncementRespSerializer(serializers.Serializer):
+    toatl = serializers.IntegerField()
+    announcements = AnnouncementRespSerilizer(many=True)

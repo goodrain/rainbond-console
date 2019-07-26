@@ -7,9 +7,9 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.models.main import Announcement
-from console.services.announcement_service import AnnouncementService
+from console.services.announcement_service import announcement_service
 from openapi.serializer.announcement_serializer import AnnouncementRespSerilizer
+from openapi.serializer.announcement_serializer import ListAnnouncementRespSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 
@@ -19,12 +19,19 @@ logger = logging.getLogger("default")
 class ListAnnouncementView(ListAPIView):
     @swagger_auto_schema(
         operation_description="获取站内信列表",
-        responses={200: AnnouncementRespSerilizer(many=True)},
+        manual_parameters=[
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListAnnouncementRespSerializer()},
         tags=['openapi-announcement'],
     )
-    def get(self, request):
-        queryset = Announcement.objects.all().order_by('-create_time')
-        serializer = AnnouncementRespSerilizer(queryset, many=True)
+    def get(self, req):
+        page = int(req.GET.get("page", 1))
+        page_size = int(req.GET.get("page_size", 10))
+        ancm, total = announcement_service.list(page, page_size)
+        serializer = ListAnnouncementRespSerializer({"total": total,
+                                                     "announcements": ancm})
         return Response(serializer.data)
 
 
@@ -49,8 +56,7 @@ class AnnouncementView(BaseOpenAPIView):
         tags=['openapi-announcement'],
     )
     def post(self, request, **kwargs):
-        svc = AnnouncementService()
-        svc.create(request.data)
+        announcement_service.create(request.data)
         return Response(None, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
@@ -74,8 +80,7 @@ class AnnouncementView(BaseOpenAPIView):
         tags=['openapi-announcement'],
     )
     def put(self, request, *args, **kwargs):
-        svc = AnnouncementService()
-        svc.update(request.data)
+        announcement_service.update(request.data)
         return Response(None, status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -92,6 +97,5 @@ class AnnouncementView(BaseOpenAPIView):
         tags=['openapi-announcement'],
     )
     def delete(self, request, *args, **kwargs):
-        svc = AnnouncementService()
-        svc.delete(request.data["aid"])
+        announcement_service.delete(request.data["aid"])
         return Response(None, status.HTTP_200_OK)

@@ -2,7 +2,6 @@
 # creater by: barnett
 import logging
 
-from django.urls import get_script_prefix
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
@@ -22,9 +21,6 @@ logger = logging.getLogger("default")
 
 
 class ListTeamInfo(ListAPIView):
-    view_perms = ["teams"]
-    get_script_prefix()
-
     @swagger_auto_schema(
         query_serializer=TeamInfoSerializer,
         responses={200: TeamInfoSerializer(many=True)},

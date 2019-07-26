@@ -14,6 +14,7 @@ from backends.services.exceptions import UserExistError
 from console.services.user_services import user_services
 from openapi.serializer.user_serializer import CreateUserSerializer
 from openapi.serializer.user_serializer import ListUsersRespView
+from openapi.serializer.user_serializer import UpdateUserSerializer
 from openapi.serializer.user_serializer import UserInfoSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
@@ -34,11 +35,10 @@ class ListUsersView(ListAPIView):
         tags=['openapi-user'],
     )
     def get(self, req, *args, **kwargs):
-        # TODO validation
         page = int(req.GET.get("page", 1))
         page_size = int(req.GET.get("page_size", 10))
-        item = req.GET.get("query", "")
-        users, total = user_services.list_users(page, page_size, item)
+        query = req.GET.get("query", "")
+        users, total = user_services.list_users(page, page_size, query)
         serializer = UserInfoSerializer(users, many=True)
         result = {
             "users": serializer.data,
@@ -86,18 +86,13 @@ class UserInfoView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="删除用户",
-        manual_parameters=[
-            openapi.Parameter("user_id", openapi.IN_QUERY, description="用户ID", type=openapi.TYPE_STRING),
-        ],
         responses={
-            status.HTTP_201_CREATED: None,
+            status.HTTP_200_OK: None,
             status.HTTP_404_NOT_FOUND: None
         },
         tags=['openapi-user'],
     )
-    def delete(self, req, *args, **kwargs):
-        if not req.data.get("user_id", ""):
-            raise serializers.ValidationError("缺少参数'user_id'")
+    def delete(self, req, user_id, *args, **kwargs):
         try:
             user_services.delete_user(req.GET.get("user_id"))
             return Response()
@@ -106,19 +101,7 @@ class UserInfoView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="更新用户信息",
-        request_body=openapi.Schema(
-            title="update user",
-            type=openapi.TYPE_OBJECT,
-            required=['nick_name'],
-            properties={
-                # user_id
-                'nick_name': openapi.Schema(type=openapi.TYPE_STRING,  description="用户名"),
-                'password': openapi.Schema(type=openapi.TYPE_STRING,  description="密码"),
-                'email': openapi.Schema(type=openapi.TYPE_STRING,  description="邮箱"),
-                'phone': openapi.Schema(type=openapi.TYPE_STRING,  description="手机号码"),
-                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN,  description="是否激活"),
-            },
-        ),
+        query_serializer=UpdateUserSerializer,
         responses={
             status.HTTP_200_OK: None,
             status.HTTP_404_NOT_FOUND: None,
@@ -126,11 +109,11 @@ class UserInfoView(BaseOpenAPIView):
         security=[],
         tags=['openapi-user'],
     )
-    def put(self, req, *args, **kwargs):
-        if not req.data.get("nick_name", ""):
-            raise serializers.ValidationError("缺少参数'nick_name'")
+    def put(self, req, user_id, *args, **kwargs):
+        serializer = UpdateUserSerializer(data=req.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            user_services.update(req)
-            return Response(None, status.HTTP_201_CREATED)
+            user_services.update(user_id, req.data)
+            return Response(None, status.HTTP_200_OK)
         except Users.DoesNotExist:
             return Response(None, status.HTTP_404_NOT_FOUND)
