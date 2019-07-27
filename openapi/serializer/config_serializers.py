@@ -51,6 +51,11 @@ class GitlabServiceAPIRespSerializer(serializers.Serializer):
     admin_email = serializers.CharField(max_length=255)
 
 
+class UpdateFeatureCfgReqSerializer(serializers.Serializer):
+    GITHUB_SERVICE_API = GithubServiceAPIRespSerializer(required=False)
+    GITLAB_SERVICE_API = GitlabServiceAPIRespSerializer(required=False)
+
+
 class FeatureConfigRespSerializer(serializers.Serializer):
     GITHUB_SERVICE_API = GithubServiceAPIRespSerializer(required=False)
     GITLAB_SERVICE_API = GitlabServiceAPIRespSerializer(required=False)

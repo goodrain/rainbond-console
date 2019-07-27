@@ -69,6 +69,9 @@ class TenantEnterpriseUserPermRepo(object):
         else:
             return None
 
+    def count_by_eid(self, eid):
+        return EnterpriseUserPerm.objects.filter(enterprise_id=eid).count()
+
     def delete_backend_enterprise_admin_by_user_id(self, user_id):
         """
         管理后台删除企业管理员，只有一个企业

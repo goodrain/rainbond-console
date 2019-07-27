@@ -40,3 +40,8 @@ class UpdateUserSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=35, required=False, help_text=u"邮件地址")
     phone = serializers.CharField(max_length=11, required=False, help_text=u"手机号码")
     is_active = serializers.NullBooleanField(required=False, help_text=u"激活状态")
+
+
+class CreateAdminUserReqSerializer(serializers.Serializer):
+    user_id = serializers.CharField(max_length=32, required=True, help_text=u"用户ID")
+    eid = serializers.CharField(max_length=32, required=True, help_text=u"企业ID")

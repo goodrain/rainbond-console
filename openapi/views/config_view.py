@@ -11,6 +11,7 @@ from console.services.config_service import config_service
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
 from openapi.serializer.config_serializers import FeatureConfigRespSerializer
 from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
+from openapi.serializer.config_serializers import UpdateFeatureCfgReqSerializer
 from openapi.views.base import BaseOpenAPIView
 
 logger = logging.getLogger("default")
@@ -43,7 +44,7 @@ class BaseConfigView(BaseOpenAPIView):
 
 class FeatureConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
-        operation_description="获取特性配置",
+        operation_description="获取功能配置",
         responses={200: FeatureConfigRespSerializer()},
         tags=['openapi-config'],
     )
@@ -52,6 +53,14 @@ class FeatureConfigView(BaseOpenAPIView):
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="更新功能配置",
+        request_body=UpdateBaseConfigReqSerializer(),
+        responses={200: None},
+        tags=['openapi-config'],
+    )
     def put(self, request):
+        serializer = UpdateFeatureCfgReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         config_service.update(request.data)
         return Response(None, status=status.HTTP_200_OK)

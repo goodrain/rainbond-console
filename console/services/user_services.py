@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 
+from django.core.paginator import Paginator
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
@@ -16,11 +17,14 @@ from backends.services.exceptions import TenantNotExistError
 from backends.services.exceptions import UserExistError
 from backends.services.exceptions import UserNotExistError
 from backends.services.tenantservice import tenant_service as tenantService
+from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
+from console.services.exception import ErrAdminUserDoesNotExist
+from console.services.exception import ErrCannotDelLastAdminUser
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -297,7 +301,6 @@ class UserService(object):
         return Response(result, status=200)
 
     def list_users(self, page, size, item=""):
-        from django.core.paginator import Paginator
         uall = user_repo.list_users(item)
         paginator = Paginator(uall, size)
         upp = paginator.page(page)
@@ -315,6 +318,48 @@ class UserService(object):
                 "enterprise_id": user.enterprise_id,
             })
         return users, uall.count()
+
+    def list_admin_users(self, page, size, eid=None):
+        if eid is None:
+            perms = EnterpriseUserPerm.objects.filter().all()
+        else:
+            perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid).all()
+        total = perms.count()
+        paginator = Paginator(perms, size)
+        permsp = paginator.page(page)
+
+        users = []
+        for item in permsp:
+            user = user_services.get_user_by_user_id(item.user_id)
+            users.append({
+                "user_id": user.user_id,
+                "email": user.email,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "origion": user.origion,
+                "create_time": user.create_time,
+                "client_ip": user.client_ip,
+                "enterprise_id": user.enterprise_id,
+            })
+
+        return users, total
+
+    def create_admin_user(self, user, ent):
+        # 判断用户是否为企业管理员
+        if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):
+            return
+        # 添加企业管理员
+        enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, "admin")
+
+    def delete_admin_user(self, user_id):
+        perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
+        if perm is None:
+            raise ErrAdminUserDoesNotExist("用户'{}'不是企业管理员".format(user_id))
+        count = enterprise_user_perm_repo.count_by_eid(perm.enterprise_id)
+        if count == 1:
+            raise ErrCannotDelLastAdminUser("当前用户为最后一个企业管理员，无法删除")
+        enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
 
 
 user_services = UserService()
