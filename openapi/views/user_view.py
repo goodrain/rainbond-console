@@ -79,7 +79,11 @@ class UserInfoView(BaseOpenAPIView):
     )
     def get(self, req, user_id, *args, **kwargs):
         try:
-            user = user_services.get_user_by_user_id(user_id)
+            try:
+                uid = int(user_id)
+                user = user_services.get_user_by_user_id(uid)
+            except ValueError:
+                user = user_services.get_user_by_user_name(user_id)
             serializer = UserInfoSerializer(user)
             return Response(serializer.data)
         except Users.DoesNotExist:
