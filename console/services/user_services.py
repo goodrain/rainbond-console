@@ -319,6 +319,25 @@ class UserService(object):
             })
         return users, uall.count()
 
+    def list_users_by_tenant_id(self, tenant_id, page, size, item=""):
+        uall = user_repo.list_users_by_tenant_id(tenant_id, item)
+        paginator = Paginator(uall, size)
+        upp = paginator.page(page)
+        users = []
+        for user in upp:
+            users.append({
+                "user_id": user.user_id,
+                "email": user.email,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "origion": user.origion,
+                "create_time": user.create_time,
+                "client_ip": user.client_ip,
+                "enterprise_id": user.enterprise_id,
+            })
+        return users, uall.count()
+
     def list_admin_users(self, page, size, eid=None):
         if eid is None:
             perms = EnterpriseUserPerm.objects.filter().all()

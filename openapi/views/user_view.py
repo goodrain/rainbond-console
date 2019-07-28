@@ -11,7 +11,9 @@ from rest_framework.response import Response
 from backends.services.exceptions import EmailExistError
 from backends.services.exceptions import PhoneExistError
 from backends.services.exceptions import UserExistError
+from console.services.team_services import team_services
 from console.services.user_services import user_services
+from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.user_serializer import CreateUserSerializer
 from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UpdateUserSerializer
@@ -115,3 +117,29 @@ class UserInfoView(BaseOpenAPIView):
             return Response(None, status.HTTP_200_OK)
         except Users.DoesNotExist:
             return Response(None, status.HTTP_404_NOT_FOUND)
+
+
+class UserTeamInfoView(ListAPIView):
+    @swagger_auto_schema(
+        operation_description="获取用户的团队列表",
+        manual_parameters=[
+            openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListTeamRespSerializer()},
+        tags=['openapi-user'],
+    )
+    def get(self, req, user_id, *args, **kwargs):
+        eid = req.GET.get("eid", "")
+        if not eid:
+            raise serializers.ValidationError("缺少'eid'字段")
+        query = req.GET.get("query", "")
+        page = int(req.GET.get("page", 1))
+        page_size = int(req.GET.get("page_size", 10))
+
+        res = team_services.get_enterprise_teams(
+            eid, user_id=user_id, query=query, page=page, page_size=page_size)
+        serializer = ListTeamRespSerializer(res)
+
+        return Response(serializer.data, status.HTTP_200_OK)

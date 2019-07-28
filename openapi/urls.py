@@ -19,9 +19,11 @@ from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
 from openapi.views.team_view import ListTeamInfo
+from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import TeamInfo
 from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import UserInfoView
+from openapi.views.user_view import UserTeamInfoView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -44,11 +46,13 @@ urlpatterns = [
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view()),
-    url(r'^v1/teams', ListTeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_name>[\w\-]+)$', TeamInfo.as_view()),
+    url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users', ListTeamUsersInfo.as_view()),
     # url(r'^v1/teams/(?P<team_name>[\w\-]+)/users$', ListTeamUserInfo.as_view()),
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
     url(r'^v1/administrators$', ListAdminsView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),

@@ -75,6 +75,13 @@ class TeamRepo(object):
         row = Tenants.objects.filter(ID=tenant.ID).delete()
         return row > 0
 
+    def delete_by_tenant_id(self, tenant_id):
+        # TODO: use transaction
+        tenant = Tenants.objects.get(tenant_id=tenant_id)
+        PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
+        row = Tenants.objects.filter(ID=tenant.ID).delete()
+        return row > 0
+
     def get_region_alias(self, region_name):
         try:
             region = RegionConfig.objects.filter(region_name=region_name)
@@ -104,8 +111,13 @@ class TeamRepo(object):
         else:
             return team[0]
 
-    def get_teams_by_enterprise_id(self, enterprise_id):
-        return Tenants.objects.filter(enterprise_id=enterprise_id)
+    def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):
+        q = Q(enterprise_id=enterprise_id)
+        if user_id:
+            q |= Q(creater=user_id)
+        if query:
+            q |= Q(tenant_name__contains=query)
+        return Tenants.objects.filter(q).order_by("-create_time")
 
     def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id, tenant_alias):
         return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_alias__contains=tenant_alias)
@@ -124,6 +136,9 @@ class TeamRepo(object):
 
     def get_team_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
+
+    def update_by_tenant_id(self, tenant_id, **data):
+        return Tenants.objects.filter(tenant_id=tenant_id).update(*data)
 
 
 class TeamGitlabRepo(object):

@@ -5,16 +5,20 @@ import random
 import string
 
 from django.conf import settings
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 
+from console.models.main import TenantUserRole
+from console.repositories.perm_repo import role_perm_repo
+from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
-from www.models.main import Tenants, PermRelTenant, TenantServiceInfo
-from console.repositories.perm_repo import role_repo, role_perm_repo
-from console.models.main import TenantUserRole
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 
@@ -62,7 +66,8 @@ class TeamService(object):
                         for identity in identitys:
                             new_user_list.append(
                                 PermRelTenant(
-                                    user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID))
+                                    user_id=user_id, tenant_id=tenant.pk, identity=identity,
+                                    enterprise_id=enterprise.ID))
             if new_user_list:
                 try:
                     PermRelTenant.objects.bulk_create(new_user_list)
@@ -162,7 +167,9 @@ class TeamService(object):
         team_obj = team_services.get_tenant(tenant_name=tenant_name)
         default_role_id_list = TenantUserRole.objects.filter(Q(is_default=True) & ~Q(role_name="owner")).values_list(
             "pk", flat=True)
-        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk", flat=True)
+        team_role_id_list = TenantUserRole.objects.filter(
+            tenant_id=team_obj.pk, is_default=False).values_list(
+            "pk", flat=True)
         return list(default_role_id_list) + list(team_role_id_list)
 
     def add_role_by_team_name_perm_list(self, role_name, tenant_name, perm_id_list):
@@ -252,7 +259,12 @@ class TeamService(object):
 
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
+        if tenant is None:
+            raise Tenants.DoesNotExist()
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
+
+    def count_by_tenant_id(self, tenant_id):
+        return TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
 
     def get_service_source(self, service_alias):
         service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)
@@ -264,6 +276,9 @@ class TeamService(object):
     def delete_tenant(self, tenant_name):
         status = team_repo.delete_tenant(tenant_name=tenant_name)
         return status
+
+    def delete_by_tenant_id(self, tenant_id):
+        return team_repo.delete_by_tenant_id(tenant_id=tenant_id)
 
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
@@ -277,7 +292,8 @@ class TeamService(object):
             tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
             team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID).delete()
             team_repo.get_user_perms_in_permtenant(user_id=other_user_id, tenant_id=tenant.ID).delete()
-            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID, "identity": "viewer", "enterprise_id": enterprise.ID}
+            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID,
+                             "identity": "viewer", "enterprise_id": enterprise.ID}
             other_perm_info = {
                 "user_id": other_user_id,
                 "tenant_id": tenant.ID,
@@ -358,14 +374,52 @@ class TeamService(object):
         team = team_repo.create_tenant(**params)
         return 200, "success", team
 
-    def get_enterprise_teams(self, enterprise_id):
-        return team_repo.get_teams_by_enterprise_id(enterprise_id)
+    def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):
+        if query is not None and page is not None and page_size is not None:
+            tall = team_repo.get_teams_by_enterprise_id(enterprise_id, user_id=user_id, query=query)
+            total = tall.count()
+            paginator = Paginator(tall, page_size)
+            raw_tenants = paginator.page(page)
+            tenants = []
+            for ent in raw_tenants:
+                tenants.append({
+                    "tenant_id": ent.tenant_id,
+                    "tenant_name": ent.tenant_name,
+                    "region": ent.region,
+                    "is_active": ent.is_active,
+                    "create_time": ent.create_time,
+                    "creater": ent.creater,
+                    "tenant_alias": ent.tenant_alias,
+                    "enterprise_id": ent.enterprise_id,
+                })
+            result = {
+                "total": total,
+                "tenants": tenants
+            }
+        else:
+            result = team_repo.get_teams_by_enterprise_id(enterprise_id)
+
+        return result
 
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)
 
     def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id, tenant_alias):
         return team_repo.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id, tenant_alias)
+
+    def update_by_tenant_id(self, tenant_id, data):
+        d = {}
+        if data.get("enterprise", ""):
+            d["enterprise_id"] = data.get("enterprise_id")
+        if data.get("region", ""):
+            d["region"] = data.get("region")
+        if data.get("is_active", None):
+            d["is_active"] = data.get("is_active")
+        if data.get("creater", 0):
+            d["creater"] = data.get("creater")
+        if data.get("tenant_alias", ""):
+            d["tenant_alias"] = data.get("tenant_alias")
+        team_repo.update_by_tenant_id(tenant_id).update(**d)
 
 
 team_services = TeamService()
