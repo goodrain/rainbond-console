@@ -47,7 +47,7 @@ class ListAdminsView(ListAPIView):
 
     @swagger_auto_schema(
         operation_description="添加企业用户",
-        query_serializer=CreateAdminUserReqSerializer,
+        request_body=CreateAdminUserReqSerializer,
         responses={
             status.HTTP_201_CREATED: None,
             status.HTTP_404_NOT_FOUND: None,
