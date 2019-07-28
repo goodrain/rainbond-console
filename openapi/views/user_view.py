@@ -123,6 +123,7 @@ class UserTeamInfoView(ListAPIView):
     @swagger_auto_schema(
         operation_description="获取用户的团队列表",
         manual_parameters=[
+            openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
             openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
