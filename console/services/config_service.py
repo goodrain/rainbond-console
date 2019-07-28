@@ -23,7 +23,7 @@ class ConfigService(object):
 
     def update_or_create(self, data):
         for k, v in data.iteritems():
-            if isinstance(v, dict):
+            if isinstance(v, (dict, list)):
                 value = json.dumps(v)
                 cfg_repo.update_or_create_by_key(k, str(value))
             else:

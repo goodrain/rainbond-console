@@ -14,7 +14,7 @@ class ConfigSerializer(serializers.Serializer):
 
 class RegionServiceAPISerializer(serializers.Serializer):
     url = serializers.CharField(max_length=255)
-    token = serializers.CharField(max_length=255, allow_null=True)
+    token = serializers.CharField(max_length=255, allow_null=True, required=False)
     enable = serializers.BooleanField(help_text="是否启用: true->启用, false->不启用")
     region_name = serializers.CharField(max_length=255, help_text="数据中心名称")
     region_alias = serializers.CharField(max_length=255, help_text="数据中心别名")

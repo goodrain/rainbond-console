@@ -38,7 +38,7 @@ class BaseConfigView(BaseOpenAPIView):
     def put(self, request):
         serializer = UpdateBaseConfigReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update(request.data)
+        config_service.update_or_create(request.data)
         return Response(None, status=status.HTTP_200_OK)
 
 
