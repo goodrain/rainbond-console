@@ -21,13 +21,13 @@ class ConfigService(object):
             res[item.key] = value
         return res
 
-    def update(self, data):
+    def update_or_create(self, data):
         for k, v in data.iteritems():
-            if isinstance(v, list):
+            if isinstance(v, dict):
                 value = json.dumps(v)
-                cfg_repo.update_by_key(k, str(value))
+                cfg_repo.update_or_create_by_key(k, str(value))
             else:
-                cfg_repo.update_by_key(k, v)
+                cfg_repo.update_or_create_by_key(k, v)
 
 
 config_service = ConfigService()

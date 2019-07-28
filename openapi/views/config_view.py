@@ -54,13 +54,13 @@ class FeatureConfigView(BaseOpenAPIView):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_description="更新功能配置",
-        request_body=UpdateBaseConfigReqSerializer(),
+        operation_description="新增或更新功能配置",
+        request_body=UpdateFeatureCfgReqSerializer(),
         responses={200: None},
         tags=['openapi-config'],
     )
     def put(self, request):
         serializer = UpdateFeatureCfgReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update(request.data)
+        config_service.update_or_create(request.data)
         return Response(None, status=status.HTTP_200_OK)
