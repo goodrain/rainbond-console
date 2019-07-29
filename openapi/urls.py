@@ -57,7 +57,7 @@ urlpatterns = [
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
-    url(r'^v1/enterprise$', EnterpriseInfoView.as_view(), name="ent_info"),
+    url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
     url(r'^v1/enterprise/admins$', EntUserInfoView.as_view(), name="list_ent_admins"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),

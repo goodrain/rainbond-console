@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from backends.services.exceptions import EmailExistError
 from backends.services.exceptions import PhoneExistError
 from backends.services.exceptions import UserExistError
+from backends.services.exceptions import UserNotExistError
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.team_serializer import ListTeamRespSerializer
@@ -86,7 +87,7 @@ class UserInfoView(BaseOpenAPIView):
                 user = user_services.get_user_by_user_name(user_id)
             serializer = UserInfoSerializer(user)
             return Response(serializer.data)
-        except Users.DoesNotExist:
+        except UserNotExistError:
             return Response(None, status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(

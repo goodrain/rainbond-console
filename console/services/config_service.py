@@ -6,7 +6,7 @@ from console.repositories.config_repo import cfg_repo
 
 class ConfigService(object):
     def __init__(self):
-        self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE",
+        self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE", "enterprise_alias",
                               "REGISTER_STATUS", "RAINBOND_VERSION", "LOGO"]
         self.feature_cfg_keys = ["GITHUB_SERVICE_API", "GITLAB_SERVICE_API"]
 

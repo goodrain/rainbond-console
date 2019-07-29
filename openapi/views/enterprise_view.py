@@ -40,8 +40,8 @@ class EnterpriseInfoView(BaseOpenAPIView):
         responses={200: None},
         tags=['openapi-entreprise'],
     )
-    def put(self, request):
-        enterprise_services.update(request.data)
+    def put(self, req, eid):
+        enterprise_services.update(eid, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
 

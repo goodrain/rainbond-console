@@ -114,9 +114,9 @@ class TeamRepo(object):
     def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):
         q = Q(enterprise_id=enterprise_id)
         if user_id:
-            q |= Q(creater=user_id)
+            q &= Q(creater=user_id)
         if query:
-            q |= Q(tenant_name__contains=query)
+            q &= Q(tenant_alias__contains=query)
         return Tenants.objects.filter(q).order_by("-create_time")
 
     def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id, tenant_alias):
