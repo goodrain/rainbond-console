@@ -319,8 +319,8 @@ class UserService(object):
             })
         return users, uall.count()
 
-    def list_users_by_tenant_id(self, tenant_id, page, size, item=""):
-        uall = user_repo.list_users_by_tenant_id(tenant_id, item)
+    def list_users_by_tenant_id(self, tenant_id, page, size, query=""):
+        uall = user_repo.list_users_by_tenant_id(tenant_id, query)
         paginator = Paginator(uall, size)
         upp = paginator.page(page)
         users = []

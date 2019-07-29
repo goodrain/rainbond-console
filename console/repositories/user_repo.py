@@ -76,14 +76,13 @@ class UserRepo(object):
                                     | Q(email__contains=item)
                                     | Q(phone__contains=item)).all().order_by("-create_time")
 
-    def list_users_by_tenant_id(self, tenant_id, item=""):
+    def list_users_by_tenant_id(self, tenant_id, query=""):
         """
         Support search by username, email, phone number
         """
-        return Users.objects.filter(Q(tenant_id=tenant_id) &
-                                    (Q(nick_name__contains=item)
-                                     | Q(email__contains=item)
-                                     | Q(phone__contains=item))).all().order_by("-create_time")
+        return Users.objects.filter(Q(nick_name__contains=query)
+                                    | Q(email__contains=query)
+                                    | Q(phone__contains=query)).all().order_by("-create_time")
 
 
 user_repo = UserRepo()

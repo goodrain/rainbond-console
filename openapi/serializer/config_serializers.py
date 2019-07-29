@@ -21,7 +21,6 @@ class RegionServiceAPISerializer(serializers.Serializer):
 
 
 class BaseConfigRespSerializer(serializers.Serializer):
-    REGION_SERVICE_API = RegionServiceAPISerializer(many=True, required=False)
     TITLE = serializers.CharField(max_length=255, required=False)
     LOGO = serializers.CharField(max_length=255, required=False)
     REGISTER_STATUS = serializers.CharField(max_length=255, required=False)
@@ -53,10 +52,10 @@ class GitlabServiceAPIRespSerializer(serializers.Serializer):
 
 
 class UpdateFeatureCfgReqSerializer(serializers.Serializer):
-    GITHUB_SERVICE_API = GithubServiceAPIRespSerializer(required=False)
-    GITLAB_SERVICE_API = GitlabServiceAPIRespSerializer(required=False)
+    GITHUB = GithubServiceAPIRespSerializer(required=False)
+    GITLAB = GitlabServiceAPIRespSerializer(required=False)
 
 
 class FeatureConfigRespSerializer(serializers.Serializer):
-    GITHUB_SERVICE_API = GithubServiceAPIRespSerializer(required=False)
-    GITLAB_SERVICE_API = GitlabServiceAPIRespSerializer(required=False)
+    GITHUB = GithubServiceAPIRespSerializer(required=False)
+    GITLAB = GitlabServiceAPIRespSerializer(required=False)

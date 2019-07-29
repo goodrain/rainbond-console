@@ -13,6 +13,7 @@ from openapi.views.announcement_view import AnnouncementView
 from openapi.views.announcement_view import ListAnnouncementView
 from openapi.views.config_view import BaseConfigView
 from openapi.views.config_view import FeatureConfigView
+from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import EntUserInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
@@ -64,5 +65,6 @@ urlpatterns = [
     # url(r'^v1/labels$', ListLabelsView.as_view()),
     # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
     url(r'^v1/configs/base$', BaseConfigView.as_view()),
-    url(r'^v1/configs/feature$', FeatureConfigView.as_view()),
+    url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
+    url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
 ]

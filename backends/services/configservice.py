@@ -166,12 +166,12 @@ class ConfigService(object):
             raise ParamsError("无效的license")
 
     def get_github_config(self):
-        github_config = self.get_config_by_key("GITHUB_SERVICE_API")
+        github_config = self.get_config_by_key("GITHUB")
         if not github_config:
             github_config = "{}"
         github_dict = json.loads(github_config)
         if github_dict:
-            csc = ConsoleSysConfig.objects.get(key="GITHUB_SERVICE_API")
+            csc = ConsoleSysConfig.objects.get(key="GITHUB")
             github_dict["enable"] = csc.enable
         else:
             github_dict["enable"] = False
@@ -183,7 +183,7 @@ class ConfigService(object):
         value_map["client_secret"] = client_secret
         value_map["client_id"] = client_id
         value = json.dumps(value_map)
-        self.add_config("GITHUB_SERVICE_API", value, "json", "github配置")
+        self.add_config("GITHUB", value, "json", "github配置")
 
     def update_github_config(self, redirect_uri, client_secret, client_id):
         value_map = {}
@@ -191,16 +191,16 @@ class ConfigService(object):
         value_map["client_secret"] = client_secret
         value_map["client_id"] = client_id
         value = json.dumps(value_map)
-        self.update_config("GITHUB_SERVICE_API", value)
+        self.update_config("GITHUB", value)
 
     def get_gitlab_config(self):
-        gitlab_config = self.get_config_by_key("GITLAB_SERVICE_API")
+        gitlab_config = self.get_config_by_key("GITLAB")
         if not gitlab_config:
             gitlab_config = "{}"
         gitlab_dict_all = json.loads(gitlab_config)
         gitlab_dict = dict()
         if gitlab_dict_all:
-            csc = ConsoleSysConfig.objects.get(key="GITLAB_SERVICE_API")
+            csc = ConsoleSysConfig.objects.get(key="GITLAB")
             gitlab_dict["enable"] = csc.enable
             gitlab_dict["admin_email"] = gitlab_dict_all["admin_email"]
             gitlab_dict["apitype"] = gitlab_dict_all["apitype"]
@@ -227,7 +227,7 @@ class ConfigService(object):
         value_map["admin_email"] = admin_email
 
         value = json.dumps(value_map)
-        self.add_config("GITLAB_SERVICE_API", value, "json", "github配置")
+        self.add_config("GITLAB", value, "json", "github配置")
 
     def update_gitlab_config(
             self,
@@ -245,7 +245,7 @@ class ConfigService(object):
         value_map["hook_url"] = hook_url
         value_map["admin_email"] = admin_email
         value = json.dumps(value_map)
-        self.update_config("GITLAB_SERVICE_API", value)
+        self.update_config("GITLAB", value)
 
     def get_image_hub_config(self):
         image_hub_config = self.get_config_by_key("APPSTORE_IMAGE_HUB")
@@ -327,18 +327,18 @@ class ConfigService(object):
             raise ParamsError("操作参数错误")
         if action == "open":
             if type == "github":
-                ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=True)
+                ConsoleSysConfig.objects.filter(key="GITHUB").update(enable=True)
             elif type == "gitlab":
-                ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=True)
+                ConsoleSysConfig.objects.filter(key="GITLAB").update(enable=True)
             elif type == "hubconf":
                 ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=True)
             elif type == "ftpconf":
                 ConsoleSysConfig.objects.filter(key="APPSTORE_SLUG_PATH").update(enable=True)
         else:
             if type == "github":
-                ConsoleSysConfig.objects.filter(key="GITHUB_SERVICE_API").update(enable=False)
+                ConsoleSysConfig.objects.filter(key="GITHUB").update(enable=False)
             elif type == "gitlab":
-                ConsoleSysConfig.objects.filter(key="GITLAB_SERVICE_API").update(enable=False)
+                ConsoleSysConfig.objects.filter(key="GITLAB").update(enable=False)
             elif type == "hubconf":
                 ConsoleSysConfig.objects.filter(key="APPSTORE_IMAGE_HUB").update(enable=False)
             elif type == "ftpconf":

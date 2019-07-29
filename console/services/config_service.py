@@ -8,7 +8,7 @@ class ConfigService(object):
     def __init__(self):
         self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE", "enterprise_alias",
                               "REGISTER_STATUS", "RAINBOND_VERSION", "LOGO"]
-        self.feature_cfg_keys = ["GITHUB_SERVICE_API", "GITLAB_SERVICE_API"]
+        self.feature_cfg_keys = ["GITHUB", "GITLAB"]
 
     def list_by_keys(self, keys):
         cfgs = cfg_repo.list_by_keys(keys)

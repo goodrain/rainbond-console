@@ -375,6 +375,7 @@ class TeamService(object):
         return 200, "success", team
 
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):
+        from console.services.user_services import user_services
         if query is not None and page is not None and page_size is not None:
             tall = team_repo.get_teams_by_enterprise_id(enterprise_id, user_id=user_id, query=query)
             total = tall.count()
@@ -382,13 +383,14 @@ class TeamService(object):
             raw_tenants = paginator.page(page)
             tenants = []
             for ent in raw_tenants:
+                user = user_services.get_user_by_user_id(ent.creater)
                 tenants.append({
                     "tenant_id": ent.tenant_id,
                     "tenant_name": ent.tenant_name,
                     "region": ent.region,
                     "is_active": ent.is_active,
                     "create_time": ent.create_time,
-                    "creater": ent.creater,
+                    "creater": user.nick_name,
                     "tenant_alias": ent.tenant_alias,
                     "enterprise_id": ent.enterprise_id,
                 })

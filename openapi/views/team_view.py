@@ -182,7 +182,8 @@ class ListTeamUsersInfo(ListAPIView):
         page = int(req.GET.get("page", 1))
         page_size = int(req.GET.get("page_size", 10))
         query = req.GET.get("query", "")
-        users, total = user_services.list_users_by_tenant_id(page, page_size, query)
+        users, total = user_services.list_users_by_tenant_id(
+            tenant_id=team_id, page=page, size=page_size, query=query)
         serializer = UserInfoSerializer(users, many=True)
         result = {
             "users": serializer.data,

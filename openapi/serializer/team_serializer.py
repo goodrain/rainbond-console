@@ -14,7 +14,7 @@ class TeamInfoSerializer(serializers.Serializer):
     region = serializers.CharField(max_length=24, help_text=u"数据中心名称")
     is_active = serializers.BooleanField(help_text=u"是否激活")
     create_time = serializers.DateTimeField(help_text=u"创建时间")
-    creater = serializers.IntegerField(help_text=u"团队拥有者用户ID")
+    creater = serializers.CharField(help_text=u"团队拥有者用户ID")
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID")
 

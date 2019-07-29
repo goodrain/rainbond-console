@@ -42,9 +42,9 @@ class BaseConfigView(BaseOpenAPIView):
         return Response(None, status=status.HTTP_200_OK)
 
 
-class FeatureConfigView(BaseOpenAPIView):
+class ListFeatureConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
-        operation_description="获取功能配置",
+        operation_description="获取全部功能配置",
         responses={200: FeatureConfigRespSerializer()},
         tags=['openapi-config'],
     )
@@ -64,3 +64,15 @@ class FeatureConfigView(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
         config_service.update_or_create(request.data)
         return Response(None, status=status.HTTP_200_OK)
+
+
+class FeatureConfigView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取指定的功能配置",
+        responses={200: FeatureConfigRespSerializer()},
+        tags=['openapi-config'],
+    )
+    def get(self, req, key):
+        queryset = config_service.list_by_keys([key])
+        serializer = FeatureConfigRespSerializer(queryset)
+        return Response(serializer.data)

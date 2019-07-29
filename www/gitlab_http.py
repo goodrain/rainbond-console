@@ -1,12 +1,12 @@
 # -*- coding: utf8 -*-
+import json
+import logging
+from urllib import urlencode
+
+import httplib2
 
 from goodrain_web.base import BaseHttpClient
 from goodrain_web.custom_config import custom_config
-
-import json
-import logging
-import httplib2
-from urllib import urlencode
 
 logger = logging.getLogger('default')
 
@@ -25,13 +25,13 @@ class GitlabApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
-        gitlab_service_info = custom_config.GITLAB_SERVICE_API
+        gitlab_service_info = custom_config.GITLAB
         if gitlab_service_info is not None:
             for k, v in gitlab_service_info.items():
                 setattr(self, k, v)
 
     def _reload(self):
-        gitlab_service_info = custom_config.GITLAB_SERVICE_API
+        gitlab_service_info = custom_config.GITLAB
         if gitlab_service_info is not None:
             for k, v in gitlab_service_info.items():
                 setattr(self, k, v)
