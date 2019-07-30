@@ -21,6 +21,7 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.user_role_repo import user_role_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from console.services.exception import ErrAdminUserDoesNotExist
@@ -184,11 +185,11 @@ class UserService(object):
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "enterprise_id": data["eid"],
-            "is_active": data.get("is_active", False),
+            "is_active": data.get("is_active", True),
             "create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
 
-        Users.objects.create(**user)
+        return Users.objects.create(**user)
 
     def update(self, user_id, data):
         d = {}
@@ -319,24 +320,29 @@ class UserService(object):
             })
         return users, uall.count()
 
-    def list_users_by_tenant_id(self, tenant_id, page, size, query=""):
-        uall = user_repo.list_users_by_tenant_id(tenant_id, query)
-        paginator = Paginator(uall, size)
-        upp = paginator.page(page)
+    def list_users_by_tenant_id(self, tenant_id, page=None, size=None, query=""):
+        result = user_repo.list_users_by_tenant_id(tenant_id, query=query, page=page, size=size)
         users = []
-        for user in upp:
+        for item in result:
+            role_name = item.get("identity")
+            role_names = user_role_repo.get_role_names(item.get("user_id"), tenant_id)
+            if role_names is not None:
+                if role_name is None or role_name in role_names:
+                    role_name = role_names
+                if role_name not in role_names:
+                    role_name = role_name + "," + role_names
             users.append({
-                "user_id": user.user_id,
-                "email": user.email,
-                "nick_name": user.nick_name,
-                "phone": user.phone,
-                "is_active": user.is_active,
-                "origion": user.origion,
-                "create_time": user.create_time,
-                "client_ip": user.client_ip,
-                "enterprise_id": user.enterprise_id,
+                "user_id": item.get("user_id"),
+                "nick_name": item.get("nick_name"),
+                "email": item.get("email"),
+                "phone": item.get("phone"),
+                "is_active": item.get("is_active"),
+                "enterprise_id": item.get("enterprise_id"),
+                "role_name": role_name,
             })
-        return users, uall.count()
+
+        total = user_repo.count_users_by_tenant_id(tenant_id, query=query)
+        return users, total
 
     def list_admin_users(self, page, size, eid=None):
         if eid is None:

@@ -19,10 +19,6 @@ class ListUsersRespView(serializers.Serializer):
     users = UserInfoSerializer(many=True)
     total = serializers.IntegerField()
 
-    def create(self, data):
-        self.total = data["total"]
-        self.users = UserInfoSerializer(data["users"], many=True)
-
 
 class CreateUserSerializer(serializers.Serializer):
     nick_name = serializers.CharField(max_length=24, required=True, help_text=u"用户昵称")
@@ -45,3 +41,19 @@ class UpdateUserSerializer(serializers.Serializer):
 class CreateAdminUserReqSerializer(serializers.Serializer):
     user_id = serializers.CharField(max_length=32, required=True, help_text=u"用户ID")
     eid = serializers.CharField(max_length=32, required=True, help_text=u"企业ID")
+
+
+class TeamUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    email = serializers.CharField(required=False, max_length=35, help_text=u"邮件地址")
+    nick_name = serializers.CharField(required=False, max_length=24, help_text=u"用户昵称")
+    phone = serializers.CharField(required=False, max_length=11, help_text=u"手机号码")
+    is_active = serializers.BooleanField(required=False, help_text=u"激活状态")
+    origion = serializers.CharField(required=False, allow_blank=True, max_length=12, help_text=u"用户来源")
+    enterprise_id = serializers.CharField(required=False, max_length=32, help_text=u"enterprise_id")
+    role_name = serializers.CharField(required=False, max_length=32, help_text=u"role_name")
+
+
+class ListTeamUsersRespView(serializers.Serializer):
+    users = TeamUserSerializer(many=True)
+    total = serializers.IntegerField()

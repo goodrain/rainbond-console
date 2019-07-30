@@ -17,8 +17,7 @@ from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
-from openapi.serializer.user_serializer import ListUsersRespView
-from openapi.serializer.user_serializer import UserInfoSerializer
+from openapi.serializer.user_serializer import ListTeamUsersRespView
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import PermRelTenant
@@ -175,7 +174,7 @@ class ListTeamUsersInfo(ListAPIView):
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
-        responses={200: ListUsersRespView()},
+        responses={200: ListTeamUsersRespView()},
         tags=['openapi-team'],
     )
     def get(self, req, team_id, *args, **kwargs):
@@ -184,9 +183,6 @@ class ListTeamUsersInfo(ListAPIView):
         query = req.GET.get("query", "")
         users, total = user_services.list_users_by_tenant_id(
             tenant_id=team_id, page=page, size=page_size, query=query)
-        serializer = UserInfoSerializer(users, many=True)
-        result = {
-            "users": serializer.data,
-            "total": total,
-        }
-        return Response(result, status.HTTP_200_OK)
+        serializer = ListTeamUsersRespView(data={"users": users, "total": total})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)

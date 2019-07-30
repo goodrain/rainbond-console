@@ -2,6 +2,7 @@
 from django.db.models import Q
 
 from backends.services.exceptions import UserNotExistError
+from console.repositories.base import BaseConnection
 from www.models.main import Users
 
 
@@ -76,13 +77,72 @@ class UserRepo(object):
                                     | Q(email__contains=item)
                                     | Q(phone__contains=item)).all().order_by("-create_time")
 
-    def list_users_by_tenant_id(self, tenant_id, query=""):
+    def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):
         """
         Support search by username, email, phone number
         """
-        return Users.objects.filter(Q(nick_name__contains=query)
-                                    | Q(email__contains=query)
-                                    | Q(phone__contains=query)).all().order_by("-create_time")
+        conn = BaseConnection()
+
+        limit = ""
+        if page is not None and size is not None:
+            page = page if page > 0 else 1
+            page = (page - 1) * size
+            limit = "Limit {page}, {size}".format(page=page, size=size)
+        where = """WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+        if query:
+            where += """ AND ( a.nick_name LIKE "%{query}%"
+            OR a.phone LIKE "%{query}%"
+            OR a.email LIKE "%{query}%" )""".format(query=query)
+        sql = """
+            SELECT DISTINCT
+                a.user_id,
+                a.email,
+                a.nick_name,
+                a.phone,
+                a.is_active,
+                a.enterprise_id,
+                b.identity
+            FROM
+                user_info a,
+                tenant_perms b,
+                tenant_info c
+            {where}
+            {limit}""".format(tenant_id=tenant_id, where=where, limit=limit)
+        result = conn.query(sql)
+        print sql
+        return result
+
+    def count_users_by_tenant_id(self, tenant_id, query=""):
+        """
+        Support search by username, email, phone number
+        """
+        where = """WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+        if query:
+            where += """ AND ( a.nick_name LIKE "%{query}%"
+            OR a.phone LIKE "%{query}%"
+            OR a.email LIKE "%{query}%" )""".format(query=query)
+
+        sql = """
+            SELECT
+                count(*) as total
+            FROM
+                (
+                SELECT DISTINCT
+                    a.user_id AS user_id
+                FROM
+                    user_info a,
+                    tenant_perms b,
+                    tenant_info c
+                {where}
+                ) as userid""".format(where=where)
+
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result[0].get("total")
 
 
 user_repo = UserRepo()
