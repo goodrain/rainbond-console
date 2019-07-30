@@ -14,10 +14,12 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
+from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
+from openapi.serializer.team_serializer import RoleInfoRespSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
-from openapi.serializer.user_serializer import ListTeamUsersRespView
+from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import PermRelTenant
@@ -43,8 +45,14 @@ class ListTeamInfo(ListAPIView):
         if not eid:
             raise serializers.ValidationError("缺少'eid'字段")
         query = req.GET.get("query", "")
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
 
         res = team_services.get_enterprise_teams(
             eid, query=query, page=page, page_size=page_size)
@@ -174,15 +182,136 @@ class ListTeamUsersInfo(ListAPIView):
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
-        responses={200: ListTeamUsersRespView()},
+        responses={200: ListTeamUsersRespSerializer()},
         tags=['openapi-team'],
     )
     def get(self, req, team_id, *args, **kwargs):
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
         query = req.GET.get("query", "")
         users, total = user_services.list_users_by_tenant_id(
             tenant_id=team_id, page=page, size=page_size, query=query)
-        serializer = ListTeamUsersRespView(data={"users": users, "total": total})
+        serializer = ListTeamUsersRespSerializer(data={"users": users, "total": total})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+
+class TeamUserInfoView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="将用户从团队中移除",
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_404_NOT_FOUND: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None
+        },
+        tags=['openapi-team'],
+    )
+    def delete(self, req, team_id, user_id):
+        if req.user.user_id == user_id:
+            raise serializers.ValidationError("不能删除自己", status.HTTP_400_BAD_REQUEST)
+        role_name = user_services.get_user_role_names(team_id, user_id)
+        if "owner" in role_name:
+            raise serializers.ValidationError("不能删除团队拥有者！", status.HTTP_400_BAD_REQUEST)
+        try:
+            user_services.batch_delete_users(team_id, [user_id])
+            return Response(None, status.HTTP_200_OK)
+        except Tenants.DoesNotExist:
+            return Response(None, status.HTTP_404_NOT_FOUND)
+
+    @swagger_auto_schema(
+        operation_description="add team user",
+        request_body=CreateTeamUserReqSerializer(),
+        responses={
+            status.HTTP_201_CREATED: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def post(self, req, team_id, user_id):
+        serializer = CreateTeamUserReqSerializer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+
+        role_ids = req.data["role_ids"].replace(" ", "").split(",")
+        roleids = team_services.get_all_team_role_id(tenant_name=team_id)
+        for role_id in role_ids:
+            if int(role_id) not in roleids:
+                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
+
+        flag = team_services.user_is_exist_in_team(user_list=[user_id], tenant_name=team_id)
+        if flag:
+            user_obj = user_services.get_user_by_user_id(user_id=user_id)
+            raise serializers.ValidationError("用户{}已经存在".format(user_obj.nick_name), status.HTTP_400_BAD_REQUEST)
+
+        team = team_services.get_team_by_team_id(team_id)
+        team_services.add_user_role_to_team(tenant=team, user_ids=[user_id], role_ids=role_ids)
+
+        return Response(None, status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        operation_description="update team user",
+        request_body=CreateTeamUserReqSerializer(),
+        responses={
+            status.HTTP_201_CREATED: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+            status.HTTP_404_NOT_FOUND: None,
+        },
+        tags=['openapi-team'],
+    )
+    def put(self, req, team_id, user_id):
+        if req.user.user_id == user_id:
+            raise serializers.ValidationError("您不能修改自己的权限!", status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = CreateTeamUserReqSerializer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+
+        role_ids = req.data["role_ids"].replace(" ", "")
+        roleids = team_services.get_all_team_role_id(tenant_name=team_id)
+        for role_id in role_ids:
+            if role_id not in roleids:
+                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
+
+        try:
+            role_name = user_services.get_user_role_names(team_id, user_id)
+        except UserNotExistError:
+            raise serializers.ValidationError("用户{}不存在于团队{}中".format(user_id, team_id),
+                                              status.HTTP_404_NOT_FOUND)
+        if "owner" in role_name:
+            raise serializers.ValidationError("不能修改团队拥有者的权限！", status.HTTP_400_BAD_REQUEST)
+
+        team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
+
+        return Response(None, status.HTTP_201_CREATED)
+
+
+class ListUserRolesView(ListAPIView):
+    @swagger_auto_schema(
+        operation_description="获取用户角色列表",
+        manual_parameters=[
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: RoleInfoRespSerializer(many=True)},
+        tags=['openapi-user-role'],
+    )
+    def get(self, req, team_id, *args, **kwargs):
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
+
+        role_list = team_services.get_tenant_roles(team_id, page, page_size)
+        serializer = RoleInfoRespSerializer(data=role_list, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)

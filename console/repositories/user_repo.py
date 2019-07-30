@@ -77,6 +77,32 @@ class UserRepo(object):
                                     | Q(email__contains=item)
                                     | Q(phone__contains=item)).all().order_by("-create_time")
 
+    def get_by_tenant_id(self, tenant_id, user_id):
+        conn = BaseConnection()
+
+        where = """""".format(tenant_id=tenant_id)
+        sql = """
+            SELECT DISTINCT
+                a.user_id,
+                a.email,
+                a.nick_name,
+                a.phone,
+                a.is_active,
+                a.enterprise_id,
+                b.identity
+            FROM
+                user_info a,
+                tenant_perms b,
+                tenant_info c
+            WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND a.user_id = {user_id}
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, where=where, user_id=user_id)
+        result = conn.query(sql)
+        if len(result) == 0:
+            raise UserNotExistError()
+        return result[0]
+
     def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):
         """
         Support search by username, email, phone number

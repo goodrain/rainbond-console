@@ -19,6 +19,7 @@ from backends.services.exceptions import UserNotExistError
 from backends.services.tenantservice import tenant_service as tenantService
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
@@ -146,7 +147,10 @@ class UserService(object):
         return user_list
 
     def batch_delete_users(self, tenant_name, user_id_list):
-        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = Tenants.objects.get(tenant_id=tenant_name)
         PermRelTenant.objects.filter(user_id__in=user_id_list, tenant_id=tenant.ID).delete()
 
     def get_user_by_username(self, user_name):
@@ -199,10 +203,12 @@ class UserService(object):
             d["phone"] = data["phone"]
         if data.get("is_active", None) is not None:
             d["is_active"] = data["is_active"]
-        if data.get("password", None) is not None:
-            d["password"] = encrypt_passwd(data["passowrd"])
 
         Users.objects.filter(user_id=user_id).update(**d)
+        if data.get("password", None) is not None:
+            user = Users.objects.get(user_id=user_id)
+            user.set_password(data["password"])
+            user.save()
 
     def delete(self, user_id):
         Users.objects.filter(user_id=user_id).delete()
@@ -325,12 +331,14 @@ class UserService(object):
         users = []
         for item in result:
             role_name = item.get("identity")
-            role_names = user_role_repo.get_role_names(item.get("user_id"), tenant_id)
-            if role_names is not None:
+            try:
+                role_names = user_role_repo.get_role_names(item.get("user_id"), tenant_id)
                 if role_name is None or role_name in role_names:
                     role_name = role_names
                 if role_name not in role_names:
                     role_name = role_name + "," + role_names
+            except UserRoleNotFoundException:
+                pass
             users.append({
                 "user_id": item.get("user_id"),
                 "nick_name": item.get("nick_name"),
@@ -385,6 +393,19 @@ class UserService(object):
         if count == 1:
             raise ErrCannotDelLastAdminUser("当前用户为最后一个企业管理员，无法删除")
         enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
+
+    def get_user_role_names(self, tenant_id, user_id):
+        user = user_repo.get_by_tenant_id(tenant_id, user_id)
+        role_name = user.get("identity")
+        try:
+            role_names = user_role_repo.get_role_names(user_id, tenant_id)
+            if role_name is None or role_name in role_names:
+                role_name = role_names
+            if role_name not in role_names:
+                role_name = role_name + "," + role_names
+        except UserRoleNotFoundException:
+            pass
+        return role_name
 
 
 user_services = UserService()

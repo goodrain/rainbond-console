@@ -38,8 +38,14 @@ class ListUsersView(ListAPIView):
         tags=['openapi-user'],
     )
     def get(self, req, *args, **kwargs):
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
         query = req.GET.get("query", "")
         users, total = user_services.list_users(page, page_size, query)
         serializer = UserInfoSerializer(users, many=True)
@@ -141,8 +147,14 @@ class UserTeamInfoView(ListAPIView):
         if not eid:
             raise serializers.ValidationError("缺少'eid'字段")
         query = req.GET.get("query", "")
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
 
         res = team_services.get_enterprise_teams(
             eid, user_id=user_id, query=query, page=page, page_size=page_size)

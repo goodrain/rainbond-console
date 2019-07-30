@@ -56,6 +56,6 @@ class TeamUserSerializer(serializers.Serializer):
                                       allow_null=True, help_text=u"role_name")
 
 
-class ListTeamUsersRespView(serializers.Serializer):
+class ListTeamUsersRespSerializer(serializers.Serializer):
     users = TeamUserSerializer(many=True)
     total = serializers.IntegerField()

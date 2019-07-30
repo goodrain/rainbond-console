@@ -5,6 +5,8 @@ import random
 import string
 
 from django.conf import settings
+from django.core.paginator import EmptyPage
+from django.core.paginator import PageNotAnInteger
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -164,7 +166,12 @@ class TeamService(object):
 
     def get_all_team_role_id(self, tenant_name):
         """获取一个团队中的所有可选角色ID列表"""
-        team_obj = team_services.get_tenant(tenant_name=tenant_name)
+        try:
+            team_obj = team_services.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            team_obj = self.get_team_by_team_id(tenant_name)
+            if team_obj is None:
+                raise Tenants.DoesNotExist()
         default_role_id_list = TenantUserRole.objects.filter(Q(is_default=True) & ~Q(role_name="owner")).values_list(
             "pk", flat=True)
         team_role_id_list = TenantUserRole.objects.filter(
@@ -193,12 +200,40 @@ class TeamService(object):
 
     def get_tenant_role_by_tenant_name(self, tenant_name):
         """获取一个团队中的所有角色和角色对应的权限信息"""
-        tenant = self.get_tenant(tenant_name=tenant_name)
+        try:
+            tenant = self.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = self.get_team_by_team_id(tenant_name)
+            if tenant is None:
+                raise Tenants.DoesNotExist()
         return role_repo.get_tenant_role_by_tenant_id(tenant_id=tenant.pk)
+
+    def get_tenant_roles(self, tenant_id, page=None, page_size=None):
+        """获取一个团队中的所有角色和角色对应的权限信息"""
+        tenant = team_repo.get_team_by_team_id(tenant_id)
+        if tenant is None:
+            raise Tenants.DoesNotExist()
+
+        role_list = role_repo.get_tenant_role_by_tenant_id(tenant_id=tenant.pk)
+        paginator = Paginator(role_list, page_size)
+        try:
+            role_list = paginator.page(page).object_list
+        except PageNotAnInteger:
+            page = 1
+            role_list = paginator.page(1).object_list
+        except EmptyPage:
+            page = paginator.num_pages
+            role_list = paginator.page(paginator.num_pages).object_list
+        return role_list
 
     def change_tenant_role(self, user_id, tenant_name, role_id_list):
         """修改用户在团队中的角色"""
-        tenant = self.get_tenant(tenant_name=tenant_name)
+        try:
+            tenant = self.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = self.get_team_by_team_id(tenant_name)
+            if tenant is None:
+                raise Tenants.DoesNotExist()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(
             user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
@@ -212,7 +247,7 @@ class TeamService(object):
             user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
         return user_role
 
-    def add_user_role_to_team(self, request, tenant, user_ids, role_ids):
+    def add_user_role_to_team(self, tenant, user_ids, role_ids):
         """在团队中添加一个用户并给用户分配一个角色"""
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
@@ -248,7 +283,12 @@ class TeamService(object):
 
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
-        tenant = self.get_tenant(tenant_name=tenant_name)
+        try:
+            tenant = team_services.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = self.get_team_by_team_id(tenant_name)
+            if tenant is None:
+                raise Tenants.DoesNotExist()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         for user_id in user_list:
             obj = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)

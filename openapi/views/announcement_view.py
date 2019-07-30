@@ -28,8 +28,14 @@ class ListAnnouncementView(ListAPIView):
         tags=['openapi-announcement'],
     )
     def get(self, req):
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
         ancm, total = announcement_service.list(page, page_size)
         serializer = ListAnnouncementRespSerializer({"total": total,
                                                      "announcements": ancm})

@@ -37,3 +37,20 @@ class UpdateTeamInfoReqSerializer(serializers.Serializer):
     creater = serializers.IntegerField(help_text=u"团队拥有者用户ID", required=False)
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名", required=False)
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID", required=False)
+
+
+class RoleInfoRespSerializer(serializers.Serializer):
+    role_id = serializers.IntegerField(help_text=u"角色ID")
+    role_name = serializers.CharField(max_length=32, help_text=u"角色名称")
+
+
+class CreateTeamUserReqSerializer(serializers.Serializer):
+    role_ids = serializers.CharField(max_length=255, help_text=u"角色ID列表")
+
+    def validate_role_ids(self, role_ids):
+        role_ids = role_ids.replace(" ", "")
+        for role_id in role_ids.split(","):
+            try:
+                int(role_id)
+            except ValueError:
+                raise serializers.ValidationError("角色ID格式不正确")

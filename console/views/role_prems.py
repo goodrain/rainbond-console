@@ -1,22 +1,28 @@
 # -*- coding: utf-8 -*-
 import logging
-
 import re
-from rest_framework.response import Response
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
+from django.core.paginator import EmptyPage
+from django.core.paginator import PageNotAnInteger
+from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
-from backends.services.exceptions import UserNotExistError, ParamsError
+from rest_framework.response import Response
+
+from backends.services.exceptions import ParamsError
+from backends.services.exceptions import UserNotExistError
 from backends.services.resultservice import generate_result
+from console.repositories.perm_repo import role_perm_repo
+from console.repositories.perm_repo import role_repo
+from console.repositories.user_repo import user_repo
+from console.services.perm_services import app_perm_service
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.views.app_config.base import AppBaseView
 from console.views.base import JWTAuthApiView
 from www.decorator import perm_required
 from www.models.main import Tenants
-from console.repositories.perm_repo import role_repo, role_perm_repo
-from console.views.app_config.base import AppBaseView
-from www.utils.return_message import general_message, error_message
-from console.services.perm_services import app_perm_service
-from console.repositories.user_repo import user_repo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -293,7 +299,8 @@ class UserUpdatePemView(JWTAuthApiView):
                     new_role_name=new_role_name, role_id=role_id, tenant_name=team_name, perm_id_list=perm_id_list)
                 if role_obj:
                     code = 200
-                    role_info = {"role_id": role_obj.pk, "role_name": role_obj.role_name, "is_default": role_obj.is_default}
+                    role_info = {"role_id": role_obj.pk, "role_name": role_obj.role_name,
+                                 "is_default": role_obj.is_default}
                     result = general_message(code, "success", "更新角色权限成功", bean=role_info)
                 else:
                     code = 400
@@ -406,7 +413,8 @@ class UserModifyPemView(JWTAuthApiView):
               paramType: body
         """
         try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
             no_auth = ("owner" not in perm_list) and (
@@ -486,7 +494,8 @@ class TeamAddUserView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        perm_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id, tenant_name=team_name)
         # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
         role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
@@ -528,7 +537,7 @@ class TeamAddUserView(JWTAuthApiView):
             code = 200
             team = team_services.get_tenant(tenant_name=team_name)
 
-            team_services.add_user_role_to_team(request=request, tenant=team, user_ids=user_ids, role_ids=role_ids)
+            team_services.add_user_role_to_team(tenant=team, user_ids=user_ids, role_ids=role_ids)
             result = general_message(code, "success", "用户添加到{}成功".format(team_name))
 
         except ParamsError as e:
@@ -622,8 +631,8 @@ class ServicePermissionView(AppBaseView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            code, msg, service_perm = app_perm_service.add_user_service_perm(self.user, user_list, self.tenant, self.service,
-                                                                             perm_list)
+            code, msg, service_perm = app_perm_service.add_user_service_perm(
+                self.user, user_list, self.tenant, self.service, perm_list)
             if code != 200:
                 return Response(general_message(code, "add service perm error", msg), status=400)
             result = general_message(code, "success", "添加应用成员成功")
@@ -676,7 +685,8 @@ class ServicePermissionView(AppBaseView):
                 result = general_message(code, "Incorrect parameter format", "参数格式不正确")
                 return Response(result, status=code)
 
-            code, msg, service_perm = app_perm_service.update_user_service_perm(self.user, user_id, self.service, perm_list)
+            code, msg, service_perm = app_perm_service.update_user_service_perm(
+                self.user, user_id, self.service, perm_list)
             if code != 200:
                 return Response(general_message(code, "update service perm error", msg), status=400)
             result = general_message(code, "success", "修改成功")

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from console.repositories.base import BaseConnection
+from console.repositories.exceptions import UserRoleNotFoundException
 
 
 class UserRoleRepo(object):
@@ -18,8 +19,10 @@ class UserRoleRepo(object):
             AND c.tenant_id = '{tenant_id}'""".format(user_id=user_id, tenant_id=tenant_id)
         conn = BaseConnection()
         result = conn.query(sql)
-        if len(result) == 0:
-            return None
+        if len(result) == 0 or result[0].get("role_names") is None:
+            raise UserRoleNotFoundException(
+                "tenant_id: {tenant_id}; user_id: {user_id}; user role not found".format(
+                    tenant_id=tenant_id, user_id=user_id))
         return result[0].get("role_names")
 
 

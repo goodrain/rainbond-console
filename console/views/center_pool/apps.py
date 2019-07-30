@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from django.db.models import F
 from django.db.models import Min
 from django.views.decorators.cache import never_cache
+from market_client.rest import ApiException
 from rest_framework.response import Response
 
 from console.exception.main import AccountOverdueException
@@ -23,11 +24,10 @@ from console.services.market_app_service import market_sycn_service
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
+from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from www.apiclient.baseclient import HttpClient
-from market_client.rest import ApiException
 
 logger = logging.getLogger('default')
 
@@ -65,7 +65,9 @@ class CenterAppListView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
 
-        apps = market_app_service.get_visiable_apps(self.tenant, scope, app_name).values('group_key').annotate(id=Min('ID'))
+        apps = market_app_service.get_visiable_apps(
+            self.tenant, scope, app_name).values('group_key').annotate(
+            id=Min('ID'))
         paginator = Paginator(apps, int(page_size))
         show_apps = paginator.page(int(page))
 
@@ -83,7 +85,8 @@ class CenterAppListView(RegionTenantHeaderView):
                     **app.to_dict())
 
         return MessageResponse(
-            "success", msg_show="查询成功", list=[app for app in yield_apps()], total=paginator.count, next_page=int(page) + 1)
+            "success", msg_show="查询成功", list=[app for app in yield_apps()],
+            total=paginator.count, next_page=int(page) + 1)
 
 
 class CenterAppView(RegionTenantHeaderView):
@@ -178,7 +181,9 @@ class CenterAppManageView(RegionTenantHeaderView):
         try:
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
+                    return Response(
+                        general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                        status=403)
             group_key = request.data.get("group_key", None)
             group_version_list = request.data.get("group_version_list", [])
             action = request.data.get("action", None)
@@ -242,14 +247,17 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
 
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
+                    return Response(
+                        general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
+                        status=403)
             logger.debug("start synchronized market apps detail")
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
 
             for version in group_version:
-                market_sycn_service.down_market_group_app_detail(self.user, self.tenant, group_key, version, template_version)
+                market_sycn_service.down_market_group_app_detail(
+                    self.user, self.tenant, group_key, version, template_version)
             result = general_message(200, "success", "应用同步成功")
         except HttpClient.CallApiError as e:
             logger.exception(e)

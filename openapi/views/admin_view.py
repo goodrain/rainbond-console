@@ -33,8 +33,14 @@ class ListAdminsView(ListAPIView):
         tags=['openapi-user'],
     )
     def get(self, req, *args, **kwargs):
-        page = int(req.GET.get("page", 1))
-        page_size = int(req.GET.get("page_size", 10))
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
         eid = req.GET.get("eid", None)
 
         users, total = user_services.list_admin_users(page, page_size, eid)

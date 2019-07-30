@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from openapi.serializer.utils import urlregex, ipregex
-from openapi.models.main import RegionConfig
 from rest_framework import serializers
+
+from openapi.models.main import RegionConfig
+from openapi.serializer.utils import ipregex
+from openapi.serializer.utils import urlregex
 
 
 class RegionInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = RegionConfig
-        fields = [
-            "region_name", "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert",
-            "cert_file", "key_file", "status", "desc"
-        ]
+        fields = ["region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain",
+                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
 
     def validate_url(self, url):
         if not urlregex.match(url):
