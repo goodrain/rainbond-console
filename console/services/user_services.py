@@ -20,6 +20,7 @@ from backends.services.tenantservice import tenant_service as tenantService
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.exceptions import UserRoleNotFoundException
+from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
@@ -27,6 +28,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.team_services import team_services
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -330,15 +332,25 @@ class UserService(object):
         result = user_repo.list_users_by_tenant_id(tenant_id, query=query, page=page, size=size)
         users = []
         for item in result:
-            role_name = item.get("identity")
-            try:
-                role_names = user_role_repo.get_role_names(item.get("user_id"), tenant_id)
-                if role_name is None or role_name in role_names:
-                    role_name = role_names
-                if role_name not in role_names:
-                    role_name = role_name + "," + role_names
-            except UserRoleNotFoundException:
-                pass
+            # 获取一个用户在一个团队中的身份列表
+            perms_identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=item.get("user_id"), tenant_name=tenant_id)
+            # 获取一个用户在一个团队中的角色ID列表
+            perms_role_list = team_services.get_user_perm_role_id_in_permtenant(
+                user_id=item.get("user_id"), tenant_name=tenant_id)
+
+            role_infos = []
+
+            for identity in perms_identitys:
+                if identity == "access":
+                    role_infos.append({"role_name": identity, "role_id": None})
+                else:
+                    role_id = role_repo.get_role_id_by_role_name(identity)
+                    role_infos.append({"role_name": identity, "role_id": role_id})
+            for role in perms_role_list:
+                role_name = role_repo.get_role_name_by_role_id(role)
+                role_infos.append({"role_name": role_name, "role_id": role})
+
             users.append({
                 "user_id": item.get("user_id"),
                 "nick_name": item.get("nick_name"),
@@ -346,7 +358,7 @@ class UserService(object):
                 "phone": item.get("phone"),
                 "is_active": item.get("is_active"),
                 "enterprise_id": item.get("enterprise_id"),
-                "role_name": role_name,
+                "role_infos": role_infos,
             })
 
         total = user_repo.count_users_by_tenant_id(tenant_id, query=query)

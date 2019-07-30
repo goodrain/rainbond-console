@@ -44,6 +44,11 @@ class CreateAdminUserReqSerializer(serializers.Serializer):
     eid = serializers.CharField(max_length=32, required=True, help_text=u"企业ID")
 
 
+class RoleInfoSerializer(serializers.Serializer):
+    role_name = serializers.CharField(max_length=32, required=True, help_text=u"角色名称")
+    role_id = serializers.CharField(max_length=32, required=True, help_text=u"角色ID")
+
+
 class TeamUserSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     email = serializers.CharField(required=False, allow_null=True, allow_blank=True, max_length=35, help_text=u"邮件地址")
@@ -52,8 +57,7 @@ class TeamUserSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(required=False, help_text=u"激活状态")
     origion = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=12, help_text=u"用户来源")
     enterprise_id = serializers.CharField(required=False, max_length=32, help_text=u"enterprise_id")
-    role_name = serializers.CharField(required=False, max_length=32, allow_blank=True,
-                                      allow_null=True, help_text=u"role_name")
+    role_infos = RoleInfoSerializer(many=True)
 
 
 class ListTeamUsersRespSerializer(serializers.Serializer):

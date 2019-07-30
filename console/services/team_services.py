@@ -111,7 +111,12 @@ class TeamService(object):
 
     def get_user_perm_identitys_in_permtenant(self, user_id, tenant_name):
         """获取用户在一个团队的身份列表"""
-        tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
+        try:
+            tenant = self.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = self.get_team_by_team_id(tenant_name)
+            if tenant is None:
+                raise Tenants.DoesNotExist()
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         if not user_perms:
             return []
@@ -138,7 +143,12 @@ class TeamService(object):
 
     def get_user_perm_role_id_in_permtenant(self, user_id, tenant_name):
         """获取一个用户在一个团队的角色ID列表"""
-        tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
+        try:
+            tenant = self.get_tenant(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = self.get_team_by_team_id(tenant_name)
+            if tenant is None:
+                raise Tenants.DoesNotExist()
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         if not user_perms:
             return []
