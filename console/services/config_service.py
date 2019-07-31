@@ -27,6 +27,10 @@ class ConfigService(object):
             res[item.key] = value
         return res
 
+    def delete_by_key(self, key):
+        key = key.upper()
+        cfg_repo.delete_by_key(key)
+
     def update_or_create(self, data):
         for k, v in data.iteritems():
             k = k.upper()

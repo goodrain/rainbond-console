@@ -50,8 +50,12 @@ class TenantEnterpriseRepo(object):
 
 
 class TenantEnterpriseUserPermRepo(object):
-    def create_enterprise_user_perm(self, user_id, enterprise_id, identity):
-        return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
+    def create_enterprise_user_perm(self, user_id, enterprise_id, identity, token=None):
+        if token is None:
+            return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
+        else:
+            return EnterpriseUserPerm.objects.create(
+                user_id=user_id, enterprise_id=enterprise_id, identity=identity, token=token)
 
     def get_user_enterprise_perm(self, user_id, enterprise_id):
         return EnterpriseUserPerm.objects.filter(user_id=user_id, enterprise_id=enterprise_id)

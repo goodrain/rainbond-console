@@ -7,6 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.models.main import ConsoleSysConfig
 from console.services.config_service import config_service
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
 from openapi.serializer.config_serializers import FeatureConfigRespSerializer
@@ -76,3 +77,18 @@ class FeatureConfigView(BaseOpenAPIView):
         queryset = config_service.list_by_keys([key])
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="删除指定的功能配置",
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_404_NOT_FOUND: None
+        },
+        tags=['openapi-config'],
+    )
+    def delete(self, req, key):
+        try:
+            config_service.delete_by_key(key)
+        except ConsoleSysConfig.DoesNotExist:
+            return Response(None, status.HTTP_404_NOT_FOUND)
+        return Response(None, status.HTTP_200_OK)

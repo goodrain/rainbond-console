@@ -94,6 +94,11 @@ class RegionService(object):
         else:
             return []
 
+    def list_by_tenant_id(self, tenant_id, query="", page=None, page_size=None):
+        regions = region_repo.list_by_tenant_id(tenant_id, query, page, page_size)
+        total = region_repo.count_by_tenant_id(tenant_id, query)
+        return regions, total
+
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)

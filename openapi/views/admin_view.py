@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
+from backends.services.exceptions import UserNotExistError
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
@@ -64,10 +65,10 @@ class ListAdminsView(ListAPIView):
         serializer = CreateAdminUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
-        user = user_services.get_user_by_user_id(req.data["user_id"])
-        if user is None:
-            raise serializers.ValidationError("用户'{}'不存在".format(req.data["user_id"]),
-                                              status.HTTP_404_NOT_FOUND)
+        try:
+            user = user_services.get_user_by_user_id(req.data["user_id"])
+        except UserNotExistError:
+            raise serializers.NotFound("用户'{}'不存在".format(req.data["user_id"]))
         ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["eid"])
         if ent is None:
             raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]),

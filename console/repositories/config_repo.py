@@ -8,6 +8,10 @@ class ConfigRepository(object):
     def list_by_keys(self, keys):
         return ConsoleSysConfig.objects.filter(enable=True, key__in=keys)
 
+    def delete_by_key(self, key):
+        cfg = ConsoleSysConfig.objects.get(key=key)
+        cfg.delete()
+
     def update_by_key(self, key, value):
         return ConsoleSysConfig.objects.filter(key=key).update(value=value)
 

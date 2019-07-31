@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from backends.models import RegionConfig
+from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
 from www.models.main import TenantRegionInfo
 
@@ -86,6 +87,55 @@ class RegionRepo(object):
 
     def get_region_info_by_region_name(self, region_name):
         return RegionConfig.objects.filter(region_name=region_name)
+
+    def list_by_tenant_id(self, tenant_id, query="", page=None, page_size=None):
+        limit = ""
+        if page is not None and page_size is not None:
+            page = page if page > 0 else 1
+            page = (page - 1) * page_size
+            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+        where = """
+        WHERE
+            ti.tenant_id = tr.tenant_id
+            AND ri.region_name = tr.region_name
+            AND ti.tenant_id = "{tenant_id}"
+        """.format(tenant_id=tenant_id)
+        if query:
+            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+        sql = """
+        SELECT
+            ri.*
+        FROM
+            region_info ri,
+            tenant_info ti,
+            tenant_region tr
+        {where}
+        {limit}
+        """.format(where=where, limit=limit)
+        conn = BaseConnection()
+        return conn.query(sql)
+
+    def count_by_tenant_id(self, tenant_id, query=""):
+        where = """
+        WHERE
+            ti.tenant_id = tr.tenant_id
+            AND ri.region_name = tr.region_name
+            AND ti.tenant_id = "{tenant_id}"
+        """.format(tenant_id=tenant_id)
+        if query:
+            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+        sql = """
+        SELECT
+            count(*) as total
+        FROM
+            region_info ri,
+            tenant_info ti,
+            tenant_region tr
+        {where}
+        """.format(where=where)
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result[0]["total"]
 
 
 region_repo = RegionRepo()

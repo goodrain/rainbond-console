@@ -15,6 +15,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
+from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import RoleInfoRespSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
@@ -314,5 +315,36 @@ class ListUserRolesView(ListAPIView):
 
         role_list = team_services.get_tenant_roles(team_id, page, page_size)
         serializer = RoleInfoRespSerializer(data=role_list, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+
+class ListRegionsView(ListAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队开通的数据中心列表",
+        manual_parameters=[
+            openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListTeamRegionsRespSerializer()},
+        tags=['openapi-team-region'],
+    )
+    def get(self, req, team_id, *args, **kwargs):
+        query = req.GET.get("query", "")
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
+
+        regions, total = region_services.list_by_tenant_id(team_id, query, page, page_size)
+
+        data = {"regions": regions, "total": total}
+
+        serializer = ListTeamRegionsRespSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)

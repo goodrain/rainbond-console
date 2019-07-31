@@ -19,7 +19,7 @@ class TeamInfoSerializer(serializers.Serializer):
                                    required=False, allow_blank=True, allow_null=True)
     is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
     create_time = serializers.DateTimeField(help_text=u"创建时间", required=False)
-    creater = serializers.CharField(help_text=u"团队拥有者用户ID", required=False)
+    creater = serializers.CharField(help_text=u"团队拥有者用户", required=False)
     service_num = serializers.IntegerField(help_text=u"团队的服务数量", required=False)
     region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
     role_infos = RoleInfoSerializer(many=True, help_text=u"用户在团队中拥有的角色", required=False)
@@ -60,3 +60,25 @@ class CreateTeamUserReqSerializer(serializers.Serializer):
                 int(role_id)
             except ValueError:
                 raise serializers.ValidationError("角色ID格式不正确")
+
+
+class TeamRegionsRespSerializer(serializers.Serializer):
+    region_id = serializers.CharField(max_length=32, help_text=u"region id")
+    region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
+    region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
+    url = serializers.CharField(max_length=256, help_text=u"数据中心API url")
+    wsurl = serializers.CharField(max_length=256, help_text=u"数据中心Websocket url")
+    httpdomain = serializers.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
+    tcpdomain = serializers.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
+    token = serializers.CharField(max_length=40, allow_null=True, allow_blank=True, default="", help_text=u"数据中心token")
+    status = serializers.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
+    desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"数据中心描述")
+    scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
+    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"数据中心访问ca证书地址")
+    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证文件")
+    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证的key")
+
+
+class ListTeamRegionsRespSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    regions = TeamRegionsRespSerializer(many=True)

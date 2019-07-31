@@ -17,6 +17,7 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
+from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
 from www.apiclient.regionapi import RegionInvokeApi
@@ -392,6 +393,8 @@ class TeamService(object):
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
+        user = user_repo.get_by_tenant_id(team.tenant_id, team.creater)
+        team.creater = user.nick_name
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
