@@ -375,18 +375,21 @@ class UserService(object):
 
         users = []
         for item in permsp:
-            user = user_services.get_user_by_user_id(item.user_id)
-            users.append({
-                "user_id": user.user_id,
-                "email": user.email,
-                "nick_name": user.nick_name,
-                "phone": user.phone,
-                "is_active": user.is_active,
-                "origion": user.origion,
-                "create_time": user.create_time,
-                "client_ip": user.client_ip,
-                "enterprise_id": user.enterprise_id,
-            })
+            try:
+                user = user_services.get_user_by_user_id(item.user_id)
+                users.append({
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "phone": user.phone,
+                    "is_active": user.is_active,
+                    "origion": user.origion,
+                    "create_time": user.create_time,
+                    "client_ip": user.client_ip,
+                    "enterprise_id": user.enterprise_id,
+                })
+            except UserNotExistError:
+                logger.warning("user_id: {}; user not found".format(user.user_id))
 
         return users, total
 
