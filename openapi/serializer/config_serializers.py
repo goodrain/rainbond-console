@@ -51,11 +51,20 @@ class GitlabServiceAPIRespSerializer(serializers.Serializer):
     admin_email = serializers.CharField(max_length=255)
 
 
+class AppStoreImageHubRespSerializer(serializers.Serializer):
+    namespace = serializers.CharField(max_length=255)
+    hub_password = serializers.CharField(max_length=255)
+    hub_url = serializers.CharField(max_length=255)
+    hub_user = serializers.CharField(max_length=255)
+
+
 class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     GITHUB = GithubServiceAPIRespSerializer(required=False)
     GITLAB = GitlabServiceAPIRespSerializer(required=False)
+    APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
 
 
 class FeatureConfigRespSerializer(serializers.Serializer):
     GITHUB = GithubServiceAPIRespSerializer(required=False)
     GITLAB = GitlabServiceAPIRespSerializer(required=False)
+    APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
