@@ -5,6 +5,7 @@ from django.db.models import Q
 
 from backends.models import RegionConfig
 from console.models.main import TeamGitlabInfo
+from console.repositories.base import BaseConnection
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import Users
@@ -139,6 +140,101 @@ class TeamRepo(object):
 
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(*data)
+
+    def list_teams_v2(self, query="", page=None, page_size=None):
+        where = "WHERE t.creater = u.user_id"
+        if query:
+            where += " AND t.tenant_alias LIKE '%{query}%'".format(query=query)
+        limit = ""
+        if page is not None and page_size is not None:
+            page = (page - 1) * page_size
+            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+        sql = """
+        SELECT
+            t.tenant_name,
+            t.tenant_alias,
+            t.region,
+            t.limit_memory,
+            t.enterprise_id,
+            t.tenant_id,
+            t.create_time,
+            t.is_active,
+            u.nick_name AS creater,
+            count( s.ID ) AS service_num
+        FROM
+            tenant_info t
+            LEFT JOIN tenant_service s ON t.tenant_id = s.tenant_id,
+            user_info u
+        {where}
+        GROUP BY
+            tenant_id
+        ORDER BY
+            service_num DESC
+        {limit}
+        """.format(where=where, limit=limit)
+        print sql
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result
+
+    def list_by_user_id(self, user_id, query="", page=None, page_size=None):
+        limit = ""
+        if page is not None and page_size is not None:
+            page = page if page > 0 else 1
+            page = (page - 1) * page_size
+            limit = "Limit {page}, {size}".format(page=page, size=page_size)
+        where = """WHERE a.ID = b.tenant_id
+                AND c.user_id = b.user_id
+                AND a.creater = d.user_id
+                AND b.user_id = {user_id}
+                """.format(user_id=user_id)
+        if query:
+            where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
+        sql = """
+            SELECT DISTINCT
+                a.ID,
+                a.tenant_id,
+                a.tenant_name,
+                a.tenant_alias,
+                a.is_active,
+                a.enterprise_id,
+                a.create_time,
+                d.nick_name
+            FROM
+                tenant_info a,
+                tenant_perms b,
+                user_info c,
+                user_info d
+            {where}
+            {limit}
+            """.format(where=where, limit=limit)
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result
+
+    def count_by_user_id(user_id, query=""):
+        where = """WHERE a.ID = b.tenant_id
+                AND c.user_id = b.user_id
+                AND b.user_id = {user_id}
+                """.format(user_id=user_id)
+        if query:
+            where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
+        sql = """
+        SELECT
+            count( * ) AS total
+        FROM
+            (
+            SELECT DISTINCT
+                a.tenant_id AS tenant_id
+            FROM
+                tenant_info a,
+                tenant_perms b,
+                user_info c
+            {where}
+            ) as tmp""".format(where)
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result[0].get("total")
 
 
 class TeamGitlabRepo(object):

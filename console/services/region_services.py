@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from www.apiclient.baseclient import client_auth_service
-from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.marketclient import MarketOpenAPI
-from console.repositories.group import group_repo
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -70,6 +70,30 @@ class RegionService(object):
         else:
             return []
 
+    def list_by_tenant_ids(self, tenant_ids):
+        regions = region_repo.list_active_region_by_tenant_ids(tenant_ids)
+        if regions:
+            result = []
+            for region in regions:
+                regionconfig = region_repo.get_region_by_region_name(region.region_name)
+                if regionconfig and regionconfig.status in ("1", "3"):
+                    region_info = {
+                        "service_status": region.service_status,
+                        "is_active": region.is_active,
+                        "region_status": regionconfig.status,
+                        "team_region_alias": regionconfig.region_alias,
+                        "region_tenant_id": region.region_tenant_id,
+                        "team_region_name": region.region_name,
+                        "region_scope": regionconfig.scope,
+                        "region_create_time": regionconfig.create_time,
+                        "websocket_uri": regionconfig.wsurl,
+                        "tcpdomain": regionconfig.tcpdomain
+                    }
+                    result.append(region_info)
+            return result
+        else:
+            return []
+
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
@@ -83,7 +107,8 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            res, body = region_api.get_region_publickey(
+                tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
@@ -139,7 +164,8 @@ class RegionService(object):
 
         if not tenant_region.is_init:
 
-            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
+            res, body = region_api.create_tenant(region_name, tenant.tenant_name,
+                                                 tenant.tenant_id, tenant.enterprise_id)
             logger.debug("============create region tenant : res, {0}, body {1}".format(res, body))
             if res["status"] != 200:
                 return res["status"], u"数据中心创建租户失败", None
@@ -170,8 +196,8 @@ class RegionService(object):
         is_pass = True
         try:
             res, data = market_api.get_region_access_token(tenant_id, enterprise_id, region_name)
-            is_success = client_auth_service.save_region_access_token(data["eid"], region_name, region_url, data['token'],
-                                                                      data['key'], data['crt'])
+            is_success = client_auth_service.save_region_access_token(
+                data["eid"], region_name, region_url, data['token'], data['key'], data['crt'])
             if not is_success:
                 logger.error("save region access token error")
                 is_pass = False
@@ -185,8 +211,8 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
-                                                                                   user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format(
+                (tenant_id, enterprise_id, region_name, user_name)))
             logger.exception(e)
             return False
 
@@ -205,7 +231,8 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(
+            team_name).filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):

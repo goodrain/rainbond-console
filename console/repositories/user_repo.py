@@ -137,7 +137,6 @@ class UserRepo(object):
             {where}
             {limit}""".format(tenant_id=tenant_id, where=where, limit=limit)
         result = conn.query(sql)
-        print sql
         return result
 
     def count_users_by_tenant_id(self, tenant_id, query=""):

@@ -16,13 +16,17 @@ from console.repositories.perm_repo import role_perm_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.tenant_region_repo import tenant_region_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import perm_services
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import TenantServiceInfo
 
+
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class TeamService(object):
@@ -452,6 +456,17 @@ class TeamService(object):
             result = team_repo.get_teams_by_enterprise_id(enterprise_id)
 
         return result
+
+    def list_teams_v2(self, eid, query=None, page=None, page_size=None):
+        if query:
+            total = Tenants.objects.filter(tenant_alias__contains=query).count()
+        else:
+            total = Tenants.objects.count()
+        tenants = team_repo.list_teams_v2(query, page, page_size)
+        for tenant in tenants:
+            region_num = tenant_region_repo.count_by_tenant_id(tenant["tenant_id"])
+            tenant["region_num"] = region_num
+        return tenants, total
 
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)

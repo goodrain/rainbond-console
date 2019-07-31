@@ -17,6 +17,8 @@ class TeamInfoSerializer(serializers.Serializer):
     creater = serializers.CharField(help_text=u"团队拥有者用户ID")
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID")
+    service_num = serializers.IntegerField(help_text=u"团队的服务数量", required=False)
+    region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
 
 
 class ListTeamRespSerializer(serializers.Serializer):

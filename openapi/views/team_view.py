@@ -54,11 +54,12 @@ class ListTeamInfo(ListAPIView):
         except ValueError:
             page_size = 10
 
-        res = team_services.get_enterprise_teams(
+        data, total = team_services.list_teams_v2(
             eid, query=query, page=page, page_size=page_size)
-        serializer = ListTeamRespSerializer(res)
-
-        return Response(serializer.data, status.HTTP_200_OK)
+        result = {"tenants": data, "total": total}
+        serializer = ListTeamRespSerializer(data=result)
+        serializer.is_valid(raise_exception=True)
+        return Response(result, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="add team",
@@ -258,7 +259,7 @@ class TeamUserInfoView(BaseOpenAPIView):
         operation_description="update team user",
         request_body=CreateTeamUserReqSerializer(),
         responses={
-            status.HTTP_201_CREATED: None,
+            status.HTTP_200_OK: None,
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
             status.HTTP_400_BAD_REQUEST: None,
             status.HTTP_404_NOT_FOUND: None,
@@ -272,10 +273,10 @@ class TeamUserInfoView(BaseOpenAPIView):
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
-        role_ids = req.data["role_ids"].replace(" ", "")
+        role_ids = req.data["role_ids"].replace(" ", "").split(",")
         roleids = team_services.get_all_team_role_id(tenant_name=team_id)
         for role_id in role_ids:
-            if role_id not in roleids:
+            if int(role_id) not in roleids:
                 raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
 
         try:
@@ -288,7 +289,7 @@ class TeamUserInfoView(BaseOpenAPIView):
 
         team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
 
-        return Response(None, status.HTTP_201_CREATED)
+        return Response(None, status.HTTP_200_OK)
 
 
 class ListUserRolesView(ListAPIView):
