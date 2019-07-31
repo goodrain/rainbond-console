@@ -156,8 +156,11 @@ class UserTeamInfoView(ListAPIView):
         except ValueError:
             page_size = 10
 
-        res = team_services.get_enterprise_teams(
-            eid, user_id=user_id, query=query, page=page, page_size=page_size)
-        serializer = ListTeamRespSerializer(res)
+        tenants, total = team_services.list_teams_by_user_id(
+            eid=eid, user_id=user_id, query=query, page=page, page_size=page_size)
+        result = {"tenants": tenants, "total": total}
 
-        return Response(serializer.data, status.HTTP_200_OK)
+        serializer = ListTeamRespSerializer(data=result)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(result, status.HTTP_200_OK)

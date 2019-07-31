@@ -2,6 +2,8 @@
 # creater by: barnett
 from rest_framework import serializers
 
+from openapi.serializer.role_serializer import RoleInfoSerializer
+
 
 class UserInfoSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -42,11 +44,6 @@ class UpdateUserSerializer(serializers.Serializer):
 class CreateAdminUserReqSerializer(serializers.Serializer):
     user_id = serializers.CharField(max_length=32, required=True, help_text=u"用户ID")
     eid = serializers.CharField(max_length=32, required=True, help_text=u"企业ID")
-
-
-class RoleInfoSerializer(serializers.Serializer):
-    role_name = serializers.CharField(max_length=32, required=True, help_text=u"角色名称")
-    role_id = serializers.CharField(max_length=32, required=True, help_text=u"角色ID")
 
 
 class TeamUserSerializer(serializers.Serializer):

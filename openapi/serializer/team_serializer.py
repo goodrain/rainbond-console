@@ -2,6 +2,8 @@
 # creater by: barnett
 from rest_framework import serializers
 
+from openapi.serializer.role_serializer import RoleInfoSerializer
+
 
 class TeamInfoPostSerializer(serializers.Serializer):
     tenant_name = serializers.CharField(max_length=24, help_text=u"团队名称")
@@ -11,14 +13,16 @@ class TeamInfoPostSerializer(serializers.Serializer):
 class TeamInfoSerializer(serializers.Serializer):
     tenant_id = serializers.CharField(max_length=32, help_text=u"团队ID")
     tenant_name = serializers.CharField(max_length=24, help_text=u"团队名称")
-    region = serializers.CharField(max_length=24, help_text=u"数据中心名称")
-    is_active = serializers.BooleanField(help_text=u"是否激活")
-    create_time = serializers.DateTimeField(help_text=u"创建时间")
-    creater = serializers.CharField(help_text=u"团队拥有者用户ID")
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID")
+    region = serializers.CharField(max_length=24, help_text=u"数据中心名称",
+                                   required=False, allow_blank=True, allow_null=True)
+    is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
+    create_time = serializers.DateTimeField(help_text=u"创建时间", required=False)
+    creater = serializers.CharField(help_text=u"团队拥有者用户ID", required=False)
     service_num = serializers.IntegerField(help_text=u"团队的服务数量", required=False)
     region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
+    role_infos = RoleInfoSerializer(many=True, help_text=u"用户在团队中拥有的角色", required=False)
 
 
 class ListTeamRespSerializer(serializers.Serializer):

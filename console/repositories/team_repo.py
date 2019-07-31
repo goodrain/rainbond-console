@@ -177,7 +177,7 @@ class TeamRepo(object):
         result = conn.query(sql)
         return result
 
-    def list_by_user_id(self, user_id, query="", page=None, page_size=None):
+    def list_by_user_id(self, eid, user_id, query="", page=None, page_size=None):
         limit = ""
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
@@ -187,7 +187,8 @@ class TeamRepo(object):
                 AND c.user_id = b.user_id
                 AND a.creater = d.user_id
                 AND b.user_id = {user_id}
-                """.format(user_id=user_id)
+                AND a.enterprise_id = '{eid}'
+                """.format(user_id=user_id, eid=eid)
         if query:
             where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
         sql = """
@@ -199,7 +200,7 @@ class TeamRepo(object):
                 a.is_active,
                 a.enterprise_id,
                 a.create_time,
-                d.nick_name
+                d.nick_name as creater
             FROM
                 tenant_info a,
                 tenant_perms b,
@@ -208,15 +209,17 @@ class TeamRepo(object):
             {where}
             {limit}
             """.format(where=where, limit=limit)
+        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result
 
-    def count_by_user_id(user_id, query=""):
+    def count_by_user_id(self, eid, user_id, query=""):
         where = """WHERE a.ID = b.tenant_id
                 AND c.user_id = b.user_id
                 AND b.user_id = {user_id}
-                """.format(user_id=user_id)
+                AND a.enterprise_id = '{eid}'
+                """.format(user_id=user_id, eid=eid)
         if query:
             where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
         sql = """
@@ -231,7 +234,7 @@ class TeamRepo(object):
                 tenant_perms b,
                 user_info c
             {where}
-            ) as tmp""".format(where)
+            ) as tmp""".format(where=where)
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0].get("total")
