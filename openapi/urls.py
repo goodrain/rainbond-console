@@ -24,6 +24,7 @@ from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import ListUserRolesView
 from openapi.views.team_view import TeamInfo
 from openapi.views.team_view import TeamUserInfoView
+from openapi.views.upload_view import UploadView
 from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
@@ -70,4 +71,5 @@ urlpatterns = [
     url(r'^v1/configs/base$', BaseConfigView.as_view()),
     url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
     url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
+    url(r'^v1/upload-file$', UploadView.as_view()),
 ]
