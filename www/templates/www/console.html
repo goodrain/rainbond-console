@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <title>GRTTY</title>
+    <style>body, #terminal {position: absolute; height: 100%; width: 100%; margin: 0px;}</style>
+  </head>
+  <input type="hidden" name="t_id" id="t_id" value="{{tenant_id}}" />
+  <input type="hidden" name="s_id" id="s_id" value="{{service_id}}" />
+  <input type="hidden" name="c_id" id="c_id" value="{{ctn_id}}" />
+  <input type="hidden" name="md5" id="md5" value="{{md5}}" />
+  <input type="hidden" name="ws_uri" id="ws_uri" value="{{ws_uri}}" />
+  <body>
+    <div id="terminal"></div>
+    <script src="/static/www/js/console/hterm.js"></script>
+    <script src="/static/www/js/console/gotty.js"></script>
+  </body>
+</html>
