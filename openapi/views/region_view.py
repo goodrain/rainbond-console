@@ -11,7 +11,7 @@ from backends.models import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.region_serializer import ListRegionsRespSerializer
+from openapi.serializer.region_serializer import RegionInfoRespSerializer
 from openapi.serializer.region_serializer import RegionInfoSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
@@ -28,7 +28,7 @@ class ListRegionInfo(ListAPIView):
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
-        responses={200: ListRegionsRespSerializer()},
+        responses={200: RegionInfoRespSerializer(many=True)},
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
     def get(self, req):
@@ -38,13 +38,12 @@ class ListRegionInfo(ListAPIView):
         except ValueError:
             page = 1
         try:
-            page_size = int(req.GET.get("page_size", 10))
+            page_size = int(req.GET.get("page_size", 99))
         except ValueError:
-            page_size = 10
+            page_size = 99
 
         regions, total = region_services.get_all_regions(query, page, page_size)
-        data = {"regions": regions, "total": total}
-        serializer = ListRegionsRespSerializer(data=data)
+        serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
