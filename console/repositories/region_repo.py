@@ -29,10 +29,7 @@ class RegionRepo(object):
         return None
 
     def get_region_by_region_id(self, region_id):
-        regions = TenantRegionInfo.objects.filter(region_id=region_id)
-        if regions and len(regions) > 0:
-            return regions[0]
-        return None
+        return RegionConfig.objects.get(region_id=region_id)
 
     def get_region_desc_by_region_name(self, region_name):
         regions = RegionConfig.objects.filter(region_name=region_name)

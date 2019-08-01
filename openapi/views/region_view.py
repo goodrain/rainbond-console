@@ -7,6 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from backends.models import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
@@ -95,13 +96,19 @@ class ListRegionInfo(ListAPIView):
 class RegionInfo(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取指定数据中心数据",
-        responses={200: RegionInfoSerializer()},
+        responses={
+            status.HTTP_200_OK: RegionInfoSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
+        },
         tags=['openapi-region'],
     )
     def get(self, request, region_id):
-        queryset = region_services.get_region_by_region_id(region_id)
-        serializer = RegionInfoSerializer(queryset)
-        return Response(serializer.data)
+        try:
+            queryset = region_services.get_region_by_region_id(region_id)
+            serializer = RegionInfoSerializer(queryset)
+            return Response(serializer.data)
+        except RegionConfig.DoesNotExist:
+            return Response({"msg": "数据中心不存在"}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="更新指定数据中心元数据",
