@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-from console.services.region_services import region_services
-from console.services.region_services import RegionExistException
-from openapi.views.base import ListAPIView
-from openapi.views.base import BaseOpenAPIView
+
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
-from drf_yasg import openapi
-from www.utils.crypt import make_uuid
-from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.region_serializer import RegionInfoSerializer
+
+from console.services.region_services import region_services
+from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
+from openapi.serializer.region_serializer import ListRegionsRespSerializer
+from openapi.serializer.region_serializer import RegionInfoSerializer
+from openapi.views.base import BaseOpenAPIView
+from openapi.views.base import ListAPIView
+from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
 
 
@@ -19,10 +22,29 @@ class ListRegionInfo(ListAPIView):
     view_perms = ["regions"]
 
     @swagger_auto_schema(
-        responses={200: RegionInfoSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
-    def get(self, request):
-        queryset = region_services.get_all_regions()
-        serializer = RegionInfoSerializer(queryset, many=True)
+        manual_parameters=[
+            openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListRegionsRespSerializer()},
+        tags=['openapi-region'],
+        operation_description="获取全部数据中心列表")
+    def get(self, req):
+        query = req.GET.get("query", "")
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
+
+        regions, total = region_services.get_all_regions(query, page, page_size)
+        data = {"regions": regions, "total": total}
+        serializer = ListRegionsRespSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(

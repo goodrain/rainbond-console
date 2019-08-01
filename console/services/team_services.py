@@ -393,7 +393,9 @@ class TeamService(object):
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
-        user = user_repo.get_by_tenant_id(team.tenant_id, team.creater)
+        if team is None:
+            raise Tenants.DoesNotExist()
+        user = user_repo.get_by_user_id(team.creater)
         team.creater = user.nick_name
         return team
 

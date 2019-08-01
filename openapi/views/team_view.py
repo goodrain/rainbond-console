@@ -4,6 +4,7 @@ import logging
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
@@ -113,11 +114,12 @@ class TeamInfo(BaseOpenAPIView):
         tags=['openapi-team'],
     )
     def get(self, request, team_id):
-        queryset = team_services.get_team_by_team_id(team_id)
-        if queryset is None:
-            return Response(None, status.HTTP_404_NOT_FOUND)
-        serializer = TeamInfoSerializer(queryset)
-        return Response(serializer.data, status.HTTP_200_OK)
+        try:
+            queryset = team_services.get_team_by_team_id(team_id)
+            serializer = TeamInfoSerializer(queryset)
+            return Response(serializer.data, status.HTTP_200_OK)
+        except Tenants.DoesNotExist:
+            raise exceptions.NotFound()
 
     @swagger_auto_schema(
         operation_description="删除团队",
@@ -240,6 +242,11 @@ class TeamUserInfoView(BaseOpenAPIView):
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
+        try:
+            team = team_services.get_team_by_team_id(team_id)
+        except Tenants.DoesNotExist:
+            raise exceptions.NotFound()
+
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
         roleids = team_services.get_all_team_role_id(tenant_name=team_id)
         for role_id in role_ids:
@@ -251,7 +258,6 @@ class TeamUserInfoView(BaseOpenAPIView):
             user_obj = user_services.get_user_by_user_id(user_id=user_id)
             raise serializers.ValidationError("用户{}已经存在".format(user_obj.nick_name), status.HTTP_400_BAD_REQUEST)
 
-        team = team_services.get_team_by_team_id(team_id)
         team_services.add_user_role_to_team(tenant=team, user_ids=[user_id], role_ids=role_ids)
 
         return Response(None, status.HTTP_201_CREATED)

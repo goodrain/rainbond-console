@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from django.db.models import Q
+
 from backends.models import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
@@ -77,7 +79,10 @@ class RegionRepo(object):
         region.save()
         return region
 
-    def get_all_regions(self):
+    def get_all_regions(self, query=""):
+        if query:
+            return RegionConfig.objects.filter(Q(region_name__constains=query) |
+                                               Q(region_alias__constains=query)).all()
         return RegionConfig.objects.all()
 
     def get_regions_by_tenant_ids(self, tenant_ids):

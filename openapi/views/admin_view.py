@@ -4,6 +4,7 @@ import logging
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
@@ -68,7 +69,7 @@ class ListAdminsView(ListAPIView):
         try:
             user = user_services.get_user_by_user_id(req.data["user_id"])
         except UserNotExistError:
-            raise serializers.NotFound("用户'{}'不存在".format(req.data["user_id"]))
+            raise exceptions.NotFound("用户'{}'不存在".format(req.data["user_id"]))
         ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["eid"])
         if ent is None:
             raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]),

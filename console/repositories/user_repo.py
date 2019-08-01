@@ -80,7 +80,6 @@ class UserRepo(object):
     def get_by_tenant_id(self, tenant_id, user_id):
         conn = BaseConnection()
 
-        where = """""".format(tenant_id=tenant_id)
         sql = """
             SELECT DISTINCT
                 a.user_id,
@@ -97,10 +96,10 @@ class UserRepo(object):
             WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
             AND a.user_id = {user_id}
-            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, where=where, user_id=user_id)
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, user_id=user_id)
         result = conn.query(sql)
         if len(result) == 0:
-            raise UserNotExistError()
+            raise UserNotExistError("用户{}不存在".format(user_id))
         return result[0]
 
     def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):

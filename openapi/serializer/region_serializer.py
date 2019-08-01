@@ -37,3 +37,25 @@ class RegionInfoSerializer(serializers.ModelSerializer):
         if scope not in ["private", "public"]:
             raise serializers.ValidationError("数据中心开放类型不正确")
         return scope
+
+
+class RegionInfoRespSerializer(serializers.Serializer):
+    region_id = serializers.CharField(max_length=32, help_text=u"region id")
+    region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
+    region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
+    url = serializers.CharField(max_length=256, help_text=u"数据中心API url")
+    wsurl = serializers.CharField(max_length=256, help_text=u"数据中心Websocket url")
+    httpdomain = serializers.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
+    tcpdomain = serializers.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
+    token = serializers.CharField(max_length=40, allow_null=True, allow_blank=True, default="", help_text=u"数据中心token")
+    status = serializers.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
+    desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"数据中心描述")
+    scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
+    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"数据中心访问ca证书地址")
+    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证文件")
+    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证的key")
+
+
+class ListRegionsRespSerializer(serializers.Serializer):
+    total = serializers.IntegerField(help_text=u"总数")
+    regions = RegionInfoRespSerializer(many=True)

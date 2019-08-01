@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from django.core.paginator import Paginator
+
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
@@ -121,8 +123,33 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
-    def get_all_regions(self):
-        return region_repo.get_all_regions()
+    def get_all_regions(self, query="", page=None, page_size=None):
+        regions = region_repo.get_all_regions(query)
+        total = regions.count()
+
+        paginator = Paginator(regions, page_size)
+        rp = paginator.page(page)
+
+        result = []
+        for region in rp:
+            result.append({
+                "region_alias": region.region_alias,
+                "url": region.url,
+                "token": region.token,
+                "wsurl": region.wsurl,
+                "httpdomain": region.httpdomain,
+                "tcpdomain": region.tcpdomain,
+                "scope": region.scope,
+                "ssl_ca_cert": region.ssl_ca_cert,
+                "cert_file": region.cert_file,
+                "key_file": region.key_file,
+                "status": region.status,
+                "desc": region.desc,
+                "region_name": region.region_name,
+                "region_id": region.region_id
+            })
+
+        return result, total
 
     def get_region_httpdomain(self, region_name):
         region = region_repo.get_region_by_region_name(region_name)
