@@ -19,6 +19,7 @@ from openapi.views.enterprise_view import EntUserInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
+from openapi.views.region_view import RegionStatusView
 from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import ListTeamUsersInfo
@@ -51,6 +52,7 @@ urlpatterns = [
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view()),
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),

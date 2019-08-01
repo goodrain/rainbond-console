@@ -30,5 +30,8 @@ class ConfigRepository(object):
                 create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             )
 
+    def get_by_key(self, key):
+        return ConsoleSysConfig.objects.get(key=key, enable=True)
+
 
 cfg_repo = ConfigRepository()

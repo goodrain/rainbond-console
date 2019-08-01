@@ -2,6 +2,7 @@
 # creater by: barnett
 from rest_framework import serializers
 
+from console.enum.region_enum import RegionStatusEnum
 from openapi.models.main import RegionConfig
 from openapi.serializer.utils import ipregex
 from openapi.serializer.utils import urlregex
@@ -59,3 +60,15 @@ class RegionInfoRespSerializer(serializers.Serializer):
 class ListRegionsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text=u"总数")
     regions = RegionInfoRespSerializer(many=True)
+
+
+class UpdateRegionStatusReqSerializer(serializers.Serializer):
+    status = serializers.CharField(help_text=u"需要设置的数据中心状态, 可选值为: 'ONLINE', 'OFFLINE', 'MAINTAIN'(大小写不敏感)")
+
+    def validate_status(self, status):
+        status = status.upper()
+        names = RegionStatusEnum.names()
+        if status not in names:
+            raise serializers.ValidationError("不支持状态: '{}', 仅支持: {}".format(
+                status, ",".join(names)))
+        return status

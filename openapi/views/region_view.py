@@ -8,11 +8,13 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from backends.models import RegionConfig
+from backends.services.exceptions import RegionUnreachableError
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.region_serializer import RegionInfoRespSerializer
 from openapi.serializer.region_serializer import RegionInfoSerializer
+from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.utils.crypt import make_uuid
@@ -145,3 +147,30 @@ class RegionInfo(BaseOpenAPIView):
             return Response({"msg": "修改的数据中心不存在"}, status=status.HTTP_400_BAD_REQUEST)
         new_region = region_services.update_region(region_data)
         return Response(new_region)
+
+
+class RegionStatusView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="修改数据中心的状态(上线, 下线, 设为维护)",
+        request_body=UpdateRegionStatusReqSerializer(),
+        responses={
+            status.HTTP_200_OK: RegionInfoSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
+            status.HTTP_400_BAD_REQUEST: FailSerializer(),
+        },
+        tags=['openapi-region'],
+    )
+    def put(self, req, region_id):
+        serializer = UpdateRegionStatusReqSerializer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            region = region_services.update_region_status(region_id, req.data["status"])
+            serializer = RegionInfoSerializer(region)
+            return Response(serializer.data, status.HTTP_200_OK)
+        except RegionConfig.DoesNotExist:
+            fs = FailSerializer({"msg": "数据中心不存在"})
+            return Response(fs.data, status.HTTP_404_NOT_FOUND)
+        except RegionUnreachableError as e:
+            fs = FailSerializer({"msg": e.message})
+            return Response(fs.data, status.HTTP_400_BAD_REQUEST)
