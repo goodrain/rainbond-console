@@ -106,7 +106,7 @@ class RegionRepo(object):
             where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
         sql = """
         SELECT
-            ri.*
+            ri.*, ti.tenant_name
         FROM
             region_info ri,
             tenant_info ti,

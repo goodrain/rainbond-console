@@ -6,7 +6,7 @@ from console.models.main import EnterpriseUserPerm
 from www.models.main import Users
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def setup_db(db):
     EnterpriseUserPerm.objects.create(
         user_id=1,

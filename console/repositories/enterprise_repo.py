@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from django.db.models import Q
+
 from console.models.main import EnterpriseUserPerm
 from www.models.main import TenantEnterprise
 
@@ -42,7 +44,10 @@ class TenantEnterpriseRepo(object):
     def get_by_enterprise_alias(self, enterprise_alias):
         return TenantEnterprise.objects.filter(enterprise_alias=enterprise_alias).first()
 
-    def list_all(self):
+    def list_all(self, query):
+        if query:
+            return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query) |
+                                                   Q(enterprise_alias__contains=query)).all()
         return TenantEnterprise.objects.all()
 
     def update(self, eid, **data):

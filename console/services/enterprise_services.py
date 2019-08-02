@@ -5,6 +5,8 @@ import random
 import re
 import string
 
+from django.core.paginator import Paginator
+
 from console.repositories.enterprise_repo import enterprise_repo
 from www.models.main import TenantEnterprise
 from www.models.main import Tenants
@@ -125,15 +127,28 @@ class EnterpriseServices(object):
         }
         return enterprise_repo.create_enterprise(**params)
 
-    # def get_enterprise_tenants(self,enterprise):
     def get_enterprise_by_eids(self, eid_list):
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
 
-    def list_all(self):
-        return enterprise_repo.list_all()
+    def list_all(self, query="", page=None, page_size=None):
+        ents = enterprise_repo.list_all(query)
+        total = ents.count()
+
+        paginator = Paginator(ents, page_size)
+        pp = paginator.page(page)
+        data = []
+        for ent in pp:
+            data.append({
+                "enterprise_id": ent.enterprise_id,
+                "enterprise_name": ent.enterprise_name,
+                "enterprise_alias": ent.enterprise_alias,
+                "create_time": ent.create_time,
+                "is_active": ent.is_active,
+            })
+        return data, total
 
     def update(self, eid, data):
         d = {}

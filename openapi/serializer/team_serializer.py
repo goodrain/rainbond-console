@@ -66,6 +66,7 @@ class TeamRegionsRespSerializer(serializers.Serializer):
     region_id = serializers.CharField(max_length=32, help_text=u"region id")
     region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
+    tenant_name = serializers.CharField(max_length=32, help_text=u"租户名称")
     url = serializers.CharField(max_length=256, help_text=u"数据中心API url")
     wsurl = serializers.CharField(max_length=256, help_text=u"数据中心Websocket url")
     httpdomain = serializers.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
