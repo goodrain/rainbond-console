@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 
 from console.repositories.enterprise_repo import enterprise_repo
 from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
 from www.utils.crypt import make_uuid
 
@@ -21,6 +22,31 @@ class EnterpriseServices(object):
     """
     企业服务接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
+
+    def list_all(self, query="", page=None, page_size=None):
+        ents = enterprise_repo.list_all(query)
+        total = ents.count()
+
+        paginator = Paginator(ents, page_size)
+        pp = paginator.page(page)
+        data = []
+        for ent in pp:
+            data.append({
+                "enterprise_id": ent.enterprise_id,
+                "enterprise_name": ent.enterprise_name,
+                "enterprise_alias": ent.enterprise_alias,
+                "create_time": ent.create_time,
+                "is_active": ent.is_active,
+            })
+        return data, total
+
+    def update(self, eid, data):
+        d = {}
+        if data.get("alias", "") != "":
+            d["enterprise_alias"] = data["alias"]
+        if data.get("name", "") != "":
+            d["enterprise_name"] = data["name"]
+        enterprise_repo.update(eid, **data)
 
     def random_tenant_name(self, enterprise=None, length=8):
         """
@@ -133,30 +159,29 @@ class EnterpriseServices(object):
     def get_enterprise_by_enterprise_alias(self, enterprise_alias):
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
 
-    def list_all(self, query="", page=None, page_size=None):
-        ents = enterprise_repo.list_all(query)
-        total = ents.count()
+    def list_appstore_infos(self, query="", page=None, page_size=None):
+        infos = enterprise_repo.list_appstore_infos(query, page, page_size)
+        for info in infos:
+            appstore_name = ""
+            if "api.goodrain.com" in info["access_url"]:
+                appstore_name = "好雨科技公有应用市场(默认)"
+            info["appstore_name"] = appstore_name
+        total = enterprise_repo.count_appstore_infos(query)
+        return infos, total
 
-        paginator = Paginator(ents, page_size)
-        pp = paginator.page(page)
-        data = []
-        for ent in pp:
-            data.append({
-                "enterprise_id": ent.enterprise_id,
-                "enterprise_name": ent.enterprise_name,
-                "enterprise_alias": ent.enterprise_alias,
-                "create_time": ent.create_time,
-                "is_active": ent.is_active,
-            })
-        return data, total
-
-    def update(self, eid, data):
-        d = {}
-        if data.get("alias", "") != "":
-            d["enterprise_alias"] = data["alias"]
-        if data.get("name", "") != "":
-            d["enterprise_name"] = data["name"]
-        enterprise_repo.update(eid, **data)
+    def update_appstore_info(self, eid, data):
+        ent = enterprise_repo.get_enterprise_by_enterprise_id(eid)
+        # raise TenantEnterpriseToken.DoesNotExist
+        tet = TenantEnterpriseToken.objects.get(enterprise_id=ent.ID)
+        access_url = data["access_url"]
+        tet.access_url = access_url
+        tet.save()
+        setattr(ent, "access_url", access_url)
+        appstore_name = ""
+        if "api.goodrain.com" in tet.access_url:
+            appstore_name = "好雨科技公有应用市场(默认)"
+        setattr(ent, "appstore_name", appstore_name)
+        return ent
 
 
 enterprise_services = EnterpriseServices()
