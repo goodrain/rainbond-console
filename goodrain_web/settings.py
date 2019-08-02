@@ -29,7 +29,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
-DEBUG = False
+DEBUG = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -40,19 +40,21 @@ SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 # SECURITY WARNING: don't run with debug turned on in production!
 
 AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBackend',
-                           'console.services.auth.backends.ModelBackend', 'console.services.auth.backends.PartnerModelBackend',
-                           'console.services.auth.backends.WeChatModelBackend', 'django.contrib.auth.backends.ModelBackend')
+                           'console.services.auth.backends.ModelBackend',
+                           'console.services.auth.backends.PartnerModelBackend',
+                           'console.services.auth.backends.WeChatModelBackend',
+                           'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
-INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
-                  'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
-                  'rest_framework_jwt', 'www', 'backends', 'corsheaders', 'console')
+INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
+                  'django.contrib.messages', 'django.contrib.staticfiles', 'crispy_forms', 'rest_framework',
+                  'rest_framework.authtoken', 'rest_framework_jwt', 'www', 'backends', 'corsheaders', 'console')
 # Application definition
 if IS_OPEN_API:
-    INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
-                      'django.contrib.messages', 'django.contrib.staticfiles', 'crispy_forms', 'rest_framework',
-                      'rest_framework.authtoken', 'rest_framework_jwt', 'drf_yasg', 'www', 'backends', 'corsheaders', 'console',
-                      'openapi')
+    INSTALLED_APPS = (
+        'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
+        'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
+        'rest_framework_jwt', 'drf_yasg', 'www', 'backends', 'corsheaders', 'console', 'openapi')
     OAUTH2_PROVIDER = {
         'SCOPES': {
             'read': 'Read scope',
@@ -188,8 +190,8 @@ CORS_ORIGIN_WHITELIST = ('*')
 
 CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW', 'TRACE', 'CONNECT', 'HEAD')
 
-CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN',
-                                        'X_REGION_NAME', 'X_TEAM_NAME')
+CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken',
+                                        'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN', 'X_REGION_NAME', 'X_TEAM_NAME')
 SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}}}
 
 conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))

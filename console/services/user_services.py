@@ -389,7 +389,7 @@ class UserService(object):
                     "enterprise_id": user.enterprise_id,
                 })
             except UserNotExistError:
-                logger.warning("user_id: {}; user not found".format(user.user_id))
+                logger.warning("user_id: {}; user not found".format(item.user_id))
 
         return users, total
 
