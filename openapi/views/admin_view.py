@@ -14,6 +14,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.user_services import user_services
+from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.user_serializer import CreateAdminUserReqSerializer
 from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UserInfoSerializer
@@ -83,14 +84,20 @@ class ListAdminsView(ListAPIView):
 class AdminInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="删除企业管理员",
-        responses={200: None},
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_400_BAD_REQUEST: FailSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
+        },
         tags=['openapi-user'],
     )
     def delete(self, req, user_id, *args, **kwargs):
+        if str(req.user.user_id) == user_id:
+            raise serializers.ValidationError({"msg": "不能删除自己"}, status.HTTP_400_BAD_REQUEST)
         try:
             user_services.delete_admin_user(user_id)
             return Response(None, status.HTTP_200_OK)
         except ErrAdminUserDoesNotExist as e:
-            raise serializers.ValidationError(e.message, status.HTTP_404_NOT_FOUND)
+            raise exceptions.NotFound(detail="用户'{}'不是企业管理员".format(user_id))
         except ErrCannotDelLastAdminUser as e:
-            raise serializers.ValidationError(e.message, status.HTTP_400_BAD_REQUEST)
+            raise serializers.ValidationError({"msg": e.message}, status.HTTP_400_BAD_REQUEST)
