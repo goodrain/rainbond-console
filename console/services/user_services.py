@@ -1,23 +1,40 @@
 # -*- coding: utf-8 -*-
-import logging
 import binascii
+import logging
 import os
+from datetime import datetime
+
+from django.core.paginator import Paginator
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from backends.services.exceptions import AccountNotExistError
-from backends.services.exceptions import UserExistError, TenantNotExistError, UserNotExistError
-from backends.services.tenantservice import tenant_service as tenantService, EmailExistError, PhoneExistError, \
-    PasswordTooShortError
+from backends.services.exceptions import EmailExistError
+from backends.services.exceptions import PasswordTooShortError
+from backends.services.exceptions import PhoneExistError
+from backends.services.exceptions import TenantNotExistError
+from backends.services.exceptions import UserExistError
+from backends.services.exceptions import UserNotExistError
+from backends.services.tenantservice import tenant_service as tenantService
+from console.models.main import EnterpriseUserPerm
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.exceptions import UserRoleNotFoundException
+from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from www.gitlab_http import GitlabApi
-from www.models.main import Tenants, Users, PermRelTenant
-from www.tenantservice.baseservice import CodeRepositoriesService
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.user_role_repo import user_role_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
+from console.services.exception import ErrAdminUserDoesNotExist
+from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.team_services import team_services
+from www.gitlab_http import GitlabApi
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import Users
+from www.tenantservice.baseservice import CodeRepositoriesService
+from www.utils.crypt import encrypt_passwd
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -75,8 +92,10 @@ class UserService(object):
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
         git_user_id = user.git_user_id
-
-        PermRelTenant.objects.filter(user_id=user.pk).delete()
+        try:
+            PermRelTenant.objects.filter(user_id=user.pk).delete()
+        except PermRelTenant.DoesNotExist:
+            pass
         gitClient.deleteUser(git_user_id)
         user.delete()
 
@@ -130,7 +149,10 @@ class UserService(object):
         return user_list
 
     def batch_delete_users(self, tenant_name, user_id_list):
-        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            tenant = Tenants.objects.get(tenant_id=tenant_name)
         PermRelTenant.objects.filter(user_id__in=user_id_list, tenant_id=tenant.ID).delete()
 
     def get_user_by_username(self, user_name):
@@ -146,6 +168,52 @@ class UserService(object):
             return True
         except UserNotExistError:
             return False
+
+    def create(self, data):
+        # check nick name
+        try:
+            user_repo.get_by_username(data["nick_name"])
+            raise UserExistError("{} already exists.".format(data["nick_name"]))
+        except Users.DoesNotExist:
+            pass
+        if data.get("email", ""):
+            user = user_repo.get_user_by_email(data["email"])
+            if user is not None:
+                raise EmailExistError("{} already exists.".format(data["email"]))
+        if data.get("phone", ""):
+            user = user_repo.get_user_by_phone(data["phone"])
+            if user is not None:
+                raise PhoneExistError("{} already exists.".format(data["phone"]))
+
+        user = {
+            "nick_name": data["nick_name"],
+            "password": encrypt_passwd(data["password"]),
+            "email": data.get("email", ""),
+            "phone": data.get("phone", ""),
+            "enterprise_id": data["eid"],
+            "is_active": data.get("is_active", True),
+            "create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+        return Users.objects.create(**user)
+
+    def update(self, user_id, data):
+        d = {}
+        if data.get("email", None) is not None:
+            d["email"] = data["email"]
+        if data.get("phone", None) is not None:
+            d["phone"] = data["phone"]
+        if data.get("is_active", None) is not None:
+            d["is_active"] = data["is_active"]
+
+        Users.objects.filter(user_id=user_id).update(**d)
+        if data.get("password", None) is not None:
+            user = Users.objects.get(user_id=user_id)
+            user.set_password(data["password"])
+            user.save()
+
+    def delete(self, user_id):
+        Users.objects.filter(user_id=user_id).delete()
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
         user = Users.objects.create(
@@ -240,6 +308,120 @@ class UserService(object):
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return Response(result, status=200)
+
+    def list_users(self, page, size, item=""):
+        uall = user_repo.list_users(item)
+        paginator = Paginator(uall, size)
+        upp = paginator.page(page)
+        users = []
+        for user in upp:
+            users.append({
+                "user_id": user.user_id,
+                "email": user.email,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "origion": user.origion,
+                "create_time": user.create_time,
+                "client_ip": user.client_ip,
+                "enterprise_id": user.enterprise_id,
+            })
+        return users, uall.count()
+
+    def list_users_by_tenant_id(self, tenant_id, page=None, size=None, query=""):
+        result = user_repo.list_users_by_tenant_id(tenant_id, query=query, page=page, size=size)
+        users = []
+        for item in result:
+            # 获取一个用户在一个团队中的身份列表
+            perms_identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=item.get("user_id"), tenant_name=tenant_id)
+            # 获取一个用户在一个团队中的角色ID列表
+            perms_role_list = team_services.get_user_perm_role_id_in_permtenant(
+                user_id=item.get("user_id"), tenant_name=tenant_id)
+
+            role_infos = []
+
+            for identity in perms_identitys:
+                if identity == "access":
+                    role_infos.append({"role_name": identity, "role_id": None})
+                else:
+                    role_id = role_repo.get_role_id_by_role_name(identity)
+                    role_infos.append({"role_name": identity, "role_id": role_id})
+            for role in perms_role_list:
+                role_name = role_repo.get_role_name_by_role_id(role)
+                role_infos.append({"role_name": role_name, "role_id": role})
+
+            users.append({
+                "user_id": item.get("user_id"),
+                "nick_name": item.get("nick_name"),
+                "email": item.get("email"),
+                "phone": item.get("phone"),
+                "is_active": item.get("is_active"),
+                "enterprise_id": item.get("enterprise_id"),
+                "role_infos": role_infos,
+            })
+
+        total = user_repo.count_users_by_tenant_id(tenant_id, query=query)
+        return users, total
+
+    def list_admin_users(self, page, size, eid=None):
+        if eid is None:
+            perms = EnterpriseUserPerm.objects.filter().all()
+        else:
+            perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid).all()
+        total = perms.count()
+        paginator = Paginator(perms, size)
+        permsp = paginator.page(page)
+
+        users = []
+        for item in permsp:
+            try:
+                user = user_services.get_user_by_user_id(item.user_id)
+                users.append({
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "phone": user.phone,
+                    "is_active": user.is_active,
+                    "origion": user.origion,
+                    "create_time": user.create_time,
+                    "client_ip": user.client_ip,
+                    "enterprise_id": user.enterprise_id,
+                })
+            except UserNotExistError:
+                logger.warning("user_id: {}; user not found".format(item.user_id))
+
+        return users, total
+
+    def create_admin_user(self, user, ent):
+        # 判断用户是否为企业管理员
+        if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):
+            return
+        # 添加企业管理员
+        token = self.generate_key()
+        return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, "admin", token)
+
+    def delete_admin_user(self, user_id):
+        perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
+        if perm is None:
+            raise ErrAdminUserDoesNotExist("用户'{}'不是企业管理员".format(user_id))
+        count = enterprise_user_perm_repo.count_by_eid(perm.enterprise_id)
+        if count == 1:
+            raise ErrCannotDelLastAdminUser("当前用户为最后一个企业管理员，无法删除")
+        enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
+
+    def get_user_role_names(self, tenant_id, user_id):
+        user = user_repo.get_by_tenant_id(tenant_id, user_id)
+        role_name = user.get("identity")
+        try:
+            role_names = user_role_repo.get_role_names(user_id, tenant_id)
+            if role_name is None or role_name in role_names:
+                role_name = role_names
+            if role_name not in role_names:
+                role_name = role_name + "," + role_names
+        except UserRoleNotFoundException:
+            pass
+        return role_name
 
 
 user_services = UserService()

@@ -13,20 +13,23 @@ from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.authentication import (get_authorization_header)
-from rest_framework.views import set_rollback
 from rest_framework.exceptions import NotFound
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import BusinessException, ServiceHandleException
+from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
-from www.models.main import Users, Tenants
 from goodrain_web import errors
+from www.models.main import Tenants
+from www.models.main import Users
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -274,7 +277,7 @@ def custom_exception_handler(exc, context):
         if getattr(exc, 'wait', None):
             headers['Retry-After'] = '%d' % exc.wait
 
-        if isinstance(exc.detail, (list, dict)):
+        if isinstance(exc.detail, dict):
             data = exc.detail
         else:
             data = {'detail': exc.detail}
@@ -327,4 +330,5 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

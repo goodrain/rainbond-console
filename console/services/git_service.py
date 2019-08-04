@@ -2,15 +2,17 @@
 """
   Created on 18/1/9.
 """
-from www.gitlab_http import GitlabApi
-from www.tenantservice.baseservice import CodeRepositoriesService
 import json
-from www.utils.giturlparse import parse as git_url_parse
 import logging
+
+from django.conf import settings
+
+from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
 from goodrain_web.custom_config import custom_config
-from django.conf import settings
-from console.constants import AppConstants
+from www.gitlab_http import GitlabApi
+from www.tenantservice.baseservice import CodeRepositoriesService
+from www.utils.giturlparse import parse as git_url_parse
 
 codeRepositoriesService = CodeRepositoriesService()
 logger = logging.getLogger("default")
@@ -177,7 +179,7 @@ class GitCodeService(object):
         return 500, "内部异常", None
 
     def create_git_lab_user(self, user, email, password):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             if user.git_user_id == 0:
                 if user.phone:
                     git_name = user.phone

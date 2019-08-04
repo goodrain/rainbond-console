@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from django.db.models import Q
+
 from backends.models import RegionConfig
+from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
 from www.models.main import TenantRegionInfo
 
@@ -12,6 +15,12 @@ class RegionRepo(object):
             return regions
         return None
 
+    def list_active_region_by_tenant_ids(self, tenant_ids):
+        regions = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_active=1, is_init=1)
+        if regions:
+            return regions
+        return None
+
     def get_region_by_tenant_name(self, tenant_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
@@ -20,10 +29,7 @@ class RegionRepo(object):
         return None
 
     def get_region_by_region_id(self, region_id):
-        regions = TenantRegionInfo.objects.filter(region_id=region_id)
-        if regions and len(regions) > 0:
-            return regions[0]
-        return None
+        return RegionConfig.objects.get(region_id=region_id)
 
     def get_region_desc_by_region_name(self, region_name):
         regions = RegionConfig.objects.filter(region_name=region_name)
@@ -70,14 +76,68 @@ class RegionRepo(object):
         region.save()
         return region
 
-    def get_all_regions(self):
+    def get_all_regions(self, query=""):
+        if query:
+            return RegionConfig.objects.filter(Q(region_name__constains=query) |
+                                               Q(region_alias__constains=query)).all()
         return RegionConfig.objects.all()
 
     def get_regions_by_tenant_ids(self, tenant_ids):
-        return TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_init=True).values_list("region_name", flat=True)
+        return TenantRegionInfo.objects.filter(
+            tenant_id__in=tenant_ids, is_init=True).values_list(
+            "region_name", flat=True)
 
     def get_region_info_by_region_name(self, region_name):
         return RegionConfig.objects.filter(region_name=region_name)
+
+    def list_by_tenant_id(self, tenant_id, query="", page=None, page_size=None):
+        limit = ""
+        if page is not None and page_size is not None:
+            page = page if page > 0 else 1
+            page = (page - 1) * page_size
+            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+        where = """
+        WHERE
+            ti.tenant_id = tr.tenant_id
+            AND ri.region_name = tr.region_name
+            AND ti.tenant_id = "{tenant_id}"
+        """.format(tenant_id=tenant_id)
+        if query:
+            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+        sql = """
+        SELECT
+            ri.*, ti.tenant_name
+        FROM
+            region_info ri,
+            tenant_info ti,
+            tenant_region tr
+        {where}
+        {limit}
+        """.format(where=where, limit=limit)
+        conn = BaseConnection()
+        return conn.query(sql)
+
+    def count_by_tenant_id(self, tenant_id, query=""):
+        where = """
+        WHERE
+            ti.tenant_id = tr.tenant_id
+            AND ri.region_name = tr.region_name
+            AND ti.tenant_id = "{tenant_id}"
+        """.format(tenant_id=tenant_id)
+        if query:
+            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+        sql = """
+        SELECT
+            count(*) as total
+        FROM
+            region_info ri,
+            tenant_info ti,
+            tenant_region tr
+        {where}
+        """.format(where=where)
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result[0]["total"]
 
 
 region_repo = RegionRepo()

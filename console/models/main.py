@@ -291,7 +291,8 @@ class ServiceRecycleBin(BaseModel):
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True,
+                                    help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
@@ -300,13 +301,15 @@ class ServiceRecycleBin(BaseModel):
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
     volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer',
+                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
     service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True, help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
+        max_length=15, default="", null=True, blank=True,
+        help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text=u"应用检测ID")
@@ -633,3 +636,24 @@ class ServiceUpgradeRecord(BaseModel):
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+
+class RegionConfig(BaseModel):
+    class Meta:
+        db_table = 'region_info'
+
+    region_id = models.CharField(max_length=32, unique=True, help_text=u"region id")
+    region_name = models.CharField(max_length=32, unique=True, help_text=u"数据中心名称,不可修改")
+    region_alias = models.CharField(max_length=32, help_text=u"数据中心别名")
+    url = models.CharField(max_length=256, help_text=u"数据中心API url")
+    wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
+    httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
+    tcpdomain = models.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
+    token = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"数据中心token")
+    status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")
+    scope = models.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
+    ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
+    cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
+    key_file = models.TextField(blank=True, null=True, help_text=u"验证的key")

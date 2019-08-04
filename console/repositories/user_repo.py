@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from django.db.models import Q
+
 from backends.services.exceptions import UserNotExistError
+from console.repositories.base import BaseConnection
 from www.models.main import Users
 
 
@@ -9,6 +12,9 @@ class UserRepo(object):
         if not u:
             raise UserNotExistError("用户{}不存在".format(user_id))
         return u[0]
+
+    def get_by_username(self, username):
+        return Users.objects.get(nick_name=username)
 
     def get_user_by_username(self, user_name):
         users = Users.objects.filter(nick_name=user_name)
@@ -62,6 +68,105 @@ class UserRepo(object):
             return u[0].nick_name
         else:
             return None
+
+    def list_users(self, item=""):
+        """
+        Support search by username, email, phone number
+        """
+        return Users.objects.filter(Q(nick_name__contains=item)
+                                    | Q(email__contains=item)
+                                    | Q(phone__contains=item)).all().order_by("-create_time")
+
+    def get_by_tenant_id(self, tenant_id, user_id):
+        conn = BaseConnection()
+
+        sql = """
+            SELECT DISTINCT
+                a.user_id,
+                a.email,
+                a.nick_name,
+                a.phone,
+                a.is_active,
+                a.enterprise_id,
+                b.identity
+            FROM
+                user_info a,
+                tenant_perms b,
+                tenant_info c
+            WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND a.user_id = {user_id}
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, user_id=user_id)
+        result = conn.query(sql)
+        if len(result) == 0:
+            raise UserNotExistError("用户{}不存在".format(user_id))
+        return result[0]
+
+    def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):
+        """
+        Support search by username, email, phone number
+        """
+        conn = BaseConnection()
+
+        limit = ""
+        if page is not None and size is not None:
+            page = page if page > 0 else 1
+            page = (page - 1) * size
+            limit = "Limit {page}, {size}".format(page=page, size=size)
+        where = """WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+        if query:
+            where += """ AND ( a.nick_name LIKE "%{query}%"
+            OR a.phone LIKE "%{query}%"
+            OR a.email LIKE "%{query}%" )""".format(query=query)
+        sql = """
+            SELECT DISTINCT
+                a.user_id,
+                a.email,
+                a.nick_name,
+                a.phone,
+                a.is_active,
+                a.enterprise_id,
+                b.identity
+            FROM
+                user_info a,
+                tenant_perms b,
+                tenant_info c
+            {where}
+            {limit}""".format(tenant_id=tenant_id, where=where, limit=limit)
+        result = conn.query(sql)
+        return result
+
+    def count_users_by_tenant_id(self, tenant_id, query=""):
+        """
+        Support search by username, email, phone number
+        """
+        where = """WHERE a.user_id = b.user_id
+            AND b.tenant_id = c.ID
+            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+        if query:
+            where += """ AND ( a.nick_name LIKE "%{query}%"
+            OR a.phone LIKE "%{query}%"
+            OR a.email LIKE "%{query}%" )""".format(query=query)
+
+        sql = """
+            SELECT
+                count(*) as total
+            FROM
+                (
+                SELECT DISTINCT
+                    a.user_id AS user_id
+                FROM
+                    user_info a,
+                    tenant_perms b,
+                    tenant_info c
+                {where}
+                ) as userid""".format(where=where)
+
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result[0].get("total")
 
 
 user_repo = UserRepo()

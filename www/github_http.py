@@ -1,8 +1,9 @@
-from goodrain_web.base import BaseHttpClient
-
 import json
 import logging
+
 import httplib2
+
+from goodrain_web.base import BaseHttpClient
 from goodrain_web.custom_config import custom_config
 
 logger = logging.getLogger('default')
@@ -18,7 +19,7 @@ class GitHubApi(BaseHttpClient):
         self.base_url = 'https://api.github.com'
 
     def _reload(self):
-        github_service_info = custom_config.GITHUB_SERVICE_API
+        github_service_info = custom_config.GITHUB
         for k, v in github_service_info.items():
             setattr(self, k, v)
 
@@ -77,7 +78,8 @@ class GitHubApi(BaseHttpClient):
     def getReposRefs(self, user, repos, token):
         self._reload()
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token + "&per_page=200"
+            url = "https://api.github.com/repos/" + user + "/" + repos
+            + "/git/refs?access_token=" + token + "&per_page=200"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
@@ -87,7 +89,8 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def cloneReposUrl(self, user, repos, token, version):
-        cmd = "git clone --branch " + version + " --depth 1 https://" + token + "@github.com/" + user + "/" + repos + ".git"
+        cmd = "git clone --branch " + version + " --depth 1 https://"
+        + token + "@github.com/" + user + "/" + repos + ".git"
         return cmd
 
     def getUser(self, token):

@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-from console.services.region_services import region_services
-from console.services.region_services import RegionExistException
-from openapi.views.base import ListAPIView
-from openapi.views.base import BaseOpenAPIView
+
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
-from drf_yasg import openapi
-from www.utils.crypt import make_uuid
-from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.region_serializer import RegionInfoSerializer
+
+from backends.models import RegionConfig
+from backends.services.exceptions import RegionUnreachableError
+from console.services.region_services import region_services
+from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
+from openapi.serializer.region_serializer import RegionInfoRespSerializer
+from openapi.serializer.region_serializer import RegionInfoSerializer
+from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
+from openapi.views.base import BaseOpenAPIView
+from openapi.views.base import ListAPIView
+from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
 
 
@@ -19,10 +25,28 @@ class ListRegionInfo(ListAPIView):
     view_perms = ["regions"]
 
     @swagger_auto_schema(
-        responses={200: RegionInfoSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
-    def get(self, request):
-        queryset = region_services.get_all_regions()
-        serializer = RegionInfoSerializer(queryset, many=True)
+        manual_parameters=[
+            openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+        ],
+        responses={200: RegionInfoRespSerializer(many=True)},
+        tags=['openapi-region'],
+        operation_description="获取全部数据中心列表")
+    def get(self, req):
+        query = req.GET.get("query", "")
+        try:
+            page = int(req.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(req.GET.get("page_size", 99))
+        except ValueError:
+            page_size = 99
+
+        regions, total = region_services.get_all_regions(query, page, page_size)
+        serializer = RegionInfoRespSerializer(data=regions, many=True)
+        serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(
@@ -73,13 +97,19 @@ class ListRegionInfo(ListAPIView):
 class RegionInfo(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取指定数据中心数据",
-        responses={200: RegionInfoSerializer()},
+        responses={
+            status.HTTP_200_OK: RegionInfoSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
+        },
         tags=['openapi-region'],
     )
     def get(self, request, region_id):
-        queryset = region_services.get_region_by_region_id(region_id)
-        serializer = RegionInfoSerializer(queryset)
-        return Response(serializer.data)
+        try:
+            queryset = region_services.get_region_by_region_id(region_id)
+            serializer = RegionInfoSerializer(queryset)
+            return Response(serializer.data)
+        except RegionConfig.DoesNotExist:
+            return Response({"msg": "数据中心不存在"}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="更新指定数据中心元数据",
@@ -117,3 +147,30 @@ class RegionInfo(BaseOpenAPIView):
             return Response({"msg": "修改的数据中心不存在"}, status=status.HTTP_400_BAD_REQUEST)
         new_region = region_services.update_region(region_data)
         return Response(new_region)
+
+
+class RegionStatusView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="修改数据中心的状态(上线, 下线, 设为维护)",
+        request_body=UpdateRegionStatusReqSerializer(),
+        responses={
+            status.HTTP_200_OK: RegionInfoSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
+            status.HTTP_400_BAD_REQUEST: FailSerializer(),
+        },
+        tags=['openapi-region'],
+    )
+    def put(self, req, region_id):
+        serializer = UpdateRegionStatusReqSerializer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            region = region_services.update_region_status(region_id, req.data["status"])
+            serializer = RegionInfoSerializer(region)
+            return Response(serializer.data, status.HTTP_200_OK)
+        except RegionConfig.DoesNotExist:
+            fs = FailSerializer({"msg": "数据中心不存在"})
+            return Response(fs.data, status.HTTP_404_NOT_FOUND)
+        except RegionUnreachableError as e:
+            fs = FailSerializer({"msg": e.message})
+            return Response(fs.data, status.HTTP_400_BAD_REQUEST)

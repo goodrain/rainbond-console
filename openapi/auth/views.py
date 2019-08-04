@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from rest_framework.views import APIView
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.base_serializer import TokenSerializer, FailSerializer
-from openapi.services.api_user_service import apiUserService
 from rest_framework import status
 from rest_framework.response import Response
-from drf_yasg import openapi
+from rest_framework.views import APIView
+
 from backends.services.exceptions import UserNotExistError
+from openapi.serializer.base_serializer import FailSerializer
+from openapi.serializer.base_serializer import TokenSerializer
+from openapi.services.api_user_service import apiUserService
 
 
 class TokenInfoView(APIView):
@@ -18,6 +20,7 @@ class TokenInfoView(APIView):
         responses={
             200: TokenSerializer(),
             status.HTTP_400_BAD_REQUEST: FailSerializer(),
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
         },
         request_body=openapi.Schema(
             title="AuthRequest",
@@ -41,4 +44,4 @@ class TokenInfoView(APIView):
                 return Response({"token": token}, status=status.HTTP_200_OK)
             return Response({"msg": "用户名或密码错误或用户不是管理员用户"}, status=status.HTTP_400_BAD_REQUEST)
         except UserNotExistError as e:
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": e.message}, status=status.HTTP_404_NOT_FOUND)

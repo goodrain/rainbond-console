@@ -3,12 +3,21 @@ import datetime
 import logging
 
 from django.conf import settings
-from django.db.models import F, Q, Sum
+from django.db.models import F
+from django.db.models import Q
+from django.db.models import Sum
 from fuzzyfinder.main import fuzzyfinder
 
 from backends.models.main import RegionConfig
-from backends.services.exceptions import *
-from www.models.main import Tenants, PermRelTenant, Users, TenantRegionInfo, TenantServiceInfo, TenantEnterprise
+from backends.services.exceptions import PermTenantsExistError
+from backends.services.exceptions import TenantExistError
+from backends.services.exceptions import TenantOverFlowError
+from www.models.main import PermRelTenant
+from www.models.main import TenantEnterprise
+from www.models.main import TenantRegionInfo
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
+from www.models.main import Users
 from www.utils import sn
 from www.utils.license import LICENSE
 
@@ -149,7 +158,8 @@ class TenantService(object):
             tenant_alias=tenant_alias,
             enterprise_id=enterprise.enterprise_id)
         logger.info('create tenant:{}'.format(tenant.to_dict()))
-        PermRelTenant.objects.create(user_id=creater, tenant_id=tenant.pk, identity='admin', enterprise_id=enterprise.pk)
+        PermRelTenant.objects.create(user_id=creater, tenant_id=tenant.pk,
+                                     identity='admin', enterprise_id=enterprise.pk)
         if regions:
             for r in regions:
                 TenantRegionInfo.objects.create(
@@ -167,7 +177,8 @@ class TenantService(object):
     def add_user_to_tenant(self, tenant, user, identity, enterprise):
         perm_tenants = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         if perm_tenants:
-            raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(user.nick_name, tenant.tenant_name))
+            raise PermTenantsExistError("用户{0}已存在于租户{1}下".format(
+                user.nick_name, tenant.tenant_name))
         perm_tenant = PermRelTenant.objects.create(
             user_id=user.pk, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID)
         return perm_tenant
@@ -184,6 +195,9 @@ class TenantService(object):
 
     def get_all_tenant(self):
         return Tenants.objects.all()
+
+    def get_by_tenant_id(self, tid):
+        return Tenants.objects.filter(tenant_id=tid).get()
 
 
 tenant_service = TenantService()

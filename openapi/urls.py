@@ -1,14 +1,36 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 from django.conf.urls import url
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+
+from openapi.auth.authentication import OpenAPIAuthentication
+from openapi.auth.permissions import OpenAPIPermissions
+from openapi.auth.views import TokenInfoView
+from openapi.views.admin_view import AdminInfoView
+from openapi.views.admin_view import ListAdminsView
+from openapi.views.announcement_view import AnnouncementView
+from openapi.views.announcement_view import ListAnnouncementView
+from openapi.views.appstore_view import AppStoreInfoView
+from openapi.views.appstore_view import ListAppStoresView
+from openapi.views.config_view import BaseConfigView
+from openapi.views.config_view import FeatureConfigView
+from openapi.views.config_view import ListFeatureConfigView
+from openapi.views.enterprise_view import EnterpriseInfoView
+from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
-from openapi.views.team_view import ListTeamInfo, TeamInfo
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-from openapi.auth.permissions import OpenAPIPermissions
-from openapi.auth.authentication import OpenAPIAuthentication
-from openapi.auth.views import TokenInfoView
+from openapi.views.region_view import RegionStatusView
+from openapi.views.team_view import ListRegionsView
+from openapi.views.team_view import ListTeamInfo
+from openapi.views.team_view import ListTeamUsersInfo
+from openapi.views.team_view import ListUserRolesView
+from openapi.views.team_view import TeamInfo
+from openapi.views.team_view import TeamUserInfoView
+from openapi.views.user_view import ListUsersView
+from openapi.views.user_view import UserInfoView
+from openapi.views.user_view import UserTeamInfoView
+# from openapi.views.upload_view import UploadView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -31,19 +53,29 @@ urlpatterns = [
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view()),
-    url(r'^v1/teams', ListTeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_name>[\w\-]+)$', TeamInfo.as_view()),
-    # url(r'^v1/teams/(?P<team_name>[\w\-]+)/users$', ListTeamUserInfo.as_view()),
-    # url(r'^v1/users$', ListUserInfo.as_view()),
-    # url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfo.as_view()),
-    # url(r'^v1/administrators$', ListAdministratorInfo.as_view()),
-    # url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', UserAdministrator.as_view()),
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
+    url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions', ListRegionsView.as_view()),
+    url(r'^v1/users$', ListUsersView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
+    url(r'^v1/administrators$', ListAdminsView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
-    # url(r'^v1/enterprises$', ListEnterpriseInfo.as_view())
-    # url(r'^v1/announcement$', ListAnnouncementView.as_view()),
-    # url(r'^v1/announcement/(?P<announcement_id>[\w\-]+)$', AnnouncementView.as_view()),
+    url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
+    url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
+    url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
+    url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
+    url(r'^v1/announcements$', ListAnnouncementView.as_view()),
+    url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
     # url(r'^v1/labels$', ListLabelsView.as_view()),
     # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
-    # url(r'^v1/configs/base', BaseConfigView.as_view()),
-    # url(r'^v1/configs/feature', FeatureConfigView.as_view()),
+    url(r'^v1/configs/base$', BaseConfigView.as_view()),
+    url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
+    url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
+    # url(r'^v1/upload-file$', UploadView.as_view()),
 ]

@@ -13,23 +13,23 @@ from www.db.base import BaseConnection
 from www.github_http import GitHubApi
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
-from www.models.plugin import PluginBuildVersion
 from www.models.main import ServiceAttachInfo
 from www.models.main import ServiceEvent
+from www.models.main import ServiceProbe
 from www.models.main import TenantRegionInfo
+from www.models.main import TenantRegionPayModel
 from www.models.main import TenantRegionResource
 from www.models.main import Tenants
 from www.models.main import TenantServiceAuth
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServiceMountRelation
-from www.models.plugin import TenantServicePluginRelation
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceVolume
 from www.models.main import Users
-from www.models.main import ServiceProbe
-from www.models.main import TenantRegionPayModel
+from www.models.plugin import PluginBuildVersion
+from www.models.plugin import TenantServicePluginRelation
 from www.region import RegionInfo
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
@@ -1010,7 +1010,7 @@ class CodeRepositoriesService(object):
 
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
-            if custom_config.GITLAB_SERVICE_API:
+            if custom_config.GITLAB:
                 project_id = 0
                 if user.git_user_id > 0:
                     project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
@@ -1092,17 +1092,17 @@ class CodeRepositoriesService(object):
         return httpGitUrl
 
     def deleteProject(self, service):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:
                 gitClient.deleteProject(service.git_project_id)
 
     def getProjectBranches(self, project_id):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             return gitClient.getProjectBranches(project_id)
         return ""
 
     def createUser(self, user, email, password, username, name):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             if user.git_user_id == 0:
                 logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
                 git_user_id = gitClient.createUser(email, password, username, name)
@@ -1115,47 +1115,47 @@ class CodeRepositoriesService(object):
                     logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
 
     def modifyUser(self, user, password):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             gitClient.modifyUser(user.git_user_id, password=password)
 
     # def addProjectMember(self, git_project_id, git_user_id, level):
-    #     if custom_config.GITLAB_SERVICE_API:
+    #     if custom_config.GITLAB:
     #         gitClient.addProjectMember(git_project_id, git_user_id, level)
 
     def listProjectMembers(self, git_project_id):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             return gitClient.listProjectMembers(git_project_id)
         return ""
 
     def deleteProjectMember(self, project_id, git_user_id):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             gitClient.deleteProjectMember(project_id, git_user_id)
 
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
 
     def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
-        if custom_config.GITLAB_SERVICE_API:
+        if custom_config.GITLAB:
             gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
 
     def get_gitHub_access_token(self, code):
-        if custom_config.GITHUB_SERVICE_API:
+        if custom_config.GITHUB:
             return gitHubClient.get_access_token(code)
         return ""
 
     def getgGitHubAllRepos(self, token):
-        if custom_config.GITHUB_SERVICE_API:
+        if custom_config.GITHUB:
             return gitHubClient.getAllRepos(token)
         return ""
 
     def gitHub_authorize_url(self, user):
-        if custom_config.GITHUB_SERVICE_API:
+        if custom_config.GITHUB:
             return gitHubClient.authorize_url(user.pk)
         return ""
 
     def gitHub_ReposRefs(self, user, repos, token):
-        if custom_config.GITHUB_SERVICE_API:
+        if custom_config.GITHUB:
             return gitHubClient.getReposRefs(user, repos, token)
         return ""
 
