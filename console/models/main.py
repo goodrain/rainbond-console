@@ -339,7 +339,7 @@ class EnterpriseUserPerm(BaseModel):
     user_id = models.IntegerField(help_text=u"用户id")
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
-    token = models.CharField(max_length=32, help_text=u"API通信密钥", unique=True)
+    token = models.CharField(max_length=64, help_text=u"API通信密钥", unique=True)
 
 
 class TenantUserRole(BaseModel):

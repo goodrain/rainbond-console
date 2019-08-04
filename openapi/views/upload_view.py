@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from console.services.file_upload_service import upload_service
@@ -17,11 +19,13 @@ class UploadFileRespSerializer(serializers.Serializer):
 
 
 class UploadView(BaseOpenAPIView):
+    parser_classes = (MultiPartParser,)
+
     @swagger_auto_schema(
         operation_description="上传文件",
-        request_body={
-            UploadFileReqSerializer()
-        },
+        manual_parameters=[
+            openapi.Parameter("file", openapi.IN_FORM, description="文件", type=openapi.TYPE_FILE),
+        ],
         responses={
             status.HTTP_200_OK: UploadFileRespSerializer()
         },

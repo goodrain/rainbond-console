@@ -14,6 +14,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
@@ -211,7 +212,7 @@ class TeamUserInfoView(BaseOpenAPIView):
         operation_description="将用户从团队中移除",
         responses={
             status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
             status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
@@ -219,14 +220,15 @@ class TeamUserInfoView(BaseOpenAPIView):
     def delete(self, req, team_id, user_id):
         if req.user.user_id == user_id:
             raise serializers.ValidationError("不能删除自己", status.HTTP_400_BAD_REQUEST)
-        role_name = user_services.get_user_role_names(team_id, user_id)
-        if "owner" in role_name:
-            raise serializers.ValidationError("不能删除团队拥有者！", status.HTTP_400_BAD_REQUEST)
+
         try:
+            user_services.get_user_by_tenant_id(team_id, user_id)
             user_services.batch_delete_users(team_id, [user_id])
             return Response(None, status.HTTP_200_OK)
+        except UserNotExistError as e:
+            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)
         except Tenants.DoesNotExist:
-            return Response(None, status.HTTP_404_NOT_FOUND)
+            return Response({"msg": "团队不存在"}, status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="add team user",
@@ -248,7 +250,7 @@ class TeamUserInfoView(BaseOpenAPIView):
             raise exceptions.NotFound()
 
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id)
+        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
         for role_id in role_ids:
             if int(role_id) not in roleids:
                 raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
@@ -269,7 +271,7 @@ class TeamUserInfoView(BaseOpenAPIView):
             status.HTTP_200_OK: None,
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
             status.HTTP_400_BAD_REQUEST: None,
-            status.HTTP_404_NOT_FOUND: None,
+            status.HTTP_404_NOT_FOUND: FailSerializer(),
         },
         tags=['openapi-team'],
     )
@@ -281,18 +283,15 @@ class TeamUserInfoView(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
 
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id)
+        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
         for role_id in role_ids:
             if int(role_id) not in roleids:
                 raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
 
         try:
-            role_name = user_services.get_user_role_names(team_id, user_id)
-        except UserNotExistError:
-            raise serializers.ValidationError("用户{}不存在于团队{}中".format(user_id, team_id),
-                                              status.HTTP_404_NOT_FOUND)
-        if "owner" in role_name:
-            raise serializers.ValidationError("不能修改团队拥有者的权限！", status.HTTP_400_BAD_REQUEST)
+            user_services.get_user_by_tenant_id(team_id, user_id)
+        except UserNotExistError as e:
+            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)
 
         team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
 

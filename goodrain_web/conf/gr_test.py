@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-import os
 import datetime
+import os
 
 DEBUG = os.environ.get('DEBUG') or False
 
@@ -92,9 +92,6 @@ if MODULES["SSO_LOGIN"]:
             'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
         }
     }
-
-# logo path
-MEDIA_ROOT = '/data/media'
 
 # open api
 IS_OPEN_API = True
