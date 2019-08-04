@@ -29,7 +29,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
-DEBUG = True
+DEBUG = False
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/

@@ -175,6 +175,8 @@ class EnterpriseServices(object):
         tet = TenantEnterpriseToken.objects.get(enterprise_id=ent.ID)
         access_url = data["access_url"]
         tet.access_url = access_url
+        tet.access_id = ""
+        tet.access_token = ""
         tet.save()
         setattr(ent, "access_url", access_url)
         appstore_name = ""
