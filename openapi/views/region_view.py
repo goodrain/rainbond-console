@@ -60,7 +60,6 @@ class ListRegionInfo(ListAPIView):
                 'region_name': openapi.Schema(type=openapi.TYPE_STRING),
                 'region_alias': openapi.Schema(type=openapi.TYPE_STRING),
                 'url': openapi.Schema(type=openapi.TYPE_STRING),
-                'token': openapi.Schema(type=openapi.TYPE_STRING),
                 'wsurl': openapi.Schema(type=openapi.TYPE_STRING),
                 'httpdomain': openapi.Schema(type=openapi.TYPE_STRING),
                 'tcpdomain': openapi.Schema(type=openapi.TYPE_STRING),

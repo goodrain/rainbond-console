@@ -38,14 +38,14 @@ class RegionReqValidate(object):
 class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
     class Meta:
         model = RegionConfig
-        fields = ["region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain",
+        fields = ["region_id", "region_name", "region_alias", "url", "wsurl", "httpdomain",
                   "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
 
 
 class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
     class Meta:
         model = RegionConfig
-        fields = ["region_alias", "url", "token", "wsurl", "httpdomain",
+        fields = ["region_alias", "url", "wsurl", "httpdomain",
                   "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
 
 
@@ -57,7 +57,6 @@ class RegionInfoRespSerializer(serializers.Serializer):
     wsurl = serializers.CharField(max_length=256, help_text=u"数据中心Websocket url")
     httpdomain = serializers.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
     tcpdomain = serializers.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
-    token = serializers.CharField(max_length=40, allow_null=True, allow_blank=True, default="", help_text=u"数据中心token")
     status = serializers.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
     desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"数据中心描述")
     scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
