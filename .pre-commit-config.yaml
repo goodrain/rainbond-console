@@ -4,17 +4,15 @@
     - id: flake8
       args:
         - --max-line-length=120
-      files: ^console/
-      # exclude: >
-      #     (?x)^(
-      #         www/apiclient/regionapi.py|
-      #         console/views/app_manage.py|
-      #         console/services/app_config/port_service.py|
-      #         console/services/app.py|
-      #         www/tenantservice/baseservice.py|
-      #         goodrain_web/test_settings.py|
-      #         ^backends/
-      #     )$
+      exclude: >
+          (?x)^(
+              www/apiclient/regionapi.py|
+              console/views/app_manage.py|
+              console/services/app_config/port_service.py|
+              console/services/app.py|
+              www/tenantservice/baseservice.py|
+              goodrain_web/test_settings.py
+          )$
     - id: check-docstring-first
     - id: debug-statements
     
