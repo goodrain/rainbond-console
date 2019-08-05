@@ -3,10 +3,10 @@ import datetime
 import json
 import logging
 
-from backends.models.main import CloundBangImages
 from backends.services.exceptions import ConfigExistError
 from backends.services.exceptions import ParamsError
 from backends.services.exceptions import TenantOverFlowError
+from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from goodrain_web.custom_config import custom_config as custom_settings
 from www.utils.license import LICENSE

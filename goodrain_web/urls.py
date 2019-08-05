@@ -33,6 +33,8 @@ urlpatterns = [
     url(r'^favicon\.ico$', RedirectView.as_view(url='/static/www/favicon.ico')),
     url(r'^$', IndexTemplateView.as_view()),
     url(r'^console/', include('console.urls')),
-    url(r'^openapi/', include('openapi.urls')),
     url(r'^backend/', include('backends.urls')),
-] + staticfiles_urlpatterns() + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+if settings.IS_OPEN_API:
+    urlpatterns.append(url(r'^openapi/', include('openapi.urls')),)
+urlpatterns += staticfiles_urlpatterns() + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

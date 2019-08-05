@@ -7,7 +7,9 @@ from django.db.models.fields.files import FileField
 from enum import Enum
 from enum import IntEnum
 
+from goodrain_web import settings
 from www.models.main import TenantServiceInfo
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
@@ -657,3 +659,17 @@ class RegionConfig(BaseModel):
     ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
     cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
     key_file = models.TextField(blank=True, null=True, help_text=u"验证的key")
+
+
+def logo_path(instance, filename):
+    suffix = filename.split('.')[-1]
+    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
+
+
+class CloundBangImages(BaseModel):
+    class Meta:
+        db_table = 'clound_bang_images'
+
+    identify = models.CharField(max_length=32, help_text='标识')
+    logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

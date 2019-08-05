@@ -1,15 +1,7 @@
 # -*- coding: utf8 -*-
 from datetime import datetime
 
-from django.conf import settings
 from django.db import models
-
-from www.utils.crypt import make_uuid
-
-
-def logo_path(instance, filename):
-    suffix = filename.split('.')[-1]
-    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 
 class BaseModel(models.Model):
@@ -27,15 +19,6 @@ class BaseModel(models.Model):
                 value = value.strftime('%Y-%m-%d %H:%M:%S')
             data[f.name] = value
         return data
-
-
-class CloundBangImages(BaseModel):
-    class Meta:
-        db_table = 'clound_bang_images'
-
-    identify = models.CharField(max_length=32, help_text='标识')
-    logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
 
 class RegionClusterInfo(BaseModel):
