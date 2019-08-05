@@ -12,5 +12,5 @@ git:
   depth: 1
 
 script:
-- flake8 --exclude env,static,www/alipay_direct,www/utils/mnssdk,backends --extend-ignore=W605 --max-line-length 129 ./
-- ./travis_build.sh
+- flake8 --exclude env,static,www/alipay_direct,www/utils/mnssdk,backends --extend-ignore=W605 --max-line-length 129 ./ || travis_terminate 1;
+- ./travis_build.sh || travis_terminate 1;
