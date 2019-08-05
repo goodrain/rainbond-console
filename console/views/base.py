@@ -21,7 +21,7 @@ from rest_framework.views import APIView
 from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-
+from rest_framework.exceptions import ValidationError
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
@@ -270,6 +270,8 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, ResourceNotEnoughException):
         data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}
         return Response(data, status=412)
+    elif isinstance(exc, ValidationError):
+        return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
