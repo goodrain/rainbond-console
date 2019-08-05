@@ -1,40 +1,51 @@
 # -*- coding: utf8 -*-
 import logging
-
-from django.conf import settings
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Q
-from rest_framework.response import Response
 import re
 
+from django.conf import settings
+from django.core.paginator import EmptyPage
+from django.core.paginator import PageNotAnInteger
+from django.core.paginator import Paginator
+from django.db.models import Q
+from rest_framework.response import Response
+
 from backends.services.configservice import config_service
-from backends.services.exceptions import UserNotExistError, TenantExistError, NoEnableRegionError
-from backends.services.exceptions import TenantNotExistError, ParamsError, PermTenantsExistError
+from backends.services.exceptions import NoEnableRegionError
+from backends.services.exceptions import ParamsError
+from backends.services.exceptions import PermTenantsExistError
+from backends.services.exceptions import TenantExistError
+from backends.services.exceptions import TenantNotExistError
 from backends.services.exceptions import UserExistError
-from backends.services.resultservice import generate_result, generate_error_result
+from backends.services.exceptions import UserNotExistError
+from backends.services.resultservice import generate_error_result
+from backends.services.resultservice import generate_result
+from backends.services.userservice import user_service
 from console.models.main import UserMessage
+from console.repositories.app import service_repo
 from console.repositories.apply_repo import apply_repo
-from console.repositories.enterprise_repo import enterprise_user_perm_repo, enterprise_repo
+from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.perm_repo import role_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.enterprise_services import enterprise_services, make_uuid
-from console.services.team_services import team_services
-from console.services.user_services import user_services
+from console.services.enterprise_services import enterprise_services
+from console.services.enterprise_services import enterprise_services as console_enterprise_service
+from console.services.enterprise_services import make_uuid
 from console.services.perm_services import perm_services
 from console.services.region_services import region_services
+from console.services.team_services import team_services
+from console.services.user_services import user_services
+from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView
 from goodrain_web.tools import JuncheePaginator
-from www.models.main import Tenants
-from www.perms import PermActions, get_highest_identity
-from www.utils.return_message import general_message, error_message
-from console.repositories.perm_repo import role_repo
-from console.repositories.region_repo import region_repo
-from console.utils.timeutil import time_to_str
-from backends.services.userservice import user_service
-from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.app import service_repo
+from www.models.main import Tenants
+from www.perms import get_highest_identity
+from www.perms import PermActions
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -265,7 +276,8 @@ class TeamUserView(JWTAuthApiView):
                 perms_identitys_list = team_services.get_user_perm_identitys_in_permtenant(
                     user_id=user.user_id, tenant_name=team_name)
                 # 获取一个用户在一个团队中的角色ID列表
-                perms_role_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id, tenant_name=team_name)
+                perms_role_list = team_services.get_user_perm_role_id_in_permtenant(
+                    user_id=user.user_id, tenant_name=team_name)
 
                 role_info_list = []
 
@@ -331,7 +343,8 @@ class TeamUserAddView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        perm_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id, tenant_name=team_name)
         # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
         role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
         if perm_list:
@@ -402,11 +415,13 @@ class UserDelView(JWTAuthApiView):
               paramType: body
         """
         try:
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            identitys = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
 
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
-            if "owner" not in identitys and "admin" not in identitys and "manage_team_member_permissions" not in perm_tuple:
+            if "owner" not in identitys and "admin" not in identitys \
+                    and "manage_team_member_permissions" not in perm_tuple:
                 code = 400
                 result = general_message(code, "no identity", "没有权限")
                 return Response(result, status=code)
@@ -430,7 +445,8 @@ class UserDelView(JWTAuthApiView):
             for user_id in user_id_list:
                 print user_id
                 role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=user_id, tenant_name=team_name)
-                identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user_id, tenant_name=team_name)
+                identity_list = team_services.get_user_perm_identitys_in_permtenant(
+                    user_id=user_id, tenant_name=team_name)
                 print role_name_list
                 if "owner" in role_name_list or "owner" in identity_list:
                     result = general_message(400, "failed", "不能删除团队创建者！")
@@ -470,7 +486,8 @@ class TeamNameModView(JWTAuthApiView):
               paramType: body
         """
         try:
-            perms = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            perms = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
             perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
 
             no_auth = True
@@ -516,7 +533,8 @@ class TeamDelView(JWTAuthApiView):
         """
         code = 200
 
-        identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        identity_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id, tenant_name=team_name)
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
         team = team_services.get_tenant_by_tenant_name(team_name)
         if not user_services.is_user_admin_in_current_enterprise(request.user, team.enterprise_id):
@@ -586,9 +604,11 @@ class TeamExitView(JWTAuthApiView):
               paramType: path
         """
 
-        identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        identity_list = team_services.get_user_perm_identitys_in_permtenant(
+            user_id=request.user.user_id, tenant_name=team_name)
 
-        role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        role_name_list = team_services.get_user_perm_role_in_permtenant(
+            user_id=request.user.user_id, tenant_name=team_name)
 
         if "owner" in identity_list:
             result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
@@ -711,10 +731,14 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(400, "team alias is not allow", "组名称只支持中英文下划线和中划线"), status=400)
             team = team_services.get_team_by_team_alias(team_alias)
             if team:
-                return Response(general_message(409, "region alias is exist", "团队名称{0}已存在".format(team_alias)), status=409)
+                return Response(
+                    general_message(409, "region alias is exist", "团队名称{0}已存在".format(team_alias)),
+                    status=409)
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                return Response(general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)), status=404)
+                return Response(
+                    general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)),
+                    status=404)
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             if not enterprise:
                 return Response(general_message(404, "user's enterprise is not found", "无法找到用户所在的数据中心"))
@@ -739,8 +763,8 @@ class TeamRegionInitView(JWTAuthApiView):
             if settings.MODULES.get('SSO_LOGIN'):
                 result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
                                                                       tenant_region.region_name, self.user.nick_name)
-                logger.debug("get free resource on [{}] to team {}: {}".format(tenant_region.region_name, team.tenant_name,
-                                                                               result))
+                logger.debug("get free resource on [{}] to team {}: {}".format(
+                    tenant_region.region_name, team.tenant_name, result))
             self.user.is_active = True
             self.user.save()
 
@@ -878,7 +902,9 @@ class RegisterStatusView(JWTAuthApiView):
         try:
             register_config = config_service.get_regist_status()
             if register_config != "yes":
-                return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
+                return Response(
+                    general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
+                    status=200)
             else:
                 return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
         except Exception as e:
@@ -1236,7 +1262,8 @@ class AdminAddUserView(JWTAuthApiView):
                 # 创建用户
                 user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
-                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+                team_services.create_tenant_role(
+                    user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
                 user.is_active = True
                 user.save()
                 result = general_message(200, "success", "添加用户成功")
@@ -1251,7 +1278,8 @@ class AdminAddUserView(JWTAuthApiView):
 class TeamUserAdminView(JWTAuthApiView):
     def get(self, request, team_name, *args, **kwargs):
         try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
             if not perm_list:
                 result = general_message(200, "success", "暂无权限")
                 return Response(result)
@@ -1293,7 +1321,8 @@ class TeamSortDomainQueryView(JWTAuthApiView):
                 result = general_message(400, "team id null", "团队不存在")
                 return Response(result, status=400)
             if repo == "1":
-                query = "?query=sort_desc(sum(%20ceil(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
+                query = "?query=sort_desc(sum(%20ceil(increase(" \
+                    + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
                 sufix = query.format(team.tenant_id)
                 res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
                 total = len(body["data"]["result"])
