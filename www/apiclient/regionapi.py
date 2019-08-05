@@ -7,7 +7,7 @@ import httplib2
 from django import http
 from django.conf import settings
 
-from backends.models import RegionConfig
+from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo

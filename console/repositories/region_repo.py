@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
-from backends.models import RegionConfig
+from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
 from www.models.main import TenantRegionInfo

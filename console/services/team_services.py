@@ -179,7 +179,7 @@ class TeamService(object):
             role_perm_tuple += perm_tuple
         return role_perm_tuple
 
-    def get_all_team_role_id(self, tenant_name):
+    def get_all_team_role_id(self, tenant_name, allow_owner=False):
         """获取一个团队中的所有可选角色ID列表"""
         try:
             team_obj = team_services.get_tenant(tenant_name=tenant_name)
@@ -187,7 +187,11 @@ class TeamService(object):
             team_obj = self.get_team_by_team_id(tenant_name)
             if team_obj is None:
                 raise Tenants.DoesNotExist()
-        default_role_id_list = TenantUserRole.objects.filter(Q(is_default=True) & ~Q(role_name="owner")).values_list(
+
+        filter = Q(is_default=True)
+        if not allow_owner:
+            filter &= ~Q(role_name="owner")
+        default_role_id_list = TenantUserRole.objects.filter(filter).values_list(
             "pk", flat=True)
         team_role_id_list = TenantUserRole.objects.filter(
             tenant_id=team_obj.pk, is_default=False).values_list(
@@ -229,16 +233,17 @@ class TeamService(object):
         if tenant is None:
             raise Tenants.DoesNotExist()
 
-        role_list = role_repo.get_tenant_role_by_tenant_id(tenant_id=tenant.pk)
-        paginator = Paginator(role_list, page_size)
-        try:
-            role_list = paginator.page(page).object_list
-        except PageNotAnInteger:
-            page = 1
-            role_list = paginator.page(1).object_list
-        except EmptyPage:
-            page = paginator.num_pages
-            role_list = paginator.page(paginator.num_pages).object_list
+        role_list = role_repo.get_tenant_role_by_tenant_id(tenant_id=tenant.pk, allow_owner=True)
+        if page is not None and page_size is None:
+            paginator = Paginator(role_list, page_size)
+            try:
+                role_list = paginator.page(page).object_list
+            except PageNotAnInteger:
+                page = 1
+                role_list = paginator.page(1).object_list
+            except EmptyPage:
+                page = paginator.num_pages
+                role_list = paginator.page(paginator.num_pages).object_list
         return role_list
 
     def change_tenant_role(self, user_id, tenant_name, role_id_list):

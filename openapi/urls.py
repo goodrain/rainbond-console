@@ -27,10 +27,10 @@ from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import ListUserRolesView
 from openapi.views.team_view import TeamInfo
 from openapi.views.team_view import TeamUserInfoView
+from openapi.views.upload_view import UploadView
 from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
-# from openapi.views.upload_view import UploadView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -51,13 +51,13 @@ urlpatterns = [
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
-    url(r'^v1/regions$', ListRegionInfo.as_view()),
+    url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions', ListRegionsView.as_view()),
     url(r'^v1/users$', ListUsersView.as_view()),
@@ -77,5 +77,5 @@ urlpatterns = [
     url(r'^v1/configs/base$', BaseConfigView.as_view()),
     url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
     url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
-    # url(r'^v1/upload-file$', UploadView.as_view()),
+    url(r'^v1/upload-file$', UploadView.as_view()),
 ]

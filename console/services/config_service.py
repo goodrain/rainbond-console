@@ -3,10 +3,10 @@ import json
 from datetime import datetime
 
 from backends.services.exceptions import ConfigExistError
+from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.repositories.config_repo import cfg_repo
 from goodrain_web.custom_config import custom_config as custom_settings
-from openapi.models.main import CloundBangImages
 
 
 class ConfigService(object):

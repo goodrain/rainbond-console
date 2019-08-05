@@ -7,13 +7,14 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.models import RegionConfig
 from backends.services.exceptions import RegionUnreachableError
+from console.models.main import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.region_serializer import RegionInfoRespSerializer
 from openapi.serializer.region_serializer import RegionInfoSerializer
+from openapi.serializer.region_serializer import UpdateRegionReqSerializer
 from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
@@ -59,7 +60,6 @@ class ListRegionInfo(ListAPIView):
                 'region_name': openapi.Schema(type=openapi.TYPE_STRING),
                 'region_alias': openapi.Schema(type=openapi.TYPE_STRING),
                 'url': openapi.Schema(type=openapi.TYPE_STRING),
-                'token': openapi.Schema(type=openapi.TYPE_STRING),
                 'wsurl': openapi.Schema(type=openapi.TYPE_STRING),
                 'httpdomain': openapi.Schema(type=openapi.TYPE_STRING),
                 'tcpdomain': openapi.Schema(type=openapi.TYPE_STRING),
@@ -112,40 +112,29 @@ class RegionInfo(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="更新指定数据中心元数据",
-        request_body=openapi.Schema(
-            title="UpdateRegionRequest",
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'region_alias': openapi.Schema(type=openapi.TYPE_STRING),
-                'url': openapi.Schema(type=openapi.TYPE_STRING),
-                'token': openapi.Schema(type=openapi.TYPE_STRING),
-                'wsurl': openapi.Schema(type=openapi.TYPE_STRING),
-                'httpdomain': openapi.Schema(type=openapi.TYPE_STRING),
-                'tcpdomain': openapi.Schema(type=openapi.TYPE_STRING),
-                'scope': openapi.Schema(type=openapi.TYPE_STRING),
-                'ssl_ca_cert': openapi.Schema(type=openapi.TYPE_STRING),
-                'cert_file': openapi.Schema(type=openapi.TYPE_STRING),
-                'key_file': openapi.Schema(type=openapi.TYPE_STRING),
-                'desc': openapi.Schema(type=openapi.TYPE_STRING),
-                'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-            },
-        ),
+        request_body=UpdateRegionReqSerializer(),
         responses={
             200: RegionInfoSerializer(),
-            400: FailSerializer()
+            400: FailSerializer(),
+            404: FailSerializer(),
         },
         tags=['openapi-region'],
     )
     def put(self, request, region_id):
-        serializer = RegionInfoSerializer(data=request.data)
+        serializer = UpdateRegionReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         region_data = serializer.data
         if not region_id:
             return Response({"msg": "RegionID不能为空"}, status=status.HTTP_400_BAD_REQUEST)
-        if not region_services.get_region_by_region_id(region_id):
-            return Response({"msg": "修改的数据中心不存在"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            region_services.get_region_by_region_id(region_id)
+        except RegionConfig.DoesNotExist:
+            # TODO: raise exception or return Response
+            return Response({"msg": "修改的数据中心不存在"}, status=status.HTTP_404_NOT_FOUND)
+        region_data["region_id"] = region_id
         new_region = region_services.update_region(region_data)
-        return Response(new_region)
+        serializer = RegionInfoSerializer(new_region)
+        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class RegionStatusView(BaseOpenAPIView):

@@ -99,7 +99,7 @@ class UserRepo(object):
             AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, user_id=user_id)
         result = conn.query(sql)
         if len(result) == 0:
-            raise UserNotExistError("用户{}不存在".format(user_id))
+            raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
         return result[0]
 
     def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):

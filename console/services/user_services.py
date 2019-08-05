@@ -19,11 +19,9 @@ from backends.services.exceptions import UserNotExistError
 from backends.services.tenantservice import tenant_service as tenantService
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
-from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.user_role_repo import user_role_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions import event_service
 from console.services.exception import ErrAdminUserDoesNotExist
@@ -410,18 +408,8 @@ class UserService(object):
             raise ErrCannotDelLastAdminUser("当前用户为最后一个企业管理员，无法删除")
         enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
 
-    def get_user_role_names(self, tenant_id, user_id):
-        user = user_repo.get_by_tenant_id(tenant_id, user_id)
-        role_name = user.get("identity")
-        try:
-            role_names = user_role_repo.get_role_names(user_id, tenant_id)
-            if role_name is None or role_name in role_names:
-                role_name = role_names
-            if role_name not in role_names:
-                role_name = role_name + "," + role_names
-        except UserRoleNotFoundException:
-            pass
-        return role_name
+    def get_user_by_tenant_id(self, tenant_id, user_id):
+        return user_repo.get_by_tenant_id(tenant_id, user_id)
 
 
 user_services = UserService()

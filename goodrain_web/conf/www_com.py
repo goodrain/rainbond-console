@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-import os
 import datetime
+import os
 
 debug = os.environ.get('DEBUG')
 if debug:
@@ -97,9 +97,6 @@ if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):
             'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
         }
     }
-
-# logo path
-MEDIA_ROOT = '/data/media'
 
 # open api
 IS_OPEN_API = True

@@ -44,7 +44,8 @@ DATABASES = {
     },
 }
 
-REGION_SERVICE_API = [{'url': 'http://region.goodrain.me:8888', 'apitype': 'region service', 'region_name': 'cloudbang'}]
+REGION_SERVICE_API = [{'url': 'http://region.goodrain.me:8888',
+                       'apitype': 'region service', 'region_name': 'cloudbang'}]
 
 WEBSOCKET_URL = {
     'cloudbang': 'ws://:/websocket',
@@ -99,9 +100,6 @@ MODULES = {
 }
 
 REGIONS = ({"name": "cloudbang", "label": 'cloudbang', "enable": True}, )
-
-# logo path
-MEDIA_ROOT = '/data/media'
 
 SN = '01d1S-WMrCLEKypQ_jCW78MEkB-LqhgMIvZIlK3x9vuS-WlUjMkUG5OK8OCe_\
 4KvrfYptfyc8PWe7adI21D57JnbHMU7paNCLxu4xMCK3ACXO97LifX8EBpkJUdjv8AnK\

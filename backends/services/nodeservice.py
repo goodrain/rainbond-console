@@ -2,14 +2,17 @@
 import json
 import logging
 
-from backends.models.main import RegionConfig, RegionClusterInfo, NodeInstallInfo
+from backends.models.main import NodeInstallInfo
+from backends.models.main import RegionClusterInfo
 from backends.services.clusterservice import cluster_service
 from backends.services.exceptions import *
 from backends.services.httpclient import HttpInvokeApi
 from backends.services.regionservice import region_service
+from console.models.main import RegionConfig
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants, TenantServiceInfo
 from www.models.label import *
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")

@@ -26,6 +26,8 @@ class EnterpriseServices(object):
     def list_all(self, query="", page=None, page_size=None):
         ents = enterprise_repo.list_all(query)
         total = ents.count()
+        if total == 0:
+            return [], 0
 
         paginator = Paginator(ents, page_size)
         pp = paginator.page(page)

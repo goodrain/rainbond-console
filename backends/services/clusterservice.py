@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
-
-from backends.models.main import RegionClusterInfo, RegionConfig
-from backends.services.regionservice import region_service
 import logging
+
+from backends.models.main import RegionClusterInfo
+from backends.services.regionservice import region_service
+from console.models.main import RegionConfig
 
 logger = logging.getLogger("default")
 

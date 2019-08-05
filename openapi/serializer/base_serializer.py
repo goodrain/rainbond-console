@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 
 class TokenSerializer(serializers.Serializer):
-    token = serializers.CharField(max_length=32)
+    token = serializers.CharField(max_length=64)
 
 
 class FailSerializer(serializers.Serializer):

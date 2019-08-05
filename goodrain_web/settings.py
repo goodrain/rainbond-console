@@ -29,7 +29,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
-DEBUG = False
+DEBUG = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -118,6 +118,8 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
+MEDIA_URL = '/data/media/'
+MEDIA_ROOT = '/data/media'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
