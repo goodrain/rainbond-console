@@ -77,7 +77,6 @@ class ListRegionInfo(ListAPIView):
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
             status.HTTP_400_BAD_REQUEST: FailSerializer(),
         },
-        security=[],
         tags=['openapi-region'],
     )
     def post(self, request):

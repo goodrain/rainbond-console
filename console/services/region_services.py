@@ -133,7 +133,6 @@ class RegionService(object):
     def get_all_regions(self, query="", page=None, page_size=None):
         regions = region_repo.get_all_regions(query)
         total = regions.count()
-
         paginator = Paginator(regions, page_size)
         rp = paginator.page(page)
 
