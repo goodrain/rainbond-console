@@ -1293,7 +1293,8 @@ class TeamSortDomainQueryView(JWTAuthApiView):
                 result = general_message(400, "team id null", "团队不存在")
                 return Response(result, status=400)
             if repo == "1":
-                query = "?query=sort_desc(sum(%20ceil(increase(gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
+                query = "?query=sort_desc(sum(%20ceil(increase("\
+                    + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
                 sufix = query.format(team.tenant_id)
                 res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
                 total = len(body["data"]["result"])
