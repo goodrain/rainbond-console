@@ -8,10 +8,10 @@ from django.db.models import Q
 from django.db.models import Sum
 from fuzzyfinder.main import fuzzyfinder
 
-from backends.models.main import RegionConfig
 from backends.services.exceptions import PermTenantsExistError
 from backends.services.exceptions import TenantExistError
 from backends.services.exceptions import TenantOverFlowError
+from console.models.main import RegionConfig
 from www.models.main import PermRelTenant
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo

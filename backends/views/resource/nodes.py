@@ -1,15 +1,17 @@
 # -*- coding: utf8 -*-
-
 import logging
 
-from rest_framework.response import Response
 from django.conf import settings
-from backends.models.main import RegionClusterInfo, RegionConfig
-from backends.serializers import NodeSerilizer, NodeUpdateSerilizer
+from rest_framework.response import Response
+
+from backends.models.main import RegionClusterInfo
+from backends.serializers import NodeSerilizer
+from backends.serializers import NodeUpdateSerilizer
+from backends.services.labelservice import label_service
 from backends.services.nodeservice import node_service
 from backends.services.resultservice import *
 from backends.views.base import BaseAPIView
-from backends.services.labelservice import label_service
+from console.models.main import RegionConfig
 
 logger = logging.getLogger("default")
 

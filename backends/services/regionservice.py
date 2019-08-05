@@ -1,18 +1,22 @@
 # -*- coding: utf8 -*-
-
 import datetime
 import json
 import logging
 
-from backends.models.main import RegionClusterInfo, RegionConfig
+from django.db.models import F
+from django.db.models import Sum
+
+from backends.models.main import RegionClusterInfo
+from backends.services.configservice import config_service
+from backends.services.exceptions import *
 from backends.services.httpclient import HttpInvokeApi
 from backends.services.tenantservice import tenant_service
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceInfo, Tenants, TenantRegionInfo
-from backends.services.exceptions import *
-from django.db.models import Sum, F
-from backends.services.configservice import config_service
+from console.models.main import RegionConfig
 from console.repositories.app import service_repo
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantRegionInfo
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger('default')

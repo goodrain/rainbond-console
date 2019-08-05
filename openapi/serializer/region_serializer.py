@@ -3,17 +3,12 @@
 from rest_framework import serializers
 
 from console.enum.region_enum import RegionStatusEnum
-from openapi.models.main import RegionConfig
+from console.models.main import RegionConfig
 from openapi.serializer.utils import ipregex
 from openapi.serializer.utils import urlregex
 
 
-class RegionInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RegionConfig
-        fields = ["region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain",
-                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
-
+class RegionReqValidate(object):
     def validate_url(self, url):
         if not urlregex.match(url):
             raise serializers.ValidationError("数据中心API地址非法")
@@ -38,6 +33,20 @@ class RegionInfoSerializer(serializers.ModelSerializer):
         if scope not in ["private", "public"]:
             raise serializers.ValidationError("数据中心开放类型不正确")
         return scope
+
+
+class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
+    class Meta:
+        model = RegionConfig
+        fields = ["region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain",
+                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
+
+
+class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
+    class Meta:
+        model = RegionConfig
+        fields = ["region_alias", "url", "token", "wsurl", "httpdomain",
+                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
 
 
 class RegionInfoRespSerializer(serializers.Serializer):

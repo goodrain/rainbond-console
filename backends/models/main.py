@@ -1,8 +1,10 @@
 # -*- coding: utf8 -*-
 from datetime import datetime
-from django.db import models
-from www.utils.crypt import make_uuid
+
 from django.conf import settings
+from django.db import models
+
+from www.utils.crypt import make_uuid
 
 
 def logo_path(instance, filename):
@@ -34,27 +36,6 @@ class CloundBangImages(BaseModel):
     identify = models.CharField(max_length=32, help_text='标识')
     logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
-
-class RegionConfig(BaseModel):
-    class Meta:
-        db_table = 'region_info'
-
-    region_id = models.CharField(max_length=32, unique=True, help_text=u"region id")
-    region_name = models.CharField(max_length=32, unique=True, help_text=u"数据中心名称,不可修改")
-    region_alias = models.CharField(max_length=32, help_text=u"数据中心别名")
-    url = models.CharField(max_length=256, help_text=u"数据中心API url")
-    wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
-    httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
-    tcpdomain = models.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
-    token = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"数据中心token")
-    status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-    desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")
-    scope = models.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
-    ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
-    cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
-    key_file = models.TextField(blank=True, null=True, help_text=u"验证的key")
 
 
 class RegionClusterInfo(BaseModel):

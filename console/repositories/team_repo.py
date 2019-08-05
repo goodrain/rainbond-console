@@ -3,7 +3,7 @@ import logging
 
 from django.db.models import Q
 
-from backends.models import RegionConfig
+from console.models.main import RegionConfig
 from console.models.main import TeamGitlabInfo
 from console.repositories.base import BaseConnection
 from www.models.main import PermRelTenant
