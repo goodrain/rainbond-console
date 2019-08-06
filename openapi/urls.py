@@ -52,7 +52,7 @@ urlpatterns = [
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view()),
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),

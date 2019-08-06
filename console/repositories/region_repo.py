@@ -139,5 +139,10 @@ class RegionRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
+    def del_by_region_id(self, region_id):
+        region = RegionConfig.objects.get(region_id=region_id)
+        region.delete()
+        return region
+
 
 region_repo = RegionRepo()
