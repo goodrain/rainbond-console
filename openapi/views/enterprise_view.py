@@ -12,6 +12,7 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.utils.timeutil import time_to_str
+from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
 from openapi.serializer.ent_serializers import ListEntsRespSerializer
 from openapi.serializer.ent_serializers import UpdEntReqSerializer
 from openapi.views.base import BaseOpenAPIView
@@ -49,6 +50,7 @@ class ListEnterpriseInfoView(ListAPIView):
 
 class EnterpriseInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
+        operation_description="更新企业信息",
         query_serializer=UpdEntReqSerializer,
         responses={200: None},
         tags=['openapi-entreprise'],
@@ -56,6 +58,19 @@ class EnterpriseInfoView(BaseOpenAPIView):
     def put(self, req, eid):
         enterprise_services.update(eid, req.data)
         return Response(None, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="获取企业信息",
+        responses={200: EnterpriseInfoSerializer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, eid):
+        ent = enterprise_services.get_enterprise_by_id(eid)
+        if ent is None:
+            return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EnterpriseInfoSerializer(data=ent.to_dict())
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class EntUserInfoView(BaseOpenAPIView):
