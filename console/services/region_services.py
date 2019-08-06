@@ -283,7 +283,8 @@ class RegionService(object):
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
             raise RegionExistException("数据中心{0}已存在".format(region_data["region_name"]))
-        return region_repo.create_region(region_data)
+        region = region_repo.create_region(region_data)
+        return region
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")
@@ -357,6 +358,25 @@ class RegionService(object):
             region_config_list.append(config_map)
         data = json.dumps(region_config_list)
         return data
+
+    @transaction.atomic
+    def del_by_region_id(self, region_id):
+        """
+        Without deleting tenant_region, the relationship between region and tenant can be restored.
+
+        raise RegionConfig.DoesNotExist
+        """
+        region = region_repo.del_by_region_id(region_id)
+        self.update_region_config()
+        return region.to_dict()
+
+    def check_region_in_config(self, region_name):
+        datastr = config_service.get_by_key("REGION_SERVICE_API")
+        # for d in data:
+        #     if d["region_name"] == region_name:
+        #         return True
+        # return False
+        return datastr
 
 
 class RegionExistException(Exception):

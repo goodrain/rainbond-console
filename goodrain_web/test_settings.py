@@ -27,7 +27,7 @@ DEFAULT_HANDLERS = ['file_handler', 'console']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
-IS_OPEN_API = os.getenv("IS_OPEN_API", False)
+IS_OPEN_API = os.getenv("IS_OPEN_API", True)
 
 DEBUG = True
 
@@ -46,20 +46,22 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBacke
                            'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
-
-INSTALLED_APPS = (
-    'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
-    'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
-    'rest_framework_jwt', 'drf_yasg', 'www', 'backends', 'corsheaders', 'console', 'openapi')
-
-OAUTH2_PROVIDER = {
-    'SCOPES': {
-        'read': 'Read scope',
-        'write': 'Write scope',
-        'groups': 'Access to your groups'
-    },
-}
-
+INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
+                  'django.contrib.messages', 'django.contrib.staticfiles', 'crispy_forms', 'rest_framework',
+                  'rest_framework.authtoken', 'rest_framework_jwt', 'www', 'backends', 'corsheaders', 'console')
+# Application definition
+if IS_OPEN_API:
+    INSTALLED_APPS = (
+        'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
+        'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
+        'rest_framework_jwt', 'drf_yasg', 'www', 'backends', 'corsheaders', 'console', 'openapi')
+    OAUTH2_PROVIDER = {
+        'SCOPES': {
+            'read': 'Read scope',
+            'write': 'Write scope',
+            'groups': 'Access to your groups'
+        },
+    }
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',
     'django.middleware.gzip.GZipMiddleware',

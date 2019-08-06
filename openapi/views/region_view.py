@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import json
 import logging
 
 from drf_yasg import openapi
@@ -79,17 +80,20 @@ class ListRegionInfo(ListAPIView):
         tags=['openapi-region'],
     )
     def post(self, request):
+        print(json.dumps(request.data))
         try:
             serializer = RegionInfoSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             region_data = serializer.data
             region_data["region_id"] = make_uuid()
             region = region_services.add_region(region_data)
+            serializer = RegionInfoSerializer(region)
             if region:
-                return Response(region, status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except RegionExistException as e:
+            logger.exception(e)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -135,6 +139,24 @@ class RegionInfo(BaseOpenAPIView):
         new_region = region_services.update_region(region_data)
         serializer = RegionInfoSerializer(new_region)
         return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="删除指定数据中心元数据",
+        responses={
+            200: RegionInfoSerializer(),
+            404: FailSerializer(),
+        },
+        tags=['openapi-region'],
+    )
+    def delete(self, request, region_id):
+        try:
+            region = region_services.del_by_region_id(region_id)
+            serializer = RegionInfoSerializer(data=region)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data, status.HTTP_200_OK)
+        except RegionConfig.DoesNotExist:
+            # TODO: raise exception or return Response
+            return Response({"msg": "修改的数据中心不存在"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class RegionStatusView(BaseOpenAPIView):

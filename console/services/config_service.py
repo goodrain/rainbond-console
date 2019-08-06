@@ -68,7 +68,7 @@ class ConfigService(object):
 
     def add_config(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
-            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
                 key=key, type=type, value=default_value, desc=desc, create_time=create_time)
             custom_settings.reload()

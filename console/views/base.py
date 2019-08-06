@@ -14,6 +14,7 @@ from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.authentication import (get_authorization_header)
 from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,7 +22,7 @@ from rest_framework.views import APIView
 from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-from rest_framework.exceptions import ValidationError
+
 from backends.services.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
@@ -265,6 +266,7 @@ def custom_exception_handler(exc, context):
         Any unhandled exceptions may return `None`, which will cause a 500 error
         to be raised.
     """
+    logger.exception(exc)
     if isinstance(exc, ServiceHandleException):
         return exc.response
     elif isinstance(exc, ResourceNotEnoughException):
