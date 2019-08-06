@@ -3,12 +3,15 @@
 import logging
 
 from django.db import transaction
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from console.models.main import ConsoleSysConfig
 from console.services.config_service import config_service
+from console.services.enterprise_services import enterprise_services
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
 from openapi.serializer.config_serializers import FeatureConfigRespSerializer
 from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
@@ -21,12 +24,22 @@ logger = logging.getLogger("default")
 class BaseConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取基础配置",
+        manual_parameters=[
+            openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
+        ],
         responses={200: BaseConfigRespSerializer()},
         tags=['openapi-config'],
     )
-    def get(self, request):
-        queryset = config_service.list_by_keys(config_service.base_cfg_keys)
-        serializer = BaseConfigRespSerializer(queryset)
+    def get(self, req):
+        eid = req.GET.get("eid", "")
+        if not eid:
+            raise ValidationError("缺少参数'eid'")
+        ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=eid)
+        if ent is None:
+            raise Response({"msg": "企业不存在"}, status.HTTP_404_NOT_FOUND)
+        data = config_service.list_by_keys(config_service.base_cfg_keys)
+        data["ENTERPRISE_ALIAS"] = ent.enterprise_alias
+        serializer = BaseConfigRespSerializer(data)
         return Response(serializer.data)
 
     @swagger_auto_schema(

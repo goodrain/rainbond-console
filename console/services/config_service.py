@@ -6,17 +6,20 @@ from backends.services.exceptions import ConfigExistError
 from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.repositories.config_repo import cfg_repo
+from console.services.enterprise_services import enterprise_services
 from goodrain_web.custom_config import custom_config as custom_settings
+from www.models.main import TenantEnterprise
 
 
 class ConfigService(object):
     def __init__(self):
         # TODO: use enum
-        self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE", "enterprise_alias",
+        self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE",
                               "REGISTER_STATUS", "RAINBOND_VERSION", "LOGO"]
         self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB"]
         self.update_or_create_funcs = {
             "LOGO": self._update_or_create_logo,
+            "ENTERPRISE_ALIAS": self._update_entalias,
         }
 
     def list_by_keys(self, keys):
@@ -36,6 +39,8 @@ class ConfigService(object):
         custom_settings.reload()
 
     def update_or_create(self, data):
+        eid = data["eid"]
+        data.pop("eid")
         for k, v in data.iteritems():
             k = k.upper()
             func = self.update_or_create_funcs.get(k, None)
@@ -46,6 +51,8 @@ class ConfigService(object):
                     cfg_repo.update_or_create_by_key(k, str(value))
                 else:
                     cfg_repo.update_or_create_by_key(k, v)
+            elif k == "ENTERPRISE_ALIAS":
+                func(eid, v)
             else:
                 # special way
                 func(k, v)
@@ -65,6 +72,13 @@ class ConfigService(object):
             )
             cbi.save()
         cfg_repo.update_or_create_by_key(key, value)
+
+    def _update_entalias(self, eid, alias):
+        ent = enterprise_services.get_enterprise_by_id(eid)
+        if ent is None:
+            raise TenantEnterprise.DoesNotExist()
+        ent.enterprise_alias = alias
+        ent.save()
 
     def add_config(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
