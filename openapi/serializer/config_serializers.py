@@ -29,7 +29,6 @@ class BaseConfigRespSerializer(serializers.Serializer):
 
 
 class UpdateBaseConfigReqSerializer(serializers.Serializer):
-    eid = serializers.CharField(max_length=255, required=True, help_text=u"企业ID")
     TITLE = serializers.CharField(max_length=255, required=False)
     LOGO = serializers.CharField(max_length=255, required=False)
     REGISTER_STATUS = serializers.CharField(max_length=255, required=False)

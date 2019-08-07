@@ -3,10 +3,8 @@
 import logging
 
 from django.db import transaction
-from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from console.models.main import ConsoleSysConfig
@@ -24,17 +22,11 @@ logger = logging.getLogger("default")
 class BaseConfigView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取基础配置",
-        manual_parameters=[
-            openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
-        ],
         responses={200: BaseConfigRespSerializer()},
         tags=['openapi-config'],
     )
     def get(self, req):
-        eid = req.GET.get("eid", "")
-        if not eid:
-            raise ValidationError("缺少参数'eid'")
-        ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=eid)
+        ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=req.user.enterprise_id)
         if ent is None:
             raise Response({"msg": "企业不存在"}, status.HTTP_404_NOT_FOUND)
         data = config_service.list_by_keys(config_service.base_cfg_keys)
@@ -49,10 +41,10 @@ class BaseConfigView(BaseOpenAPIView):
         tags=['openapi-config'],
     )
     @transaction.atomic
-    def put(self, request):
-        serializer = UpdateBaseConfigReqSerializer(data=request.data)
+    def put(self, req):
+        serializer = UpdateBaseConfigReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update_or_create(request.data)
+        config_service.update_or_create(req.user.enterprise_id, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
 

@@ -38,9 +38,7 @@ class ConfigService(object):
         cfg_repo.delete_by_key(key)
         custom_settings.reload()
 
-    def update_or_create(self, data):
-        eid = data["eid"]
-        data.pop("eid")
+    def update_or_create(self, eid, data):
         for k, v in data.iteritems():
             k = k.upper()
             func = self.update_or_create_funcs.get(k, None)
