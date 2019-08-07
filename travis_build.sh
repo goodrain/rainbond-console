@@ -11,7 +11,6 @@ if [ -z "$VERSION" ];then
 	  VERSION=$TRAVIS_TAG
   fi
 fi
-
 buildTime=$(date +%F-%H)
 
 function release(){
