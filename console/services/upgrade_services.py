@@ -21,7 +21,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models import Tenants
+from www.models.main import Tenants
 
 
 class UpgradeService(object):
@@ -34,7 +34,8 @@ class UpgradeService(object):
             "create_time": datetime.now(),
         }
         try:
-            app_record = upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
+            app_record = upgrade_repo.get_app_not_upgrade_record(
+                status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
         except AppUpgradeRecord.DoesNotExist:
             from console.services.group_service import group_service
             service_group_keys = group_service.get_group_service_sources(group_id).values_list('group_key', flat=True)
@@ -95,7 +96,8 @@ class UpgradeService(object):
         ).values_list(
             'version', flat=True) or []
 
-        app = RainbondCenterApp.objects.filter(group_key=group_key, version__in=versions).order_by('-create_time').first()
+        app = RainbondCenterApp.objects.filter(
+            group_key=group_key, version__in=versions).order_by('-create_time').first()
         return app.version if app else ''
 
     def query_the_version_of_the_add_service(self, app_qs, service_keys):
@@ -193,7 +195,8 @@ class UpgradeService(object):
     def create_add_service_record(app_record, events, add_service_infos):
         """创建新增服务升级记录"""
         service_id_event_mapping = {event.service_id: event for event in events}
-        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_id_event_mapping.keys())
+        services = service_repo.get_services_by_service_ids_and_group_key(
+            app_record.group_key, service_id_event_mapping.keys())
         for service in services:
             upgrade_repo.create_service_upgrade_record(
                 app_record,
@@ -239,7 +242,8 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
+            code, msg, event = app_deploy_service.execute(
+                tenant, market_service.service, user, True, app_record.version)
 
             upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event,
                                                        service_infos[market_service.service.service_id],
@@ -330,7 +334,8 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
+            code, msg, event = app_deploy_service.execute(
+                tenant, market_service.service, user, True, app_record.version)
             service_record = service_records.get(service_id=market_service.service.service_id)
             upgrade_repo.change_service_record_status(service_record, self._get_sync_rolling_status(code, event))
             # 改变event id
