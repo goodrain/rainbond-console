@@ -30,6 +30,8 @@ class ConfigService(object):
                 value = json.loads(item.value)
             except ValueError:
                 value = item.value
+            if item.key.upper() == "LOGO":
+                value = self.image_to_base64(value)
             res[item.key] = value
         return res
 
@@ -55,6 +57,15 @@ class ConfigService(object):
                 # special way
                 func(k, v)
         custom_settings.reload()
+
+    @staticmethod
+    def image_to_base64(image_path):
+        """
+        raise IOError
+        """
+        with open(image_path, "rb") as f:
+            data = f.read()
+            return data.encode("base64")
 
     def _update_or_create_logo(self, key, value):
         identify = "clound_bang_logo"
