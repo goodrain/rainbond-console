@@ -29,8 +29,13 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
-DEBUG = True
+DEBUG = False
 
+conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, 'www_com')
+if os.path.exists(conf_file):
+    execfile(conf_file)
+else:
+    raise Exception("config file not found: {}".format(conf_file))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
