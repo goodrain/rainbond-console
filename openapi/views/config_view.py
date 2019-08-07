@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from console.models.main import ConsoleSysConfig
 from console.services.config_service import config_service
+from console.services.enterprise_services import enterprise_services
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
 from openapi.serializer.config_serializers import FeatureConfigRespSerializer
 from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
@@ -24,9 +25,13 @@ class BaseConfigView(BaseOpenAPIView):
         responses={200: BaseConfigRespSerializer()},
         tags=['openapi-config'],
     )
-    def get(self, request):
-        queryset = config_service.list_by_keys(config_service.base_cfg_keys)
-        serializer = BaseConfigRespSerializer(queryset)
+    def get(self, req):
+        ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=req.user.enterprise_id)
+        if ent is None:
+            raise Response({"msg": "企业不存在"}, status.HTTP_404_NOT_FOUND)
+        data = config_service.list_by_keys(config_service.base_cfg_keys)
+        data["ENTERPRISE_ALIAS"] = ent.enterprise_alias
+        serializer = BaseConfigRespSerializer(data)
         return Response(serializer.data)
 
     @swagger_auto_schema(
@@ -36,10 +41,10 @@ class BaseConfigView(BaseOpenAPIView):
         tags=['openapi-config'],
     )
     @transaction.atomic
-    def put(self, request):
-        serializer = UpdateBaseConfigReqSerializer(data=request.data)
+    def put(self, req):
+        serializer = UpdateBaseConfigReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update_or_create(request.data)
+        config_service.update_or_create(req.user.enterprise_id, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
 
