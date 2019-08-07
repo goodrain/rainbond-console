@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 from datetime import datetime
 
 from backends.services.exceptions import ConfigExistError
@@ -9,6 +10,8 @@ from console.repositories.config_repo import cfg_repo
 from console.services.enterprise_services import enterprise_services
 from goodrain_web.custom_config import custom_config as custom_settings
 from www.models.main import TenantEnterprise
+
+logger = logging.getLogger("default")
 
 
 class ConfigService(object):
@@ -31,7 +34,11 @@ class ConfigService(object):
             except ValueError:
                 value = item.value
             if item.key.upper() == "LOGO":
-                value = self.image_to_base64(value)
+                try:
+                    value = self.image_to_base64(value)
+                except IOError as e:
+                    logger.execption(e)
+                    value = "image: {}; not found.".format(value)
             res[item.key] = value
         return res
 
