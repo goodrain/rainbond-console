@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-import json
 import logging
 
 from drf_yasg import openapi
@@ -80,7 +79,6 @@ class ListRegionInfo(ListAPIView):
         tags=['openapi-region'],
     )
     def post(self, request):
-        print(json.dumps(request.data))
         try:
             serializer = RegionInfoSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
