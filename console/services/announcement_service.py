@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from datetime import datetime
 
-from backends.models.main import Announcement
+from console.models.main import Announcement
 from console.repositories.announcement_repo import AnnouncementRepository
 from www.utils.crypt import make_uuid
 
