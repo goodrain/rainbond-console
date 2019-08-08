@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime
 
-from backends.services.exceptions import ConfigExistError
+from console.exception.exceptions import ConfigExistError
 from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.repositories.config_repo import cfg_repo

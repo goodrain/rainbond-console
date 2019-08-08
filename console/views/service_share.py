@@ -5,7 +5,7 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import UserNotExistError
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo

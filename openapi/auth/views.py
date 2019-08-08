@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import UserNotExistError
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.base_serializer import TokenSerializer
 from openapi.services.api_user_service import apiUserService

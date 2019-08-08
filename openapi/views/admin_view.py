@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import UserNotExistError
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser

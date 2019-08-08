@@ -4,7 +4,7 @@
 """
 import logging
 
-from backends.models.main import Announcement
+from console.models.main import Announcement
 
 logger = logging.getLogger("default")
 

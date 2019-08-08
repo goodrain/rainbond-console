@@ -8,10 +8,10 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.services.exceptions import EmailExistError
-from backends.services.exceptions import PhoneExistError
-from backends.services.exceptions import UserExistError
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import EmailExistError
+from console.exception.exceptions import PhoneExistError
+from console.exception.exceptions import UserExistError
+from console.exception.exceptions import UserNotExistError
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.team_serializer import ListTeamRespSerializer
