@@ -5,7 +5,7 @@ import logging
 from django.core.paginator import Paginator
 from django.db import transaction
 
-from backends.services.exceptions import RegionUnreachableError
+from console.exception.exceptions import RegionUnreachableError
 from console.enum.region_enum import RegionStatusEnum
 from console.models.main import ConsoleSysConfig
 from console.models.main import RegionConfig

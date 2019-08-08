@@ -3,7 +3,6 @@ import logging
 
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantRegionInfo
-from www.region import RegionInfo
 from django.conf import settings
 
 logger = logging.getLogger('default')
@@ -16,19 +15,17 @@ class CommonServices(object):
         totalDisk = 0
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True, is_init=True)
         for tenant_region in tenant_region_list:
-            logger.debug(tenant_region.region_name)
-            if tenant_region.region_name in RegionInfo.valid_regions():
-                data = {"tenant_name": [tenant.tenant_name]}
-                res = region_api.get_region_tenants_resources(tenant_region.region_name, data, tenant.enterprise_id)
-                d_list = res["list"]
-                memory = 0
-                disk = 0
-                if d_list:
-                    resource = d_list[0]
-                    memory = int(resource["memory"])
-                    disk = int(resource["disk"])
-                totalMemory += memory
-                totalDisk += disk
+            data = {"tenant_name": [tenant.tenant_name]}
+            res = region_api.get_region_tenants_resources(tenant_region.region_name, data, tenant.enterprise_id)
+            d_list = res["list"]
+            memory = 0
+            disk = 0
+            if d_list:
+                resource = d_list[0]
+                memory = int(resource["memory"])
+                disk = int(resource["disk"])
+            totalMemory += memory
+            totalDisk += disk
         return totalMemory, totalDisk
 
     def get_current_region_used_resource(self, tenant, region_name):

@@ -9,13 +9,13 @@ from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
-from backends.services.exceptions import AccountNotExistError
-from backends.services.exceptions import EmailExistError
-from backends.services.exceptions import PasswordTooShortError
-from backends.services.exceptions import PhoneExistError
-from backends.services.exceptions import TenantNotExistError
-from backends.services.exceptions import UserExistError
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import AccountNotExistError
+from console.exception.exceptions import EmailExistError
+from console.exception.exceptions import PasswordTooShortError
+from console.exception.exceptions import PhoneExistError
+from console.exception.exceptions import TenantNotExistError
+from console.exception.exceptions import UserExistError
+from console.exception.exceptions import UserNotExistError
 from backends.services.tenantservice import tenant_service as tenantService
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo

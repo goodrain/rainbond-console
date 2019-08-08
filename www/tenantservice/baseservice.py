@@ -30,7 +30,6 @@ from www.models.main import TenantServiceVolume
 from www.models.main import Users
 from www.models.plugin import PluginBuildVersion
 from www.models.plugin import TenantServicePluginRelation
-from www.region import RegionInfo
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
 
@@ -852,14 +851,11 @@ class TenantUsedResource(object):
         else:
             tenant_region_list = TenantRegionInfo.objects.filter(
                 tenant_id=tenant.tenant_id, region_name=region, is_active=True, is_init=True)
-
         for tenant_region in tenant_region_list:
-            logger.debug(tenant_region.region_name)
-            if tenant_region.region_name in RegionInfo.valid_regions():
-                res = region_api.get_tenant_resources(tenant_region.region_name, tenant.tenant_name, tenant.enterprise_id)
-                bean = res["bean"]
-                memory = int(bean["memory"])
-                totalMemory += memory
+            res = region_api.get_tenant_resources(tenant_region.region_name, tenant.tenant_name, tenant.enterprise_id)
+            bean = res["bean"]
+            memory = int(bean["memory"])
+            totalMemory += memory
         return totalMemory
 
     def calculate_guarantee_resource(self, tenant):
