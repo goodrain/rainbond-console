@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import json
 import logging
 from datetime import datetime
@@ -70,9 +71,11 @@ class ConfigService(object):
         """
         raise IOError
         """
+        suffix = image_path.split('.')[-1]
         with open(image_path, "rb") as f:
             data = f.read()
-            return data.encode("base64")
+            data = "data:image/{};base64,{}".format(suffix, base64.b64encode(data))
+            return data
 
     def _update_or_create_logo(self, key, value):
         identify = "clound_bang_logo"

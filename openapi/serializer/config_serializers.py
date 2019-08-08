@@ -22,7 +22,7 @@ class RegionServiceAPISerializer(serializers.Serializer):
 
 class BaseConfigRespSerializer(serializers.Serializer):
     TITLE = serializers.CharField(max_length=255, required=False)
-    LOGO = serializers.CharField(max_length=524288, required=False)
+    LOGO = serializers.CharField(max_length=2097152, required=False)
     REGISTER_STATUS = serializers.CharField(max_length=255, required=False)
     RAINBOND_VERSION = serializers.CharField(max_length=255, required=False)
     ENTERPRISE_ALIAS = serializers.CharField(max_length=255, required=False)
