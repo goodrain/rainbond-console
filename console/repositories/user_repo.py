@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import UserNotExistError
 from console.repositories.base import BaseConnection
 from www.models.main import Users
 

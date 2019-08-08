@@ -23,7 +23,7 @@ from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
-from backends.services.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException

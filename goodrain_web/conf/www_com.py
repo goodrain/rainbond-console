@@ -47,11 +47,11 @@ DATABASES = {
     # }
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DB'),
-        'USER': os.environ.get('MYSQL_USER'),
-        'PASSWORD': os.environ.get('MYSQL_PASS'),
-        'HOST': os.environ.get('MYSQL_HOST'),
-        'PORT': os.environ.get('MYSQL_PORT'),
+        'NAME': os.environ.get('MYSQL_DB') or "console",
+        'USER': os.environ.get('MYSQL_USER') or "root",
+        'PASSWORD': os.environ.get('MYSQL_PASS') or "",
+        'HOST': os.environ.get('MYSQL_HOST') or "127.0.0.1",
+        'PORT': os.environ.get('MYSQL_PORT') or "3306",
     }
 }
 

@@ -8,8 +8,8 @@ from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from backends.services.exceptions import ParamsError
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import ParamsError
+from console.exception.exceptions import UserNotExistError
 from backends.services.resultservice import generate_result
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.perm_repo import role_repo

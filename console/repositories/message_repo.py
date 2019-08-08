@@ -2,7 +2,7 @@
 """
   Created on 2018/5/21.
 """
-from backends.models.main import Announcement
+from console.models.main import Announcement
 from console.models.main import UserMessage
 from console.constants import MessageType
 

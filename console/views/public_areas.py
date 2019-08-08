@@ -8,7 +8,7 @@ from django.db import connection
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from backends.services.exceptions import GroupNotExistError
+from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import tcp_domain
 from console.repositories.backup_repo import backup_record_repo

@@ -7,7 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from backends.services.exceptions import RegionUnreachableError
+from console.exception.exceptions import RegionUnreachableError
 from console.models.main import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException

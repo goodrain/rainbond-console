@@ -1,9 +1,9 @@
 # -*- coding: utf8 -*-
 import pytest
 
-from backends.services.exceptions import EmailExistError
-from backends.services.exceptions import PhoneExistError
-from backends.services.exceptions import UserExistError
+from console.exception.exceptions import EmailExistError
+from console.exception.exceptions import PhoneExistError
+from console.exception.exceptions import UserExistError
 from www.models.main import Tenants
 from www.models.main import Users
 

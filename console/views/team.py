@@ -10,13 +10,13 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from backends.services.configservice import config_service
-from backends.services.exceptions import NoEnableRegionError
-from backends.services.exceptions import ParamsError
-from backends.services.exceptions import PermTenantsExistError
-from backends.services.exceptions import TenantExistError
-from backends.services.exceptions import TenantNotExistError
-from backends.services.exceptions import UserExistError
-from backends.services.exceptions import UserNotExistError
+from console.exception.exceptions import NoEnableRegionError
+from console.exception.exceptions import ParamsError
+from console.exception.exceptions import PermTenantsExistError
+from console.exception.exceptions import TenantExistError
+from console.exception.exceptions import TenantNotExistError
+from console.exception.exceptions import UserExistError
+from console.exception.exceptions import UserNotExistError
 from backends.services.resultservice import generate_error_result
 from backends.services.resultservice import generate_result
 from backends.services.userservice import user_service
