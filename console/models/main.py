@@ -236,7 +236,7 @@ class ServiceSourceInfo(BaseModel):
         help_text=u"服务信息",
     )
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
-    user_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"用户名")
+    user_name = models.CharField(max_length=255, null=True, blank=True, help_text=u"用户名")
     password = models.CharField(max_length=32, null=True, blank=True, help_text=u"密码")
     group_key = models.CharField(max_length=32, null=True, blank=True, help_text="group of service from market")
     version = models.CharField(max_length=32, null=True, blank=True, help_text="version of service from market")
