@@ -105,8 +105,8 @@ class AppManageBase(object):
         """查询当前应用占用的内存"""
         memory = 0
         try:
-            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias,
-                                                   tenant.enterprise_id)
+            body = region_api.check_service_status(
+                cur_service.service_region, tenant.tenant_name, cur_service.service_alias, tenant.enterprise_id)
             status = body["bean"]["cur_status"]
             # 占用内存的状态
             occupy_memory_status = (
@@ -131,7 +131,7 @@ class AppManageBase(object):
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
                 new_add_memory = new_add_memory + \
-                                 self.cur_service_memory(tenant, service)
+                    self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
                 tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -400,7 +400,8 @@ class AppManageService(AppManageBase):
         for port in ports:
             mapping_port = int(port["container_port"])
             env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
-            service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
+            service_port = port_repo.get_service_port_by_port(
+                tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
                     code, msg, data = env_var_service.add_service_env_var(
@@ -427,9 +428,12 @@ class AppManageService(AppManageBase):
                         return code, msg
                 continue
 
-            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
-                                                                 port["port_alias"], port["is_inner_service"],
-                                                                 port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(
+                tenant, service, int(port["container_port"]),
+                port["protocol"],
+                port["port_alias"],
+                port["is_inner_service"],
+                port["is_outer_service"])
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -731,7 +735,8 @@ class AppManageService(AppManageBase):
                                             service_dict["image_info"] = source_image
                                             source_image["image_url"] = share_image
                                             source_image["user"] = template_app.get("service_image").get("hub_user")
-                                            source_image["password"] = template_app.get("service_image").get("hub_password")
+                                            source_image["password"] = template_app.get(
+                                                "service_image").get("hub_password")
                                             source_image["cmd"] = service.cmd
                                             new_extend_info = template_app["service_image"]
                                     if share_slug_path:
@@ -774,12 +779,12 @@ class AppManageService(AppManageBase):
     def vertical_upgrade(self, tenant, service, user, new_memory):
         """服务水平升级"""
         new_memory = int(new_memory)
-        if new_memory > 16384 or new_memory < 128:
-            return 400, "内存范围在128M到16G之间", None
-        if new_memory % 128 != 0:
-            return 400, "内存必须为128的倍数", None
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
+        if new_memory > 16384 or new_memory < 128:
+            return 400, "内存范围在128M到16G之间", None
+        if new_memory % 32 != 0:
+            return 400, "内存必须为32的倍数", None
 
         code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
@@ -901,7 +906,8 @@ class AppManageService(AppManageBase):
         """彻底删除应用"""
 
         try:
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
+            region_api.delete_service(service.service_region, tenant.tenant_name,
+                                      service.service_alias, tenant.enterprise_id)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -995,8 +1001,8 @@ class AppManageService(AppManageBase):
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant.enterprise_id
                 try:
-                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
-                                                         task)
+                    region_api.delete_service_dependency(
+                        service.service_region, tenant.tenant_name, service.service_alias, task)
                 except Exception as e:
                     logger.exception(e)
                 recycle_relation.delete()
@@ -1035,10 +1041,11 @@ class AppManageService(AppManageBase):
         try:
             if service.create_status != "complete":
                 return False
-            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
-                                                          tenant.enterprise_id)
+            status_info = region_api.check_service_status(
+                service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if status in ("running", "starting", "stopping", "failure",
+                          "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -1046,7 +1053,8 @@ class AppManageService(AppManageBase):
         return False
 
     def __is_service_has_plugins(self, service):
-        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
+        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+            service.service_id)
         if service_plugin_relations:
             return True
         return False
@@ -1054,7 +1062,8 @@ class AppManageService(AppManageBase):
     def delete_region_service(self, tenant, service):
         try:
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
+            region_api.delete_service(service.service_region, tenant.tenant_name,
+                                      service.service_alias, tenant.enterprise_id)
             return 200, "success"
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -1161,7 +1170,8 @@ class AppManageService(AppManageBase):
         """二次删除应用"""
 
         try:
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
+            region_api.delete_service(service.service_region, tenant.tenant_name,
+                                      service.service_alias, tenant.enterprise_id)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
