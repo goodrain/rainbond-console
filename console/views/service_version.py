@@ -97,15 +97,21 @@ class AppVersionsView(AppBaseView):
                 })
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
-                # get deploy version from region
-                if res_version["status"] == "failure":
+                # 1:support upgrade
+                # -1: support rollback
+                # 2: do not support upgrade and rollback
+                if res_version["build_version"] == "":
                     upgrade_or_rollback = 2
-                elif int(res_version["build_version"]) > int(run_version):
-                    upgrade_or_rollback = 1
-                elif int(res_version["build_version"]) == int(run_version):
-                    upgrade_or_rollback = 0
                 else:
-                    upgrade_or_rollback = -1
+                    # get deploy version from region
+                    if res_version["status"] == "failure":
+                        upgrade_or_rollback = 2
+                    elif int(res_version["build_version"]) > int(run_version):
+                        upgrade_or_rollback = 1
+                    elif int(res_version["build_version"]) == int(run_version):
+                        upgrade_or_rollback = 0
+                    else:
+                        upgrade_or_rollback = -1
                 res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
             is_upgrade = False
             if res_versions:
