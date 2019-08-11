@@ -5,16 +5,17 @@
 import logging
 import operator
 
+from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.event_repo import event_repo
 from console.utils.timeutil import current_time_str
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.repositories.event_repo import event_repo
-from django.core.paginator import Paginator
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -73,8 +74,10 @@ class AppVersionsView(AppBaseView):
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
 
-            events = event_repo.get_events_before_specify_time(self.tenant.tenant_id, self.service.service_id,
-                                                               current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
+            events = event_repo.get_events_before_specify_time(
+                self.tenant.tenant_id,
+                self.service.service_id,
+                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
             version_user_map = {event.event_id: event.user_name for event in events}
 
             versions_info = build_version_list
@@ -95,19 +98,15 @@ class AppVersionsView(AppBaseView):
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
                 # get deploy version from region
-                if int(res_version["build_version"]) > int(run_version):
+                if res_version["status"] == "failure":
+                    upgrade_or_rollback = 2
+                elif int(res_version["build_version"]) > int(run_version):
                     upgrade_or_rollback = 1
                 elif int(res_version["build_version"]) == int(run_version):
                     upgrade_or_rollback = 0
                 else:
                     upgrade_or_rollback = -1
                 res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
-            # try:
-            #     result = paginator.page(page).object_list
-            # except PageNotAnInteger:
-            #     result = paginator.page(1).object_list
-            # except EmptyPage:
-            #     result = paginator.page(paginator.num_pages).object_list
             is_upgrade = False
             if res_versions:
                 latest_version = res_versions[0]["build_version"]
@@ -156,8 +155,8 @@ class AppVersionManageView(AppBaseView):
         try:
             if not version_id:
                 return Response(general_message(400, "attr_name not specify", u"请指定需要删除的具体版本"))
-            region_api.delete_service_build_version(self.response_region, self.tenant.tenant_name, self.service.service_alias,
-                                                    version_id)
+            region_api.delete_service_build_version(
+                self.response_region, self.tenant.tenant_name, self.service.service_alias, version_id)
             # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
             result = general_message(200, "success", u"删除成功")
         except Exception as e:
