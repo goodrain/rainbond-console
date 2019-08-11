@@ -48,13 +48,16 @@ class ShareService(object):
                 # 批量查询应用状态
                 service_ids = [service.service_id for service in service_list]
                 status_list = base_service.status_multi_service(
-                    region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+                    region=region_name, tenant_name=team_name,
+                    service_ids=service_ids, enterprise_id=team.enterprise_id)
                 for status in status_list:
                     if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有应用未在运行状态不能发布。", "list": list(), "bean": dict()}
+                        data = {"code": 400, "success": False, "msg_show": "您有应用未在运行状态不能发布。", "list": list(),
+                                "bean": dict()}
                         return data
                     else:
-                        data = {"code": 200, "success": True, "msg_show": "您的应用都在运行中可以发布。", "list": list(), "bean": dict()}
+                        data = {"code": 200, "success": True, "msg_show": "您的应用都在运行中可以发布。", "list": list(),
+                                "bean": dict()}
                         return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前组内无应用", "list": list(), "bean": dict()}
@@ -199,7 +202,8 @@ class ShareService(object):
 
     def get_team_service_deploy_version(self, region, team, service_ids):
         try:
-            res, body = region_api.get_team_services_deploy_version(region, team.tenant_name, {"service_ids": service_ids})
+            res, body = region_api.get_team_services_deploy_version(
+                region, team.tenant_name, {"service_ids": service_ids})
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
@@ -243,7 +247,8 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
+                if (service.service_key == 'application' or service.service_key == '0000'
+                        or service.service_key == 'mysql'):
                     data['service_key'] = make_uuid()
                     service.service_key = data['service_key']
                     service.save()
@@ -256,10 +261,11 @@ class ShareService(object):
                 data['language'] = service.language
                 data['extend_method'] = service.extend_method
                 data['version'] = service.version
-                data['memory'] = service.min_memory
+                data['memory'] = service.min_memory - service.min_memory % 32
                 data['service_type'] = service.service_type
                 data['service_source'] = service.service_source
-                data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
+                data['deploy_version'] = deploy_versions[data['service_id']
+                                                         ] if deploy_versions else service.deploy_version
                 data['image'] = service.image
                 data['service_alias'] = service.service_alias
                 data['service_name'] = service.service_name
@@ -273,7 +279,7 @@ class ShareService(object):
                     e_m['min_node'] = service.min_node
                     e_m['max_node'] = extend_method.max_node
                     e_m['step_node'] = extend_method.step_node
-                    e_m['min_memory'] = service.min_memory
+                    e_m['min_memory'] = service.min_memory - service.min_memory % 32
                     e_m['max_memory'] = extend_method.max_memory
                     e_m['step_memory'] = extend_method.step_memory
                     e_m['is_restart'] = extend_method.is_restart
@@ -485,7 +491,8 @@ class ShareService(object):
                         "slug_info": app.get("service_slug", None)
                     }
                     try:
-                        res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
+                        res, re_body = region_api.share_service(
+                            region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
                         if bean:
                             record_event.region_share_id = bean.get("share_id", None)
@@ -677,7 +684,9 @@ class ShareService(object):
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             RainbondCenterApp.objects.filter(
                 Q(record_id=share_record.ID)
-                | Q(group_key=group_info["group_key"], version=group_info["version"], enterprise_id=share_team.enterprise_id)
+                | Q(group_key=group_info["group_key"],
+                    version=group_info["version"],
+                    enterprise_id=share_team.enterprise_id)
             ).delete()
             app_templete = {}
             # 处理基本信息
@@ -722,8 +731,9 @@ class ShareService(object):
                 if services:
                     new_services = list()
                     service_ids = [s["service_id"] for s in services]
-                    version_list = base_service.get_apps_deploy_versions(services[0]["service_region"], share_team.tenant_name,
-                                                                         service_ids)
+                    version_list = base_service.get_apps_deploy_versions(
+                        services[0]["service_region"],
+                        share_team.tenant_name, service_ids)
                     delivered_type_map = {v["ServiceID"]: v["DeliveredType"] for v in version_list}
 
                     dep_service_keys = {service['service_share_uuid'] for service in services}
@@ -874,9 +884,11 @@ class ShareService(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
 
 
 share_service = ShareService()
