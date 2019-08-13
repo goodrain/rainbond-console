@@ -65,10 +65,10 @@ class ListFeatureConfigView(BaseOpenAPIView):
         responses={200: None},
         tags=['openapi-config'],
     )
-    def put(self, request):
-        serializer = UpdateFeatureCfgReqSerializer(data=request.data)
+    def put(self, req):
+        serializer = UpdateFeatureCfgReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update_or_create(request.data)
+        config_service.update_or_create(req.user.enterprise_id, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
 
