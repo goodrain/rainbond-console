@@ -90,8 +90,11 @@ class AppVersionsView(AppBaseView):
                     "image_url": info["ImageName"],
                     "repo_url": info["RepoURL"],
                     "commit_msg": info["CommitMsg"],
+                    "code_version": info["CodeVersion"],
+                    "branch": info.get("Branch", "未知"),
                     "author": info["Author"],
                     "create_time": info["CreatedAt"],
+                    "finish_time": info["FinishTime"],
                     "status": info["FinalStatus"],
                     "build_user": version_user_map.get(info["EventID"], "未知")
                 })
