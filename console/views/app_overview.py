@@ -2,42 +2,46 @@
 """
   Created on 18/1/29.
 """
-import datetime
-import logging
-import json
-import os
 import base64
+import datetime
+import json
+import logging
+import os
 import pickle
 
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-from console.services.market_app_service import market_app_service
+
+from console.constants import AppConstants
+from console.constants import PluginCategoryConstants
+from console.exception.main import ServiceHandleException
+from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
-from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.team_services import team_services
-from console.views.app_config.base import AppBaseView
-from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.app import app_service
-from console.services.plugin import app_plugin_service
-from console.services.app_actions import ws_service
-from console.services.app_config import port_service
-from console.services.group_service import group_service
-from console.services.region_services import region_services
-from console.services.compose_service import compose_service
-from www.utils.url import get_redirect_url
-from www.utils.md5Util import md5fun
-from django.conf import settings
-from console.constants import AppConstants, PluginCategoryConstants
-from console.repositories.app import service_repo, service_webhooks_repo
-from console.views.base import JWTAuthApiView
+from console.repositories.app import service_webhooks_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
-from console.exception.main import ServiceHandleException
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.app import app_service
+from console.services.app_actions import ws_service
+from console.services.app_config import port_service
+from console.services.compose_service import compose_service
+from console.services.group_service import group_service
+from console.services.market_app_service import market_app_service
+from console.services.plugin import app_plugin_service
+from console.services.region_services import region_services
+from console.services.team_services import team_services
+from console.views.app_config.base import AppBaseView
+from console.views.base import JWTAuthApiView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.decorator import perm_required
+from www.utils.md5Util import md5fun
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
+from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -108,7 +112,8 @@ class AppDetailView(AppBaseView):
                     try:
                         apps_template = json.loads(rain_app.app_template)
                         apps_list = apps_template.get("apps")
-                        service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                        service_source = service_source_repo.get_service_source(
+                            self.service.tenant_id, self.service.service_id)
                         if service_source and service_source.extend_info:
                             extend_info = json.loads(service_source.extend_info)
                             if extend_info:
@@ -150,10 +155,12 @@ class AppDetailView(AppBaseView):
                     if service_endpoints.endpoints_type == "api":
                         # 从环境变量中获取域名，没有在从请求中获取
                         host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
+                        bean["api_url"] = "http://" + host + "/console/" + \
+                            "third_party/{0}".format(self.service.service_id)
                         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
                         if key_repo:
-                            bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
+                            bean["api_service_key"] = pickle.loads(
+                                base64.b64decode(key_repo.secret_key)).get("secret_key")
                     if service_endpoints.endpoints_type == "discovery":
                         # 返回类型和key
                         endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
@@ -294,37 +301,46 @@ class AppPodsView(AppBaseView):
         """
 
         try:
-            data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+            data = region_api.get_service_pods(self.service.service_region,
+                                               self.tenant.tenant_name,
+                                               self.service.service_alias,
                                                self.tenant.enterprise_id)
-            rt_list = []
-            if data["list"]:
-                for d in data["list"]:
-                    bean = dict()
-                    bean["pod_name"] = d["pod_name"]
-                    bean["pod_status"] = d["pod_status"]
-                    bean["manage_name"] = "manager"
-                    container = d["container"]
-                    logger.debug('--------------11container-------------->{0}'.format(container))
-                    container_list = []
-                    for key, val in container.items():
-                        if key == "POD":
-                            continue
-                        if key != self.service.service_id:
-                            continue
-                        container_dict = dict()
-                        container_dict["container_name"] = key
-                        memory_limit = float(val["memory_limit"]) / 1024 / 1024
-                        memory_usage = float(val["memory_usage"]) / 1024 / 1024
-                        usage_rate = 0
-                        if memory_limit:
-                            usage_rate = memory_usage * 100 / memory_limit
-                        container_dict["memory_limit"] = round(memory_limit, 2)
-                        container_dict["memory_usage"] = round(memory_usage, 2)
-                        container_dict["usage_rate"] = round(usage_rate, 2)
-                        container_list.append(container_dict)
-                    bean["container"] = container_list
-                    rt_list.append(bean)
-            result = general_message(200, "success", "操作成功", list=rt_list)
+            result = {}
+            if data["bean"]:
+                def foobar(data):
+                    if data is None:
+                        return
+                    res = []
+                    for d in data:
+                        bean = dict()
+                        bean["pod_name"] = d["pod_name"]
+                        bean["pod_status"] = d["pod_status"]
+                        container = d["container"]
+                        container_list = []
+                        for key, val in container.items():
+                            if key == "POD":
+                                continue
+                            if key != self.service.service_id:
+                                continue
+                            container_dict = dict()
+                            container_dict["container_name"] = key
+                            memory_limit = float(val["memory_limit"]) / 1024 / 1024
+                            memory_usage = float(val["memory_usage"]) / 1024 / 1024
+                            usage_rate = 0
+                            if memory_limit:
+                                usage_rate = memory_usage * 100 / memory_limit
+                            container_dict["memory_limit"] = round(memory_limit, 2)
+                            container_dict["memory_usage"] = round(memory_usage, 2)
+                            container_dict["usage_rate"] = round(usage_rate, 2)
+                            container_list.append(container_dict)
+                        bean["container"] = container_list
+                        res.append(bean)
+                    return res
+                pods = data["bean"]
+                newpods = foobar(pods.get("new_pods", None))
+                old_pods = foobar(pods.get("old_pods", None))
+                result = {"new_pods": newpods, "old_pods": old_pods}
+            result = general_message(200, "success", "操作成功", list=result)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -518,10 +534,14 @@ class AppDockerView(AppBaseView):
                 main_url = region_services.get_region_wsurl(self.service.service_region)
                 if main_url == "auto":
                     bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
+                        settings.DOCKER_WSS_URL["type"],
+                        settings.DOCKER_WSS_URL[self.service.service_region],
+                        t_docker_h_id
+                    )
                 else:
                     bean["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
-                response = Response(general_message(200, "success", "信息获取成功"), status=200, template_name="www/console.html")
+                response = Response(general_message(200, "success", "信息获取成功"),
+                                    status=200, template_name="www/console.html")
         except Exception as e:
             logger.exception(e)
 
