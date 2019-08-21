@@ -280,7 +280,7 @@ class AppStatusView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class AppPodsView(AppBaseView):
+class ListAppPodsView(AppBaseView):
     @never_cache
     @perm_required('manage_service_container')
     def get(self, request, *args, **kwargs):
