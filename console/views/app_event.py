@@ -318,3 +318,4 @@ class AppEventLogContentView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+        
