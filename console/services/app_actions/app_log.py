@@ -153,7 +153,7 @@ class AppEventService(object):
             event.deploy_version = event.old_deploy_version
         event.save()
         return event
-
+    
     def get_service_event(self, tenant, service, page, page_size, start_time_str):
         # 前端传入时间到分钟，默认会加上00，这样一来刚部署的应用的日志无法查询到，所有将当前时间添加一分钟
         if start_time_str:
@@ -260,6 +260,29 @@ class AppEventService(object):
     def delete_service_events(self, service):
         event_repo.delete_events(service.service_id)
 
+    def get_target_service_events(self, target, target_id, tenant, service, page, page_size):
+        msg_list = []
+        try:
+            res, rt_data = region_api.get_target_event_list(service.service_region, tenant.tenant_name, target, target_id, page, page_size)
+            if int(res.status) == 200:
+                bean = rt_data["bean"]
+                msg_list = bean["list"]
+                total = bean["total"]
+                has_next = True
+                if page_size * page >= total:
+                    has_next = False
+        except region_api.CallApiError as e:
+            logger.debug(e)
+        return msg_list, total, has_next
+
+    def get_event_log_content(self, tenant, event_id, level):
+        try:
+            res, rt_data = region_api.get_event_log_content(tenant.tenant_name, tenant.region, event_id, level)
+            if int(res.status) == 200:
+                content = rt_data["list"]
+        except region_api.CallApiError as e:
+            logger.debug(e)
+        return content
 
 class AppLogService(object):
     def get_service_logs(self, tenant, service, action="service", lines=50):
@@ -294,3 +317,4 @@ class AppLogService(object):
         except region_api.CallApiError as e:
             logger.exception(e)
             return 400, "系统异常", None
+    

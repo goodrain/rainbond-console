@@ -664,6 +664,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
+    
+    def get_target_event_list(self, region,tenant_name, target, target_id, page, page_size):
+        """获取作用对象事件日志列表"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/events/event-list/" + target + "/" + target_id + "/" + bytes(page) + "/" + bytes(page_size)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+    
+    def get_event_log_content(self, tenant_name,region,event_id, level):
+        """获取作用对象事件日志内容"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/events/event-content/" + event_id + "/" + level + "/log"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers,region=region)
+        return res, body
 
     def get_api_version(self, url, token, region):
         """获取api版本"""

@@ -12,6 +12,9 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.constants import LogConstants
+from console.views.base import RegionTenantHeaderView
+from www.models.main import TenantServiceInfo
+
 
 logger = logging.getLogger("default")
 
@@ -220,6 +223,97 @@ class AppHistoryLogView(AppBaseView):
                 file_urls.append({"file_name": file_name, "file_url": file_url})
 
             result = general_message(200, "success", "查询成功", list=file_urls)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class AppTargetEventView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取作用对象的event事件
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: target
+              description: 作用对象
+              required: true
+              type: string
+              paramType: path
+            - name: targetAlias
+              description: 作用对象别名
+              required: true
+              type: string
+              paramType: path
+            - name: page
+              description: 页号
+              required: false
+              type: integer
+              paramType: query
+            - name: page_size
+              description: 每页大小
+              required: false
+              type: integer
+              paramType: query
+        """
+        try:
+            page = request.GET.get("page", 1)
+            page_size = request.GET.get("page_size", 6)
+            target = kwargs.get("target","tenant")
+            targetAlias = kwargs.get("targetAlias","")
+            if targetAlias == "":
+              result = general_message(200, "error", "targetAlias is required")
+              return Response(result, status=result["code"])
+
+            if target == "service":
+              services = TenantServiceInfo.objects.filter(service_alias=targetAlias, tenant_id=self.tenant.tenant_id)
+              if len(services) > 0 :
+                self.service = services[0]
+                target_id = self.service.service_id
+              
+                events, total, has_next = event_service.get_target_service_events(target, target_id, self.tenant, self.service, int(page), int(page_size))
+                result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, status=result["code"])
+
+
+class AppEventLogContentView(RegionTenantHeaderView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取作用对象的event事件
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: eventId
+              description: 事件ID
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            event_id = kwargs.get("eventId","")
+            if event_id == "":
+              result = general_message(200, "error", "event_id is required")
+              return Response(result, status=result["code"])
+            level = request.GET.get("level", LogConstants.INFO)
+
+            log_content = event_service.get_event_log_content(self.tenant,event_id, level)
+            result = general_message(200, "success", "查询成功", list = log_content)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
