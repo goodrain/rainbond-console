@@ -631,7 +631,13 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             tag = push_data.get("tag")
             repo_name = repository.get("repo_name")
             if not repo_name:
-                repo_name = repository.get("repo_full_name")
+                repository_namespace = repository.get("namespace")
+                repository_name = repository.get("name")
+                if repository_namespace and repository_name:
+                    # maybe aliyun repo add fake host
+                    repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+                else:
+                    repo_name = repository.get("repo_full_name")
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)
