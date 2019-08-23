@@ -260,11 +260,11 @@ class AppEventService(object):
     def delete_service_events(self, service):
         event_repo.delete_events(service.service_id)
 
-    def get_target_events(self, target, target_id, tenant, service, page, page_size):
+    def get_target_events(self, target, target_id, tenant, region, page, page_size):
         msg_list = []
         try:
             res, rt_data = region_api.get_target_events_list(
-                service.service_region, tenant.tenant_name, target, target_id, page, page_size)
+                region, tenant.tenant_name, target, target_id, page, page_size)
             if int(res.status) == 200:
                 msg_list = rt_data["list"]
                 total = rt_data["number"]

@@ -670,7 +670,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
-        print(body)
         return res, body
 
     def get_events_log(self, tenant_name, region, event_id):

@@ -289,8 +289,14 @@ class AppEventsView(RegionTenantHeaderView):
                     self.service = services[0]
                     target_id = self.service.service_id
                     events, total, has_next = event_service.get_target_events(
-                        target, target_id, self.tenant, self.service, int(page), int(page_size))
+                        target, target_id, self.tenant, self.service.service_region, int(page), int(page_size))
                     result = general_message(
+                        200, "success", "查询成功", list=events, total=total, has_next=has_next)
+            elif target == "tenant":
+                target_id = self.tenant.tenant_id
+                events, total, has_next = event_service.get_target_events(
+                        target, target_id, self.tenant, self.tenant.region, int(page), int(page_size))
+                result = general_message(
                         200, "success", "查询成功", list=events, total=total, has_next=has_next)
         except Exception as e:
             logger.exception(e)
