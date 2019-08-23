@@ -110,8 +110,8 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = server_type
         new_service.save()
-        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
-                                           service_code_version)
+        code, msg = self.init_repositories(new_service, user, service_code_from,
+                                           service_code_clone_url, service_code_id, service_code_version)
         if code != 200:
             return code, msg, new_service
         logger.debug("service.create", "user:{0} create service from source code".format(user.nick_name))
@@ -385,16 +385,18 @@ class AppService(object):
 
     def get_service_status(self, tenant, service):
         """获取应用状态"""
+        start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
                                                    tenant.enterprise_id)
-
             bean = body["bean"]
             status = bean["cur_status"]
+            start_time = bean["start_time"]
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
         status_info_map = get_status_info_map(status)
+        status_info_map["start_time"] = start_time
         return status_info_map
 
     def get_service_resource_with_plugin(self, tenant, service, status):
@@ -442,8 +444,8 @@ class AppService(object):
         if envs_info:
             data["envs_info"] = list(envs_info)
         # 持久化目录
-        volume_info = volume_repo.get_service_volumes(service.service_id).values('ID', 'service_id', 'category', 'volume_name',
-                                                                                 'volume_path', 'volume_type')
+        volume_info = volume_repo.get_service_volumes(service.service_id).values(
+            'ID', 'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
         if volume_info:
             logger.debug('--------volume_info----->{0}'.format(volume_info))
             for volume in volume_info:
