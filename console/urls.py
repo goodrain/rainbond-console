@@ -246,7 +246,7 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppTargetEventView,AppEventLogContentView
+from console.views.app_event import AppTargetEventView, AppEventLogContentView
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
