@@ -776,7 +776,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view()),
 
     # 针对target 查看日志
-    url(r'^teams/(?P<tenantName>[\w\-]+)/(?P<target>[\w\-]+)/(?P<targetAlias>[\w\-]+)/target_events$', AppTargetEventView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/(?P<target>[\w\-]+)/(?P<targetAlias>[\w\-]+)/target_events$',
+        AppTargetEventView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/(?P<eventId>[\w\-]+)/logcontent$', AppEventLogContentView.as_view()),
 ]
 
