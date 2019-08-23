@@ -260,15 +260,14 @@ class AppEventService(object):
     def delete_service_events(self, service):
         event_repo.delete_events(service.service_id)
 
-    def get_target_service_events(self, target, target_id, tenant, service, page, page_size):
+    def get_target_events(self, target, target_id, tenant, service, page, page_size):
         msg_list = []
         try:
-            res, rt_data = region_api.get_target_event_list(
+            res, rt_data = region_api.get_target_events_list(
                 service.service_region, tenant.tenant_name, target, target_id, page, page_size)
             if int(res.status) == 200:
-                bean = rt_data["bean"]
-                msg_list = bean["list"]
-                total = bean["total"]
+                msg_list = rt_data["list"]
+                total = rt_data["number"]
                 has_next = True
                 if page_size * page >= total:
                     has_next = False
@@ -276,9 +275,10 @@ class AppEventService(object):
             logger.debug(e)
         return msg_list, total, has_next
 
-    def get_event_log_content(self, tenant, event_id, level):
+    def get_event_log(self, tenant, event_id):
+        content = []
         try:
-            res, rt_data = region_api.get_event_log_content(tenant.tenant_name, tenant.region, event_id, level)
+            res, rt_data = region_api.get_events_log(tenant.tenant_name, tenant.region, event_id)
             if int(res.status) == 200:
                 content = rt_data["list"]
         except region_api.CallApiError as e:

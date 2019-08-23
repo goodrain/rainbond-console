@@ -660,24 +660,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/event-log"
-
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
-    def get_target_event_list(self, region, tenant_name, target, target_id, page, page_size):
+    def get_target_events_list(self, region, tenant_name, target, target_id, page, page_size):
         """获取作用对象事件日志列表"""
-
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/events/event-list/" + target + "/" + target_id + "/" + bytes(page) + "/" + bytes(page_size)
+        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
+        print(body)
         return res, body
 
-    def get_event_log_content(self, tenant_name, region, event_id, level):
+    def get_events_log(self, tenant_name, region, event_id):
         """获取作用对象事件日志内容"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/events/event-content/" + event_id + "/" + level + "/log"
+        url = url + "/v2/events/" + event_id + "/log"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body

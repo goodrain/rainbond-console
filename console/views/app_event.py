@@ -229,7 +229,7 @@ class AppHistoryLogView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class AppTargetEventView(RegionTenantHeaderView):
+class AppEventsView(RegionTenantHeaderView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -266,8 +266,8 @@ class AppTargetEventView(RegionTenantHeaderView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 6)
-            target = kwargs.get("target", "tenant")
-            targetAlias = kwargs.get("targetAlias", "")
+            target = request.GET.get("target", "")
+            targetAlias = request.GET.get("targetAlias", "")
             if targetAlias == "":
                 result = general_message(200, "error", "targetAlias is required")
                 return Response(result, status=result["code"])
@@ -277,7 +277,7 @@ class AppTargetEventView(RegionTenantHeaderView):
                 if len(services) > 0:
                     self.service = services[0]
                     target_id = self.service.service_id
-                    events, total, has_next = event_service.get_target_service_events(
+                    events, total, has_next = event_service.get_target_events(
                         target, target_id, self.tenant, self.service, int(page), int(page_size))
                     result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
         except Exception as e:
@@ -286,7 +286,7 @@ class AppTargetEventView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class AppEventLogContentView(RegionTenantHeaderView):
+class AppEventLogView(RegionTenantHeaderView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -310,9 +310,8 @@ class AppEventLogContentView(RegionTenantHeaderView):
             if event_id == "":
                 result = general_message(200, "error", "event_id is required")
                 return Response(result, status=result["code"])
-            level = request.GET.get("level", LogConstants.INFO)
-
-            log_content = event_service.get_event_log_content(self.tenant, event_id, level)
+                
+            log_content = event_service.get_event_log(self.tenant, event_id)
             result = general_message(200, "success", "查询成功", list=log_content)
         except Exception as e:
             logger.exception(e)

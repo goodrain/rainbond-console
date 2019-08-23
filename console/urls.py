@@ -246,7 +246,7 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppTargetEventView, AppEventLogContentView
+from console.views.app_event import AppEventsView, AppEventLogView
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -776,9 +776,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view()),
 
     # 针对target 查看日志
-    url(r'^teams/(?P<tenantName>[\w\-]+)/(?P<target>[\w\-]+)/(?P<targetAlias>[\w\-]+)/target_events$',
-        AppTargetEventView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/(?P<eventId>[\w\-]+)/logcontent$', AppEventLogContentView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/events/(?P<eventId>[\w\-]+)/log$', AppEventLogView.as_view()),
 ]
 
 # 云市应用升级相关接口
