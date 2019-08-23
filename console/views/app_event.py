@@ -57,9 +57,11 @@ class AppEventView(AppBaseView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 6)
             start_time = request.GET.get("start_time", None)
-            events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
+            events, has_next = event_service.get_service_event(
+                self.tenant, self.service, int(page), int(page_size), start_time)
 
-            result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
+            result = general_message(
+                200, "success", "查询成功", list=events, has_next=has_next)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -101,7 +103,8 @@ class AppEventLogView(AppBaseView):
             if not event_id:
                 return Response(general_message(400, "params error", "请指明具体操作事件"), status=400)
 
-            log_list = event_service.get_service_event_log(self.tenant, self.service, level, event_id)
+            log_list = event_service.get_service_event_log(
+                self.tenant, self.service, level, event_id)
             result = general_message(200, "success", "查询成功", list=log_list)
         except Exception as e:
             logger.exception(e)
@@ -143,7 +146,8 @@ class AppLogView(AppBaseView):
             action = request.GET.get("action", "service")
             lines = request.GET.get("lines", 50)
 
-            code, msg, log_list = log_service.get_service_logs(self.tenant, self.service, action, int(lines))
+            code, msg, log_list = log_service.get_service_logs(
+                self.tenant, self.service, action, int(lines))
             if code != 200:
                 return Response(general_message(code, "query service log error", msg), status=code)
             for log in log_list:
@@ -177,8 +181,10 @@ class AppLogInstanceView(AppBaseView):
         """
         try:
 
-            code, msg, host_id = log_service.get_docker_log_instance(self.tenant, self.service)
-            web_socket_url = ws_service.get_log_instance_ws(request, self.service.service_region)
+            code, msg, host_id = log_service.get_docker_log_instance(
+                self.tenant, self.service)
+            web_socket_url = ws_service.get_log_instance_ws(
+                request, self.service.service_region)
             bean = {"web_socket_url": web_socket_url}
             if code == 200:
                 web_socket_url += "?host_id={0}".format(host_id)
@@ -212,15 +218,18 @@ class AppHistoryLogView(AppBaseView):
         """
         try:
 
-            code, msg, file_list = log_service.get_history_log(self.tenant, self.service)
-            log_domain_url = ws_service.get_log_domain(request, self.service.service_region)
+            code, msg, file_list = log_service.get_history_log(
+                self.tenant, self.service)
+            log_domain_url = ws_service.get_log_domain(
+                request, self.service.service_region)
             if code != 200:
                 file_list = []
             file_urls = []
             for f in file_list:
                 file_name = f[22:]
                 file_url = log_domain_url + f
-                file_urls.append({"file_name": file_name, "file_url": file_url})
+                file_urls.append(
+                    {"file_name": file_name, "file_url": file_url})
 
             result = general_message(200, "success", "查询成功", list=file_urls)
         except Exception as e:
@@ -269,24 +278,27 @@ class AppEventsView(RegionTenantHeaderView):
             target = request.GET.get("target", "")
             targetAlias = request.GET.get("targetAlias", "")
             if targetAlias == "":
-                result = general_message(200, "error", "targetAlias is required")
+                result = general_message(
+                    200, "error", "targetAlias is required")
                 return Response(result, status=result["code"])
 
             if target == "service":
-                services = TenantServiceInfo.objects.filter(service_alias=targetAlias, tenant_id=self.tenant.tenant_id)
+                services = TenantServiceInfo.objects.filter(
+                    service_alias=targetAlias, tenant_id=self.tenant.tenant_id)
                 if len(services) > 0:
                     self.service = services[0]
                     target_id = self.service.service_id
                     events, total, has_next = event_service.get_target_events(
                         target, target_id, self.tenant, self.service, int(page), int(page_size))
-                    result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
+                    result = general_message(
+                        200, "success", "查询成功", list=events, total=total, has_next=has_next)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
-class AppEventLogView(RegionTenantHeaderView):
+class AppEventsLogView(RegionTenantHeaderView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -310,7 +322,6 @@ class AppEventLogView(RegionTenantHeaderView):
             if event_id == "":
                 result = general_message(200, "error", "event_id is required")
                 return Response(result, status=result["code"])
-                
             log_content = event_service.get_event_log(self.tenant, event_id)
             result = general_message(200, "success", "查询成功", list=log_content)
         except Exception as e:
