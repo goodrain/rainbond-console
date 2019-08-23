@@ -5,6 +5,7 @@
 import logging
 import operator
 
+from dateutil import parser
 from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -53,24 +54,22 @@ class AppVersionsView(AppBaseView):
             page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
-            logger.debug('---------body------>{0}'.format(body))
             build_version_sort = body["bean"]["list"]
             run_version = body["bean"]["deploy_version"]
             total_num_list = list()
             for build_version_info in build_version_sort:
-                if build_version_info["FinalStatus"] in ("success", "failure"):
+                if build_version_info["final_status"] in ("success", "failure"):
                     total_num_list.append(build_version_info)
             total_num = len(total_num_list)
             success_num = 0
             failure_num = 0
             for build_info in build_version_sort:
-                if build_info["FinalStatus"]:
-                    if build_info["FinalStatus"] == "success":
+                if build_info["final_status"]:
+                    if build_info["final_status"] == "success":
                         success_num += 1
                     else:
                         failure_num += 1
-            logger.debug('---------------build_version_sort---------->{0}'.format(build_version_sort))
-            build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
+            build_version_sort.sort(key=operator.itemgetter('build_version'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
 
@@ -82,19 +81,42 @@ class AppVersionsView(AppBaseView):
 
             versions_info = build_version_list
             version_list = []
+
+            def cul_delta(startstr, endstr):
+                start = parser.parse(startstr)
+                end = parser.parse(endstr)
+                delta = end - start
+                return delta.seconds / 3600, (delta.seconds / 60) % 60, delta.seconds % 60
+
             for info in versions_info:
-                version_list.append({
-                    "build_version": info["BuildVersion"],
-                    "kind": BUILD_KIND_MAP.get(info["Kind"]),
-                    "service_type": info["DeliveredType"],
-                    "image_url": info["ImageName"],
-                    "repo_url": info["RepoURL"],
-                    "commit_msg": info["CommitMsg"],
-                    "author": info["Author"],
-                    "create_time": info["CreatedAt"],
-                    "status": info["FinalStatus"],
-                    "build_user": version_user_map.get(info["EventID"], "未知")
-                })
+                version = {
+                    "build_version": info["build_version"],
+                    "kind": BUILD_KIND_MAP.get(info["kind"]),
+                    "service_type": info["delivered_type"],
+                    "repo_url": info["repo_url"],
+                    "create_time": info["create_time"],
+                    "status": info["final_status"],
+                    "build_user": version_user_map.get(info["event_id"], "未知"),
+                    # source code
+                    "code_commit_msg": info["code_commit_msg"],
+                    "code_version": info["code_version"],
+                    "code_branch": info.get("code_branch", "未知"),
+                    "code_commit_author": info["code_commit_author"],
+                    # image
+                    "image_repo": info["image_repo"],
+                    "image_domain": info.get("image_domain", "未知"),
+                    "image_tag": info["image_tag"],
+                }
+
+                if info["finish_time"] != "0001-01-01T00:00:00Z":
+                    version["finish_time"] = info["finish_time"]
+                    version["dur_hours"], version["dur_minutes"], version["dur_seconds"] = cul_delta(
+                        info["finish_time"], info["create_time"])
+                else:
+                    version["finish_time"], version["dur_hours"], version["dur_minutes"],
+                    version["dur_seconds"] = "", 0, 0, 0
+
+                version_list.append(version)
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
                 # get deploy version from region
