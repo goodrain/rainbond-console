@@ -113,8 +113,8 @@ class AppVersionsView(AppBaseView):
                     version["dur_hours"], version["dur_minutes"], version["dur_seconds"] = cul_delta(
                         info["finish_time"], info["create_time"])
                 else:
-                    version["finish_time"], version["dur_hours"], version["dur_minutes"],
-                    version["dur_seconds"] = "", 0, 0, 0
+                    version["finish_time"], version["dur_hours"], \
+                        version["dur_minutes"], version["dur_seconds"] = "", 0, 0, 0
 
                 version_list.append(version)
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
