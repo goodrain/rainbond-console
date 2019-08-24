@@ -14,7 +14,6 @@ from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config import deploy_type_service
