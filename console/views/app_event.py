@@ -278,10 +278,8 @@ class AppEventsView(RegionTenantHeaderView):
             target = request.GET.get("target", "")
             targetAlias = request.GET.get("targetAlias", "")
             if targetAlias == "":
-                result = general_message(
-                    200, "error", "targetAlias is required")
-                return Response(result, status=result["code"])
-
+                target = "tenant"
+                targetAlias = self.tenant.tenant_name
             if target == "service":
                 services = TenantServiceInfo.objects.filter(
                     service_alias=targetAlias, tenant_id=self.tenant.tenant_id)
@@ -292,12 +290,15 @@ class AppEventsView(RegionTenantHeaderView):
                         target, target_id, self.tenant, self.service.service_region, int(page), int(page_size))
                     result = general_message(
                         200, "success", "查询成功", list=events, total=total, has_next=has_next)
+                else:
+                    result = general_message(
+                        200, "success", "查询成功", list=[], total=0, has_next=False)
             elif target == "tenant":
                 target_id = self.tenant.tenant_id
                 events, total, has_next = event_service.get_target_events(
-                        target, target_id, self.tenant, self.tenant.region, int(page), int(page_size))
+                    target, target_id, self.tenant, self.tenant.region, int(page), int(page_size))
                 result = general_message(
-                        200, "success", "查询成功", list=events, total=total, has_next=has_next)
+                    200, "success", "查询成功", list=events, total=total, has_next=has_next)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
