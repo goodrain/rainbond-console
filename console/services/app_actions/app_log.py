@@ -262,17 +262,16 @@ class AppEventService(object):
 
     def get_target_events(self, target, target_id, tenant, region, page, page_size):
         msg_list = []
-        try:
-            res, rt_data = region_api.get_target_events_list(
-                region, tenant.tenant_name, target, target_id, page, page_size)
-            if int(res.status) == 200:
-                msg_list = rt_data["list"]
-                total = rt_data["number"]
-                has_next = True
-                if page_size * page >= total:
-                    has_next = False
-        except region_api.CallApiError as e:
-            logger.debug(e)
+        has_next = False
+        total = 0
+        res, rt_data = region_api.get_target_events_list(
+            region, tenant.tenant_name, target, target_id, page, page_size)
+        if int(res.status) == 200:
+            msg_list = rt_data.get("list", [])
+            total = rt_data.get("number", 0)
+            has_next = True
+            if page_size * page >= total:
+                has_next = False
         return msg_list, total, has_next
 
     def get_event_log(self, tenant, event_id):

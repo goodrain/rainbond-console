@@ -72,13 +72,6 @@ class AppVersionsView(AppBaseView):
             build_version_sort.sort(key=operator.itemgetter('build_version'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
-
-            events = event_repo.get_events_before_specify_time(
-                self.tenant.tenant_id,
-                self.service.service_id,
-                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
-            version_user_map = {event.event_id: event.user_name for event in events}
-
             versions_info = build_version_list
             version_list = []
 
@@ -96,7 +89,7 @@ class AppVersionsView(AppBaseView):
                     "repo_url": info["repo_url"],
                     "create_time": info["create_time"],
                     "status": info["final_status"],
-                    "build_user": version_user_map.get(info["event_id"], "未知"),
+                    "build_user": "",
                     # source code
                     "code_commit_msg": info["code_commit_msg"],
                     "code_version": info["code_version"],
