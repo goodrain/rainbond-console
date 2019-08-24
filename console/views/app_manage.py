@@ -167,13 +167,8 @@ class DeployAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-
-            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
-
+            code, msg = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
