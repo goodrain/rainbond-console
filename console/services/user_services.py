@@ -23,7 +23,6 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services

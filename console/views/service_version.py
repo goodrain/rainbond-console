@@ -9,9 +9,6 @@ from dateutil import parser
 from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.repositories.event_repo import event_repo
-from console.utils.timeutil import current_time_str
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
