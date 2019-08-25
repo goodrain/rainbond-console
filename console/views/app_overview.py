@@ -37,6 +37,7 @@ from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.decorator import perm_required
 from www.utils.md5Util import md5fun
 from www.utils.return_message import error_message
@@ -341,6 +342,9 @@ class ListAppPodsView(AppBaseView):
                 old_pods = foobar(pods.get("old_pods", None))
                 result = {"new_pods": newpods, "old_pods": old_pods}
             result = general_message(200, "success", "操作成功", list=result)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            if e.status == 404:
+                result = general_message(200, "success", "操作成功", list=[])
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
