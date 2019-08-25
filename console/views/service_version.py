@@ -5,7 +5,6 @@
 import logging
 import operator
 
-from dateutil import parser
 from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -82,12 +81,6 @@ class AppVersionsView(AppBaseView):
             versions_info = build_version_list
             version_list = []
 
-            def cul_delta(startstr, endstr):
-                start = parser.parse(startstr)
-                end = parser.parse(endstr)
-                delta = end - start
-                return delta.seconds / 3600, (delta.seconds / 60) % 60, delta.seconds % 60
-
             for info in versions_info:
                 version = {
                     "build_version": info["build_version"],
@@ -104,23 +97,20 @@ class AppVersionsView(AppBaseView):
                     "code_commit_author": info["code_commit_author"],
                     # image
                     "image_repo": info["image_repo"],
-                    "image_domain": info.get("image_domain", "未知"),
+                    "image_domain": info.get("image_domain", "docker.io"),
                     "image_tag": info["image_tag"],
                 }
 
                 if info["finish_time"] != "0001-01-01T00:00:00Z":
                     version["finish_time"] = info["finish_time"]
-                    version["dur_hours"], version["dur_minutes"], version["dur_seconds"] = cul_delta(
-                        info["finish_time"], info["create_time"])
                 else:
-                    version["finish_time"], version["dur_hours"], \
-                        version["dur_minutes"], version["dur_seconds"] = "", 0, 0, 0
+                    version["dur_seconds"] = ""
 
                 version_list.append(version)
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
                 # get deploy version from region
-                if res_version["status"] == "failure":
+                if res_version["status"] == "failure" or run_version == "":
                     upgrade_or_rollback = 2
                 elif int(res_version["build_version"]) > int(run_version):
                     upgrade_or_rollback = 1
@@ -130,7 +120,7 @@ class AppVersionsView(AppBaseView):
                     upgrade_or_rollback = -1
                 res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
             is_upgrade = False
-            if res_versions:
+            if res_versions and run_version != "":
                 latest_version = res_versions[0]["build_version"]
                 if int(latest_version) > int(run_version):
                     is_upgrade = True
