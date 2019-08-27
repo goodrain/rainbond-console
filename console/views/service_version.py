@@ -8,6 +8,7 @@ import operator
 from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -87,14 +88,14 @@ class AppVersionsView(AppBaseView):
                     "code_commit_author": info["code_commit_author"],
                     # image
                     "image_repo": info["image_repo"],
-                    "image_domain": info.get("image_domain", "docker.io"),
-                    "image_tag": info["image_tag"],
+                    "image_domain": info.get("image_domain") if info.get("image_domain", "") else "docker.io",
+                    "image_tag": info.get("image_tag") if info.get("image_tag", "") else "latest",
                 }
 
                 if info["finish_time"] != "0001-01-01T00:00:00Z":
                     version["finish_time"] = info["finish_time"]
                 else:
-                    version["dur_seconds"] = ""
+                    version["finish_time"] = ""
 
                 version_list.append(version)
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
