@@ -38,7 +38,7 @@ class ConfigService(object):
                 try:
                     value = self.image_to_base64(value)
                 except IOError as e:
-                    logger.execption(e)
+                    logger.exception(e)
                     value = "image: {}; not found.".format(value)
             res[item.key] = value
         return res
@@ -83,7 +83,7 @@ class ConfigService(object):
             cbi = CloundBangImages.objects.get(identify=identify)
             cbi.logo = value
             cbi.save()
-        except CloundBangImages.DoesNotExsit:
+        except CloundBangImages.DoesNotExist:
             cbi = CloundBangImages(
                 identify=identify,
                 logo=value,
