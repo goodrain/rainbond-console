@@ -209,6 +209,9 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
 
                     result = general_message(200, "success", "修改成功")
                     return Response(result, status=200)
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -350,7 +353,9 @@ class ThirdPartyAppPodsView(AppBaseView):
                 return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
             result = general_message(200, "success", "添加成功")
             return Response(result)
-
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
         except Exception as e:
             if e.status == 400:
                 return Response(general_message(400, "region delete error", "实例已存在({})".format(address)), status=400)

@@ -169,6 +169,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def stop(self, tenant, service, user):
@@ -183,6 +186,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def restart(self, tenant, service, user):
@@ -196,6 +202,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def deploy(self, tenant, service, user, group_version, committer_name=None):
@@ -254,6 +263,9 @@ class AppManageService(AppManageBase):
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
             return 507, "构建异常"
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
     def __delete_envs(self, tenant, service):
@@ -389,6 +401,9 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             return 507, "更新异常"
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
 
         return 200, "操作成功"
 
@@ -441,6 +456,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def batch_action(self, tenant, user, action, service_ids, move_group_id):
@@ -684,6 +702,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def horizontal_upgrade(self, tenant, service, user, new_node):
@@ -706,6 +727,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def delete(self, user, tenant, service, is_force):

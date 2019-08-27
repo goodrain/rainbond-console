@@ -39,6 +39,24 @@ class RegionApiBaseHttpClient(object):
         def __str__(self):
             return json.dumps(self.message)
 
+    class CallApiFrequentError(Exception):
+        def __init__(self, apitype, url, method, res, body, describe=None):
+            self.message = {
+                "apitype": apitype,
+                "url": url,
+                "method": method,
+                "httpcode": res.status,
+                "body": body,
+            }
+            self.apitype = apitype
+            self.url = url
+            self.method = method
+            self.body = body
+            self.status = res.status
+
+        def __str__(self):
+            return json.dumps(self.message)
+
     class ApiSocketError(CallApiError):
         pass
 
@@ -64,6 +82,9 @@ class RegionApiBaseHttpClient(object):
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= status <= 600:
+            if status == 409:
+                raise self.CallApiFrequentError(
+                    self.apitype, url, method, res, body)
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body
@@ -92,16 +113,19 @@ class RegionApiBaseHttpClient(object):
         if wsurl_split_list[0] == "https":
             verify_ssl = True
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
+        config = Configuration(verify_ssl, region.ssl_ca_cert,
+                               region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
         retry_count = 2
         while retry_count:
             try:
                 if body is None:
-                    response = client.request(url=url, method=method, headers=headers)
+                    response = client.request(
+                        url=url, method=method, headers=headers)
                 else:
-                    response = client.request(url=url, method=method, headers=headers, body=body)
+                    response = client.request(
+                        url=url, method=method, headers=headers, body=body)
 
                 # if len(content) > 10000:
                 #     record_content = '%s  .....ignore.....' % content[:1000]
@@ -112,14 +136,14 @@ class RegionApiBaseHttpClient(object):
                 # else:
                 #     record_body = body
                 return response.status, response.data
-            except socket.timeout, e:
+            except socket.timeout as e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
                 raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                     "type": "request time out",
                     "error": str(e)
                 })
-            except socket.error, e:
+            except socket.error as e:
                 retry_count -= 1
                 if retry_count:
                     logger.error("client_error", "retry request: %s" % url)
@@ -178,33 +202,41 @@ class RegionApiBaseHttpClient(object):
 
     def _get(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(
+                url, 'GET', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
+            response, content = self._request(
+                url, 'GET', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
     def _post(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'POST', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(
+                url, 'POST', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'POST', headers=headers, *args, **kwargs)
+            response, content = self._request(
+                url, 'POST', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'POST', response, content)
         return res, body
 
     def _put(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'PUT', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(
+                url, 'PUT', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'PUT', headers=headers, *args, **kwargs)
+            response, content = self._request(
+                url, 'PUT', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'PUT', response, content)
         return res, body
 
     def _delete(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'DELETE', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(
+                url, 'DELETE', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'DELETE', headers=headers, *args, **kwargs)
+            response, content = self._request(
+                url, 'DELETE', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
 
@@ -257,7 +289,8 @@ class Configuration():
                 self.ssl_ca_cert = path
             else:
                 # 校验证书文件是否写入成功
-                self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
+                self.ssl_ca_cert = check_file_path(
+                    file_path, "ca.pem", ssl_ca_cert)
 
         # client certificate file
         if not cert_file or cert_file.startswith('/'):
@@ -268,7 +301,8 @@ class Configuration():
             if os.path.isfile(path):
                 self.cert_file = path
             else:
-                self.cert_file = check_file_path(file_path, "client.pem", cert_file)
+                self.cert_file = check_file_path(
+                    file_path, "client.pem", cert_file)
 
         # client key file
         if not key_file or key_file.startswith('/'):
@@ -279,7 +313,8 @@ class Configuration():
             if os.path.isfile(path):
                 self.key_file = path
             else:
-                self.key_file = check_file_path(file_path, "client.key.pem", key_file)
+                self.key_file = check_file_path(
+                    file_path, "client.key.pem", key_file)
 
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname
