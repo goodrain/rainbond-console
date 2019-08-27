@@ -83,7 +83,7 @@ class ConfigService(object):
             cbi = CloundBangImages.objects.get(identify=identify)
             cbi.logo = value
             cbi.save()
-        except CloundBangImages.DoesNotExsit:
+        except CloundBangImages.DoesNotExist:
             cbi = CloundBangImages(
                 identify=identify,
                 logo=value,
