@@ -501,7 +501,7 @@ class AppManageService(AppManageBase):
         elif action == "upgrade":
             code, data = self.upgrade_services_info(body, services, tenant, user)
         elif action == "deploy":
-            code, data, _ = self.deploy_services_info(body, services, tenant, user)
+            code, data = self.deploy_services_info(body, services, tenant, user)
         if code != 200:
             return 415, "服务信息获取失败"
         # 获取数据中心信息
