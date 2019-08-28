@@ -8,6 +8,7 @@ import operator
 from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -73,6 +74,7 @@ class AppVersionsView(AppBaseView):
 
             for info in versions_info:
                 version = {
+                    "event_id": info["event_id"],
                     "build_version": info["build_version"],
                     "kind": BUILD_KIND_MAP.get(info["kind"]),
                     "service_type": info["delivered_type"],
