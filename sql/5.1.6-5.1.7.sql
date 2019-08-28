@@ -1,0 +1,1 @@
+alter table tenant_service modify column git_url varchar(2083)
