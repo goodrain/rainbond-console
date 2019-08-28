@@ -781,6 +781,8 @@ class ShareService(object):
                     if sid:
                         transaction.savepoint_rollback(sid)
                     return 400, "分享的应用信息不能为空", None
+            except ServiceHandleException as e:
+                raise ServiceHandleException(msg=e.msg, msg_show=e.msg_show)
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -813,6 +815,8 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_commit(sid)
             return 200, "分享信息处理成功", share_record.to_dict()
+        except ServiceHandleException as e:
+            raise ServiceHandleException(msg=e.msg, msg_show=e.msg_show)
         except Exception as e:
             logger.exception(e)
             if sid:
