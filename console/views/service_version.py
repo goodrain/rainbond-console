@@ -74,6 +74,7 @@ class AppVersionsView(AppBaseView):
 
             for info in versions_info:
                 version = {
+                    "event_id": info["event_id"],
                     "build_version": info["build_version"],
                     "kind": BUILD_KIND_MAP.get(info["kind"]),
                     "service_type": info["delivered_type"],
