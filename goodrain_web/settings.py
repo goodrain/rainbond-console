@@ -29,7 +29,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 IS_OPEN_API = os.getenv("IS_OPEN_API", False)
 
-DEBUG = False
+DEBUG = os.getenv("DEBUG", False)
 
 conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, 'www_com')
 if os.path.exists(conf_file):
@@ -53,13 +53,13 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBacke
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
                   'django.contrib.messages', 'django.contrib.staticfiles', 'crispy_forms', 'rest_framework',
-                  'rest_framework.authtoken', 'rest_framework_jwt', 'www', 'backends', 'corsheaders', 'console', )
+                  'rest_framework.authtoken', 'rest_framework_jwt', 'www', 'corsheaders', 'console', )
 # Application definition
 if IS_OPEN_API:
     INSTALLED_APPS = (
         'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
         'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
-        'rest_framework_jwt', 'drf_yasg', 'www', 'backends', 'corsheaders', 'console', 'openapi', )
+        'rest_framework_jwt', 'drf_yasg', 'www', 'corsheaders', 'console', 'openapi', )
     OAUTH2_PROVIDER = {
         'SCOPES': {
             'read': 'Read scope',
