@@ -14,7 +14,6 @@ from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config import deploy_type_service
@@ -62,11 +61,8 @@ class StartAppView(AppBaseView):
                                                            "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
-            code, msg, event = app_manage_service.start(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.start(self.tenant, self.service, self.user)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -102,11 +98,8 @@ class StopAppView(AppBaseView):
 
         """
         try:
-            code, msg, event = app_manage_service.stop(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.stop(self.tenant, self.service, self.user)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "stop app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -137,11 +130,8 @@ class ReStartAppView(AppBaseView):
 
         """
         try:
-            code, msg, event = app_manage_service.restart(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.restart(self.tenant, self.service, self.user)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -176,13 +166,8 @@ class DeployAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
-
-            code, msg, event = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
-
+            code, msg = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -234,12 +219,9 @@ class RollBackAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
-            code, msg, event = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version,
-                                                            upgrade_or_rollback)
+            code, msg = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version,
+                                                     upgrade_or_rollback)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -290,11 +272,8 @@ class VerticalExtendAppView(AppBaseView):
                                                            "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
-            code, msg, event = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
+            code, msg = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -346,11 +325,8 @@ class HorizontalExtendAppView(AppBaseView):
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
 
-            code, msg, event = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
+            code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "horizontal upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -459,11 +435,8 @@ class DeleteAppView(AppBaseView):
         try:
             is_force = request.data.get("is_force", False)
 
-            code, msg, event = app_manage_service.delete(self.user, self.tenant, self.service, is_force)
+            code, msg = app_manage_service.delete(self.user, self.tenant, self.service, is_force)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -504,7 +477,7 @@ class BatchDelete(RegionTenantHeaderView):
             services = service_repo.get_services_by_service_ids(service_id_list)
             msg_list = []
             for service in services:
-                code, msg, event = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
+                code, msg = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
                 msg_dict = dict()
                 msg_dict['status'] = code
                 msg_dict['msg'] = msg
@@ -546,11 +519,8 @@ class AgainDelete(RegionTenantHeaderView):
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
             service = service_repo.get_service_by_service_id(service_id)
-            code, msg, event = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
+            code, msg = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -610,11 +580,8 @@ class UpgradeAppView(AppBaseView):
             allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
             if not allow_create:
                 return Response(general_message(412, "resource is not enough", "资源不足，无法更新"))
-            code, msg, event = app_manage_service.upgrade(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.upgrade(self.tenant, self.service, self.user)
             bean = {}
-            if event:
-                bean = event.to_dict()
-                bean["type_cn"] = event_service.translate_event_type(event.type)
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)

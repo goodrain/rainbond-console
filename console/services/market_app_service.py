@@ -483,7 +483,7 @@ class MarketAppService(object):
     def __deploy_services(self, tenant, user, service_list):
         try:
             body = dict()
-            code, data, events = app_manage_service.deploy_services_info(body, service_list, tenant, user)
+            code, data = app_manage_service.deploy_services_info(body, service_list, tenant, user)
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]
@@ -495,8 +495,6 @@ class MarketAppService(object):
                     logger.exception(e)
         except Exception as e:
             logger.exception("batch deploy service error {0}".format(e))
-
-        return events
 
     def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
         if service_key_dep_key_map:

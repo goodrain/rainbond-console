@@ -9,8 +9,6 @@ from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.repositories.event_repo import event_repo
-from console.utils.timeutil import current_time_str
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
@@ -53,54 +51,60 @@ class AppVersionsView(AppBaseView):
             page_size = request.GET.get("page_size", 10)
             body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
                                                          self.service.service_alias)
-            logger.debug('---------body------>{0}'.format(body))
             build_version_sort = body["bean"]["list"]
             run_version = body["bean"]["deploy_version"]
             total_num_list = list()
             for build_version_info in build_version_sort:
-                if build_version_info["FinalStatus"] in ("success", "failure"):
+                if build_version_info["final_status"] in ("success", "failure"):
                     total_num_list.append(build_version_info)
             total_num = len(total_num_list)
             success_num = 0
             failure_num = 0
             for build_info in build_version_sort:
-                if build_info["FinalStatus"]:
-                    if build_info["FinalStatus"] == "success":
+                if build_info["final_status"]:
+                    if build_info["final_status"] == "success":
                         success_num += 1
                     else:
                         failure_num += 1
-            logger.debug('---------------build_version_sort---------->{0}'.format(build_version_sort))
-            build_version_sort.sort(key=operator.itemgetter('BuildVersion'), reverse=True)
+            build_version_sort.sort(key=operator.itemgetter('build_version'), reverse=True)
             paginator = Paginator(build_version_sort, page_size)
             build_version_list = paginator.page(int(page)).object_list
-
-            events = event_repo.get_events_before_specify_time(
-                self.tenant.tenant_id,
-                self.service.service_id,
-                current_time_str(fmt="%Y-%m-%d %H:%M:%S")).filter(type="deploy")
-            version_user_map = {event.event_id: event.user_name for event in events}
-
             versions_info = build_version_list
             version_list = []
+
             for info in versions_info:
-                version_list.append({
-                    "build_version": info["BuildVersion"],
-                    "kind": BUILD_KIND_MAP.get(info["Kind"]),
-                    "service_type": info["DeliveredType"],
-                    "image_url": info["ImageName"],
-                    "repo_url": info["RepoURL"],
-                    "commit_msg": info["CommitMsg"],
-                    "author": info["Author"],
-                    "create_time": info["CreatedAt"],
-                    "status": info["FinalStatus"],
-                    "build_user": version_user_map.get(info["EventID"], "未知")
-                })
+                version = {
+                    "event_id": info["event_id"],
+                    "build_version": info["build_version"],
+                    "kind": BUILD_KIND_MAP.get(info["kind"]),
+                    "service_type": info["delivered_type"],
+                    "repo_url": info["repo_url"],
+                    "create_time": info["create_time"],
+                    "status": info["final_status"],
+                    "build_user": "",
+                    # source code
+                    "code_commit_msg": info["code_commit_msg"],
+                    "code_version": info["code_version"],
+                    "code_branch": info.get("code_branch", "未知"),
+                    "code_commit_author": info["code_commit_author"],
+                    # image
+                    "image_repo": info["image_repo"],
+                    "image_domain": info.get("image_domain") if info.get("image_domain", "") else "docker.io",
+                    "image_tag": info.get("image_tag") if info.get("image_tag", "") else "latest",
+                }
+
+                if info["finish_time"] != "0001-01-01T00:00:00Z":
+                    version["finish_time"] = info["finish_time"]
+                else:
+                    version["finish_time"] = ""
+
+                version_list.append(version)
             res_versions = sorted(version_list, key=lambda version: version["build_version"], reverse=True)
             for res_version in res_versions:
                 # 1:support upgrade
                 # -1: support rollback
                 # 2: do not support upgrade and rollback
-                if res_version["build_version"] == "":
+                if res_version["status"] == "failure" or run_version == "":
                     upgrade_or_rollback = 2
                 else:
                     # get deploy version from region
@@ -114,7 +118,7 @@ class AppVersionsView(AppBaseView):
                         upgrade_or_rollback = -1
                 res_version.update({"upgrade_or_rollback": upgrade_or_rollback})
             is_upgrade = False
-            if res_versions:
+            if res_versions and run_version != "":
                 latest_version = res_versions[0]["build_version"]
                 if int(latest_version) > int(run_version):
                     is_upgrade = True

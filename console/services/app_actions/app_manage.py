@@ -159,88 +159,55 @@ class AppManageService(AppManageBase):
         if not allow_start:
             return 412, "资源不足，无法启动应用", None
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.START)
-        if code != 200:
-            return code, msg, event
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"启动应用失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def stop(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
-        if code != 200:
-            return code, msg, event
 
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"启动停止失败{0}".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def restart(self, tenant, service, user):
-        code, msg, event = event_service.create_event(tenant, service, user, self.RESTART)
-        if code != 200:
-            return code, msg, event
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.restart_service(service.service_region, tenant.tenant_name, service.service_alias, body)
                 logger.debug("user {0} retart app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"启动重启失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def deploy(self, tenant, service, user, group_version, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY, committer_name, "")
-        if code != 200:
-            logger.error("code: {}; msg: {}; event: {}".format(code, msg, event))
-            return code, msg, event
-
         body = dict()
         # 默认更新升级
         body["action"] = "deploy"
@@ -251,7 +218,6 @@ class AppManageService(AppManageBase):
         body["kind"] = kind
         body["operator"] = str(user.nick_name)
         body["configs"] = {}
-        body["event_id"] = event.event_id
         body["service_id"] = service.service_id
         # source type parameter
         if kind == "build_from_source_code" or kind == "source":
@@ -290,25 +256,17 @@ class AppManageService(AppManageBase):
         try:
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
-                event.message = u"应用构建失败{0}".format(re.get("err_message", ""))
-                event.final_status = "complete"
-                event.status = "failure"
-                event.event_id = re.get("event_id", "")
-                event.save()
-                return 507, "构建异常", event
+                return 507, "构建异常"
         except region_api.CallApiError as e:
-            event.message = u"应用构建失败".format(e.message)
-            event.final_status = "complete"
-            event.status = "failure"
-            event.save()
             if e.status == 400:
                 logger.warning("failed to deploy service: {}".format(e))
-                event.delete()
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
-            return 507, "构建异常", event
-
-        return 200, "操作成功", event
+            return 507, "构建异常"
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
+        return 200, "操作成功"
 
     def __delete_envs(self, tenant, service):
         service_envs = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
@@ -440,24 +398,18 @@ class AppManageService(AppManageBase):
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None):
-        code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE, committer_name)
-        if code != 200:
-            return code, msg, event
         body = dict()
         body["service_id"] = service.service_id
-        body["event_id"] = event.event_id
         try:
             region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
         except region_api.CallApiError as e:
             logger.exception(e)
-            if event:
-                event.message = u"应用更新失败".format(e.message)
-                event.final_status = "complete"
-                event.status = "failure"
-                event.save()
-            return 507, "更新异常", event
+            return 507, "更新异常"
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            return 409, u"操作过于频繁，请稍后再试"
 
-        return 200, "操作成功", event
+        return 200, "操作成功"
 
     def __get_service_kind(self, service):
         """获取应用种类，兼容老的逻辑"""
@@ -492,22 +444,13 @@ class AppManageService(AppManageBase):
             return kind
 
     def roll_back(self, tenant, service, user, deploy_version, upgrade_or_rollback):
-        if int(upgrade_or_rollback) == 1:
-            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
-        else:
-            code, msg, event = event_service.create_event(tenant, service, user, self.ROLLBACK)
-        if code != 200:
-            return code, msg, event
         if service.create_status == "complete":
             res, data = region_api.get_service_build_version_by_id(service.service_region, tenant.tenant_name,
                                                                    service.service_alias, deploy_version)
             is_version_exist = data['bean']['status']
             if not is_version_exist:
-                event.delete()
-                return 404, u"当前版本可能已被系统清理或删除", event
-
+                return 404, u"当前版本可能已被系统清理或删除"
             body = dict()
-            body["event_id"] = event.event_id
             body["operator"] = str(user.nick_name)
             body["upgrade_version"] = deploy_version
             body["service_id"] = service.service_id
@@ -516,15 +459,11 @@ class AppManageService(AppManageBase):
                 region_api.rollback(service.service_region, tenant.tenant_name, service.service_alias, body)
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"启动回滚失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def batch_action(self, tenant, user, action, service_ids, move_group_id):
         services = service_repo.get_services_by_service_ids(service_ids)
@@ -566,7 +505,7 @@ class AppManageService(AppManageBase):
         elif action == "upgrade":
             code, data = self.upgrade_services_info(body, services, tenant, user)
         elif action == "deploy":
-            code, data, _ = self.deploy_services_info(body, services, tenant, user)
+            code, data = self.deploy_services_info(body, services, tenant, user)
         if code != 200:
             return 415, "服务信息获取失败"
         # 获取数据中心信息
@@ -593,37 +532,20 @@ class AppManageService(AppManageBase):
             allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
             if not allow_start:
                 continue
-            code, msg, event = event_service.create_event(tenant, service, user, self.START)
-            if code != 200:
-                continue
-
             if service.create_status == "complete":
-                service_dict["event_id"] = event.event_id
                 service_dict["service_id"] = service.service_id
-
                 start_infos_list.append(service_dict)
-            else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-                continue
         return 200, body
 
     def stop_services_info(self, body, services, tenant, user):
-        logger.debug('--------------__>{0}'.format(body))
         body["operation"] = "stop"
         stop_infos_list = []
         body["stop_infos"] = stop_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.STOP)
-            if code != 200:
-                continue
             if service.create_status == "complete":
-                service_dict["event_id"] = event.event_id
                 service_dict["service_id"] = service.service_id
                 stop_infos_list.append(service_dict)
-            else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-                continue
         return 200, body
 
     def upgrade_services_info(self, body, services, tenant, user):
@@ -632,31 +554,17 @@ class AppManageService(AppManageBase):
         body["upgrade_infos"] = upgrade_infos_list
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.UPGRADE)
-            if code != 200:
-                continue
             if service.create_status == "complete":
-                service_dict["event_id"] = event.event_id
                 service_dict["service_id"] = service.service_id
-
                 upgrade_infos_list.append(service_dict)
-            else:
-                event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-                continue
         return 200, body
 
     def deploy_services_info(self, body, services, tenant, user):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
-        events = []
         for service in services:
             service_dict = dict()
-            code, msg, event = event_service.create_event(tenant, service, user, self.DEPLOY)
-            if code != 200:
-                continue
-            events.append(event)
-            service_dict["event_id"] = event.event_id
             service_dict["service_id"] = service.service_id
             service_dict["action"] = 'deploy'
             if service.build_upgrade:
@@ -772,17 +680,16 @@ class AppManageService(AppManageBase):
                         extend_info = json.loads(service_source.extend_info)
                         if service.is_slug():
                             service_dict["slug_info"] = extend_info
-
             deploy_infos_list.append(service_dict)
-        return 200, body, events
+        return 200, body
 
     def vertical_upgrade(self, tenant, service, user, new_memory):
         """服务水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级", None
-        if new_memory > 16384 or new_memory < 128:
-            return 400, "内存范围在128M到16G之间", None
+        if new_memory > 65536 or new_memory < 128:
+            return 400, "内存范围在64M到64G之间", None
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数", None
 
@@ -795,7 +702,6 @@ class AppManageService(AppManageBase):
             body["container_memory"] = new_memory
             body["container_cpu"] = new_cpu
             body["operator"] = str(user.nick_name)
-            body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.vertical_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
@@ -804,33 +710,24 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"应用垂直升级失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def horizontal_upgrade(self, tenant, service, user, new_node):
         """服务水平升级"""
         new_node = int(new_node)
-        if new_node > 20 or new_node < 0:
-            return 400, "节点数量需在1到20之间"
+        if new_node > 100 or new_node < 0:
+            return 400, "节点数量需在1到100之间"
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级", None
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.HORIZONTAL_UPGRADE)
-        if code != 200:
-            return code, msg, event
         if service.create_status == "complete":
             body = dict()
             body["node_num"] = new_node
             body["operator"] = str(user.nick_name)
-            body["event_id"] = event.event_id
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.horizontal_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
@@ -838,69 +735,49 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"应用水平升级失败".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"服务异常", event
-        else:
-            event = event_service.update_event(event, "应用未在数据中心创建", "failure")
-
-        return 200, u"操作成功", event
+                return 507, u"服务异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, u"操作过于频繁，请稍后再试"
+        return 200, u"操作成功"
 
     def delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
-        if code != 200:
-            return code, msg, event
         # 判断服务是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"应用可能处于运行状态,请先关闭应用"
-            event = event_service.update_event(event, msg, "failure")
-            return 409, msg, event
+            return 409, msg
         # 判断服务是否被依赖
         is_related, msg = self.__is_service_related(tenant, service)
         if is_related:
-            event = event_service.update_event(event, "被依赖, 不可删除", "failure")
-            return 412, "服务被{0}依赖，不可删除".format(msg), event
+            return 412, "服务被{0}依赖，不可删除".format(msg)
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            event = event_service.update_event(event, "当前应用被其他应用挂载, 不可删除", "failure")
-            return 412, "当前应用被{0}挂载, 不可删除".format(msg), event
+            return 412, "当前应用被{0}挂载, 不可删除".format(msg)
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
-            event = event_service.update_event(event, "当前应用已绑定域名,请先解绑", "failure")
-            return 412, "请先解绑应用绑定的域名", event
+            return 412, "请先解绑应用绑定的域名"
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
-            event = event_service.update_event(event, "当前应用已安装插件,请先卸载相关插件", "failure")
-            return 412, "请先卸载应用安装的插件", event
+            return 412, "请先卸载应用安装的插件"
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
-
-            return 200, "success", event
+            return 200, "success"
         else:
             try:
                 code, msg = self.truncate_service(tenant, service, user)
                 if code != 200:
-                    event = event_service.update_event(event, msg, "failure")
-                    return code, msg, event
+                    return code, msg
                 else:
-                    return code, "success", event
+                    return code, "success"
             except Exception as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"应用删除".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"删除异常", event
+                return 507, u"删除异常"
 
     def truncate_service(self, tenant, service, user=None):
         """彻底删除应用"""
@@ -1081,35 +958,28 @@ class AppManageService(AppManageBase):
 
     # 批量删除应用
     def batch_delete(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
-        if code != 200:
-            return code, msg, event
         # 判断服务是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = "当前应用处于运行状态,请先关闭应用"
-            event = event_service.update_event(event, msg, "failure")
             code = 409
-            return code, msg, event
+            return code, msg
         # 判断服务是否被其他应用挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            event = event_service.update_event(event, "当前应用被其他应用挂载", "failure")
             code = 412
             msg = "当前应用被其他应用挂载, 您确定要删除吗？"
-            return code, msg, event
+            return code, msg
         # 判断服务是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
-            event = event_service.update_event(event, "当前应用已绑定域名", "failure")
             code = 412
             msg = "当前应用绑定了域名， 您确定要删除吗？"
-            return code, msg, event
+            return code, msg
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
-            event = event_service.update_event(event, "当前应用已安装插件", "failure")
             code = 412
             msg = "当前应用安装了插件， 您确定要删除吗？"
-            return code, msg, event
+            return code, msg
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
@@ -1118,53 +988,38 @@ class AppManageService(AppManageBase):
             self.move_service_relation_info_recycle_bin(tenant, service)
             code = 200
             msg = "success"
-            return code, msg, event
+            return code, msg
         else:
             try:
                 code, msg = self.truncate_service(tenant, service, user)
                 if code != 200:
-                    event = event_service.update_event(event, msg, "failure")
-                    return code, msg, event
+                    return code, msg
                 else:
                     msg = "success"
-                    return code, msg, event
+                    return code, msg
             except Exception as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"应用删除".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
                 code = 507
                 msg = "删除异常"
-                return code, msg, event
+                return code, msg
 
     def delete_again(self, user, tenant, service, is_force):
-        code, msg, event = event_service.create_event(tenant, service, user, self.DELETE)
-        if code != 200:
-            return code, msg, event
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 服务关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
-            return 200, "success", event
+            return 200, "success"
         else:
             try:
                 code, msg = self.again_delete_service(tenant, service, user)
                 if code != 200:
-                    event = event_service.update_event(event, msg, "failure")
-                    return code, msg, event
+                    return code, msg
                 else:
-                    return code, "success", event
+                    return code, "success"
             except Exception as e:
                 logger.exception(e)
-                if event:
-                    event.message = u"应用删除".format(e.message)
-                    event.final_status = "complete"
-                    event.status = "failure"
-                    event.save()
-                return 507, u"删除异常", event
+                return 507, u"删除异常"
 
     def again_delete_service(self, tenant, service, user=None):
         """二次删除应用"""
