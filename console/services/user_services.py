@@ -10,7 +10,6 @@ from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
-from backends.services.tenantservice import tenant_service as tenantService
 from console.exception.exceptions import AccountNotExistError
 from console.exception.exceptions import EmailExistError
 from console.exception.exceptions import PasswordTooShortError
