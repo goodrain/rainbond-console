@@ -118,5 +118,30 @@ class ConfigService(object):
         cfg = cfg_repo.get_by_key(key)
         return cfg.value
 
+    def get_image(self):
+        identify = "clound_bang_logo"
+        try:
+            cbi = CloundBangImages.objects.get(identify=identify)
+            logo = cbi.logo.name
+        except CloundBangImages.DoesNotExist as e:
+            logger.error(e)
+            logo = ""
+        return logo
+
+    def get_config_by_key(self, key):
+        if ConsoleSysConfig.objects.filter(key=key).exists():
+            console_sys_config = ConsoleSysConfig.objects.get(key=key)
+            return console_sys_config.value
+        else:
+            return None
+
+    def get_regist_status(self):
+        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        if not is_regist:
+            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
+            return config.value
+        else:
+            return is_regist
+
 
 config_service = ConfigService()

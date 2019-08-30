@@ -9,7 +9,6 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from rest_framework.response import Response
 
-from backends.services.configservice import config_service
 from console.exception.exceptions import NoEnableRegionError
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import PermTenantsExistError
@@ -17,9 +16,6 @@ from console.exception.exceptions import TenantExistError
 from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
-from backends.services.resultservice import generate_error_result
-from backends.services.resultservice import generate_result
-from backends.services.userservice import user_service
 from console.models.main import UserMessage
 from console.repositories.app import service_repo
 from console.repositories.apply_repo import apply_repo
@@ -30,6 +26,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
+from console.services.config_service import config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
@@ -456,7 +453,7 @@ class UserDelView(JWTAuthApiView):
                 result = general_message(200, "delete the success", "删除成功")
             except Tenants.DoesNotExist as e:
                 logger.exception(e)
-                result = generate_result(400, "tenant not exist", "{}团队不存在".format(team_name))
+                result = general_message(400, "tenant not exist", "{}团队不存在".format(team_name))
             except Exception as e:
                 logger.exception(e)
                 result = error_message(e.message)
@@ -556,7 +553,7 @@ class TeamDelView(JWTAuthApiView):
         except Tenants.DoesNotExist as e:
             code = 400
             logger.exception(e)
-            result = generate_result(code, "tenant not exist", "{}团队不存在".format(team_name))
+            result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
         except Exception as e:
             code = 500
             result = general_message(code, "sys exception", "系统异常")
@@ -1117,7 +1114,7 @@ class AllUserView(JWTAuthApiView):
                 euser = user_services.get_user_by_user_name(user_name)
                 list = []
                 if not euser:
-                    result = generate_result("0000", "success", "查询成功", list=list, total=0)
+                    result = general_message("0000", "success", "查询成功", list=list, total=0)
                     return Response(result)
                 result_map = dict()
                 result_map["user_id"] = euser.user_id
@@ -1129,7 +1126,7 @@ class AllUserView(JWTAuthApiView):
                 result_map["tenants"] = tenant_list
                 result_map["enterprise_alias"] = enter.enterprise_alias
                 list.append(result_map)
-                result = generate_result("0000", "success", "查询成功", list=list, total=1)
+                result = general_message("0000", "success", "查询成功", list=list, total=1)
                 return Response(result)
             user_list = user_repo.get_user_by_enterprise_id(enterprise_id=enterprise_id)
             for user1 in user_list:
@@ -1150,11 +1147,11 @@ class AllUserView(JWTAuthApiView):
                 result_map["enterprise_alias"] = enter.enterprise_alias
                 list.append(result_map)
 
-            result = generate_result("0000", "success", "查询成功", list=list, total=user_paginator.count)
+            result = general_message("0000", "success", "查询成功", list=list, total=user_paginator.count)
 
         except Exception as e:
             logger.debug(e)
-            result = generate_error_result()
+            result = error_message()
         return Response(result)
 
     def delete(self, request, tenant_name, user_id, *args, **kwargs):
@@ -1176,10 +1173,10 @@ class AllUserView(JWTAuthApiView):
         """
         try:
             user_services.delete_user(user_id)
-            result = generate_result("0000", "success", "删除成功")
+            result = general_message("0000", "success", "删除成功")
         except Exception as e:
             logger.exception(e)
-            result = generate_result("9999", "system error", "系统异常")
+            result = general_message("9999", "system error", "系统异常")
         return Response(result)
 
 
@@ -1253,14 +1250,15 @@ class AdminAddUserView(JWTAuthApiView):
                         result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                         return Response(result, status=code)
                 # 校验用户信息
-                is_pass, msg = user_service.check_params(user_name, email, password, re_password)
+                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
                 if not is_pass:
                     result = general_message(403, "user information is not passed", msg)
                     return Response(result)
-                client_ip = user_service.get_client_ip(request)
+                client_ip = user_services.get_client_ip(request)
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 # 创建用户
-                user = user_service.create_user(user_name, phone, email, password, "admin add", enterprise, client_ip)
+                user = user_services.create_user_set_password(
+                    user_name, phone, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
                 team_services.create_tenant_role(
                     user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
@@ -1296,7 +1294,7 @@ class TeamUserAdminView(JWTAuthApiView):
 class CertificateView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         bean = {"is_certificate": 1}
-        result = generate_result(200, "success", "获取成功", bean=bean)
+        result = general_message(200, "success", "获取成功", bean=bean)
         return Response(result)
 
 
