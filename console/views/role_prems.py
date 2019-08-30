@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import UserNotExistError
-from backends.services.resultservice import generate_result
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.user_repo import user_repo
@@ -141,7 +140,7 @@ class TeamAddRoleView(JWTAuthApiView):
             code = 200
             logger.exception(e)
             print(str(e))
-            result = generate_result(code, "tenant not exist", "团队不存在")
+            result = general_message(code, "tenant not exist", "团队不存在")
         except Exception as e:
             code = 500
             logger.exception(e)
@@ -214,7 +213,7 @@ class TeamDelRoleView(JWTAuthApiView):
             code = 200
             logger.exception(e)
             print(str(e))
-            result = generate_result(code, "tenant not exist", "团队不存在")
+            result = general_message(code, "tenant not exist", "团队不存在")
 
         except Exception as e:
             code = 500
@@ -319,7 +318,7 @@ class UserUpdatePemView(JWTAuthApiView):
             code = 200
             logger.exception(e)
             print(str(e))
-            result = generate_result(code, "tenant not exist", "团队不存在")
+            result = general_message(code, "tenant not exist", "团队不存在")
         except Exception as e:
             code = 500
             logger.exception(e)

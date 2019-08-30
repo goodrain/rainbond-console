@@ -236,8 +236,8 @@ class ServiceSourceInfo(BaseModel):
         help_text=u"服务信息",
     )
     team_id = models.CharField(max_length=32, help_text=u"服务所在团队ID")
-    user_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"用户名")
-    password = models.CharField(max_length=32, null=True, blank=True, help_text=u"密码")
+    user_name = models.CharField(max_length=255, null=True, blank=True, help_text=u"用户名")
+    password = models.CharField(max_length=255, null=True, blank=True, help_text=u"密码")
     group_key = models.CharField(max_length=32, null=True, blank=True, help_text="group of service from market")
     version = models.CharField(max_length=32, null=True, blank=True, help_text="version of service from market")
     service_share_uuid = models.CharField(
@@ -651,7 +651,7 @@ class RegionConfig(BaseModel):
     wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
     httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
     tcpdomain = models.CharField(max_length=256, help_text=u"数据中心tcp应用访问根域名")
-    token = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"数据中心token")
+    token = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"数据中心token")
     status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")

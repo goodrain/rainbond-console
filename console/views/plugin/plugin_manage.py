@@ -51,21 +51,14 @@ class PluginBuildView(PluginBaseView):
         try:
 
             update_info = request.data.get("update_info", None)
-
-            if self.plugin_version.plugin_version_status == "fixed":
-                return Response(general_message(409, "current version is fixed", "该版本已固定，不能构建"), status=409)
-
             if self.plugin_version.build_status == "building":
                 return Response(general_message(409, "too offen", "构建中，请稍后再试"), status=409)
-
             if update_info:
                 self.plugin_version.update_info = update_info
                 self.plugin_version.save()
             event_id = make_uuid()
-
             self.plugin_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             self.plugin_version.save()
-
             try:
                 plugin_service.build_plugin(self.response_region, self.plugin, self.plugin_version, self.user, self.tenant,
                                             event_id)
@@ -77,7 +70,6 @@ class PluginBuildView(PluginBaseView):
             except Exception as e:
                 logger.exception(e)
                 result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
-
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

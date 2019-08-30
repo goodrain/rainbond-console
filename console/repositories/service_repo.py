@@ -72,7 +72,8 @@ class ServiceRepo(object):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
 
     def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id):
-        group_services_list = base_service.get_group_services_list(team_id=team_id, region_name=region_name, group_id=group_id)
+        group_services_list = base_service.get_group_services_list(
+            team_id=team_id, region_name=region_name, group_id=group_id)
         if group_services_list:
             service_ids = [service.service_id for service in group_services_list]
             status_list = base_service.status_multi_service(
@@ -140,6 +141,12 @@ class ServiceRepo(object):
     def create_service_event(self, create_info):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
+
+    def get_service_by_tenant_and_alias(self, tenant_id, service_alias):
+        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
+        if services:
+            return services[0]
+        return None
 
 
 service_repo = ServiceRepo()

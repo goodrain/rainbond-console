@@ -45,7 +45,7 @@ class UpgradeService(object):
                     msg_show="该组中没有这个云市应用",
                     status_code=404
                 )
-            tenant = Tenants.objects.get(tenant_name=self.tenant_name)
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
             app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
             if not app:
                 raise AbortRequest(msg="No rainbond app found", msg_show="没有找到此云市应用", status_code=404)

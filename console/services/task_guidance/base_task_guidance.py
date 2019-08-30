@@ -1,9 +1,9 @@
 # -*- coding: utf8 -*-
-import logging
 import json
+import logging
 
+from console.services.config_service import config_service
 from console.services.task_guidance.base_task_status_service import BaseTaskStatusContext
-from backends.services.configservice import config_service
 
 logger = logging.getLogger("default")
 

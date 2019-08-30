@@ -5,10 +5,10 @@ import os
 from django.conf import settings
 from rest_framework.response import Response
 
-from backends.services.configservice import config_service
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.user_repo import user_repo
+from console.services.config_service import config_service
 from console.services.market_app_service import market_sycn_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
@@ -115,33 +115,6 @@ class LogoView(BaseApiView):
             result = error_message(e.message)
         return Response(result)
 
-    # def post(self, request, *args, **kwargs):
-    #     """
-    #     添加logo
-    #     ---
-    #     parameters:
-    #         - name: logo
-    #           description: 图片
-    #           required: true
-    #           type: file
-    #           paramType: form
-    #
-    #     """
-    #     try:
-    #         code = 200
-    #         logo_url = config_service.upload_image(request)
-    #         data = dict()
-    #         data["logo"] = str(request.get_host()) + str(logo_url)
-    #         result = general_message(code, "success", "图片上传成功", bean=data)
-    #     except ParamsError as e:
-    #         code = 400
-    #         result = general_message(code, "params error", e.message)
-    #     except Exception as e:
-    #         code = 500
-    #         logger.exception(e)
-    #         result = error_message(e.message)
-    #     return Response(result, status=code)
-
 
 class PhpConfigView(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
@@ -191,81 +164,81 @@ class PhpConfigView(AlowAnyApiView):
             "url": "http://docs.php.net/mbstring",
             "version": "1.3.2"
         },
-                   {
-                       "name": "MySQL(PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)",
-                       "value": "mysql",
-                       "url": "http://docs.php.net/book.mysql",
-                       "version": "mysqlnd 5.0.11-dev"
-                   }, {
-                       "name": "PCNTL",
-                       "value": "pcntl",
-                       "url": "http://docs.php.net/pcntl",
-                       "version": None
-                   }, {
-                       "name": "Shmop",
-                       "value": "shmop",
-                       "url": "http://docs.php.net/shmop",
-                       "version": None
-                   }, {
-                       "name": "SOAP",
-                       "value": "soap",
-                       "url": "http://docs.php.net/soap",
-                       "version": None
-                   }, {
-                       "name": "SQLite3",
-                       "value": "sqlite3",
-                       "url": "http://docs.php.net/sqlite3",
-                       "version": "0.7-dev"
-                   }, {
-                       "name": "SQLite(PDO)",
-                       "value": "pdo_sqlite",
-                       "url": "http://docs.php.net/pdo_sqlite",
-                       "version": "3.8.2"
-                   }, {
-                       "name": "XMLRPC",
-                       "value": "xmlrpc",
-                       "url": "http://docs.php.net/xmlrpc",
-                       "version": "0.51"
-                   }, {
-                       "name": "XSL",
-                       "value": "xsl",
-                       "url": "http://docs.php.net/xsl",
-                       "version": "1.1.28"
-                   }, {
-                       "name": "APCu",
-                       "value": "apcu",
-                       "url": "http://pecl.php.net/package/apcu",
-                       "version": "4.0.6"
-                   }, {
-                       "name": "Blackfire",
-                       "value": "blackfire",
-                       "url": "http://blackfire.io/",
-                       "version": "0.20.6"
-                   }, {
-                       "name": "memcached",
-                       "value": "memcached",
-                       "url": "http://docs.php.net/memcached",
-                       "version": "2.2.0"
-                   }, {
-                       "name": "MongoDB",
-                       "value": "mongodb",
-                       "url": "http://docs.php.net/mongo",
-                       "version": "1.6.6"
-                   }, {
-                       "name": "NewRelic",
-                       "value": "newrelic",
-                       "url": "http://newrelic.com/php",
-                       "version": "4.19.0.90"
-                   }, {
-                       "name": "OAuth",
-                       "value": "oauth",
-                       "url": "http://docs.php.net/oauth",
-                       "version": "1.2.3"
-                   }, {
-                       "name": "PHPRedis",
-                       "value": "redis",
-                       "url": "http://pecl.php.net/package/redis",
-                       "version": "2.2.7"
-                   }]
+            {
+            "name": "MySQL(PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)",
+            "value": "mysql",
+            "url": "http://docs.php.net/book.mysql",
+            "version": "mysqlnd 5.0.11-dev"
+        }, {
+            "name": "PCNTL",
+            "value": "pcntl",
+            "url": "http://docs.php.net/pcntl",
+            "version": None
+        }, {
+            "name": "Shmop",
+            "value": "shmop",
+            "url": "http://docs.php.net/shmop",
+            "version": None
+        }, {
+            "name": "SOAP",
+            "value": "soap",
+            "url": "http://docs.php.net/soap",
+            "version": None
+        }, {
+            "name": "SQLite3",
+            "value": "sqlite3",
+            "url": "http://docs.php.net/sqlite3",
+            "version": "0.7-dev"
+        }, {
+            "name": "SQLite(PDO)",
+            "value": "pdo_sqlite",
+            "url": "http://docs.php.net/pdo_sqlite",
+            "version": "3.8.2"
+        }, {
+            "name": "XMLRPC",
+            "value": "xmlrpc",
+            "url": "http://docs.php.net/xmlrpc",
+            "version": "0.51"
+        }, {
+            "name": "XSL",
+            "value": "xsl",
+            "url": "http://docs.php.net/xsl",
+            "version": "1.1.28"
+        }, {
+            "name": "APCu",
+            "value": "apcu",
+            "url": "http://pecl.php.net/package/apcu",
+            "version": "4.0.6"
+        }, {
+            "name": "Blackfire",
+            "value": "blackfire",
+            "url": "http://blackfire.io/",
+            "version": "0.20.6"
+        }, {
+            "name": "memcached",
+            "value": "memcached",
+            "url": "http://docs.php.net/memcached",
+            "version": "2.2.0"
+        }, {
+            "name": "MongoDB",
+            "value": "mongodb",
+            "url": "http://docs.php.net/mongo",
+            "version": "1.6.6"
+        }, {
+            "name": "NewRelic",
+            "value": "newrelic",
+            "url": "http://newrelic.com/php",
+            "version": "4.19.0.90"
+        }, {
+            "name": "OAuth",
+            "value": "oauth",
+            "url": "http://docs.php.net/oauth",
+            "version": "1.2.3"
+        }, {
+            "name": "PHPRedis",
+            "value": "redis",
+            "url": "http://pecl.php.net/package/redis",
+            "version": "2.2.7"
+        }]
         bean = {"versions": versions, "default_version": default_version, "extends": extends}
         return Response(general_message(200, "success", "查询成功", bean))
