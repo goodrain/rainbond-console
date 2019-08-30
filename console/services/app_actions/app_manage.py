@@ -693,9 +693,6 @@ class AppManageService(AppManageBase):
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
 
-        code, msg = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
-        if code != 200:
-            return code, msg
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
             body = dict()

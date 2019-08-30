@@ -16,6 +16,7 @@ from console.utils.timeutil import str_to_time
 from console.utils.timeutil import time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 
 app_plugin_service = AppPluginService()
 region_api = RegionInvokeApi()
@@ -106,15 +107,42 @@ class AppEventService(object):
         # 提前从数据中心更新event信息
         if last_event:
             self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event], timeout=True)
+        old_deploy_version = ""
         if last_event:
             if last_event.final_status == "":
                 if not self.checkEventTimeOut(last_event):
-                    return 409, "操作太频繁，请等待上次操作完成"
+                    return 409, "操作太频繁，请等待上次操作完成", None
+            old_deploy_version = last_event.deploy_version
 
         if not action:
-            return 400, "操作类型参数不存在"
+            return 400, "操作类型参数不存在", None
+        event_id = make_uuid()
+        event_info = {
+            "event_id": event_id,
+            "service_id": service.service_id,
+            "tenant_id": tenant.tenant_id,
+            "type": action,
+            "deploy_version": service.deploy_version,
+            "old_deploy_version": old_deploy_version,
+            "region": service.service_region,
+            "user_name": user.nick_name,
+            "start_time": datetime.datetime.now()
+        }
+        if committer_name:
+            event_info["user_name"] = committer_name
+        if deploy_version:
+            event_info["deploy_version"] = deploy_version
 
-        return 200, "success"
+        if action == "deploy":
+            last_deploy_event = event_repo.get_last_deploy_event(tenant.tenant_id, service.service_id)
+            if last_deploy_event:
+                old_code_version = last_deploy_event.code_version
+            else:
+                old_code_version = service.deploy_version
+            event_info.update({"old_code_version": old_code_version})
+
+        new_event = event_repo.create_event(**event_info)
+        return 200, "success", new_event
 
     def update_event(self, event, message, status):
         event.status = status
