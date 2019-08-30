@@ -2,6 +2,7 @@
 import binascii
 import logging
 import os
+import re
 from datetime import datetime
 
 from django.core.paginator import Paginator
@@ -70,7 +71,7 @@ class UserService(object):
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
-        tenant = tenantService.get_tenant(tenant_name)
+        tenant = team_services.get_tenant(tenant_name)
         if Users.objects.filter(nick_name=user_name).exists():
             raise UserExistError("用户名已存在")
         if Users.objects.filter(email=email).exists():
@@ -221,6 +222,19 @@ class UserService(object):
             enterprise_id=enterprise_id,
             is_active=False,
             rf=rf)
+        return user
+
+    def create_user_set_password(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
+        user = Users.objects.create(
+            nick_name=user_name,
+            email=email,
+            phone=phone,
+            sso_user_id="",
+            enterprise_id=enterprise.enterprise_id,
+            is_active=False,
+            rf=rf,
+            client_ip=client_ip)
+        user.set_password(raw_password)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -406,6 +420,38 @@ class UserService(object):
 
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
+
+    def check_params(self, user_name, email, password, re_password):
+        is_pass, msg = self.__check_user_name(user_name)
+        if not is_pass:
+            return is_pass, msg
+        is_pass, msg = self.__check_email(email)
+        if not is_pass:
+            return is_pass, msg
+
+        if password != re_password:
+            return False, "两次输入的密码不一致"
+        return True, "success"
+
+    def __check_user_name(self, user_name):
+        if not user_name:
+            return False, "用户名不能为空"
+        if self.is_user_exist(user_name):
+            return False, "用户{0}已存在".format(user_name)
+        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
+        if not r.match(user_name.decode("utf-8")):
+            return False, "用户名称只支持中英文下划线和中划线"
+        return True, "success"
+
+    def __check_email(self, email):
+        if not email:
+            return False, "邮箱不能为空"
+        if self.get_user_by_phone(email):
+            return False, "邮箱{0}已存在".format(email)
+        r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
+        if not r.match(email):
+            return False, "邮箱地址不合法"
+        return True, "success"
 
 
 user_services = UserService()
