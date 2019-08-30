@@ -309,7 +309,7 @@ class UserService(object):
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
         group_version = None
-        code, msg = app_manage_service.deploy(tenant_obj, service_obj, user, group_version, committer_name)
+        code, msg, event_id = app_manage_service.deploy(tenant_obj, service_obj, user, group_version, committer_name)
         bean = {}
         if code != 200:
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)

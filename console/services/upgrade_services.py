@@ -16,12 +16,14 @@ from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
-from console.repositories.event_repo import event_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
+from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import Tenants
+
+region_api = RegionInvokeApi()
 
 
 class UpgradeService(object):
@@ -93,8 +95,7 @@ class UpgradeService(object):
         versions = ServiceSourceInfo.objects.filter(
             group_key=group_key,
             service_id__in=service_ids,
-        ).values_list(
-            'version', flat=True) or []
+        ).values_list('version', flat=True) or []
 
         app = RainbondCenterApp.objects.filter(
             group_key=group_key, version__in=versions).order_by('-create_time').first()
@@ -153,8 +154,6 @@ class UpgradeService(object):
         :type tenant: www.models.main.Tenants
         :type record: AppUpgradeRecord
         """
-        from console.services.app_actions import event_service
-
         # 升级中，回滚中 才需要同步
         synchronization_type = {UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value}
 
@@ -171,13 +170,13 @@ class UpgradeService(object):
             record.event_id: record
             for record in service_records if record.status in synchronization_type and record.event_id
         }
-        events = event_repo.get_events_by_event_ids(event_service_mapping.keys())
-        # 去数据中心同步事件
-        event_service.sync_region_service_event_status(tenant.region, tenant.tenant_name, events)
+        event_ids = event_service_mapping.keys()
+        body = region_api.get_tenant_events(tenant.region, tenant.tenant_name, event_ids)
+        events = body.get("list", [])
 
         for event in events:
-            service_record = event_service_mapping[event.event_id]
-            self._change_service_record_status(event, service_record)
+            service_record = event_service_mapping[event["EventID"]]
+            self._change_service_record_status(event["Status"], service_record)
 
         service_status = set(service_records.values_list('status', flat=True) or [])
         judging_status = {
@@ -194,7 +193,7 @@ class UpgradeService(object):
     @staticmethod
     def create_add_service_record(app_record, events, add_service_infos):
         """创建新增服务升级记录"""
-        service_id_event_mapping = {event.service_id: event for event in events}
+        service_id_event_mapping = {events[key]: key for key in events}
         services = service_repo.get_services_by_service_ids_and_group_key(
             app_record.group_key, service_id_event_mapping.keys())
         for service in services:
@@ -242,12 +241,12 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(
+            code, msg, event_id = app_deploy_service.execute(
                 tenant, market_service.service, user, True, app_record.version)
 
-            upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event,
+            upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event_id,
                                                        service_infos[market_service.service.service_id],
-                                                       self._get_sync_upgrade_status(code, event))
+                                                       self._get_sync_upgrade_status(code, event_id))
 
     @staticmethod
     def _get_sync_upgrade_status(code, event):
@@ -261,7 +260,7 @@ class UpgradeService(object):
         return status
 
     @staticmethod
-    def _change_service_record_status(event, service_record):
+    def _change_service_record_status(event_status, service_record):
         """变更服务升级记录状态"""
         operation = {
             # 升级中
@@ -277,7 +276,7 @@ class UpgradeService(object):
                 "timeout": UpgradeStatus.ROLLBACK.value,
             },
         }
-        status = operation.get(service_record.status, {}).get(event.status)
+        status = operation.get(service_record.status, {}).get(event_status)
         if status:
             upgrade_repo.change_service_record_status(service_record, status)
 
@@ -304,9 +303,9 @@ class UpgradeService(object):
         if UpgradeStatus.ROLLING.value in service_status:
             return
         elif len(service_status) > 1 and service_status <= {
-                UpgradeStatus.ROLLBACK_FAILED.value,
-                UpgradeStatus.ROLLBACK.value,
-                UpgradeStatus.UPGRADED.value,
+            UpgradeStatus.ROLLBACK_FAILED.value,
+            UpgradeStatus.ROLLBACK.value,
+            UpgradeStatus.UPGRADED.value,
         }:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
