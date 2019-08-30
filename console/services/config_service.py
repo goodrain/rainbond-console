@@ -143,5 +143,34 @@ class ConfigService(object):
         else:
             return is_regist
 
+    def get_github_config(self):
+        github_config = self.get_config_by_key("GITHUB_SERVICE_API")
+        if not github_config:
+            github_config = "{}"
+        github_dict = json.loads(github_config)
+        if github_dict:
+            csc = ConsoleSysConfig.objects.get(key="GITHUB_SERVICE_API")
+            github_dict["enable"] = csc.enable
+        else:
+            github_dict["enable"] = False
+        return github_dict
+
+    def get_gitlab_config(self):
+        gitlab_config = self.get_config_by_key("GITLAB_SERVICE_API")
+        if not gitlab_config:
+            gitlab_config = "{}"
+        gitlab_dict_all = json.loads(gitlab_config)
+        gitlab_dict = dict()
+        if gitlab_dict_all:
+            csc = ConsoleSysConfig.objects.get(key="GITLAB_SERVICE_API")
+            gitlab_dict["enable"] = csc.enable
+            gitlab_dict["admin_email"] = gitlab_dict_all["admin_email"]
+            gitlab_dict["apitype"] = gitlab_dict_all["apitype"]
+            gitlab_dict["hook_url"] = gitlab_dict_all["hook_url"]
+            gitlab_dict["url"] = gitlab_dict_all["url"]
+        else:
+            gitlab_dict["enable"] = False
+        return gitlab_dict
+
 
 config_service = ConfigService()
