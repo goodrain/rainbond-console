@@ -16,7 +16,6 @@ from console.utils.timeutil import str_to_time
 from console.utils.timeutil import time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import make_uuid
 
 app_plugin_service = AppPluginService()
 region_api = RegionInvokeApi()
@@ -107,12 +106,10 @@ class AppEventService(object):
         # 提前从数据中心更新event信息
         if last_event:
             self.__sync_region_service_event_status(service.service_region, tenant.tenant_name, [last_event], timeout=True)
-        old_deploy_version = ""
         if last_event:
             if last_event.final_status == "":
                 if not self.checkEventTimeOut(last_event):
                     return 409, "操作太频繁，请等待上次操作完成"
-            old_deploy_version = last_event.deploy_version
 
         if not action:
             return 400, "操作类型参数不存在"
