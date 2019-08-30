@@ -1,17 +1,17 @@
 # -*- coding: utf8 -*-
-
 import logging
 
 from rest_framework.response import Response
 
-from backends.services.resultservice import generate_result
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import JWTAuthApiView, RegionTenantHeaderView
-from www.apiclient.marketclient import MarketOpenAPI
-from www.utils.return_message import error_message, general_message
 from console.services.user_services import user_services
+from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
+from www.apiclient.marketclient import MarketOpenAPI
 from www.decorator import perm_required
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -32,7 +32,7 @@ class RegSimQuyView(JWTAuthApiView):
         try:
             code = 200
             region_name_list = region_services.get_region_list_by_team_name(request, team_name=team_name)
-            result = generate_result(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
+            result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
         except Exception as e:
             code = 500
             logger.exception(e)
@@ -55,7 +55,7 @@ class RegQuyView(JWTAuthApiView):
         try:
             code = 200
             region_name_list = region_services.get_region_name_list_by_team_name(team_name=team_name)
-            result = generate_result(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
+            result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
         except Exception as e:
             code = 500
             logger.exception(e)
@@ -78,7 +78,7 @@ class RegUnopenView(JWTAuthApiView):
         try:
             code = 200
             unopen_regions = region_services.get_team_unopen_region(team_name=team_name)
-            result = generate_result(code, "query the data center is successful.", "数据中心获取成功", list=unopen_regions)
+            result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=unopen_regions)
         except Exception as e:
             code = 500
             logger.exception(e)
@@ -118,7 +118,7 @@ class OpenRegionView(JWTAuthApiView):
             code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
             if code != 200:
                 return Response(general_message(code, "open region error", msg), status=code)
-            result = generate_result(code, "success", "数据中心{0}开通成功".format(region_name))
+            result = general_message(code, "success", "数据中心{0}开通成功".format(region_name))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -159,7 +159,7 @@ class OpenRegionView(JWTAuthApiView):
                 code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
                 if code != 200:
                     return Response(general_message(code, "open region error", msg), status=code)
-            result = generate_result(200, "success", "批量开通数据中心成功")
+            result = general_message(200, "success", "批量开通数据中心成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -221,9 +221,11 @@ class PublicRegionListView(JWTAuthApiView):
             team_name = request.GET.get("team_name", None)
             if not team_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
 
-            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            role_name_list = team_services.get_user_perm_role_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)
             perm = "owner" not in perm_list and "admin" not in perm_list
             if perm and "owner" not in role_name_list and "admin" not in role_name_list:
                 code = 400
@@ -234,7 +236,7 @@ class PublicRegionListView(JWTAuthApiView):
             res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
             if res["status"] == 200:
                 code = 200
-                result = generate_result(code, "query the data center is successful.", "公有云数据中心获取成功", list=data)
+                result = general_message(code, "query the data center is successful.", "公有云数据中心获取成功", list=data)
             else:
                 code = 400
                 result = general_message(code, msg="query the data center failed", msg_show="公有云数据中心获取失败")
@@ -302,8 +304,8 @@ class RegionResPrice(JWTAuthApiView):
             disk = int(request.data.get('disk', 0))
             rent_time = request.data.get('rent_time')
 
-            ret, msg, status = market_api.get_region_res_price(region_name, team.tenant_id, team.enterprise_id, memory, disk,
-                                                               rent_time)
+            ret, msg, status = market_api.get_region_res_price(
+                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time)
 
             return Response(status=status, data=general_message(status, msg, msg, ret))
         except Exception as e:
