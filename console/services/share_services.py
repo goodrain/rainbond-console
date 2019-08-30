@@ -207,7 +207,7 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["ServiceID"]] = version["BuildVersion"]
+                    service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -737,7 +737,7 @@ class ShareService(object):
                     version_list = base_service.get_apps_deploy_versions(
                         services[0]["service_region"],
                         share_team.tenant_name, service_ids)
-                    delivered_type_map = {v["ServiceID"]: v["DeliveredType"] for v in version_list}
+                    delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
 
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
