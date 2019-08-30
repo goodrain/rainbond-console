@@ -687,15 +687,15 @@ class AppManageService(AppManageBase):
         """服务水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
-            return 409, "内存没有变化，无需升级", None
+            return 409, "内存没有变化，无需升级"
         if new_memory > 65536 or new_memory < 64:
-            return 400, "内存范围在64M到64G之间", None
+            return 400, "内存范围在64M到64G之间"
         if new_memory % 32 != 0:
-            return 400, "内存必须为32的倍数", None
+            return 400, "内存必须为32的倍数"
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
+        code, msg = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
         if code != 200:
-            return code, msg, event
+            return code, msg
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
             body = dict()
