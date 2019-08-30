@@ -109,6 +109,15 @@ class ConfigService(object):
         else:
             raise ConfigExistError("配置{}已存在".format(key))
 
+    def add_config_without_reload(self, key, default_value, type, desc=""):
+        if not ConsoleSysConfig.objects.filter(key=key).exists():
+            create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            config = ConsoleSysConfig.objects.create(
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
+            return config
+        else:
+            raise ConfigExistError("配置{}已存在".format(key))
+
     def update_config(self, key, value):
         ConsoleSysConfig.objects.filter(key=key).update(value=value)
         # 更新配置
