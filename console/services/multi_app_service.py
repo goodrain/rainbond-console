@@ -48,7 +48,7 @@ class MultiAppService(object):
         if code != 200:
             return code, msg, "创建多服务应用失败", -1
 
-        code, msg, _ = app_manage_service.delete(user, tenant, temporary_service, True)
+        code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
             return code, "Service id: " + temporary_service.service_id + ";error \
                 deleting temporary service", msg, -1

@@ -260,6 +260,30 @@ class AppEventService(object):
     def delete_service_events(self, service):
         event_repo.delete_events(service.service_id)
 
+    def get_target_events(self, target, target_id, tenant, region, page, page_size):
+        msg_list = []
+        has_next = False
+        total = 0
+        res, rt_data = region_api.get_target_events_list(
+            region, tenant.tenant_name, target, target_id, page, page_size)
+        if int(res.status) == 200:
+            msg_list = rt_data.get("list", [])
+            total = rt_data.get("number", 0)
+            has_next = True
+            if page_size * page >= total:
+                has_next = False
+        return msg_list, total, has_next
+
+    def get_event_log(self, tenant, event_id):
+        content = []
+        try:
+            res, rt_data = region_api.get_events_log(tenant.tenant_name, tenant.region, event_id)
+            if int(res.status) == 200:
+                content = rt_data["list"]
+        except region_api.CallApiError as e:
+            logger.debug(e)
+        return content
+
 
 class AppLogService(object):
     def get_service_logs(self, tenant, service, action="service", lines=50):
