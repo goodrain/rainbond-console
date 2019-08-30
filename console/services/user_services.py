@@ -9,6 +9,7 @@ from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
+from backends.services.tenantservice import tenant_service as tenantService
 from console.exception.exceptions import AccountNotExistError
 from console.exception.exceptions import EmailExistError
 from console.exception.exceptions import PasswordTooShortError
@@ -16,7 +17,6 @@ from console.exception.exceptions import PhoneExistError
 from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
-from backends.services.tenantservice import tenant_service as tenantService
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.perm_repo import role_repo
@@ -296,7 +296,7 @@ class UserService(object):
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
         group_version = None
-        code, msg = app_manage_service.deploy(tenant_obj, service_obj, user, group_version, committer_name)
+        code, msg, event_id = app_manage_service.deploy(tenant_obj, service_obj, user, group_version, committer_name)
         bean = {}
         if code != 200:
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)

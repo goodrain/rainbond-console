@@ -20,7 +20,7 @@ class UpgradeRepo(object):
     def create_service_upgrade_record(self,
                                       app_upgrade_record,
                                       service,
-                                      event,
+                                      event_id,
                                       update,
                                       status=UpgradeStatus.UPGRADING.value,
                                       upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value):
@@ -31,7 +31,7 @@ class UpgradeRepo(object):
             service_id=service.service_id,
             service_cname=service.service_cname,
             upgrade_type=upgrade_type,
-            event_id=event.event_id if event else '',
+            event_id=event_id,
             update=json.dumps(update),
             status=status,
         )
