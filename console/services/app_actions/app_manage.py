@@ -719,7 +719,7 @@ class AppManageService(AppManageBase):
         if new_node > 100 or new_node < 0:
             return 400, "节点数量需在1到100之间"
         if new_node == service.min_node:
-            return 409, "节点没有变化，无需升级", None
+            return 409, "节点没有变化，无需升级"
 
         if service.create_status == "complete":
             body = dict()
