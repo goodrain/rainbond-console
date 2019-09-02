@@ -6,10 +6,12 @@ import socket
 
 import httplib2
 from addict import Dict
-
 from django.conf import settings
+
 from goodrain_web.decorator import method_perf_time
-from www.models.main import TenantEnterpriseToken, TenantEnterprise, Tenants
+from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterpriseToken
+from www.models.main import Tenants
 
 logger = logging.getLogger('default')
 
@@ -74,7 +76,8 @@ class HttpClient(object):
     def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
         retry_count = 2
         if client is None:
-            client = httplib2.Http(timeout=self.timeout)
+            timeout = kwargs.get("timeout", self.timeout)
+            client = httplib2.Http(timeout=timeout)
         while retry_count:
             try:
                 if body is None:

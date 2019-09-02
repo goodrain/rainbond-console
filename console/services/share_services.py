@@ -709,8 +709,10 @@ class ShareService(object):
                 shared_plugin_info = None
                 if plugins:
 
-                    share_image_info = app_store.get_image_connection_info(group_info["scope"], share_team.tenant_name)
                     for plugin_info in plugins:
+                        # one account for one plugin
+                        share_image_info = app_store.get_image_connection_info(
+                            group_info["scope"], share_team.tenant_name)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
