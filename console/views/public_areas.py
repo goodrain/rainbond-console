@@ -324,7 +324,6 @@ class ServiceEventsView(RegionTenantHeaderView):
             regionsList = region_repo.get_team_opened_region(self.tenant)
             event_service_dynamic_list = []
             for region in regionsList:
-                print("handle region ; ", region.region_name)
                 events, event_count, has_next = event_service.get_target_events(
                     "tenant", self.tenant.tenant_id, self.tenant, region.region_name, int(page), int(page_size))
                 event_service_dynamic_list = event_service_dynamic_list + events
@@ -333,8 +332,24 @@ class ServiceEventsView(RegionTenantHeaderView):
             event_service_dynamic_list = sorted(
                 event_service_dynamic_list, self.__sort_events)
 
+            service_ids = []
+            for event in event_service_dynamic_list:
+                if event["Target"] == "service":
+                    service_ids.append(event["TargetID"])
+                
+            services = service_repo.get_service_by_service_ids(service_ids)
+            
+            event_service_list = []
+            for event in event_service_dynamic_list:
+                if event["Target"] == "service":
+                    for service in services:
+                        if service.service_id == event["TargetID"]:
+                            event["service_alias"] = service.service_alias
+                            event["service_name"] = service.service_cname
+                event_service_list.append(event)    
+
             event_paginator = JuncheePaginator(
-                event_service_dynamic_list, int(page_size))
+                event_service_list, int(page_size))
             event_page_list = event_paginator.page(page)
             total = event_paginator.count
             event_list = [event for event in event_page_list]
