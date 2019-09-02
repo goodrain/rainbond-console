@@ -19,7 +19,6 @@ from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
-from console.services.event_services import service_event_dynamic
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
@@ -336,9 +335,9 @@ class ServiceEventsView(RegionTenantHeaderView):
             for event in event_service_dynamic_list:
                 if event["Target"] == "service":
                     service_ids.append(event["TargetID"])
-                
+
             services = service_repo.get_service_by_service_ids(service_ids)
-            
+
             event_service_list = []
             for event in event_service_dynamic_list:
                 if event["Target"] == "service":
@@ -346,7 +345,7 @@ class ServiceEventsView(RegionTenantHeaderView):
                         if service.service_id == event["TargetID"]:
                             event["service_alias"] = service.service_alias
                             event["service_name"] = service.service_cname
-                event_service_list.append(event)    
+                event_service_list.append(event)
 
             event_paginator = JuncheePaginator(
                 event_service_list, int(page_size))
