@@ -61,27 +61,30 @@ def get_upgrade_sql(current_version, new_version):
 
 
 def upgrade(current_version, new_version):
-    print "current console db version is {}".format(current_version)
-    print "update  console db version to {}".format(new_version)
-    sql_list = get_upgrade_sql(current_version, new_version)
-    if sql_list:
-        db = create_db_client()
-        cursor = db.cursor()
-        for sql_item in sql_list:
-            print "exec sql: {0}".format(sql_item)
-            cursor.execute(sql_item)
-        cursor.close()
-        db.commit()
-        db.close()
-        print "update console db version to {} success".format(new_version)
-    else:
-        print "no sql file, do not update"
-        db = create_db_client()
-        cursor = db.cursor()
-        cursor.execute('update console_sys_config set `value`="{0}" where `key`="RAINBOND_VERSION";'.format(new_version))
-        cursor.close()
-        db.commit()
-        db.close()
+    try:
+        print("current console db version is {}".format(current_version))
+        print("update  console db version to {}".format(new_version))
+        sql_list = get_upgrade_sql(current_version, new_version)
+        if sql_list:
+            db = create_db_client()
+            cursor = db.cursor()
+            for sql_item in sql_list:
+                print "exec sql: {0}".format(sql_item)
+                cursor.execute(sql_item)
+            cursor.close()
+            db.commit()
+            db.close()
+            print("update console db version to {} success".format(new_version))
+        else:
+            print("no sql file, do not update")
+            db = create_db_client()
+            cursor = db.cursor()
+            cursor.execute('update console_sys_config set `value`="{0}" where `key`="RAINBOND_VERSION";'.format(new_version))
+            cursor.close()
+            db.commit()
+            db.close()
+    except Exception as e:
+        print(e)
 
 
 def get_version():
@@ -97,7 +100,7 @@ def get_version():
 
 
 def get_current_version():
-    return RainbondVersion("5.1.6")
+    return RainbondVersion("5.1.7")
 
 
 def should_upgrade(current_version, new_version):
