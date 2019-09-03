@@ -285,14 +285,14 @@ class GroupServiceView(RegionTenantHeaderView):
 class ServiceEventsView(RegionTenantHeaderView):
     def __sort_events(self, event1, event2):
         if event1.start_time < event2.start_time:
-            return -1
-        if event1.start_time > event2.start_time:
             return 1
+        if event1.start_time > event2.start_time:
+            return -1
         if event1.start_time == event2.start_time:
             if event1.ID < event2.start_time:
-                return -1
-            if event1.ID > event2.ID:
                 return 1
+            if event1.ID > event2.ID:
+                return -1
             return 0
 
     def get(self, request, *args, **kwargs):
