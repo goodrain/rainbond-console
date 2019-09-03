@@ -105,7 +105,7 @@ class AppDetailView(AppBaseView):
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
                         if app["service_key"] == self.service.service_key:
-                            if int(app["deploy_version"]) > int(self.service.deploy_version):
+                            if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
                                 self.service.is_upgrate = True
                                 self.service.save()
                                 bean.update({"service": service_model})

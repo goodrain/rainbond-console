@@ -109,6 +109,15 @@ class ConfigService(object):
         else:
             raise ConfigExistError("配置{}已存在".format(key))
 
+    def add_config_without_reload(self, key, default_value, type, desc=""):
+        if not ConsoleSysConfig.objects.filter(key=key).exists():
+            create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            config = ConsoleSysConfig.objects.create(
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
+            return config
+        else:
+            raise ConfigExistError("配置{}已存在".format(key))
+
     def update_config(self, key, value):
         ConsoleSysConfig.objects.filter(key=key).update(value=value)
         # 更新配置
@@ -142,6 +151,35 @@ class ConfigService(object):
             return config.value
         else:
             return is_regist
+
+    def get_github_config(self):
+        github_config = self.get_config_by_key("GITHUB_SERVICE_API")
+        if not github_config:
+            github_config = "{}"
+        github_dict = json.loads(github_config)
+        if github_dict:
+            csc = ConsoleSysConfig.objects.get(key="GITHUB_SERVICE_API")
+            github_dict["enable"] = csc.enable
+        else:
+            github_dict["enable"] = False
+        return github_dict
+
+    def get_gitlab_config(self):
+        gitlab_config = self.get_config_by_key("GITLAB_SERVICE_API")
+        if not gitlab_config:
+            gitlab_config = "{}"
+        gitlab_dict_all = json.loads(gitlab_config)
+        gitlab_dict = dict()
+        if gitlab_dict_all:
+            csc = ConsoleSysConfig.objects.get(key="GITLAB_SERVICE_API")
+            gitlab_dict["enable"] = csc.enable
+            gitlab_dict["admin_email"] = gitlab_dict_all["admin_email"]
+            gitlab_dict["apitype"] = gitlab_dict_all["apitype"]
+            gitlab_dict["hook_url"] = gitlab_dict_all["hook_url"]
+            gitlab_dict["url"] = gitlab_dict_all["url"]
+        else:
+            gitlab_dict["enable"] = False
+        return gitlab_dict
 
 
 config_service = ConfigService()

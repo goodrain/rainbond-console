@@ -580,7 +580,7 @@ class AppService(object):
 
         user_name = data.get("user_name", None)
         password = data.get("password", None)
-        if user_name:
+        if user_name is not None:
             if not service_source:
                 params = {
                     "team_id": tenant.tenant_id,

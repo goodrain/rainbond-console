@@ -131,7 +131,7 @@ class AppManageBase(object):
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
                 new_add_memory = new_add_memory + \
-                    self.cur_service_memory(tenant, service)
+                                 self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
                 tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -256,17 +256,18 @@ class AppManageService(AppManageBase):
         try:
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
-                return 507, "构建异常"
+                return 507, "构建异常", ""
+            event_id = re["bean"].get("event_id", "")
         except region_api.CallApiError as e:
             if e.status == 400:
                 logger.warning("failed to deploy service: {}".format(e))
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
-            return 507, "构建异常"
+            return 507, "构建异常", ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试"
-        return 200, "操作成功"
+            return 409, u"操作过于频繁，请稍后再试", ""
+        return 200, "操作成功", event_id
 
     def __delete_envs(self, tenant, service):
         service_envs = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
@@ -401,15 +402,15 @@ class AppManageService(AppManageBase):
         body = dict()
         body["service_id"] = service.service_id
         try:
-            region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+            body = region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+            event_id = body["bean"].get("event_id", "")
+            return 200, "操作成功", event_id
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 507, "更新异常"
+            return 507, "更新异常", ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试"
-
-        return 200, "操作成功"
+            return 409, u"操作过于频繁，请稍后再试", ""
 
     def __get_service_kind(self, service):
         """获取应用种类，兼容老的逻辑"""
@@ -687,15 +688,12 @@ class AppManageService(AppManageBase):
         """服务水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
-            return 409, "内存没有变化，无需升级", None
-        if new_memory > 65536 or new_memory < 128:
-            return 400, "内存范围在64M到64G之间", None
+            return 409, "内存没有变化，无需升级"
+        if new_memory > 65536 or new_memory < 64:
+            return 400, "内存范围在64M到64G之间"
         if new_memory % 32 != 0:
-            return 400, "内存必须为32的倍数", None
+            return 400, "内存必须为32的倍数"
 
-        code, msg, event = event_service.create_event(tenant, service, user, self.VERTICAL_UPGRADE)
-        if code != 200:
-            return code, msg, event
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
             body = dict()
@@ -722,7 +720,7 @@ class AppManageService(AppManageBase):
         if new_node > 100 or new_node < 0:
             return 400, "节点数量需在1到100之间"
         if new_node == service.min_node:
-            return 409, "节点没有变化，无需升级", None
+            return 409, "节点没有变化，无需升级"
 
         if service.create_status == "complete":
             body = dict()
