@@ -23,6 +23,12 @@ class BaseTaskGuidance:
         else:
             data = json.loads(cfg)
         need_update = False
+        for index in range(len(data)):
+            if data[index] is not None and data[index]["key"] == "install_mysql_from_market":
+                del data[index]
+                config_service.update_config(eid, json.dumps(data))
+                break
+
         for item in data:
             if not item["status"]:
                 ctx = BaseTaskStatusContext(eid, item["key"])
@@ -32,6 +38,7 @@ class BaseTaskGuidance:
                                 "update status.".format(eid, item["key"]))
                     item["status"] = status
                     need_update = True
+
         if need_update:
             # TODO: handle error
             config_service.update_config(eid, json.dumps(data))
@@ -44,9 +51,6 @@ class BaseTaskGuidance:
             "status": False
         }, {
             "key": "source_code_service_create",
-            "status": False
-        }, {
-            "key": "install_mysql_from_market",
             "status": False
         }, {
             "key": "service_connect_db",
