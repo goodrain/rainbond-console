@@ -226,7 +226,8 @@ class AppExportService(object):
             return "exporting"
 
     def get_file_down_req(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
+        export_record = app_export_record_repo.get_export_record_by_unique_key(
+            app.group_key, app.version, export_format)
         region = self.get_app_share_region(app)
 
         download_url = self.__get_down_url(region, export_record.file_path)
@@ -270,7 +271,7 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_import_info(tenant.tenant_name, import_record.scope, body["bean"]["metadata"])
+                self.__save_import_info(tenant, import_record.scope, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
@@ -350,16 +351,16 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-    def __save_import_info(self, tenant_name, scope, metadata):
+    def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
-            app = rainbond_app_repo.get_rainbond_app_by_key_and_version(app_template["group_key"],
-                                                                        app_template["group_version"])
+            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
+                tenant.enterprise_id, app_template["group_key"], app_template["group_version"])
             if app:
                 # 覆盖原有应用数据
-                app.share_team = tenant_name  # 分享团队名暂时为那个团队将应用导入进来的
+                app.share_team = tenant.tenant_name  # 分享团队名暂时为那个团队将应用导入进来的
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
                 app.app_template = json.dumps(app_template)
@@ -377,12 +378,13 @@ class AppImportService(object):
                 continue
             key_and_version_list.append(key_and_version)
             rainbond_app = RainbondCenterApp(
+                enterprise_id=tenant.enterprise_id,
                 group_key=app_template["group_key"],
                 group_name=app_template["group_name"],
                 version=app_template['group_version'],
                 share_user=0,
                 record_id=0,
-                share_team=tenant_name,
+                share_team=tenant.tenant_name,
                 source="import",
                 scope=scope,
                 describe=app_template.pop("describe", ""),
