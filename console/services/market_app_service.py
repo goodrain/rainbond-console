@@ -190,8 +190,6 @@ class MarketAppService(object):
             if status != 200:
                 raise Exception(msg)
 
-            # service_key to dep_service_keys(array)
-            service_key_dep_keys_map = {}
             for app in apps:
                 ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 service_source_data = {
@@ -237,26 +235,6 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-                bedep_service_keys = self.get_bedep_service_key(
-                    app.get("service_share_uuid"), app_map)
-                for service_key in bedep_service_keys:
-                    dep_keys = service_key_dep_keys_map.get(service_key, [])
-                    dep_keys.append(app.get("service_share_uuid"))
-                    service_key_dep_keys_map[service_key] = dep_keys
-
-            def exist_in_old_keys(key, old_keys):
-                for item in old_keys:
-                    if item["dep_service_key"] == key:
-                        return True
-                return False
-
-            for service_key, dep_service_keys in service_key_dep_keys_map.iteritems():
-                dep_apps_key = service_key_dep_key_map.get(service_key, [])
-                for dep_service_key in dep_service_keys:
-                    if not exist_in_old_keys(dep_service_key, dep_apps_key):
-                        dep_apps_key.append({"dep_service_key": dep_service_key})
-                service_key_dep_key_map[service_key] = dep_apps_key
-
             # 数据中心创建应用
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建应用插件
@@ -288,23 +266,10 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def get_bedep_service_key(self, service_key, apps):
-        # 获取被依赖的服务的service_key
-        result = []
-        for _, app in apps.iteritems():
-            dep_apps_key = app.get("dep_service_map_list", [])
-            bedep_service_key = app.get("service_share_uuid")
-            for item in dep_apps_key:
-                dep_service_key = item["dep_service_key"]
-                if service_key != dep_service_key:
-                    continue
-                result.append(bedep_service_key)
-        return result
-
     def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map, apps, app_map):
         # 保存依赖关系
         self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
-        # dependent volumez
+        # dependent volume
         self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
@@ -796,7 +761,7 @@ class MarketAppService(object):
 
             def func(x):
                 result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
-                         or x.get("service_key", None) == service_source.service_share_uuid
+                    or x.get("service_key", None) == service_source.service_share_uuid
                 return result
 
             app = next(iter(filter(lambda x: func(x), apps)), None)
