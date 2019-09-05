@@ -36,7 +36,6 @@ from console.services.app_config import port_service
 from console.services.app_config import probe_service
 from console.services.app_config import volume_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.services.common_services import common_services
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.plugin import plugin_config_service
@@ -952,13 +951,13 @@ class MarketAppService(object):
         if service_source.extend_info:
             pass
             # 5.1.5 Direct upgrades from the cloud city are not supported, so the cloud city API is not requested
-            # extend_info = json.loads(service_source.extend_info)
-            # if extend_info and extend_info.get("install_from_cloud", False):
-            #     install_from_cloud = True
+            extend_info = json.loads(service_source.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                install_from_cloud = True
             #     cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
-            cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                service_source.version)
+            cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
+                tenant.enterprise_id, service_source.group_key, service_source.version)
         if cur_rbd_app is None:
             logger.warn("group key: {0}; version: {1}; service source not found".format(service_source.group_key,
                                                                                         service_source.version))
@@ -1223,10 +1222,7 @@ class AppMarketSynchronizeService(object):
                                                                                v2_template["group_version"])
 
         if not rainbond_app:
-            if common_services.is_public() and user.is_sys_admin:
-                enterprise_id = "public"
-            else:
-                enterprise_id = tenant.enterprise_id
+            enterprise_id = tenant.enterprise_id
             rainbond_app = RainbondCenterApp(
                 group_key=app_templates["group_key"],
                 group_name=app_templates["group_name"],

@@ -8,17 +8,20 @@ from django.db import transaction
 from django.db.models import Q
 
 from console.appstore.appstore import app_store
-from console.models.main import RainbondCenterPlugin, PluginShareRecordEvent
+from console.models.main import PluginShareRecordEvent
+from console.models.main import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.services.common_services import common_services
-from console.services.plugin import plugin_version_service, plugin_service
+from console.services.plugin import plugin_service
+from console.services.plugin import plugin_version_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.plugin import TenantPlugin, PluginConfigGroup, PluginConfigItems
 from www.models.main import make_uuid
+from www.models.plugin import PluginConfigGroup
+from www.models.plugin import PluginConfigItems
+from www.models.plugin import TenantPlugin
 from www.services import plugin_svc
 
 market_api = MarketOpenAPI()
@@ -141,8 +144,6 @@ class MarketPluginService(object):
             return True
         else:
             enterprise_id = tenant.enterprise_id
-            if common_services.is_public() and user.is_sys_admin:
-                enterprise_id = "public"
             rcp = RainbondCenterPlugin(
                 plugin_key=market_plugin.get('plugin_key'),
                 plugin_name=market_plugin.get('name'),
@@ -226,7 +227,9 @@ class MarketPluginService(object):
                 event_status='not_start')
             event.save()
 
-            RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()
+            RainbondCenterPlugin.objects.filter(
+                version=plugin_info["version"],
+                plugin_id=share_record.group_id).delete()
 
             plugin_info["source"] = "local"
             plugin_info["record_id"] = share_record.ID
@@ -437,8 +440,9 @@ class MarketPluginService(object):
 
             plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
 
-            ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
-                                              share_plugin_info.get("plugin_image", None))
+            ret = plugin_service.build_plugin(
+                region_name, plugin_base_info, plugin_build_version, user, tenant, event_id, share_plugin_info.get(
+                    "plugin_image", None))
             plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
 
