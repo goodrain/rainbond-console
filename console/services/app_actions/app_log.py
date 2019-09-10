@@ -274,10 +274,10 @@ class AppEventService(object):
                 has_next = False
         return msg_list, total, has_next
 
-    def get_event_log(self, tenant, event_id):
+    def get_event_log(self, tenant, region_name, event_id):
         content = []
         try:
-            res, rt_data = region_api.get_events_log(tenant.tenant_name, tenant.region, event_id)
+            res, rt_data = region_api.get_events_log(tenant.tenant_name, region_name, event_id)
             if int(res.status) == 200:
                 content = rt_data["list"]
         except region_api.CallApiError as e:
