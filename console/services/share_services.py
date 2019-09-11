@@ -512,7 +512,7 @@ class ShareService(object):
                             return 400, "数据中心分享错误", None
                     except region_api.CallApiFrequentError as e:
                         logger.exception(e)
-                        return 409, u"操作过于频繁，请稍后再试"
+                        return 409, u"操作过于频繁，请稍后再试", None
                     except Exception as e:
                         logger.exception(e)
                         transaction.savepoint_rollback(sid)
