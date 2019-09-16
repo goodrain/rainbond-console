@@ -476,16 +476,16 @@ class DomainService(object):
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, default_port, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(tenant.tenant_name)
-        ip = str(end_point.split(":")[0])
-        ip.replace(' ', '')
-        port = end_point.split(":")[1]
-        data = dict()
-        data["service_id"] = service.service_id
-        data["container_port"] = int(container_port)
-        if default_ip != ip:
-            data["ip"] = ip
-        data["port"] = int(port)
-        data["tcp_rule_id"] = tcp_rule_id
+            ip = str(end_point.split(":")[0])
+            ip.replace(' ', '')
+            port = end_point.split(":")[1]
+            data = dict()
+            data["service_id"] = service.service_id
+            data["container_port"] = int(container_port)
+            if default_ip != ip:
+                data["ip"] = ip
+            data["port"] = int(port)
+            data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
         try:
@@ -600,3 +600,12 @@ class DomainService(object):
                 raise e
         service_tcp_domain.delete()
         return 200, u"success"
+
+    def get_tcpdomain(self, tenant, region, end_point):
+        ip = str(end_point.split(":")[0])
+        ip.replace(' ', '')
+        port = end_point.split(":")[1]
+        data = dict()
+        data["ip"] = ip
+        data["port"] = int(port)
+        return region_api.getTcpDomain(region, tenant.tenant_name, data)

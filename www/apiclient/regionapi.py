@@ -877,6 +877,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
+    def getTcpDomain(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, json.dumps(body), region=region)
+        return res, body
+
     def get_port(self, region, tenant_name):
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -885,6 +893,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
 
     def pluginServiceRelation(self, region, tenant_name, service_alias, body):
 

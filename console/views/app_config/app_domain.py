@@ -1083,6 +1083,13 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if service_tcpdomain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
+            
+            _, data = domain_service.get_tcpdomain(
+                self.tenant, self.response_region, end_point)
+            if data and data["bean"]:
+                result = general_message(400, "faild", "策略的ip和端口已被占用")
+                return Response(result)
+            
 
             if whether_open:
                 try:
@@ -1193,14 +1200,14 @@ class GetPortView(RegionTenantHeaderView):
             if int(res.status) != 200:
                 result = general_message(400, "call region error", "请求数据中心异常")
                 return Response(result, status=400)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
-            ip = region.tcpdomain
+            data_dict = data["bean"].to_dict()
             ip_port_list = list()
-            ip_dict = dict()
-            ip_dict["ip"] = ip
-            ip_dict["port"] = data["bean"]
-            ip_port_list.append(ip_dict)
+            for (k, v) in data_dict.items():
+                ip_dict = dict()
+                ip_dict["ip"] = k
+                ip_dict["port"] = v
+                ip_port_list.append(ip_dict)
+            
             result = general_message(
                 200, "success", "可用端口查询成功", list=ip_port_list)
             return Response(result, status=200)
@@ -1208,6 +1215,31 @@ class GetPortView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+# class GetPortView(RegionTenantHeaderView):
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             res, data = region_api.get_port(
+#                 self.response_region, self.tenant.tenant_name)
+
+#             if int(res.status) != 200:
+#                 result = general_message(400, "call region error", "请求数据中心异常")
+#                 return Response(result, status=400)
+#             region = region_repo.get_region_by_region_name(
+#                 self.response_region)
+#             ip = region.tcpdomain
+#             ip_port_list = list()
+#             ip_dict = dict()
+#             ip_dict["ip"] = ip
+#             ip_dict["port"] = data["bean"]
+#             ip_port_list.append(ip_dict)
+#             result = general_message(
+#                 200, "success", "可用端口查询成功", list=ip_port_list)
+#             return Response(result, status=200)
+#         except Exception as e:
+#             logger.exception(e)
+#             result = error_message(e.message)
+#             return Response(result, status=500)
 
 
 # 查看高级路由信息
