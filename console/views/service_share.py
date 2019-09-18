@@ -6,6 +6,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
@@ -21,7 +22,6 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -88,7 +88,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             share_record = share_service.get_service_share_record_by_group_id(group_id)
             if share_record:
                 if not share_record.is_success and share_record.step < 3:
-                    result = general_message(20021, "share record not complete", "之前有分享流程未完成", bean=share_record.to_dict())
+                    result = general_message(20021, "share record not complete",
+                                             "之前有分享流程未完成", bean=share_record.to_dict())
                     return Response(result, status=200)
             fields_dict = {
                 "group_share_id": make_uuid(),
@@ -348,8 +349,9 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             if not events:
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
-            code, msg, bean = share_service.sync_event(self.user, self.response_region, team_name, events[0])
-            result = general_message(code, "sync share event", msg, bean=bean.to_dict())
+            code, msg, record_event = share_service.sync_event(self.user, self.response_region, team_name, events[0])
+            bean = record_event.to_dict() if record_event is not None else None
+            result = general_message(code, "sync share event", msg, bean=bean)
             return Response(result, status=code)
         except ServiceHandleException as e:
             raise e
@@ -402,8 +404,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            code, msg, bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name,
-                                                                      share_id, events[0])
+            code, msg, bean = share_service.sync_service_plugin_event(
+                self.user, self.response_region, self.tenant.tenant_name, share_id, events[0])
             result = general_message(code, "sync share event", msg, bean=bean.to_dict())
             return Response(result, status=code)
         except ServiceHandleException as e:
@@ -456,7 +458,8 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(
+                Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "应用或插件同步未全部完成")
                 return Response(result, status=415)

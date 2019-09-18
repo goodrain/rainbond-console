@@ -136,7 +136,7 @@ class UpgradeService(object):
 
         try:
             pc = PropertiesChanges(service, tenant)
-            return pc.get_property_changes(tenant.enterprise_id, version)
+            return pc.get_property_changes(tenant.enterprise_id, version, level="app")
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
@@ -333,21 +333,21 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event = app_deploy_service.execute(
+            code, msg, event_id = app_deploy_service.execute(
                 tenant, market_service.service, user, True, app_record.version)
             service_record = service_records.get(service_id=market_service.service.service_id)
-            upgrade_repo.change_service_record_status(service_record, self._get_sync_rolling_status(code, event))
+            upgrade_repo.change_service_record_status(service_record, self._get_sync_rolling_status(code, event_id))
             # 改变event id
             if code == 200:
-                service_record.event_id = event.event_id if event else ''
+                service_record.event_id = event_id
                 service_record.save()
 
     @staticmethod
-    def _get_sync_rolling_status(code, event):
+    def _get_sync_rolling_status(code, event_id):
         """通过异步请求状态判断回滚状态"""
-        if code == 200 and event:
+        if code == 200 and event_id:
             status = UpgradeStatus.ROLLING.value
-        elif code == 200 and not event:
+        elif code == 200 and not event_id:
             status = UpgradeStatus.ROLLBACK.value
         else:
             status = UpgradeStatus.ROLLBACK_FAILED.value

@@ -7,13 +7,16 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.services.app_actions import event_service, log_service, ws_service
-from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
 from console.constants import LogConstants
+from console.services.app_actions import event_service
+from console.services.app_actions import log_service
+from console.services.app_actions import ws_service
+from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
 from www.models.main import TenantServiceInfo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 
 logger = logging.getLogger("default")
@@ -329,7 +332,7 @@ class AppEventsLogView(RegionTenantHeaderView):
             if event_id == "":
                 result = general_message(200, "error", "event_id is required")
                 return Response(result, status=result["code"])
-            log_content = event_service.get_event_log(self.tenant, event_id)
+            log_content = event_service.get_event_log(self.tenant, self.response_region, event_id)
             result = general_message(200, "success", "查询成功", list=log_content)
         except Exception as e:
             logger.exception(e)
