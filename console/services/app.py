@@ -12,6 +12,7 @@ from console.constants import AppConstants
 from console.constants import SourceCodeType
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
@@ -36,6 +37,7 @@ from www.tenantservice.baseservice import ServicePluginResource
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
+from console.utils.validation import validate_endpoint_address
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -312,6 +314,10 @@ class AppService(object):
             if endpoints:
                 port_list = []
                 for endpoint in endpoints:
+                    if 'https://' in endpoint:
+                        endpoint = endpoint.split('https://')[1]
+                    if 'http://' in endpoint:    
+                        endpoint = endpoint.split('http://')[1]
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
                 port_re = list(set(port_list))
@@ -622,6 +628,13 @@ class AppService(object):
 
         # endpoints
         endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        if endpoints.endpoints_type == "static":
+            eps = json.loads(endpoints.endpoints_info)
+            for address in eps:
+                errs = validate_endpoint_address(address)
+                if errs:
+                    if len(eps) > 1:
+                        raise ErrDoNotSupportMultiDomain("do not support multi domain address")
         endpoints_dict = dict()
         if endpoints:
             if endpoints.endpoints_type != "api":

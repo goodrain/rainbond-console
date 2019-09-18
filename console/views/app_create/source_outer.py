@@ -12,7 +12,9 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.deploy_repo import deploy_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.services.app import app_service
 from console.services.app_config import port_service
 from console.services.group_service import group_service
@@ -46,9 +48,9 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints_type = request.data.get("endpoints_type", None)
 
         if endpoints_type == "static":
-            errs = check_endpoints(endpoints)
+            errs, _ = check_endpoints(endpoints)
             if errs:
-                return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
+                return Response(general_message(400, "parameter error", "服务地址格式不合法".join(errs)), status=400)
 
         try:
             if not service_cname:
@@ -96,16 +98,26 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
 def check_endpoints(endpoints):
     if not endpoints:
-        return ["parameter error"]
+        return ["parameter error"], False
     for endpoint in endpoints:
         # TODO: ipv6
-        address = endpoint
+        errs = []
+        if "https://" in endpoint:
+            endpoint = endpoint.partition("https://")[2]
+        if "http://" in endpoint:
+            endpoint = endpoint.partition("http://")[2]
         if ":" in endpoint:
-            address = endpoint.rpartition(":")[0]
-        errs = validate_endpoint_address(address)
+            endpoint = endpoint.rpartition(":")[0]
+        errs = validate_endpoint_address(endpoint)
         if errs:
+            if len(endpoints) > 1:
+                logger.error("endpoint: {}; do not support multi domain endpoint".format(endpoint))
+                return ["do not support multi domain endpoint"], True
+            else:
+                return [], True
             logger.error("endpoint: {}; invalid endpoint address: {}".format(endpoint, json.dumps(errs)))
-            return errs
+            return errs, False
+        return [], False
 
 
 # 三方服务中api注册方式回调接口
@@ -338,19 +350,32 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
 
-        errs = check_endpoints([address])
+        errs, is_domain = check_endpoints([address])
         if errs:
             return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
-
+        
+        try:
+            res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                                                self.service.service_alias)
+            if res.status != 200:
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+            endpoint_list = body["list"]
+            if is_domain and len(endpoint_list) > 0:
+                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
+            for endpoint in endpoint_list:
+                errs, _ = check_endpoints([endpoint["address"]])
+                if len(errs) > 0:
+                    return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
+        except Exception as e:
+            logger.exception(e)
         try:
             endpoint_dict = dict()
             endpoint_dict["address"] = address
             endpoint_dict["is_online"] = is_online
             res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                       self.service.service_alias, endpoint_dict)
-
             if res.status != 200:
-                return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
+                return Response(general_message(412, "region add endpoint failure", "数据中心添加失败"), status=412)
             result = general_message(200, "success", "添加成功")
             return Response(result)
         except region_api.CallApiFrequentError as e:
@@ -386,6 +411,7 @@ class ThirdPartyAppPodsView(AppBaseView):
 
             if res.status != 200:
                 return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+            # service_endpoints_repo.delete_service_endpoints_by_service_id(self.service.service_id)
             result = general_message(200, "success", "删除成功")
             return Response(result)
 

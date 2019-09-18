@@ -15,9 +15,11 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.utils.validation import validate_endpoint_address
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
-
+region_api = RegionInvokeApi()
 
 class AppPortView(AppBaseView):
     @never_cache
@@ -267,6 +269,27 @@ class AppPortManageView(AppBaseView):
         protocol = request.data.get("protocol", None)
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
+        if self.service.service_source == "third_party" and ("outer" in action):
+            try:
+                res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                                                self.service.service_alias)
+                if res.status != 200:
+                    return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+                endpoint_list = body["list"]
+                for endpoint in endpoint_list:
+                    if "https://" in endpoint:
+                        endpoint = endpoint.partition("https://")[2]
+                    if "http://" in endpoint:
+                        endpoint = endpoint.partition("http://")[2]
+                    if ":" in endpoint:
+                        endpoint = endpoint.rpartition(":")[0]
+                    errs = validate_endpoint_address(endpoint.address)
+                    if len(errs) > 0:
+                        return Response(general_message(400, "do not allow operate outer port for domain endpoints", "不允许开启域名服务实例对外端口"), status=400)
+            except Exception as e:
+                logger.exception(e)
+                result = error_message(e.message)
+                return Response(result, status=result["code"])
         try:
             code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
                                                        action, protocol, port_alias)
