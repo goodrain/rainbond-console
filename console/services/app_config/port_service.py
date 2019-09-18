@@ -345,7 +345,7 @@ class AppPortService(object):
                 res, data = region_api.get_port(region.region_name, tenant.tenant_name)
                 if int(res.status) != 200:
                     return 400, u"请求数据中心异常"
-                end_point = "0.0.0.0" + ":" + str(data["bean"])
+                end_point = str(region.tcpdomain) + ":" + str(data["bean"])
                 service_id = service.service_id
                 service_name = service.service_alias
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -357,12 +357,16 @@ class AppPortService(object):
                 region_id = region.region_id
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
+                # 默认ip不需要传给数据中心
+                # ip = end_point.split(":")[0]
+                port = end_point.split(":")[1]
                 data = dict()
                 data["service_id"] = service.service_id
                 data["container_port"] = int(container_port)
-                data["ip"] = "0.0.0.0"
-                data["port"] = data["bean"]
+                # data["ip"] = ip
+                data["port"] = int(port)
                 data["tcp_rule_id"] = tcp_rule_id
+                logger.debug('--------------------------------->{0}'.format(data["port"]))
                 try:
                     # 给数据中心传送数据添加策略
                     region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
