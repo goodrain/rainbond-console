@@ -316,7 +316,7 @@ class AppService(object):
                 for endpoint in endpoints:
                     if 'https://' in endpoint:
                         endpoint = endpoint.split('https://')[1]
-                    if 'http://' in endpoint:    
+                    if 'http://' in endpoint:
                         endpoint = endpoint.split('http://')[1]
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])

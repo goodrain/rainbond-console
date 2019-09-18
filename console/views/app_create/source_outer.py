@@ -12,9 +12,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.deploy_repo import deploy_repo
-from console.repositories.app_config import service_endpoints_repo
 from console.services.app import app_service
 from console.services.app_config import port_service
 from console.services.group_service import group_service
@@ -353,7 +351,7 @@ class ThirdPartyAppPodsView(AppBaseView):
         errs, is_domain = check_endpoints([address])
         if errs:
             return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
-        
+
         try:
             res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
                                                                 self.service.service_alias)
