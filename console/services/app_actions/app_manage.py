@@ -226,6 +226,7 @@ class AppManageService(AppManageBase):
                 "branch": service.code_version,
                 "server_type": service.server_type,
                 "lang": service.language,
+                "cmd": service.cmd,
             }
         if kind == "build_from_image" or kind == "build_from_market_image":
             body["image_info"] = {
@@ -513,7 +514,6 @@ class AppManageService(AppManageBase):
         one_service = services[0]
         region_name = one_service.service_region
         try:
-            logger.debug('--------12222222222----___>{0}'.format(json.dumps(data)))
             region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             return 200, "操作成功"
         except region_api.CallApiError as e:
@@ -585,6 +585,7 @@ class AppManageService(AppManageBase):
                 source_code["branch"] = service.code_version
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
+                source_code["cmd"] = service.cmd
                 if service_source:
                     if service_source.user_name or service_source.password:
                         source_code["user"] = service_source.user_name
