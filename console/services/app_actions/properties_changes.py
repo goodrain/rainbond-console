@@ -30,7 +30,8 @@ class PropertiesChanges(object):
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, eid, version):
+    def get_property_changes(self, eid, version, level="svc"):
+        # TODO: use enum for 'level'
         """
         get property changes for market service
 
@@ -40,7 +41,10 @@ class PropertiesChanges(object):
         """
         if self.service_source is None:
             raise ErrServiceSourceNotFound(self.service.service_id)
+
+        apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
         app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
+
         self.plugins = rbd_center_app_service.get_plugins(eid, version, self.service_source)
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
@@ -73,7 +77,7 @@ class PropertiesChanges(object):
         dep_uuids = []
         if app.get("dep_service_map_list", []):
             dep_uuids = [item["dep_service_key"] for item in app.get("dep_service_map_list")]
-        dep_services = self.dep_services_changes(dep_uuids)
+        dep_services = self.dep_services_changes(apps, dep_uuids, level)
         if dep_services:
             result["dep_services"] = dep_services
         dep_volumes = self.dep_volumes_changes(app.get("mnt_relation_list", []))
@@ -144,7 +148,7 @@ class PropertiesChanges(object):
             return None
         return {"old": old_slug_path, "new": new, "is_change": old_slug_path != new}
 
-    def dep_services_changes(self, dep_uuids):
+    def dep_services_changes(self, apps, dep_uuids, level="svc"):
         """
         find out the dependencies that need to be created and
         the dependencies that need to be removed
@@ -152,14 +156,42 @@ class PropertiesChanges(object):
         dep_relations = dep_relation_repo.get_service_dependencies(self.service.tenant_id, self.service.service_id)
         service_ids = [item.dep_service_id for item in dep_relations]
 
+        # get service_share_uuid by service_id
+        service_share_uuids = service_source_repo.get_service_sources_by_service_ids(service_ids).values_list(
+            "service_share_uuid", flat=True)
+
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
+        # dep services from exist service
         new_dep_services = service_repo.list_by_svc_share_uuids(group_id, dep_uuids)
-        add = [svc for svc in new_dep_services if svc.service_id not in service_ids]
+        if level == "app":
+            exist_uuids = [svc["service_share_uuid"] for svc in new_dep_services]
+            # dep services from apps
+            # combine two types of dep_services
+            for new_dep_service in self.new_dep_services_from_apps(apps, dep_uuids):
+                if new_dep_service["service_share_uuid"] not in exist_uuids:
+                    new_dep_services.append(new_dep_service)
+
+        # filter existing dep services
+        def dep_service_existed(service):
+            if service.get("service_id", None) is None:
+                return service["service_share_uuid"] in service_share_uuids
+            return service["service_id"] in service_ids
+
+        add = [svc for svc in new_dep_services if not dep_service_existed(svc)]
         if not add:
             return None
         return {
             "add": add,
         }
+
+    def new_dep_services_from_apps(self, apps, dep_uuids):
+        result = {}
+        for app in apps:
+            service_share_uuid = app.get("service_share_uuid", app["service_key"])
+            if service_share_uuid not in dep_uuids:
+                continue
+            result.append({"service_share_uuid": service_share_uuid, "service_cname": app["service_cname"]})
+        return result
 
     def port_changes(self, new_ports):
         """port can only be created, cannot be updated and deleted"""
@@ -210,7 +242,8 @@ class PropertiesChanges(object):
         }
 
     def plugin_changes(self, new_plugins):
-        old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region, self.service.tenant_id,
+        old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region,
+                                                                      self.service.tenant_id,
                                                                       self.service.service_id, "")
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}

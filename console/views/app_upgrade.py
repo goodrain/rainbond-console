@@ -293,10 +293,6 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version)
             for service in services]
 
-        upgrade_service.upgrade_database(market_services)
-        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos)
-        upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
-
         # 处理依赖关系
         if add_service_infos:
             market_app_service.save_service_deps_when_upgrade_app(
@@ -306,6 +302,10 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
                 install_info['apps'],
                 install_info['app_map'],
             )
+
+        upgrade_service.upgrade_database(market_services)
+        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos)
+        upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))
 

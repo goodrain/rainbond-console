@@ -355,58 +355,6 @@ class AppTcpOuterManageView(AppBaseView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @never_cache
-    @perm_required('manage_service_config')
-    def put(self, request, *args, **kwargs):
-        """
-        修改负载均衡端口
-        ---
-        parameters:
-            - name: tenantName
-              description: 租户名
-              required: true
-              type: string
-              paramType: path
-            - name: serviceAlias
-              description: 服务别名
-              required: true
-              type: string
-              paramType: path
-            - name: lb_mapping_port
-              description: 需要修改的负载均衡端口
-              required: true
-              type: integer
-              paramType: form
-            - name: service_id
-              description: 需要修改的负载均衡端口对应的服务ID
-              required: true
-              type: integer
-              paramType: form
-
-        """
-        container_port = kwargs.get("port", None)
-        lb_mapping_port = request.data.get("lb_mapping_port", None)
-        mapping_service_id = request.data.get("service_id", None)
-        try:
-            container_port = int(container_port)
-            lb_mapping_port = int(lb_mapping_port)
-            if not container_port:
-                return Response(general_message(400, "params error", u"缺少端口参数"), status=400)
-            if not lb_mapping_port:
-                return Response(general_message(400, "params error", u"缺少需要修改的负载均衡端口参数"), status=400)
-            if not mapping_service_id:
-                return Response(general_message(400, "params error", u"缺少端口对应的服务ID"), status=400)
-            code, msg = port_service.change_lb_mapping_port(self.tenant, self.service, container_port, lb_mapping_port,
-                                                            mapping_service_id)
-            if code != 200:
-                return Response(general_message(code, "error", msg), status=code)
-
-            result = general_message(200, "success", "端口修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
 
 class TopologicalPortView(AppBaseView):
     @never_cache

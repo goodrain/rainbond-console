@@ -1078,8 +1078,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
             # 判断策略是否存在
-            service_tcpdomain = tcp_domain.get_tcpdomain_by_name_and_port(
-                service.service_id, container_port, end_point)
+            region = region_repo.get_region_by_region_name(service.service_region)
+            service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
             if service_tcpdomain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
@@ -1187,22 +1187,13 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 class GetPortView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         try:
-            res, data = region_api.get_port(
+            ipres, ipdata = region_api.get_ips(
                 self.response_region, self.tenant.tenant_name)
-
-            if int(res.status) != 200:
+            if int(ipres.status) != 200:
                 result = general_message(400, "call region error", "请求数据中心异常")
                 return Response(result, status=400)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
-            ip = region.tcpdomain
-            ip_port_list = list()
-            ip_dict = dict()
-            ip_dict["ip"] = ip
-            ip_dict["port"] = data["bean"]
-            ip_port_list.append(ip_dict)
             result = general_message(
-                200, "success", "可用端口查询成功", list=ip_port_list)
+                200, "success", "可用端口查询成功", list=ipdata.get("list"))
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)

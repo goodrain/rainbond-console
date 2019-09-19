@@ -29,6 +29,7 @@ from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from goodrain_web import errors
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import Tenants
 from www.models.main import Users
 
@@ -267,6 +268,9 @@ def custom_exception_handler(exc, context):
         to be raised.
     """
     logger.exception(exc)
+    if isinstance(exc, RegionApiBaseHttpClient.InvalidLicenseError):
+        data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
+        return Response(data, status=401)
     if isinstance(exc, ServiceHandleException):
         return exc.response
     elif isinstance(exc, ResourceNotEnoughException):
