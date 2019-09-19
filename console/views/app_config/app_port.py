@@ -289,13 +289,14 @@ class AppPortManageView(AppBaseView):
                     return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
                 endpoint_list = body["list"]
                 for endpoint in endpoint_list:
-                    if "https://" in endpoint:
-                        endpoint = endpoint.partition("https://")[2]
-                    if "http://" in endpoint:
-                        endpoint = endpoint.partition("http://")[2]
-                    if ":" in endpoint:
-                        endpoint = endpoint.rpartition(":")[0]
-                    errs = validate_endpoint_address(endpoint.address)
+                    address = endpoint.address
+                    if "https://" in address:
+                        address = address.partition("https://")[2]
+                    if "http://" in address:
+                        address = address.partition("http://")[2]
+                    if ":" in address:
+                        address = address.rpartition(":")[0]
+                    errs = validate_endpoint_address(address)
                     if len(errs) > 0:
                         return Response(general_message(
                             400, "do not allow operate outer port for domain endpoints", "不允许开启域名服务实例对外端口"), status=400)

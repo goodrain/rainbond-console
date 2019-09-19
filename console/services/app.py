@@ -631,6 +631,12 @@ class AppService(object):
         if endpoints.endpoints_type == "static":
             eps = json.loads(endpoints.endpoints_info)
             for address in eps:
+                if "https://" in address:
+                    address = address.partition("https://")[2]
+                if "http://" in address:
+                    address = address.partition("http://")[2]
+                if ":" in address:
+                    address = address.rpartition(":")[0]
                 errs = validate_endpoint_address(address)
                 if errs:
                     if len(eps) > 1:

@@ -380,9 +380,9 @@ class ThirdPartyAppPodsView(AppBaseView):
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试"
         except Exception as e:
+            logger.exception(e)
             if e.status == 400:
                 return Response(general_message(400, "region delete error", "实例已存在({})".format(address)), status=400)
-            logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
 
