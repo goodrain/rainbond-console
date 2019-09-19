@@ -226,6 +226,7 @@ class AppManageService(AppManageBase):
                 "branch": service.code_version,
                 "server_type": service.server_type,
                 "lang": service.language,
+                "cmd": service.cmd,
             }
         if kind == "build_from_image" or kind == "build_from_market_image":
             body["image_info"] = {
@@ -585,6 +586,7 @@ class AppManageService(AppManageBase):
                 source_code["branch"] = service.code_version
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
+                source_code["cmd"] = service.cmd
                 if service_source:
                     if service_source.user_name or service_source.password:
                         source_code["user"] = service_source.user_name

@@ -185,8 +185,13 @@ class PropertiesChanges(object):
         }
 
     def new_dep_services_from_apps(self, apps, dep_uuids):
-        return [{"service_share_uuid": app["service_share_uuid"], "service_cname": app["service_cname"]}
-                for app in apps if app["service_share_uuid"] in dep_uuids]
+        result = {}
+        for app in apps:
+            service_share_uuid = app.get("service_share_uuid", app["service_key"])
+            if service_share_uuid not in dep_uuids:
+                continue
+            result.append({"service_share_uuid": service_share_uuid, "service_cname": app["service_cname"]})
+        return result
 
     def port_changes(self, new_ports):
         """port can only be created, cannot be updated and deleted"""

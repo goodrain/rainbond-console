@@ -292,9 +292,6 @@ class AppPortService(object):
         return 200, u"操作成功", new_port
 
     def __open_outer(self, tenant, service, region, deal_port):
-        # if deal_port.protocol != "http":
-        #     if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
-        #         return 412, u"非http协议端口只能对外开放一个"
 
         if deal_port.protocol == "http":
             service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
