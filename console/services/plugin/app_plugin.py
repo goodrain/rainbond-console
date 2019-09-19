@@ -126,7 +126,8 @@ class AppPluginService(object):
         if category == "analysis":
             query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
 
-            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
+            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(
+                QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
 
         elif category == "net_manage":
             query_installed_plugin = """{0} AND tp.category in {1} """.format(
@@ -390,7 +391,8 @@ class AppPluginService(object):
                                 "is_change": item.is_change
                             }
                             if downstream_options:
-                                item_option["attr_value"] = downstream_options.get(item.attr_name, item.attr_default_value)
+                                item_option["attr_value"] = downstream_options.get(
+                                    item.attr_name, item.attr_default_value)
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 options.append(item_option)
                         downstream_env_list.append({
@@ -468,6 +470,7 @@ class AppPluginService(object):
         raise ErrPluginAlreadyInstalled
         """
         plugin_version_service.update_plugin_build_status(region_name, tenant)
+        plugins = plugins if plugins is not None else []
         for plugin in plugins:
             data = self.build_plugin_data_4marketsvc(tenant, service, plugin)
 
@@ -475,8 +478,8 @@ class AppPluginService(object):
             self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
                                               service_plugin_config_vars)
 
-            code, msg, _ = self.create_service_plugin_relation(service.service_id, data["plugin_id"], data["version_id"], "",
-                                                               True)
+            code, msg, _ = self.create_service_plugin_relation(
+                service.service_id, data["plugin_id"], data["version_id"], "", True)
             if code == 409:
                 raise ErrPluginAlreadyInstalled(msg)
 
@@ -495,7 +498,8 @@ class AppPluginService(object):
         data.update(region_config)
         return data
 
-    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
+    def create_plugin_cfg_4marketsvc(
+            self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         config_list = []
         for config in service_plugin_config_vars:
@@ -530,7 +534,8 @@ class PluginService(object):
     def get_plugin_by_plugin_id(self, tenant, plugin_id):
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
-    def create_tenant_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
+    def create_tenant_plugin(
+            self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
         plugin_id = make_uuid()
         if build_source == "dockerfile":
             if not code_repo:
