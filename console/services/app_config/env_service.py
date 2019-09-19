@@ -173,7 +173,6 @@ class AppEnvVarService(object):
 
     def patch_env_scope(self, tenant, service, env_id, scope):
         env = env_var_repo.get_service_env_or_404_by_env_id(tenant.tenant_id, service.service_id, env_id)
-        print(env)
         if env:
             if service.create_status == "complete":
                 body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": scope}
