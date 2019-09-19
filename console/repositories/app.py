@@ -20,7 +20,8 @@ class TenantServiceInfoRepository(object):
         sql = """
             SELECT
                 a.service_id,
-                a.service_cname
+                a.service_cname,
+                b.service_share_uuid
             FROM
                 tenant_service a,
                 service_source b,
