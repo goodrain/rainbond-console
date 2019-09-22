@@ -60,6 +60,9 @@ class RegionApiBaseHttpClient(object):
     class ApiSocketError(CallApiError):
         pass
 
+    class InvalidLicenseError(Exception):
+        pass
+
     def __init__(self, *args, **kwargs):
         self.timeout = 5
         self.apitype = 'Not specified'
@@ -85,6 +88,9 @@ class RegionApiBaseHttpClient(object):
             if status == 409:
                 raise self.CallApiFrequentError(
                     self.apitype, url, method, res, body)
+            if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
+                logger.warning(body["bean"]["msg"])
+                raise self.InvalidLicenseError()
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body

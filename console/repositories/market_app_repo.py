@@ -34,6 +34,15 @@ class RainbondCenterAppRepository(object):
             return rcapps[0]
         return None
 
+    def get_rainbond_app_by_key_and_version_eid(self, eid, group_key, group_version):
+        rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, group_key=group_key, version=group_version)
+        if rcapps:
+            return rcapps[0]
+        rcapps = RainbondCenterApp.objects.filter(enterprise_id="public", group_key=group_key, version=group_version)
+        if rcapps:
+            return rcapps[0]
+        return None
+
     def get_rainbond_app_by_key(self, group_key):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key).all()
         if rcapps:
@@ -48,7 +57,11 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_qs_by_key(self, eid, group_key):
         """使用group_key获取一个云市应用的所有版本查询集合"""
-        return RainbondCenterApp.objects.filter(enterprise_id=eid, group_key=group_key)
+        rbca = RainbondCenterApp.objects.filter(enterprise_id=eid, group_key=group_key)
+        if not rbca:
+            # 兼容旧数据
+            rbca = RainbondCenterApp.objects.filter(enterprise_id="public", group_key=group_key)
+        return rbca
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""

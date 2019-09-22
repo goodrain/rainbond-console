@@ -731,11 +731,6 @@ class MarketService(object):
             """
             raise RegionApiBaseHttpClient.CallApiError
             """
-            try:
-                app_relation_service.check_relation(self.service.tenant_id, self.service.service_id, dep_service_id)
-            except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
-                logger.warning("failed to sync dependent service: {}".format(e))
-                return
             dep_service = service_repo.get_service_by_service_id(dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id

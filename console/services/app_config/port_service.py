@@ -292,10 +292,6 @@ class AppPortService(object):
         return 200, u"操作成功", new_port
 
     def __open_outer(self, tenant, service, region, deal_port):
-        # if deal_port.protocol != "http":
-        #     if self.is_open_outer_steam_port(tenant.tenant_id, service.service_id, deal_port.container_port):
-        #         return 412, u"非http协议端口只能对外开放一个"
-
         if deal_port.protocol == "http":
             service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             # 在domain表中保存数据
@@ -348,7 +344,7 @@ class AppPortService(object):
                 res, data = region_api.get_port(region.region_name, tenant.tenant_name)
                 if int(res.status) != 200:
                     return 400, u"请求数据中心异常"
-                end_point = str(region.tcpdomain) + ":" + str(data["bean"])
+                end_point = "0.0.0.0:{0}".format(data["bean"])
                 service_id = service.service_id
                 service_name = service.service_alias
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -360,16 +356,13 @@ class AppPortService(object):
                 region_id = region.region_id
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
-                # 默认ip不需要传给数据中心
-                # ip = end_point.split(":")[0]
                 port = end_point.split(":")[1]
                 data = dict()
                 data["service_id"] = service.service_id
                 data["container_port"] = int(container_port)
-                # data["ip"] = ip
+                data["ip"] = "0.0.0.0"
                 data["port"] = int(port)
                 data["tcp_rule_id"] = tcp_rule_id
-                logger.debug('--------------------------------->{0}'.format(data["port"]))
                 try:
                     # 给数据中心传送数据添加策略
                     region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
@@ -729,21 +722,3 @@ class AppPortService(object):
         service_ids = [s.service_id for s in services]
         res = port_repo.get_tcp_outer_opend_ports(service_ids).exclude(lb_mapping_port__in=lb_mapping_ports)
         return res
-
-    def change_lb_mapping_port(self, tenant, service, container_port, new_lb_mapping_port, mapping_service_id):
-        data = {"change_port": new_lb_mapping_port}
-        region_api.change_service_lb_mapping_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                                  container_port, data)
-
-        current_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-        exchange_port_info = port_repo.get_service_port_by_lb_mapping_port(mapping_service_id, new_lb_mapping_port)
-        if not current_port:
-            404, "应用端口{0}不存在".format(container_port)
-        if not exchange_port_info:
-            s = service_repo.get_service_by_service_id(mapping_service_id)
-            404, "应用{0}的端口{1}不存在".format(s.service_cname, new_lb_mapping_port)
-        exchange_port_info.lb_mapping_port = current_port.lb_mapping_port
-        exchange_port_info.save()
-        current_port.lb_mapping_port = new_lb_mapping_port
-        current_port.save()
-        return 200, "success"
