@@ -312,14 +312,26 @@ class AppService(object):
         if endpoints_type == "static":
             # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
             if endpoints:
+                from console.views.app_create.source_outer import check_endpoints
+                errs, isDomain = check_endpoints(endpoints)
+                if errs:
+                    return 400, u"服务地址不合法", None
                 port_list = []
+                prefix = ""
+                protocol = "tcp"
                 for endpoint in endpoints:
                     if 'https://' in endpoint:
                         endpoint = endpoint.split('https://')[1]
+                        prefix = "https://"
+                        protocol = "https"
                     if 'http://' in endpoint:
                         endpoint = endpoint.split('http://')[1]
+                        prefix = "http://"
+                        protocol = "http"
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
+                if len(port_list) == 0 and isDomain is True and prefix != "":
+                    port_list.append(443 if prefix == "https://" else 80)
                 port_re = list(set(port_list))
                 if len(port_re) == 1:
                     port = int(port_re[0])
@@ -330,7 +342,7 @@ class AppService(object):
                             "service_id": new_service.service_id,
                             "container_port": port,
                             "mapping_port": port,
-                            "protocol": 'tcp',
+                            "protocol": protocol,
                             "port_alias": port_alias,
                             "is_inner_service": False,
                             "is_outer_service": False
