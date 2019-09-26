@@ -32,7 +32,7 @@ pytest-django==3.4.8
 pytest-xdist==1.28.0
 pytest-mock==1.10.4
 drf-yasg==1.16.1
--e git+https://github.com/goodrain/market-api-python.git
+-e git+https://github.com/goodrain/market-api-python.git#egg=rainbond_market_client
 
 
 
