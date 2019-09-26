@@ -433,7 +433,7 @@ class TeamService(object):
             "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
-            "limit_memory": 4096
+            "limit_memory": 0,
         }
         team = team_repo.create_tenant(**params)
         return 200, "success", team

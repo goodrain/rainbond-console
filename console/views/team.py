@@ -655,7 +655,7 @@ class TeamDetailView(JWTAuthApiView):
                 return Response(general_message(404, "team not exist", "团队{0}不存在".format(team_name)), status=404)
             user_team_perm = team_services.get_user_perms_in_permtenant(self.user.user_id, team_name)
             tenant_info = dict()
-            team_region_list = region_services.get_region_list_by_team_name(request=request, team_name=team_name)
+            team_region_list = region_services.get_region_list_by_team_name(team_name=team_name)
             p = PermActions()
             tenant_info["team_id"] = tenant.ID
             tenant_info["team_name"] = tenant.tenant_name

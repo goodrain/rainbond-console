@@ -363,23 +363,6 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)/plugin$',
         ServicePluginShareEventPost.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
-
-    # 安装应用
-    # url(r'^teams/(?P<team_name>[\w\-]+)/service/install$', InstallServiceView.as_view()),
-
-    # 账户与费用相关
-    # url(r'^enterprise/account$', EnterpriseAccountInfoView.as_view()),
-    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
-    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/fee', EnterpriseTeamFeeView.as_view()),
-    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/recharge-records$', EnterpriseRechargeRecordsView.as_view()),
-    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/all-region-fee$', EnterpriseAllRegionFeeView.as_view()),
-    # url(r'^enterprise/team/(?P<team_name>[\w\-]+)/purchase-detail$', EnterprisePurchaseDetails.as_view()),
-    # # 数据中心相关
-    # url(r'^enterprise/regions$', PublicRegionListView.as_view()),
-    # url(r'^enterprise/region/resource$', RegionResourceDetailView.as_view()),
-    # url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/res-price$', RegionResPrice.as_view()),
-    # url(r'^enterprise/regions/(?P<region_name>[\w\-]+)/purchase$', RegionResPurchage.as_view()),
-
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
     # 应用组删除

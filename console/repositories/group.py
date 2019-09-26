@@ -4,7 +4,7 @@
 """
 
 import logging
-
+from django.db.models import Q
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceGroup
 
 logger = logging.getLogger("default")
@@ -25,9 +25,16 @@ class GroupRepository(object):
             return groups[0]
         return None
 
+    # get_group_by_pk get group by group id and tenantid and region name
     def get_group_by_pk(self, tenant_id, region_name, group_id):
         try:
             return ServiceGroup.objects.get(tenant_id=tenant_id, region_name=region_name, pk=group_id)
+        except ServiceGroup.DoesNotExist:
+            return None
+
+    def get_app_by_pk(self, app_id):
+        try:
+            return ServiceGroup.objects.get(pk=app_id)
         except ServiceGroup.DoesNotExist:
             return None
 
@@ -62,6 +69,18 @@ class GroupRepository(object):
             group = ServiceGroup.objects.create(
                 tenant_id=tenant_id, region_name=region_name, group_name='默认应用', is_default=True)
         return group
+
+    def get_apps_list(self, team_id=None, region_name=None, query=None):
+        q = None
+        if query:
+            q = q | Q(group_name__icontains=query)
+        if region_name:
+            q = q & Q(region_name=region_name)
+        if team_id:
+            q = q & Q(tenant_id=team_id)
+        if q:
+            return ServiceGroup.objects.filter(q)
+        return ServiceGroup.objects.all()
 
 
 class GroupServiceRelationRepository(object):

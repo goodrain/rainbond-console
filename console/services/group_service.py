@@ -82,13 +82,14 @@ class GroupService(object):
         return 200, u"success"
 
     def get_group_by_id(self, tenant, region, group_id):
-        # if group_id == -1:
-        #     return 200, "success", {"group_id": -1, "group_name": "未分组"}
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             return 404, u"组不存在", None
         rt_bean = {"group_id": group.ID, "group_name": group.group_name}
         return 200, u"success", rt_bean
+
+    def get_app_by_id(self, app_id):
+        return group_repo.get_app_by_pk(app_id)
 
     def get_group_or_404(self, tenant, response_region, group_id):
         """
@@ -214,6 +215,9 @@ class GroupService(object):
         except Exception as e:
             logger.debug("==============================>{0}".format(e))
             return 0
+
+    def get_apps_list(self, team_id=None, region_name=None, query=None):
+        return group_repo.get_apps_list(team_id, region_name, query)
 
 
 group_service = GroupService()

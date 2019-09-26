@@ -3,11 +3,18 @@
 from rest_framework import serializers
 
 from openapi.serializer.role_serializer import RoleInfoSerializer
+from www.models.main import Tenants
 
 
 class TeamInfoPostSerializer(serializers.Serializer):
     tenant_name = serializers.CharField(max_length=24, help_text=u"团队名称")
     team_owner = serializers.IntegerField(help_text=u"团队拥有者用户ID")
+
+
+class TeamBaseInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tenants
+        exclude = ["pay_type", "balance", "pay_level"]
 
 
 class TeamInfoSerializer(serializers.Serializer):

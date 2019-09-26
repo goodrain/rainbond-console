@@ -172,7 +172,6 @@ class TeamRepo(object):
             service_num DESC
         {limit}
         """.format(where=where, limit=limit)
-        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -209,7 +208,6 @@ class TeamRepo(object):
             {where}
             {limit}
             """.format(where=where, limit=limit)
-        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result

@@ -21,6 +21,7 @@ from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import RoleInfoRespSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
+from openapi.serializer.team_serializer import TeamBaseInfoSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
@@ -68,7 +69,7 @@ class ListTeamInfo(ListAPIView):
         operation_description="add team",
         request_body=CreateTeamReqSerializer(),
         responses={
-            status.HTTP_201_CREATED: None,
+            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
             status.HTTP_400_BAD_REQUEST: None,
         },
@@ -97,7 +98,8 @@ class ListTeamInfo(ListAPIView):
             if code != 200:
                 team.delete()
                 raise serializers.ValidationError("数据中心创建团队时发生错误")
-            return Response(None, status=status.HTTP_201_CREATED)
+            re = TeamBaseInfoSerializer(team)
+            return Response(re, status=status.HTTP_201_CREATED)
         elif code == 200:
             return Response(None, status=status.HTTP_201_CREATED)
         else:
