@@ -19,8 +19,8 @@ class AppPostInfoSerializer(serializers.Serializer):
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantServiceInfo
-        exclude = ["ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path", 
-                   "host_path", "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type", 
+        exclude = ["ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path",
+                   "host_path", "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type",
                    "port_type", "service_name", "secret"]
 
 
