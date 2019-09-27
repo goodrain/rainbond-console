@@ -60,7 +60,7 @@ class ListAppsView(ListAPIView):
             raise serializers.ValidationError("指定数据中心租户未开通")
         code, msg, group_info = group_service.add_group(tenant, data["region_name"], data["app_name"])
         if not group_info:
-            return Response(FailSerializer({"msg": msg}), status=code)
+            return Response(FailSerializer({"msg": msg}).data, status=code)
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
 

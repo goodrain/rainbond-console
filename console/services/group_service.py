@@ -26,47 +26,44 @@ class GroupService(object):
 
     def check_group_name(self, group_name):
         if len(group_name) > 15:
-            return False, u"组名称最多支持15个字符"
+            return False, u"应用名称最多支持15个字符"
         r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
-            return False, u"组名称只支持中英文, 数字, 下划线, 中划线和点"
+            return False, u"应用名称只支持中英文, 数字, 下划线, 中划线和点"
         return True, u"success"
 
     def add_group(self, tenant, region_name, group_name):
         if not group_name:
-            return 400, u"组名不能为空", None
+            return 400, u"应用名称不能为空", None
         is_pass, msg = self.check_group_name(group_name)
         if not is_pass:
             return 400, msg, None
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
-        if group:
-            return 409, u"组名{0}已存在".format(group_name), None
         new_group = group_repo.add_group(tenant.tenant_id, region_name, group_name)
         return 200, u"添加成功", new_group
 
     def update_group(self, tenant, region_name, group_id, group_name):
         if not group_id or group_id < 0:
-            return 400, u"组ID不合法", None
+            return 400, u"应用ID不合法", None
         if not group_name:
-            return 400, u"组名不能为空", None
+            return 400, u"应用名不能为空", None
         is_pass, msg = self.check_group_name(group_name)
         if not is_pass:
             return 400, msg, None
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
         if group:
-            return 403, u"组名{0}已存在".format(group_name), None
+            return 403, u"应用名{0}已存在".format(group_name), None
         group_repo.update_group_name(group_id, group_name)
         return 200, u"修改成功", group_name
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:
-            return 400, u"需要删除的组不合法", None
+            return 400, u"需要删除的应用不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
         if backups:
-            return 409, u"当前组有备份记录，暂无法删除", None
-        # 删除组
+            return 409, u"当前应用有备份记录，暂无法删除", None
+        # 删除应用
         group_repo.delete_group_by_pk(group_id)
-        # 删除应用与组的关系
+        # 删除应用与应用的关系
         group_service_relation_repo.update_service_relation(group_id, default_group_id)
         return 200, u"删除成功", group_id
 
@@ -77,14 +74,14 @@ class GroupService(object):
             if group_id > 0:
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
-                    return 404, u"组不存在"
+                    return 404, u"应用不存在"
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
 
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
-            return 404, u"组不存在", None
+            return 404, u"应用不存在", None
         rt_bean = {"group_id": group.ID, "group_name": group.group_name}
         return 200, u"success", rt_bean
 
@@ -101,7 +98,7 @@ class GroupService(object):
         return get_object_or_404(
             ServiceGroup,
             msg="Group does not exist",
-            msg_show=u"组不存在",
+            msg_show=u"应用不存在",
             tenant_id=tenant.tenant_id,
             region_name=response_region,
             pk=group_id)
@@ -145,7 +142,7 @@ class GroupService(object):
                 else:
                     service_list.append(service_info)
                 service_id_map.pop(k)
-        # # 未分组应用
+        # # 未分应用应用
         # uncategory_services = []
         # for k, v in service_id_map.iteritems():
         #     uncategory_services.append(v)
@@ -159,14 +156,14 @@ class GroupService(object):
             result.insert(0, bean)
         # result.append({
         #     "group_id": -1,
-        #     "group_name": "未分组",
+        #     "group_name": "未分应用",
         #     "service_list": uncategory_services
         # })
 
         return result
 
     def get_group_services(self, group_id):
-        """查询某一组下的应用"""
+        """查询某一应用下的应用"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [gs.service_id for gs in gsr]
         services = service_repo.get_services_by_service_ids(service_ids)
@@ -179,20 +176,20 @@ class GroupService(object):
         return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
 
     def get_group_service_sources(self, group_id):
-        """查询某一组下的服务源信息"""
+        """查询某一应用下的服务源信息"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
-    # 组内没有应用情况下删除组
+    # 应用内没有应用情况下删除应用
     @transaction.atomic
     def delete_group_no_service(self, group_id):
         if not group_id or group_id < 0:
-            return 400, u"需要删除的组不合法", None
+            return 400, u"需要删除的应用不合法", None
         # backups = backup_record_repo.get_record_by_group_id(group_id)
         # if backups:
-        #     return 409, u"当前组有备份记录，暂无法删除", None
-        # 删除组
+        #     return 409, u"当前应用有备份记录，暂无法删除", None
+        # 删除应用
         group_repo.delete_group_by_pk(group_id)
         # 删除升级记录
         upgrade_repo.delete_app_record_by_group_id(group_id)
@@ -200,7 +197,7 @@ class GroupService(object):
         return 200, u"删除成功", group_id
 
     def get_service_group_memory(self, app_template_raw):
-        """获取一组服务内存"""
+        """获取一应用服务内存"""
         try:
             app_template = json.loads(app_template_raw)
             apps = app_template["apps"]
