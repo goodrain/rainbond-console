@@ -436,6 +436,13 @@ class TeamService(object):
             "limit_memory": 0,
         }
         team = team_repo.create_tenant(**params)
+        create_perm_param = {
+            "user_id": user.user_id,
+            "tenant_id": team.tenant_id,
+            "identity": "owener",
+            "enterprise_id": enterprise.enterprise_id,
+        }
+        team_repo.create_team_perms(**create_perm_param)
         return 200, "success", team
 
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):

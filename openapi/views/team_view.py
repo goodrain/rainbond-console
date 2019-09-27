@@ -84,12 +84,12 @@ class ListTeamInfo(ListAPIView):
         if not en:
             raise serializers.ValidationError("指定企业不存在")
         region = None
-        if team_data.get("region_name", None):
-            region = region_services.get_region_by_region_name(team_data.get("region_name"))
+        if team_data.get("region", None):
+            region = region_services.get_region_by_region_name(team_data.get("region"))
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
         try:
-            user = user_services.get_user_by_user_id(team_data.get("user_id", 0))
+            user = user_services.get_user_by_user_id(team_data.get("creator", 0))
         except UserNotExistError:
             user = request.user
         code, msg, team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
@@ -98,10 +98,9 @@ class ListTeamInfo(ListAPIView):
             if code != 200:
                 team.delete()
                 raise serializers.ValidationError("数据中心创建团队时发生错误")
+        elif code == 200:
             re = TeamBaseInfoSerializer(team)
             return Response(re, status=status.HTTP_201_CREATED)
-        elif code == 200:
-            return Response(None, status=status.HTTP_201_CREATED)
         else:
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
