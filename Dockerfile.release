@@ -8,7 +8,7 @@ ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai \
+RUN apt install git && cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai \
       && chmod +x /app/ui/entrypoint.sh &&  \
       mv /dist/index.html /app/ui/www/templates/index.html && \
       rm -rf /app/ui/www/static/dists/* && \
