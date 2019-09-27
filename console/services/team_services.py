@@ -438,9 +438,9 @@ class TeamService(object):
         team = team_repo.create_tenant(**params)
         create_perm_param = {
             "user_id": user.user_id,
-            "tenant_id": team.tenant_id,
-            "identity": "owener",
-            "enterprise_id": enterprise.enterprise_id,
+            "tenant_id": team.ID,
+            "identity": "owner",
+            "enterprise_id": enterprise.ID,
         }
         team_repo.create_team_perms(**create_perm_param)
         return 200, "success", team

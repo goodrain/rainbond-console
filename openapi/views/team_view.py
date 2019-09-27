@@ -98,9 +98,9 @@ class ListTeamInfo(ListAPIView):
             if code != 200:
                 team.delete()
                 raise serializers.ValidationError("数据中心创建团队时发生错误")
-        elif code == 200:
+        if code == 200:
             re = TeamBaseInfoSerializer(team)
-            return Response(re, status=status.HTTP_201_CREATED)
+            return Response(re.data, status=status.HTTP_201_CREATED)
         else:
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
