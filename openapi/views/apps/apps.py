@@ -48,12 +48,13 @@ class ListAppsView(ListAPIView):
     def post(self, request, *args, **kwargs):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        tenant = team_services.get_tenant_by_tenant_name(serializer.team_alias)
+        data = serializer.data
+        tenant = team_services.get_tenant_by_tenant_name(data["team_alias"])
         if not tenant:
             raise serializers.ValidationError("指定租户不存在")
-        if not region_services.verify_team_region(team_name=serializer.team_alias, region_name=serializer.region_name):
+        if not region_services.verify_team_region(team_name=data["team_alias"], region_name=data["region_name"]):
             raise serializers.ValidationError("指定数据中心租户未开通")
-        code, msg, group_info = group_service.add_group(tenant, serializer.region_name, serializer.app_name)
+        code, msg, group_info = group_service.add_group(tenant, data["region_name"], data["app_name"])
         if not group_info:
             return Response(FailSerializer({"msg": msg}), status=code)
         return Response(AppBaseInfoSerializer({

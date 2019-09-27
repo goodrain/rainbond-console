@@ -334,8 +334,7 @@ class TeamService(object):
             return []
 
     def delete_tenant(self, tenant_name):
-        status = team_repo.delete_tenant(tenant_name=tenant_name)
-        return status
+        team_repo.delete_tenant(tenant_name=tenant_name)
 
     def delete_by_tenant_id(self, tenant_id):
         return team_repo.delete_by_tenant_id(tenant_id=tenant_id)
@@ -398,10 +397,9 @@ class TeamService(object):
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
-        if team is None:
-            raise Tenants.DoesNotExist()
-        user = user_repo.get_by_user_id(team.creater)
-        team.creater = user.nick_name
+        if team:
+            user = user_repo.get_by_user_id(team.creater)
+            team.creater = user.nick_name
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):

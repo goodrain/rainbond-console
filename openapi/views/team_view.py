@@ -117,11 +117,11 @@ class TeamInfo(BaseOpenAPIView):
     )
     def get(self, request, team_id):
         try:
-            queryset = team_services.get_team_by_team_id(team_id)
+            queryset = team_services.get_team_by_team_id(team_id.strip())
             serializer = TeamInfoSerializer(queryset)
             return Response(serializer.data, status.HTTP_200_OK)
         except Tenants.DoesNotExist:
-            raise exceptions.NotFound()
+            return Response(None, status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="删除团队",
