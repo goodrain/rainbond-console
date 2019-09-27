@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 
+import logging
 from drf_yasg.utils import swagger_auto_schema
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
@@ -13,6 +14,8 @@ from console.services.team_services import team_services
 from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
 from console.utils.restful_client import get_market_client
+
+logger = logging.getLogger("default")
 
 
 # Install cloud city application, which is implemented by a simplified scheme.
@@ -28,6 +31,7 @@ class MarketAppInstallView(BaseOpenAPIView):
         serializer = MarketInstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
+        logger.info(data)
         app = group_service.get_app_by_id(data["app_id"])
         if not app:
             return Response(FailSerializer({"msg": "install target app not found"}), status=status.HTTP_400_BAD_REQUEST)

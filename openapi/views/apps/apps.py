@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 
+import logging
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.views.base import BaseOpenAPIView
@@ -15,6 +16,8 @@ from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+
+logger = logging.getLogger("default")
 
 
 class ListAppsView(ListAPIView):
@@ -49,6 +52,7 @@ class ListAppsView(ListAPIView):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
+        logger.info(data["team_alias"])
         tenant = team_services.get_tenant_by_tenant_name(data["team_alias"])
         if not tenant:
             raise serializers.ValidationError("指定租户不存在")
@@ -57,13 +61,8 @@ class ListAppsView(ListAPIView):
         code, msg, group_info = group_service.add_group(tenant, data["region_name"], data["app_name"])
         if not group_info:
             return Response(FailSerializer({"msg": msg}), status=code)
-        return Response(AppBaseInfoSerializer({
-            "enterprise_id": tenant.enterprise_id,
-            "team_alias": tenant.tenant_alias,
-            "app_name": group_info.group_name,
-            "app_id": group_info.ID,
-            "create_time": "",
-        }), status=status.HTTP_201_CREATED)
+        re = AppBaseInfoSerializer(group_info)
+        return Response(re.data, status=status.HTTP_201_CREATED)
 
 
 class AppInfoView(BaseOpenAPIView):
