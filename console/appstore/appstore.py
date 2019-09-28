@@ -19,7 +19,7 @@ class AppStore(object):
     def get_image_connection_info(self, scope, team_name):
         """
         :param scope: enterprise(企业) team(团队) goodrain(好雨云市)
-        :param service: 应用模型
+        :param team_name: 租户名称
         :return: image_info
 
         hub.goodrain.com/goodrain/xxx:lasted

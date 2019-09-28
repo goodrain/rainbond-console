@@ -18,7 +18,7 @@ class LogConstants(object):
     INFO = "info"
     DEBUG = "debug"
     ERROR = "error"
-    """应用日志类型常量"""
+    """组件日志类型常量"""
     SERVICE = "service"
     COMPILE = "compile"
     OPERATE = "operate"
@@ -41,7 +41,7 @@ class ServiceEventConstants(object):
         "own_money": "欠费关闭",
         "add_label": "添加标签",
         "delete_label": "删除标签",
-        "service_state": "应用状态修改",
+        "service_state": "组件状态修改",
         "reboot": "重启",
         "market_sync": "云市同步",
         "truncate": "删除"

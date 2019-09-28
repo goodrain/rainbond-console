@@ -210,13 +210,13 @@ class AuthorizationFailedError(BaseException):
 
 class TeamServiceNotExistError(BaseException):
     """
-    应用不存在
+    组件不存在
     """
 
 
 class GroupNotExistError(BaseException):
     """
-    应用组不存在
+    应用不存在
     """
 
 
