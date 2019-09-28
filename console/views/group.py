@@ -137,7 +137,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                 code, msg, data = group_service.delete_group_no_service(group_id)
             else:
                 code = 400
-                msg = '当前组内有应用，无法删除'
+                msg = '当前应用内存在组件，无法删除'
                 result = general_message(code, msg, None)
                 return Response(result, status=result["code"])
             if code != 200:

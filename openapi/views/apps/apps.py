@@ -16,6 +16,8 @@ from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from openapi.services.app_service import app_service
+
 
 logger = logging.getLogger("default")
 
@@ -78,10 +80,11 @@ class AppInfoView(BaseOpenAPIView):
         tenant = team_services.get_team_by_team_id(app.tenant_id)
         if not tenant:
             raise serializers.ValidationError("指定租户不存在")
-        services = group_service.get_group_services(app_id)
+        appstatus, services = app_service.get_app_status(app)
         appInfo = model_to_dict(app)
         appInfo["enterprise_id"] = tenant.enterprise_id
         appInfo["service_list"] = ServiceBaseInfoSerializer(services, many=True).data
+        appInfo["status"] = appstatus
         reapp = AppInfoSerializer(data=appInfo)
         reapp.is_valid()
         return Response(reapp.data, status=status.HTTP_200_OK)

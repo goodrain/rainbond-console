@@ -33,6 +33,7 @@ from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
 from openapi.views.apps.apps import ListAppsView, AppInfoView
 from openapi.views.apps.market import MarketAppInstallView
+from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -79,5 +80,6 @@ urlpatterns = [
     url(r'^v1/upload-file$', UploadView.as_view()),
     url(r'^v1/apps$', ListAppsView.as_view()),
     url(r'^v1/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
+    url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/market-install', MarketAppInstallView.as_view()),
 ]

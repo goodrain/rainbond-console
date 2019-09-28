@@ -15,7 +15,7 @@ from www.utils.crypt import make_uuid
 from console.utils.certutil import analyze_cert, cert_is_effective
 from console.repositories.app_config import port_repo
 from console.services.team_services import team_services
-
+from console.services.group_service import group_service
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -598,3 +598,9 @@ class DomainService(object):
                 raise e
         service_tcp_domain.delete()
         return 200, u"success"
+
+    # get all http rules in define app
+    def get_http_rules_by_app_id(self, app_id):
+        services = group_service.get_group_services(app_id)
+        service_ids = [s.service_id for s in services]
+        return domain_repo.get_domains_by_service_ids(service_ids)
