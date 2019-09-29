@@ -31,7 +31,7 @@ class RegSimQuyView(JWTAuthApiView):
         """
         try:
             code = 200
-            region_name_list = region_services.get_region_list_by_team_name(request, team_name=team_name)
+            region_name_list = region_services.get_region_list_by_team_name(team_name=team_name)
             result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
         except Exception as e:
             code = 500
@@ -54,7 +54,7 @@ class RegQuyView(JWTAuthApiView):
         """
         try:
             code = 200
-            region_name_list = region_services.get_region_name_list_by_team_name(team_name=team_name)
+            region_name_list = region_services.get_region_all_list_by_team_name(team_name=team_name)
             result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=region_name_list)
         except Exception as e:
             code = 500

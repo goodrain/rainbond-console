@@ -800,6 +800,19 @@ class MarketAppService(object):
                 raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500,
                                              error_code=500)
 
+    def conversion_cloud_version_to_app(self, cloud_version):
+        return RainbondCenterApp(
+                    group_key=cloud_version.app_key_id,
+                    group_name="",
+                    version=cloud_version.app_version,
+                    share_user=0,
+                    record_id=0,
+                    source="cloud",
+                    scope="market",
+                    app_template=json.dumps(cloud_version.templete.to_dict()),
+                    is_complete=True,
+                    template_version=cloud_version.templete_version)
+
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
             return rainbond_app_repo.get_all_rainbond_apps().filter(

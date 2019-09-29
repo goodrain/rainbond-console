@@ -32,7 +32,7 @@ class RegionService(object):
     def get_region_by_region_name(self, region_name):
         return region_repo.get_region_by_region_name(region_name=region_name)
 
-    def get_region_name_list_by_team_name(self, team_name):
+    def get_region_all_list_by_team_name(self, team_name):
         regions = region_repo.get_region_by_tenant_name(tenant_name=team_name)
         region_name_list = list()
         if regions:
@@ -55,7 +55,8 @@ class RegionService(object):
         else:
             return []
 
-    def get_region_list_by_team_name(self, request, team_name):
+    # get_region_list_by_team_name get region list that status is used
+    def get_region_list_by_team_name(self, team_name):
         regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)
         if regions:
             region_name_list = []
@@ -78,6 +79,15 @@ class RegionService(object):
             return region_name_list
         else:
             return []
+
+    # verify_team_region Verify that the team tenant is open
+    def verify_team_region(self, team_name, region_name):
+        regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)
+        if regions:
+            for region in regions:
+                if region_name == region.region_name:
+                    return True
+        return False
 
     def list_by_tenant_ids(self, tenant_ids):
         regions = region_repo.list_active_region_by_tenant_ids(tenant_ids)
@@ -188,23 +198,13 @@ class RegionService(object):
         region_config = region_repo.get_region_by_region_name(region_name)
         if not region_config:
             return 404, u"需要开通的数据中心{0}不存在".format(region_name), None
-        if region_config.scope == "public":
-            logger.debug("open public region {0} ".format(region_name))
-            is_pass = self.get_enterprise_region_token_from_market(tenant.tenant_id, tenant.enterprise_id, region_name,
-                                                                   region_config.url)
-            if not is_pass:
-                return 500, u"数据中心访问token获取异常", None
-
         tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
         if not tenant_region:
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
-
         if not tenant_region.is_init:
-
             res, body = region_api.create_tenant(region_name, tenant.tenant_name,
                                                  tenant.tenant_id, tenant.enterprise_id)
-            logger.debug("============create region tenant : res, {0}, body {1}".format(res, body))
             if res["status"] != 200:
                 return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
@@ -224,25 +224,8 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-
         group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
-
         return 200, u"success", tenant_region
-
-    def get_enterprise_region_token_from_market(self, tenant_id, enterprise_id, region_name, region_url):
-        # 从云市获取数据中心访问信息
-        is_pass = True
-        try:
-            res, data = market_api.get_region_access_token(tenant_id, enterprise_id, region_name)
-            is_success = client_auth_service.save_region_access_token(
-                data["eid"], region_name, region_url, data['token'], data['key'], data['crt'])
-            if not is_success:
-                logger.error("save region access token error")
-                is_pass = False
-        except Exception as e:
-            logger.exception(e)
-            is_pass = False
-        return is_pass
 
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
         try:

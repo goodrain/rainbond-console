@@ -342,7 +342,7 @@ class UserDetailsView(JWTAuthApiView):
             tenant_list = list()
             for tenant in tenants:
                 tenant_info = dict()
-                team_region_list = region_services.get_region_list_by_team_name(request=request, team_name=tenant.tenant_name)
+                team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
                 tenant_info["team_id"] = tenant.ID
                 tenant_info["team_name"] = tenant.tenant_name
                 tenant_info["team_alias"] = tenant.tenant_alias

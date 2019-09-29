@@ -393,6 +393,9 @@ class ServiceDomainRepository(object):
             return domains[0]
         return None
 
+    def get_domains_by_service_ids(self, service_ids):
+        return ServiceDomain.objects.filter(service_id__in=service_ids)
+
     def get_domain_by_id(self, domain_id):
         domains = ServiceDomain.objects.filter(ID=domain_id)
         if domains:

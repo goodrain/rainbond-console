@@ -544,12 +544,8 @@ class TeamDelView(JWTAuthApiView):
             if service_count >= 1:
                 result = general_message(400, "failed", "当前团队内有应用,不可以删除")
                 return Response(result, status=400)
-            status = team_services.delete_tenant(tenant_name=team_name)
-            if not status:
-                result = general_message(code, "delete a tenant successfully", "删除团队成功")
-            else:
-                code = 400
-                result = general_message(code, "delete a tenant failed", "删除团队失败")
+            team_services.delete_tenant(tenant_name=team_name)
+            result = general_message(code, "delete a tenant successfully", "删除团队成功")
         except Tenants.DoesNotExist as e:
             code = 400
             logger.exception(e)
@@ -655,7 +651,7 @@ class TeamDetailView(JWTAuthApiView):
                 return Response(general_message(404, "team not exist", "团队{0}不存在".format(team_name)), status=404)
             user_team_perm = team_services.get_user_perms_in_permtenant(self.user.user_id, team_name)
             tenant_info = dict()
-            team_region_list = region_services.get_region_list_by_team_name(request=request, team_name=team_name)
+            team_region_list = region_services.get_region_list_by_team_name(team_name=team_name)
             p = PermActions()
             tenant_info["team_id"] = tenant.ID
             tenant_info["team_name"] = tenant.tenant_name

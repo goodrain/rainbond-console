@@ -31,6 +31,9 @@ from openapi.views.upload_view import UploadView
 from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
+from openapi.views.apps.apps import ListAppsView, AppInfoView
+from openapi.views.apps.market import MarketAppInstallView
+from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -65,17 +68,18 @@ urlpatterns = [
     url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
     url(r'^v1/administrators$', ListAdminsView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
-    # url(r'^v1/users/(?P<user_id>[\w\-]+)/password$', UserPassword.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
     url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
     url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
-    # url(r'^v1/labels$', ListLabelsView.as_view()),
-    # url(r'^v1/labels/(?P<label_id>[\w\-]+)$', LabelView.as_view()),
     url(r'^v1/configs/base$', BaseConfigView.as_view()),
     url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
     url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
     url(r'^v1/upload-file$', UploadView.as_view()),
+    url(r'^v1/apps$', ListAppsView.as_view()),
+    url(r'^v1/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
+    url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
+    url(r'^v1/market-install', MarketAppInstallView.as_view()),
 ]

@@ -106,11 +106,7 @@ class TeamRepo(object):
         PermRelTenant.objects.filter(Q(user_id=user_id, tenant_id=tenant_id) & ~Q(identity='owner')).delete()
 
     def get_team_by_team_id(self, team_id):
-        team = Tenants.objects.filter(tenant_id=team_id)
-        if not team:
-            return None
-        else:
-            return team[0]
+        return Tenants.objects.get(tenant_id=team_id)
 
     def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):
         q = Q(enterprise_id=enterprise_id)
@@ -172,7 +168,6 @@ class TeamRepo(object):
             service_num DESC
         {limit}
         """.format(where=where, limit=limit)
-        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -209,7 +204,6 @@ class TeamRepo(object):
             {where}
             {limit}
             """.format(where=where, limit=limit)
-        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result

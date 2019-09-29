@@ -334,8 +334,7 @@ class TeamService(object):
             return []
 
     def delete_tenant(self, tenant_name):
-        status = team_repo.delete_tenant(tenant_name=tenant_name)
-        return status
+        team_repo.delete_tenant(tenant_name=tenant_name)
 
     def delete_by_tenant_id(self, tenant_id):
         return team_repo.delete_by_tenant_id(tenant_id=tenant_id)
@@ -398,10 +397,9 @@ class TeamService(object):
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
-        if team is None:
-            raise Tenants.DoesNotExist()
-        user = user_repo.get_by_user_id(team.creater)
-        team.creater = user.nick_name
+        if team:
+            user = user_repo.get_by_user_id(team.creater)
+            team.creater = user.nick_name
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
@@ -433,9 +431,16 @@ class TeamService(object):
             "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
-            "limit_memory": 4096
+            "limit_memory": 0,
         }
         team = team_repo.create_tenant(**params)
+        create_perm_param = {
+            "user_id": user.user_id,
+            "tenant_id": team.ID,
+            "identity": "owner",
+            "enterprise_id": enterprise.ID,
+        }
+        team_repo.create_team_perms(**create_perm_param)
         return 200, "success", team
 
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):

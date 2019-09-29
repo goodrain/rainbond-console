@@ -7,6 +7,7 @@ install:
 
 services:
   - docker
+  - git
 
 git:
   depth: 1
