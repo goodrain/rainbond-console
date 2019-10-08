@@ -26,7 +26,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
 
 class AppInfoSerializer(AppBaseInfoSerializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
-    service_list = ServiceBaseInfoSerializer(many=True, required=False)
+    # service_list = ServiceBaseInfoSerializer(many=True, required=False)
     status = serializers.CharField(max_length=32, help_text=u"应用状态")
 
 

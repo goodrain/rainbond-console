@@ -19,6 +19,8 @@ class AppService(object):
         for status in status_list:
             if status["status"] == "running":
                 app_status = "running"
+        if not service_ids:
+            app_status = "notinstall"
         return app_status, services
 
 
