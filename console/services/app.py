@@ -322,16 +322,16 @@ class AppService(object):
                 for endpoint in endpoints:
                     if 'https://' in endpoint:
                         endpoint = endpoint.split('https://')[1]
-                        prefix = "https://"
-                        protocol = "https"
+                        prefix = "https"
+                        protocol = "http"
                     if 'http://' in endpoint:
                         endpoint = endpoint.split('http://')[1]
-                        prefix = "http://"
+                        prefix = "http"
                         protocol = "http"
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
                 if len(port_list) == 0 and isDomain is True and prefix != "":
-                    port_list.append(443 if prefix == "https://" else 80)
+                    port_list.append(443 if prefix == "https" else 80)
                 port_re = list(set(port_list))
                 if len(port_re) == 1:
                     port = int(port_re[0])
