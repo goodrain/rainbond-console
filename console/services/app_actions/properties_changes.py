@@ -185,7 +185,7 @@ class PropertiesChanges(object):
         }
 
     def new_dep_services_from_apps(self, apps, dep_uuids):
-        result = {}
+        result = []
         for app in apps:
             service_share_uuid = app.get("service_share_uuid", app["service_key"])
             if service_share_uuid not in dep_uuids:
