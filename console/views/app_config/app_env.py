@@ -413,6 +413,7 @@ class AppBuildEnvView(AppBaseView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    # 全量更新，build_env_dict必须为包含环境变量
     def put(self, request, *args, **kwargs):
         """
         修改构建运行时环境变量
@@ -426,11 +427,9 @@ class AppBuildEnvView(AppBaseView):
             build_envs = env_var_service.get_service_build_envs(self.service)
             # 传入为空，清除
             if not build_env_dict:
-                if not build_envs:
-                    return Response(general_message(200, "success", u"设置成功"))
                 for build_env in build_envs:
                     build_env.delete()
-                    return Response(general_message(200, "success", u"设置成功"))
+                return Response(general_message(200, "success", u"设置成功"))
 
             # 传入有值，清空再添加
             if build_envs:
