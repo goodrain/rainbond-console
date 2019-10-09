@@ -8,6 +8,8 @@ import logging
 import random
 import string
 
+from django.db.models import Q
+
 from console.constants import AppConstants
 from console.constants import SourceCodeType
 from console.exception.main import AccountOverdueException
@@ -345,40 +347,47 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, u"创建成功", ts
 
-    def get_app_list(self, tenant_pk, user, tenant_id, region):
+    def get_app_list(self, tenant_pk, user, tenant_id, region, query=""):
         user_pk = user.pk
         services = []
+
+        def list_services():
+            q = Q(tenant_id=tenant_id, service_region=region)
+            if query:
+                q &= Q(service_cname__contains=query)
+            return TenantServiceInfo.objects.filter(q)
+
         if user.is_sys_admin:
-            services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
+            services = list_services()
         else:
             perm = perms_repo.get_user_tenant_perm(tenant_pk, user_pk)
             if not perm:
                 if tenant_pk == 5073:
-                    services = TenantServiceInfo.objects.filter(
-                        tenant_id=tenant_id, service_region=region).order_by('service_alias')
-
+                    services = list_services().order_by('service_alias')
             else:
                 role_name = role_repo.get_role_name_by_role_id(perm.role_id)
                 if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
-                    services = TenantServiceInfo.objects.filter(
-                        tenant_id=tenant_id, service_region=region).order_by('service_alias')
+                    services = list_services().order_by('service_alias')
                 else:
                     dsn = BaseConnection()
                     add_sql = ''
+                    where = """
+                    WHERE
+                        s.tenant_id = "{tenant_id}"
+                        AND sp.user_id = { user_id }
+                        AND sp.service_id = s.ID
+                        AND s.service_cname LIKE "%{query}%"
+                        AND s.service_region = "{region}" { add_sql }""".format(
+                            tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
                     query_sql = '''
                         SELECT
                             s.*
                         FROM
                             tenant_service s,
                             service_perms sp
-                        WHERE
-                            s.tenant_id = "{tenant_id}"
-                            AND sp.user_id = { user_id }
-                            AND sp.service_id = s.ID
-                            AND s.service_region = "{region}" { add_sql }
+                        {where}
                         ORDER BY
-                            s.service_alias'''.format(
-                        tenant_id=tenant_id, user_id=user_pk, region=region, add_sql=add_sql)
+                            s.service_alias'''.format(where=where)
                     services = dsn.query(query_sql)
 
         return services
