@@ -96,7 +96,6 @@ class UserInfoView(BaseOpenAPIView):
         serializer = UserInfoSerializer(user)
         return Response(serializer.data)
 
-
     @swagger_auto_schema(
         operation_description="删除用户",
         responses={
