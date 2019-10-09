@@ -3,7 +3,9 @@
   Created on 18/2/1.
 """
 import logging
-
+import httplib2
+import httplib
+from urllib3.exceptions import MaxRetryError
 from django.core.paginator import Paginator
 from django.db.models import F
 from django.db.models import Min
@@ -308,6 +310,8 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
             total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
 
             result = general_message(200, "success", "查询成功", list=apps, total=total, next_page=int(page) + 1)
+        except (httplib2.ServerNotFoundError, httplib.ResponseNotReady) as e:
+            return Response(general_message(503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=503)
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
@@ -390,6 +394,8 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
                     next_page=int(apps.page) + 1)
             else:
                 return Response(general_message(200, "no apps", u"查询成功"), status=200)
+        except MaxRetryError as e:
+            return Response(general_message(503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=503)
         except ApiException as e:
             logger.exception(e)
             return Response(general_message(e.status, e.reason, u"云端获取应用列表失败"), status=e.status)
