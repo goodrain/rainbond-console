@@ -117,7 +117,6 @@ class DeleteTeamRegion(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-
     def delete(self, request, team_id):
         serializer = DeleteTeamReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
