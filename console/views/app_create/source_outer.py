@@ -104,7 +104,7 @@ def check_endpoints(endpoints):
                 return [], True
             logger.error("endpoint: {}; invalid endpoint address: {}".format(endpoint, json.dumps(errs)))
             return errs, False
-        return [], False
+    return [], False
 
 
 # 三方服务中api注册方式回调接口
@@ -184,6 +184,11 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             addresses = []
             for endpoint in endpoint_list:
                 addresses.append(endpoint["address"])
+            addr_list = [addr for addr in addresses]
+            addr_list.append(address)
+            errs, _ = check_endpoints(addr_list)
+            if len(errs) > 0:
+                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
             if address not in addresses:
                 # 添加
                 res, body = region_api.post_third_party_service_endpoints(
