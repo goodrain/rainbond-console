@@ -151,15 +151,6 @@ class ComposeService(object):
             return 500, "{0}".format(e.message), service_list
         return 200, "success", service_list
 
-    def verify_compose_services(self, tenant, region, data):
-        if data["check_status"] == "success":
-            service_info_list = data["service_info"]
-            # 默认128 M
-            new_add_memory = len(service_info_list) * 128
-            return app_service.verify_source(tenant, region, new_add_memory, "compose_service_create")
-        else:
-            return True, "check is not success"
-
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
         if service_dep_map:
             for key in service_dep_map.keys():

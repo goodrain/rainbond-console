@@ -657,6 +657,20 @@ class ServiceTcpDomainRepository(object):
         except ServiceTcpDomain.DoesNotExist:
             return None
 
+    def get_tcpdomain_by_end_point(self, region_id, end_point):
+        try:
+            hostport = end_point.split(":")
+            if len(hostport) > 1:
+                if hostport[0] == "0.0.0.0":
+                    query = Q(region_id=region_id, end_point__icontains=":{}".format(hostport[1]))
+                    return ServiceTcpDomain.objects.filter(query)
+                queryDefaultEndpoint = "0.0.0.0:{0}".format(hostport[1])
+                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=queryDefaultEndpoint)
+                return ServiceTcpDomain.objects.filter(query)
+            return None
+        except ServiceTcpDomain.DoesNotExist:
+            return None
+
     def add_service_tcpdomain(self, **domain_info):
         return ServiceTcpDomain.objects.create(**domain_info)
 

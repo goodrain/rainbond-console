@@ -86,81 +86,76 @@ class TeamOverView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        try:
-            overview_detail = dict()
-            users = team_services.get_team_users(self.team)
-            if users:
-                user_nums = len(users)
-                overview_detail["user_nums"] = user_nums
-                team_service_num = service_repo.get_team_service_num_by_team_id(
-                    team_id=self.team.tenant_id, region_name=self.response_region)
-                source = common_services.get_current_region_used_resource(
-                    self.team, self.response_region)
-                # 获取tcp和http策略数量
-                region = region_repo.get_region_by_region_name(
-                    self.response_region)
-                total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(
-                    self.team.tenant_id, region.region_id)
-                overview_detail["total_tcp_domain"] = total_tcp_domain
+        overview_detail = dict()
+        users = team_services.get_team_users(self.team)
+        if users:
+            user_nums = len(users)
+            overview_detail["user_nums"] = user_nums
+            team_service_num = service_repo.get_team_service_num_by_team_id(
+                team_id=self.team.tenant_id, region_name=self.response_region)
+            source = common_services.get_current_region_used_resource(
+                self.team, self.response_region)
+            # 获取tcp和http策略数量
+            region = region_repo.get_region_by_region_name(
+                self.response_region)
+            total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(
+                self.team.tenant_id, region.region_id)
+            overview_detail["total_tcp_domain"] = total_tcp_domain
 
-                total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(
-                    self.team.tenant_id, region.region_id)
-                overview_detail["total_http_domain"] = total_http_domain
+            total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(
+                self.team.tenant_id, region.region_id)
+            overview_detail["total_http_domain"] = total_http_domain
 
-                # 获取分享应用数量
-                groups = group_repo.get_tenant_region_groups(
-                    self.team.tenant_id, region.region_name)
-                share_app_num = 0
-                if groups:
-                    for group in groups:
-                        share_record = share_repo.get_service_share_record_by_groupid(
-                            group_id=group.ID)
-                        if share_record and share_record.step == 3:
-                            share_app_num += 1
-                overview_detail["share_app_num"] = share_app_num
+            # 获取分享应用数量
+            groups = group_repo.get_tenant_region_groups(
+                self.team.tenant_id, region.region_name)
+            share_app_num = 0
+            if groups:
+                for group in groups:
+                    share_record = share_repo.get_service_share_record_by_groupid(
+                        group_id=group.ID)
+                    if share_record and share_record.step == 3:
+                        share_app_num += 1
+            overview_detail["share_app_num"] = share_app_num
 
-                if source:
-                    team_app_num = group_repo.get_tenant_region_groups_count(
-                        self.team.tenant_id, self.response_region)
-                    overview_detail["team_app_num"] = team_app_num
-                    overview_detail["team_service_num"] = team_service_num
-                    overview_detail["team_service_memory_count"] = int(
-                        source["memory"])
-                    overview_detail["team_service_total_disk"] = int(
-                        source["disk"])
-                    overview_detail["team_service_total_cpu"] = int(
-                        source["limit_cpu"])
-                    overview_detail["team_service_total_memory"] = int(
-                        source["limit_memory"])
-                    overview_detail["team_service_use_cpu"] = int(
-                        source["cpu"])
-                    cpu_usage = 0
-                    memory_usage = 0
-                    if int(source["limit_cpu"]) != 0:
-                        cpu_usage = float(
-                            int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
-                    if int(source["limit_memory"]) != 0:
-                        memory_usage = float(
-                            int(source["memory"])) / float(int(source["limit_memory"])) * 100
-                    overview_detail["cpu_usage"] = round(cpu_usage, 2)
-                    overview_detail["memory_usage"] = round(memory_usage, 2)
-                    overview_detail["eid"] = self.team.enterprise_id
+            if source:
+                team_app_num = group_repo.get_tenant_region_groups_count(
+                    self.team.tenant_id, self.response_region)
+                overview_detail["team_app_num"] = team_app_num
+                overview_detail["team_service_num"] = team_service_num
+                overview_detail["team_service_memory_count"] = int(
+                    source["memory"])
+                overview_detail["team_service_total_disk"] = int(
+                    source["disk"])
+                overview_detail["team_service_total_cpu"] = int(
+                    source["limit_cpu"])
+                overview_detail["team_service_total_memory"] = int(
+                    source["limit_memory"])
+                overview_detail["team_service_use_cpu"] = int(
+                    source["cpu"])
+                cpu_usage = 0
+                memory_usage = 0
+                if int(source["limit_cpu"]) != 0:
+                    cpu_usage = float(
+                        int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+                if int(source["limit_memory"]) != 0:
+                    memory_usage = float(
+                        int(source["memory"])) / float(int(source["limit_memory"])) * 100
+                overview_detail["cpu_usage"] = round(cpu_usage, 2)
+                overview_detail["memory_usage"] = round(memory_usage, 2)
+                overview_detail["eid"] = self.team.enterprise_id
 
-                return Response(general_message(200, "success", "查询成功", bean=overview_detail))
-            else:
-                data = {
-                    "user_nums": 1,
-                    "team_service_num": 0,
-                    "total_memory": 0,
-                    "eid": self.team.enterprise_id,
-                }
-                result = general_message(
-                    200, "success", "团队信息总览获取成功", bean=data)
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+            return Response(general_message(200, "success", "查询成功", bean=overview_detail))
+        else:
+            data = {
+                "user_nums": 1,
+                "team_service_num": 0,
+                "total_memory": 0,
+                "eid": self.team.enterprise_id,
+            }
+            result = general_message(
+                200, "success", "团队信息总览获取成功", bean=data)
+            return Response(result, status=200)
 
 
 class ServiceGroupView(RegionTenantHeaderView):
@@ -514,8 +509,8 @@ class TeamAppSortViewView(RegionTenantHeaderView):
                     share_record_num = share_repo.get_app_share_record_count_by_groupid(
                         group_id=group.ID)
                     app_dict["share_record_num"] = share_record_num
-                    backup_records = backup_record_repo.get_group_backup_records(self.team.tenant_id, self.response_region,
-                                                                                 group.ID)
+                    backup_records = backup_record_repo.get_group_backup_records(
+                        self.team.tenant_id, self.response_region, group.ID)
                     backup_record_num = len(backup_records)
                     app_dict["backup_record_num"] = backup_record_num
                     # 服务数量记录

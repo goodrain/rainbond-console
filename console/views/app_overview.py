@@ -105,7 +105,9 @@ class AppDetailView(AppBaseView):
                     apps_list = apps_template.get("apps")
                     for app in apps_list:
                         if app["service_key"] == self.service.service_key:
-                            if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
+                            if self.service.deploy_version and int(
+                                    app["deploy_version"]) > int(
+                                    self.service.deploy_version):
                                 self.service.is_upgrate = True
                                 self.service.save()
                                 bean.update({"service": service_model})
@@ -300,51 +302,47 @@ class ListAppPodsView(AppBaseView):
               paramType: path
         """
 
-        try:
-            data = region_api.get_service_pods(self.service.service_region,
-                                               self.tenant.tenant_name,
-                                               self.service.service_alias,
-                                               self.tenant.enterprise_id)
-            result = {}
-            if data["bean"]:
-                def foobar(data):
-                    if data is None:
-                        return
-                    res = []
-                    for d in data:
-                        bean = dict()
-                        bean["pod_name"] = d["pod_name"]
-                        bean["pod_status"] = d["pod_status"]
-                        bean["manage_name"] = "manager"
-                        container = d["container"]
-                        container_list = []
-                        for key, val in container.items():
-                            if key == "POD":
-                                continue
-                            if key != self.service.service_id:
-                                continue
-                            container_dict = dict()
-                            container_dict["container_name"] = key
-                            memory_limit = float(val["memory_limit"]) / 1024 / 1024
-                            memory_usage = float(val["memory_usage"]) / 1024 / 1024
-                            usage_rate = 0
-                            if memory_limit:
-                                usage_rate = memory_usage * 100 / memory_limit
-                            container_dict["memory_limit"] = round(memory_limit, 2)
-                            container_dict["memory_usage"] = round(memory_usage, 2)
-                            container_dict["usage_rate"] = round(usage_rate, 2)
-                            container_list.append(container_dict)
-                        bean["container"] = container_list
-                        res.append(bean)
-                    return res
-                pods = data["bean"]
-                newpods = foobar(pods.get("new_pods", None))
-                old_pods = foobar(pods.get("old_pods", None))
-                result = {"new_pods": newpods, "old_pods": old_pods}
-            result = general_message(200, "success", "操作成功", list=result)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        data = region_api.get_service_pods(self.service.service_region,
+                                           self.tenant.tenant_name,
+                                           self.service.service_alias,
+                                           self.tenant.enterprise_id)
+        result = {}
+        if data["bean"]:
+            def foobar(data):
+                if data is None:
+                    return
+                res = []
+                for d in data:
+                    bean = dict()
+                    bean["pod_name"] = d["pod_name"]
+                    bean["pod_status"] = d["pod_status"]
+                    bean["manage_name"] = "manager"
+                    container = d["container"]
+                    container_list = []
+                    for key, val in container.items():
+                        if key == "POD":
+                            continue
+                        if key != self.service.service_id:
+                            continue
+                        container_dict = dict()
+                        container_dict["container_name"] = key
+                        memory_limit = float(val["memory_limit"]) / 1024 / 1024
+                        memory_usage = float(val["memory_usage"]) / 1024 / 1024
+                        usage_rate = 0
+                        if memory_limit:
+                            usage_rate = memory_usage * 100 / memory_limit
+                        container_dict["memory_limit"] = round(memory_limit, 2)
+                        container_dict["memory_usage"] = round(memory_usage, 2)
+                        container_dict["usage_rate"] = round(usage_rate, 2)
+                        container_list.append(container_dict)
+                    bean["container"] = container_list
+                    res.append(bean)
+                return res
+            pods = data["bean"]
+            newpods = foobar(pods.get("new_pods", None))
+            old_pods = foobar(pods.get("old_pods", None))
+            result = {"new_pods": newpods, "old_pods": old_pods}
+        result = general_message(200, "success", "操作成功", list=result)
         return Response(result, status=result["code"])
 
     @never_cache

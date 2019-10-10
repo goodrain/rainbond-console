@@ -153,12 +153,6 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user):
-        from console.services.app import app_service
-        new_add_memory = service.min_memory * service.min_node
-        allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
-        if not allow_start:
-            return 412, "资源不足，无法启动应用", None
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -169,6 +163,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -202,6 +199,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -265,6 +265,9 @@ class AppManageService(AppManageBase):
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
             return 507, "构建异常", ""
+        except region_api.ResourceNotEnoughError as e:
+            logger.exception(e)
+            return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试", ""
@@ -409,6 +412,9 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             return 507, "更新异常", ""
+        except region_api.ResourceNotEnoughError as e:
+            logger.exception(e)
+            return 412, e.msg
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试", ""
@@ -462,6 +468,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -514,7 +523,6 @@ class AppManageService(AppManageBase):
         one_service = services[0]
         region_name = one_service.service_region
         try:
-            logger.debug('--------12222222222----___>{0}'.format(json.dumps(data)))
             region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             return 200, "操作成功"
         except region_api.CallApiError as e:
@@ -526,14 +534,9 @@ class AppManageService(AppManageBase):
         start_infos_list = []
         body["start_infos"] = start_infos_list
         for service in services:
-            from console.services.app import app_service
             if service.service_source == "":
                 continue
             service_dict = dict()
-            new_add_memory = service.min_memory * service.min_node
-            allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
-            if not allow_start:
-                continue
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
                 start_infos_list.append(service_dict)
@@ -711,6 +714,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -736,6 +742,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, u"服务异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"

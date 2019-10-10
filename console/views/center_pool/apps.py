@@ -138,7 +138,6 @@ class CenterAppView(RegionTenantHeaderView):
                 code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
 
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy,
                                                install_from_cloud)

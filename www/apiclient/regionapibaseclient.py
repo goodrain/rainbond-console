@@ -19,6 +19,8 @@ from goodrain_web.decorator import method_perf_time
 
 logger = logging.getLogger('default')
 
+resource_not_enough_message = {"cluster_lack_of_memory": "集群资源不足，请联系集群管理员", "tenant_lack_of_memory": "团队可用资源不足，请联系企业管理员"}
+
 
 class RegionApiBaseHttpClient(object):
     class CallApiError(Exception):
@@ -60,6 +62,18 @@ class RegionApiBaseHttpClient(object):
     class ApiSocketError(CallApiError):
         pass
 
+    class InvalidLicenseError(Exception):
+        pass
+
+    class ResourceNotEnoughError(Exception):
+        def __init__(self, status, body):
+            self.body = body
+            self.status = status
+            if resource_not_enough_message[body.msg]:
+                self.msg = resource_not_enough_message[body.msg]
+            else:
+                self.msg = "资源不足，请联系管理员"
+
     def __init__(self, *args, **kwargs):
         self.timeout = 5
         self.apitype = 'Not specified'
@@ -85,6 +99,11 @@ class RegionApiBaseHttpClient(object):
             if status == 409:
                 raise self.CallApiFrequentError(
                     self.apitype, url, method, res, body)
+            if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
+                logger.warning(body["bean"]["msg"])
+                raise self.InvalidLicenseError()
+            if status == 412:
+                raise self.ResourceNotEnoughError(status, body)
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body
