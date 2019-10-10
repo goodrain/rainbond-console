@@ -655,9 +655,8 @@ class AppService(object):
                         raise ErrDoNotSupportMultiDomain("do not support multi domain address")
         endpoints_dict = dict()
         if endpoints:
-            if endpoints.endpoints_type != "api":
-                endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
-                data["endpoints"] = endpoints_dict
+            endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+            data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
         # 数据中心创建
