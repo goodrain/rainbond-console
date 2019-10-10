@@ -16,6 +16,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
+from openapi.serializer.team_serializer import DeleteTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
@@ -103,6 +104,38 @@ class ListTeamInfo(ListAPIView):
             return Response(re.data, status=status.HTTP_201_CREATED)
         else:
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DeleteTeamRegion(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="delete team region",
+        request_body=DeleteTeamReqSerializer(),
+        responses={
+            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+
+    def delete(self, request, team_id):
+        serializer = DeleteTeamReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team_data = serializer.data
+
+        en = enterprise_services.get_enterprise_by_enterprise_id(request.data.get("enterprise_id"))
+        if not en:
+            raise serializers.ValidationError("指定企业不存在")
+        region = None
+        if team_data.get("region", None):
+            region = region_services.get_region_by_region_name(team_data.get("region"))
+            if not region:
+                raise serializers.ValidationError("指定数据中心不存在")
+        code, msg, region = team_services.delete_team_region(en, team_id, region)
+        if code == 200:
+            return Response(None, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_404_NOT_FOUND)
 
 
 class TeamInfo(BaseOpenAPIView):

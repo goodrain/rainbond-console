@@ -227,6 +227,20 @@ class RegionService(object):
         group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
         return 200, u"success", tenant_region
 
+    def close_tenant_on_region(self, team_name, region_name):
+        tenant = team_repo.get_team_by_team_name(team_name)
+        if not tenant:
+            return 404, u"需要关闭的团队{0}不存在".format(team_name), None
+        region_config = region_repo.get_region_by_region_name(region_name)
+        if not region_config:
+            return 404, u"需要关闭的数据中心{0}不存在".format(region_name), None
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
+        if not tenant_region:
+            return 404, u"需要关闭的数据中心{0}不存在".format(region_name), None
+        tenant_region.is_deleted = True
+        tenant_region.save()
+        return 200, u"success", tenant_region
+
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
         try:
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)

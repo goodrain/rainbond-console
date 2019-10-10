@@ -23,6 +23,7 @@ from openapi.views.region_view import RegionInfo
 from openapi.views.region_view import RegionStatusView
 from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListTeamInfo
+from openapi.views.team_view import DeleteTeamRegion
 from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import ListUserRolesView
 from openapi.views.team_view import TeamInfo
@@ -58,6 +59,7 @@ urlpatterns = [
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/team/(?P<team_id>[\w\-]+)/region$', DeleteTeamRegion.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),

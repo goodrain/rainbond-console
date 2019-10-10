@@ -75,7 +75,8 @@ class ListUsersView(ListAPIView):
             user_services.create(req.data)
             return Response(None, status.HTTP_201_CREATED)
         except (UserExistError, EmailExistError, PhoneExistError) as e:
-            return Response({"msg": e.message}, status.HTTP_400_BAD_REQUEST)
+            print (e.message)
+            return Response(e.message, status.HTTP_400_BAD_REQUEST)
 
 
 class UserInfoView(BaseOpenAPIView):
@@ -86,15 +87,15 @@ class UserInfoView(BaseOpenAPIView):
     )
     def get(self, req, user_id, *args, **kwargs):
         try:
+            uid = int(user_id)
+            user = user_services.get_user_by_user_id(uid)
+        except (ValueError, UserNotExistError):
             try:
-                uid = int(user_id)
-                user = user_services.get_user_by_user_id(uid)
-            except ValueError:
                 user = user_services.get_user_by_user_name(user_id)
-            serializer = UserInfoSerializer(user)
-            return Response(serializer.data)
-        except UserNotExistError:
-            return Response(None, status.HTTP_404_NOT_FOUND)
+            except UserNotExistError:
+                return Response(None, status.HTTP_404_NOT_FOUND)
+        serializer = UserInfoSerializer(user)
+        return Response(serializer.data)
 
     @swagger_auto_schema(
         operation_description="删除用户",
