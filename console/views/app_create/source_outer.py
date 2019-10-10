@@ -317,21 +317,14 @@ class ThirdPartyAppPodsView(AppBaseView):
         is_online = request.data.get("is_online", True)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-
-        errs, is_domain = check_endpoints([address])
-        if errs:
-            return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
-
         try:
             res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
                                                                 self.service.service_alias)
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
             endpoint_list = body["list"]
-            if is_domain and len(endpoint_list) > 0:
-                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
             for endpoint in endpoint_list:
-                errs, _ = check_endpoints([endpoint["address"]])
+                errs, _ = check_endpoints([endpoint["address"], address])
                 if len(errs) > 0:
                     return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
         except Exception as e:
