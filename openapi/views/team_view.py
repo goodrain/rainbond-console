@@ -117,7 +117,6 @@ class DeleteTeamRegion(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-
     def delete(self, request, team_id):
         serializer = DeleteTeamReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -131,9 +130,10 @@ class DeleteTeamRegion(BaseOpenAPIView):
             region = region_services.get_region_by_region_name(team_data.get("region"))
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
-        code, msg, region = team_services.delete_team_region(en, team_id, region)
+        code, msg, team = team_services.delete_team_region(en, team_id, region)
         if code == 200:
-            return Response(None, status=status.HTTP_200_OK)
+            re = TeamBaseInfoSerializer(team)
+            return Response(re.data, status=status.HTTP_200_OK)
         else:
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 

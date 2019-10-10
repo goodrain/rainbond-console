@@ -452,7 +452,7 @@ class TeamService(object):
             return 404, u"需要关闭的数据中心{0}不存在".format(tenant_region.region_name), None
         tenant_region.is_deleted = True
         tenant_region.save()
-        return 200, u"success", tenant_region
+        return 200, u"success", tenant.first()
 
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):
         from console.services.user_services import user_services
