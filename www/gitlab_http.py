@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 from urllib import urlencode
 
 import httplib2
@@ -10,7 +11,7 @@ from goodrain_web.custom_config import custom_config
 
 logger = logging.getLogger('default')
 
-PREFIX = "api/v3"
+PREFIX = "api/v4"
 
 
 class GitlabApi(BaseHttpClient):
@@ -37,23 +38,7 @@ class GitlabApi(BaseHttpClient):
                 setattr(self, k, v)
 
     def get_private_token(self):
-        self._reload()
-        private_token = ""
-        body = {}
-        body["login"] = self.admin_user
-        body["email"] = self.admin_email
-        body["password"] = self.admin_password
-        url = self.url + PREFIX + "/session"
-        headers = {'Content-Type': 'application/json'}
-        num = 0
-        while num < 2 and private_token == "":
-            try:
-                num = num + 1
-                res, body = self._post(url, headers, json.dumps(body))
-                private_token = body["private_token"]
-            except Exception as e:
-                logger.exception(e)
-        return private_token
+        return os.getenv("GITLAB_PRIVATE_TOKEN")
 
     def getUser(self, user_id):
         self._reload()

@@ -6,9 +6,10 @@ import datetime
 import json
 import logging
 import socket
-
+import httplib2
 from django.db.models import Q
 
+from urllib3.exceptions import MaxRetryError
 from console.constants import AppConstants
 from console.exception.main import AbortRequest
 from console.exception.main import ErrPluginAlreadyInstalled
@@ -827,8 +828,12 @@ class MarketAppService(object):
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
     def get_remote_market_apps(self, tenant, page, page_size, app_name):
-        body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
-        data = body.get("data")
+        data = {}
+        try:
+            body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
+            data = body.get("data")
+        except httplib2.ServerNotFoundError as e:
+            raise e
         if not data:
             return 0, []
         remote_apps = data.get("list", None)
@@ -1295,6 +1300,10 @@ class AppMarketSynchronizeService(object):
             else:
                 market_client = get_default_market_client()
             return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
+        # except httplib2.ServerNotFoundError as e:
+        except MaxRetryError as e:
+            print("eee : ", e)
+            raise e
         except socket.timeout:
             logger.warning("request cloud app list timeout")
             return None

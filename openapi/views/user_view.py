@@ -75,7 +75,6 @@ class ListUsersView(ListAPIView):
             user_services.create(req.data)
             return Response(None, status.HTTP_201_CREATED)
         except (UserExistError, EmailExistError, PhoneExistError) as e:
-            print (e.message)
             return Response(e.message, status.HTTP_400_BAD_REQUEST)
 
 

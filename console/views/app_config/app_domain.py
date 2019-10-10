@@ -123,8 +123,8 @@ class TenantCertificateView(RegionTenantHeaderView):
             certificate = request.data.get("certificate", None)
             certificate_type = request.data.get("certificate_type", None)
             certificate_id = make_uuid()
-            code, msg, new_c = domain_service.add_certificate(self.tenant, alias, certificate_id, certificate, private_key,
-                                                              certificate_type)
+            code, msg, new_c = domain_service.add_certificate(
+                self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
             if code != 200:
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}
@@ -209,8 +209,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
             certificate_type = request.data.get("certificate_type", None)
-            code, msg = domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate, private_key,
-                                                          certificate_type)
+            code, msg = domain_service.update_certificate(
+                self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
             if code != 200:
                 return Response(general_message(code, "update certificate error", msg), status=code)
 
@@ -341,8 +341,8 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
 
             # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
-                                                                                  domain_name, protocol)
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
+                self.service.service_id, container_port, domain_name, protocol)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
@@ -354,8 +354,9 @@ class ServiceDomainView(AppBaseView):
             # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
             if protocol == "httpandhttps":
                 certificate_id = 0
-                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                       protocol, certificate_id, DomainType.WWW, rule_extensions)
+                code, msg = domain_service.bind_domain(
+                    self.tenant, self.user, self.service, domain_name, container_port, protocol, certificate_id,
+                    DomainType.WWW, rule_extensions)
                 if code != 200:
                     return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -492,20 +493,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
-            # 判断域名格式(如果用户添加的域名与默认域名后缀一致，那么他后缀必须是 "租户别名.默认后缀"
-            #
-            # 比如默认域名后缀是:37e53f.grapps.cn  这个值来自于region_info  http_domain
-            # 那么如果它绑定 xxx.37e53f.grapps.cn是不允许的，只能绑定：
-            # xxx.yaufe6r5.37e53f.grapps.cn
-            #
-            # 此限制是防止租户之间盗用域名。)
-            region = region_repo.get_region_by_region_name(
-                service.service_region)
-            if domain_name.endswith(region.httpdomain):
-                domain_name_spt = domain_name.split(region.httpdomain)
-                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.')) - 2]:
-                    return Response(
-                        general_message(400, "the default domain include other tenant name", "默认域名不允许包含其他团队别名"), status=400)
+
             protocol = "http"
             if certificate_id:
                 protocol = "https"
@@ -544,10 +532,9 @@ class HttpStrategyView(RegionTenantHeaderView):
                     tenant_service_port = port_service.get_service_port_by_port(
                         service, container_port)
                     # 仅开启对外端口
-                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
-                                                               int(
-                                                                   tenant_service_port.container_port), "only_open_outer",
-                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                    code, msg, data = port_service.manage_port(
+                        self.tenant, service, service.service_region, int(tenant_service_port.container_port),
+                        "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(code, "change port fail", msg), status=code)
                 except Exception:
@@ -560,9 +547,9 @@ class HttpStrategyView(RegionTenantHeaderView):
                     general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
             # 绑定端口(添加策略)
-            code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port,
-                                                             protocol, certificate_id, DomainType.WWW, domain_path,
-                                                             domain_cookie, domain_heander, the_weight, rule_extensions)
+            code, msg, data = domain_service.bind_httpdomain(
+                self.tenant, self.user, service, domain_name, container_port, protocol, certificate_id, DomainType.WWW,
+                domain_path, domain_cookie, domain_heander, the_weight, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -603,20 +590,6 @@ class HttpStrategyView(RegionTenantHeaderView):
             if not service:
                 return Response(general_message(400, "not service", "服务不存在"), status=400)
 
-            # 判断域名格式(如果用户添加的域名与默认域名后缀一致，那么他后缀必须是 "租户别名.默认后缀"
-            #
-            # 比如默认域名后缀是:37e53f.grapps.cn  这个值来自于region_info  http_domain
-            # 那么如果它绑定 xxx.37e53f.grapps.cn是不允许的，只能绑定：
-            # xxx.yaufe6r5.37e53f.grapps.cn
-            #
-            # 此限制是防止租户之间盗用域名。)
-            region = region_repo.get_region_by_region_name(
-                service.service_region)
-            if domain_name.endswith(region.httpdomain):
-                domain_name_spt = domain_name.split(region.httpdomain)
-                if self.tenant.tenant_name != domain_name_spt[0].split('.')[len(domain_name_spt[0].split('.')) - 2]:
-                    return Response(general_message(400, "the domain name format is incorrect", "域名格式不正确"), status=400)
-
             # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
             add_httptohttps = False
             if rule_extensions:
@@ -638,9 +611,9 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(result, status=400)
 
             # 编辑域名
-            code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
-                                                               certificate_id, DomainType.WWW, domain_path, domain_cookie,
-                                                               domain_heander, http_rule_id, the_weight, rule_extensions)
+            code, msg, data = domain_service.update_httpdomain(
+                self.tenant, self.user, service, domain_name, container_port, certificate_id, DomainType.WWW,
+                domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -793,8 +766,8 @@ class SecondLevelDomainView(AppBaseView):
                     self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
                 if code != 200:
                     return Response(general_message(code, "unbind domain error", msg), status=code)
-                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,
-                                           DomainType.SLD_DOMAIN)
+                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
+                                           container_port, "http", None, DomainType.SLD_DOMAIN)
 
             result = general_message(200, "success", "二级域名修改成功")
         except Exception as e:
@@ -930,9 +903,10 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 if search_conditions:
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("""select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and
-                        domain_name like '%{2}%' or service_alias like '%{3}%';""".format(
-                        tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                    cursor.execute(
+                        """select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and
+                        domain_name like '%{2}%' or service_alias like '%{3}%';""".
+                        format(tenant.tenant_id, region.region_id, search_conditions, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -1089,10 +1063,9 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                     tenant_service_port = port_service.get_service_port_by_port(
                         service, container_port)
                     # 仅打开对外端口
-                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
-                                                               int(
-                                                                   tenant_service_port.container_port), "only_open_outer",
-                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                    code, msg, data = port_service.manage_port(
+                        self.tenant, service, service.service_region, int(tenant_service_port.container_port),
+                        "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(code, "change port fail", msg), status=code)
                 except Exception:
@@ -1148,8 +1121,9 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 protocol = ''
 
             # 修改策略
-            code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port, tcp_rule_id,
-                                                        protocol, type, rule_extensions, default_ip)
+            code, msg = domain_service.update_tcpdomain(
+                self.tenant, self.user, service, end_point, container_port, tcp_rule_id, protocol, type,
+                rule_extensions, default_ip)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)

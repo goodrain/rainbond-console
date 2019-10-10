@@ -7,7 +7,8 @@ class UserExistError(Exception):
     """
 
     def __init__(self, message):
-        super(UserExistError, self).__init__(message)
+        msg = "用户名已存在"
+        super(UserExistError, self).__init__(msg)
 
 
 class EmailExistError(Exception):
@@ -16,16 +17,18 @@ class EmailExistError(Exception):
     """
 
     def __init__(self, message):
-        super(EmailExistError, self).__init__(message)
+        msg = "邮箱已存在"
+        super(EmailExistError, self).__init__(msg)
 
 
 class PhoneExistError(Exception):
     """
-    邮箱已存在异常
+    手机号已存在异常
     """
 
     def __init__(self, message):
-        super(PhoneExistError, self).__init__(message)
+        msg = "手机号已存在"
+        super(PhoneExistError, self).__init__(msg)
 
 
 class PasswordTooShortError(Exception):

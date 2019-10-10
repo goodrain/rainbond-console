@@ -90,7 +90,7 @@ class ListTeamInfo(ListAPIView):
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
         try:
-            user = user_services.get_user_by_user_id(team_data.get("creator", 0))
+            user = user_services.get_user_by_user_id(team_data.get("creater", 0))
         except UserNotExistError:
             user = request.user
         code, msg, team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
