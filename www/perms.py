@@ -31,8 +31,8 @@ class PermActions(object):
                                 ('create_three_service', u'创建三方服务')) + tenant_viewer_actions
 
     tenant_admin_actions = (('manage_team_member_permissions', u'团队权限设置'), ('tenant_open_region', u'开通数据中心'),
-                            ('tenant_close_region', u'关闭数据中心'),('delete_service', u"删除应用"),('share_service', u"应用组分享"),
-                            ('share_plugin', u"插件分享"),('manage_service_member_perms', u'应用权限设置'),
+                            ('tenant_close_region', u'关闭数据中心'), ('delete_service', u"删除应用"), ('share_service', u"应用组分享"),
+                            ('share_plugin', u"插件分享"), ('manage_service_member_perms', u'应用权限设置'),
                             ('tenant_manage_role', u'自定义角色')) + tenant_developer_actions
 
     tenant_owner_actions = (('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
