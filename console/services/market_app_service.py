@@ -9,9 +9,8 @@ import socket
 import httplib2
 from django.db.models import Q
 
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
-from console.exception.main import AbortRequest
 from console.exception.main import ErrPluginAlreadyInstalled
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
@@ -683,25 +682,6 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def check_package_app_resource(self, tenant, region, market_app):
-        app_templates = json.loads(market_app.app_template)
-        logger.info(app_templates)
-        apps = app_templates["apps"]
-        total_memory = 0
-        for app in apps:
-            extend_method = app.get("extend_method_map", None)
-            if not extend_method:
-                min_node = 1
-                min_memory = 128
-            else:
-                min_node = int(extend_method.get("min_node", 1))
-                min_memory = int(extend_method.get("min_memory", 128))
-            total_memory += min_node * min_memory
-        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "market_app_create")
-        if not allow_create:
-            raise AbortRequest(msg="over resource", msg_show=u"应用所需内存大小为{0}，{1}".format(total_memory, tips),
-                               status_code=412)
-
     def get_visiable_apps(self, tenant, scope, app_name):
 
         if scope == "team":
@@ -832,7 +812,7 @@ class MarketAppService(object):
         try:
             body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
             data = body.get("data")
-        except httplib2.ServerNotFoundError as e:
+        except (httplib2.ServerNotFoundError, region_api.CallApiError) as e:
             raise e
         if not data:
             return 0, []
@@ -1299,13 +1279,13 @@ class AppMarketSynchronizeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
-        # except httplib2.ServerNotFoundError as e:
-        except MaxRetryError as e:
-            print("eee : ", e)
+            return market_client.get_recommended_app_list_with_http_info(
+                page=page, limit=limit, group_name=app_name, _request_timeout=3)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
             raise e
-        except socket.timeout:
-            logger.warning("request cloud app list timeout")
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
             return None
 
     def get_enterprise_access_token(self, enterprise_id, access_target):

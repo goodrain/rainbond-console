@@ -110,3 +110,8 @@ class ErrDepVolumeNotFound(Exception):
 class ErrPluginAlreadyInstalled(Exception):
     def __init__(self, msg):
         super(ErrPluginAlreadyInstalled, self).__init__(msg)
+
+
+class ErrDoNotSupportMultiDomain(Exception):
+    def __init__(self, msg):
+        super(ErrDoNotSupportMultiDomain, self).__init__(msg)

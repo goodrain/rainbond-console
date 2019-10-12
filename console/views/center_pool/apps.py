@@ -5,12 +5,10 @@
 import logging
 import httplib2
 import httplib
-from urllib3.exceptions import MaxRetryError
 from django.core.paginator import Paginator
 from django.db.models import F
 from django.db.models import Min
 from django.views.decorators.cache import never_cache
-from market_client.rest import ApiException
 from rest_framework.response import Response
 
 from console.exception.main import AccountOverdueException
@@ -140,7 +138,6 @@ class CenterAppView(RegionTenantHeaderView):
                 code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-            market_app_service.check_package_app_resource(self.tenant, self.response_region, app)
 
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy,
                                                install_from_cloud)
@@ -311,13 +308,14 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
 
             result = general_message(200, "success", "查询成功", list=apps, total=total, next_page=int(page) + 1)
         except (httplib2.ServerNotFoundError, httplib.ResponseNotReady) as e:
-            return Response(general_message(503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=503)
+            logger.exception(e)
+            return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
                 return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
             else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
+                return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -394,8 +392,6 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
                     next_page=int(apps.page) + 1)
             else:
                 return Response(general_message(200, "no apps", u"查询成功"), status=200)
-        except MaxRetryError as e:
-            return Response(general_message(503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=503)
-        except ApiException as e:
+        except Exception as e:
             logger.exception(e)
-            return Response(general_message(e.status, e.reason, u"云端获取应用列表失败"), status=e.status)
+            return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)

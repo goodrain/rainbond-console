@@ -263,7 +263,6 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             # 查询某一个云市应用下的所有服务
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
-                market_app_service.check_package_app_resource(self.tenant, self.response_region, new_app)
                 install_info = market_app_service.install_service_when_upgrade_app(
                     self.tenant, self.response_region, self.user, group_id, new_app, old_app, services, True)
 
