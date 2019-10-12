@@ -15,7 +15,6 @@ from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import extend_repo
-from console.repositories.app_config import image_service_relation_repo
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
@@ -23,7 +22,6 @@ from console.repositories.app_config import volume_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.compose_repo import compose_repo
-from console.repositories.event_repo import event_repo
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.label_repo import service_label_repo
@@ -188,9 +186,10 @@ class GroupAppBackupService(object):
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [sgr.service_id for sgr in service_group_relations]
         services = service_repo.get_services_by_service_ids(service_ids)
+
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
-        all_data["compose_service_relation"] = [relation.to_dict()
-                                                for relation in compose_service_relation] if compose_service_relation else None
+        all_data["compose_service_relation"] = [
+            relation.to_dict() for relation in compose_service_relation] if compose_service_relation else None
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
@@ -209,7 +208,6 @@ class GroupAppBackupService(object):
         service_labels = service_label_repo.get_service_labels(service.service_id)
         service_domains = domain_repo.get_service_domains(service.service_id)
         service_tcpdomains = tcp_domain.get_service_tcpdomains(service.service_id)
-        service_events = event_repo.get_specified_num_events(tenant.tenant_id, service.service_id)
         service_perms = service_perm_repo.get_service_perms_by_service_pk(service.ID)
         service_probes = probe_repo.get_service_probe(service.service_id)
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
@@ -217,7 +215,6 @@ class GroupAppBackupService(object):
         service_env_vars = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
         service_compile_env = compile_env_repo.get_service_compile_env(service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(service)
-        image_service_relation = image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service.service_id)
         service_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
         service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
@@ -231,7 +228,6 @@ class GroupAppBackupService(object):
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],
             "service_tcpdomains": [tcpdomain.to_dict() for tcpdomain in service_tcpdomains],
-            "service_events": [event.to_dict() for event in service_events],
             "service_perms": [perm.to_dict() for perm in service_perms],
             "service_probes": [probe.to_dict() for probe in service_probes],
             "service_source": service_source.to_dict() if service_source else None,
@@ -239,7 +235,6 @@ class GroupAppBackupService(object):
             "service_env_vars": [env_var.to_dict() for env_var in service_env_vars],
             "service_compile_env": service_compile_env.to_dict() if service_compile_env else None,
             "service_extend_method": service_extend_method.to_dict() if service_extend_method else None,
-            "image_service_relation": image_service_relation.to_dict() if image_service_relation else None,
             "service_mnts": [mnt.to_dict() for mnt in service_mnts],
             "service_plugin_relation": [plugin_relation.to_dict() for plugin_relation in service_plugin_relation],
             "service_plugin_config": [config.to_dict() for config in service_plugin_config],
