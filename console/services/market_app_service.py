@@ -9,7 +9,7 @@ import socket
 import httplib2
 from django.db.models import Q
 
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
 from console.exception.main import AbortRequest
 from console.exception.main import ErrPluginAlreadyInstalled
@@ -832,7 +832,7 @@ class MarketAppService(object):
         try:
             body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
             data = body.get("data")
-        except httplib2.ServerNotFoundError as e:
+        except (httplib2.ServerNotFoundError, region_api.CallApiError) as e:
             raise e
         if not data:
             return 0, []
@@ -1299,13 +1299,13 @@ class AppMarketSynchronizeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
-        # except httplib2.ServerNotFoundError as e:
-        except MaxRetryError as e:
-            print("eee : ", e)
+            return market_client.get_recommended_app_list_with_http_info(
+                page=page, limit=limit, group_name=app_name, _request_timeout=3)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
             raise e
-        except socket.timeout:
-            logger.warning("request cloud app list timeout")
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
             return None
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
