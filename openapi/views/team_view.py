@@ -16,7 +16,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
-from openapi.serializer.team_serializer import DeleteTeamReqSerializer
+from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
@@ -104,38 +104,6 @@ class ListTeamInfo(ListAPIView):
             return Response(re.data, status=status.HTTP_201_CREATED)
         else:
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class DeleteTeamRegion(BaseOpenAPIView):
-    @swagger_auto_schema(
-        operation_description="delete team region",
-        request_body=DeleteTeamReqSerializer(),
-        responses={
-            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
-        },
-        tags=['openapi-team'],
-    )
-    def delete(self, request, team_id):
-        serializer = DeleteTeamReqSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        team_data = serializer.data
-
-        en = enterprise_services.get_enterprise_by_enterprise_id(request.data.get("enterprise_id"))
-        if not en:
-            raise serializers.ValidationError("指定企业不存在")
-        region = None
-        if team_data.get("region", None):
-            region = region_services.get_region_by_region_name(team_data.get("region"))
-            if not region:
-                raise serializers.ValidationError("指定数据中心不存在")
-        code, msg, team = team_services.delete_team_region(en, team_id, region)
-        if code == 200:
-            re = TeamBaseInfoSerializer(team)
-            return Response(re.data, status=status.HTTP_200_OK)
-        else:
-            return Response(None, status=status.HTTP_404_NOT_FOUND)
 
 
 class TeamInfo(BaseOpenAPIView):
@@ -387,3 +355,59 @@ class ListRegionsView(ListAPIView):
         serializer = ListTeamRegionsRespSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="开通数据中心",
+        request_body=TeamRegionReqSerializer(),
+        responses={
+            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def post(self, request, team_id):
+        serializer = TeamRegionReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team_data = serializer.data
+
+        region = None
+        if team_data.get("region", None):
+            region = region_services.get_region_by_region_name(team_data.get("region"))
+            if not region:
+                raise serializers.ValidationError("指定数据中心不存在")
+        team = team_services.get_team_by_team_id(team_id)
+        code, message, bean = region_services.create_tenant_on_region(team.tenant_name, region.region_name)
+        if code != 200:
+            raise serializers.ValidationError("数据中心创建团队时发生错误")
+        if code == 200:
+            re = TeamBaseInfoSerializer(team)
+            return Response(re.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @swagger_auto_schema(
+        operation_description="关闭数据中心",
+        request_body=TeamRegionReqSerializer(),
+        responses={
+            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def delete(self, request, team_id):
+        serializer = TeamRegionReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team_data = serializer.data
+        region = team_data.get("region", None)
+        if region:
+            region = region_services.get_region_by_region_name(region)
+            if not region:
+                raise serializers.ValidationError("指定数据中心不存在")
+        code, msg, team = team_services.delete_team_region(team_id, region)
+        if code == 200:
+            re = TeamBaseInfoSerializer(team)
+            return Response(re.data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_404_NOT_FOUND)

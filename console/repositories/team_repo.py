@@ -134,9 +134,6 @@ class TeamRepo(object):
     def get_team_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
-    def get_team_by_enterprise_id_and_team_name(self, enterprise_id, team_id):
-        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_id=team_id)
-
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(*data)
 

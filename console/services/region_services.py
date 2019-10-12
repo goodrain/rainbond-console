@@ -205,11 +205,10 @@ class RegionService(object):
         if not tenant_region.is_init:
             res, body = region_api.create_tenant(region_name, tenant.tenant_name,
                                                  tenant.tenant_id, tenant.enterprise_id)
-            if res["status"] != 200:
+            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
             tenant_region.is_init = True
-            tenant_region.is_deleted = False
             # TODO 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充
             tenant_region.region_tenant_id = tenant.tenant_id
             tenant_region.region_tenant_name = tenant.tenant_name
@@ -226,20 +225,6 @@ class RegionService(object):
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
         group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
-        return 200, u"success", tenant_region
-
-    def close_tenant_on_region(self, team_name, region_name):
-        tenant = team_repo.get_team_by_team_name(team_name)
-        if not tenant:
-            return 404, u"需要关闭的团队{0}不存在".format(team_name), None
-        region_config = region_repo.get_region_by_region_name(region_name)
-        if not region_config:
-            return 404, u"需要关闭的数据中心{0}不存在".format(region_name), None
-        tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
-        if not tenant_region:
-            return 404, u"需要关闭的数据中心{0}不存在".format(region_name), None
-        tenant_region.is_deleted = True
-        tenant_region.save()
         return 200, u"success", tenant_region
 
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):

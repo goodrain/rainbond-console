@@ -10,13 +10,13 @@ from www.models.main import TenantRegionInfo
 class RegionRepo(object):
     def get_active_region_by_tenant_name(self, tenant_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
-        regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=1, is_init=1, is_deleted=0)
+        regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=1, is_init=1)
         if regions:
             return regions
         return None
 
     def list_active_region_by_tenant_ids(self, tenant_ids):
-        regions = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_active=1, is_init=1, is_deleted=0)
+        regions = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_active=1, is_init=1)
         if regions:
             return regions
         return None
@@ -47,7 +47,7 @@ class RegionRepo(object):
     def get_team_opened_region(self, team_name):
         """获取团队已开通的数据中心"""
         tenant = team_repo.get_team_by_team_name(team_name)
-        return TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_deleted=False)
+        return TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_region_by_region_name(self, region_name):
         region_configs = RegionConfig.objects.filter(region_name=region_name)
