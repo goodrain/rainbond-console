@@ -10,8 +10,6 @@ import string
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import AccountOverdueException
-from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -102,11 +100,6 @@ class AppService(object):
         new_service.service_cname = service_cname
         service_id = make_uuid(tenant.tenant_id)
         service_alias = self.create_service_alias(service_id)
-        # 判断是否超过资源
-        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "source_code_app_create")
-        if not allow_create:
-            return 412, tips, None
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk
@@ -146,38 +139,6 @@ class AppService(object):
             gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
 
         return 200, u"success"
-
-    def verify_source(self, tenant, region, new_add_memory, reason=""):
-        """判断资源"""
-        data = {"quantity": new_add_memory, "reason": reason, "eid": tenant.enterprise_id}
-        if new_add_memory == 0:
-            return True, "success"
-        # is_public = settings.MODULES.get('SSO_LOGIN')
-        # if not is_public or new_add_memory <= 0:
-        #     return allow_create, tips
-        try:
-            res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
-            logger.debug("verify body {0}".format(body))
-            if not body:
-                return True, "success"
-            msg = body.get("msg", None)
-            if not msg or msg == "success":
-                return True, "success"
-            elif msg == "illegal_quantity":
-                raise ResourceNotEnoughException("资源申请非法，请联系管理员")
-            elif msg == "missing_tenant":
-                raise ResourceNotEnoughException("团队不存在")
-            elif msg == "owned_fee":
-                raise AccountOverdueException("账户已欠费")
-            elif msg == "region_unauthorized":
-                raise ResourceNotEnoughException("数据中心未授权")
-            elif msg == "lack_of_memory":
-                raise ResourceNotEnoughException("团队可用资源不足，请联系企业管理员")
-            elif msg == "cluster_lack_of_memory":
-                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
-        except region_api.CallApiError as e:
-            logger.exception(e)
-            raise e
 
     def create_service_source_info(self, tenant, service, user_name, password):
         params = {
@@ -240,10 +201,6 @@ class AppService(object):
         new_service.service_source = image_type
         service_id = make_uuid(tenant.tenant_id)
         service_alias = self.create_service_alias(service_id)
-        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "image_create_app")
-        if not allow_create:
-            return 412, tips, None
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk

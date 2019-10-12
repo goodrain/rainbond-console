@@ -24,7 +24,7 @@ class AppEnvVarService(object):
         if attr_name in self.SENSITIVE_ENV_NAMES:
             return False, u"不允许的变量名{0}".format(attr_name)
 
-        if not re.match(r"[-._a-zA-Z][-._a-zA-Z0-9]*", attr_name):
+        if not re.match(r"^[-._a-zA-Z][-._a-zA-Z0-9]*$", attr_name):
             return False, u"变量名称{0}不符合规范".format(attr_name)
         return True, u"success"
 
@@ -147,6 +147,16 @@ class AppEnvVarService(object):
             })
         env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
 
+    def delete_env_by_env_id(self, tenant, service, env_id):
+        if service.create_status == "complete":
+            env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
+            if env:
+                region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
+                    "env_name": env.attr_name,
+                    "enterprise_id": tenant.enterprise_id
+                })
+                env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, env.attr_name)
+
     def delete_env_by_container_port(self, tenant, service, container_port):
         envs = env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
         if service.create_status == "complete":
@@ -161,27 +171,28 @@ class AppEnvVarService(object):
     def get_env_by_container_port(self, tenant, service, container_port):
         return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 
-    def patch_env_scope(self, tenant, service, attr_name, scope):
-        env = env_var_repo.get_service_env_or_404_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
-        if service.create_status == "complete":
-            body = {"env_name": attr_name, "env_value": env.attr_value, "scope": scope}
-            region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
-        env_var_repo.change_service_env_scope(env, scope)
-        return env
+    def patch_env_scope(self, tenant, service, env_id, scope):
+        env = env_var_repo.get_service_env_or_404_by_env_id(tenant.tenant_id, service.service_id, env_id)
+        if env:
+            if service.create_status == "complete":
+                body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": scope}
+                region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
+            env_var_repo.change_service_env_scope(env, scope)
+            return env
 
-    def update_env_by_attr_name(self, tenant, service, attr_name, name, attr_value):
-        attr_name = attr_name.strip()
+    def update_env_by_env_id(self, tenant, service, env_id, name, attr_value):
+        env_id = env_id.strip()
         attr_value = attr_value.strip()
-        env = env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
+        env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
         if not env:
             return 404, "环境变量不存在", None
         if not env.is_change:
             return 409, "环境变量不允许被修改", None
         update_params = {"name": name, "attr_value": attr_value}
         if service.create_status == "complete":
-            body = {"env_name": attr_name, "env_value": attr_value, "scope": env.scope}
+            body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope}
             region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
-        env_var_repo.update_env_var(tenant.tenant_id, service.service_id, attr_name, **update_params)
+        env_var_repo.update_env_var(tenant.tenant_id, service.service_id, env.attr_name, **update_params)
         env.name = name
         env.attr_value = attr_value
         return 200, "success", env

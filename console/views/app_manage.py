@@ -12,7 +12,6 @@ from console.exception.main import CallRegionAPIException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
-from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
@@ -55,11 +54,6 @@ class StartAppView(AppBaseView):
 
         """
         try:
-            new_add_memory = self.service.min_memory * self.service.min_node
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
-                                                           "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法启动"))
             code, msg = app_manage_service.start(self.tenant, self.service, self.user)
             bean = {}
             if code != 200:
@@ -151,9 +145,6 @@ class DeployAppView(AppBaseView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法部署"))
             code, msg, _ = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
             bean = {}
             if code != 200:
@@ -201,9 +192,6 @@ class RollBackAppView(AppBaseView):
             if not deploy_version or not upgrade_or_rollback:
                 return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
 
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法操作"))
             code, msg = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version,
                                                      upgrade_or_rollback)
             bean = {}
@@ -247,13 +235,6 @@ class VerticalExtendAppView(AppBaseView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            new_add_memory = (int(new_memory) * self.service.min_node) - self.service.min_node * self.service.min_memory
-            if new_add_memory < 0:
-                new_add_memory = 0
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
-                                                           "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
             code, msg = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
             bean = {}
             if code != 200:
@@ -296,13 +277,6 @@ class HorizontalExtendAppView(AppBaseView):
             new_node = request.data.get("new_node", None)
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
-            new_add_memory = (int(new_node) - self.service.min_node) * self.service.min_memory
-            if new_add_memory < 0:
-                new_add_memory = 0
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, new_add_memory,
-                                                           "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法升级"))
 
             code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             bean = {}
@@ -537,9 +511,6 @@ class UpgradeAppView(AppBaseView):
         更新
         """
         try:
-            allow_create, tips = app_service.verify_source(self.tenant, self.service.service_region, 0, "start_app")
-            if not allow_create:
-                return Response(general_message(412, "resource is not enough", "资源不足，无法更新"))
             code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user)
             bean = {}
             if code != 200:
