@@ -12,6 +12,7 @@ from console.constants import AppConstants
 from console.constants import SourceCodeType
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
@@ -36,6 +37,7 @@ from www.tenantservice.baseservice import ServicePluginResource
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
+from console.utils.validation import validate_endpoint_address
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -310,10 +312,26 @@ class AppService(object):
         if endpoints_type == "static":
             # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
             if endpoints:
+                from console.views.app_create.source_outer import check_endpoints
+                errs, isDomain = check_endpoints(endpoints)
+                if errs:
+                    return 400, u"服务地址不合法", None
                 port_list = []
+                prefix = ""
+                protocol = "tcp"
                 for endpoint in endpoints:
+                    if 'https://' in endpoint:
+                        endpoint = endpoint.split('https://')[1]
+                        prefix = "https"
+                        protocol = "http"
+                    if 'http://' in endpoint:
+                        endpoint = endpoint.split('http://')[1]
+                        prefix = "http"
+                        protocol = "http"
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
+                if len(port_list) == 0 and isDomain is True and prefix != "":
+                    port_list.append(443 if prefix == "https" else 80)
                 port_re = list(set(port_list))
                 if len(port_re) == 1:
                     port = int(port_re[0])
@@ -324,7 +342,7 @@ class AppService(object):
                             "service_id": new_service.service_id,
                             "container_port": port,
                             "mapping_port": port,
-                            "protocol": 'tcp',
+                            "protocol": protocol,
                             "port_alias": port_alias,
                             "is_inner_service": False,
                             "is_outer_service": False
@@ -622,11 +640,23 @@ class AppService(object):
 
         # endpoints
         endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        if endpoints.endpoints_type == "static":
+            eps = json.loads(endpoints.endpoints_info)
+            for address in eps:
+                if "https://" in address:
+                    address = address.partition("https://")[2]
+                if "http://" in address:
+                    address = address.partition("http://")[2]
+                if ":" in address:
+                    address = address.rpartition(":")[0]
+                errs = validate_endpoint_address(address)
+                if errs:
+                    if len(eps) > 1:
+                        raise ErrDoNotSupportMultiDomain("do not support multi domain address")
         endpoints_dict = dict()
         if endpoints:
-            if endpoints.endpoints_type != "api":
-                endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
-                data["endpoints"] = endpoints_dict
+            endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+            data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
         # 数据中心创建
