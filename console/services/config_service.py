@@ -21,7 +21,7 @@ class ConfigService(object):
         self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE",
                               "REGISTER_STATUS", "RAINBOND_VERSION",
                               "OPEN_DATA_CENTER_STATUS", "LOGO"]
-        self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB"]
+        self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB", "OPEN_DATA_CENTER_STATUS"]
         self.update_or_create_funcs = {
             "LOGO": self._update_or_create_logo,
             "ENTERPRISE_ALIAS": self._update_entalias,
@@ -185,7 +185,7 @@ class ConfigService(object):
     def get_open_data_center_status(self):
         is_open_data_center = self.get_config_by_key("OPEN_DATA_CENTER_STATUS")
         if not is_open_data_center:
-            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="1", type="string", desc="开启/关闭开通数据中心功能")
+            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
             return is_open_data_center

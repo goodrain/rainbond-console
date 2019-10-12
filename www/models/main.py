@@ -336,7 +336,6 @@ class TenantRegionInfo(BaseModel):
     region_scope = models.CharField(max_length=32, null=True, blank=True,
                                     default='', help_text=u"数据中心类型 private/public")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"企业id")
-    is_deleted = models.BooleanField(default=False, help_text=u'是否关闭租户的数据中心')
 
 
 class TenantRegionResource(BaseModel):
