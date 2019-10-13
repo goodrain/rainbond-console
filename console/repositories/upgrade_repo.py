@@ -24,7 +24,7 @@ class UpgradeRepo(object):
                                       update,
                                       status=UpgradeStatus.UPGRADING.value,
                                       upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value):
-        """创建服务升级记录"""
+        """创建组件升级记录"""
         return ServiceUpgradeRecord.objects.create(
             create_time=datetime.now(),
             app_upgrade_record=app_upgrade_record,
@@ -42,7 +42,7 @@ class UpgradeRepo(object):
         app_record.save()
 
     def change_service_record_status(self, service_record, status):
-        """改变服务升级记录状态"""
+        """改变组件升级记录状态"""
         service_record.status = status
         service_record.save()
 

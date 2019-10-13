@@ -15,20 +15,20 @@ logger = logging.getLogger('default')
 
 
 class PermActions(object):
-    tenant_access_actions = (('tenant_access', u"登入团队"), ('view_service', u"查看应用信息"), ('access_control', u"查看访问控制"),
+    tenant_access_actions = (('tenant_access', u"登入团队"), ('view_service', u"查看组件信息"), ('access_control', u"查看访问控制"),
                              ('certificate_management', u"访问证书管理"))
 
     tenant_viewer_actions = (('view_plugin', u"查看插件信息"), ) + tenant_access_actions
 
-    tenant_developer_actions = (('manage_group', u"应用组管理"), ('deploy_service', u"部署应用"), ('create_service', u"创建应用"),
-                                ('stop_service', u"关闭应用"), ('start_service', u"启动应用"), ('restart_service', u"重启应用"),
-                                ('rollback_service', u"回滚应用"), ('manage_service_container', u"应用容器管理"),
-                                ('manage_service_extend', u"应用伸缩管理"), ('manage_service_config', u"应用配置管理"),
-                                ('manage_service_plugin', u"应用扩展管理"), ('manage_plugin', u"插件管理"),
+    tenant_developer_actions = (('manage_group', u"应用组管理"), ('deploy_service', u"部署组件"), ('create_service', u"创建组件"),
+                                ('stop_service', u"关闭组件"), ('start_service', u"启动组件"), ('restart_service', u"重启组件"),
+                                ('rollback_service', u"回滚组件"), ('manage_service_container', u"组件容器管理"),
+                                ('manage_service_extend', u"组件伸缩管理"), ('manage_service_config', u"组件配置管理"),
+                                ('manage_service_plugin', u"组件扩展管理"), ('manage_plugin', u"插件管理"),
                                 ('import_and_export_service', u'应用导入导出'), ('certificate_operation', u'证书管理操作'),
                                 ('control_operation', u'访问控制操作'), ('add_endpoint', u'添加实例'), ('delete_endpoint', u'删除实例'),
                                 ('put_endpoint', u'修改实例上下线'), ('health_detection', u'编辑健康检测'), ('reset_secret_key', u'重置秘钥'),
-                                ('create_three_service', u'创建三方服务')) + tenant_viewer_actions
+                                ('create_three_service', u'创建第三方组件')) + tenant_viewer_actions
 
     tenant_admin_actions = (('manage_team_member_permissions', u'团队权限设置'), ('tenant_open_region', u'开通数据中心'),
                             ('delete_service', u"删除应用"), ('share_service', u"应用组分享"), ('share_plugin', u"插件分享"),
@@ -40,18 +40,18 @@ class PermActions(object):
 
     tenant_gray_actions = () + tenant_admin_actions
 
-    service_viewer_actions = (('view_service', u"查看应用信息"), )
+    service_viewer_actions = (('view_service', u"查看组件信息"), )
 
     service_developer_actions = (
-        ('deploy_service', u"部署应用"),
-        ('stop_service', u"关闭应用"),
-        ('start_service', u"启动应用"),
-        ('restart_service', u"重启应用"),
-        ('rollback_service', u"回滚应用"),
-        ('manage_service_container', u"应用容器管理"),
-        ('manage_service_extend', u"应用伸缩管理"),
-        ('manage_service_config', u"应用配置管理"),
-        ('manage_service_plugin', u"应用扩展管理"),
+        ('deploy_service', u"部署组件"),
+        ('stop_service', u"关闭组件"),
+        ('start_service', u"启动组件"),
+        ('restart_service', u"重启组件"),
+        ('rollback_service', u"回滚组件"),
+        ('manage_service_container', u"组件容器管理"),
+        ('manage_service_extend', u"组件伸缩管理"),
+        ('manage_service_config', u"组件配置管理"),
+        ('manage_service_plugin', u"组件扩展管理"),
     ) + service_viewer_actions
 
     service_admin_actions = (('manage_service_member_perms', u'应用权限设置'), ) + service_developer_actions

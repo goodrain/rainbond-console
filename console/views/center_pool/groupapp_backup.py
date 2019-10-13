@@ -68,7 +68,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             if running_state_services:
                 return Response(
                     general_message(412, "state service is not closed",
-                                    "您有有状态服务未关闭,应用如下 {0}".format(",".join(running_state_services))),
+                                    "您有有状态组件未关闭,应用如下 {0}".format(",".join(running_state_services))),
                     status=412)
             code, msg, back_up_record = groupapp_backup_service.back_up_group_apps(self.tenant, self.user, self.response_region,
                                                                                    group_id, mode, note)

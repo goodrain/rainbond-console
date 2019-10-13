@@ -187,7 +187,7 @@ class GroupServiceView(RegionTenantHeaderView):
     @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
-        应用组应用列表、状态展示
+        应用组组件列表、状态展示
         ---
         parameters:
             - name: team_name
@@ -292,7 +292,7 @@ class ServiceEventsView(RegionTenantHeaderView):
 
     def get(self, request, *args, **kwargs):
         """
-        应用事件动态
+        组件事件动态
         ---
         parameters:
             - name: team_name
@@ -394,12 +394,12 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
               type: string
               paramType: query
             - name: query_key
-              description: 模糊应用名 默认为空，查到所有应用
+              description: 模糊组件名 默认为空，查到所有组件
               required: false
               type: string
               paramType: query
             - name: service_status
-              description: 应用状态 默认all 可用(running, closed, all)
+              description: 组件状态 默认all 可用(running, closed, all)
               required: true
               type: string
               paramType: query
@@ -513,7 +513,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
                         self.team.tenant_id, self.response_region, group.ID)
                     backup_record_num = len(backup_records)
                     app_dict["backup_record_num"] = backup_record_num
-                    # 服务数量记录
+                    # 组件数量记录
                     services = group_service_relation_repo.get_services_by_group(
                         group.ID)
                     services_num = len(services)

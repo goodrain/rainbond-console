@@ -69,7 +69,7 @@ class AppVolumeService(object):
             return 412, u"持久化路径 {0} 已存在".format(volume_path)
         if service.service_source == AppConstants.SOURCE_CODE:
             if volume_path == "/app":
-                return 409, u"源码应用不能挂载/app目录"
+                return 409, u"源码组件不能挂载/app目录"
         if service.image != "goodrain.me/runner":
             volume_path_win = False
             if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':

@@ -69,7 +69,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
-        docker-compose创建应用
+        docker-compose创建组件
         ---
         parameters:
             - name: tenantName
@@ -156,7 +156,7 @@ class ComposeCheckView(ComposeGroupBaseView):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
-        docker-compose应用检测
+        docker-compose组件检测
         ---
         parameters:
             - name: tenantName
@@ -318,7 +318,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
     @perm_required('create_service')
     def delete(self, request, *args, **kwargs):
         """
-        放弃创建compose组应用
+        放弃创建compose组组件
         ---
         parameters:
             - name: tenantName
@@ -360,7 +360,7 @@ class ComposeServicesView(ComposeBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取compose组下的应用
+        获取compose组下的组件
         ---
         parameters:
             - name: tenantName

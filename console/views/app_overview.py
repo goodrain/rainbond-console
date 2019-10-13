@@ -52,7 +52,7 @@ class AppDetailView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        应用详情信息
+        组件详情信息
         ---
         parameters:
             - name: tenantName
@@ -61,7 +61,7 @@ class AppDetailView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -97,7 +97,7 @@ class AppDetailView(AppBaseView):
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
                                                                                  service_source.version)
                 if not rain_app:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=bean)
+                    result = general_message(200, "success", "当前云市组件已删除", bean=bean)
                     return Response(result, status=result["code"])
                 else:
                     bean.update({"rain_app_name": rain_app.group_name})
@@ -182,7 +182,7 @@ class AppBriefView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        应用详情信息
+        组件详情信息
         ---
         parameters:
             - name: tenantName
@@ -191,7 +191,7 @@ class AppBriefView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -217,7 +217,7 @@ class AppBriefView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改应用名称
+        修改组件名称
         ---
         parameters:
             - name: tenantName
@@ -226,12 +226,12 @@ class AppBriefView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: service_cname
-              description: 服务名称
+              description: 组件名称
               required: true
               type: string
               paramType: form
@@ -256,7 +256,7 @@ class AppStatusView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用状态
+        获取组件状态
         ---
         parameters:
             - name: tenantName
@@ -265,7 +265,7 @@ class AppStatusView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -287,7 +287,7 @@ class ListAppPodsView(AppBaseView):
     @perm_required('manage_service_container')
     def get(self, request, *args, **kwargs):
         """
-        获取应用实例
+        获取组件实例
         ---
         parameters:
             - name: tenantName
@@ -296,7 +296,7 @@ class ListAppPodsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -349,7 +349,7 @@ class ListAppPodsView(AppBaseView):
     @perm_required('manage_service_container')
     def post(self, request, *args, **kwargs):
         """
-        进入应用实例
+        进入组件实例
         ---
         parameters:
             - name: tenantName
@@ -358,7 +358,7 @@ class ListAppPodsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -397,7 +397,7 @@ class AppVisitView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用访问信息
+        获取组件访问信息
         ---
         parameters:
             - name: tenantName
@@ -406,7 +406,7 @@ class AppVisitView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -426,7 +426,7 @@ class AppVisitView(AppBaseView):
 class AppGroupVisitView(JWTAuthApiView):
     def get(self, request, team_name, *args, **kwargs):
         """
-        获取应用访问信息
+        获取组件访问信息
         ---
         parameters:
             - name: tenantName
@@ -435,7 +435,7 @@ class AppGroupVisitView(JWTAuthApiView):
               type: string
               paramType: path
             - name: service_list
-              description: 服务别名列表
+              description: 组件别名列表
               required: true
               type: string
               paramType: path
@@ -444,7 +444,7 @@ class AppGroupVisitView(JWTAuthApiView):
         try:
             serviceAlias = request.GET.get('service_alias')
             if not serviceAlias:
-                result = general_message(200, "not service", "当前组内无应用", bean={"is_null": True})
+                result = general_message(200, "not service", "当前组内无组件", bean={"is_null": True})
                 return Response(result)
             team = team_services.get_tenant_by_tenant_name(team_name)
             service_access_list = list()
@@ -471,7 +471,7 @@ class AppPluginsBriefView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用安装的插件的简要信息
+        获取组件安装的插件的简要信息
         ---
         parameters:
             - name: tenantName
@@ -480,7 +480,7 @@ class AppPluginsBriefView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -513,7 +513,7 @@ class AppDockerView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -552,7 +552,7 @@ class AppGroupView(AppBaseView):
     @perm_required('manage_group')
     def put(self, request, *args, **kwargs):
         """
-        修改应用所在组
+        修改组件所在组
         ---
         parameters:
             - name: tenantName
@@ -561,7 +561,7 @@ class AppGroupView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -597,7 +597,7 @@ class AppAnalyzePluginView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        查询应用的性能分析插件
+        查询组件的性能分析插件
         ---
         parameters:
             - name: tenantName
@@ -606,7 +606,7 @@ class AppAnalyzePluginView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -784,7 +784,7 @@ class AppKeywordView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改服务触发自动部署关键字
+        修改组件触发自动部署关键字
         """
 
         try:
@@ -798,7 +798,7 @@ class AppKeywordView(AppBaseView):
             service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
                 self.service.service_id, "code_webhooks")
             if not service_webhook:
-                return Response(general_message(412, "keyword is null", "服务自动部署属性不存在"), status=412)
+                return Response(general_message(412, "keyword is null", "组件自动部署属性不存在"), status=412)
             service_webhook.deploy_keyword = keyword
             service_webhook.save()
             result = general_message(200, "success", "修改成功", bean=service_webhook.to_dict())

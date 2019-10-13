@@ -33,7 +33,7 @@ class AppBuild(AppBaseView):
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
-        服务构建
+        组件构建
         ---
         parameters:
             - name: tenantName
@@ -42,7 +42,7 @@ class AppBuild(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -54,24 +54,24 @@ class AppBuild(AppBaseView):
         try:
             if self.service.service_source == "third_party":
                 is_deploy = False
-                # 数据中心连接创建三方服务
+                # 数据中心连接创建第三方组件
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
             else:
-                # 数据中心创建应用
+                # 数据中心创建组件
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
 
             self.service = new_service
-            # 为服务添加默认探针
+            # 为组件添加默认探针
             if self.is_need_to_add_default_probe():
                 code, msg, probe = app_service.add_service_default_porbe(self.tenant, self.service)
                 logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
             if is_deploy:
-                # 添加服务有无状态标签
+                # 添加组件有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
-                # 部署应用
+                # 部署组件
                 app_manage_service.deploy(self.tenant, self.service, self.user, group_version=None)
 
-                # 添加应用部署关系
+                # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
             result = general_message(200, "success", "构建成功")
@@ -119,7 +119,7 @@ class ComposeBuildView(RegionTenantHeaderView):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
-        docker-compose应用检测
+        docker-compose组件检测
         ---
         parameters:
             - name: tenantName
@@ -147,16 +147,16 @@ class ComposeBuildView(RegionTenantHeaderView):
                 return Response(general_message(400, "params error", "参数异常"), status=400)
             group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
             services = compose_service.get_compose_services(compose_id)
-            # 数据中心创建应用
+            # 数据中心创建组件
             new_app_list = []
             for service in services:
                 new_service = app_service.create_region_service(self.tenant, service, self.user.nick_name)
                 new_app_list.append(new_service)
-                # 为服务添加默认探针
+                # 为组件添加默认探针
                 code, msg, probe = app_service.add_service_default_porbe(self.tenant, new_service)
                 if probe:
                     probe_map[service.service_id] = probe.probe_id
-                # 添加服务有无状态标签
+                # 添加组件有无状态标签
                 label_service.update_service_state_label(self.tenant, new_service)
 
             group_compose.create_status = "complete"

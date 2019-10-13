@@ -14,18 +14,18 @@ class TopologicalService(object):
         topological_info = dict()
         service_group_relation_list = ServiceGroupRelation.objects.filter(group_id=group_id)
         service_id_list = [x.service_id for x in service_group_relation_list]
-        # 查询服务依赖信息
+        # 查询组件依赖信息
         service_relation_list = TenantServiceRelation.objects.filter(service_id__in=service_id_list)
         dep_service_id_list = [x.dep_service_id for x in service_relation_list]
 
-        # 查询服务、依赖服务信息
+        # 查询组件、依赖组件信息
         all_service_id_list = list(set(dep_service_id_list).union(set(service_id_list)))
         service_list = TenantServiceInfo.objects.filter(service_id__in=all_service_id_list)
         service_map = {x.service_id: x for x in service_list}
         json_data = {}
         json_svg = {}
         service_status_map = {}
-        # 批量查询服务状态
+        # 批量查询组件状态
         if len(service_list) > 0:
             try:
                 service_status_list = region_api.service_status(region, team_name, {
@@ -38,7 +38,7 @@ class TopologicalService(object):
                 logger.error('batch query service status failed!')
                 logger.exception(e)
 
-        # 拼接服务状态
+        # 拼接组件状态
         for service_info in service_list:
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
@@ -75,9 +75,9 @@ class TopologicalService(object):
             if json_data[service_info.service_id]["service_source"] == "third_party":
                 json_data[service_info.service_id]['cur_status'] = "third_party"
 
-            # 查询是否打开对外服务端口
+            # 查询是否打开对外组件端口
             port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
-            # 判断服务是否有对外端口
+            # 判断组件是否有对外端口
             outer_port_exist = False
             if len(port_list) > 0:
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
@@ -89,7 +89,7 @@ class TopologicalService(object):
             if tmp_info:
                 tmp_dep_id = service_relation.dep_service_id
                 tmp_dep_info = service_map.get(tmp_dep_id)
-                # 依赖服务的cname
+                # 依赖组件的cname
                 if tmp_dep_info:
                     tmp_info_relation = []
                     if tmp_info.service_id in json_svg.keys():
@@ -103,7 +103,7 @@ class TopologicalService(object):
 
     def get_group_topological_graph_details(self, team, team_id, team_name, service, region_name):
         result = dict()
-        # 服务信息
+        # 组件信息
         result['tenant_id'] = team_id
         result['service_alias'] = service.service_alias
         result['service_cname'] = service.service_cname
@@ -111,7 +111,7 @@ class TopologicalService(object):
         result['deploy_version'] = service.deploy_version
         result['total_memory'] = service.min_memory * service.min_node
         result['cur_status'] = 'Unknown'
-        # 服务端口信息
+        # 组件端口信息
         port_list = TenantServicesPort.objects.filter(service_id=service.service_id)
         # 域名信息
         service_domain_list = ServiceDomain.objects.filter(service_id=service.service_id)
@@ -192,7 +192,7 @@ class TopologicalService(object):
         # result["region_data"] = region_data
         result = dict(result, **region_data)
 
-        # 依赖服务信息
+        # 依赖组件信息
         relation_list = TenantServiceRelation.objects.filter(tenant_id=team_id, service_id=service.service_id)
         relation_id_list = set([x.dep_service_id for x in relation_list])
         relation_service_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
@@ -208,7 +208,7 @@ class TopologicalService(object):
                 relation_info = relation_map.get(tmp_service_id)
                 if relation_info is None:
                     relation_info = []
-                # 处理依赖服务端口
+                # 处理依赖组件端口
                 if relation_port.is_inner_service:
                     relation_info.append({
                         "service_cname": tmp_service.service_cname,
@@ -229,14 +229,14 @@ class TopologicalService(object):
         outer_http_service_list = []
         for service in service_list:
             port_list = TenantServicesPort.objects.filter(service_id=service.service_id)
-            # 判断服务是否有对外端口
+            # 判断组件是否有对外端口
             outer_http_service = False
             if len(port_list) > 0:
                 outer_http_service = reduce(lambda x, y: x or y,
                                             [t.is_outer_service and t.protocol == 'http' for t in list(port_list)])
             if outer_http_service:
                 outer_http_service_list.append(service)
-        # 每个对外可访问的服务
+        # 每个对外可访问的组件
         result_list = []
         for service_info in outer_http_service_list:
             service_domain_result = {}

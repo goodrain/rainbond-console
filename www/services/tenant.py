@@ -45,7 +45,7 @@ class TenantService(object):
 
     def list_tenant_group_service_by_group_id(self, tenant, region, group_id):
         """
-        获取租户指定的组下的所有服务
+        获取租户指定的组下的所有组件
         """
         svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id, region_name=region)
         if not svc_relations:
@@ -132,10 +132,10 @@ class TenantService(object):
         else:
             if diff_minutes > 0:
                 rt_status = "debugging"
-                rt_tips = "应用尚未运行"
+                rt_tips = "组件尚未运行"
             else:
                 rt_status = "show_money"
-                rt_tips = "应用尚未运行"
+                rt_tips = "组件尚未运行"
 
         return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
 
@@ -148,14 +148,14 @@ class TenantService(object):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
                 result["service_pay_status"] = "no_money"
-                result["tips"] = "请为账户充值,然后重启应用"
+                result["tips"] = "请为账户充值,然后重启组件"
                 return result
 
         if service.deploy_version is None or service.deploy_version == "":
             result["totalMemory"] = 0
             result["status"] = "undeploy"
             result["service_pay_status"] = "debugging"
-            result["tips"] = "应用尚未运行"
+            result["tips"] = "组件尚未运行"
             return result
 
         try:
@@ -170,7 +170,7 @@ class TenantService(object):
             result["totalMemory"] = 0
             result['status'] = "failure"
             result["service_pay_status"] = "unknown"
-            result["tips"] = "服务状态未知"
+            result["tips"] = "组件状态未知"
             return result
 
         status = bean["cur_status"]

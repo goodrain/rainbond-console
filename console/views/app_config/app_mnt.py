@@ -25,7 +25,7 @@ class AppMntView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务挂载的服务
+        获取组件挂载的组件
         ---
         parameters:
             - name: tenantName
@@ -34,7 +34,7 @@ class AppMntView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -82,7 +82,7 @@ class AppMntView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加挂载依赖
+        为组件添加挂载依赖
         ---
         parameters:
             - name: tenantName
@@ -91,7 +91,7 @@ class AppMntView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -123,7 +123,7 @@ class AppMntManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        为应用取消挂载依赖
+        为组件取消挂载依赖
         ---
         parameters:
             - name: tenantName
@@ -132,12 +132,12 @@ class AppMntManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: dep_vol_id
-              description: 挂载的服务持久化ID
+              description: 挂载的组件持久化ID
               required: true
               type: string
               paramType: path
