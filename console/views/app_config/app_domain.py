@@ -527,6 +527,12 @@ class HttpStrategyView(RegionTenantHeaderView):
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
+            if service.service_source == "third_party":
+                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
+                if code != 200:
+                    logger.exception(msg, msg_show)
+                    return Response(general_message(code, msg, msg_show), status=code)
+
             if whether_open:
                 try:
                     tenant_service_port = port_service.get_service_port_by_port(
@@ -1057,6 +1063,12 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if service_tcpdomain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result)
+
+            if service.service_source == "third_party":
+                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
+                if code != 200:
+                    logger.exception(msg, msg_show)
+                    return Response(general_message(code, msg, msg_show), status=code)
 
             if whether_open:
                 try:
