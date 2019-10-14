@@ -2,7 +2,8 @@
 """
   Created on 18/3/4.
 """
-from www.models.plugin import PluginConfigGroup, PluginConfigItems
+from www.models.plugin import PluginConfigGroup
+from www.models.plugin import PluginConfigItems
 
 
 class PluginConfigGroupRepository(object):
@@ -32,6 +33,15 @@ class PluginConfigGroupRepository(object):
     def delete_config_group_by_plugin_id(self, plugin_id):
         PluginConfigGroup.objects.filter(plugin_id=plugin_id).delete()
 
+    def list_by_plugin_id(self, plugin_id):
+        return PluginConfigGroup.objects.filter(plugin_id=plugin_id)
+
+    def create_if_not_exist(self, **plugin_config_group):
+        try:
+            PluginConfigGroup.objects.get(plugin_id=plugin_config_group["plugin_id"])
+        except PluginConfigGroup.DoesNotExist:
+            PluginConfigGroup.objects.create(**plugin_config_group)
+
 
 class PluginConfigItemsRepository(object):
     def get_config_items_by_unique_key(self, plugin_id, build_version, service_meta_type):
@@ -56,3 +66,17 @@ class PluginConfigItemsRepository(object):
 
     def delete_config_items_by_plugin_id(self, plugin_id):
         PluginConfigItems.objects.filter(plugin_id=plugin_id).delete()
+
+    def list_by_plugin_id(self, plugin_id):
+        return PluginConfigItems.objects.filter(plugin_id=plugin_id)
+
+    def create_if_not_exist(self, **plugin_config_item):
+        try:
+            PluginConfigItems.objects.get(
+                plugin_id=plugin_config_item["plugin_id"], build_version=plugin_config_item["build_version"])
+        except PluginConfigItems.DoesNotExist:
+            PluginConfigItems.objects.create(**plugin_config_item)
+
+
+plugin_config_group_repo = PluginConfigGroupRepository()
+plugin_config_items_repo = PluginConfigItemsRepository()

@@ -192,6 +192,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
         self.response_region = None
+        self.region_name = None
         self.tenant_name = None
         self.team_name = None
         self.tenant = None
@@ -224,6 +225,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
 
         if not self.response_region:
             raise ImportError("region_name not found !")
+        self.region_name = self.response_region
         if not self.tenant_name:
             raise ImportError("team_name not found !")
         if self.tenant_name:

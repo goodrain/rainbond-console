@@ -101,6 +101,7 @@ class AppPluginService(object):
             LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
             AND tsp.build_version = pbv.build_version
             JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
+            AND tp.tenant_id = pbv.tenant_id
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}"
@@ -115,7 +116,8 @@ class AppPluginService(object):
                 pbv.build_version AS build_version
             FROM
                 tenant_plugin AS tp
-                JOIN plugin_build_version AS pbv ON ( tp.plugin_id = pbv.plugin_id )
+                JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
+                AND tp.tenant_id = pbv.tenant_id
             WHERE
                 pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}" )
                 AND tp.tenant_id = "{1}"

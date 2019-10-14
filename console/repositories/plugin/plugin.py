@@ -2,8 +2,11 @@
 """
   Created on 18/1/29.
 """
-from www.models.plugin import TenantPlugin, PluginBuildVersion, PluginConfigGroup, PluginConfigItems
 from www.db.base import BaseConnection
+from www.models.plugin import PluginBuildVersion
+from www.models.plugin import PluginConfigGroup
+from www.models.plugin import PluginConfigItems
+from www.models.plugin import TenantPlugin
 
 
 class TenantPluginRepository(object):
@@ -68,3 +71,12 @@ class TenantPluginRepository(object):
 
     def get_plugin_by_origin_share_id(self, tenant_id, origin_share_id):
         return TenantPlugin.objects.filter(tenant_id=tenant_id, origin_share_id=origin_share_id)
+
+    def create_if_not_exist(self, **plugin):
+        try:
+            TenantPlugin.objects.get(tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"])
+        except TenantPlugin.DoesNotExist:
+            TenantPlugin.objects.create(**plugin)
+
+
+plugin_repo = TenantPluginRepository()
