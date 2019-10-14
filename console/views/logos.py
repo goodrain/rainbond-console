@@ -73,7 +73,7 @@ class ConfigInfoView(AlowAnyApiView):
             is_open_data_center = config_service.get_config_by_key("OPEN_DATA_CENTER_STATUS")
             if not is_open_data_center:
                 is_open_data_center = config_service.add_config(
-                    key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能").value
+                    key="OPEN_DATA_CENTER_STATUS", default_value="False", type="string", desc="开启/关闭开通数据中心功能").value
             if is_open_data_center == "True":
                 data["is_open_data_center"] = True
             else:

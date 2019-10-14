@@ -185,7 +185,7 @@ class ConfigService(object):
     def get_open_data_center_status(self):
         is_open_data_center = self.get_config_by_key("OPEN_DATA_CENTER_STATUS")
         if not is_open_data_center:
-            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
+            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="False", type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
             return is_open_data_center
