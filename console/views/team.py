@@ -36,6 +36,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
@@ -932,22 +933,24 @@ class RegisterStatusView(JWTAuthApiView):
             return Response(result, status=result["code"])
 
 
-class EnterpriseInfoView(JWTAuthApiView):
+class EnterpriseInfoView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         """
         查询企业信息
         """
         try:
-            team_name = request.GET.get("team_name", None)
-            if not team_name:
-                return Response(general_message(400, "team name is null", "参数错误"), status=400)
+            enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
+            ent = enter.to_dict()
+            is_ent = False
+            try:
+                res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
+                if res.status == 200 and body is not None and "enterprise" in body["raw"]:
+                    is_ent = True
+            except region_api.CallApiError as e:
+                logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
+            ent["is_enterprise"] = is_ent
 
-            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
-
-            enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=team.enterprise_id)
-            enterprise_id = enter.enterprise_id
-            enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
-            result = general_message(200, "success", "查询成功", bean=enterprise_info.to_dict())
+            result = general_message(200, "success", "查询成功", bean=ent)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
