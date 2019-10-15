@@ -63,8 +63,10 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     GITLAB = GitlabServiceAPIRespSerializer(required=False)
     APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
 
+
 class DocumentRespSerializer(serializers.Serializer):
     platform_url = serializers.CharField(max_length=2047)
+
 
 class FeatureConfigRespSerializer(serializers.Serializer):
     GITHUB = GithubServiceAPIRespSerializer(required=False)
