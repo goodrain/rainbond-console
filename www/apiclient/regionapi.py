@@ -699,6 +699,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_api_version_v2(self, tenant_name, region_name):
+        """获取api版本-v2"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/show"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
     def get_opentsdb_data(self, region, tenant_name, body):
         """获取opentsdb数据"""
 
