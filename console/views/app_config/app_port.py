@@ -15,7 +15,6 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from console.utils.validation import validate_endpoint_address
 from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
@@ -282,28 +281,10 @@ class AppPortManageView(AppBaseView):
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
         if self.service.service_source == "third_party" and ("outer" in action):
-            try:
-                res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                                                    self.service.service_alias)
-                if res.status != 200:
-                    return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
-                endpoint_list = body["list"]
-                for endpoint in endpoint_list:
-                    address = endpoint.address
-                    if "https://" in address:
-                        address = address.partition("https://")[2]
-                    if "http://" in address:
-                        address = address.partition("http://")[2]
-                    if ":" in address:
-                        address = address.rpartition(":")[0]
-                    errs = validate_endpoint_address(address)
-                    if len(errs) > 0:
-                        return Response(general_message(
-                            400, "do not allow operate outer port for domain endpoints", "不允许开启域名组件实例对外端口"), status=400)
-            except Exception as e:
-                logger.exception(e)
-                result = error_message(e.message)
-                return Response(result, status=result["code"])
+            msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
+            if code != 200:
+                logger.exception(msg, msg_show)
+                return Response(general_message(code, msg, msg_show), status=code)
         try:
             code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
                                                        action, protocol, port_alias)
@@ -375,6 +356,11 @@ class TopologicalPortView(AppBaseView):
             if open_outer:
                 tenant_service_port = port_service.get_service_port_by_port(
                     self.service, int(container_port))
+                if self.service.service_source == "third_party":
+                    msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
+                    if code != 200:
+                        logger.exception(msg, msg_show)
+                        return Response(general_message(code, msg, msg_show), status=code)
                 code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
                                                            "open_outer", tenant_service_port.protocol,
                                                            tenant_service_port.port_alias)
@@ -397,6 +383,11 @@ class TopologicalPortView(AppBaseView):
             open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id,
                                                               self.service.service_id).filter(is_outer_service=True)
             if not open_outer_services:
+                if self.service.service_source == "third_party":
+                    msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
+                    if code != 200:
+                        logger.exception(msg, msg_show)
+                        return Response(general_message(code, msg, msg_show), status=code)
                 service_ports = port_repo.get_service_ports(
                     self.tenant.tenant_id, self.service.service_id)
                 port_list = [
