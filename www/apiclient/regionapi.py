@@ -86,8 +86,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         self._set_headers(token)
         logger.debug("create tenant url :{0}".format(url))
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
-        return res, body
+        try:
+            res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+            return res, body
+        except Exception as e:
+            return {'status': e.message['httpcode']}, e.message['body']
 
     def create_service(self, region, tenant_name, body):
         """创建应用"""

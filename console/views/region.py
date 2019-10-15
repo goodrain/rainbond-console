@@ -165,6 +165,43 @@ class OpenRegionView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, result["code"])
 
+    @perm_required('tenant_close_region')
+    def delete(self, request, team_name, *args, **kwargs):
+        """
+        为团队关闭数据中心
+        ---
+        parameters:
+            - name: team_name
+              description: 当前团队名字
+              required: true
+              type: string
+              paramType: path
+            - name: region_name
+              description: 要关闭的数据中心名称
+              required: true
+              type: string
+              paramType: body
+        """
+        try:
+            region_name = request.data.get("region_name", None)
+            if not region_name:
+                return Response(general_message(400, "params error", "参数异常"), status=400)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
+            is_admin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
+            if not is_admin:
+                return Response(
+                    general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
+            code, msg, tenant_region = region_services.close_tenant_on_region(team_name, region_name)
+            if code != 200:
+                return Response(general_message(code, "open region error", msg), status=code)
+            result = general_message(code, "success", "数据中心{0}关闭成功".format(region_name))
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result, result["code"])
+
 
 class QyeryRegionView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):

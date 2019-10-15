@@ -443,6 +443,16 @@ class TeamService(object):
         team_repo.create_team_perms(**create_perm_param)
         return 200, "success", team
 
+    def delete_team_region(self, team_id, region):
+        tenant = team_repo.get_team_by_team_id(team_id)
+        if not tenant:
+            return 404, u"需要关闭的团队不存在", None
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(team_id, region.region_name)
+        if not tenant_region:
+            return 404, u"需要关闭的数据中心{0}不存在".format(tenant_region.region_name), None
+        tenant_region.delete()
+        return 200, u"success", tenant
+
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):
         from console.services.user_services import user_services
         if query is not None and page is not None and page_size is not None:

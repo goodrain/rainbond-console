@@ -44,6 +44,10 @@ class CreateTeamReqSerializer(serializers.Serializer):
     region = serializers.CharField(max_length=24, help_text=u"默认开通的数据中心，未指定则不开通", required=False)
 
 
+class TeamRegionReqSerializer(serializers.Serializer):
+    region = serializers.CharField(max_length=24, help_text=u"数据中心名称", required=False)
+
+
 class UpdateTeamInfoReqSerializer(serializers.Serializer):
     region = serializers.CharField(max_length=24, help_text=u"数据中心名称", required=False)
     is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
