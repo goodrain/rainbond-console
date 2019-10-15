@@ -64,8 +64,18 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
 
 
+class DocumentRespSerializer(serializers.Serializer):
+    platform_url = serializers.CharField(max_length=2047, required=False)
+
+
 class FeatureConfigRespSerializer(serializers.Serializer):
     GITHUB = GithubServiceAPIRespSerializer(required=False)
     GITLAB = GitlabServiceAPIRespSerializer(required=False)
     APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
-    OPEN_DATA_CENTER_STATUS = serializers.BooleanField()
+    OPEN_DATA_CENTER_STATUS = serializers.BooleanField(required=False)
+    REGISTER_STATUS = serializers.BooleanField(required=False)
+    OFFICIAL_DEMO = serializers.BooleanField(required=False)
+    NEWBIE_GUIDE = serializers.BooleanField(required=False)
+    EXPORT_APP = serializers.BooleanField(required=False)
+    CLOUD_MARKET = serializers.BooleanField(required=False)
+    DOCUMENT = DocumentRespSerializer(required=False)

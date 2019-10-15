@@ -70,10 +70,58 @@ class ConfigInfoView(AlowAnyApiView):
             #     data["is_regist"] = False
             # else:
             #     data["is_regist"] = True
+
+            newbie_guide = config_service.get_config_by_key("NEWBIE_GUIDE")
+            if not newbie_guide:
+                newbie_guide = config_service.add_config(
+                    key="NEWBIE_GUIDE", default_value="True", type="string", desc="开启/关闭新手引导").value
+            if newbie_guide == "True":
+                data["newbie_guide"] = True
+            else:
+                data["newbie_guide"] = False
+
+            document = config_service.get_config_by_key("DOCUMENT")
+            if not document:
+                document = config_service.add_config(
+                    key="DOCUMENT", default_value='{"platform_url": "https://www.rainbond.com/"}',
+                    type="json", desc="开启/关闭官方Demo").value
+            if document != "False":
+                data["document"] = document
+
+            export_app = config_service.get_config_by_key("EXPORT_APP")
+            if not export_app:
+                export_app = config_service.add_config(
+                    key="EXPORT_APP", default_value='False', type="string",
+                    desc="开启/关闭导出应用").value
+            if export_app == "False":
+                data["export_app"] = False
+            else:
+                data["export_app"] = True
+
+            official_demo = config_service.get_config_by_key("OFFICIAL_DEMO")
+            if not official_demo:
+                official_demo = config_service.add_config(
+                    key="OFFICIAL_DEMO", default_value='True', type="string",
+                    desc="开启/关闭文档").value
+            if official_demo == "True":
+                data["official_demo"] = True
+            else:
+                data["official_demo"] = False
+
+            cloud_market = config_service.get_config_by_key("CLOUD_MARKET")
+            if not cloud_market:
+                cloud_market = config_service.add_config(
+                    key="CLOUD_MARKET", default_value='True', type="string",
+                    desc="开启/关闭云应用市场").value
+            if cloud_market == "True":
+                data["cloud_market"] = True
+            else:
+                data["cloud_market"] = False
+
             is_open_data_center = config_service.get_config_by_key("OPEN_DATA_CENTER_STATUS")
             if not is_open_data_center:
                 is_open_data_center = config_service.add_config(
-                    key="OPEN_DATA_CENTER_STATUS", default_value="False", type="string", desc="开启/关闭开通数据中心功能").value
+                    key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能").value
             if is_open_data_center == "True":
                 data["is_open_data_center"] = True
             else:

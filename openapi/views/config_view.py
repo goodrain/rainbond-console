@@ -58,7 +58,7 @@ class ListFeatureConfigView(BaseOpenAPIView):
         queryset = config_service.list_by_keys(config_service.feature_cfg_keys)
         queryset["OPEN_DATA_CENTER_STATUS"] = queryset.get("OPEN_DATA_CENTER_STATUS", None)
         if queryset["OPEN_DATA_CENTER_STATUS"] is None:
-            queryset["OPEN_DATA_CENTER_STATUS"] = False
+            queryset["OPEN_DATA_CENTER_STATUS"] = True
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
 

@@ -184,7 +184,7 @@ class UserService(object):
 
         user = {
             "nick_name": data["nick_name"],
-            "password": encrypt_passwd(data["password"]),
+            "password": encrypt_passwd(data["email"]+data["password"]),
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "enterprise_id": data["eid"],

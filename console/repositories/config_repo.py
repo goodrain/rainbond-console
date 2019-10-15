@@ -9,8 +9,17 @@ class ConfigRepository(object):
         return ConsoleSysConfig.objects.filter(enable=True, key__in=keys)
 
     def delete_by_key(self, key):
+        KEYS = ["OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
+                "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
+                "CLOUD_MARKET", "REGISTER_STATUS"]
         cfg = ConsoleSysConfig.objects.get(key=key)
-        cfg.delete()
+        if key in KEYS:
+            cfg.value = "False"
+            cfg.save()
+        # if cfg.value == "DOCUMENT":
+        #     cfg.value = {"enable": False}
+        else:
+            cfg.delete()
 
     def update_by_key(self, key, value):
         return ConsoleSysConfig.objects.filter(key=key).update(value=value)
