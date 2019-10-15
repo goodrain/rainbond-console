@@ -121,7 +121,7 @@ class ProbeService(object):
             return code, msg, None
         probes = probe_repo.get_service_probe(service.service_id)
         if not probes:
-            return 404, u"应用未设置探针，无法进行修改操作", None
+            return 404, u"组件未设置探针，无法进行修改操作", None
         probe = probes[0]
         # delete more probe without first, one service will have one probe
         if len(probes) > 1:
@@ -129,7 +129,7 @@ class ProbeService(object):
                 if index > 0:
                     self.delete_service_probe(tenant, service, probes[index].probe_id)
         if not probe:
-            return 404, u"应用未设置探针，无法进行修改操作", None
+            return 404, u"组件未设置探针，无法进行修改操作", None
         is_used = data.get("is_used", None)
         if is_used is None:
             is_used = probe.is_used

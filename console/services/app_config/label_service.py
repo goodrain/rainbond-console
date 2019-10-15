@@ -61,7 +61,7 @@ class LabelService(object):
             ServiceLabels.objects.bulk_create(service_labels)
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 507, u"服务异常", None
+            return 507, u"组件异常", None
 
         return 200, u"操作成功", None
 
@@ -70,7 +70,7 @@ class LabelService(object):
             data = region_api.get_region_labels(service.service_region, tenant.tenant_name)
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 507, u"服务异常", None
+            return 507, u"组件异常", None
 
         return 200, u"操作成功", data["list"]
 
@@ -80,7 +80,7 @@ class LabelService(object):
         if not label:
             return 404, u"指定标签不存在", None
         body = dict()
-        # 服务标签删除
+        # 组件标签删除
         label_dict = dict()
         label_list = list()
         label_dict["label_key"] = "node-selector"
@@ -93,7 +93,7 @@ class LabelService(object):
             service_label_repo.delete_service_labels(service.service_id, label_id)
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 507, u"服务异常", None
+            return 507, u"组件异常", None
 
         return 200, u"success", None
 

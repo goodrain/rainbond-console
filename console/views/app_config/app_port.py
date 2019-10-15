@@ -26,7 +26,7 @@ class AppPortView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的端口信息
+        获取组件的端口信息
         ---
         parameters:
             - name: tenantName
@@ -35,7 +35,7 @@ class AppPortView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -93,7 +93,7 @@ class AppPortView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加端口
+        为组件添加端口
         ---
         parameters:
             - name: tenantName
@@ -102,7 +102,7 @@ class AppPortView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -122,12 +122,12 @@ class AppPortView(AppBaseView):
               type: string
               paramType: form
             - name: is_inner_service
-              description: 是否打开对内服务
+              description: 是否打开对内组件
               required: true
               type: boolean
               paramType: form
             - name: is_outer_service
-              description: 是否打开对外服务
+              description: 是否打开对外组件
               required: true
               type: boolean
               paramType: form
@@ -163,7 +163,7 @@ class AppPortManageView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        查看应用的某个端口的详情
+        查看组件的某个端口的详情
         ---
         parameters:
             - name: tenantName
@@ -172,7 +172,7 @@ class AppPortManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -204,7 +204,7 @@ class AppPortManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某个端口
+        删除组件的某个端口
         ---
         parameters:
             - name: tenantName
@@ -213,7 +213,7 @@ class AppPortManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -239,7 +239,7 @@ class AppPortManageView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改应用的某个端口（打开|关闭|修改协议|修改环境变量）
+        修改组件的某个端口（打开|关闭|修改协议|修改环境变量）
         ---
         parameters:
             - name: tenantName
@@ -248,7 +248,7 @@ class AppPortManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -312,7 +312,7 @@ class AppTcpOuterManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -342,7 +342,7 @@ class TopologicalPortView(AppBaseView):
     @perm_required('view_service')
     def put(self, request, *args, **kwargs):
         """
-        应用拓扑图打开(关闭)对外端口
+        组件拓扑图打开(关闭)对外端口
         :param request:
         :param args:
         :param kwargs:
@@ -367,7 +367,7 @@ class TopologicalPortView(AppBaseView):
                 if code != 200:
                     return Response(general_message(412, "open outer fail", u"打开对外端口失败"), status=412)
                 return Response(general_message(200, "open outer success", u"开启成功"), status=200)
-            # 关闭改服务所有对外端口
+            # 关闭该组件所有对外端口
             if close_outer:
                 tenant_service_ports = port_service.get_service_ports(
                     self.service)
@@ -379,7 +379,7 @@ class TopologicalPortView(AppBaseView):
                         return Response(general_message(412, "open outer fail", u"关闭对外端口失败"), status=412)
                 return Response(general_message(200, "close outer success", u"关闭对外端口成功"), status=200)
 
-            # 校验要依赖的服务是否开启了对外端口
+            # 校验要依赖的组件是否开启了对外端口
             open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id,
                                                               self.service.service_id).filter(is_outer_service=True)
             if not open_outer_services:
@@ -405,10 +405,10 @@ class TopologicalPortView(AppBaseView):
                     # 多个端口需要用户选择后开启
                     return Response(
                         general_message(
-                            201, "the service does not open an external port", u"该服务未开启对外端口", list=port_list),
+                            201, "the service does not open an external port", u"该组件未开启对外端口", list=port_list),
                         status=201)
             else:
-                return Response(general_message(202, "the service has an external port open", u"该服务已开启对外端口"), status=200)
+                return Response(general_message(202, "the service has an external port open", u"该组件已开启对外端口"), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

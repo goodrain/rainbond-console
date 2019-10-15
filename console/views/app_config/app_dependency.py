@@ -22,7 +22,7 @@ class AppDependencyView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务依赖的应用
+        获取组件依赖的组件
         ---
         parameters:
             - name: tenantName
@@ -31,7 +31,7 @@ class AppDependencyView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -87,7 +87,7 @@ class AppDependencyView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加依赖应用
+        为组件添加依赖组件
         ---
         parameters:
             - name: tenantName
@@ -96,12 +96,12 @@ class AppDependencyView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: dep_service_id
-              description: 依赖的服务的id
+              description: 依赖的组件的id
               required: true
               type: string
               paramType: form
@@ -112,7 +112,7 @@ class AppDependencyView(AppBaseView):
         open_inner = request.data.get("open_inner", False)
         container_port = request.data.get("container_port", None)
         if not dep_service_id:
-            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
+            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
         try:
             code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                         container_port)
@@ -132,7 +132,7 @@ class AppDependencyView(AppBaseView):
     @perm_required('manage_service_config')
     def patch(self, request, *args, **kwargs):
         """
-        为应用添加依赖应用
+        为组件添加依赖组件
         ---
         parameters:
             - name: tenantName
@@ -141,12 +141,12 @@ class AppDependencyView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: dep_service_ids
-              description: 依赖的服务的id,多个依赖的服务id，以英文逗号分隔
+              description: 依赖的组件的id,多个依赖的组件id，以英文逗号分隔
               required: true
               type: string
               paramType: form
@@ -154,7 +154,7 @@ class AppDependencyView(AppBaseView):
         """
         dep_service_ids = request.data.get("dep_service_ids", None)
         if not dep_service_ids:
-            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的服务"), status=400)
+            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
         try:
             dep_service_list = dep_service_ids.split(",")
             code, msg = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list)
@@ -173,7 +173,7 @@ class AppNotDependencyView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务可以依赖但未依赖的应用
+        获取组件可以依赖但未依赖的组件
         ---
         parameters:
             - name: tenantName
@@ -182,7 +182,7 @@ class AppNotDependencyView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -202,7 +202,7 @@ class AppNotDependencyView(AppBaseView):
               type: string
               paramType: query
             - name: condition
-              description: 模糊搜索条件，按组名还是按应用名 group_name|service_name
+              description: 模糊搜索条件，按组名还是按组件名 group_name|service_name
               required: false
               type: string
               paramType: query
@@ -256,7 +256,7 @@ class AppDependencyManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某个依赖
+        删除组件的某个依赖
         ---
         parameters:
             - name: tenantName
@@ -265,12 +265,12 @@ class AppDependencyManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: dep_service_id
-              description: 需要删除的服务ID
+              description: 需要删除的组件ID
               required: true
               type: string
               paramType: path
@@ -278,7 +278,7 @@ class AppDependencyManageView(AppBaseView):
         """
         dep_service_id = kwargs.get("dep_service_id", None)
         if not dep_service_id:
-            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖服务"))
+            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖组件"))
         try:
             code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id)
             if code != 200:

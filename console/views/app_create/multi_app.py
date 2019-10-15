@@ -35,7 +35,7 @@ class MultiAppCheckView(RegionTenantHeaderView):
                 result = general_message(code, msg, msg_show)
             else:
                 result = general_message(
-                    code, "successfully entered the multi-service creation process", "成功进入多服务创建流程", list=services)
+                    code, "successfully entered the multi-service creation process", "成功进入多组件创建流程", list=services)
         except Exception as e:
             logger.exception(e)
             result = error_message("{0}".format(e))

@@ -354,7 +354,7 @@ class TenantServiceMntRelationRepository(object):
             service_id=service_id, dep_service_id=dep_service_id, mnt_name=mnt_name).delete()
 
     def get_mount_current_service(self, tenant_id, service_id):
-        """查询挂载当前服务的信息"""
+        """查询挂载当前组件的信息"""
         return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, dep_service_id=service_id)
 
     def delete_mnt(self, service_id):

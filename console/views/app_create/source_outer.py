@@ -36,7 +36,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
     @perm_required('create_three_service')
     def post(self, request, *args, **kwargs):
         """
-        创建三方服务
+        创建第三方组件
 
         """
 
@@ -46,7 +46,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints_type = request.data.get("endpoints_type", None)
 
         if not service_cname:
-            return Response(general_message(400, "service_cname is null", "服务名未指明"), status=400)
+            return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
         if not endpoints and endpoints_type != "api":
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
 
@@ -55,7 +55,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "service create fail", msg_show), status=code)
 
-        # 添加服务所在组
+        # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                             new_service.service_id)
         if code != 200:
@@ -107,7 +107,7 @@ def check_endpoints(endpoints):
     return [], False
 
 
-# 三方服务中api注册方式回调接口
+# 第三方组件中api注册方式回调接口
 class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
@@ -188,7 +188,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             addr_list.append(address)
             errs, _ = check_endpoints(addr_list)
             if len(errs) > 0:
-                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
+                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
             if address not in addresses:
                 # 添加
                 res, body = region_api.post_third_party_service_endpoints(
@@ -255,7 +255,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         return Response(result, status=result["code"])
 
 
-# 三方服务中api注册方式重置秘钥
+# 第三方组件中api注册方式重置秘钥
 class ThirdPartyUpdateSecretKeyView(AppBaseView):
     @never_cache
     @perm_required('reset_secret_key')
@@ -276,13 +276,13 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
             return Response(result, status=500)
 
 
-# 三方服务pod信息
+# 第三方组件pod信息
 class ThirdPartyAppPodsView(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取三方服务实例信息
+        获取第三方组件实例信息
         ---
         parameters:
             - name: tenantName
@@ -291,7 +291,7 @@ class ThirdPartyAppPodsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -331,7 +331,7 @@ class ThirdPartyAppPodsView(AppBaseView):
             for endpoint in endpoint_list:
                 errs, _ = check_endpoints([endpoint["address"], address])
                 if len(errs) > 0:
-                    return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名服务实例地址"), status=400)
+                    return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
         except Exception as e:
             logger.exception(e)
         try:
@@ -426,13 +426,13 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
 
-# 三方服务健康检测
+# 第三方组件健康检测
 class ThirdPartyHealthzView(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取三方服务健康检测结果
+        获取第三方组件健康检测结果
         :param request:
         :param args:
         :param kwargs:
@@ -452,7 +452,7 @@ class ThirdPartyHealthzView(AppBaseView):
     @perm_required('health_detection')
     def put(self, request, *args, **kwargs):
         """
-        编辑三方服务的健康检测
+        编辑第三方组件的健康检测
         :param request:
         :param args:
         :param kwargs:

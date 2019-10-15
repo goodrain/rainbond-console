@@ -13,7 +13,7 @@ logger = logging.getLogger("default")
 
 
 class SyncTenantServiceManager(object):
-    """更新服务表，主要有tenant_service 表中create_status(创建状态)，
+    """更新组件表，主要有tenant_service 表中create_status(创建状态)，
         docker_cmd命令，
         team_gitlab_info表中的数据
     """
@@ -45,7 +45,7 @@ class SyncTenantServiceManager(object):
             logger.exception(e)
 
     def process_service(self, service):
-        # 先处理应用来源
+        # 先处理组件来源
         if service.category == "application":
             service.service_source = AppConstants.SOURCE_CODE
         if service.category == "app_publish":

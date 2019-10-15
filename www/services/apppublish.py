@@ -10,12 +10,12 @@ logger = logging.getLogger('default')
 
 
 class PublishAppService(object):
-    """服务发布数据获取接口"""
+    """组件发布数据获取接口"""
 
     def get_service_ports_by_ids(self, service_ids):
         """
-        根据多个服务ID查询服务的端口信息
-        :param service_ids: 应用ID列表
+        根据多个组件ID查询组件的端口信息
+        :param service_ids: 组件ID列表
         :return: {"service_id":TenantServicesPort[object]}
         """
         port_list = TenantServicesPort.objects.filter(service_id__in=service_ids)
@@ -31,8 +31,8 @@ class PublishAppService(object):
 
     def get_service_dependencys_by_ids(self, service_ids):
         """
-        根据多个服务ID查询服务的依赖服务信息
-        :param service_ids:应用ID列表
+        根据多个组件ID查询组件的依赖组件信息
+        :param service_ids:组件ID列表
         :return: {"service_id":TenantServiceInfo[object]}
         """
         relation_list = TenantServiceRelation.objects.filter(service_id__in=service_ids)
@@ -49,8 +49,8 @@ class PublishAppService(object):
 
     def get_service_env_by_ids(self, service_ids):
         """
-        获取应用env
-        :param service_ids: 应用ID列表
+        获取组件env
+        :param service_ids: 组件ID列表
         :return: 可修改的环境变量service_env_change_map，不可修改的环境变量service_env_nochange_map
         """
         env_list = TenantServiceEnvVar.objects.filter(service_id__in=service_ids, container_port__lte=0)
@@ -134,7 +134,7 @@ class PublishAppService(object):
 
     def __get_tenant_group_service_by_group_id(self, tenant, region, group_id):
         """
-        获取租户指定的组下的所有服务
+        获取租户指定的组下的所有组件
         """
         svc_relations = ServiceGroupRelation.objects.filter(tenant_id=tenant.tenant_id, group_id=group_id, region_name=region)
         if not svc_relations:

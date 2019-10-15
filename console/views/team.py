@@ -1347,7 +1347,7 @@ class TeamSortDomainQueryView(JWTAuthApiView):
 class TeamSortServiceQueryView(JWTAuthApiView):
     def get(self, request, team_name, region_name, *args, **kwargs):
         """
-        获取团队下服务访问量排序
+        获取团队下组件访问量排序
         ---
         parameters:
             - name: team_name
@@ -1366,11 +1366,11 @@ class TeamSortServiceQueryView(JWTAuthApiView):
 
             sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B"\
                 + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(team.tenant_id)
-            # 对外服务访问量
+            # 对外组件访问量
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
             outer_service_list = body["data"]["result"][0:10]
 
-            # 对外服务访问量
+            # 对外组件访问量
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
             inner_service_list = body["data"]["result"][0:10]
 

@@ -69,8 +69,8 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
-        app_plugin_map = {}  # 新装服务对应的安装的插件映射
-        old_new_id_map = {}  # 新旧服务映射关系
+        app_plugin_map = {}  # 新装组件对应的安装的插件映射
+        old_new_id_map = {}  # 新旧组件映射关系
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
@@ -114,7 +114,7 @@ class MarketAppService(object):
                 if code != 200:
                     raise Exception(msg)
 
-                # 保存应用探针信息
+                # 保存组件探针信息
                 probe_infos = app.get("probes", None)
                 if probe_infos:
                     service_probe_map[ts.service_id] = probe_infos
@@ -135,9 +135,9 @@ class MarketAppService(object):
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
-            # 数据中心创建应用
+            # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
-            # 创建应用插件
+            # 创建组件插件
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
 
             # dependent volume
@@ -145,7 +145,7 @@ class MarketAppService(object):
 
             events = []
             if is_deploy:
-                # 部署所有应用
+                # 部署所有组件
                 events = self.__deploy_services(tenant, user, new_service_list)
             return tenant_service_group, events
         except Exception as e:
@@ -166,8 +166,8 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
-        app_plugin_map = {}  # 新装服务对应的安装的插件映射
-        old_new_id_map = {}  # 新旧服务映射关系
+        app_plugin_map = {}  # 新装组件对应的安装的插件映射
+        old_new_id_map = {}  # 新旧组件映射关系
 
         for service in services:
             service_share_uuid = service.service_source_info.service_share_uuid
@@ -216,7 +216,7 @@ class MarketAppService(object):
                 if code != 200:
                     raise Exception(msg)
 
-                # 保存应用探针信息
+                # 保存组件探针信息
                 probe_infos = app.get("probes", None)
                 if probe_infos:
                     service_probe_map[ts.service_id] = probe_infos
@@ -234,9 +234,9 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-            # 数据中心创建应用
+            # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
-            # 创建应用插件
+            # 创建组件插件
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugins = app_plugin_map[service.service_id]
@@ -244,7 +244,7 @@ class MarketAppService(object):
 
             events = {}
             if is_deploy:
-                # 部署所有应用
+                # 部署所有组件
                 events = self.__deploy_services(tenant, user, new_service_list)
             return {
                 "tenant_service_group": tenant_service_group,
@@ -454,9 +454,9 @@ class MarketAppService(object):
         new_service_list = []
         try:
             for service in service_list:
-                # 数据中心创建应用
+                # 数据中心创建组件
                 new_service = app_service.create_region_service(tenant, service, user.nick_name)
-                # 为服务添加探针
+                # 为组件添加探针
                 probe_data = service_probe_map.get(service.service_id)
                 probe_ids = []
                 if probe_data:
@@ -471,7 +471,7 @@ class MarketAppService(object):
                 if probe_ids:
                     service_prob_id_map[service.service_id] = probe_ids
 
-                # 添加服务有无状态标签
+                # 添加组件有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
                 new_service_list.append(new_service)
             return new_service_list
@@ -999,7 +999,7 @@ class MarketTemplateTranslateService(object):
     def v1_to_v2(self, old_templete, region=""):
         """旧版本模板转换为新版本数据"""
         new_templet = dict()
-        # 服务组的基础信息
+        # 组件组的基础信息
         new_templet["group_version"] = old_templete["group_version"]
         new_templet["group_name"] = old_templete["group_name"]
         new_templet["group_key"] = old_templete["group_key"]

@@ -274,7 +274,7 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         ---
         parameters:
             - name: app_name
-              description: 搜索的服务名
+              description: 搜索的组件名
               required: false
               type: string
               paramType: query

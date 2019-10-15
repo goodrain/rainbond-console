@@ -278,7 +278,7 @@ class RolePermRepo(object):
         return options_list
 
     def get_three_service_permission_options(self):
-        """获取三方服务自定义角色时可给角色绑定的权限选项"""
+        """获取第三方组件自定义角色时可给角色绑定的权限选项"""
         options_list = list()
 
         perm_group_obj = PermGroup.objects.all()
@@ -379,17 +379,17 @@ class RolePermRepo(object):
                 gateway_group_obj = PermGroup.objects.get(group_name="网关相关")
                 group_dict["网关相关"] = gateway_group_obj.pk
             # 5.1新增
-            if not PermGroup.objects.filter(group_name="三方服务相关").exists():
-                three_services_group_obj = PermGroup.objects.create(group_name="三方服务相关")
-                group_dict["三方服务相关"] = three_services_group_obj.pk
+            if not PermGroup.objects.filter(group_name="第三方组件相关").exists():
+                three_services_group_obj = PermGroup.objects.create(group_name="第三方组件相关")
+                group_dict["第三方组件相关"] = three_services_group_obj.pk
             else:
-                three_services_group_obj = PermGroup.objects.get(group_name="三方服务相关")
-                group_dict["三方服务相关"] = three_services_group_obj.pk
+                three_services_group_obj = PermGroup.objects.get(group_name="第三方组件相关")
+                group_dict["第三方组件相关"] = three_services_group_obj.pk
             # 初始化权限数据
             team_group = group_dict.get("团队相关")
             service_group = group_dict.get("应用相关")
             gateway_group = group_dict.get("网关相关")
-            three_service_group = group_dict.get("三方服务相关")
+            three_service_group = group_dict.get("第三方组件相关")
 
             obj = TenantUserPermission.objects.create(
                 codename="tenant_access", per_info="登入团队", is_select=True, group=team_group)
@@ -532,7 +532,7 @@ class RolePermRepo(object):
             perms_dict["reset_secret_key"] = obj.pk
 
             obj = TenantUserPermission.objects.create(
-                codename="create_three_service", per_info="创建三方服务", is_select=True, group=three_service_group)
+                codename="create_three_service", per_info="创建第三方组件", is_select=True, group=three_service_group)
             perms_dict["create_three_service"] = obj.pk
             # 初始化角色与权限对应关系
             owner_id = role_dict.get("owner")

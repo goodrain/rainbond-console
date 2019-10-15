@@ -19,7 +19,7 @@ class ServicePermView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取为服务添加的用户权限
+        获取为组件添加的用户权限
         ---
         parameters:
             - name: tenantName
@@ -28,7 +28,7 @@ class ServicePermView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -47,7 +47,7 @@ class ServicePermView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def post(self, request, *args, **kwargs):
         """
-        为服务添加的用户权限
+        为组件添加的用户权限
         ---
         parameters:
             - name: tenantName
@@ -56,7 +56,7 @@ class ServicePermView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -91,7 +91,7 @@ class ServicePermView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def put(self, request, *args, **kwargs):
         """
-        为服务修改用户的权限
+        为组件修改用户的权限
         ---
         parameters:
             - name: tenantName
@@ -100,7 +100,7 @@ class ServicePermView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -135,7 +135,7 @@ class ServicePermView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用添加的权限
+        删除组件添加的权限
         ---
         parameters:
             - name: tenantName
@@ -144,7 +144,7 @@ class ServicePermView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -173,7 +173,7 @@ class ServicePermView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def patch(self, request, *args, **kwargs):
         """
-        为服务批量添加用户权限
+        为组件批量添加用户权限
         ---
         parameters:
             - name: tenantName
@@ -182,7 +182,7 @@ class ServicePermView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

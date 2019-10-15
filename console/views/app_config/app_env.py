@@ -26,7 +26,7 @@ class AppEnvView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的环境变量参数
+        获取组件的环境变量参数
         ---
         parameters:
             - name: tenantName
@@ -35,7 +35,7 @@ class AppEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -183,7 +183,7 @@ class AppEnvView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加环境变量
+        为组件添加环境变量
         ---
         parameters:
             - name: tenantName
@@ -192,7 +192,7 @@ class AppEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -250,7 +250,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某个环境变量
+        删除组件的某个环境变量
         ---
         parameters:
             - name: tenantName
@@ -259,7 +259,7 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -285,7 +285,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用的某个环境变量详情
+        获取组件的某个环境变量详情
         ---
         parameters:
             - name: tenantName
@@ -294,7 +294,7 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -321,7 +321,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改应用环境变量
+        修改组件环境变量
         ---
         parameters:
             - name: tenantName
@@ -330,7 +330,7 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -384,7 +384,7 @@ class AppBuildEnvView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取构建服务的环境变量参数
+        获取构建组件的环境变量参数
         ---
         parameters:
             - name: tenantName
@@ -393,7 +393,7 @@ class AppBuildEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -404,7 +404,7 @@ class AppBuildEnvView(AppBaseView):
               paramType: query
         """
         try:
-            # 获取服务构建时环境变量
+            # 获取组件构建时环境变量
             build_env_dict = dict()
             build_envs = env_var_service.get_service_build_envs(self.service)
             if build_envs:

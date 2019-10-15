@@ -258,7 +258,7 @@ class ServiceDomainView(AppBaseView):
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         """
-        获取服务下某个端口绑定的域名
+        获取组件下某个端口绑定的域名
         ---
         parameters:
             - name: tenantName
@@ -267,12 +267,12 @@ class ServiceDomainView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: container_port
-              description: 服务端口
+              description: 组件端口
               required: true
               type: string
               paramType: query
@@ -294,7 +294,7 @@ class ServiceDomainView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        服务端口绑定域名
+        组件端口绑定域名
         ---
         parameters:
             - name: tenantName
@@ -303,7 +303,7 @@ class ServiceDomainView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -313,7 +313,7 @@ class ServiceDomainView(AppBaseView):
               type: string
               paramType: form
             - name: container_port
-              description: 服务端口
+              description: 组件端口
               required: true
               type: string
               paramType: form
@@ -370,7 +370,7 @@ class ServiceDomainView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        服务端口解绑域名
+        组件端口解绑域名
         ---
         parameters:
             - name: tenantName
@@ -379,7 +379,7 @@ class ServiceDomainView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -389,7 +389,7 @@ class ServiceDomainView(AppBaseView):
               type: string
               paramType: form
             - name: container_port
-              description: 服务端口
+              description: 组件端口
               required: true
               type: string
               paramType: form
@@ -492,7 +492,7 @@ class HttpStrategyView(RegionTenantHeaderView):
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
+                return Response(general_message(400, "not service", "组件不存在"), status=400)
 
             protocol = "http"
             if certificate_id:
@@ -504,7 +504,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
-            # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+            # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
             domains = domain_repo.get_domain_by_name_and_path(
                 domain_name, domain_path)
             domain_protocol_list = []
@@ -594,9 +594,9 @@ class HttpStrategyView(RegionTenantHeaderView):
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
+                return Response(general_message(400, "not service", "组件不存在"), status=400)
 
-            # 域名，path相同的服务，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+            # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
             add_httptohttps = False
             if rule_extensions:
                 for rule in rule_extensions:
@@ -703,7 +703,7 @@ class SecondLevelDomainView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -723,7 +723,7 @@ class SecondLevelDomainView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        服务端口自定义二级域名
+        组件端口自定义二级域名
         ---
         parameters:
             - name: tenantName
@@ -732,7 +732,7 @@ class SecondLevelDomainView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -742,7 +742,7 @@ class SecondLevelDomainView(AppBaseView):
               type: string
               paramType: form
             - name: container_port
-              description: 服务端口
+              description: 组件端口
               required: true
               type: string
               paramType: form
@@ -1055,7 +1055,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
+                return Response(general_message(400, "not service", "组件不存在"), status=400)
 
             # 判断策略是否存在
             region = region_repo.get_region_by_region_name(service.service_region)
@@ -1122,7 +1122,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
-                return Response(general_message(400, "not service", "服务不存在"), status=400)
+                return Response(general_message(400, "not service", "组件不存在"), status=400)
 
             # 查询端口协议
             tenant_service_port = port_service.get_service_port_by_port(
@@ -1237,7 +1237,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
         service_domain = get_object_or_404(
             ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(
-            TenantServiceInfo, msg="no service", msg_show=u"服务不存在", service_id=service_domain.service_id)
+            TenantServiceInfo, msg="no service", msg_show=u"组件不存在", service_id=service_domain.service_id)
 
         cf = configuration_repo.get_configuration_by_rule_id(rule_id)
         gcc_dict = dict()

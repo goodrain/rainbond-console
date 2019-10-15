@@ -60,14 +60,14 @@ class AppMntService(object):
 
         services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
-        # 已挂载的服务路径
+        # 已挂载的组件路径
         dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name', flat=True)
         # 当前未被挂载的共享路径
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
             .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
             .exclude(service_id=service.service_id) \
             .exclude(volume_name__in=dep_mnt_names).filter(q)
-        # 只展示无状态的服务组件(有状态服务的存储类型为config-file也可)
+        # 只展示无状态的组件(有状态组件的存储类型为config-file也可)
         volumes = list(service_volumes)
         for volume in volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)

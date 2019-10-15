@@ -22,7 +22,7 @@ class APPPluginsView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用可用的插件列表
+        获取组件可用的插件列表
         ---
         parameters:
             - name: tenantName
@@ -31,7 +31,7 @@ class APPPluginsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -90,7 +90,7 @@ class APPPluginInstallView(AppBaseView):
     @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
-        应用安装插件
+        组件安装插件
         ---
         parameters:
             - name: tenantName
@@ -99,7 +99,7 @@ class APPPluginInstallView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -173,7 +173,7 @@ class APPPluginInstallView(AppBaseView):
                                                     self.service.service_alias)
             except Exception, e:
                 pass
-            result = general_message(400, "havs no downstream services", u'缺少关联应用，不能使用该类型插件')
+            result = general_message(400, "havs no downstream services", u'缺少关联组件，不能使用该类型插件')
             logger.exception(e)
             return Response(result, status=400)
         except Exception, e:
@@ -191,7 +191,7 @@ class APPPluginInstallView(AppBaseView):
     @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
-        应用卸载插件
+        组件卸载插件
         ---
         parameters:
             - name: tenantName
@@ -200,7 +200,7 @@ class APPPluginInstallView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -230,7 +230,7 @@ class APPPluginOpenView(AppBaseView):
     @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
-        启停用应用插件
+        启停用组件插件
         ---
         parameters:
             - name: tenantName
@@ -239,7 +239,7 @@ class APPPluginOpenView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -316,7 +316,7 @@ class APPPluginConfigView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
-        应用插件查看配置
+        组件插件查看配置
         ---
         parameters:
             - name: tenantName
@@ -325,7 +325,7 @@ class APPPluginConfigView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -361,7 +361,7 @@ class APPPluginConfigView(AppBaseView):
             return Response(result, status=200)
         except HasNoDownStreamService as e:
             logger.error("service has no dependence services operation suspend")
-            return Response(general_message(409, "service has no dependence", "应用没有依赖其他应用，配置无效"), status=409)
+            return Response(general_message(409, "service has no dependence", "组件没有依赖其他组件，配置无效"), status=409)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -370,7 +370,7 @@ class APPPluginConfigView(AppBaseView):
     @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
-        应用插件更新
+        组件插件更新
         ---
         parameters:
             - name: tenantName
@@ -379,7 +379,7 @@ class APPPluginConfigView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
