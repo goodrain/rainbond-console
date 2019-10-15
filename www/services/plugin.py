@@ -146,24 +146,24 @@ class PluginService(object):
 
     def get_tenant_service_plugin_relation(self, service_id):
         """
-        获取当前应用关联的插件
+        获取当前组件关联的插件
         @param service_id: 租户id
-        @return: 获取当前应用关联的插件
+        @return: 获取当前组件关联的插件
         """
         return TenantServicePluginRelation.objects.filter(service_id=service_id)
 
     def get_tenant_service_plugin_relation_by_plugin(self, service_id, plugin_id):
         """
-        获取当前应用关联的插件
+        获取当前组件关联的插件
         @param service_id: 租户id
-        @return: 获取当前应用关联的插件
+        @return: 获取当前组件关联的插件
         """
         return TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id)
 
     def add_service_plugin_relation(self, service_id, plugin_id, build_version):
         """
-        添加应用与插件的绑定关系
-        @param service_id: 服务id
+        添加组件与插件的绑定关系
+        @param service_id: 组件id
         @param plugin_id: 插件id
         @param build_version: 插件构建版本
         @return:

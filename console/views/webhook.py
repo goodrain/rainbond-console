@@ -97,7 +97,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
-                # 获取应用状态
+                # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
@@ -108,8 +108,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态不支持")
+                    logger.debug("组件状态异常")
+                    result = general_message(400, "failed", "组件状态不支持")
                     return Response(result, status=400)
             # gitlab
             elif request.META.get("HTTP_X_GITLAB_EVENT", None):
@@ -165,7 +165,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
-                # 获取应用状态
+                # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 user = Users.objects.get(user_id=service_obj.creater)
@@ -175,8 +175,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user, committer_name=committer_name)
                 else:
-                    logger.debug("应用状态异常")
-                    result = general_message(200, "failed", "应用状态不支持")
+                    logger.debug("组件状态异常")
+                    result = general_message(200, "failed", "组件状态不支持")
                     return Response(result, status=200)
             # gitee
             elif request.META.get("HTTP_X_GITEE_EVENT", None) or \
@@ -217,7 +217,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
-                # 获取应用状态
+                # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
@@ -228,8 +228,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("应用状态异常")
-                    result = general_message(200, "failed", "应用状态不支持")
+                    logger.debug("组件状态异常")
+                    result = general_message(200, "failed", "组件状态不支持")
                     return Response(result, status=200)
             # gogs
             elif request.META.get("HTTP_X_GOGS_EVENT", None):
@@ -269,7 +269,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
-                # 获取应用状态
+                # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
@@ -280,8 +280,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("应用状态异常")
-                    result = general_message(200, "failed", "应用状态不支持")
+                    logger.debug("组件状态异常")
+                    result = general_message(200, "failed", "组件状态不支持")
                     return Response(result, status=200)
             # coding
             elif request.META.get("HTTP_X_CODING_EVENT", None):
@@ -330,7 +330,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
-                # 获取应用状态
+                # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
@@ -341,8 +341,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("应用状态异常")
-                    result = general_message(400, "failed", "应用状态不支持")
+                    logger.debug("组件状态异常")
+                    result = general_message(400, "failed", "组件状态不支持")
                     return Response(result, status=400)
             else:
                 logger.debug("暂时仅支持github与gitlab")
@@ -386,7 +386,7 @@ class WebHooksDeploy(AlowAnyApiView):
 class GetWebHooksUrl(AppBaseView):
     def get(self, request, *args, **kwargs):
         """
-        判断该应用是否有webhooks自动部署功能，有则返回URL
+        判断该组件是否有webhooks自动部署功能，有则返回URL
         """
         try:
             deployment_way = request.GET.get("deployment_way", None)
@@ -397,7 +397,7 @@ class GetWebHooksUrl(AppBaseView):
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             if service_obj.service_source == AppConstants.MARKET:
-                result = general_message(200, "failed", "该应用不符合要求", bean={"display": False})
+                result = general_message(200, "failed", "该组件不符合要求", bean={"display": False})
                 return Response(result, status=200)
             if service_obj.service_source == AppConstants.SOURCE_CODE:
                 support_type = 1
@@ -504,7 +504,7 @@ class WebHooksStatus(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -567,8 +567,8 @@ class CustomWebHooksDeploy(AlowAnyApiView):
             return user_services.deploy_service(
                 tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=user_name)
         else:
-            logger.debug("应用状态异常")
-            result = general_message(400, "failed", "应用状态不支持")
+            logger.debug("组件状态异常")
+            result = general_message(400, "failed", "组件状态不支持")
             return Response(result, status=400)
 
 
@@ -594,7 +594,7 @@ class UpdateSecretKey(AppBaseView):
                 result = general_message(200, "success", "修改成功")
                 return Response(result, 200)
             else:
-                result = general_message(404, "not found", "没有该应用")
+                result = general_message(404, "not found", "没有该组件")
                 return Response(result, 404)
         except Exception as e:
             logger.exception(e)
@@ -611,13 +611,13 @@ class ImageWebHooksDeploy(AlowAnyApiView):
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             if not service_obj:
-                result = general_message(400, "failed", "服务不存在")
+                result = general_message(400, "failed", "组件不存在")
                 return Response(result, status=400)
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
                 service_obj.service_id, "image_webhooks")
             if not service_webhook.state:
-                result = general_message(400, "failed", "服务关闭了自动构建")
+                result = general_message(400, "failed", "组件关闭了自动构建")
                 return Response(result, status=400)
             # 校验
             repository = request.data.get("repository")
@@ -647,7 +647,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             ref = reference.Reference.parse(service_obj.image)
             hostname, name = ref.split_hostname()
             if repo_name != name:
-                result = general_message(400, "failed", "镜像名称与服务构建源不符")
+                result = general_message(400, "failed", "镜像名称与组件构建源不符")
                 return Response(result, status=400)
 
             # 标签匹配
@@ -660,10 +660,10 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             else:
                 # 如果没有根据标签触发
                 if tag != ref['tag']:
-                    result = general_message(400, "failed", "镜像tag与服务构建源不符")
+                    result = general_message(400, "failed", "镜像tag与组件构建源不符")
                     return Response(result, status=400)
 
-            # 获取应用状态
+            # 获取组件状态
             status_map = app_service.get_service_status(tenant_obj, service_obj)
             status = status_map.get("status", None)
             user_obj = Users.objects.get(user_id=service_obj.creater)
@@ -673,7 +673,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 return user_services.deploy_service(
                     tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
             else:
-                result = general_message(400, "failed", "应用状态处于关闭中，不支持自动构建")
+                result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)

@@ -115,7 +115,7 @@ class TenantServiceInfoRepository(object):
         TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id).update(**params)
 
     def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
-        """使用service_ids 和 group_key 查找一组云市应用下的服务"""
+        """使用service_ids 和 group_key 查找一组云市应用下的组件"""
         return TenantServiceInfo.objects.filter(service_source_info__group_key=group_key, service_id__in=service_ids)
 
     def del_by_sid(self, sid):
@@ -148,11 +148,11 @@ class ServiceSourceRepository(object):
         return None
 
     def get_service_sources_by_service_ids(self, service_ids):
-        """使用service_ids获取服务源信息的查询集"""
+        """使用service_ids获取组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(service_id__in=service_ids)
 
     def get_service_sources_by_group_key(self, group_key):
-        """使用group_key获取一组云市应用下的所有服务源信息的查询集"""
+        """使用group_key获取一组云市应用下的所有组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(group_key=group_key)
 
 

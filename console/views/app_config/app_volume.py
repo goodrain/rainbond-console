@@ -26,7 +26,7 @@ class AppVolumeView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的持久化路径
+        获取组件的持久化路径
         ---
         parameters:
             - name: tenantName
@@ -35,7 +35,7 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -71,7 +71,7 @@ class AppVolumeView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加持久化目录
+        为组件添加持久化目录
         ---
         parameters:
             - name: tenantName
@@ -80,7 +80,7 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -124,7 +124,7 @@ class AppVolumeManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某个持久化路径
+        删除组件的某个持久化路径
         ---
         parameters:
             - name: tenantName
@@ -133,7 +133,7 @@ class AppVolumeManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

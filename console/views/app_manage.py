@@ -38,7 +38,7 @@ class StartAppView(AppBaseView):
     @perm_required('start_service')
     def post(self, request, *args, **kwargs):
         """
-        启动服务
+        启动组件
         ---
         parameters:
             - name: tenantName
@@ -47,7 +47,7 @@ class StartAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -72,7 +72,7 @@ class StopAppView(AppBaseView):
     @perm_required('stop_service')
     def post(self, request, *args, **kwargs):
         """
-        停止服务
+        停止组件
         ---
         parameters:
             - name: tenantName
@@ -81,7 +81,7 @@ class StopAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -100,7 +100,7 @@ class ReStartAppView(AppBaseView):
     @perm_required('restart_service')
     def post(self, request, *args, **kwargs):
         """
-        重启服务
+        重启组件
         ---
         parameters:
             - name: tenantName
@@ -109,7 +109,7 @@ class ReStartAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -128,7 +128,7 @@ class DeployAppView(AppBaseView):
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
-        部署服务
+        部署组件
         ---
         parameters:
             - name: tenantName
@@ -137,7 +137,7 @@ class DeployAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -152,7 +152,7 @@ class DeployAppView(AppBaseView):
             result = general_message(code, "success", "操作成功", bean=bean)
         except ErrServiceSourceNotFound as e:
             logger.exception(e)
-            return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
+            return Response(general_message(412, e.message, "无法找到云市组件的构建源"), status=412)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -166,7 +166,7 @@ class RollBackAppView(AppBaseView):
     @perm_required('rollback_service')
     def post(self, request, *args, **kwargs):
         """
-        回滚服务
+        回滚组件
         ---
         parameters:
             - name: tenantName
@@ -175,7 +175,7 @@ class RollBackAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -211,7 +211,7 @@ class VerticalExtendAppView(AppBaseView):
     @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
-        垂直升级服务
+        垂直升级组件
         ---
         parameters:
             - name: tenantName
@@ -220,7 +220,7 @@ class VerticalExtendAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -253,7 +253,7 @@ class HorizontalExtendAppView(AppBaseView):
     @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
-        水平升级服务
+        水平升级组件
         ---
         parameters:
             - name: tenantName
@@ -262,7 +262,7 @@ class HorizontalExtendAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -299,7 +299,7 @@ class BatchActionView(RegionTenantHeaderView):
     @perm_required('manage_group')
     def post(self, request, *args, **kwargs):
         """
-        批量操作服务
+        批量操作组件
         ---
         parameters:
             - name: tenantName
@@ -313,7 +313,7 @@ class BatchActionView(RegionTenantHeaderView):
               type: string
               paramType: form
             - name: service_ids
-              description: 批量操作的服务ID 多个以英文逗号分隔
+              description: 批量操作的组件ID 多个以英文逗号分隔
               required: true
               type: string
               paramType: form
@@ -331,19 +331,19 @@ class BatchActionView(RegionTenantHeaderView):
         if action == "stop":
             if "stop_service" not in perm_tuple and "owner" not in identitys \
                     and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
+                return Response(general_message(400, "Permission denied", "没有关闭组件权限"), status=400)
         if action == "start":
             if "start_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
+                return Response(general_message(400, "Permission denied", "没有启动组件权限"), status=400)
         if action == "restart":
             if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有重启应用权限"), status=400)
+                return Response(general_message(400, "Permission denied", "没有重启组件权限"), status=400)
         if action == "move":
             if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" \
                     not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有变更应用分组权限"), status=400)
+                return Response(general_message(400, "Permission denied", "没有变更组件分组权限"), status=400)
         service_id_list = service_ids.split(",")
         code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id)
         if code != 200:
@@ -358,7 +358,7 @@ class DeleteAppView(AppBaseView):
     @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
-        删除服务
+        删除组件
         ---
         parameters:
             - name: tenantName
@@ -367,7 +367,7 @@ class DeleteAppView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -393,7 +393,7 @@ class BatchDelete(RegionTenantHeaderView):
     @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
-        批量删除应用
+        批量删除组件
         ---
         parameters:
             - name: tenantName
@@ -402,7 +402,7 @@ class BatchDelete(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: service_ids
-              description: 批量操作的服务ID 多个以英文逗号分隔
+              description: 批量操作的组件ID 多个以英文逗号分隔
               required: true
               type: string
               paramType: form
@@ -413,7 +413,7 @@ class BatchDelete(RegionTenantHeaderView):
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                 not in identitys and "developer" not in identitys:
-            return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
+            return Response(general_message(400, "Permission denied", "没有删除组件权限"), status=400)
         service_id_list = service_ids.split(",")
         services = service_repo.get_services_by_service_ids(service_id_list)
         msg_list = []
@@ -435,7 +435,7 @@ class AgainDelete(RegionTenantHeaderView):
     @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
-        二次确认删除应用
+        二次确认删除组件
         ---
         parameters:
             - name: tenantName
@@ -444,7 +444,7 @@ class AgainDelete(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: service_id
-              description: 应用id
+              description: 组件id
               required: true
               type: string
               paramType: form
@@ -455,7 +455,7 @@ class AgainDelete(RegionTenantHeaderView):
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                 not in identitys and "developer" not in identitys:
-            return Response(general_message(400, "Permission denied", "没有删除应用权限"), status=400)
+            return Response(general_message(400, "Permission denied", "没有删除组件权限"), status=400)
         service = service_repo.get_service_by_service_id(service_id)
         code, msg = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
         bean = {}
@@ -471,7 +471,7 @@ class ChangeServiceTypeView(AppBaseView):
     @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
-        修改服务的应用类型标签
+        修改组件的组件类型标签
         :param request:
         :param args:
         :param kwargs:
@@ -480,7 +480,7 @@ class ChangeServiceTypeView(AppBaseView):
         try:
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
-                return Response(general_message(400, "select the application type", "请选择应用类型"), status=400)
+                return Response(general_message(400, "select the application type", "请选择组件类型"), status=400)
 
             old_extend_method = self.service.extend_method
             # 状态从有到无，并且有本地存储的不可修改
@@ -502,7 +502,7 @@ class ChangeServiceTypeView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-# 更新服务组件
+# 更新组件组件
 class UpgradeAppView(AppBaseView):
     @never_cache
     @perm_required('deploy_service')
@@ -526,7 +526,7 @@ class UpgradeAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-# 修改服务名称
+# 修改组件名称
 class ChangeServiceNameView(AppBaseView):
     @never_cache
     @perm_required('manage_service_extend')
@@ -543,7 +543,7 @@ class ChangeServiceNameView(AppBaseView):
         extend_method = self.service.extend_method
         if extend_method == "stateless":
             return Response(
-                general_message(400, "stateless applications cannot be modified", "无状态应用不可修改"),
+                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"),
                 status=400)
         self.service.service_name = service_name
         self.service.save()
@@ -551,7 +551,7 @@ class ChangeServiceNameView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-# 修改服务名称
+# 修改组件名称
 class ChangeServiceUpgradeView(AppBaseView):
     @never_cache
     @perm_required('manage_service_extend')
@@ -570,7 +570,7 @@ class ChangeServiceUpgradeView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-# 判断云市安装的应用是否有（小版本，大版本）更新
+# 判断云市安装的组件是否有（小版本，大版本）更新
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
     @perm_required('deploy_service')
@@ -578,10 +578,10 @@ class MarketServiceUpgradeView(AppBaseView):
         if self.service.service_source != "market":
             return Response(
                 general_message(
-                    400, "non-cloud installed applications require no judgment", "非云市安装的应用无需判断"),
+                    400, "non-cloud installed applications require no judgment", "非云市安装的组件无需判断"),
                 status=400)
 
-        # 判断服务状态，未部署的服务不提供升级数据
+        # 判断组件状态，未部署的组件不提供升级数据
         body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
                                                self.service.service_alias, self.tenant.enterprise_id)
         status = body["bean"]["cur_status"]

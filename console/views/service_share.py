@@ -461,7 +461,7 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             plugin_count = PluginShareRecordEvent.objects.filter(
                 Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
-                result = general_message(415, "share complete can not do", "应用或插件同步未全部完成")
+                result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
                 return Response(result, status=415)
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
             result = general_message(

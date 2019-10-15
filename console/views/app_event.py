@@ -27,7 +27,7 @@ class AppEventView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的event事件
+        获取组件的event事件
         ---
         parameters:
             - name: tenantName
@@ -36,7 +36,7 @@ class AppEventView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -76,7 +76,7 @@ class AppEventLogView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的event的详细日志
+        获取组件的event的详细日志
         ---
         parameters:
             - name: tenantName
@@ -85,7 +85,7 @@ class AppEventLogView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -120,7 +120,7 @@ class AppLogView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的日志
+        获取组件的日志
         ---
         parameters:
             - name: tenantName
@@ -129,7 +129,7 @@ class AppLogView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -177,7 +177,7 @@ class AppLogInstanceView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -205,7 +205,7 @@ class AppHistoryLogView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用历史日志
+        获取组件历史日志
         ---
         parameters:
             - name: tenantName
@@ -214,7 +214,7 @@ class AppHistoryLogView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

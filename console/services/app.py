@@ -51,14 +51,14 @@ probe_service = ProbeService()
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
-            return False, u"应用名称不能为空"
+            return False, u"组件名称不能为空"
         if len(service_cname) > 100:
-            return False, u"应用名称最多支持100个字符"
+            return False, u"组件名称最多支持100个字符"
         return True, u"success"
 
     def __init_source_code_app(self, region):
         """
-        初始化源码创建的应用默认数据,未存入数据库
+        初始化源码创建的组件默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -151,7 +151,7 @@ class AppService(object):
 
     def __init_docker_image_app(self, region):
         """
-        初始化docker image创建的应用默认数据,未存入数据库
+        初始化docker image创建的组件默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -207,7 +207,7 @@ class AppService(object):
         new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.save()
-        # # 创建镜像和服务的关系（兼容老的流程）
+        # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
         #     image_service_relation_repo.create_image_service_relation(tenant.tenant_id, service_id, docker_cmd,
         #                                                               service_cname)
@@ -219,7 +219,7 @@ class AppService(object):
 
     def __init_third_party_app(self, region, end_point):
         """
-        初始化创建外置服务的默认数据,未存入数据库
+        初始化创建外置组件的默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -272,7 +272,7 @@ class AppService(object):
                 from console.views.app_create.source_outer import check_endpoints
                 errs, isDomain = check_endpoints(endpoints)
                 if errs:
-                    return 400, u"服务地址不合法", None
+                    return 400, u"组件地址不合法", None
                 port_list = []
                 prefix = ""
                 protocol = "tcp"
@@ -359,7 +359,7 @@ class AppService(object):
         return services
 
     def get_service_status(self, tenant, service):
-        """获取应用状态"""
+        """获取组件状态"""
         start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
@@ -443,7 +443,7 @@ class AppService(object):
 
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # 将服务创建状态变更为创建完成
+        # 将组件创建状态变更为创建完成
         service.create_status = "complete"
         self.__handle_service_ports(tenant, service, ports)
         service.save()
@@ -486,7 +486,7 @@ class AppService(object):
         return data
 
     def __handle_service_ports(self, tenant, service, ports):
-        """处理创建应用的端口。对于打开了对内或对外端口的应用，需由业务端手动打开"""
+        """处理创建组件的端口。对于打开了对内或对外端口的组件，需由业务端手动打开"""
         try:
             for port in ports:
                 if port.is_outer_service:
@@ -619,7 +619,7 @@ class AppService(object):
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # 将服务创建状态变更为创建完成
+        # 将组件创建状态变更为创建完成
         service.create_status = "complete"
         self.__handle_service_ports(tenant, service, ports)
         service.save()

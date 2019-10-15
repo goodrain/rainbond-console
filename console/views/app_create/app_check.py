@@ -21,7 +21,7 @@ class AppCheck(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务检测信息
+        获取组件检测信息
         ---
         parameters:
             - name: tenantName
@@ -30,7 +30,7 @@ class AppCheck(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -74,7 +74,7 @@ class AppCheck(AppBaseView):
     @perm_required('view_service')
     def post(self, request, *args, **kwargs):
         """
-        服务信息检测
+        组件信息检测
         ---
         parameters:
             - name: tenantName
@@ -83,7 +83,7 @@ class AppCheck(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -115,7 +115,7 @@ class AppCheckUpdate(AppBaseView):
     @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
-        服务检测信息修改
+        组件检测信息修改
         ---
         serializer: TenantServiceUpdateSerilizer
         """

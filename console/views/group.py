@@ -219,12 +219,12 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             group_id = int(kwargs.get("group_id", None))
             services = group_service_relation_repo.get_services_obj_by_group(group_id)
             if not services:
-                result = general_message(400, "not service", "当前组内无应用，无法操作")
+                result = general_message(400, "not service", "当前组内无组件，无法操作")
                 return Response(result)
             service_ids = [service.service_id for service in services]
             if action not in ("stop", "start", "upgrade", "deploy"):
                 return Response(general_message(400, "param error", "操作类型错误"), status=400)
-            # 去除掉三方服务
+            # 去除掉第三方组件
             for service_id in service_ids:
                 service_obj = service_repo.get_service_by_service_id(service_id)
                 if service_obj:
@@ -238,13 +238,13 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             common_perm = "owner" not in identitys and "admin" not in identitys and "developer" not in identitys
             if action == "stop":
                 if "stop_service" not in perm_tuple and common_perm:
-                    return Response(general_message(400, "Permission denied", "没有关闭应用权限"), status=400)
+                    return Response(general_message(400, "Permission denied", "没有关闭组件权限"), status=400)
             if action == "start":
                 if "start_service" not in perm_tuple and common_perm:
-                    return Response(general_message(400, "Permission denied", "没有启动应用权限"), status=400)
+                    return Response(general_message(400, "Permission denied", "没有启动组件权限"), status=400)
             if action == "upgrade":
                 if "restart_service" not in perm_tuple and common_perm:
-                    return Response(general_message(400, "Permission denied", "没有更新应用权限"), status=400)
+                    return Response(general_message(400, "Permission denied", "没有更新组件权限"), status=400)
             if action == "deploy":
                 if "deploy_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
@@ -272,7 +272,7 @@ class GroupStatusView(RegionTenantHeaderView):
             return Response(result)
         services = group_service_relation_repo.get_services_obj_by_group(group_id)
         if not services:
-            result = general_message(400, "not service", "当前组内无应用，无法操作")
+            result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
         service_id_list = [x.service_id for x in services]
         service_status_list = region_api.service_status(self.response_region, self.tenant_name, {

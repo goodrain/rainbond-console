@@ -23,7 +23,7 @@ class AppProbeView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
         """
-        获取服务指定模式的探针
+        获取组件指定模式的探针
         ---
         parameters:
             - name: tenantName
@@ -32,7 +32,7 @@ class AppProbeView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -73,7 +73,7 @@ class AppProbeView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        添加服务探针
+        添加组件探针
         ---
         serializer: ProbeSerilizer
         """
@@ -98,7 +98,7 @@ class AppProbeView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改服务探针,包括启用停用 mode参数必填
+        修改组件探针,包括启用停用 mode参数必填
         ---
         serializer: ProbeSerilizer
         """

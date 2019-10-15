@@ -163,25 +163,25 @@ class GroupService(object):
         return result
 
     def get_group_services(self, group_id):
-        """查询某一应用下的应用"""
+        """查询某一应用下的组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [gs.service_id for gs in gsr]
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
     def get_rainbond_services(self, group_id, group_key):
-        """获取云市应用下的所有服务"""
+        """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
 
     def get_group_service_sources(self, group_id):
-        """查询某一应用下的服务源信息"""
+        """查询某一应用下的组件源信息"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
-    # 应用内没有应用情况下删除应用
+    # 应用内没有组件情况下删除应用
     @transaction.atomic
     def delete_group_no_service(self, group_id):
         if not group_id or group_id < 0:
@@ -197,7 +197,7 @@ class GroupService(object):
         return 200, u"删除成功", group_id
 
     def get_service_group_memory(self, app_template_raw):
-        """获取一应用服务内存"""
+        """获取一应用组件内存"""
         try:
             app_template = json.loads(app_template_raw)
             apps = app_template["apps"]

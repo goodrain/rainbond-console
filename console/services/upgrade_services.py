@@ -1,5 +1,5 @@
 # coding: utf-8
-"""存放应用升级细节"""
+"""存放组件升级细节"""
 import json
 from datetime import datetime
 
@@ -44,13 +44,13 @@ class UpgradeService(object):
             if group_key not in set(service_group_keys or []):
                 raise AbortRequest(
                     msg="the rainbond app is not in the group",
-                    msg_show="该组中没有这个云市应用",
+                    msg_show="该组中没有这个云市组件",
                     status_code=404
                 )
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
             if not app:
-                raise AbortRequest(msg="No rainbond app found", msg_show="没有找到此云市应用", status_code=404)
+                raise AbortRequest(msg="No rainbond app found", msg_show="没有找到此云市组件", status_code=404)
             app_record = upgrade_repo.create_app_upgrade_record(group_name=app.group_name, **recode_kwargs)
         return app_record
 
@@ -67,20 +67,20 @@ class UpgradeService(object):
             return AppUpgradeRecord()
 
     def get_app_upgrade_versions(self, tenant, group_id, group_key):
-        """获取云市应用可升级版本列表"""
+        """获取云市组件可升级版本列表"""
         from console.services.group_service import group_service
         from console.services.market_app_service import market_app_service
 
-        # 查询某一个云市应用下的所有服务
+        # 查询某一个云市组件下的所有组件
         services = group_service.get_rainbond_services(group_id, group_key)
         versions = set()
 
-        # 查询可升级的应用
+        # 查询可升级的组件
         for service in services:
             service_version = market_app_service.list_upgradeable_versions(tenant, service)
             versions |= set(service_version or [])
 
-        # 查询新增应用的版本
+        # 查询新增组件的版本
         service_keys = services.values_list('service_key', flat=True)
         service_keys = set(service_keys) if service_keys else set()
         app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key=group_key)
@@ -102,8 +102,8 @@ class UpgradeService(object):
         return app.version if app else ''
 
     def query_the_version_of_the_add_service(self, app_qs, service_keys):
-        """查询增加服务的版本
-        :param app_qs: 所有版本的应用
+        """查询增加组件的版本
+        :param app_qs: 所有版本的组件
         :type service_keys: set
         :rtype: set
         """
@@ -116,7 +116,7 @@ class UpgradeService(object):
 
     @staticmethod
     def get_new_services(parse_app_template, service_keys):
-        """获取新添加的服务信息
+        """获取新添加的组件信息
         :type parse_app_template: dict
         :type service_keys: set
         :rtype: dict
@@ -131,7 +131,7 @@ class UpgradeService(object):
 
     @staticmethod
     def get_service_changes(service, tenant, version):
-        """获取服务更新信息"""
+        """获取组件更新信息"""
         from console.services.app_actions.properties_changes import PropertiesChanges
 
         try:
@@ -143,7 +143,7 @@ class UpgradeService(object):
             AbortRequest(msg=str(e))
 
     def get_add_services(self, services, group_key, version):
-        """获取新增服务"""
+        """获取新增组件"""
         service_keys = services.values_list('service_key', flat=True)
         service_keys = set(service_keys) if service_keys else set()
         app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=group_key, version=version)
@@ -192,7 +192,7 @@ class UpgradeService(object):
 
     @staticmethod
     def create_add_service_record(app_record, events, add_service_infos):
-        """创建新增服务升级记录"""
+        """创建新增组件升级记录"""
         service_id_event_mapping = {events[key]: key for key in events}
         services = service_repo.get_services_by_service_ids_and_group_key(
             app_record.group_key, service_id_event_mapping.keys())
@@ -206,7 +206,7 @@ class UpgradeService(object):
 
     @staticmethod
     def market_service_and_create_backup(tenant, service, version):
-        """创建服务升级接口并创建备份"""
+        """创建组件升级接口并创建备份"""
         from console.services.app_actions.app_deploy import MarketService
 
         market_service = MarketService(tenant, service, version)
@@ -261,7 +261,7 @@ class UpgradeService(object):
 
     @staticmethod
     def _change_service_record_status(event_status, service_record):
-        """变更服务升级记录状态"""
+        """变更组件升级记录状态"""
         operation = {
             # 升级中
             UpgradeStatus.UPGRADING.value: {
@@ -318,7 +318,7 @@ class UpgradeService(object):
 
     @staticmethod
     def market_service_and_restore_backup(tenant, service, version):
-        """创建服务回滚接口并回滚数据库"""
+        """创建组件回滚接口并回滚数据库"""
         from console.services.app_actions.app_deploy import MarketService
 
         market_service = MarketService(tenant, service, version)

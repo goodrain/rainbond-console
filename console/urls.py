@@ -309,7 +309,7 @@ urlpatterns = [
     # 获取团队下域名访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
         TeamSortDomainQueryView.as_view()),
-    # 获取团队下服务访问量排序
+    # 获取团队下组件访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$',
         TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
@@ -386,14 +386,14 @@ urlpatterns = [
 
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view()),
-    # 三方服务创建
+    # 第三方组件创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view()),
-    # 三方服务api注册方式回调地址
+    # 第三方组件api注册方式回调地址
     url(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
-    # 三方服务api注册方式重置秘钥
+    # 第三方组件api注册方式重置秘钥
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$",
         ThirdPartyUpdateSecretKeyView.as_view()),
-    # 三方服务健康检测
+    # 第三方组件健康检测
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$",
         ThirdPartyHealthzView.as_view()),
     # docker镜像创建
@@ -446,7 +446,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods$', ListAppPodsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)/detail$',
         AppPodsView.as_view()),
-    # 三方应用pod信息
+    # 第三方应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods',
         ThirdPartyAppPodsView.as_view()),
     # 应用进入容器页面
@@ -475,13 +475,13 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
         AppVolumeManageView.as_view()),
-    # 服务依赖
+    # 组件依赖
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency$', AppDependencyView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency/(?P<dep_service_id>[\w\-]+)$',
         AppDependencyManageView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/un_dependency$',
         AppNotDependencyView.as_view()),
-    # 服务挂载
+    # 组件挂载
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt$', AppMntView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt/(?P<dep_vol_id>[\w\-]+)$',
         AppMntManageView.as_view()),
@@ -490,7 +490,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$',
         TenantCertificateManageView.as_view()),
 
-    # 服务域名操作
+    # 组件域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view()),
@@ -511,14 +511,14 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$',
         GatewayCustomConfigurationView.as_view()),
 
-    # 服务操作
+    # 组件操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/rollback$', RollBackAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view()),
-    # 设置服务构建后是否升级属性
+    # 设置组件构建后是否升级属性
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$',
         ChangeServiceUpgradeView.as_view()),
     # 查询云市安装的应用是否有（小版本，大版本）更新
@@ -532,40 +532,40 @@ urlpatterns = [
     # 二次确认删除应用
     url(r'^teams/(?P<tenantName>[\w\-]+)/again_delete$', AgainDelete.as_view()),
 
-    # 某个服务的event
+    # 某个组件的event
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/event_log$', AppEventLogView.as_view()),
-    # 某个服务的日志
+    # 某个组件的日志
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log$', AppLogView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log_instance$', AppLogInstanceView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/history_log$', AppHistoryLogView.as_view()),
 
-    # 服务探针
+    # 组件探针
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view()),
 
-    # 服务扩容操作
+    # 组件扩容操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/horizontal$',
         HorizontalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view()),
-    # 修改服务应用类型标签
+    # 修改组件应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',
         ChangeServiceTypeView.as_view()),
 
-    # 修改服务名称
+    # 修改组件名称
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$',
         ChangeServiceNameView.as_view()),
 
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view()),
 
-    # 服务监控
+    # 组件监控
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/monitor/query_range$',
         AppMonitorQueryRangeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/monitor/query$', AppMonitorQueryView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/monitor/batch_query$',
         BatchAppMonitorQueryView.as_view()),
-    # 服务标签
+    # 组件标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view()),
     # 添加特性获取可用标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$',
@@ -587,7 +587,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/all$', AllPluginBaseInfoView.as_view()),
     # 查询某个插件的基础信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)$', PluginBaseInfoView.as_view()),
-    # 查询当前插件被使用的应用
+    # 查询当前插件被使用的组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/used_services$',
         PluginUsedServiceView.as_view()),
     # 插件历史版本信息查询
@@ -687,7 +687,7 @@ urlpatterns = [
 
     # 获取自定义角色时可给角色绑定的权限选项
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
-    # 获取三方服务自定义角色时可给角色绑定的权限选项
+    # 获取第三方组件自定义角色时可给角色绑定的权限选项
     url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
     # 在一个团队中创建一个角色
     url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
@@ -803,7 +803,7 @@ urlpatterns += [
     # 某一条升级记录
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)$',
         app_upgrade.AppUpgradeRecordView.as_view()),
-    # 查询某云市应用下服务的更新信息
+    # 查询某云市应用下组件的更新信息
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info$',
         app_upgrade.AppUpgradeInfoView.as_view()),
     # 创建升级任务

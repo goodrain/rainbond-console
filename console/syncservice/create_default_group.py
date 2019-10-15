@@ -54,7 +54,7 @@ class SyncTenantServiceManager(object):
         return services
 
     def is_service_ungrouped(self, service):
-        """查询应用是否在关系表中"""
+        """查询组件是否在关系表中"""
         results = ServiceGroupRelation.objects.filter(service_id=service.service_id)
         if not results:
             return True

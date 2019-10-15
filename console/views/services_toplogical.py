@@ -119,7 +119,7 @@ class TopologicalGraphView(ToplogicalBaseView):
 class GroupServiceDetView(ToplogicalBaseView):
     def get(self, request, *args, **kwargs):
         """
-        拓扑图中应用详情
+        拓扑图中组件详情
         ---
         parameters:
             - name: team_name
@@ -128,7 +128,7 @@ class GroupServiceDetView(ToplogicalBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 应用别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

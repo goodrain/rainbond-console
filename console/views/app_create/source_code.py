@@ -24,7 +24,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
-        源码创建应用
+        源码创建组件
         ---
         parameters:
             - name: tenantName
@@ -38,12 +38,12 @@ class SourceCodeCreateView(RegionTenantHeaderView):
               type: string
               paramType: form
             - name: code_from
-              description: 应用代码来源
+              description: 组件代码来源
               required: true
               type: string
               paramType: form
             - name: service_cname
-              description: 应用名称
+              description: 组件名称
               required: true
               type: string
               paramType: form
@@ -97,7 +97,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "params error", "参数service_code_from未指明"), status=400)
             if not server_type:
                 return Response(general_message(400, "params error", "仓库类型未指明"), status=400)
-            # 创建源码应用
+            # 创建源码组件
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
             code, msg_show, new_service = app_service.create_source_code_app(
@@ -109,7 +109,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if git_password or git_user_name:
                 app_service.create_service_source_info(self.tenant, new_service, git_user_name, git_password)
 
-            # 添加服务所在组
+            # 添加组件所在组
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
             if code != 200:
@@ -131,7 +131,7 @@ class AppCompileEnvView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务运行环境信息
+        获取组件运行环境信息
         ---
         parameters:
             - name: tenantName
@@ -140,7 +140,7 @@ class AppCompileEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -170,7 +170,7 @@ class AppCompileEnvView(AppBaseView):
     @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
-        修改应用运行环境信息
+        修改组件运行环境信息
         ---
         parameters:
             - name: tenantName
@@ -179,22 +179,22 @@ class AppCompileEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: service_runtimes
-              description: 服务运行版本，如php5.5等
+              description: 组件运行版本，如php5.5等
               required: false
               type: string
               paramType: form
             - name: service_server
-              description: 服务使用的服务器，如tomcat,apache,nginx等
+              description: 组件使用的服务器，如tomcat,apache,nginx等
               required: false
               type: string
               paramType: form
             - name: service_dependency
-              description: 服务依赖，如php-mysql扩展等
+              description: 组件依赖，如php-mysql扩展等
               required: false
               type: string
               paramType: form

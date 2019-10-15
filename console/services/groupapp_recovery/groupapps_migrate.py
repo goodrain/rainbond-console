@@ -117,7 +117,7 @@ class GroupappsMigrateService(object):
         if migrate_type == "recover":
             is_all_services_closed = self.__check_group_service_status(current_region, current_team, backup_record.group_id)
             if not is_all_services_closed:
-                return 409, "恢复备份请确保当前组下的应用全部关闭", None
+                return 409, "恢复备份请确保当前组下的组件全部关闭", None
 
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
         logger.debug('-----------232------------>{0}'.format(backup_record.group_id))

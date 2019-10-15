@@ -40,7 +40,7 @@ class AppMonitorQueryView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -69,7 +69,7 @@ class AppMonitorQueryRangeView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -89,7 +89,7 @@ class AppResourceQueryView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        应用资源查询
+        组件资源查询
         ---
         parameters:
             - name: tenantName
@@ -98,7 +98,7 @@ class AppResourceQueryView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -138,13 +138,13 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         group_id = kwargs.get("group_id", None)
         result_list = []
         """
-        1. 获取组下所有的服务
-        2. 查询所有服务对应的pod信息，找出ip信息
+        1. 获取组下所有的组件
+        2. 查询所有组件对应的pod信息，找出ip信息
         3. 根据pod信息和ip信息 查询出 响应时间和吞吐率
-        4. 查询对外的服务的信息
+        4. 查询对外的组件的信息
         5. ip信息为public，查询出响应时间和吞吐率
         6. 综合查到的信息，组合为返回参数
-        [{"is_web":True,"source":"服务名称","target":"服务名称","data":{"response_time":0.9,"throughput_rate":10}}]
+        [{"is_web":True,"source":"组件名称","target":"组件名称","data":{"response_time":0.9,"throughput_rate":10}}]
         """
         if group_id is None:
             return Response(general_message(400, "group id is none", "请指明要查询的组名称"), status=400)

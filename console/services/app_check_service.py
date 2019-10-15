@@ -33,7 +33,7 @@ class AppCheckService(object):
 
     def check_service(self, tenant, service, is_again):
         # if service.create_status == "complete":
-        #     return 409, "应用完成创建,请勿重复检测", None
+        #     return 409, "组件完成创建,请勿重复检测", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
@@ -173,7 +173,7 @@ class AppCheckService(object):
                     if sid:
                         transaction.savepoint_rollback(sid)
                     logger.exception(e)
-                    return 400, "解析并存储服务属性发生错误"
+                    return 400, "解析并存储组件属性发生错误"
         return 200, "success"
 
     def upgrade_service_env_info(self, tenant, service, data):

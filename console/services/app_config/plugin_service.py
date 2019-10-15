@@ -10,7 +10,7 @@ logger = logging.getLogger("default")
 
 
 class AppPluginService(object):
-    # 获取指定应用可用插件列表
+    # 获取指定组件可用插件列表
     # 返回数据包含是否已安装信息
     def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
 

@@ -16,7 +16,7 @@ class ServiceProbeRepository(object):
             return probe[0]
         return None
 
-    # 三方服务获取探针信息
+    # 第三方组件获取探针信息
     def get_probe(self, service_id):
         return ServiceProbe.objects.filter(service_id=service_id).first()
 
