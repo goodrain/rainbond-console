@@ -68,3 +68,4 @@ class FeatureConfigRespSerializer(serializers.Serializer):
     GITHUB = GithubServiceAPIRespSerializer(required=False)
     GITLAB = GitlabServiceAPIRespSerializer(required=False)
     APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
+    OPEN_DATA_CENTER_STATUS = serializers.BooleanField()

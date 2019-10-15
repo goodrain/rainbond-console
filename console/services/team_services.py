@@ -399,7 +399,7 @@ class TeamService(object):
         team = team_repo.get_team_by_team_id(team_id=team_id)
         if team:
             user = user_repo.get_by_user_id(team.creater)
-            team.creater = user.nick_name
+            team.creater = user.user_id
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
