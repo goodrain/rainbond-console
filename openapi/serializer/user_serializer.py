@@ -37,7 +37,7 @@ class UpdateUserSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=16, required=False, min_length=8, help_text=u"用户昵称")
     enterprise_id = serializers.CharField(max_length=32, required=False, help_text=u"enterprise_id")
     email = serializers.EmailField(max_length=35, required=False, help_text=u"邮件地址")
-    phone = serializers.CharField(max_length=11, required=False, help_text=u"手机号码")
+    phone = serializers.CharField(max_length=11, required=False, allow_blank=True, help_text=u"手机号码")
     is_active = serializers.NullBooleanField(required=False, help_text=u"激活状态")
 
 
