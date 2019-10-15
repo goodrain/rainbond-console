@@ -103,7 +103,7 @@ class ConfigInfoView(AlowAnyApiView):
                 official_demo = config_service.add_config(
                     key="OFFICIAL_DEMO", default_value='True', type="string",
                     desc="开启/关闭文档").value
-            if official_demo:
+            if official_demo == "True":
                 data["official_demo"] = True
             else:
                 data["official_demo"] = False
@@ -113,7 +113,7 @@ class ConfigInfoView(AlowAnyApiView):
                 cloud_market = config_service.add_config(
                     key="CLOUD_MARKET", default_value='True', type="string",
                     desc="开启/关闭云应用市场").value
-            if cloud_market:
+            if cloud_market == "True":
                 data["cloud_market"] = True
             else:
                 data["cloud_market"] = False

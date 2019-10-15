@@ -65,7 +65,7 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
 
 
 class DocumentRespSerializer(serializers.Serializer):
-    platform_url = serializers.CharField(max_length=2047)
+    platform_url = serializers.CharField(max_length=2047, required=False)
 
 
 class FeatureConfigRespSerializer(serializers.Serializer):

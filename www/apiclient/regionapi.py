@@ -89,7 +89,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         try:
             res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
-        except Exception as e:
+        except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
     def create_service(self, region, tenant_name, body):

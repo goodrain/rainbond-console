@@ -13,11 +13,13 @@ class ConfigRepository(object):
                 "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
                 "CLOUD_MARKET", "REGISTER_STATUS"]
         cfg = ConsoleSysConfig.objects.get(key=key)
-        if cfg.value in KEYS:
+        if key in KEYS:
             cfg.value = "False"
+            cfg.save()
         # if cfg.value == "DOCUMENT":
         #     cfg.value = {"enable": False}
-        cfg.save()
+        else:
+            cfg.delete()
 
     def update_by_key(self, key, value):
         return ConsoleSysConfig.objects.filter(key=key).update(value=value)
