@@ -85,10 +85,8 @@ class ConfigInfoView(AlowAnyApiView):
                 document = config_service.add_config(
                     key="DOCUMENT", default_value='{"platform_url": "https://www.rainbond.com/"}',
                     type="json", desc="开启/关闭官方Demo").value
-            if document:
-                data["document"] = '{"platform_url": "https://www.rainbond.com/"}'
-            else:
-                data["document"] = None
+            if document != "False":
+                data["document"] = document
 
             export_app = config_service.get_config_by_key("EXPORT_APP")
             if not export_app:
