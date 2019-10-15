@@ -541,8 +541,7 @@ class DomainService(object):
         data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
-        if default_ip != ip:
-            data["ip"] = ip
+        data["ip"] = ip
         data["port"] = int(port)
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
