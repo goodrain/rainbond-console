@@ -36,7 +36,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
     @perm_required('create_three_service')
     def post(self, request, *args, **kwargs):
         """
-        创建三方服务
+        创建第三方组件
 
         """
 
@@ -45,13 +45,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints = request.data.get("endpoints", None)
         endpoints_type = request.data.get("endpoints_type", None)
 
-        if endpoints_type == "static":
-            errs = check_endpoints(endpoints)
-            if errs:
-                return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
-
         if not service_cname:
-            return Response(general_message(400, "service_cname is null", "服务名未指明"), status=400)
+            return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
         if not endpoints and endpoints_type != "api":
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
 
@@ -60,7 +55,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "service create fail", msg_show), status=code)
 
-        # 添加服务所在组
+        # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                             new_service.service_id)
         if code != 200:
@@ -90,19 +85,29 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
 def check_endpoints(endpoints):
     if not endpoints:
-        return ["parameter error"]
+        return ["parameter error"], False
     for endpoint in endpoints:
         # TODO: ipv6
-        address = endpoint
+        errs = []
+        if "https://" in endpoint:
+            endpoint = endpoint.partition("https://")[2]
+        if "http://" in endpoint:
+            endpoint = endpoint.partition("http://")[2]
         if ":" in endpoint:
-            address = endpoint.rpartition(":")[0]
-        errs = validate_endpoint_address(address)
+            endpoint = endpoint.rpartition(":")[0]
+        errs = validate_endpoint_address(endpoint)
         if errs:
+            if len(endpoints) > 1:
+                logger.error("endpoint: {}; do not support multi domain endpoint".format(endpoint))
+                return ["do not support multi domain endpoint"], True
+            else:
+                return [], True
             logger.error("endpoint: {}; invalid endpoint address: {}".format(endpoint, json.dumps(errs)))
-            return errs
+            return errs, False
+    return [], False
 
 
-# 三方服务中api注册方式回调接口
+# 第三方组件中api注册方式回调接口
 class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
@@ -179,6 +184,11 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             addresses = []
             for endpoint in endpoint_list:
                 addresses.append(endpoint["address"])
+            addr_list = [addr for addr in addresses]
+            addr_list.append(address)
+            errs, _ = check_endpoints(addr_list)
+            if len(errs) > 0:
+                return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
             if address not in addresses:
                 # 添加
                 res, body = region_api.post_third_party_service_endpoints(
@@ -245,7 +255,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         return Response(result, status=result["code"])
 
 
-# 三方服务中api注册方式重置秘钥
+# 第三方组件中api注册方式重置秘钥
 class ThirdPartyUpdateSecretKeyView(AppBaseView):
     @never_cache
     @perm_required('reset_secret_key')
@@ -266,13 +276,13 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
             return Response(result, status=500)
 
 
-# 三方服务pod信息
+# 第三方组件pod信息
 class ThirdPartyAppPodsView(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取三方服务实例信息
+        获取第三方组件实例信息
         ---
         parameters:
             - name: tenantName
@@ -281,7 +291,7 @@ class ThirdPartyAppPodsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -312,20 +322,26 @@ class ThirdPartyAppPodsView(AppBaseView):
         is_online = request.data.get("is_online", True)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-
-        errs = check_endpoints([address])
-        if errs:
-            return Response(general_message(400, "parameter error", "服务地址格式不合法"), status=400)
-
+        try:
+            res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                                                self.service.service_alias)
+            if res.status != 200:
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+            endpoint_list = body["list"]
+            for endpoint in endpoint_list:
+                errs, _ = check_endpoints([endpoint["address"], address])
+                if len(errs) > 0:
+                    return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
+        except Exception as e:
+            logger.exception(e)
         try:
             endpoint_dict = dict()
             endpoint_dict["address"] = address
             endpoint_dict["is_online"] = is_online
             res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                       self.service.service_alias, endpoint_dict)
-
             if res.status != 200:
-                return Response(general_message(412, "region delete error", "数据中心添加失败"), status=412)
+                return Response(general_message(412, "region add endpoint failure", "数据中心添加失败"), status=412)
             result = general_message(200, "success", "添加成功")
             return Response(result)
         except region_api.CallApiFrequentError as e:
@@ -334,9 +350,9 @@ class ThirdPartyAppPodsView(AppBaseView):
         except RegionApiBaseHttpClient.InvalidLicenseError as e:
             raise e
         except Exception as e:
+            logger.exception(e)
             if e.status == 400:
                 return Response(general_message(400, "region delete error", "实例已存在({})".format(address)), status=400)
-            logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
 
@@ -353,14 +369,24 @@ class ThirdPartyAppPodsView(AppBaseView):
         ep_id = request.data.get("ep_id", None)
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-        endpoint_dict = dict()
-        endpoint_dict["ep_id"] = ep_id
-        res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                    self.service.service_alias, endpoint_dict)
-        if res.status != 200:
-            return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
-        result = general_message(200, "success", "删除成功")
-        return Response(result)
+        try:
+            endpoint_dict = dict()
+            endpoint_dict["ep_id"] = ep_id
+            res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                                        self.service.service_alias, endpoint_dict)
+            logger.debug('-------res------->{0}'.format(res))
+            logger.debug('=======body=======>{0}'.format(body))
+
+            if res.status != 200:
+                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+            # service_endpoints_repo.delete_service_endpoints_by_service_id(self.service.service_id)
+            result = general_message(200, "success", "删除成功")
+            return Response(result)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
 
     @never_cache
     @perm_required('put_endpoint')
@@ -400,13 +426,13 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
 
-# 三方服务健康检测
+# 第三方组件健康检测
 class ThirdPartyHealthzView(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取三方服务健康检测结果
+        获取第三方组件健康检测结果
         :param request:
         :param args:
         :param kwargs:
@@ -426,7 +452,7 @@ class ThirdPartyHealthzView(AppBaseView):
     @perm_required('health_detection')
     def put(self, request, *args, **kwargs):
         """
-        编辑三方服务的健康检测
+        编辑第三方组件的健康检测
         :param request:
         :param args:
         :param kwargs:

@@ -19,11 +19,11 @@ class AppPluginRelationRepo(object):
         return None
 
     def get_used_plugin_services(self, plugin_id):
-        """获取使用了某个插件的服务"""
+        """获取使用了某个插件的组件"""
         return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id)
 
     def create_service_plugin_relation(self, **params):
-        """创建服务插件关系"""
+        """创建组件插件关系"""
         TenantServicePluginRelation.objects.create(**params)
 
     def update_service_plugin_status(self, service_id, plugin_id, is_active):

@@ -27,7 +27,7 @@ class TeamInfoSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
     create_time = serializers.DateTimeField(help_text=u"创建时间", required=False)
     creater = serializers.CharField(help_text=u"团队拥有者用户", required=False)
-    service_num = serializers.IntegerField(help_text=u"团队的服务数量", required=False)
+    service_num = serializers.IntegerField(help_text=u"团队的组件数量", required=False)
     region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
     role_infos = RoleInfoSerializer(many=True, help_text=u"用户在团队中拥有的角色", required=False)
 
@@ -42,6 +42,10 @@ class CreateTeamReqSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"团队所属企业ID,未提供时默认使用请求用户企业ID")
     creater = serializers.IntegerField(help_text=u"团队所属人，未提供时默认使用登录用户作为所属人", required=False)
     region = serializers.CharField(max_length=24, help_text=u"默认开通的数据中心，未指定则不开通", required=False)
+
+
+class TeamRegionReqSerializer(serializers.Serializer):
+    region = serializers.CharField(max_length=24, help_text=u"数据中心名称", required=False)
 
 
 class UpdateTeamInfoReqSerializer(serializers.Serializer):

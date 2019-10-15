@@ -99,20 +99,20 @@ class ComposeService(object):
             if data["check_status"] == "success":
                 if group_compose.create_status == "checking":
                     logger.debug("checking compose service install,save info into database")
-                # 先删除原来创建的应用
+                # 先删除原来创建的组件
                 self.__delete_created_compose_info(tenant, group_compose.compose_id)
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
                     service_dep_map = {}
-                    # 服务列表
+                    # 组件列表
                     name_service_map = {}
                     for service_info in service_info_list:
                         service_cname = service_info.get("image_alias", service_info["image_alias"])
                         image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
                         service = self.__init_compose_service(tenant, user, service_cname, image, region)
-                        # 缓存创建的服务
+                        # 缓存创建的组件
                         service_list.append(service)
                         name_service_map[service_cname] = service
 
@@ -123,7 +123,7 @@ class ComposeService(object):
                             return code, msg, None
                         # save service info
                         service.save()
-                        # 创建服务构建源信息，存储账号密码
+                        # 创建组件构建源信息，存储账号密码
                         envs = service_info.get("envs", [])
                         hub_user = group_compose.hub_user
                         hub_password = group_compose.hub_pass
@@ -151,15 +151,6 @@ class ComposeService(object):
             return 500, "{0}".format(e.message), service_list
         return 200, "success", service_list
 
-    def verify_compose_services(self, tenant, region, data):
-        if data["check_status"] == "success":
-            service_info_list = data["service_info"]
-            # 默认128 M
-            new_add_memory = len(service_info_list) * 128
-            return app_service.verify_source(tenant, region, new_add_memory, "compose_service_create")
-        else:
-            return True, "check is not success"
-
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
         if service_dep_map:
             for key in service_dep_map.keys():
@@ -178,7 +169,7 @@ class ComposeService(object):
 
     def __init_compose_service(self, tenant, user, service_cname, image, region):
         """
-        初始化docker compose创建的应用默认数据
+        初始化docker compose创建的组件默认数据
         """
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
@@ -234,14 +225,14 @@ class ComposeService(object):
 
         compose_repo.delete_group_compose_by_compose_id(compose_id)
         group_repo.delete_group_by_pk(group_id)
-        # 删除应用与组的关系
+        # 删除组件与组的关系
         group_service_relation_repo.delete_relation_by_group_id(group_id)
         compose_repo.delete_group_compose_by_group_id(group_id)
 
     def __delete_created_compose_info(self, tenant, compose_id):
         services = self.get_compose_services(compose_id)
         for s in services:
-            # 彻底删除服务
+            # 彻底删除组件
             code, msg = app_manage_service.truncate_service(tenant, s)
             if code != 200:
                 logger.error("delete compose services error {0}".format(msg))
@@ -283,7 +274,7 @@ class ComposeService(object):
 
                 # service_name_bean = {
                 #     "type": "service_name",
-                #     "key": "服务名称",
+                #     "key": "组件名称",
                 #     "value": service_info["image_alias"]
                 # }
                 # service_attr_list.append(service_name_bean)

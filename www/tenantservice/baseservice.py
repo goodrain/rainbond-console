@@ -252,7 +252,7 @@ class BaseTenantService(object):
             raise e
 
     def handle_service_port(self, tenant, service, ports_info):
-        """处理服务端口"""
+        """处理组件端口"""
         for port in ports_info:
             # 如果对外访问为打开,则调用api 打开数据
             if port.is_outer_service:
@@ -278,7 +278,7 @@ class BaseTenantService(object):
                     logger.exception(e)
                     port.is_outer_service = False
                     port.save()
-            # 打开对内服务
+            # 打开对内组件
             if port.is_inner_service:
                 mapping_port = port.container_port
                 try:
@@ -463,7 +463,7 @@ class BaseTenantService(object):
         except Exception, e:
             logger.exception(e)
 
-    # 检查事件是否超时，应用起停操作30s超时，其他操作3m超时
+    # 检查事件是否超时，组件起停操作30s超时，其他操作3m超时
     def checkEventTimeOut(self, event):
         start_time = event.start_time
         if event.type == "deploy" or event.type == "create":
@@ -685,7 +685,7 @@ class BaseTenantService(object):
             if volume.volume_type == TenantServiceVolume.SHARE:
                 if TenantServiceMountRelation.objects.filter(
                         dep_service_id=volume.service_id, mnt_name=volume.volume_name).count() > 0:
-                    return False, '有依赖的应用'
+                    return False, '有依赖的组件'
             try:
                 res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
                                                               volume.volume_name, tenant.enterprise_id)
@@ -742,7 +742,7 @@ class BaseTenantService(object):
             logger.exception(e)
             return None
 
-    # 获取服务类型
+    # 获取组件类型
     def get_service_kind(self, service):
         # 自定义镜像
         kind = "image"
@@ -977,7 +977,7 @@ class TenantAccountService(object):
             if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
                 return True
         else:
-            # 将原有免费用户的服务设置为7天后
+            # 将原有免费用户的组件设置为7天后
             service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
         return False
 
@@ -1176,13 +1176,13 @@ class ServiceAttachInfoManage(object):
         pre_paid_period = attach_info.pre_paid_period
 
         if tenant.pay_type == "free":
-            # 免费租户的应用过期时间为7天
+            # 免费租户的组件过期时间为7天
             startTime = datetime.datetime.now() + datetime.timedelta(days=7) + datetime.timedelta(hours=1)
             startTime = startTime.strftime("%Y-%m-%d %H:00:00")
             startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
 
             service.expired_time = startTime
-            # 临时将应用的过期时间保持跟租户的过期时间一致
+            # 临时将组件的过期时间保持跟租户的过期时间一致
             # service.expired_time = tenant.expired_time
             service.save()
             endTime = startTime + relativedelta(months=int(pre_paid_period))

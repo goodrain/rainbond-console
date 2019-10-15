@@ -98,7 +98,7 @@ class ProbeUpdateSerilizer(serializers.Serializer):
 
 
 class TenantServiceUpdateSerilizer(serializers.Serializer):
-    service_cname = serializers.CharField(max_length=100, required=False, help_text=u"服务名称")
+    service_cname = serializers.CharField(max_length=100, required=False, help_text=u"组件名称")
     image = serializers.CharField(max_length=100, required=False, help_text=u"镜像")
     cmd = serializers.CharField(max_length=2048, required=False, help_text=u"启动参数")
     docker_cmd = serializers.CharField(max_length=2048, required=False, help_text=u"镜像创建命令")

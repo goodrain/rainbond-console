@@ -4,8 +4,8 @@ from django.db import models
 from .main import BaseModel
 
 data_type = (
-    (u"应用端口", 'upstream_port'),
-    (u"应用下游依赖端口", "downstream_port"),
+    (u"组件端口", 'upstream_port'),
+    (u"组件下游依赖端口", "downstream_port"),
     (u"无", "un_define"),
 )
 injection_method = ((u"自主发现", 'auto'), (u"环境变量", "env"))
@@ -95,12 +95,12 @@ class PluginConfigItems(BaseModel):
 
 
 class TenantServicePluginRelation(BaseModel):
-    """服务和插件关系"""
+    """组件和插件关系"""
 
     class Meta:
         db_table = "tenant_service_plugin_relation"
 
-    service_id = models.CharField(max_length=32, help_text=u"服务ID")
+    service_id = models.CharField(max_length=32, help_text=u"组件ID")
     plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
     service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
@@ -109,15 +109,15 @@ class TenantServicePluginRelation(BaseModel):
 
 
 class TenantServicePluginAttr(BaseModel):
-    """旧版服务插件属性"""
+    """旧版组件插件属性"""
 
     class Meta:
         db_table = "tenant_service_plugin_attr"
 
-    service_id = models.CharField(max_length=32, help_text=u"服务ID")
-    service_alias = models.CharField(max_length=32, help_text=u"主服务别名")
-    dest_service_id = models.CharField(max_length=32, help_text=u"服务ID")
-    dest_service_alias = models.CharField(max_length=32, help_text=u"服务别名")
+    service_id = models.CharField(max_length=32, help_text=u"组件ID")
+    service_alias = models.CharField(max_length=32, help_text=u"主组件别名")
+    dest_service_id = models.CharField(max_length=32, help_text=u"组件ID")
+    dest_service_alias = models.CharField(max_length=32, help_text=u"组件别名")
     plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
     service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
     injection = models.CharField(max_length=32, help_text=u"注入方式 auto, env")
@@ -133,18 +133,18 @@ class TenantServicePluginAttr(BaseModel):
 
 
 class ServicePluginConfigVar(BaseModel):
-    """新版服务插件属性"""
+    """新版组件插件属性"""
 
     class Meta:
         db_table = "service_plugin_config_var"
 
-    service_id = models.CharField(max_length=32, help_text=u"服务ID")
+    service_id = models.CharField(max_length=32, help_text=u"组件ID")
     plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")
     service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
     injection = models.CharField(max_length=32, help_text=u"注入方式 auto, env")
-    dest_service_id = models.CharField(max_length=32, default='', help_text=u"服务ID")
-    dest_service_alias = models.CharField(max_length=32, default="", help_text=u"服务别名")
+    dest_service_id = models.CharField(max_length=32, default='', help_text=u"组件ID")
+    dest_service_alias = models.CharField(max_length=32, default="", help_text=u"组件别名")
     container_port = models.IntegerField(help_text=u"依赖端口")
     attrs = models.CharField(max_length=1024, help_text=u"键值对", default="")
     protocol = models.CharField(max_length=16, help_text=u"端口协议", default="")

@@ -181,7 +181,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         version = parse_argument(request, 'version', value_type=str, required=True,
                                  error='version is a required parameter')
 
-        # 查询某一个云市应用下的所有服务
+        # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
 
         upgrade_info = [{
@@ -246,7 +246,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             pk=data['upgrade_record_id'],
         )
 
-        # 处理新增的服务
+        # 处理新增的组件
         add_service_infos = {
             service['service']['service_key']: service['upgrade_info']
             for service in data['services'] if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
@@ -260,10 +260,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             template['apps'] = add_service_infos.values()
             new_app.app_template = json.dumps(template)
 
-            # 查询某一个云市应用下的所有服务
+            # 查询某一个云市应用下的所有组件
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
-                market_app_service.check_package_app_resource(self.tenant, self.response_region, new_app)
                 install_info = market_app_service.install_service_when_upgrade_app(
                     self.tenant, self.response_region, self.user, group_id, new_app, old_app, services, True)
 
@@ -275,7 +274,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
                     msg="resource is not enough", msg_show=re.message, status_code=412, error_code=10406)
             upgrade_service.create_add_service_record(app_record, install_info['events'], add_service_infos)
 
-        # 处理需要升级的服务
+        # 处理需要升级的组件
         upgrade_service_infos = {
             service['service']['service_id']: service['upgrade_info']
             for service in data['services']

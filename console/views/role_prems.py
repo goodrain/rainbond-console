@@ -47,7 +47,7 @@ class PermOptionsView(JWTAuthApiView):
 class ThreeServicePermOptionsView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """
-        获取三方服务自定义角色时可给角色绑定的权限选项
+        获取第三方组件自定义角色时可给角色绑定的权限选项
         ---
 
         """
@@ -563,7 +563,7 @@ class ServicePermissionView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取一个应用中存在的成员及他们的权限
+        获取一个组件中存在的成员及他们的权限
         ---
         parameters:
             - name: tenantName
@@ -572,7 +572,7 @@ class ServicePermissionView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -590,7 +590,7 @@ class ServicePermissionView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加的用户权限，可单个可批量
+        为组件添加的用户权限，可单个可批量
         ---
         parameters:
             - name: tenantName
@@ -599,7 +599,7 @@ class ServicePermissionView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -634,7 +634,7 @@ class ServicePermissionView(AppBaseView):
                 self.user, user_list, self.tenant, self.service, perm_list)
             if code != 200:
                 return Response(general_message(code, "add service perm error", msg), status=400)
-            result = general_message(code, "success", "添加应用成员成功")
+            result = general_message(code, "success", "添加组件成员成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -644,7 +644,7 @@ class ServicePermissionView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def put(self, request, *args, **kwargs):
         """
-        修改用户在应用中的权限
+        修改用户在组件中的权限
         ---
         parameters:
             - name: tenantName
@@ -653,7 +653,7 @@ class ServicePermissionView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -698,7 +698,7 @@ class ServicePermissionView(AppBaseView):
     @perm_required('manage_service_member_perms')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用添加的权限
+        删除组件添加的权限
         ---
         parameters:
             - name: tenantName
@@ -707,7 +707,7 @@ class ServicePermissionView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -733,7 +733,7 @@ class ServicePermissionView(AppBaseView):
             code, msg = app_perm_service.delete_user_service_perm(self.user, user_id, self.service)
             if code != 200:
                 return Response(general_message(code, "delete service perm error", msg), status=400)
-            result = general_message(code, "success", "删除应用成员成功")
+            result = general_message(code, "success", "删除组件成员成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

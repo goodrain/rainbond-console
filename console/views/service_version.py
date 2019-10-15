@@ -31,7 +31,7 @@ class AppVersionsView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的构建版本
+        获取组件的构建版本
         ---
         parameters:
             - name: tenantName
@@ -40,7 +40,7 @@ class AppVersionsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -135,7 +135,7 @@ class AppVersionManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某次构建版本
+        删除组件的某次构建版本
         ---
         parameters:
             - name: tenantName
@@ -144,7 +144,7 @@ class AppVersionManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -168,7 +168,7 @@ class AppVersionManageView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用的某个具体版本
+        获取组件的某个具体版本
         ---
         parameters:
             - name: tenantName
@@ -177,7 +177,7 @@ class AppVersionManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

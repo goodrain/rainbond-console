@@ -20,7 +20,7 @@ notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com']
 
 class EnterpriseServices(object):
     """
-    企业服务接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
+    企业组件接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
 
     def list_all(self, query="", page=None, page_size=None):

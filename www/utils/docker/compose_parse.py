@@ -167,7 +167,7 @@ def compose_list(file_path):
             docker_service.save()
             service_list.append(docker_service)
         if version == 2:
-            # 可能存在多个服务共用卷问题
+            # 可能存在多个组件共用卷问题
             pass
         return service_list, "success"
     else:

@@ -26,7 +26,7 @@ class AppEnvView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务的环境变量参数
+        获取组件的环境变量参数
         ---
         parameters:
             - name: tenantName
@@ -35,7 +35,7 @@ class AppEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -183,7 +183,7 @@ class AppEnvView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        为应用添加环境变量
+        为组件添加环境变量
         ---
         parameters:
             - name: tenantName
@@ -192,7 +192,7 @@ class AppEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -250,7 +250,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除应用的某个环境变量
+        删除组件的某个环境变量
         ---
         parameters:
             - name: tenantName
@@ -259,7 +259,7 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -270,11 +270,11 @@ class AppEnvManageView(AppBaseView):
               paramType: path
 
         """
-        attr_name = kwargs.get("attr_name", None)
-        if not attr_name:
-            return Response(general_message(400, "attr_name not specify", u"环境变量名未指定"))
+        env_id = kwargs.get("env_id", None)
+        if not env_id:
+            return Response(general_message(400, "env_id not specify", u"环境变量ID未指定"))
         try:
-            env_var_service.delete_env_by_attr_name(self.tenant, self.service, attr_name)
+            env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id)
             result = general_message(200, "success", u"删除成功")
         except Exception as e:
             logger.exception(e)
@@ -285,7 +285,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用的某个环境变量详情
+        获取组件的某个环境变量详情
         ---
         parameters:
             - name: tenantName
@@ -294,7 +294,7 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -321,7 +321,7 @@ class AppEnvManageView(AppBaseView):
     @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
-        修改应用环境变量
+        修改组件环境变量
         ---
         parameters:
             - name: tenantName
@@ -330,12 +330,12 @@ class AppEnvManageView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
-            - name: attr_name
-              description: 环境变量名称 大写
+            - name: env_id
+              description: 环境变量ID
               required: true
               type: string
               paramType: path
@@ -351,17 +351,17 @@ class AppEnvManageView(AppBaseView):
               paramType: form
 
         """
-        attr_name = kwargs.get("attr_name", None)
-        if not attr_name:
-            return Response(general_message(400, "attr_name not specify", u"环境变量名未指定"))
+        env_id = kwargs.get("env_id", None)
+        if not env_id:
+            return Response(general_message(400, "env_id not specify", u"环境变量ID未指定"))
         try:
             name = request.data.get("name", None)
             attr_value = request.data.get("attr_value", None)
 
-            code, msg, env = env_var_service.update_env_by_attr_name(self.tenant, self.service, attr_name, name, attr_value)
+            code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value)
             if code != 200:
                 return Response(general_message(code, "update value error", msg))
-            result = general_message(200, "success", u"查询成功", bean=model_to_dict(env))
+            result = general_message(200, "success", u"更新成功", bean=model_to_dict(env))
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -369,11 +369,14 @@ class AppEnvManageView(AppBaseView):
 
     @never_cache
     @perm_required('manage_service_config')
-    def patch(self, request, attr_name, *args, **kwargs):
+    def patch(self, request, env_id, *args, **kwargs):
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
-        env = env_var_service.patch_env_scope(self.tenant, self.service, attr_name, scope)
-        return MessageResponse(msg="success", msg_show=u"更新成功", bean=env.to_dict())
+        env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope)
+        if env:
+            return MessageResponse(msg="success", msg_show=u"更新成功", bean=env.to_dict())
+        else:
+            return MessageResponse(msg="success", msg_show=u"更新成功", bean={})
 
 
 class AppBuildEnvView(AppBaseView):
@@ -381,7 +384,7 @@ class AppBuildEnvView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取构建服务的环境变量参数
+        获取构建组件的环境变量参数
         ---
         parameters:
             - name: tenantName
@@ -390,7 +393,7 @@ class AppBuildEnvView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -401,7 +404,7 @@ class AppBuildEnvView(AppBaseView):
               paramType: query
         """
         try:
-            # 获取服务构建时环境变量
+            # 获取组件构建时环境变量
             build_env_dict = dict()
             build_envs = env_var_service.get_service_build_envs(self.service)
             if build_envs:

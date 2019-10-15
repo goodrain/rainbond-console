@@ -42,25 +42,25 @@ class ShareService(object):
         if service_list:
             can_publish_list = [service for service in service_list if service.service_source != "market"]
             if not can_publish_list:
-                data = {"code": 400, "success": False, "msg_show": "此组中的应用全部来源于云市,无法发布", "list": list(), "bean": dict()}
+                data = {"code": 400, "success": False, "msg_show": "此组中的组件全部来源于云市,无法发布", "list": list(), "bean": dict()}
                 return data
             else:
-                # 批量查询应用状态
+                # 批量查询组件状态
                 service_ids = [service.service_id for service in service_list]
                 status_list = base_service.status_multi_service(
                     region=region_name, tenant_name=team_name,
                     service_ids=service_ids, enterprise_id=team.enterprise_id)
                 for status in status_list:
                     if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有应用未在运行状态不能发布。", "list": list(),
+                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(),
                                 "bean": dict()}
                         return data
                     else:
-                        data = {"code": 200, "success": True, "msg_show": "您的应用都在运行中可以发布。", "list": list(),
+                        data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
                                 "bean": dict()}
                         return data
         else:
-            data = {"code": 400, "success": False, "msg_show": "当前组内无应用", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg_show": "当前组内无组件", "list": list(), "bean": dict()}
             return data
 
     def check_whether_have_share_history(self, group_id):
@@ -68,8 +68,8 @@ class ShareService(object):
 
     def get_service_ports_by_ids(self, service_ids):
         """
-        根据多个服务ID查询服务的端口信息
-        :param service_ids: 应用ID列表
+        根据多个组件ID查询组件的端口信息
+        :param service_ids: 组件ID列表
         :return: {"service_id":TenantServicesPort[object]}
         """
         port_list = share_repo.get_port_list_by_service_ids(service_ids=service_ids)
@@ -88,8 +88,8 @@ class ShareService(object):
 
     def get_service_dependencys_by_ids(self, service_ids):
         """
-        根据多个服务ID查询服务的依赖服务信息
-        :param service_ids:应用ID列表
+        根据多个组件ID查询组件的依赖组件信息
+        :param service_ids:组件ID列表
         :return: {"service_id":TenantServiceInfo[object]}
         """
         relation_list = share_repo.get_relation_list_by_service_ids(service_ids=service_ids)
@@ -125,8 +125,8 @@ class ShareService(object):
 
     def get_service_env_by_ids(self, service_ids):
         """
-        获取应用env
-        :param service_ids: 应用ID列表
+        获取组件env
+        :param service_ids: 组件ID列表
         # :return: 可修改的环境变量service_env_change_map，不可修改的环境变量service_env_nochange_map
         :return: 环境变量service_env_map
         """
@@ -148,7 +148,7 @@ class ShareService(object):
 
     def get_service_volume_by_ids(self, service_ids):
         """
-        获取应用持久化目录
+        获取组件持久化目录
         """
         volume_list = share_repo.get_volume_list_by_service_ids(service_ids=service_ids)
         if volume_list:
@@ -166,7 +166,7 @@ class ShareService(object):
 
     def get_service_extend_method_by_keys(self, service_keys):
         """
-        获取应用伸缩状态
+        获取组件伸缩状态
         """
         extend_method_list = share_repo.get_service_extend_method_by_keys(service_keys=service_keys)
         if extend_method_list:
@@ -184,7 +184,7 @@ class ShareService(object):
 
     def get_service_probes(self, service_ids):
         """
-        获取应用健康检测探针
+        获取组件健康检测探针
         """
         probe_list = share_repo.get_probe_list_by_service_ids(service_ids=service_ids)
         if probe_list:
@@ -223,20 +223,20 @@ class ShareService(object):
             for x in service_list:
                 if x.service_key == "application" or x.service_key == "0000" or x.service_key == "":
                     array_keys.append(x.service_key)
-            # 查询服务端口信息
+            # 查询组件端口信息
             service_port_map = self.get_service_ports_by_ids(array_ids)
-            # 查询服务依赖
+            # 查询组件依赖
             dep_service_map = self.get_service_dependencys_by_ids(array_ids)
-            # 查询服务可变参数和不可变参数
+            # 查询组件可变参数和不可变参数
             # service_env_change_map, service_env_nochange_map = self.get_service_env_by_ids(array_ids)
             service_env_map = self.get_service_env_by_ids(array_ids)
-            # 查询服务持久化信息
+            # 查询组件持久化信息
             service_volume_map = self.get_service_volume_by_ids(array_ids)
             # dependent volume
             dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids)
-            # 查询服务伸缩方式信息
+            # 查询组件伸缩方式信息
             extend_method_map = self.get_service_extend_method_by_keys(array_keys)
-            # 获取应用的健康检测设置
+            # 获取组件的健康检测设置
             probe_map = self.get_service_probes(array_ids)
 
             all_data_map = dict()
@@ -732,7 +732,7 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "插件处理发生错误", None
-            # 处理应用相关
+            # 处理组件相关
             try:
                 services = share_info["share_service_list"]
                 if services:
@@ -746,7 +746,7 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug应用
+                        # slug组件
                         # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_connection_info(group_info["scope"],
@@ -787,14 +787,14 @@ class ShareService(object):
                 else:
                     if sid:
                         transaction.savepoint_rollback(sid)
-                    return 400, "分享的应用信息不能为空", None
+                    return 400, "分享的组件信息不能为空", None
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
-                return 500, "应用信息处理发生错误", None
+                return 500, "组件信息处理发生错误", None
             # 删除同个应用组分享的相同版本
             RainbondCenterApp.objects.filter(
                 version=group_info["version"], tenant_service_group_id=share_record.group_id).delete()
@@ -832,7 +832,7 @@ class ShareService(object):
 
     @staticmethod
     def _handle_dependencies(service, dev_service_set, use_force):
-        """检查服务依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
+        """检查组件依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
 
         def filter_dep(dev_service):
             """过滤依赖关系"""
@@ -842,7 +842,7 @@ class ShareService(object):
             elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
                     msg="{} service is missing dependencies".format(service['service_cname']),
-                    msg_show=u"{}服务缺少依赖服务，请添加依赖服务，或强制执行".format(service['service_cname']))
+                    msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
                 return True
 

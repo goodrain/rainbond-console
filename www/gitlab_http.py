@@ -26,10 +26,6 @@ class GitlabApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
-        gitlab_service_info = custom_config.GITLAB
-        if gitlab_service_info is not None:
-            for k, v in gitlab_service_info.items():
-                setattr(self, k, v)
 
     def _reload(self):
         gitlab_service_info = custom_config.GITLAB

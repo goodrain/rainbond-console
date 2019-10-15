@@ -367,7 +367,7 @@ class PluginUsedServiceView(PluginBaseView):
     @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
-        获取插件被哪些当前团队哪些应用使用
+        获取插件被哪些当前团队哪些组件使用
         ---
         parameters:
             - name: tenantName
