@@ -52,36 +52,29 @@ class GroupAppsBackupView(RegionTenantHeaderView):
               type: string
               paramType: form
         """
-        try:
-            group_id = int(kwargs.get("group_id", None))
-            if not group_id:
-                return Response(general_message(400, "group id is null", "请选择需要备份的组"), status=400)
-            note = request.data.get("note", None)
-            mode = request.data.get("mode", None)
-            if not note:
-                return Response(general_message(400, "note is null", "请填写备份信息"), status=400)
-            if not mode:
-                return Response(general_message(400, "mode is null", "请选择备份模式"), status=400)
+        group_id = int(kwargs.get("group_id", None))
+        if not group_id:
+            return Response(general_message(400, "group id is null", "请选择需要备份的组"), status=400)
+        note = request.data.get("note", None)
+        mode = request.data.get("mode", None)
+        if not note:
+            return Response(general_message(400, "note is null", "请填写备份信息"), status=400)
+        if not mode:
+            return Response(general_message(400, "mode is null", "请选择备份模式"), status=400)
 
-            code, running_state_services = groupapp_backup_service.check_backup_condition(
-                self.tenant, self.response_region, group_id)
-            if running_state_services:
-                return Response(
-                    general_message(412, "state service is not closed",
-                                    "您有有状态组件未关闭,应用如下 {0}".format(",".join(running_state_services))),
-                    status=412)
-            code, msg, back_up_record = groupapp_backup_service.back_up_group_apps(self.tenant, self.user, self.response_region,
-                                                                                   group_id, mode, note)
-            if code != 200:
-                return Response(general_message(code, "backup not success", msg), status=code)
+        code, running_state_services = groupapp_backup_service.check_backup_condition(
+            self.tenant, self.region_name, group_id)
+        if running_state_services:
+            msg_cn = "您有有状态服务未关闭,应用如下 {0}".format(",".join(running_state_services))
+            return Response(general_message(412, "state service is not closed", msg_cn), status=412)
+        code, msg, back_up_record = groupapp_backup_service.backup_group_apps(
+            self.tenant, self.user, self.region_name, group_id, mode, note)
+        if code != 200:
+            return Response(general_message(code, "backup not success", msg), status=code)
 
-            bean = back_up_record.to_dict()
-            bean.pop("backup_server_info")
-            result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        bean = back_up_record.to_dict()
+        bean.pop("backup_server_info")
+        result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -244,22 +237,19 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        try:
-            group_id = request.GET.get("group_id", None)
-            if not group_id:
-                return Response(general_message(400, "group id is not found", "请指定需要查询的组"), status=400)
-            page = int(request.GET.get("page", 1))
-            page_size = int(request.GET.get("page_size", 10))
-            backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.response_region, group_id)
-            is_configed = groupapp_backup_service.is_hub_and_sftp_info_configed()
-            paginator = JuncheePaginator(backups, int(page_size))
-            backup_records = paginator.page(int(page))
-            bean = {"is_configed": is_configed}
-            result = general_message(
-                200, "success", "查询成功", bean=bean, list=[backup.to_dict() for backup in backup_records], total=paginator.count)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        group_id = request.GET.get("group_id", None)
+        if not group_id:
+            return Response(general_message(400, "group id is not found", "请指定需要查询的组"), status=400)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+
+        backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.region_name, group_id)
+        paginator = JuncheePaginator(backups, int(page_size))
+        backup_records = paginator.page(int(page))
+        is_configed = groupapp_backup_service.is_hub_info_configed()
+        bean = {"is_configed": is_configed}
+        result = general_message(200, "success", "查询成功", bean=bean,
+                                 list=[backup.to_dict() for backup in backup_records], total=paginator.count)
         return Response(result, status=result["code"])
 
 

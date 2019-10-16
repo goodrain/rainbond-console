@@ -15,7 +15,6 @@ from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import extend_repo
-from console.repositories.app_config import image_service_relation_repo
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
@@ -23,13 +22,16 @@ from console.repositories.app_config import volume_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.compose_repo import compose_repo
-from console.repositories.event_repo import event_repo
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.plugin.plugin import plugin_repo
+from console.repositories.plugin.plugin_config import plugin_config_group_repo
+from console.repositories.plugin.plugin_config import plugin_config_items_repo
+from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
@@ -71,19 +73,15 @@ class GroupAppBackupService(object):
 
         return 200, running_state_services
 
-    def is_hub_and_sftp_info_configed(self):
-        slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
+    def is_hub_info_configed(self):
         image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-        if not slug_config or not image_config:
-            return False
-        return True
+        return image_config is None
 
-    def back_up_group_apps(self, tenant, user, region, group_id, mode, note):
+    def backup_group_apps(self, tenant, user, region, group_id, mode, note):
         service_slug = app_store.get_slug_connection_info("enterprise", tenant.tenant_name)
         service_image = app_store.get_image_connection_info("enterprise", tenant.tenant_name)
-        if mode == "full-online":
-            if not self.is_hub_and_sftp_info_configed():
-                return 412, "未配置sftp和hub仓库信息", None
+        if mode == "full-online" and not self.is_hub_info_configed():
+            return 412, "未配置hub仓库信息", None
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
@@ -188,20 +186,50 @@ class GroupAppBackupService(object):
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [sgr.service_id for sgr in service_group_relations]
         services = service_repo.get_services_by_service_ids(service_ids)
+
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
-        all_data["compose_service_relation"] = [relation.to_dict()
-                                                for relation in compose_service_relation] if compose_service_relation else None
+        all_data["compose_service_relation"] = [
+            relation.to_dict() for relation in compose_service_relation] if compose_service_relation else None
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
         total_memory = 0
+        plugin_ids = []
         for service in services:
             if service.service_source == "third_party" or service.create_status != "complete":
                 continue
             total_memory += service.min_memory * service.min_node
-            app_info = self.get_service_details(tenant, service)
+            app_info, pids = self.get_service_details(tenant, service)
+            plugin_ids.extend(pids)
             apps.append(app_info)
         all_data["apps"] = apps
+
+        # plugin
+        plugins = []
+        plugin_build_versions = []
+        plugin_config_groups = []
+        plugin_config_items = []
+        for plugin_id in plugin_ids:
+            plugin = plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
+            if plugin is None:
+                continue
+            plugins.append(plugin.to_dict())
+            bv = build_version_repo.get_last_ok_one(plugin_id, tenant.tenant_id)
+            if bv is None:
+                continue
+            plugin_build_versions.append(bv.to_dict())
+            pcgs = plugin_config_group_repo.list_by_plugin_id(plugin_id)
+            if pcgs:
+                plugin_config_groups.extend([p.to_dict() for p in pcgs])
+            pcis = plugin_config_items_repo.list_by_plugin_id(plugin_id)
+            if pcis:
+                plugin_config_items.extend([p.to_dict() for p in pcis])
+        all_data["plugin_info"] = {}
+        all_data["plugin_info"]["plugins"] = plugins
+        all_data["plugin_info"]["plugin_build_versions"] = plugin_build_versions
+        all_data["plugin_info"]["plugin_config_groups"] = plugin_config_groups
+        all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
+
         return total_memory, json.dumps(all_data)
 
     def get_service_details(self, tenant, service):
@@ -209,7 +237,6 @@ class GroupAppBackupService(object):
         service_labels = service_label_repo.get_service_labels(service.service_id)
         service_domains = domain_repo.get_service_domains(service.service_id)
         service_tcpdomains = tcp_domain.get_service_tcpdomains(service.service_id)
-        service_events = event_repo.get_specified_num_events(tenant.tenant_id, service.service_id)
         service_perms = service_perm_repo.get_service_perms_by_service_pk(service.ID)
         service_probes = probe_repo.get_service_probe(service.service_id)
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
@@ -217,21 +244,20 @@ class GroupAppBackupService(object):
         service_env_vars = env_var_repo.get_service_env(tenant.tenant_id, service.service_id)
         service_compile_env = compile_env_repo.get_service_compile_env(service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(service)
-        image_service_relation = image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service.service_id)
         service_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
-        service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
-        service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         service_volumes = volume_repo.get_service_volumes(service.service_id)
         service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
+        service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
+        # plugin
+        service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
+        service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
 
         app_info = {
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],
             "service_tcpdomains": [tcpdomain.to_dict() for tcpdomain in service_tcpdomains],
-            "service_events": [event.to_dict() for event in service_events],
             "service_perms": [perm.to_dict() for perm in service_perms],
             "service_probes": [probe.to_dict() for probe in service_probes],
             "service_source": service_source.to_dict() if service_source else None,
@@ -239,7 +265,6 @@ class GroupAppBackupService(object):
             "service_env_vars": [env_var.to_dict() for env_var in service_env_vars],
             "service_compile_env": service_compile_env.to_dict() if service_compile_env else None,
             "service_extend_method": service_extend_method.to_dict() if service_extend_method else None,
-            "image_service_relation": image_service_relation.to_dict() if image_service_relation else None,
             "service_mnts": [mnt.to_dict() for mnt in service_mnts],
             "service_plugin_relation": [plugin_relation.to_dict() for plugin_relation in service_plugin_relation],
             "service_plugin_config": [config.to_dict() for config in service_plugin_config],
@@ -248,7 +273,10 @@ class GroupAppBackupService(object):
             "service_config_file": [config_file.to_dict() for config_file in service_config_file],
             "service_ports": [port.to_dict() for port in service_ports]
         }
-        return app_info
+
+        plugin_ids = [pr.plugin_id for pr in service_plugin_relation]
+
+        return app_info, plugin_ids
 
     def export_group_backup(self, tenant, backup_id):
         backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)

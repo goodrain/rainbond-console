@@ -27,7 +27,9 @@ class AppPluginRelationRepo(object):
         TenantServicePluginRelation.objects.create(**params)
 
     def update_service_plugin_status(self, service_id, plugin_id, is_active):
-        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).update(plugin_status=is_active)
+        TenantServicePluginRelation.objects.filter(
+            service_id=service_id, plugin_id=plugin_id).update(
+            plugin_status=is_active)
 
     def get_relation_by_service_and_plugin(self, service_id, plugin_id):
         return TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id)
@@ -79,7 +81,8 @@ class ServicePluginAttrRepository(object):
 
 class ServicePluginConfigVarRepository(object):
     def get_service_plugin_config_var(self, service_id, plugin_id, build_version):
-        return ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id, build_version=build_version)
+        return ServicePluginConfigVar.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, build_version=build_version)
 
     def delete_service_plugin_config_var(self, service_id, plugin_id):
         ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()
