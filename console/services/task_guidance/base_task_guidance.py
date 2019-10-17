@@ -13,7 +13,7 @@ class BaseTaskGuidance:
         pass
 
     def list_base_tasks(self, eid):
-        cfg = config_service.get_config_by_key(eid)
+        cfg = config_service.get_config_by_key(eid).value
         if not cfg:
             # init base tasks
             logger.info("Enterprise id: {}; initialize basic tasks information".format(eid))

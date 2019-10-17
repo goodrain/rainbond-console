@@ -55,24 +55,40 @@ class ListFeatureConfigView(BaseOpenAPIView):
         tags=['openapi-config'],
     )
     def get(self, request):
-        queryset = config_service.list_by_keys(config_service.feature_cfg_keys)
-        queryset["OPEN_DATA_CENTER_STATUS"] = queryset.get("OPEN_DATA_CENTER_STATUS", None)
-        if queryset["OPEN_DATA_CENTER_STATUS"] is None:
-            queryset["OPEN_DATA_CENTER_STATUS"] = True
+        queryset = config_service.initialization_or_get_config()
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_description="新增或更新功能配置",
+        operation_description="修改指定的功能配置及状态",
         request_body=UpdateFeatureCfgReqSerializer(),
-        responses={200: None},
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_404_NOT_FOUND: None
+        },
         tags=['openapi-config'],
     )
     def put(self, req):
         serializer = UpdateFeatureCfgReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-        config_service.update_or_create(req.user.enterprise_id, req.data)
-        return Response(None, status=status.HTTP_200_OK)
+        for key in serializer.validated_data.keys():
+            if key.upper() in config_service.feature_cfg_keys:
+                data = serializer.validated_data[key]
+                if "enable" in data.keys():
+                    enable = data.get("enable")
+                    if data.get("value"):
+                        value = dict(data.get("value"))
+                    else:
+                        value = data.get("value")
+                    try:
+                        config_service.update_by_key(key, enable, value)
+                    except ConsoleSysConfig.DoesNotExist:
+                        return Response(None, status.HTTP_404_NOT_FOUND)
+                else:
+                    return Response(u"缺少参数：enable", status.HTTP_400_BAD_REQUEST)
+                return Response(None, status.HTTP_200_OK)
+            else:
+                return Response(u"要配置的项目找不到", status.HTTP_400_BAD_REQUEST)
 
 
 class FeatureConfigView(BaseOpenAPIView):
