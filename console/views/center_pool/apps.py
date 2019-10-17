@@ -382,14 +382,14 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            apps = market_sycn_service.get_recommended_app_list(self.tenant, page, page_size, app_name)
-            if apps and apps.list:
+            res, code, _ = market_sycn_service.get_recommended_app_list(self.tenant, page, page_size, app_name)
+            if res and res.list:
                 return MessageResponse(
                     "success",
                     msg_show="查询成功",
-                    list=[app.to_dict() for app in apps.list],
-                    total=apps.total,
-                    next_page=int(apps.page) + 1)
+                    list=[app.to_dict() for app in res.list],
+                    total=res.total,
+                    next_page=int(res.page) + 1)
             else:
                 return Response(general_message(200, "no apps", u"查询成功"), status=200)
         except Exception as e:
