@@ -414,7 +414,7 @@ class AppManageService(AppManageBase):
             return 507, "更新异常", ""
         except region_api.ResourceNotEnoughError as e:
             logger.exception(e)
-            return 412, e.msg
+            return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试", ""
