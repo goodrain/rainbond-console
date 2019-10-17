@@ -381,7 +381,7 @@ class ShareService(object):
         else:
             return []
 
-    # 查询应用组内使用的插件列表
+    # 查询应用内使用的插件列表
     def query_group_service_plugin_list(self, team, group_id):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
@@ -795,7 +795,7 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "组件信息处理发生错误", None
-            # 删除同个应用组分享的相同版本
+            # 删除同个应用分享的相同版本
             RainbondCenterApp.objects.filter(
                 version=group_info["version"], tenant_service_group_id=share_record.group_id).delete()
             # 新增加

@@ -338,12 +338,12 @@ urlpatterns = [
     # 团队下应用环境变量模糊查询
     url(r'teams/(?P<team_name>[\w\-]+)/services/envs$', TenantServiceEnvsView.as_view()),
 
-    # 应用组列表
+    # 应用列表
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view()),
-    # 应用组应用列表、状态展示
+    # 应用列表、状态展示
     url(r'^teams/(?P<team_name>[\w\-]+)/service/group$', GroupServiceView.as_view()),
 
-    # 应用组拓扑图
+    # 应用拓扑图
     # url(r'^teams/(?P<team_name>[\w\-]+)/topological/services', TopologicalGraphView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/topological$', TopologicalGraphView.as_view()),
     # 拓扑图中应用详情
@@ -365,9 +365,9 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view()),
-    # 应用组删除
+    # 应用删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', TenantGroupOperationView.as_view()),
-    # 应用组状态（应用）
+    # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view()),
     # 应用(组)常见操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
@@ -440,7 +440,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/keyword', AppKeywordView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins$', AppPluginsBriefView.as_view()),
-    # 应用组信息修改
+    # 应用信息修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view()),
     # 应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods$', ListAppPodsView.as_view()),
@@ -723,7 +723,7 @@ urlpatterns = [
     # 迁移与恢复未完成记录查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate/record$', MigrateRecordView.as_view()),
 
-    # 应用组数据删除
+    # 应用数据删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view()),
 
     # 源码仓库webhooks回调地址

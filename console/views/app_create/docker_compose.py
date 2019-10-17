@@ -78,7 +78,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: group_name
-              description: 应用组名称
+              description: 应用名称
               required: true
               type: string
               paramType: form

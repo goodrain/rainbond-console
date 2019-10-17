@@ -154,5 +154,5 @@ class TenantServiceGroupRepository(object):
 
 group_repo = GroupRepository()
 group_service_relation_repo = GroupServiceRelationRepository()
-# 应用组实体
+# 应用实体
 tenant_service_group_repo = TenantServiceGroupRepository()

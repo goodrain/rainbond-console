@@ -161,7 +161,7 @@ class TeamOverView(RegionTenantHeaderView):
 class ServiceGroupView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         """
-        应用组列表
+        应用列表
         ---
         parameters:
             - name: team_name
@@ -187,7 +187,7 @@ class GroupServiceView(RegionTenantHeaderView):
     @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
-        应用组组件列表、状态展示
+        应用组件列表、状态展示
         ---
         parameters:
             - name: team_name
@@ -206,7 +206,7 @@ class GroupServiceView(RegionTenantHeaderView):
               type: string
               paramType: query
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: query
@@ -247,7 +247,7 @@ class GroupServiceView(RegionTenantHeaderView):
                     group_service_list = paginator.page(
                         paginator.num_pages).object_list
                 result = general_message(
-                    code, "query success", "应用组查询成功", list=group_service_list, total=paginator.count)
+                    code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
             else:
                 no_group_service_list = service_repo.get_no_group_service_status_by_group_id(
                     team_name=self.team_name,
@@ -263,13 +263,13 @@ class GroupServiceView(RegionTenantHeaderView):
                     no_group_service_list = paginator.page(
                         paginator.num_pages).object_list
                 result = general_message(
-                    code, "query success", "应用组查询成功", list=no_group_service_list, total=paginator.count)
+                    code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
             result["data"]["bean"] = {
                 "tenant_actions": tenant_actions, "service_actions": service_actions}
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
-            result = general_message(400, "query success", "该应用组不存在")
+            result = general_message(400, "query success", "该应用不存在")
             return Response(result, status=400)
         except Exception as e:
             logger.exception(e)

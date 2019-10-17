@@ -70,7 +70,7 @@ class ToplogicalBaseView(JWTAuthApiView):
 class TopologicalGraphView(ToplogicalBaseView):
     def get(self, request, *args, **kwargs):
         """
-        应用组拓扑图(未分组应用无拓扑图, 直接返回列表展示)
+        应用拓扑图(未分组应用无拓扑图, 直接返回列表展示)
         ---
         parameters:
             - name: team_name
@@ -79,7 +79,7 @@ class TopologicalGraphView(ToplogicalBaseView):
               type: string
               paramType: path
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: query
@@ -91,7 +91,7 @@ class TopologicalGraphView(ToplogicalBaseView):
                 code = 200
                 no_service_list = service_repo.get_no_group_service_status_by_group_id(
                     team_name=self.team_name, region_name=self.response_region)
-                result = general_message(200, "query success", "应用组查询成功", list=no_service_list)
+                result = general_message(200, "query success", "应用查询成功", list=no_service_list)
             else:
                 if group_id is None or not group_id.isdigit():
                     code = 400
@@ -162,7 +162,7 @@ class TopologicalInternetView(ToplogicalBaseView):
               type: string
               paramType: path
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: path
@@ -173,7 +173,7 @@ class TopologicalInternetView(ToplogicalBaseView):
                 code = 200
                 no_service_list = service_repo.get_no_group_service_status_by_group_id(
                     team_name=self.team_name, region_name=self.response_region)
-                result = general_message(200, "query success", "应用组获取成功", list=no_service_list)
+                result = general_message(200, "query success", "应用获取成功", list=no_service_list)
             else:
                 code = 200
                 if group_id is None or not group_id.isdigit():

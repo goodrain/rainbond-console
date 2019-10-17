@@ -129,7 +129,7 @@ class GroupAppsView(RegionTenantHeaderView):
     @perm_required("import_and_export_service")
     def delete(self, request, *args, **kwargs):
         """
-        应用组数据删除
+        应用数据删除
         ---
         parameters:
             - name: tenantName
@@ -194,7 +194,7 @@ class MigrateRecordView(RegionTenantHeaderView):
         查询当前用户是否有未完成的恢复和迁移
         ---
             name: group_id
-            description: 应用组id
+            description: 应用id
             required: true
             type: string
             paramType: path

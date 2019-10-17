@@ -46,7 +46,7 @@ class MarketOpenAPI(HttpClient):
         return self._unpack(body)
 
     def batch_get_group_details(self, tenant_id, data):
-        """批量下载多个应用组信息"""
+        """批量下载多个应用信息"""
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url = url + "/openapi/console/v1/enter-market/apps/batch-templates"
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data))
